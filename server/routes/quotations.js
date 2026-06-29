@@ -1,0 +1,189 @@
+const express = require('express');
+const router = express.Router();
+const Quotation = require('../models/Quotation');
+const Lead = require('../models/Lead');
+const AuditLog = require('../models/AuditLog');
+const { protect } = require('../middleware/auth');
+
+// @route   GET /api/quotations
+// @desc    Get all quotations
+router.get('/', protect, async (req, res) => {
+  try {
+    const quotations = await Quotation.find({})
+      .populate('project', 'name code')
+      .populate('lead', 'name phone')
+      .populate('createdBy', 'name role')
+      .sort({ createdAt: -1 });
+    res.json(quotations);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// @route   GET /api/quotations/:id
+// @desc    Get quotation by ID
+router.get('/:id', protect, async (req, res) => {
+  try {
+    const quotation = await Quotation.findById(req.params.id)
+      .populate('project')
+      .populate('lead')
+      .populate('createdBy', 'name role');
+    if (!quotation) {
+      return res.status(404).json({ message: 'Quotation not found' });
+    }
+    res.json(quotation);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// @route   POST /api/quotations
+// @desc    Create a new quotation
+router.post('/', protect, async (req, res) => {
+  const {
+    lead: leadId,
+    project: projectId,
+    customerName,
+    customerPhone,
+    customerAddress,
+    projectType,
+    selectedUnits,
+    pricePerSqFt,
+    totalArea,
+    totalValue,
+    alternativePhone,
+    aadharNumber,
+    panNumber,
+    bankLoanRequired,
+    loanAmount,
+    preferredBank
+  } = req.body;
+
+  try {
+    const quotation = new Quotation({
+      lead: leadId,
+      project: projectId,
+      customerName,
+      customerPhone,
+      customerAddress,
+      projectType,
+      selectedUnits,
+      pricePerSqFt,
+      totalArea,
+      totalValue,
+      alternativePhone,
+      aadharNumber,
+      panNumber,
+      bankLoanRequired,
+      loanAmount,
+      preferredBank,
+      createdBy: req.user._id
+    });
+
+    await quotation.save();
+
+    // Log in Lead History
+    const lead = await Lead.findById(leadId);
+    if (lead) {
+      lead.history.push({
+        status: lead.status,
+        assignedTo: lead.assignedTo,
+        updatedBy: req.user._id,
+        timestamp: new Date(),
+        note: `Quotation Created: Valuation Rs. ${totalValue.toLocaleString()} for Unit(s): ${selectedUnits.join(', ')}`
+      });
+      await lead.save();
+    }
+
+    await AuditLog.create({
+      user: req.user._id,
+      userName: req.user.name,
+      userRole: req.user.role,
+      action: 'Create Quotation',
+      description: `Created quotation for customer ${customerName} (${customerPhone}) on project type ${projectType}`
+    });
+
+    res.status(201).json(quotation);
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+});
+
+// @route   PUT /api/quotations/:id
+// @desc    Update an existing quotation
+router.put('/:id', protect, async (req, res) => {
+  try {
+    const quotation = await Quotation.findById(req.params.id);
+    if (!quotation) {
+      return res.status(404).json({ message: 'Quotation not found' });
+    }
+
+    Object.assign(quotation, req.body);
+    await quotation.save();
+
+    // Log in Lead History
+    const lead = await Lead.findById(quotation.lead);
+    if (lead) {
+      lead.history.push({
+        status: lead.status,
+        assignedTo: lead.assignedTo,
+        updatedBy: req.user._id,
+        timestamp: new Date(),
+        note: `Quotation Updated: Valuation Rs. ${quotation.totalValue.toLocaleString()} for Unit(s): ${quotation.selectedUnits.join(', ')}`
+      });
+      await lead.save();
+    }
+
+    await AuditLog.create({
+      user: req.user._id,
+      userName: req.user.name,
+      userRole: req.user.role,
+      action: 'Update Quotation',
+      description: `Updated quotation ${quotation._id} for customer ${quotation.customerName}`
+    });
+
+    res.json(quotation);
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+});
+
+// @route   DELETE /api/quotations/:id
+// @desc    Delete a quotation
+router.delete('/:id', protect, async (req, res) => {
+  try {
+    const quotation = await Quotation.findById(req.params.id);
+    if (!quotation) {
+      return res.status(404).json({ message: 'Quotation not found' });
+    }
+
+    // Log in Lead History
+    const lead = await Lead.findById(quotation.lead);
+    if (lead) {
+      lead.history.push({
+        status: lead.status,
+        assignedTo: lead.assignedTo,
+        updatedBy: req.user._id,
+        timestamp: new Date(),
+        note: `Quotation Deleted: Valuation Rs. ${quotation.totalValue.toLocaleString()} for Unit(s): ${quotation.selectedUnits.join(', ')}`
+      });
+      await lead.save();
+    }
+
+    await quotation.deleteOne();
+
+    await AuditLog.create({
+      user: req.user._id,
+      userName: req.user.name,
+      userRole: req.user.role,
+      action: 'Delete Quotation',
+      description: `Deleted quotation ${req.params.id} for customer ${quotation.customerName}`
+    });
+
+    res.json({ message: 'Quotation deleted successfully' });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+module.exports = router;

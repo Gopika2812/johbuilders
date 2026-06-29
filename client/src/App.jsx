@@ -1,0 +1,115 @@
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { AuthProvider } from './context/AuthContext';
+import ProtectedRoute from './components/ProtectedRoute';
+import Sidebar from './components/Sidebar';
+import Navbar from './components/Navbar';
+
+// Pages
+import Login from './pages/Login';
+import Register from './pages/Register';
+import Dashboard from './pages/Dashboard';
+import RegisterProject from './pages/RegisterProject';
+import ProjectsDictionary from './pages/ProjectsDictionary';
+import ProjectDetail from './pages/ProjectDetail';
+import EmployeesDirectory from './pages/EmployeesDirectory';
+import EmployeeHistory from './pages/EmployeeHistory';
+import AccessControl from './pages/AccessControl';
+import Settings from './pages/Settings';
+import LeadsDirectory from './pages/LeadsDirectory';
+import QuotationsDirectory from './pages/QuotationsDirectory';
+import QuotationForm from './pages/QuotationForm';
+import QuotationView from './pages/QuotationView';
+import CRDFlow from './pages/CRDFlow';
+import BudgetPlanning from './pages/BudgetPlanning';
+import LeadTargetPlanning from './pages/LeadTargetPlanning';
+import SummaryPlanning from './pages/SummaryPlanning';
+
+const Layout = ({ children }) => {
+  return (
+    <div className="min-h-screen bg-gray-50 flex relative overflow-hidden">
+      {/* Fixed Sidebar */}
+      <Sidebar />
+
+      {/* Main Panel Content Frame */}
+      <div className="flex-1 pl-64 flex flex-col min-h-screen relative z-10">
+        {/* Top Navbar */}
+        <Navbar />
+
+        {/* Dynamic Page Views */}
+        <main className="flex-grow pt-24 px-8 pb-12 overflow-x-hidden relative z-10">
+          {children}
+        </main>
+      </div>
+
+      {/* Animated Background Waves */}
+      <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden opacity-30 select-none">
+        <div className="absolute bottom-0 left-0 right-0 h-96 bg-gradient-to-t from-[#0e623a]/5 via-[#a7d8ff]/5 to-transparent"></div>
+        {/* Wave 1 */}
+        <svg 
+          className="absolute bottom-0 left-0 w-[200%] h-48 text-[#0e623a]/10 animate-wave-slow" 
+          viewBox="0 0 1200 120" 
+          preserveAspectRatio="none"
+        >
+          <path d="M0,60 C150,100 350,20 500,60 C650,100 850,20 1000,60 C1150,100 1350,20 1500,60 L1500,120 L0,120 Z" fill="currentColor" />
+        </svg>
+        {/* Wave 2 */}
+        <svg 
+          className="absolute bottom-0 left-0 w-[200%] h-36 text-[#a7d8ff]/15 animate-wave-fast" 
+          viewBox="0 0 1200 120" 
+          preserveAspectRatio="none"
+        >
+          <path d="M0,40 C180,80 380,0 550,40 C720,80 920,0 1090,40 C1260,80 1460,0 1630,40 L1630,120 L0,120 Z" fill="currentColor" />
+        </svg>
+      </div>
+    </div>
+  );
+};
+
+function App() {
+  return (
+    <Router>
+      <AuthProvider>
+        <Routes>
+          {/* Public Pages */}
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+
+          {/* Protected Main Application Layout Frame */}
+          <Route element={<ProtectedRoute />}>
+            <Route path="/" element={<Layout><Dashboard /></Layout>} />
+            
+            {/* Project Modules */}
+            <Route path="/projects" element={<Layout><ProjectsDictionary /></Layout>} />
+            <Route path="/projects/register" element={<Layout><RegisterProject /></Layout>} />
+            <Route path="/projects/:id" element={<Layout><ProjectDetail /></Layout>} />
+            
+            {/* Employee Directory Modules */}
+            <Route path="/employees" element={<Layout><EmployeesDirectory /></Layout>} />
+            <Route path="/employees/history" element={<Layout><EmployeeHistory /></Layout>} />
+            
+            {/* Leads Directory Module */}
+            <Route path="/leads" element={<Layout><LeadsDirectory /></Layout>} />
+            
+            {/* Quotations Module */}
+            <Route path="/quotations" element={<Layout><QuotationsDirectory /></Layout>} />
+            <Route path="/quotations/new" element={<Layout><QuotationForm /></Layout>} />
+            <Route path="/quotations/:id/edit" element={<Layout><QuotationForm /></Layout>} />
+            <Route path="/quotations/:id" element={<Layout><QuotationView /></Layout>} />
+            
+            {/* Finance & Accounts Modules */}
+            <Route path="/finance/budget-planning" element={<Layout><BudgetPlanning /></Layout>} />
+            <Route path="/finance/lead-target-planning" element={<Layout><LeadTargetPlanning /></Layout>} />
+            <Route path="/finance/summary-planning" element={<Layout><SummaryPlanning /></Layout>} />
+
+            {/* Administration / Utilities */}
+            <Route path="/access-control" element={<Layout><AccessControl /></Layout>} />
+            <Route path="/settings" element={<Layout><Settings /></Layout>} />
+          </Route>
+        </Routes>
+      </AuthProvider>
+    </Router>
+  );
+}
+
+export default App;

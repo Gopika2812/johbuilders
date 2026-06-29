@@ -1,0 +1,1959 @@
+import React, { useState, useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { useAuth, API_URL } from '../context/AuthContext';
+import SearchableSelect from '../components/SearchableSelect';
+import { 
+  Users, 
+  Plus, 
+  Search, 
+  MapPin, 
+  Phone, 
+  User, 
+  Building, 
+  Calendar, 
+  History, 
+  CheckCircle2, 
+  AlertCircle, 
+  ExternalLink,
+  ChevronDown,
+  SlidersHorizontal,
+  FileText,
+  UserPlus,
+  Home,
+  Check,
+  DollarSign,
+  Building2,
+  CalendarClock
+} from 'lucide-react';
+
+const SOURCE_TYPES = [
+  'Paper Ad',
+  'Railway station Hoardings (Rental)',
+  'Local TV',
+  'FM Radio',
+  'Airport Advertisement - Tuticorin',
+  'Hydrogen Balloon',
+  'Notice distribution',
+  'Unipole',
+  'LED board behind park',
+  'Pearl Bliss Tuticorin Project',
+  'Satellite Channel',
+  '99acres',
+  'Housing.com',
+  'Facebook',
+  'Instagram',
+  'Youtube',
+  'Real Estate',
+  'Magicbricks',
+  'Website',
+  'Direct',
+  'Old Customer',
+  'Reference',
+  'Flexboard/Banner',
+  'Stall'
+];
+
+const LEAD_STATUSES = [
+  'New',
+  'Assigned',
+  'Contacted',
+  'Follow-Up',
+  'Site Visit',
+  'Site Visit Follow-up',
+  'Qualified',
+  'Negotiation',
+  'Booking',
+  'Won',
+  'Lost'
+];
+
+const STATUS_COLORS = {
+  'New': { bg: 'bg-blue-50/70', text: 'text-blue-700', border: 'border-blue-200', dot: 'bg-blue-500' },
+  'Assigned': { bg: 'bg-purple-50/70', text: 'text-purple-700', border: 'border-purple-200', dot: 'bg-purple-500' },
+  'Contacted': { bg: 'bg-indigo-50/70', text: 'text-indigo-700', border: 'border-indigo-200', dot: 'bg-indigo-500' },
+  'Follow-Up': { bg: 'bg-amber-50/70', text: 'text-amber-700', border: 'border-amber-200', dot: 'bg-amber-500' },
+  'Site Visit': { bg: 'bg-rose-50/70', text: 'text-rose-700', border: 'border-rose-200', dot: 'bg-rose-500' },
+  'Site Visit Follow-up': { bg: 'bg-pink-50/70', text: 'text-pink-700', border: 'border-pink-200', dot: 'bg-pink-500' },
+  'Qualified': { bg: 'bg-teal-50/70', text: 'text-teal-700', border: 'border-teal-200', dot: 'bg-teal-500' },
+  'Negotiation': { bg: 'bg-orange-50/70', text: 'text-orange-700', border: 'border-orange-200', dot: 'bg-orange-500' },
+  'Booking': { bg: 'bg-yellow-50/70', text: 'text-yellow-700', border: 'border-yellow-300', dot: 'bg-yellow-500' },
+  'Won': { bg: 'bg-emerald-50/70', text: 'text-emerald-700', border: 'border-emerald-200', dot: 'bg-emerald-500' },
+  'Lost': { bg: 'bg-gray-100', text: 'text-gray-750', border: 'border-gray-300', dot: 'bg-gray-500' },
+};
+
+const getPreviousStatus = (lead) => {
+  if (!lead.history || lead.history.length < 2) return null;
+  // Iterate backward to find the first transition that is different from current status
+  for (let i = lead.history.length - 2; i >= 0; i--) {
+    if (lead.history[i].status && lead.history[i].status !== lead.status) {
+      return lead.history[i].status;
+    }
+  }
+  return null;
+};
+
+const LeadsDirectory = () => {
+  const { token, user } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [leads, setLeads] = useState([]);
+  const [projects, setProjects] = useState([]);
+  const [employees, setEmployees] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [successMsg, setSuccessMsg] = useState('');
+
+  // Filtering / Search States
+  const [activeTab, setActiveTab] = useState('All'); // 'All' or specific status
+  const [searchTerm, setSearchTerm] = useState('');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+
+  // Sync activeTab with URL search params status
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const statusParam = params.get('status');
+    if (statusParam) {
+      const matchedStatus = LEAD_STATUSES.find(s => s.toLowerCase() === statusParam.toLowerCase());
+      if (matchedStatus) {
+        setActiveTab(matchedStatus);
+      }
+    } else {
+      setActiveTab('All');
+    }
+  }, [location.search]);
+
+  // Create Lead Modal State
+  const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [leadType, setLeadType] = useState('Lead'); // 'Lead' | 'Direct Visit'
+  const [name, setName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [address, setAddress] = useState('');
+  const [selectedProjectId, setSelectedProjectId] = useState('');
+  const [assignedToId, setAssignedToId] = useState('');
+  
+  // Lead-specific fields
+  const [leadSource, setLeadSource] = useState('');
+  const [activeAds, setActiveAds] = useState([]); // List of active ads from selected project
+  const [selectedAdId, setSelectedAdId] = useState('');
+  const [fetchedAdLink, setFetchedAdLink] = useState('');
+
+  // Direct Visit-specific fields
+  const [projectLocation, setProjectLocation] = useState('');
+  const [locations, setLocations] = useState([]); // Unique project locations
+  const [bankLoan, setBankLoan] = useState('No');
+
+  // Booking & Quotation Modal States
+  const [bookingModalOpen, setBookingModalOpen] = useState(false);
+  const [selectedLeadForBooking, setSelectedLeadForBooking] = useState(null);
+  const [bookingProjectDetails, setBookingProjectDetails] = useState(null);
+  const [selectedBookingUnits, setSelectedBookingUnits] = useState([]);
+  const [bookingAltPhone, setBookingAltPhone] = useState('');
+  const [bookingAadhar, setBookingAadhar] = useState('');
+  const [bookingPan, setBookingPan] = useState('');
+  const [bookingHasLoan, setBookingHasLoan] = useState('No');
+  const [loanAmount, setLoanAmount] = useState(0);
+  const [loanBank, setLoanBank] = useState('');
+  const [loanStatusNotes, setLoanStatusNotes] = useState('');
+  const [bookingLoading, setBookingLoading] = useState(false);
+
+  // Follow-Up & Completion Modal States
+  const [followModalOpen, setFollowModalOpen] = useState(false);
+  const [selectedLeadForFollow, setSelectedLeadForFollow] = useState(null);
+  const [followTargetStatus, setFollowTargetStatus] = useState('Follow-Up');
+  const [followMode, setFollowMode] = useState('FollowUp'); // 'FollowUp' | 'Completed'
+  const [nextFollowDate, setNextFollowDate] = useState('');
+  const [followThrough, setFollowThrough] = useState('Call');
+  const [followRemarks, setFollowRemarks] = useState('');
+  const [closeRemarks, setCloseRemarks] = useState('');
+  const [siteVisitAction, setSiteVisitAction] = useState('Keep'); // 'Keep' | 'Move'
+
+  // History Popover State
+  const [selectedLeadForHistory, setSelectedLeadForHistory] = useState(null);
+  const [historyModalOpen, setHistoryModalOpen] = useState(false);
+
+  // Duplicate Check Warning State
+  const [duplicateWarning, setDuplicateWarning] = useState(null);
+
+  // Custom Dropdown Open State
+  const [openDropdownLeadId, setOpenDropdownLeadId] = useState(null);
+
+  // Custom Quotation Check Modal State
+  const [qtnConfirmOpen, setQtnConfirmOpen] = useState(false);
+  const [pendingLeadForBooking, setPendingLeadForBooking] = useState(null);
+
+  useEffect(() => {
+    fetchLeads();
+    fetchProjects();
+    fetchEmployees();
+  }, [token]);
+
+  // Update active ads dropdown when project changes
+  useEffect(() => {
+    if (leadType === 'Lead' && selectedProjectId) {
+      const proj = projects.find(p => p._id === selectedProjectId);
+      if (proj && proj.marketingInfo) {
+        const adsList = [];
+        if (proj.marketingInfo.videos) {
+          proj.marketingInfo.videos
+            .filter(v => v.status === 'Active')
+            .forEach(v => adsList.push({ id: v._id, name: v.name, link: v.link, type: 'Video' }));
+        }
+        if (proj.marketingInfo.posters) {
+          proj.marketingInfo.posters
+            .filter(p => p.status === 'Active')
+            .forEach(p => adsList.push({ id: p._id, name: p.name, link: p.link, type: 'Poster' }));
+        }
+        setActiveAds(adsList);
+      } else {
+        setActiveAds([]);
+      }
+      setSelectedAdId('');
+      setFetchedAdLink('');
+    }
+  }, [selectedProjectId, leadType, projects]);
+
+  // Update link when ad changes
+  useEffect(() => {
+    if (selectedAdId) {
+      const ad = activeAds.find(a => a.id === selectedAdId);
+      if (ad) {
+        setFetchedAdLink(ad.link);
+      } else {
+        setFetchedAdLink('');
+      }
+    } else {
+      setFetchedAdLink('');
+    }
+  }, [selectedAdId, activeAds]);
+
+  const fetchLeads = async () => {
+    try {
+      const res = await fetch(`${API_URL}/leads`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setLeads(data);
+      } else {
+        setError('Failed to fetch leads directory');
+      }
+    } catch (err) {
+      setError('Connection error loading leads');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchProjects = async () => {
+    try {
+      const res = await fetch(`${API_URL}/projects`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setProjects(data);
+        // Extract unique locations
+        const locs = Array.from(new Set(data.map(p => p.location))).filter(Boolean);
+        setLocations(locs);
+      }
+    } catch (err) {}
+  };
+
+  const fetchEmployees = async () => {
+    try {
+      const res = await fetch(`${API_URL}/employees`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        // Only show approved employees
+        setEmployees(data.filter(emp => emp.isApproved));
+      }
+    } catch (err) {}
+  };
+
+  const handlePhoneBlur = async () => {
+    if (!phone) return;
+    try {
+      const res = await fetch(`${API_URL}/leads/phone/${phone}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const existingLead = await res.json();
+        if (existingLead) {
+          setDuplicateWarning(existingLead);
+        } else {
+          setDuplicateWarning(null);
+        }
+      }
+    } catch (err) {}
+  };
+
+  const handleCreateLead = async (e) => {
+    e.preventDefault();
+    setError('');
+    setSuccessMsg('');
+
+    const adObj = selectedAdId ? activeAds.find(a => a.id === selectedAdId) : null;
+
+    const payload = {
+      leadType,
+      name,
+      phone,
+      address,
+      bankLoan,
+      project: selectedProjectId,
+      assignedTo: assignedToId,
+      leadSource: leadType === 'Lead' ? leadSource : 'Direct Visit',
+      activeAd: leadType === 'Lead' && adObj ? { name: adObj.name, link: adObj.link } : undefined,
+      projectLocation: leadType === 'Direct Visit' ? projectLocation : undefined
+    };
+
+    try {
+      const res = await fetch(`${API_URL}/leads`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        setSuccessMsg(data.message);
+        setCreateModalOpen(false);
+        resetForm();
+        fetchLeads();
+        setTimeout(() => setSuccessMsg(''), 4000);
+      } else {
+        setError(data.message || 'Failed to submit lead registration');
+      }
+    } catch (err) {
+      setError('Connection error saving lead record');
+    }
+  };
+
+  const initiateBooking = async (lead) => {
+    setSelectedLeadForBooking(lead);
+    setBookingLoading(true);
+    setBookingModalOpen(true);
+    
+    // Prepopulate base fields
+    setBookingAltPhone('');
+    setBookingAadhar('');
+    setBookingPan('');
+    setBookingHasLoan(lead.bankLoan || 'No');
+    setLoanAmount(0);
+    setLoanBank('');
+    setLoanStatusNotes('');
+    setSelectedBookingUnits([]);
+
+    try {
+      const projId = lead.project?._id || lead.project;
+      const res = await fetch(`${API_URL}/projects/${projId}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setBookingProjectDetails(data);
+      }
+    } catch (err) {
+      setError('Failed to load project details for booking');
+    } finally {
+      setBookingLoading(false);
+    }
+  };
+
+  const handleBookingSubmit = async (e) => {
+    e.preventDefault();
+    if (selectedBookingUnits.length === 0) {
+      alert('Please select at least one unit (plot/flat/house) to confirm booking!');
+      return;
+    }
+    
+    const payload = {
+      status: 'Booking',
+      bookingInfo: {
+        selectedUnits: selectedBookingUnits,
+        alternativePhone: bookingAltPhone,
+        aadharNumber: bookingAadhar,
+        panNumber: bookingPan,
+        hasLoan: bookingHasLoan,
+        loanDetails: {
+          amountRequired: Number(loanAmount),
+          preferredBank: loanBank,
+          loanStatus: loanStatusNotes || 'Initiated'
+        }
+      }
+    };
+
+    try {
+      const res = await fetch(`${API_URL}/leads/${selectedLeadForBooking._id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(payload)
+      });
+      if (res.ok) {
+        setBookingModalOpen(false);
+        setSuccessMsg('Booking registered successfully & Quotation Generated!');
+        fetchLeads();
+        setTimeout(() => setSuccessMsg(''), 4000);
+      } else {
+        const data = await res.json();
+        setError(data.message || 'Failed to complete booking');
+      }
+    } catch (err) {
+      setError('Network error saving booking details');
+    }
+  };
+
+  const initiateFollowUpOrComplete = (lead, targetStatus) => {
+    setSelectedLeadForFollow(lead);
+    setFollowTargetStatus(targetStatus);
+    
+    const hasFollowUp = ['Contacted', 'Follow-Up', 'Site Visit', 'Qualified', 'Negotiation'].includes(targetStatus);
+    setFollowMode(hasFollowUp ? 'FollowUp' : 'Completed');
+    
+    setNextFollowDate('');
+    setFollowThrough('Call');
+    setFollowRemarks('');
+    setCloseRemarks('');
+    setSiteVisitAction('Keep');
+    setFollowModalOpen(true);
+  };
+
+  const handleFollowSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    setSuccessMsg('');
+
+    let payload = {};
+
+    if (followMode === 'FollowUp') {
+      if (!nextFollowDate) {
+        alert('Please select the next Follow-up date and time!');
+        return;
+      }
+      
+      const selectedDateTime = new Date(nextFollowDate).getTime();
+      const currentDateTime = new Date().getTime();
+      if (selectedDateTime <= currentDateTime) {
+        alert('Please select a future date and time for the next Follow-up!');
+        return;
+      }
+
+      let finalStatus = followTargetStatus;
+      if (followTargetStatus === 'Site Visit') {
+        finalStatus = siteVisitAction === 'Move' ? 'Site Visit Follow-up' : 'Site Visit';
+      } else if (followTargetStatus === 'Qualified') {
+        finalStatus = 'Site Visit Follow-up';
+      }
+
+      payload = {
+        status: finalStatus,
+        followUpInfo: {
+          nextFollowUpDate: new Date(nextFollowDate),
+          contactedThrough: followThrough,
+          remarks: followRemarks
+        },
+        isClosed: false
+      };
+    } else {
+      const shouldClose = ['Contacted', 'Site Visit', 'Lost'].includes(followTargetStatus);
+      payload = {
+        status: followTargetStatus,
+        isClosed: shouldClose,
+        closeRemarks: closeRemarks
+      };
+    }
+
+    try {
+      const res = await fetch(`${API_URL}/leads/${selectedLeadForFollow._id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (res.ok) {
+        setFollowModalOpen(false);
+        if (followMode === 'FollowUp') {
+          setSuccessMsg(`Follow-up scheduled successfully for ${new Date(nextFollowDate).toLocaleString()}!`);
+        } else if (followTargetStatus === 'Qualified') {
+          setSuccessMsg('Lead advanced to Qualified stage successfully & saved to Hot List!');
+        } else {
+          setSuccessMsg(`Deal marked as Completed & Closed under ${followTargetStatus} stage.`);
+        }
+        fetchLeads();
+        setTimeout(() => setSuccessMsg(''), 4000);
+      } else {
+        const data = await res.json();
+        setError(data.message || 'Failed to submit follow-up details');
+      }
+    } catch (err) {
+      setError('Connection error updating lead record');
+    }
+  };
+
+  const handleReopenClosedLead = async (lead) => {
+    try {
+      const res = await fetch(`${API_URL}/leads/${lead._id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          isClosed: false,
+          closeRemarks: '',
+          status: lead.assignedTo ? 'Assigned' : 'New',
+          isRevert: true
+        })
+      });
+      if (res.ok) {
+        fetchLeads();
+        setSuccessMsg('Lead reopened successfully.');
+        setTimeout(() => setSuccessMsg(''), 3000);
+      }
+    } catch (err) {
+      setError('Failed to reopen lead');
+    }
+  };
+
+  const handleStatusChange = async (leadId, newStatus, isRevert = false) => {
+    if (!isRevert && newStatus === 'Booking') {
+      const lead = leads.find(l => l._id === leadId);
+      if (lead) {
+        // Fetch all quotations to verify if one exists for this lead
+        try {
+          const qRes = await fetch(`${API_URL}/quotations`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          if (qRes.ok) {
+            const quotations = await qRes.json();
+            const hasQuotation = quotations.some(q => (q.lead?._id || q.lead) === leadId);
+            if (hasQuotation) {
+              initiateBooking(lead);
+            } else {
+              setPendingLeadForBooking(lead);
+              setQtnConfirmOpen(true);
+            }
+          } else {
+            // Fallback if API fails
+            initiateBooking(lead);
+          }
+        } catch (err) {
+          // Fallback if connection fails
+          initiateBooking(lead);
+        }
+        return;
+      }
+    }
+    if (!isRevert) {
+      const lead = leads.find(l => l._id === leadId);
+      if (lead) {
+        initiateFollowUpOrComplete(lead, newStatus);
+        return;
+      }
+    }
+    try {
+      const res = await fetch(`${API_URL}/leads/${leadId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ status: newStatus, isRevert })
+      });
+      if (res.ok) {
+        fetchLeads();
+        setSuccessMsg(isRevert ? 'Lead status reverted successfully!' : 'Lead status updated successfully!');
+        setTimeout(() => setSuccessMsg(''), 3000);
+      }
+    } catch (err) {
+      setError(isRevert ? 'Failed to revert lead status' : 'Failed to update lead status');
+    }
+  };
+
+  const handleReassign = async (leadId, newAssignedId) => {
+    try {
+      const res = await fetch(`${API_URL}/leads/${leadId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ assignedTo: newAssignedId })
+      });
+      if (res.ok) {
+        fetchLeads();
+        setSuccessMsg('Lead reassigned successfully!');
+        setTimeout(() => setSuccessMsg(''), 3000);
+      }
+    } catch (err) {
+      setError('Failed to reassign lead');
+    }
+  };
+
+  const resetForm = () => {
+    setName('');
+    setPhone('');
+    setAddress('');
+    setBankLoan('No');
+    setSelectedProjectId('');
+    setAssignedToId('');
+    setLeadSource('');
+    setSelectedAdId('');
+    setFetchedAdLink('');
+    setProjectLocation('');
+    setDuplicateWarning(null);
+  };
+
+  // Filter list matching Search & Date & Tab
+  const getFilteredLeads = () => {
+    return leads.filter(lead => {
+      const matchesTab = activeTab === 'All' || lead.status === activeTab;
+      
+      const matchesSearch = !searchTerm || 
+        lead.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+        lead.phone?.includes(searchTerm) ||
+        lead.project?.code?.toLowerCase().includes(searchTerm.toLowerCase());
+      
+      const itemDate = new Date(lead.updatedAt || lead.createdAt);
+      const itemTime = itemDate.setHours(0,0,0,0);
+      const startTime = startDate ? new Date(startDate).setHours(0,0,0,0) : null;
+      const endTime = endDate ? new Date(endDate).setHours(23,59,59,999) : null;
+      
+      const matchesStartDate = !startTime || itemTime >= startTime;
+      const matchesEndDate = !endTime || itemTime <= endTime;
+
+      return matchesTab && matchesSearch && matchesStartDate && matchesEndDate;
+    });
+  };
+
+  const filteredLeadsList = getFilteredLeads();
+
+  return (
+    <div className="space-y-6">
+      {/* Title Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
+            <Users className="w-6 h-6 text-[#0e623a]" />
+            <span>Leads Directory</span>
+          </h1>
+          <p className="text-gray-500 text-xs mt-1">Store and track lead details, campaigns, allocations, and pipeline status</p>
+        </div>
+
+        <button
+          onClick={() => {
+            resetForm();
+            setCreateModalOpen(true);
+          }}
+          className="flex items-center justify-center gap-1.5 px-5 py-3 bg-[#0e623a] hover:bg-[#0b4d2d] text-white text-xs font-bold rounded-2xl transition shadow-md"
+        >
+          <Plus className="w-4 h-4" />
+          <span>Create New Lead</span>
+        </button>
+      </div>
+
+      {/* Notifications */}
+      {successMsg && (
+        <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs px-4 py-3 rounded-2xl flex items-center gap-1.5 animate-pulse">
+          <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+          <span>{successMsg}</span>
+        </div>
+      )}
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-800 text-xs px-4 py-3 rounded-2xl flex items-center gap-1.5">
+          <AlertCircle className="w-4 h-4 text-red-600" />
+          <span>{error}</span>
+        </div>
+      )}
+
+      {/* Tab Switcher - Leads Phases */}
+      <div className="flex overflow-x-auto bg-white border border-gray-150 p-1.5 rounded-2xl gap-1 scrollbar-none shadow-sm">
+        <button
+          onClick={() => setActiveTab('All')}
+          className={`px-4 py-2 text-xs font-bold rounded-xl transition shrink-0 ${
+            activeTab === 'All'
+              ? 'bg-[#0e623a] text-white shadow-sm'
+              : 'text-gray-500 hover:bg-gray-50 hover:text-gray-800'
+          }`}
+        >
+          All Leads ({leads.length})
+        </button>
+        {LEAD_STATUSES.map(st => {
+          const count = leads.filter(l => l.status === st).length;
+          return (
+            <button
+              key={st}
+              onClick={() => setActiveTab(st)}
+              className={`px-4 py-2 text-xs font-bold rounded-xl transition shrink-0 ${
+                activeTab === st
+                  ? 'bg-[#0e623a] text-white shadow-sm'
+                  : 'text-gray-500 hover:bg-gray-50 hover:text-gray-800'
+              }`}
+            >
+              {st} ({count})
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Filters & Search Menu */}
+      <div className="bg-white p-4 border border-gray-150 shadow-sm rounded-3xl grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+        <div className="md:col-span-2 space-y-1">
+          <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Search Lead Name / Phone / Project Code</label>
+          <div className="relative">
+            <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-gray-400">
+              <Search className="w-4 h-4" />
+            </span>
+            <input
+              type="text"
+              placeholder="Search leads..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-3 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-sm"
+            />
+          </div>
+        </div>
+        <div className="space-y-1">
+          <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Start Date</label>
+          <input
+            type="date"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+            className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-sm font-semibold text-gray-600"
+          />
+        </div>
+        <div className="space-y-1">
+          <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">End Date</label>
+          <input
+            type="date"
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
+            className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-sm font-semibold text-gray-600"
+          />
+        </div>
+      </div>
+
+      {/* Leads Main Table */}
+      <div className="bg-white border border-gray-150 shadow-sm rounded-3xl overflow-hidden">
+        <table className="w-full text-left border-collapse">
+          <thead>
+            <tr className="bg-gray-50 border-b border-gray-150 text-xs font-bold text-gray-500 uppercase tracking-wider">
+              <th className="p-4">Customer Details</th>
+              <th className="p-4">Lead Type</th>
+              <th className="p-4">Campaign / Location details</th>
+              <th className="p-4">Project</th>
+              <th className="p-4">Assigned Executive</th>
+              <th className="p-4">Workflow Status</th>
+              <th className="p-4 text-center">History</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-100 text-sm">
+            {filteredLeadsList.map(lead => (
+              <tr 
+                key={lead._id} 
+                className={`hover:bg-gray-50/50 transition duration-150 ${
+                  lead.isClosed 
+                    ? 'bg-red-50/70 text-gray-500 opacity-90 border-l-4 border-red-500' 
+                    : ''
+                }`}
+              >
+                {/* Customer */}
+                <td className="p-4">
+                  <div className="font-bold text-gray-800">{lead.name}</div>
+                  <div className="flex items-center gap-1 text-[10px] text-gray-400 mt-1">
+                    <Phone className="w-3 h-3 text-gray-300" />
+                    <span>{lead.phone}</span>
+                  </div>
+                  <div className="text-[10px] text-gray-400 mt-0.5 truncate max-w-[200px]" title={lead.address}>
+                    {lead.address}
+                  </div>
+                  <div className="mt-1 flex flex-wrap gap-1">
+                    <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold ${
+                      lead.bankLoan === 'Yes'
+                        ? 'bg-amber-100 text-amber-800 border border-amber-200'
+                        : 'bg-gray-100 text-gray-600 border border-gray-200'
+                    }`}>
+                      Bank Loan: {lead.bankLoan || 'No'}
+                    </span>
+                    {lead.followUpInfo?.remarks && (
+                      <span 
+                        className="text-[9px] px-1.5 py-0.5 rounded font-bold bg-[#f0f9f4] text-[#0e623a] border border-[#bce2cb] max-w-[180px] truncate" 
+                        title={lead.followUpInfo.remarks}
+                      >
+                        Notes: {lead.followUpInfo.remarks}
+                      </span>
+                    )}
+                  </div>
+                </td>
+ 
+                {/* Lead Type */}
+                <td className="p-4">
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                    lead.leadType === 'Lead'
+                      ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                      : 'bg-blue-50 border-blue-200 text-blue-700'
+                  }`}>
+                    {lead.leadType}
+                  </span>
+                </td>
+ 
+                {/* Campaign Info */}
+                <td className="p-4">
+                  {lead.leadType === 'Lead' ? (
+                    <div className="space-y-0.5">
+                      <div className="text-xs font-semibold text-gray-700">Source: {lead.leadSource}</div>
+                      {lead.activeAd?.name && (
+                        <div className="text-[10px] text-gray-500 flex items-center gap-1">
+                          <span>Ad: {lead.activeAd.name}</span>
+                          {lead.activeAd.link && (
+                            <a href={lead.activeAd.link} target="_blank" rel="noopener noreferrer" className="text-[#0e623a] hover:underline">
+                              <ExternalLink className="w-2.5 h-2.5 inline" />
+                            </a>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-1 text-xs font-semibold text-gray-600">
+                      <MapPin className="w-3.5 h-3.5 text-gray-400" />
+                      <span>Loc: {lead.projectLocation || '—'}</span>
+                    </div>
+                  )}
+                </td>
+ 
+                {/* Project */}
+                <td className="p-4">
+                  {lead.project ? (
+                    <div>
+                      <div className="font-bold text-[#0e623a]">{lead.project.code}</div>
+                      <div className="text-[10px] text-gray-400">{lead.project.name}</div>
+                    </div>
+                  ) : (
+                    <span className="text-gray-400 text-xs">—</span>
+                  )}
+                </td>
+ 
+                {/* Assignment & Reassign Control */}
+                <td className="p-4">
+                  {user.role === 'Admin' || user.role === 'Manager' ? (
+                    <select
+                      value={lead.assignedTo?._id || ''}
+                      onChange={(e) => handleReassign(lead._id, e.target.value)}
+                      className="px-2 py-1 bg-gray-50 border border-gray-200 rounded text-xs focus:outline-none font-semibold text-gray-700"
+                    >
+                      <option value="">Unassigned</option>
+                      {employees.map(emp => (
+                        <option key={emp._id} value={emp._id}>
+                          {emp.name} ({emp.role})
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <div>
+                      <div className="font-semibold text-gray-700">{lead.assignedTo?.name || 'Unassigned'}</div>
+                      <div className="text-[10px] text-gray-400">{lead.assignedTo?.role || ''}</div>
+                    </div>
+                  )}
+                </td>
+ 
+                {/* Workflow Status Dropdown */}
+                <td className="p-4">
+                  {lead.isClosed ? (
+                    <div className="flex flex-col gap-1 items-start">
+                      <span className="text-[9px] font-extrabold text-red-700 bg-red-100 border border-red-200 px-2 py-0.5 rounded-full uppercase tracking-wider">
+                        Closed (Completed)
+                      </span>
+                      {lead.closeRemarks && (
+                        <div className="text-[10px] text-gray-400 italic max-w-[150px] truncate" title={lead.closeRemarks}>
+                          "{lead.closeRemarks}"
+                        </div>
+                      )}
+                      <button
+                        onClick={() => handleReopenClosedLead(lead)}
+                        className="text-[10px] font-bold text-[#0e623a] hover:underline"
+                      >
+                        Reopen Lead
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="relative inline-block text-left">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setOpenDropdownLeadId(openDropdownLeadId === lead._id ? null : lead._id);
+                        }}
+                        className={`flex items-center justify-between gap-1.5 px-3 py-1.5 rounded-full border text-xs font-bold transition shadow-sm hover:shadow-md cursor-pointer ${
+                          STATUS_COLORS[lead.status]?.bg || 'bg-gray-50/70'
+                        } ${STATUS_COLORS[lead.status]?.text || 'text-gray-700'} ${
+                          STATUS_COLORS[lead.status]?.border || 'border-gray-200'
+                        }`}
+                      >
+                        <span className="flex items-center gap-1.5">
+                          <span className={`w-2 h-2 rounded-full ${STATUS_COLORS[lead.status]?.dot || 'bg-gray-450'}`}></span>
+                          {lead.status}
+                        </span>
+                        <ChevronDown className="w-3 h-3 opacity-75 shrink-0" />
+                      </button>
+
+                      {openDropdownLeadId === lead._id && (
+                        <>
+                          <div 
+                            className="fixed inset-0 z-10" 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setOpenDropdownLeadId(null);
+                            }}
+                          />
+                          <div 
+                            className={`absolute right-0 w-52 rounded-2xl bg-white border border-gray-150 shadow-xl py-1.5 z-20 animate-in fade-in duration-100 ${
+                              filteredLeadsList.indexOf(lead) >= Math.max(1, filteredLeadsList.length - 2)
+                                ? 'bottom-full mb-2 origin-bottom'
+                                : 'top-full mt-2 origin-top'
+                            }`}
+                          >
+                            {(() => {
+                              const prevStatus = getPreviousStatus(lead);
+                              if (prevStatus) {
+                                return (
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleStatusChange(lead._id, prevStatus, true);
+                                      setOpenDropdownLeadId(null);
+                                    }}
+                                    className="w-full text-left px-3 py-2.5 text-xs font-bold text-amber-700 bg-amber-50/50 hover:bg-amber-100/60 border-b border-gray-100 flex items-center gap-1.5 transition cursor-pointer"
+                                  >
+                                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+                                    <span>Undo: Revert to {prevStatus}</span>
+                                  </button>
+                                );
+                              }
+                              return null;
+                            })()}
+                            <div className="px-3 py-1.5 text-[10px] font-bold text-gray-400 uppercase tracking-wider border-b border-gray-100 mb-1">
+                              Transition Stage
+                            </div>
+                            <div className="max-h-[220px] overflow-y-auto">
+                              {(() => {
+                                const currentIndex = LEAD_STATUSES.indexOf(lead.status);
+                                const allowedStatuses = currentIndex !== -1 ? LEAD_STATUSES.slice(currentIndex) : LEAD_STATUSES;
+                                return allowedStatuses.map(st => {
+                                  const isCurrent = st === lead.status;
+                                  const isCurrentDisabled = isCurrent && !['Contacted', 'Follow-Up', 'Site Visit'].includes(st);
+                                  return (
+                                    <button
+                                      key={st}
+                                      type="button"
+                                      disabled={isCurrentDisabled}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleStatusChange(lead._id, st);
+                                        setOpenDropdownLeadId(null);
+                                      }}
+                                      className={`w-full text-left px-3 py-2 text-xs font-semibold flex items-center justify-between transition ${
+                                        isCurrentDisabled 
+                                          ? 'text-gray-400 bg-gray-50/50 cursor-not-allowed' 
+                                          : 'text-gray-700 hover:bg-emerald-50/60 hover:text-[#0e623a] cursor-pointer'
+                                      }`}
+                                    >
+                                      <span className="flex items-center gap-2">
+                                        <span className={`w-2 h-2 rounded-full ${STATUS_COLORS[st]?.dot || 'bg-gray-450'}`}></span>
+                                        {st}
+                                      </span>
+                                      {isCurrent && (
+                                        <Check className="w-3 h-3 text-[#0e623a]" />
+                                      )}
+                                    </button>
+                                  );
+                                });
+                              })()}
+                            </div>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  )}
+                </td>
+
+                {/* History Trigger */}
+                <td className="p-4 text-center">
+                  <button
+                    onClick={() => {
+                      setSelectedLeadForHistory(lead);
+                      setHistoryModalOpen(true);
+                    }}
+                    className="p-1.5 text-gray-500 hover:text-[#0e623a] hover:bg-[#0e623a]/5 rounded-lg transition"
+                    title="View Lead History Logs"
+                  >
+                    <History className="w-4 h-4 mx-auto" />
+                  </button>
+                </td>
+              </tr>
+            ))}
+            {filteredLeadsList.length === 0 && (
+              <tr>
+                <td colSpan="7" className="p-8 text-center text-gray-400 text-xs">
+                  No lead records found matching selected filters.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {/* 🔐 MODAL: Create New Lead / Direct Visit Form */}
+      {createModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl max-w-xl w-full overflow-hidden shadow-2xl border border-gray-100">
+            <div className="bg-[#0e623a] p-6 text-white">
+              <h3 className="text-lg font-bold">New Lead Registration</h3>
+              <p className="text-emerald-100 text-xs mt-1">Configure user inquiries, campaigns, and direct site visits</p>
+            </div>
+
+            <form onSubmit={handleCreateLead} className="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
+              {/* Lead Type Radio Group */}
+              <div className="bg-gray-50 p-4 rounded-2xl border border-gray-150">
+                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-2">Lead Record Category</label>
+                <div className="flex gap-6">
+                  <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="leadType"
+                      value="Lead"
+                      checked={leadType === 'Lead'}
+                      onChange={() => {
+                        setLeadType('Lead');
+                        setDuplicateWarning(null);
+                      }}
+                      className="text-[#0e623a] focus:ring-[#0e623a] w-4 h-4"
+                    />
+                    <span>Lead (Campaigns & Referrals)</span>
+                  </label>
+                  <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="leadType"
+                      value="Direct Visit"
+                      checked={leadType === 'Direct Visit'}
+                      onChange={() => {
+                        setLeadType('Direct Visit');
+                        setDuplicateWarning(null);
+                      }}
+                      className="text-[#0e623a] focus:ring-[#0e623a] w-4 h-4"
+                    />
+                    <span>Direct Visit</span>
+                  </label>
+                </div>
+              </div>
+
+              {/* Name & Phone */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1.5">Lead / Customer Name</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. David Brown"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0e623a] text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1.5">Phone Number</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. +1 555-0144"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    onBlur={handlePhoneBlur}
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0e623a] text-sm"
+                  />
+                </div>
+              </div>
+
+              {/* Duplicate check warning */}
+              {duplicateWarning && (
+                <div className="bg-amber-50 border border-amber-200 p-4 rounded-xl flex items-start gap-2.5 animate-bounce">
+                  <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                  <div className="text-xs text-amber-800 leading-normal">
+                    <strong>Notice:</strong> A lead with this phone number already exists: 
+                    <br />
+                    <span className="font-semibold">{duplicateWarning.name} (Status: {duplicateWarning.status})</span>. 
+                    <br />
+                    Submitting this form will **REOPEN** and update the existing lead record.
+                  </div>
+                </div>
+              )}
+
+              {/* Address */}
+              <div>
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1.5">Customer Address</label>
+                <textarea
+                  required
+                  rows="2"
+                  placeholder="Street details, city, pincode..."
+                  value={address}
+                  onChange={(e) => setAddress(e.target.value)}
+                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0e623a] text-sm"
+                />
+              </div>
+
+              {/* Conditionally rendered details based on Lead Type */}
+              {leadType === 'Lead' ? (
+                <>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {/* Lead Source */}
+                    <div>
+                      <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1.5">Lead Source</label>
+                      <select
+                        required
+                        value={leadSource}
+                        onChange={(e) => setLeadSource(e.target.value)}
+                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none text-sm font-semibold text-gray-700"
+                      >
+                        <option value="">Select Ad Source / Campaign</option>
+                        {SOURCE_TYPES.map(src => (
+                          <option key={src} value={src}>{src}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Project Code selection */}
+                    <div>
+                      <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1.5">Project Code</label>
+                      <select
+                        required
+                        value={selectedProjectId}
+                        onChange={(e) => setSelectedProjectId(e.target.value)}
+                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none text-sm font-semibold text-gray-700"
+                      >
+                        <option value="">Select Project</option>
+                        {projects.map(p => (
+                          <option key={p._id} value={p._id}>
+                            {p.code} - {p.name} ({p.projectType})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Ads Sub-dropdown (dynamic based on project) */}
+                  {selectedProjectId && (
+                    <div className="bg-[#f0f9f4] p-4 rounded-2xl border border-[#bce2cb]/40 space-y-3">
+                      <div>
+                        <label className="text-xs font-bold text-[#0e623a] uppercase tracking-wider block mb-1.5">Active Ad Campaign</label>
+                        <select
+                          value={selectedAdId}
+                          onChange={(e) => setSelectedAdId(e.target.value)}
+                          className="w-full px-4 py-3 bg-white border border-[#bce2cb] rounded-xl focus:outline-none text-sm font-semibold text-gray-700"
+                        >
+                          <option value="">Select Active Campaign Ad</option>
+                          {activeAds.map(ad => (
+                            <option key={ad.id} value={ad.id}>
+                              [{ad.type}] {ad.name}
+                            </option>
+                          ))}
+                        </select>
+                        <span className="text-[10px] text-gray-400 mt-1 block">
+                          * Displays only active reels/posters for the selected project code.
+                        </span>
+                      </div>
+                      
+                      {fetchedAdLink && (
+                        <div className="text-xs text-[#0e623a] flex items-center gap-1.5 font-medium">
+                          <span>Auto-fetched Link:</span>
+                          <a href={fetchedAdLink} target="_blank" rel="noopener noreferrer" className="hover:underline flex items-center gap-0.5 font-bold">
+                            <span>Open Campaign Link</span>
+                            <ExternalLink className="w-3 h-3" />
+                          </a>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </>
+              ) : (
+                <>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    {/* Project Location */}
+                    <div>
+                      <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1.5">Project Location</label>
+                      <select
+                        required
+                        value={projectLocation}
+                        onChange={(e) => setProjectLocation(e.target.value)}
+                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none text-sm font-semibold text-gray-700"
+                      >
+                        <option value="">Select Location</option>
+                        {locations.map(loc => (
+                          <option key={loc} value={loc}>{loc}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Project Code selection */}
+                    <div className="sm:col-span-2">
+                      <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1.5">Project Code</label>
+                      <select
+                        required
+                        value={selectedProjectId}
+                        onChange={(e) => setSelectedProjectId(e.target.value)}
+                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none text-sm font-semibold text-gray-700"
+                      >
+                        <option value="">Select Project</option>
+                        {projects.map(p => (
+                          <option key={p._id} value={p._id}>
+                            {p.code} - {p.name} ({p.projectType})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {/* Bank Loan Selection */}
+              <div className="bg-gray-50 p-4 rounded-2xl border border-gray-150">
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-2">Requires Bank Loan?</label>
+                <div className="flex gap-6">
+                  <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="bankLoan"
+                      value="Yes"
+                      checked={bankLoan === 'Yes'}
+                      onChange={() => setBankLoan('Yes')}
+                      className="text-[#0e623a] focus:ring-[#0e623a] w-4 h-4"
+                    />
+                    <span>Yes</span>
+                  </label>
+                  <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="bankLoan"
+                      value="No"
+                      checked={bankLoan === 'No'}
+                      onChange={() => setBankLoan('No')}
+                      className="text-[#0e623a] focus:ring-[#0e623a] w-4 h-4"
+                    />
+                    <span>No</span>
+                  </label>
+                </div>
+              </div>
+
+              {/* Assigned Executive */}
+              <div>
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1.5">Assigned Executive / Member</label>
+                <select
+                  required
+                  value={assignedToId}
+                  onChange={(e) => setAssignedToId(e.target.value)}
+                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none text-sm font-semibold text-gray-700"
+                >
+                  <option value="">Select Executive</option>
+                  {employees.map(emp => (
+                    <option key={emp._id} value={emp._id}>
+                      {emp.name} ({emp.role})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Submit Buttons */}
+              <div className="flex items-center gap-3 pt-4 border-t">
+                <button
+                  type="button"
+                  onClick={() => setCreateModalOpen(false)}
+                  className="flex-1 py-3 border border-gray-200 rounded-xl text-xs font-bold text-gray-500 hover:bg-gray-50 transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-3 bg-[#0e623a] text-white rounded-xl text-xs font-bold hover:bg-[#0b4d2d] transition shadow-md"
+                >
+                  Save Lead Record
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* 🔐 MODAL: View History Logs */}
+      {historyModalOpen && selectedLeadForHistory && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl max-w-lg w-full overflow-hidden shadow-2xl border border-gray-100">
+            <div className="bg-[#0e623a] p-6 text-white flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-bold">Lead Audit & Transition Logs</h3>
+                <p className="text-emerald-100 text-xs mt-1">Track pipeline progress for: {selectedLeadForHistory.name}</p>
+              </div>
+              <button
+                onClick={() => setHistoryModalOpen(false)}
+                className="text-white hover:text-emerald-200 font-bold"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4 max-h-[50vh] overflow-y-auto">
+              {selectedLeadForHistory.history?.length > 0 ? (
+                <div className="relative border-l border-gray-200 ml-3 space-y-6">
+                  {selectedLeadForHistory.history.map((hist, idx) => (
+                    <div key={idx} className="relative pl-6">
+                      {/* Timeline dot */}
+                      <span className="absolute -left-[5px] top-1.5 w-2.5 h-2.5 rounded-full bg-[#0e623a] border-2 border-white ring-4 ring-[#f0f9f4]"></span>
+                      
+                      <div className="text-xs text-gray-400">
+                        {hist.timestamp ? new Date(hist.timestamp).toLocaleString() : 'Date unavailable'}
+                      </div>
+                      <div className="text-sm font-semibold text-gray-800 mt-0.5">
+                        Status transitioned to: <span className="text-[#0e623a] font-bold">{hist.status}</span>
+                      </div>
+                      {hist.assignedTo && (
+                        <div className="text-xs text-gray-500 mt-0.5">
+                          Assigned Executive: {hist.assignedTo.name} ({hist.assignedTo.role})
+                        </div>
+                      )}
+                      <div className="text-xs text-gray-400 mt-1 italic">
+                        Action performed by: {hist.updatedBy?.name || 'System'} ({hist.updatedBy?.role || 'User'})
+                      </div>
+                      {hist.note && (
+                        <div className="mt-2 text-xs bg-gray-50 border p-2 rounded-lg text-gray-600">
+                          {hist.note}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-gray-400 text-center py-4">No audit logs available for this lead.</p>
+              )}
+            </div>
+
+            <div className="p-6 border-t bg-gray-50 flex justify-end">
+              <button
+                onClick={() => setHistoryModalOpen(false)}
+                className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold rounded-xl text-xs transition"
+              >
+                Close Logs
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 🔐 MODAL: Custom Quotation Verification Alert */}
+      {qtnConfirmOpen && pendingLeadForBooking && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white rounded-3xl max-w-md w-full overflow-hidden shadow-2xl border border-gray-100 animate-scale-in">
+            <div className="bg-[#0e623a] p-6 text-white text-center space-y-2">
+              <FileText className="w-12 h-12 text-emerald-300 mx-auto" />
+              <h3 className="text-base font-extrabold">Quotation Estimation Required</h3>
+              <p className="text-emerald-100 text-xs">
+                To proceed with booking, a project quotation estimate must be associated with the customer record.
+              </p>
+            </div>
+
+            <div className="p-6 space-y-4 text-center">
+              <p className="text-xs text-gray-500 font-semibold leading-relaxed">
+                Have you already prepared and finalized a quotation estimate for <strong className="text-gray-700">{pendingLeadForBooking.name}</strong>?
+              </p>
+              
+              <div className="flex flex-col gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setQtnConfirmOpen(false);
+                    initiateBooking(pendingLeadForBooking);
+                  }}
+                  className="w-full py-3 bg-[#0e623a] hover:bg-[#0b4d2d] text-white rounded-xl text-xs font-bold transition shadow-md flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  <Check className="w-4 h-4" />
+                  <span>Yes, Proceed to Booking Wizard</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setQtnConfirmOpen(false);
+                    navigate(`/quotations/new?leadId=${pendingLeadForBooking._id}&targetStatus=Booking`);
+                  }}
+                  className="w-full py-3 bg-gray-150 hover:bg-gray-200 text-gray-700 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  <span>No, Redirect to Create Quotation</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 🔐 MODAL: Follow-Up & Completion Actions */}
+      {followModalOpen && selectedLeadForFollow && (() => {
+        const hasFollowUpOptions = ['Contacted', 'Follow-Up', 'Site Visit', 'Qualified', 'Negotiation'].includes(followTargetStatus);
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+            <div className="bg-white rounded-3xl max-w-lg w-full overflow-hidden shadow-2xl border border-gray-100">
+              <div className="bg-[#0e623a] p-6 text-white">
+                <h3 className="text-lg font-bold flex items-center gap-2">
+                  <CalendarClock className="w-5 h-5 text-emerald-300" />
+                  <span>
+                    {followTargetStatus === 'Qualified'
+                      ? 'Site Visit Follow-up Options'
+                      : ['Contacted', 'Follow-Up', 'Site Visit'].includes(followTargetStatus)
+                      ? 'Contacted / Follow-up Actions'
+                      : `Transition to ${followTargetStatus}`}
+                  </span>
+                </h3>
+                <p className="text-emerald-100 text-xs mt-1">
+                  {followTargetStatus === 'Qualified'
+                    ? 'Choose to schedule another follow-up or advance this lead to Qualified stage'
+                    : ['Contacted', 'Follow-Up', 'Site Visit'].includes(followTargetStatus)
+                    ? 'Specify followup schedules or mark the stage as completed'
+                    : `Enter remarks or notes to record this stage transition`}
+                </p>
+              </div>
+
+              <form onSubmit={handleFollowSubmit} className="p-6 space-y-4">
+                
+                {/* Option Selector Toggle Buttons */}
+                {hasFollowUpOptions && (
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setFollowMode('FollowUp')}
+                      className={`py-3 rounded-xl text-xs font-bold transition ${
+                        followMode === 'FollowUp'
+                          ? 'bg-[#0e623a] text-white shadow'
+                          : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                      }`}
+                    >
+                      Take Follow-up
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setFollowMode('Completed')}
+                      className={`py-3 rounded-xl text-xs font-bold transition ${
+                        followMode === 'Completed'
+                          ? (followTargetStatus === 'Qualified' ? 'bg-[#0e623a] text-white shadow' : 'bg-red-600 text-white shadow')
+                          : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                      }`}
+                    >
+                      {followTargetStatus === 'Qualified' ? 'Move to Qualified' : 'Completed'}
+                    </button>
+                  </div>
+                )}
+
+                {/* Conditional Subforms */}
+                {followMode === 'FollowUp' ? (
+                  <div className="space-y-4">
+                    <div>
+                      <label className="text-xs font-semibold text-gray-600 block mb-1">Next Follow-up Date & Time</label>
+                      <input
+                        type="datetime-local"
+                        required
+                        value={nextFollowDate}
+                        min={(() => {
+                          const now = new Date();
+                          const year = now.getFullYear();
+                          const month = String(now.getMonth() + 1).padStart(2, '0');
+                          const day = String(now.getDate()).padStart(2, '0');
+                          const hours = String(now.getHours()).padStart(2, '0');
+                          const minutes = String(now.getMinutes()).padStart(2, '0');
+                          return `${year}-${month}-${day}T${hours}:${minutes}`;
+                        })()}
+                        onChange={(e) => setNextFollowDate(e.target.value)}
+                        className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none text-xs font-semibold text-gray-600"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-semibold text-gray-600 block mb-1">Contacted Through</label>
+                      <select
+                        value={followThrough}
+                        onChange={(e) => setFollowThrough(e.target.value)}
+                        className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none text-xs font-semibold text-gray-700"
+                      >
+                        <option value="Call">Call</option>
+                        <option value="WhatsApp">WhatsApp</option>
+                        <option value="On Spot">On Spot</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-semibold text-gray-600 block mb-1">Follow-up Remarks</label>
+                      <textarea
+                        rows="3"
+                        value={followRemarks}
+                        onChange={(e) => setFollowRemarks(e.target.value)}
+                        placeholder="Add follow-up notes or next steps..."
+                        className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none text-xs text-gray-700"
+                      />
+                    </div>
+
+                    {followTargetStatus === 'Site Visit' && (
+                      <div className="bg-[#f0f9f4] p-4 rounded-2xl border border-[#bce2cb]/40 space-y-2">
+                        <label className="text-[11px] font-bold text-[#0e623a] uppercase tracking-wider block">
+                          Select Pipeline Action After Follow-up
+                        </label>
+                        <div className="grid grid-cols-2 gap-3">
+                          <button
+                            type="button"
+                            onClick={() => setSiteVisitAction('Keep')}
+                            className={`py-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 ${
+                              siteVisitAction === 'Keep'
+                                ? 'bg-[#0e623a] text-white shadow-md'
+                                : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
+                            }`}
+                          >
+                            Keep in Site Visit
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setSiteVisitAction('Move')}
+                            className={`py-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 ${
+                              siteVisitAction === 'Move'
+                                ? 'bg-[#0e623a] text-white shadow-md'
+                                : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
+                            }`}
+                          >
+                            Move to Site Visit Follow-up
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {!hasFollowUpOptions ? (
+                      <div className={`text-xs p-3 rounded-xl border ${
+                        followTargetStatus === 'Lost'
+                          ? 'bg-red-50 text-red-800 border-red-100'
+                          : followTargetStatus === 'Won'
+                          ? 'bg-emerald-50 text-emerald-800 border-emerald-100'
+                          : 'bg-blue-50 text-blue-850 border-blue-150'
+                      }`}>
+                        <strong>Notice:</strong> This action will update the lead stage to <span className="font-bold">{followTargetStatus}</span>.
+                      </div>
+                    ) : followTargetStatus === 'Qualified' ? (
+                      <div className="bg-emerald-50 text-emerald-800 text-xs p-3 rounded-xl border border-emerald-100">
+                        <strong>Note:</strong> Advancing this lead will move it to the <span className="font-bold">Qualified</span> stage and store the record in the <span className="font-bold">Hot List</span>.
+                      </div>
+                    ) : (
+                      <div className="bg-red-50 text-red-800 text-xs p-3 rounded-xl border border-red-100">
+                        <strong>Note:</strong> Marking completed will close the deal in <span className="font-bold">{followTargetStatus}</span> stage. It will show in the <span className="font-bold">{followTargetStatus}</span> page with a reddish disabled style.
+                      </div>
+                    )}
+                    <div>
+                      <label className="text-xs font-semibold text-gray-600 block mb-1">
+                        {followTargetStatus === 'Qualified'
+                          ? 'Transition Remarks (Optional)'
+                          : !hasFollowUpOptions
+                          ? `Remarks / Notes for transitioning to ${followTargetStatus} (Optional)`
+                          : 'Closing Remarks'}
+                      </label>
+                      <textarea
+                        rows="4"
+                        required={['Won', 'Lost', 'Contacted', 'Follow-Up', 'Site Visit'].includes(followTargetStatus)}
+                        value={closeRemarks}
+                        onChange={(e) => setCloseRemarks(e.target.value)}
+                        placeholder={
+                          followTargetStatus === 'Qualified'
+                            ? "Add any notes about this qualification..."
+                            : !hasFollowUpOptions
+                            ? `Provide details regarding the transition to ${followTargetStatus}...`
+                            : "Explain reasons for closing / completion details..."
+                        }
+                        className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none text-xs text-gray-700"
+                      />
+                    </div>
+                  </div>
+                )}
+
+              {/* Action Buttons */}
+              <div className="flex items-center gap-3 pt-3 border-t">
+                <button
+                  type="button"
+                  onClick={() => setFollowModalOpen(false)}
+                  className="flex-1 py-2.5 border border-gray-200 rounded-xl text-xs font-bold text-gray-500 hover:bg-gray-50 transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className={`flex-1 py-2.5 text-white rounded-xl text-xs font-bold transition shadow ${
+                    followMode === 'FollowUp' ? 'bg-[#0e623a] hover:bg-[#0b4d2d]' : 'bg-red-600 hover:bg-red-700'
+                  }`}
+                >
+                  Save Action
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+        );
+      })()}
+      {/* 🔐 MODAL: Booking & Quotation Creation Wizard */}
+      {bookingModalOpen && selectedLeadForBooking && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm overflow-y-auto">
+          <div className="bg-white rounded-3xl max-w-3xl w-full overflow-hidden shadow-2xl border border-gray-100 my-8">
+            <div className="bg-gradient-to-r from-[#0e623a] to-[#0a4d2c] p-6 text-white">
+              <h3 className="text-lg font-bold flex items-center gap-2">
+                <FileText className="w-5 h-5 text-emerald-300" />
+                <span>Create Booking & Quotation Request</span>
+              </h3>
+              <p className="text-emerald-100 text-xs mt-1">Verify details, select available units, and complete quotation requirements</p>
+            </div>
+
+            <form onSubmit={handleBookingSubmit} className="p-6 space-y-6 max-h-[80vh] overflow-y-auto">
+              
+              {/* Pre-populated Client & Project Details Header Card */}
+              <div className="bg-emerald-50/50 p-4 border border-emerald-100 rounded-2xl grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <h4 className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider">Client Information</h4>
+                  <div className="text-sm font-bold text-gray-800">{selectedLeadForBooking.name}</div>
+                  <div className="text-xs text-gray-600 flex items-center gap-1">
+                    <Phone className="w-3 h-3 text-emerald-600" />
+                    <span>{selectedLeadForBooking.phone}</span>
+                  </div>
+                  <div className="text-xs text-gray-500">{selectedLeadForBooking.address}</div>
+                </div>
+
+                <div className="space-y-1 border-t sm:border-t-0 sm:border-l border-emerald-100 sm:pl-4">
+                  <h4 className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider">Selected Project</h4>
+                  <div className="text-sm font-bold text-gray-800">{selectedLeadForBooking.project?.name || 'Loading Project...'}</div>
+                  <div className="text-xs text-gray-600 flex items-center gap-1">
+                    <Building className="w-3 h-3 text-emerald-600" />
+                    <span>Code: {selectedLeadForBooking.project?.code}</span>
+                  </div>
+                  {bookingProjectDetails && (
+                    <div className="text-[10px] bg-white border px-2 py-0.5 rounded inline-block text-emerald-700 font-bold mt-1">
+                      {bookingProjectDetails.projectType} Project • Rs. {bookingProjectDetails.pricePerSqFt}/Sq.Ft
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Dynamic Interactive Unit Selection */}
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block">
+                    Select Available {bookingProjectDetails?.projectType || 'Unit'}(s)
+                  </label>
+                  <span className="text-[10px] bg-gray-100 text-gray-600 font-bold px-2 py-0.5 rounded-full">
+                    {selectedBookingUnits.length} Selected
+                  </span>
+                </div>
+
+                {bookingLoading ? (
+                  <div className="p-8 text-center text-xs text-gray-500">Loading available layout plans and units...</div>
+                ) : bookingProjectDetails ? (
+                  <div>
+                    {/* Plots Layout styling - Real representation (grass color, grid boxes) */}
+                    {bookingProjectDetails.projectType === 'Plot' && (
+                      <div className="space-y-2">
+                        <div className="grid grid-cols-4 sm:grid-cols-6 gap-3">
+                          {bookingProjectDetails.units?.map(u => {
+                            const isSelected = selectedBookingUnits.includes(u.unitId);
+                            const isBooked = u.status === 'Booked' || u.status === 'Sold Out';
+                            return (
+                              <button
+                                key={u.unitId}
+                                type="button"
+                                disabled={isBooked}
+                                onClick={() => {
+                                  if (isSelected) {
+                                    setSelectedBookingUnits(selectedBookingUnits.filter(id => id !== u.unitId));
+                                  } else {
+                                    setSelectedBookingUnits([...selectedBookingUnits, u.unitId]);
+                                  }
+                                }}
+                                className={`p-2.5 rounded-xl border flex flex-col items-center justify-center relative transition min-h-[75px] ${
+                                  isBooked
+                                    ? 'bg-yellow-100 border-yellow-300 text-yellow-800 cursor-not-allowed opacity-90'
+                                    : isSelected
+                                    ? 'bg-emerald-800 border-emerald-950 text-white shadow-md font-bold scale-105 ring-2 ring-emerald-300'
+                                    : 'bg-gradient-to-br from-emerald-50 to-green-150 hover:from-emerald-100 hover:to-green-200 border-emerald-250 text-emerald-800 hover:scale-102'
+                                }`}
+                              >
+                                <div className="text-[10px] uppercase font-semibold text-gray-400">Plot</div>
+                                <div className="text-xs font-bold">{u.unitId}</div>
+                                <div className="text-[9px] mt-0.5 opacity-80">{u.size} Sq.Ft</div>
+                                {isSelected && (
+                                  <span className="absolute top-1 right-1 bg-white text-emerald-800 rounded-full p-0.5 shadow-sm">
+                                    <Check className="w-2.5 h-2.5" />
+                                  </span>
+                                )}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Flats Layout styling - Grouped by floors */}
+                    {bookingProjectDetails.projectType === 'Flat' && (
+                      <div className="space-y-4">
+                        {Array.from(new Set(bookingProjectDetails.units?.map(u => u.floor || 'G') || [])).sort().map(floor => (
+                          <div key={floor} className="bg-gray-50/50 p-3 rounded-2xl border border-gray-150 space-y-2">
+                            <h5 className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Floor: {floor}</h5>
+                            <div className="grid grid-cols-4 sm:grid-cols-6 gap-3">
+                              {bookingProjectDetails.units?.filter(u => (u.floor || 'G') === floor).map(u => {
+                                const isSelected = selectedBookingUnits.includes(u.unitId);
+                                const isBooked = u.status === 'Booked' || u.status === 'Sold Out';
+                                return (
+                                  <button
+                                    key={u.unitId}
+                                    type="button"
+                                    disabled={isBooked}
+                                    onClick={() => {
+                                      if (isSelected) {
+                                        setSelectedBookingUnits(selectedBookingUnits.filter(id => id !== u.unitId));
+                                      } else {
+                                        setSelectedBookingUnits([...selectedBookingUnits, u.unitId]);
+                                      }
+                                    }}
+                                    className={`p-2.5 rounded-xl border flex flex-col items-center justify-center relative transition ${
+                                      isBooked
+                                        ? 'bg-yellow-100 border-yellow-300 text-yellow-800 cursor-not-allowed opacity-90'
+                                        : isSelected
+                                        ? 'bg-[#0e623a] border-[#0a4d2c] text-white shadow-md font-bold scale-105 ring-2 ring-emerald-300'
+                                        : 'bg-white hover:bg-gray-50 border-gray-200 text-gray-700'
+                                    }`}
+                                  >
+                                    <Building2 className={`w-4 h-4 mb-0.5 ${isSelected ? 'text-white' : 'text-gray-400'}`} />
+                                    <div className="text-xs font-bold">{u.unitId}</div>
+                                    <div className="text-[9px] mt-0.5 opacity-80">{u.size} Sq.Ft</div>
+                                    {isSelected && (
+                                      <span className="absolute top-1 right-1 bg-white text-[#0e623a] rounded-full p-0.5">
+                                        <Check className="w-2.5 h-2.5" />
+                                      </span>
+                                    )}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Houses Layout styling - House icons */}
+                    {bookingProjectDetails.projectType === 'House' && (
+                      <div className="grid grid-cols-3 sm:grid-cols-4 gap-4">
+                        {bookingProjectDetails.units?.map(u => {
+                          const isSelected = selectedBookingUnits.includes(u.unitId);
+                          const isBooked = u.status === 'Booked' || u.status === 'Sold Out';
+                          return (
+                            <button
+                              key={u.unitId}
+                              type="button"
+                              disabled={isBooked}
+                              onClick={() => {
+                                if (isSelected) {
+                                  setSelectedBookingUnits(selectedBookingUnits.filter(id => id !== u.unitId));
+                                } else {
+                                  setSelectedBookingUnits([...selectedBookingUnits, u.unitId]);
+                                }
+                              }}
+                              className={`p-3.5 rounded-2xl border flex flex-col items-center justify-center relative transition min-h-[90px] ${
+                                isBooked
+                                  ? 'bg-yellow-100 border-yellow-300 text-yellow-800 cursor-not-allowed opacity-90'
+                                  : isSelected
+                                  ? 'bg-[#0e623a] border-[#0a4d2c] text-white shadow-md font-bold scale-105 ring-2 ring-emerald-300'
+                                  : 'bg-white hover:bg-gray-50 border-gray-200 text-gray-700'
+                              }`}
+                            >
+                              <Home className={`w-5 h-5 mb-1.5 ${isSelected ? 'text-white' : 'text-[#0e623a]'}`} />
+                              <div className="text-xs font-bold">{u.unitId}</div>
+                              <div className="text-[10px] text-gray-400 font-semibold">{u.size} Sq.Ft</div>
+                              {isSelected && (
+                                <span className="absolute top-1.5 right-1.5 bg-white text-[#0e623a] rounded-full p-0.5">
+                                  <Check className="w-2.5 h-2.5" />
+                                </span>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="p-4 text-center text-xs text-gray-400">Select project to load available plans.</div>
+                )}
+              </div>
+
+              {/* Pricing & Quotation breakdown */}
+              {selectedBookingUnits.length > 0 && bookingProjectDetails && (
+                <div className="bg-gray-50 p-4 rounded-2xl border border-gray-150 space-y-2">
+                  <h4 className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Quotation Valuation</h4>
+                  <div className="text-xs space-y-1 text-gray-600">
+                    <div className="flex justify-between">
+                      <span>Rate Sq.Ft:</span>
+                      <span className="font-semibold text-gray-800">Rs. {bookingProjectDetails.pricePerSqFt}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Total area selected:</span>
+                      <span className="font-semibold text-gray-800">
+                        {bookingProjectDetails.units
+                          ?.filter(u => selectedBookingUnits.includes(u.unitId))
+                          .reduce((sum, u) => sum + u.size, 0)} Sq.Ft
+                      </span>
+                    </div>
+                    <div className="flex justify-between border-t pt-1.5 text-sm font-bold text-gray-800">
+                      <span>Total Valuation Cost:</span>
+                      <span className="text-[#0e623a]">
+                        Rs. {bookingProjectDetails.units
+                          ?.filter(u => selectedBookingUnits.includes(u.unitId))
+                          .reduce((sum, u) => sum + u.price, 0).toLocaleString()}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Customer Basic Details Forms */}
+              <div className="space-y-4">
+                <h4 className="text-xs font-bold text-gray-700 uppercase tracking-wider border-b pb-1.5">Booking Customer Information</h4>
+                
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div>
+                    <label className="text-xs font-semibold text-gray-600 block mb-1">Alternative Contact</label>
+                    <input
+                      type="text"
+                      placeholder="Alternative Phone No"
+                      value={bookingAltPhone}
+                      onChange={(e) => setBookingAltPhone(e.target.value)}
+                      className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-xs"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold text-gray-600 block mb-1">Aadhar Card Number</label>
+                    <input
+                      type="text"
+                      placeholder="12 digit aadhar"
+                      value={bookingAadhar}
+                      onChange={(e) => setBookingAadhar(e.target.value)}
+                      className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-xs"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold text-gray-600 block mb-1">PAN Number</label>
+                    <input
+                      type="text"
+                      placeholder="PAN Number"
+                      value={bookingPan}
+                      onChange={(e) => setBookingPan(e.target.value)}
+                      className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-xs"
+                    />
+                  </div>
+                </div>
+
+                {/* Bank Loan Details Sub-Form */}
+                <div className="bg-gray-50 p-4 rounded-2xl border border-gray-150 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-gray-600 uppercase tracking-wider block">Requires Bank Loan Financing?</label>
+                    <div className="flex gap-4">
+                      <label className="flex items-center gap-1 text-xs font-semibold text-gray-700 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="bookingHasLoan"
+                          value="Yes"
+                          checked={bookingHasLoan === 'Yes'}
+                          onChange={() => setBookingHasLoan('Yes')}
+                          className="text-[#0e623a] focus:ring-[#0e623a]"
+                        />
+                        <span>Yes</span>
+                      </label>
+                      <label className="flex items-center gap-1 text-xs font-semibold text-gray-700 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="bookingHasLoan"
+                          value="No"
+                          checked={bookingHasLoan === 'No'}
+                          onChange={() => setBookingHasLoan('No')}
+                          className="text-[#0e623a] focus:ring-[#0e623a]"
+                        />
+                        <span>No</span>
+                      </label>
+                    </div>
+                  </div>
+
+                  {bookingHasLoan === 'Yes' && (
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2 border-t border-gray-200">
+                      <div>
+                        <label className="text-[10px] font-semibold text-gray-500 block mb-1">Loan Amount Required (Rs.)</label>
+                        <input
+                          type="number"
+                          placeholder="e.g. 1500000"
+                          value={loanAmount}
+                          onChange={(e) => setLoanAmount(e.target.value)}
+                          className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-xs"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-semibold text-gray-500 block mb-1">Preferred Bank name</label>
+                        <input
+                          type="text"
+                          placeholder="e.g. SBI, HDFC"
+                          value={loanBank}
+                          onChange={(e) => setLoanBank(e.target.value)}
+                          className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-xs"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-semibold text-gray-500 block mb-1">Loan Notes / Status</label>
+                        <input
+                          type="text"
+                          placeholder="e.g. Approved / Processed"
+                          value={loanStatusNotes}
+                          onChange={(e) => setLoanStatusNotes(e.target.value)}
+                          className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-xs"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Submit / Cancel Buttons */}
+              <div className="flex items-center gap-3 pt-4 border-t">
+                <button
+                  type="button"
+                  onClick={() => setBookingModalOpen(false)}
+                  className="flex-1 py-3 border border-gray-200 rounded-xl text-xs font-bold text-gray-500 hover:bg-gray-50 transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-3 bg-[#0e623a] text-white rounded-xl text-xs font-bold hover:bg-[#0b4d2d] transition shadow-md flex items-center justify-center gap-1.5"
+                >
+                  <DollarSign className="w-3.5 h-3.5" />
+                  <span>Confirm Booking & Generate Quotation</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default LeadsDirectory;

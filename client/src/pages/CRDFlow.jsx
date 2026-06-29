@@ -1,0 +1,1663 @@
+import React, { useState, useEffect } from 'react';
+import { useAuth, API_URL } from '../context/AuthContext';
+import { 
+  Building, 
+  FileSpreadsheet, 
+  Upload, 
+  CheckCircle, 
+  Plus, 
+  DollarSign, 
+  CreditCard, 
+  FileText, 
+  Printer, 
+  AlertCircle, 
+  Paperclip,
+  Check,
+  BookOpen
+} from 'lucide-react';
+
+const defaultStagesTemplate = [
+  { name: 'On Booking', percentage: 5 },
+  { name: 'Agreement & Deed Regn.', percentage: 35 },
+  { name: 'On completion of the Foundation', percentage: 10 },
+  { name: 'On completion of Stilt Floor Slab', percentage: 10 },
+  { name: 'On completion of First Floor Roof Slab', percentage: 10 },
+  { name: 'On completion of Second Floor Roof Slab', percentage: 10 },
+  { name: 'On completion of Third Floor Roof Slab', percentage: 10 },
+  { name: 'On Completion of Fourth Floor Roof Slab', percentage: 5 },
+  { name: 'On Completion of Fifth Floor Roof Slab', percentage: 3 },
+  { name: 'On Handing Over', percentage: 2 }
+];
+
+// Helper to convert number to Indian words
+function numberToWords(num) {
+  const a = ['', 'One ', 'Two ', 'Three ', 'Four ', 'Five ', 'Six ', 'Seven ', 'Eight ', 'Nine ', 'Ten ', 'Eleven ', 'Twelve ', 'Thirteen ', 'Fourteen ', 'Fifteen ', 'Sixteen ', 'Seventeen ', 'Eighteen ', 'Nineteen '];
+  const b = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+
+  if ((num = num.toString()).length > 9) return 'overflow';
+  let n = ('000000000' + num).substr(-9).match(/^(\d{2})(\d{2})(\d{2})(\d{1})(\d{2})$/);
+  if (!n) return '';
+  let str = '';
+  str += (Number(n[1]) != 0) ? (a[Number(n[1])] || b[n[1][0]] + ' ' + a[n[1][1]]) + 'Crore ' : '';
+  str += (Number(n[2]) != 0) ? (a[Number(n[2])] || b[n[2][0]] + ' ' + a[n[2][1]]) + 'Lakh ' : '';
+  str += (Number(n[3]) != 0) ? (a[Number(n[3])] || b[n[3][0]] + ' ' + a[n[3][1]]) + 'Thousand ' : '';
+  str += (Number(n[4]) != 0) ? (a[Number(n[4])] || b[n[4]]) + 'Hundred ' : '';
+  str += (Number(n[5]) != 0) ? ((str != '') ? 'and ' : '') + (a[Number(n[5])] || b[n[5][0]] + ' ' + a[n[5][1]]) + 'only ' : '';
+  return str.trim() ? str + 'Rupees Only' : 'Zero Rupees';
+}
+
+const CRDFlow = () => {
+  const { token } = useAuth();
+  const [projects, setProjects] = useState([]);
+  const [bookings, setBookings] = useState([]);
+  
+  const [selectedProjectId, setSelectedProjectId] = useState('');
+  const [selectedBookingId, setSelectedBookingId] = useState('');
+  
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  
+  // Current active flow details
+  const [activeFlow, setActiveFlow] = useState(null);
+  
+  // Stages configuration if not initialized
+  const [excelStages, setExcelStages] = useState([]);
+  const [fileName, setFileName] = useState('');
+  
+  // Extra work input
+  const [extraWorkName, setExtraWorkName] = useState('');
+  const [extraWorkAmount, setExtraWorkAmount] = useState('');
+  const [extraWorkStageIdx, setExtraWorkStageIdx] = useState(null);
+  
+  // Payment split input
+  const [paymentStageIdx, setPaymentStageIdx] = useState(null);
+  const [paymentMethod, setPaymentMethod] = useState('Bank Transfer');
+  const [paymentAmount, setPaymentAmount] = useState('');
+  
+  // Bank details input
+  const [acNo, setAcNo] = useState('');
+  const [acName, setAcName] = useState('');
+  const [bankName, setBankName] = useState('');
+  const [loanAmount, setLoanAmount] = useState('');
+  const [loanBank, setLoanBank] = useState('');
+
+  // Filters
+  const [filterProjectCode, setFilterProjectCode] = useState('');
+  const [filterDate, setFilterDate] = useState('');
+
+  // Dual Mode amounts
+  const [dualTransferAmount, setDualTransferAmount] = useState('');
+  const [dualLoanAmount, setDualLoanAmount] = useState('');
+
+  // 5 PDFs for stage 2
+  const [pdfFiles, setPdfFiles] = useState(['', '', '', '', '']);
+
+  // Demand Letter modal
+  const [demandLetterStageIdx, setDemandLetterStageIdx] = useState(null);
+
+  // Document Preview modal
+  const [previewingDoc, setPreviewingDoc] = useState(null);
+
+  useEffect(() => {
+    fetchProjectsAndBookings();
+  }, [token]);
+
+  const fetchProjectsAndBookings = async () => {
+    try {
+      setLoading(true);
+      const projRes = await fetch(`${API_URL}/projects`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const leadRes = await fetch(`${API_URL}/leads?status=Booking`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      
+      if (projRes.ok && leadRes.ok) {
+        const projData = await projRes.ok ? await projRes.json() : [];
+        const leadData = await leadRes.ok ? await leadRes.json() : [];
+        setProjects(projData);
+        setBookings(leadData);
+      }
+    } catch (err) {
+      setError('Connection error fetching master items');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleProjectSelect = (projId) => {
+    setSelectedProjectId(projId);
+    setSelectedBookingId('');
+    setActiveFlow(null);
+    setExcelStages([]);
+    setFileName('');
+  };
+
+  const handleBookingSelect = async (leadId) => {
+    setSelectedBookingId(leadId);
+    setActiveFlow(null);
+    setExcelStages([]);
+    setFileName('');
+    if (!leadId) return;
+
+    try {
+      setLoading(true);
+      const res = await fetch(`${API_URL}/crd-flow/booking/${leadId}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data) {
+          setActiveFlow(data);
+        }
+      }
+    } catch (err) {
+      setError('Error loading booking milestone stages');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Simulate parsing the Excel stage configuration
+  const handleExcelUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setFileName(file.name);
+      // Pre-fill stages simulation based on user screenshot percentages
+      const selectedBooking = bookings.find(b => b._id === selectedBookingId);
+      const valuation = selectedBooking?.bookingInfo?.selectedUnits?.length 
+        ? selectedBooking.bookingInfo.selectedUnits.length * (selectedBooking.project?.pricePerSqFt || 2000) * 1000
+        : 2500000;
+      
+      const parsed = defaultStagesTemplate.map(stage => ({
+        name: stage.name,
+        percentage: stage.percentage,
+        amount: Math.round((stage.percentage / 100) * valuation)
+      }));
+      setExcelStages(parsed);
+    }
+  };
+
+  const handleLoadPresetTemplate = () => {
+    setFileName('Preset_Stages_Template.xlsx');
+    const selectedBooking = bookings.find(b => b._id === selectedBookingId);
+    const valuation = selectedBooking?.bookingInfo?.selectedUnits?.length 
+      ? selectedBooking.bookingInfo.selectedUnits.length * 1500 * 2000 // estimate calculation helper
+      : 3500000;
+    
+    const parsed = defaultStagesTemplate.map(stage => ({
+      name: stage.name,
+      percentage: stage.percentage,
+      amount: Math.round((stage.percentage / 100) * valuation)
+    }));
+    setExcelStages(parsed);
+  };
+
+  const handleInitializeFlow = async () => {
+    const selectedBooking = bookings.find(b => b._id === selectedBookingId);
+    if (!selectedBooking) return;
+
+    const totalValuation = excelStages.reduce((sum, s) => sum + s.amount, 0);
+
+    const payload = {
+      leadId: selectedBookingId,
+      projectId: selectedBooking.project?._id || selectedBooking.project,
+      unitId: selectedBooking.bookingInfo?.selectedUnits?.join(', ') || 'JMDP1',
+      stages: excelStages,
+      totalOriginalValue: totalValuation
+    };
+
+    try {
+      setLoading(true);
+      const res = await fetch(`${API_URL}/crd-flow`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setActiveFlow(data);
+        setSuccess('Milestone payment workflow initialized successfully!');
+        setTimeout(() => setSuccess(''), 4000);
+      } else {
+        const data = await res.json();
+        setError(data.message || 'Failed to initialize milestone flow');
+      }
+    } catch (err) {
+      setError('Connection error initializing flow');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAddExtraWork = async (e) => {
+    e.preventDefault();
+    if (!extraWorkName || !extraWorkAmount) return;
+
+    try {
+      const res = await fetch(`${API_URL}/crd-flow/${activeFlow._id}/stage/${extraWorkStageIdx}/extra-work`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          name: extraWorkName,
+          amount: Number(extraWorkAmount)
+        })
+      });
+
+      if (res.ok) {
+        const updated = await res.json();
+        setActiveFlow(updated);
+        setExtraWorkName('');
+        setExtraWorkAmount('');
+        setExtraWorkStageIdx(null);
+        setSuccess('Extra work added & total valuation updated!');
+        setTimeout(() => setSuccess(''), 3000);
+      }
+    } catch (err) {
+      setError('Error adding extra work');
+    }
+  };
+
+  const handleAutoPrepareDocs = () => {
+    if (!activeFlow) return;
+    const customerName = activeFlow.lead?.name?.replace(/\s+/g, '_') || 'Customer';
+    const projCode = activeFlow.project?.code || 'PROJECT';
+    const unitId = activeFlow.unitId?.replace(/\s+/g, '_') || 'UNIT';
+
+    const prepared = [
+      `${projCode}_Agreement_of_Sale_${customerName}_Unit_${unitId}.pdf`,
+      `${projCode}_Construction_Agreement_${customerName}_Unit_${unitId}.pdf`,
+      `${projCode}_Deed_of_Sale_Draft_${customerName}_Unit_${unitId}.pdf`,
+      `${projCode}_Stamped_Property_Schedule_${customerName}_Unit_${unitId}.pdf`,
+      `${projCode}_Registration_Challan_${customerName}_Unit_${unitId}.pdf`
+    ];
+    setPdfFiles(prepared);
+    setSuccess('All 5 registration documents auto-prepared successfully!');
+    setTimeout(() => setSuccess(''), 4000);
+  };
+
+  const handlePDFSubmit = async (stageIdx) => {
+    // Stage 2 completion logic: requires 5 PDFs
+    if (pdfFiles.filter(f => f.trim() !== '').length < 5) {
+      alert('Please fill out/upload all 5 PDFs for the Agreement & Deed registration stage!');
+      return;
+    }
+
+    try {
+      const res = await fetch(`${API_URL}/crd-flow/${activeFlow._id}/stage/${stageIdx}/complete`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ uploadedPdfs: pdfFiles })
+      });
+
+      if (res.ok) {
+        const updated = await res.json();
+        setActiveFlow(updated);
+        setSuccess('Stage completed successfully with uploaded documents!');
+        setTimeout(() => setSuccess(''), 4000);
+      }
+    } catch (err) {
+      setError('Failed to complete stage document check');
+    }
+  };
+
+  const handleStageComplete = async (stageIdx) => {
+    try {
+      const res = await fetch(`${API_URL}/crd-flow/${activeFlow._id}/stage/${stageIdx}/complete`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (res.ok) {
+        const updated = await res.json();
+        setActiveFlow(updated);
+        setSuccess('Stage marked as completed!');
+        setTimeout(() => setSuccess(''), 4000);
+      }
+    } catch (err) {
+      setError('Error completing stage');
+    }
+  };
+
+  const handleMakePayment = async (e) => {
+    e.preventDefault();
+
+    let payload = {};
+    if (paymentMethod === 'Dual Mode') {
+      payload = {
+        payments: [
+          {
+            method: 'Bank Transfer',
+            amount: Number(dualTransferAmount),
+            details: { accountNumber: acNo, customerName: acName, bankName: bankName }
+          },
+          {
+            method: 'Bank Loan',
+            amount: Number(dualLoanAmount),
+            details: { preferredBank: loanBank, loanAmount: Number(dualLoanAmount) }
+          }
+        ]
+      };
+    } else {
+      const details = paymentMethod === 'Bank Transfer'
+        ? { accountNumber: acNo, customerName: acName, bankName: bankName }
+        : { preferredBank: loanBank, loanAmount: Number(loanAmount) };
+      payload = {
+        method: paymentMethod,
+        amount: Number(paymentAmount),
+        details
+      };
+    }
+
+    try {
+      const res = await fetch(`${API_URL}/crd-flow/${activeFlow._id}/stage/${paymentStageIdx}/payment`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (res.ok) {
+        const updated = await res.json();
+        setActiveFlow(updated);
+        setPaymentStageIdx(null);
+        setPaymentAmount('');
+        setDualTransferAmount('');
+        setDualLoanAmount('');
+        setAcNo('');
+        setAcName('');
+        setBankName('');
+        setLoanAmount('');
+        setLoanBank('');
+        setSuccess('Payment split submitted successfully!');
+        setTimeout(() => setSuccess(''), 4000);
+      }
+    } catch (err) {
+      setError('Error posting payment details');
+    }
+  };
+
+  const getStageTotal = (stage) => {
+    const extraTotal = stage.extraWorks?.reduce((sum, w) => sum + w.amount, 0) || 0;
+    return stage.amount + extraTotal;
+  };
+
+  const getStagePaid = (stage) => {
+    return stage.payments?.reduce((sum, p) => sum + p.amount, 0) || 0;
+  };
+
+  const triggerPrintDemandLetter = () => {
+    window.print();
+  };
+
+  const filteredBookings = bookings.filter(b => !selectedProjectId || (b.project?._id || b.project) === selectedProjectId);
+
+  const selectedBookingDetails = bookings.find(b => b._id === selectedBookingId);
+
+  return (
+    <div className="space-y-6 max-w-6xl mx-auto">
+      {/* Top Header Section */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white border border-gray-150 p-6 rounded-3xl shadow-sm">
+        <div>
+          <h1 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+            <BookOpen className="w-5 h-5 text-[#0e623a]" />
+            <span>CRD Flow: Milestone Payment Manager</span>
+          </h1>
+          <p className="text-xs text-gray-500 mt-1">Configure, track construction milestones, manage extra works, split payments, and print demand letters.</p>
+        </div>
+
+        {activeFlow && (
+          <div className="bg-emerald-50 border border-emerald-200 p-4 rounded-2xl flex flex-col items-end self-end sm:self-center">
+            <span className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider">Total Project Valuation</span>
+            <span className="text-lg font-extrabold text-[#0e623a] mt-0.5">
+              Rs. {activeFlow.totalCurrentValue.toLocaleString()}
+            </span>
+            {activeFlow.totalExtraWorksValue > 0 && (
+              <span className="text-[9px] text-gray-400 mt-0.5">
+                (Base: Rs. {activeFlow.totalOriginalValue.toLocaleString()} + Extra: Rs. {activeFlow.totalExtraWorksValue.toLocaleString()})
+              </span>
+            )}
+          </div>
+        )}
+      </div>
+
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-800 text-xs px-4 py-3 rounded-2xl flex items-center gap-2 animate-bounce">
+          <AlertCircle className="w-4 h-4 text-red-600" />
+          <span>{error}</span>
+        </div>
+      )}
+
+      {success && (
+        <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs px-4 py-3 rounded-2xl flex items-center gap-2">
+          <CheckCircle className="w-4 h-4 text-emerald-600" />
+          <span>{success}</span>
+        </div>
+      )}
+
+      {/* Conditionally Render: Leads Directory OR Active Stage Stepper */}
+      {!selectedBookingId ? (
+        <div className="bg-white border border-gray-150 p-6 rounded-3xl shadow-sm space-y-6 text-left">
+          {/* Directory Header with Filtration on Top Right */}
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b pb-4">
+            <div>
+              <h2 className="text-base font-bold text-gray-800">Booked Leads Directory</h2>
+              <p className="text-xs text-gray-400">Select any booked client below to manage milestone construction stages and payments.</p>
+            </div>
+            
+            <div className="flex flex-wrap items-center gap-3">
+              {/* Project Code Filter */}
+              <div>
+                <select
+                  value={filterProjectCode}
+                  onChange={(e) => setFilterProjectCode(e.target.value)}
+                  className="px-3 py-2 bg-gray-50 border border-gray-250 rounded-xl text-xs font-semibold text-gray-700 focus:outline-none focus:ring-1 focus:ring-[#0e623a]"
+                >
+                  <option value="">All Projects</option>
+                  {Array.from(new Set(projects.map(p => p.code).filter(Boolean))).map(code => (
+                    <option key={code} value={code}>{code}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Date Filter */}
+              <div>
+                <input
+                  type="date"
+                  value={filterDate}
+                  onChange={(e) => setFilterDate(e.target.value)}
+                  className="px-3 py-2 bg-gray-50 border border-gray-250 rounded-xl text-xs font-semibold text-gray-700 focus:outline-none focus:ring-1 focus:ring-[#0e623a]"
+                />
+              </div>
+
+              {/* Reset Filters */}
+              {(filterProjectCode || filterDate) && (
+                <button
+                  onClick={() => { setFilterProjectCode(''); setFilterDate(''); }}
+                  className="text-xs font-bold text-red-600 hover:text-red-800 transition"
+                >
+                  Clear Filters
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Booked Leads Grid / Table */}
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs text-left">
+              <thead className="bg-gray-50 text-gray-500 font-bold uppercase tracking-wider border-b">
+                <tr>
+                  <th className="p-4">Customer Name</th>
+                  <th className="p-4">Project / Units</th>
+                  <th className="p-4">Booking Date</th>
+                  <th className="p-4">Status / Phone</th>
+                  <th className="p-4 text-center">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {bookings
+                  .filter(lead => {
+                    if (filterProjectCode && lead.project?.code !== filterProjectCode) return false;
+                    if (filterDate) {
+                      const bookingStr = new Date(lead.bookingInfo?.bookingDate || lead.createdAt).toLocaleDateString('en-CA');
+                      if (bookingStr !== filterDate) return false;
+                    }
+                    return true;
+                  })
+                  .map((lead) => (
+                    <tr key={lead._id} className="hover:bg-gray-50/50 transition">
+                      <td className="p-4">
+                        <div className="font-bold text-gray-800">{lead.name}</div>
+                        <div className="text-[10px] text-gray-400">{lead.email || 'No Email'}</div>
+                      </td>
+                      <td className="p-4">
+                        <div className="font-semibold text-gray-700">
+                          {lead.project?.code || 'N/A'} - {lead.project?.name || 'N/A'}
+                        </div>
+                        <div className="text-[10px] text-emerald-800 font-bold bg-emerald-50 px-2 py-0.5 rounded inline-block mt-1">
+                          Units: {lead.bookingInfo?.selectedUnits?.join(', ') || 'N/A'}
+                        </div>
+                      </td>
+                      <td className="p-4 text-gray-600">
+                        {new Date(lead.bookingInfo?.bookingDate || lead.createdAt).toLocaleDateString('en-GB')}
+                      </td>
+                      <td className="p-4">
+                        <div className="font-semibold text-gray-700">{lead.phone}</div>
+                        <div className="text-[9px] text-yellow-800 font-bold uppercase mt-0.5">Booking Stage</div>
+                      </td>
+                      <td className="p-4 text-center">
+                        <button
+                          onClick={() => handleBookingSelect(lead._id)}
+                          className="px-4 py-2 bg-[#0e623a] text-white font-bold rounded-xl hover:bg-[#0b4d2d] transition text-[10px] cursor-pointer"
+                        >
+                          Manage CRD Flow
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+
+                {bookings.filter(lead => {
+                  if (filterProjectCode && lead.project?.code !== filterProjectCode) return false;
+                  if (filterDate) {
+                    const bookingStr = new Date(lead.bookingInfo?.bookingDate || lead.createdAt).toLocaleDateString('en-CA');
+                    if (bookingStr !== filterDate) return false;
+                  }
+                  return true;
+                }).length === 0 && (
+                  <tr>
+                    <td colSpan="5" className="p-8 text-center text-gray-400">
+                      No matching booked leads found.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      ) : (
+        /* Stepper header to go back */
+        <div className="bg-white border border-gray-150 p-4 rounded-2xl flex items-center justify-between no-print text-left">
+          <button
+            onClick={() => { setSelectedBookingId(''); setActiveFlow(null); }}
+            className="flex items-center gap-1 text-xs font-bold text-gray-600 hover:text-gray-900 transition"
+          >
+            ← Back to Bookings Directory
+          </button>
+          
+          <div className="text-xs text-gray-500 font-bold">
+            Selected: <span className="text-gray-800 font-black">{selectedBookingDetails?.name}</span>
+          </div>
+        </div>
+      )}
+
+      {/* Stage Initialization view if NO flow exists */}
+      {selectedBookingId && !activeFlow && (
+        <div className="bg-white border border-gray-150 p-8 rounded-3xl shadow-sm space-y-6 text-center">
+          <FileSpreadsheet className="w-16 h-16 text-emerald-600/30 mx-auto" />
+          <div className="max-w-md mx-auto space-y-2">
+            <h3 className="text-sm font-bold text-gray-800">Configure Construction Milestones</h3>
+            <p className="text-xs text-gray-500">Initialize the milestone payment schedules for this booking. You can upload the stages config Excel sheet or load our default preset template.</p>
+          </div>
+
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-2">
+            <label className="flex items-center gap-2 px-6 py-3 border border-gray-200 hover:border-[#0e623a]/30 rounded-xl text-xs font-bold text-gray-600 hover:bg-gray-50 transition cursor-pointer">
+              <Upload className="w-4 h-4 text-emerald-600" />
+              <span>{fileName || 'Upload Excel Sheet'}</span>
+              <input type="file" accept=".xlsx,.xls,.csv" onChange={handleExcelUpload} className="hidden" />
+            </label>
+
+            <button
+              onClick={handleLoadPresetTemplate}
+              className="px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-xs font-bold transition cursor-pointer"
+            >
+              Load Default Presets
+            </button>
+          </div>
+
+          {excelStages.length > 0 && (
+            <div className="max-w-2xl mx-auto border border-gray-150 rounded-2xl overflow-hidden mt-6 text-left">
+              <table className="w-full text-xs text-left">
+                <thead className="bg-gray-50 border-b border-gray-100 text-gray-500 font-bold uppercase tracking-wider">
+                  <tr>
+                    <th className="p-4">Stages</th>
+                    <th className="p-4">%</th>
+                    <th className="p-4 text-right">Estimated Amount</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                  {excelStages.map((s, idx) => (
+                    <tr key={idx} className="hover:bg-gray-50/50">
+                      <td className="p-4 font-bold text-gray-700">{s.name}</td>
+                      <td className="p-4 text-gray-600">{s.percentage}%</td>
+                      <td className="p-4 text-right font-semibold text-[#0e623a]">Rs. {s.amount.toLocaleString()}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+
+              <div className="p-4 bg-gray-50 border-t flex justify-end">
+                <button
+                  onClick={handleInitializeFlow}
+                  className="px-6 py-2.5 bg-[#0e623a] text-white text-xs font-bold rounded-xl hover:bg-[#0b4d2d] transition shadow cursor-pointer"
+                >
+                  Initialize Flow & Apply Stages
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Active Stepper view if flow exists */}
+      {activeFlow && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Timeline List of Stages */}
+          <div className="lg:col-span-2 bg-white border border-gray-150 p-6 rounded-3xl shadow-sm space-y-6">
+            <h3 className="text-sm font-black text-gray-800 border-b pb-2 flex items-center gap-2">
+              <CheckCircle className="w-4 h-4 text-[#0e623a]" />
+              <span>Milestone Stages Timeline</span>
+            </h3>
+
+            <div className="space-y-6 relative border-l border-gray-100 ml-4 pl-6">
+              {activeFlow.stages.map((stage, idx) => {
+                const totalDue = getStageTotal(stage);
+                const totalPaid = getStagePaid(stage);
+                const isPaidOff = totalPaid >= totalDue;
+                const paidPercent = totalDue > 0 ? Math.min(100, Math.round((totalPaid / totalDue) * 100)) : 0;
+                
+                return (
+                  <div key={idx} className="relative space-y-3">
+                    {/* Stepper Dot Indicator */}
+                    <span className={`absolute -left-[31px] top-1.5 w-4 h-4 rounded-full border-2 ${
+                      stage.isCompleted
+                        ? 'bg-[#0e623a] border-[#0e623a] ring-4 ring-[#f0f9f4]'
+                        : isPaidOff
+                        ? 'bg-yellow-400 border-yellow-400 ring-4 ring-yellow-50'
+                        : 'bg-white border-gray-300 ring-4 ring-gray-50'
+                    } flex items-center justify-center`}>
+                      {stage.isCompleted && <Check className="w-2.5 h-2.5 text-white" />}
+                    </span>
+
+                    {/* Stage Header */}
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                      <div>
+                        <h4 className="font-extrabold text-sm text-gray-800 flex items-center gap-1.5">
+                          <span>Stage {idx + 1}: {stage.name}</span>
+                          <span className="text-[10px] bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full font-bold">
+                            {stage.percentage}%
+                          </span>
+                        </h4>
+                        <div className="text-[10px] text-gray-400 mt-0.5">
+                          Base Amount: Rs. {stage.amount.toLocaleString()}
+                        </div>
+                        {/* Stage Progress Bar Indicator */}
+                        <div className="w-48 bg-gray-200 h-1.5 rounded-full overflow-hidden mt-1.5">
+                          <div 
+                            className={`h-full transition-all duration-300 ${isPaidOff ? 'bg-emerald-600' : 'bg-blue-500'}`} 
+                            style={{ width: `${paidPercent}%` }}
+                          ></div>
+                        </div>
+                      </div>
+
+                      {/* Status Badges & Action Buttons */}
+                      <div className="flex items-center gap-2">
+                        {stage.isCompleted ? (
+                          <span className="text-[10px] bg-emerald-50 border border-emerald-250 text-emerald-800 px-2 py-0.5 rounded-full font-bold flex items-center gap-0.5">
+                            <Check className="w-3 h-3" /> Completed
+                          </span>
+                        ) : isPaidOff ? (
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[10px] bg-emerald-50 border border-emerald-250 text-emerald-800 px-2 py-0.5 rounded-full font-bold">
+                              100% Paid
+                            </span>
+                            <button
+                              onClick={() => handleStageComplete(idx)}
+                              className="px-3 py-1 bg-[#0e623a] hover:bg-[#0b4d2d] text-white text-[10px] font-bold rounded-lg transition cursor-pointer"
+                            >
+                              Mark Completed
+                            </button>
+                          </div>
+                        ) : (
+                          <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold border ${
+                            paidPercent > 0 ? 'bg-blue-50 border-blue-200 text-blue-800' : 'bg-amber-50 border-amber-200 text-amber-800'
+                          }`}>
+                            {paidPercent}% Paid
+                          </span>
+                        )}
+
+                        <button
+                          onClick={() => setDemandLetterStageIdx(idx)}
+                          title="Generate Demand Letter"
+                          className="p-1 border hover:bg-gray-50 rounded-lg text-gray-500 transition cursor-pointer"
+                        >
+                          <Printer className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Stage Breakdown & Document list */}
+                    <div className="bg-gray-50 p-4 rounded-2xl border border-gray-150 space-y-3">
+                      {/* Document uploads for stage 2 */}
+                      {idx === 1 && !stage.isCompleted && (
+                        <div className="space-y-4 border-b pb-4 border-gray-200/60 text-left">
+                          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 bg-emerald-50/50 p-3 rounded-2xl border border-emerald-100/60">
+                            <div>
+                              <label className="text-[11px] font-extrabold text-emerald-900 uppercase tracking-wider block flex items-center gap-1.5">
+                                <Paperclip className="w-3.5 h-3.5 text-[#0e623a]" />
+                                <span>Requires 5 Deed / Agreement PDF Registrations</span>
+                              </label>
+                              <p className="text-[10px] text-emerald-800/80 mt-0.5">Documents can be auto-prepared based on project & client details.</p>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={handleAutoPrepareDocs}
+                              className="px-3.5 py-1.5 bg-[#0e623a] text-white hover:bg-[#0b4d2d] rounded-xl text-[10px] font-black tracking-wide flex items-center gap-1 shadow-sm transition-all hover:scale-[1.02] cursor-pointer self-start sm:self-center"
+                            >
+                              <span>✨ Auto-Prepare Documents</span>
+                            </button>
+                          </div>
+
+                          <div className="space-y-2">
+                            {[
+                              'Agreement of Sale',
+                              'Construction Agreement',
+                              'Sale Deed Draft',
+                              'Stamped Property Schedule',
+                              'NOC & Registration Challan'
+                            ].map((title, i) => {
+                              const filename = pdfFiles[i] || '';
+                              const isGenerated = filename.trim() !== '';
+
+                              return (
+                                <div key={i} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 bg-white border border-gray-200 hover:border-emerald-600/30 rounded-2xl transition shadow-xs">
+                                  <div className="flex items-center gap-3 flex-1">
+                                    <div className={`p-2 rounded-xl ${isGenerated ? 'bg-red-50 text-red-600' : 'bg-gray-50 text-gray-400'}`}>
+                                      <FileText className="w-5 h-5" />
+                                    </div>
+                                    <div className="space-y-1 flex-1">
+                                      <div className="flex items-center gap-2">
+                                        <span className="text-[11px] font-bold text-gray-800">{title}</span>
+                                        {isGenerated && (
+                                          <span className="text-[9px] font-black bg-emerald-50 text-emerald-800 border border-emerald-200 px-1.5 py-0.25 rounded-md uppercase tracking-wider">
+                                            Prepared
+                                          </span>
+                                        )}
+                                      </div>
+                                      <input
+                                        type="text"
+                                        placeholder={`e.g. Enter ${title} filename...`}
+                                        value={filename}
+                                        onChange={(e) => {
+                                          const updated = [...pdfFiles];
+                                          updated[i] = e.target.value;
+                                          setPdfFiles(updated);
+                                        }}
+                                        className="w-full px-2.5 py-1 bg-gray-50/50 hover:bg-gray-50 focus:bg-white border border-gray-150 rounded-lg text-xs transition"
+                                      />
+                                    </div>
+                                  </div>
+
+                                  <div className="flex items-center gap-2 self-end sm:self-center">
+                                    {isGenerated && (
+                                      <button
+                                        type="button"
+                                        onClick={() => setPreviewingDoc({
+                                          index: i,
+                                          title: title,
+                                          filename: filename
+                                        })}
+                                        className="px-3 py-1.5 border border-gray-250 hover:border-[#0e623a] text-[#0e623a] hover:bg-emerald-50/30 text-[10px] font-bold rounded-xl transition flex items-center gap-1 cursor-pointer"
+                                      >
+                                        <span>👁️ Preview Draft</span>
+                                      </button>
+                                    )}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+
+                          <button
+                            onClick={() => handlePDFSubmit(idx)}
+                            className="w-full py-3 bg-[#0e623a] hover:bg-[#0b4d2d] text-white text-xs font-black tracking-wide rounded-xl transition-all shadow-md cursor-pointer hover:shadow-lg"
+                          >
+                            Submit Documents & Complete Verification
+                          </button>
+                        </div>
+                      )}
+
+                      {/* Display Uploaded Pdfs if completed */}
+                      {stage.uploadedPdfs?.length > 0 && (
+                        <div className="text-[10px] text-gray-600 space-y-1">
+                          <span className="font-bold text-gray-400 uppercase tracking-wider block">Uploaded Documents:</span>
+                          <div className="flex flex-wrap gap-2 pt-1">
+                            {stage.uploadedPdfs.map((file, i) => (
+                              <span key={i} className="inline-flex items-center gap-1 bg-white border px-2 py-0.5 rounded">
+                                <FileText className="w-3 h-3 text-red-500" />
+                                <span>{file}</span>
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Stage Valuation & Payment Stats */}
+                      <div className="flex flex-col sm:flex-row justify-between text-xs gap-2 pt-1">
+                        <div className="space-y-1">
+                          <div className="text-gray-600">
+                            Milestone core value: <span className="font-semibold text-gray-800">Rs. {stage.amount.toLocaleString()}</span>
+                          </div>
+                          {stage.extraWorks?.length > 0 && (
+                            <div className="text-[10px] text-gray-500">
+                              Extra work adjustments: <span className="font-semibold text-gray-700">+ Rs. {stage.extraWorks.reduce((sum, w) => sum + w.amount, 0).toLocaleString()}</span>
+                            </div>
+                          )}
+                          <div className="text-gray-800 font-bold">
+                            Total Milestone Target: <span className="text-[#0e623a]">Rs. {totalDue.toLocaleString()}</span>
+                          </div>
+                        </div>
+
+                        <div className="space-y-1 border-t sm:border-t-0 sm:border-l border-gray-200 sm:pl-4">
+                          <div className="text-gray-600">
+                            Total Amount Paid: <span className="font-semibold text-gray-800">Rs. {totalPaid.toLocaleString()}</span>
+                          </div>
+                          <div className={`font-bold ${isPaidOff ? 'text-[#0e623a]' : 'text-amber-600'}`}>
+                            {isPaidOff ? 'Paid Off' : `Remaining: Rs. ${(totalDue - totalPaid).toLocaleString()}`}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Extra works list if exists */}
+                      {stage.extraWorks?.length > 0 && (
+                        <div className="border-t border-gray-200/60 pt-2 space-y-1.5">
+                          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Adjusted Extra Works:</span>
+                          {stage.extraWorks.map((work, wIdx) => (
+                            <div key={wIdx} className="flex justify-between items-center text-xs text-gray-600">
+                              <span>• {work.name}</span>
+                              <span className="font-semibold">+ Rs. {work.amount.toLocaleString()}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Payment splits list if exists */}
+                      {stage.payments?.length > 0 && (
+                        <div className="border-t border-gray-200/60 pt-2 space-y-1.5">
+                          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Split Payments Submitted:</span>
+                          {stage.payments.map((p, pIdx) => (
+                            <div key={pIdx} className="flex justify-between items-center text-xs text-gray-600">
+                              <span className="flex items-center gap-1.5">
+                                <Check className="w-3.5 h-3.5 text-emerald-600" />
+                                <span>Paid via {p.method} ({new Date(p.date).toLocaleDateString()})</span>
+                              </span>
+                              <span className="font-semibold text-[#0e623a]">Rs. {p.amount.toLocaleString()}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Actions for active unpaid stages */}
+                      {!isPaidOff && (
+                        <div className="flex gap-2 pt-2">
+                          <button
+                            onClick={() => {
+                              setExtraWorkStageIdx(idx);
+                              setExtraWorkName('');
+                              setExtraWorkAmount('');
+                            }}
+                            className="flex items-center gap-1 px-3 py-1.5 border border-gray-200 text-xs font-bold text-gray-600 rounded-lg hover:bg-gray-50 transition cursor-pointer"
+                          >
+                            <Plus className="w-3.5 h-3.5 text-emerald-600" />
+                            <span>Add Extra Work</span>
+                          </button>
+                          <button
+                            onClick={() => {
+                              setPaymentStageIdx(idx);
+                              setPaymentAmount(Math.max(0, totalDue - totalPaid).toString());
+                              setPaymentMethod('Bank Transfer');
+                            }}
+                            className="flex items-center gap-1 px-3 py-1.5 bg-emerald-800 text-white text-xs font-bold rounded-lg hover:bg-emerald-900 transition cursor-pointer"
+                          >
+                            <DollarSign className="w-3.5 h-3.5" />
+                            <span>Submit Split Payment</span>
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Sidebar Audit details & info */}
+          <div className="lg:col-span-1 space-y-6">
+            {/* Booking Details Card */}
+            {selectedBookingDetails && (
+              <div className="bg-white border border-gray-150 p-6 rounded-3xl shadow-sm space-y-4">
+                <h3 className="text-sm font-bold text-gray-700 uppercase tracking-wider border-b pb-2">Customer Booking Details</h3>
+                <div className="space-y-3 text-xs text-gray-600">
+                  <div>
+                    <span className="text-[10px] text-gray-400 block font-bold uppercase">Customer Name</span>
+                    <span className="font-bold text-gray-800">{selectedBookingDetails.name}</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-gray-400 block font-bold uppercase">Contact Number</span>
+                    <span>{selectedBookingDetails.phone}</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-gray-400 block font-bold uppercase">Selected Units</span>
+                    <span className="font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded inline-block mt-0.5">
+                      {activeFlow.unitId}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-gray-400 block font-bold uppercase">Address</span>
+                    <span>{selectedBookingDetails.address}</span>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Extra Work Modal dialog */}
+      {extraWorkStageIdx !== null && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl max-w-md w-full overflow-hidden shadow-2xl border border-gray-100">
+            <div className="bg-[#0e623a] p-6 text-white">
+              <h3 className="text-base font-bold flex items-center gap-2">
+                <Plus className="w-5 h-5 text-emerald-300" />
+                <span>Add Extra Works Adjustment</span>
+              </h3>
+              <p className="text-emerald-100 text-xs mt-1">Specify additional project customization work for stage {extraWorkStageIdx + 1}</p>
+            </div>
+
+            <form onSubmit={handleAddExtraWork} className="p-6 space-y-4">
+              <div>
+                <label className="text-xs font-semibold text-gray-600 block mb-1">Extra Work Name / Description</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Premium Tiles upgrade, Additional electrical points"
+                  value={extraWorkName}
+                  onChange={(e) => setExtraWorkName(e.target.value)}
+                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-250 rounded-xl text-sm"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-gray-600 block mb-1">Chargeable Amount (Rs)</label>
+                <input
+                  type="number"
+                  required
+                  placeholder="e.g. 45000"
+                  value={extraWorkAmount}
+                  onChange={(e) => setExtraWorkAmount(e.target.value)}
+                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-250 rounded-xl text-sm"
+                />
+              </div>
+
+              <div className="flex gap-3 pt-3 border-t">
+                <button
+                  type="button"
+                  onClick={() => setExtraWorkStageIdx(null)}
+                  className="flex-1 py-3 border border-gray-200 rounded-xl text-xs font-bold text-gray-500 hover:bg-gray-50 transition cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-3 bg-[#0e623a] text-white rounded-xl text-xs font-bold hover:bg-[#0b4d2d] transition shadow-md cursor-pointer"
+                >
+                  Add Work to Project
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Payment Split Modal Dialog */}
+      {paymentStageIdx !== null && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl max-w-lg w-full overflow-hidden shadow-2xl border border-gray-100">
+            <div className="bg-[#0e623a] p-6 text-white">
+              <h3 className="text-base font-bold flex items-center gap-2">
+                <CreditCard className="w-5 h-5 text-emerald-300" />
+                <span>Submit Milestone Split Payment</span>
+              </h3>
+              <p className="text-emerald-100 text-xs mt-1">Register bank transfers or loan payments to credit stage {paymentStageIdx + 1}</p>
+            </div>
+
+            <form onSubmit={handleMakePayment} className="p-6 space-y-4">
+              <div className="grid grid-cols-3 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setPaymentMethod('Bank Transfer')}
+                  className={`py-2.5 rounded-xl text-[10px] font-bold transition cursor-pointer text-center ${
+                    paymentMethod === 'Bank Transfer'
+                      ? 'bg-[#0e623a] text-white shadow'
+                      : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                  }`}
+                >
+                  Bank Transfer
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPaymentMethod('Bank Loan')}
+                  className={`py-2.5 rounded-xl text-[10px] font-bold transition cursor-pointer text-center ${
+                    paymentMethod === 'Bank Loan'
+                      ? 'bg-[#0e623a] text-white shadow'
+                      : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                  }`}
+                >
+                  Bank Loan
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPaymentMethod('Dual Mode')}
+                  className={`py-2.5 rounded-xl text-[10px] font-bold transition cursor-pointer text-center ${
+                    paymentMethod === 'Dual Mode'
+                      ? 'bg-[#0e623a] text-white shadow'
+                      : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                  }`}
+                >
+                  Dual Mode
+                </button>
+              </div>
+
+              {paymentMethod !== 'Dual Mode' && (
+                <div>
+                  <label className="text-xs font-semibold text-gray-600 block mb-1">Paid Amount (Rs)</label>
+                  <input
+                    type="number"
+                    required
+                    placeholder="e.g. 150000"
+                    value={paymentAmount}
+                    onChange={(e) => setPaymentAmount(e.target.value)}
+                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-250 rounded-xl text-sm font-bold text-gray-800"
+                  />
+                </div>
+              )}
+
+              {paymentMethod === 'Bank Transfer' && (
+                <div className="space-y-4 pt-2 border-t">
+                  <div>
+                    <label className="text-xs font-semibold text-gray-600 block mb-1">Account Number</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="Enter Bank Account No"
+                      value={acNo}
+                      onChange={(e) => setAcNo(e.target.value)}
+                      className="w-full px-4 py-2 bg-white border border-gray-200 rounded-xl text-xs"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold text-gray-600 block mb-1">Customer / Payer Name</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="Account Holder Name"
+                      value={acName}
+                      onChange={(e) => setAcName(e.target.value)}
+                      className="w-full px-4 py-2 bg-white border border-gray-200 rounded-xl text-xs"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold text-gray-600 block mb-1">Bank Name</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. SBI, Axis, ICICI"
+                      value={bankName}
+                      onChange={(e) => setBankName(e.target.value)}
+                      className="w-full px-4 py-2 bg-white border border-gray-200 rounded-xl text-xs"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {paymentMethod === 'Bank Loan' && (
+                <div className="space-y-4 pt-2 border-t">
+                  <div>
+                    <label className="text-xs font-semibold text-gray-600 block mb-1">Financing Bank Name</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. HDFC Home Loans, LIC Housing Finance"
+                      value={loanBank}
+                      onChange={(e) => setLoanBank(e.target.value)}
+                      className="w-full px-4 py-2 bg-white border border-gray-200 rounded-xl text-xs"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold text-gray-600 block mb-1">Loan Disbursement Amount (Rs)</label>
+                    <input
+                      type="number"
+                      required
+                      placeholder="e.g. 500000"
+                      value={loanAmount}
+                      onChange={(e) => setLoanAmount(e.target.value)}
+                      className="w-full px-4 py-2 bg-white border border-gray-200 rounded-xl text-xs"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {paymentMethod === 'Dual Mode' && (
+                <div className="space-y-4 pt-2 border-t">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-xs font-bold text-gray-700 block mb-1">Bank Transfer Amt (Rs)</label>
+                      <input
+                        type="number"
+                        required
+                        placeholder="e.g. 200000"
+                        value={dualTransferAmount}
+                        onChange={(e) => setDualTransferAmount(e.target.value)}
+                        className="w-full px-3 py-2 bg-gray-50 border rounded-xl text-xs font-bold text-gray-800"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-bold text-gray-700 block mb-1">Bank Loan Amt (Rs)</label>
+                      <input
+                        type="number"
+                        required
+                        placeholder="e.g. 100000"
+                        value={dualLoanAmount}
+                        onChange={(e) => setDualLoanAmount(e.target.value)}
+                        className="w-full px-3 py-2 bg-gray-50 border rounded-xl text-xs font-bold text-gray-800"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="border-t pt-3 space-y-3">
+                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Transfer Segment details:</span>
+                    <div className="grid grid-cols-2 gap-2">
+                      <input
+                        type="text"
+                        required
+                        placeholder="A/C Number"
+                        value={acNo}
+                        onChange={(e) => setAcNo(e.target.value)}
+                        className="px-3 py-2 bg-white border border-gray-250 rounded-lg text-xs"
+                      />
+                      <input
+                        type="text"
+                        required
+                        placeholder="Bank Name"
+                        value={bankName}
+                        onChange={(e) => setBankName(e.target.value)}
+                        className="px-3 py-2 bg-white border border-gray-250 rounded-lg text-xs"
+                      />
+                    </div>
+                    <input
+                      type="text"
+                      required
+                      placeholder="Account Payer Name"
+                      value={acName}
+                      onChange={(e) => setAcName(e.target.value)}
+                      className="w-full px-3 py-2 bg-white border border-gray-250 rounded-lg text-xs"
+                    />
+                  </div>
+
+                  <div className="border-t pt-3 space-y-2">
+                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Loan Segment details:</span>
+                    <input
+                      type="text"
+                      required
+                      placeholder="Financing Bank Name"
+                      value={loanBank}
+                      onChange={(e) => setLoanBank(e.target.value)}
+                      className="w-full px-3 py-2 bg-white border border-gray-250 rounded-lg text-xs"
+                    />
+                  </div>
+                </div>
+              )}
+
+              <div className="flex gap-3 pt-3 border-t">
+                <button
+                  type="button"
+                  onClick={() => setPaymentStageIdx(null)}
+                  className="flex-1 py-3 border border-gray-200 rounded-xl text-xs font-bold text-gray-500 hover:bg-gray-50 transition cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-3 bg-[#0e623a] text-white rounded-xl text-xs font-bold hover:bg-[#0b4d2d] transition shadow-md cursor-pointer"
+                >
+                  Submit Payment Record
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Demand Letter Screen Preview Modal Dialog */}
+      {demandLetterStageIdx !== null && activeFlow && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm overflow-y-auto no-print">
+          <div className="bg-white rounded-3xl max-w-2xl w-full overflow-hidden shadow-2xl border border-gray-250 my-8">
+            <div className="bg-[#0e623a] p-4 text-white flex justify-between items-center">
+              <span className="text-xs font-bold uppercase tracking-wider">Demand Letter Preview</span>
+              <button 
+                onClick={() => setDemandLetterStageIdx(null)}
+                className="text-white hover:text-gray-200 font-bold"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Screen View Padded Document Container */}
+            <div className="p-6 bg-gray-50 max-h-[70vh] overflow-y-auto">
+              <div className="p-8 bg-white border border-gray-250 rounded-2xl shadow-sm text-gray-900 font-serif leading-relaxed text-xs">
+                {/* Header Company Logo */}
+                <div className="flex justify-between items-start border-b-2 border-[#0e623a] pb-4 mb-6">
+                  <div>
+                    <div className="text-xl font-black tracking-wider text-[#0e623a]">JOHN BUILDWELL</div>
+                    <div className="text-[9px] text-gray-400 font-sans tracking-widest uppercase mt-0.5">Since 2007</div>
+                  </div>
+                  <div className="text-right text-[10px] text-gray-500 font-sans">
+                    Date: {new Date().toLocaleDateString('en-GB')}
+                  </div>
+                </div>
+
+                {/* To Address block */}
+                <div className="space-y-1 mb-6 font-sans text-[10px]">
+                  <div>To,</div>
+                  <div className="font-bold text-gray-800">{activeFlow.lead?.name}</div>
+                  <div>{activeFlow.lead?.address}</div>
+                  <div>Phone: {activeFlow.lead?.phone}</div>
+                </div>
+
+                {/* Subject */}
+                <div className="mb-6 text-[11px]">
+                  <span className="font-bold">Subject:</span> Payment Request Letter for <strong>{activeFlow.lead?.name}</strong> – <strong>"{activeFlow.project?.name}"</strong>, Plot/Unit No: <strong>{activeFlow.unitId}</strong>
+                </div>
+
+                {/* Letter Paragraphs */}
+                <div className="space-y-4 text-gray-700 mb-6 font-sans text-[10px] leading-relaxed">
+                  <p>Dear Sir,</p>
+                  <p>
+                    We are writing to inform you that the <strong className="text-gray-900">{activeFlow.stages[demandLetterStageIdx].name} ({activeFlow.stages[demandLetterStageIdx].percentage}%)</strong> milestone has been successfully completed for Unit No. <strong className="text-gray-900">{activeFlow.unitId}</strong> in our premium project <strong className="text-gray-900">"{activeFlow.project?.name}"</strong>, located at {activeFlow.project?.location || 'Palayamkottai, Tirunelveli'}.
+                  </p>
+                  <p>
+                    As per the project's schedule and agreements, we kindly request you to release the corresponding stage payment of <strong className="text-[#0e623a]">Rs. {getStageTotal(activeFlow.stages[demandLetterStageIdx]).toLocaleString()}/-</strong> (<em>{numberToWords(getStageTotal(activeFlow.stages[demandLetterStageIdx]))}</em>) towards the completed milestone work.
+                  </p>
+                  <p>Please do the needful and credit the payment to our official account details below:</p>
+                </div>
+
+                {/* Corporate Bank accounts info */}
+                <div className="bg-gray-50 p-4 border rounded-2xl space-y-1 text-[10px] font-sans mb-6">
+                  <div className="grid grid-cols-3">
+                    <span className="text-gray-400 font-bold uppercase">Name:</span>
+                    <span className="col-span-2 font-bold text-gray-700">John Buildwell India Private Limited</span>
+                  </div>
+                  <div className="grid grid-cols-3">
+                    <span className="text-gray-400 font-bold uppercase">Bank Name:</span>
+                    <span className="col-span-2 font-bold text-gray-700">Axis Bank Ltd, Palayamkottai</span>
+                  </div>
+                  <div className="grid grid-cols-3">
+                    <span className="text-gray-400 font-bold uppercase">A/C No:</span>
+                    <span className="col-span-2 font-bold text-gray-700 tracking-wider">914030011343603</span>
+                  </div>
+                  <div className="grid grid-cols-3">
+                    <span className="text-gray-400 font-bold uppercase">IFSC NO:</span>
+                    <span className="col-span-2 font-bold text-gray-700 tracking-wider">UTIB0002095</span>
+                  </div>
+                </div>
+
+                {/* Sign off and footer */}
+                <div className="flex justify-between items-end pt-4 font-sans text-[10px]">
+                  <div>
+                    <div className="text-gray-400 uppercase font-bold text-[8px]">Prepared By</div>
+                    <div className="font-bold text-gray-700 mt-4">Customer Relation Manager</div>
+                    <div className="text-gray-400 italic mt-0.5">(Mrs. J. Mary)</div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-gray-400 uppercase font-bold text-[8px]">For John Buildwell India (P) Ltd.</div>
+                    <div className="mt-8 border-t border-dashed border-gray-400 w-32 pt-1 text-gray-400 italic">Authorized Signatory</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Bottom print trigger toolbar */}
+            <div className="p-4 bg-gray-50 border-t flex justify-end gap-3">
+              <button
+                onClick={() => setDemandLetterStageIdx(null)}
+                className="px-4 py-2 border rounded-xl text-xs font-bold text-gray-500 hover:bg-gray-100 transition cursor-pointer"
+              >
+                Close
+              </button>
+              <button
+                onClick={triggerPrintDemandLetter}
+                className="px-5 py-2 bg-[#0e623a] text-white text-xs font-bold rounded-xl hover:bg-[#0b4d2d] transition shadow flex items-center gap-1.5 cursor-pointer"
+              >
+                <Printer className="w-4 h-4" />
+                <span>Print Demand Letter</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Dynamic Document Preview Modal */}
+      {previewingDoc !== null && activeFlow && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm overflow-y-auto no-print">
+          <div className="bg-white rounded-3xl max-w-3xl w-full overflow-hidden shadow-2xl border border-gray-250 my-8">
+            <div className="bg-[#0e623a] p-4 text-white flex justify-between items-center">
+              <div>
+                <span className="text-xs font-bold uppercase tracking-wider block">Official Document Prepared Draft</span>
+                <span className="text-sm font-extrabold mt-0.5 block">{previewingDoc.title}</span>
+              </div>
+              <button 
+                onClick={() => setPreviewingDoc(null)}
+                className="text-white hover:text-gray-200 font-extrabold text-lg px-2"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Document Draft Body */}
+            <div className="p-6 bg-gray-100 max-h-[70vh] overflow-y-auto">
+              <div className="p-8 bg-white border border-gray-200 rounded-2xl shadow-sm text-gray-800 font-serif leading-relaxed text-xs space-y-6 text-left">
+                
+                {/* Stamp Duty / Bond paper Style Header */}
+                <div className="border-4 border-double border-[#0e623a] p-4 text-center space-y-1 bg-emerald-50/20">
+                  <div className="text-sm font-bold uppercase tracking-widest text-emerald-800">Government of Tamil Nadu</div>
+                  <div className="text-[18px] font-black uppercase text-[#0e623a] tracking-wider">Stamp Duty India Certificate</div>
+                  <div className="text-[10px] text-gray-500 font-sans tracking-wide">Certificate No: TN-DL914380184B | Stamp Amount: Rs. 100/-</div>
+                  <div className="text-[9px] text-gray-400 font-sans italic">Prepared automatically under builders automated deed registration software</div>
+                </div>
+
+                {/* Main Heading */}
+                <div className="text-center font-extrabold text-sm uppercase tracking-wide text-gray-900 border-b pb-2">
+                  {previewingDoc.title.toUpperCase()}
+                </div>
+
+                {/* Dynamic Content depending on document index */}
+                {previewingDoc.index === 0 && (
+                  <div className="space-y-4 text-justify text-gray-700">
+                    <p>
+                      THIS AGREEMENT OF SALE is entered into on this <strong>{new Date().toLocaleDateString('en-GB')}</strong> at Tirunelveli.
+                    </p>
+                    <p className="font-semibold text-gray-800">BETWEEN:</p>
+                    <p>
+                      <strong>JOHN BUILDWELL INDIA PRIVATE LIMITED</strong>, having its registered office at Palayamkottai, Tirunelveli, represented herein by its authorized director, hereinafter referred to as the <strong>"DEVELOPER / VENDOR"</strong> of the ONE PART.
+                    </p>
+                    <p className="font-semibold text-gray-800">AND:</p>
+                    <p>
+                      <strong>{activeFlow.lead?.name}</strong>, residing at {activeFlow.lead?.address || 'N/A'}, hereinafter referred to as the <strong>"PURCHASER"</strong> of the OTHER PART.
+                    </p>
+                    <p>
+                      WHEREAS the Developer is the sole owner and developer of the residential/commercial project named <strong>"{activeFlow.project?.name}"</strong> located at {activeFlow.project?.location}.
+                    </p>
+                    <p>
+                      AND WHEREAS the Purchaser has agreed to buy and the Developer has agreed to sell the unit/plot designated as <strong>Unit No: {activeFlow.unitId}</strong> having a total valuation of <strong>Rs. {activeFlow.totalOriginalValue.toLocaleString()}/-</strong> (<em>{numberToWords(activeFlow.totalOriginalValue)}</em>).
+                    </p>
+                    <p className="font-bold text-gray-800 uppercase text-[10px] tracking-wider">TERMS AND CONDITIONS:</p>
+                    <ol className="list-decimal pl-5 space-y-2 font-sans text-[10px]">
+                      <li>The Purchaser shall pay the balance payment in accordance with the construction stages and payment schedules initialized in the CRD Flow Manager.</li>
+                      <li>The possession of the unit will be handed over to the Purchaser only upon complete settlement of all dues including core value and additional extra work adjustments.</li>
+                      <li>Registration fees, stamp duty, and legal document charges are entirely payable by the Purchaser.</li>
+                    </ol>
+                  </div>
+                )}
+
+                {previewingDoc.index === 1 && (
+                  <div className="space-y-4 text-justify text-gray-700">
+                    <p>
+                      THIS CONSTRUCTION AGREEMENT is entered into on this <strong>{new Date().toLocaleDateString('en-GB')}</strong>.
+                    </p>
+                    <p>
+                      BY AND BETWEEN <strong>JOHN BUILDWELL INDIA PRIVATE LIMITED</strong> (Developer) and <strong>{activeFlow.lead?.name}</strong> (Client).
+                    </p>
+                    <p>
+                      WHEREAS the Developer has proposed to construct a residential flat/villa on <strong>Unit No: {activeFlow.unitId}</strong> in the project <strong>"{activeFlow.project?.name}"</strong>.
+                    </p>
+                    <p>
+                      NOW IT IS MUTUALLY AGREED BETWEEN THE PARTIES AS FOLLOWS:
+                    </p>
+                    <ol className="list-decimal pl-5 space-y-2 font-sans text-[10px]">
+                      <li><strong>Scope of Work:</strong> The Developer agrees to build and complete the construction of the unit conforming to standard design specifications.</li>
+                      <li><strong>Payment Schedule:</strong> The client will make stage-wise payments linked to construction progress. Stage 2 (Agreement & Deed) value is set at <strong>Rs. {activeFlow.stages[1]?.amount.toLocaleString()}/-</strong> (<em>{numberToWords(activeFlow.stages[1]?.amount || 0)}</em>).</li>
+                      <li><strong>Delay Interest:</strong> Any delayed payment from the scheduled completion date of a milestone will attract interest at 12% per annum.</li>
+                    </ol>
+                  </div>
+                )}
+
+                {previewingDoc.index === 2 && (
+                  <div className="space-y-4 text-justify text-gray-700">
+                    <p>
+                      <strong>DRAFT DEED OF SALE</strong>
+                    </p>
+                    <p>
+                      This Deed of Sale is made on this <strong>{new Date().toLocaleDateString('en-GB')}</strong> by <strong>JOHN BUILDWELL INDIA PRIVATE LIMITED</strong> (Vendor) in favor of <strong>{activeFlow.lead?.name}</strong> (Vendee).
+                    </p>
+                    <p>
+                      The Vendor hereby transfers, conveys, and sells all rights, titles, and interests in the property described under the schedule below unto the Vendee for a total consideration of <strong>Rs. {activeFlow.totalOriginalValue.toLocaleString()}/-</strong>.
+                    </p>
+                    <p>
+                      The Vendor acknowledges receipt of booking and initial stages payments and agrees to execute absolute conveyance deed upon final payment receipt.
+                    </p>
+                  </div>
+                )}
+
+                {previewingDoc.index === 3 && (
+                  <div className="space-y-4 text-justify text-gray-700">
+                    <p>
+                      <strong>SCHEDULE OF PROPERTY (STAMPED)</strong>
+                    </p>
+                    <p>
+                      All that piece and parcel of land/building situated at {activeFlow.project?.location}, bearing <strong>Unit No: {activeFlow.unitId}</strong> under Survey Numbers belonging to <strong>"{activeFlow.project?.name}"</strong>.
+                    </p>
+                    <table className="w-full border-collapse border border-gray-300 text-[10px] mt-2 font-sans">
+                      <thead>
+                        <tr className="bg-gray-100">
+                          <th className="border p-2">Boundary Direction</th>
+                          <th className="border p-2">Bordering Property Description</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          <td className="border p-2 font-bold">North By:</td>
+                          <td className="border p-2">Developer's Open Space reservation park / Walkway</td>
+                        </tr>
+                        <tr>
+                          <td className="border p-2 font-bold">South By:</td>
+                          <td className="border p-2">40 Feet wide internal layout tar road</td>
+                        </tr>
+                        <tr>
+                          <td className="border p-2 font-bold">East By:</td>
+                          <td className="border p-2">Plot/Unit No. {parseInt(activeFlow.unitId) + 1 || 'Adjacent Unit'}</td>
+                        </tr>
+                        <tr>
+                          <td className="border p-2 font-bold">West By:</td>
+                          <td className="border p-2">Plot/Unit No. {parseInt(activeFlow.unitId) - 1 || 'Adjacent Unit'}</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+
+                {previewingDoc.index === 4 && (
+                  <div className="space-y-4 text-justify text-gray-700 font-sans text-[10px]">
+                    <div className="bg-emerald-50/50 p-4 border border-dashed border-emerald-300 rounded-xl">
+                      <div className="font-bold text-center text-[#0e623a] text-xs uppercase mb-2">E-Challan State Bank of India Receipt</div>
+                      <div className="grid grid-cols-2 gap-2 text-[10px]">
+                        <div><strong>GRN Number:</strong> MH091480108390A</div>
+                        <div><strong>Transaction Date:</strong> {new Date().toLocaleDateString('en-GB')}</div>
+                        <div><strong>Department:</strong> Inspector General of Registration</div>
+                        <div><strong>Payment Mode:</strong> Net Banking</div>
+                        <div><strong>Sub-Registrar Office:</strong> Tirunelveli Joint SRO</div>
+                        <div><strong>Registration Stamp Duty Paid:</strong> Rs. 15,200/-</div>
+                      </div>
+                    </div>
+                    <p className="font-serif text-xs">
+                      This NOC (No Objection Certificate) confirms that <strong>JOHN BUILDWELL INDIA PRIVATE LIMITED</strong> has obtained all structural and local panchayat clearances for construction of Unit {activeFlow.unitId} under Project {activeFlow.project?.name}.
+                    </p>
+                  </div>
+                )}
+
+                {/* Footer Signatures */}
+                <div className="flex justify-between items-end pt-12 border-t font-sans text-[10px]">
+                  <div>
+                    <div className="font-bold text-gray-700">For VENDOR / DEVELOPER</div>
+                    <div className="mt-8 border-t border-dashed border-gray-300 w-32 pt-1 text-gray-400 italic">Authorized Signatory</div>
+                  </div>
+                  <div className="text-right">
+                    <div className="font-bold text-gray-700">For PURCHASER / CLIENT</div>
+                    <div className="mt-8 border-t border-dashed border-gray-300 w-32 pt-1 text-gray-400 italic">Signature of Purchaser</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Bottom Actions */}
+            <div className="p-4 bg-gray-50 border-t flex justify-between items-center">
+              <span className="text-[10px] text-gray-400 font-mono">File reference: {previewingDoc.filename}</span>
+              <button
+                onClick={() => setPreviewingDoc(null)}
+                className="px-5 py-2 bg-[#0e623a] hover:bg-[#0b4d2d] text-white text-xs font-bold rounded-xl transition shadow cursor-pointer"
+              >
+                Close Draft Preview
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Print-Only Document Node (Hidden on Screen via CSS, displayed only when printed) */}
+      {demandLetterStageIdx !== null && activeFlow && (
+        <div className="print-only-document">
+          <div className="printable-area">
+            {/* Header Company Logo */}
+            <div className="flex justify-between items-start border-b-2 border-[#0e623a] pb-6 mb-6">
+              <div>
+                <div className="text-2xl font-black tracking-wider text-[#0e623a]">JOHN BUILDWELL</div>
+                <div className="text-[10px] text-gray-400 font-sans tracking-widest uppercase mt-0.5">Since 2007</div>
+              </div>
+              <div className="text-right text-xs text-gray-500 font-sans">
+                Date: {new Date().toLocaleDateString('en-GB')}
+              </div>
+            </div>
+
+            {/* To Address block */}
+            <div className="space-y-1 mb-6 font-sans text-xs">
+              <div>To,</div>
+              <div className="font-bold text-sm text-gray-800">{activeFlow.lead?.name}</div>
+              <div>{activeFlow.lead?.address}</div>
+              <div>Phone: {activeFlow.lead?.phone}</div>
+            </div>
+
+            {/* Subject */}
+            <div className="mb-6">
+              <span className="font-bold">Subject:</span> Payment Request Letter for <strong>{activeFlow.lead?.name}</strong> – <strong>"{activeFlow.project?.name}"</strong>, Plot/Unit No: <strong>{activeFlow.unitId}</strong>
+            </div>
+
+            {/* Letter Paragraphs */}
+            <div className="space-y-4 text-gray-700 mb-8 font-sans text-xs leading-relaxed">
+              <p>Dear Sir,</p>
+              <p>
+                We are writing to inform you that the <strong className="text-gray-900">{activeFlow.stages[demandLetterStageIdx].name} ({activeFlow.stages[demandLetterStageIdx].percentage}%)</strong> milestone has been successfully completed for Unit No. <strong className="text-gray-900">{activeFlow.unitId}</strong> in our premium project <strong className="text-gray-900">"{activeFlow.project?.name}"</strong>, located at {activeFlow.project?.location || 'Palayamkottai, Tirunelveli'}.
+              </p>
+              <p>
+                As per the project's schedule and agreements, we kindly request you to release the corresponding stage payment of <strong className="text-[#0e623a]">Rs. {getStageTotal(activeFlow.stages[demandLetterStageIdx]).toLocaleString()}/-</strong> (<em>{numberToWords(getStageTotal(activeFlow.stages[demandLetterStageIdx]))}</em>) towards the completed milestone work.
+              </p>
+              <p>Please do the needful and credit the payment to our official account details below:</p>
+            </div>
+
+            {/* Corporate Bank accounts info */}
+            <div className="bg-gray-50 p-4 border rounded-2xl space-y-1 text-xs font-sans mb-8">
+              <div className="grid grid-cols-3">
+                <span className="text-gray-400 font-bold uppercase">Name:</span>
+                <span className="col-span-2 font-bold text-gray-700">John Buildwell India Private Limited</span>
+              </div>
+              <div className="grid grid-cols-3">
+                <span className="text-gray-400 font-bold uppercase">Bank Name:</span>
+                <span className="col-span-2 font-bold text-gray-700">Axis Bank Ltd, Palayamkottai</span>
+              </div>
+              <div className="grid grid-cols-3">
+                <span className="text-gray-400 font-bold uppercase">A/C No:</span>
+                <span className="col-span-2 font-bold text-gray-700 tracking-wider">914030011343603</span>
+              </div>
+              <div className="grid grid-cols-3">
+                <span className="text-gray-400 font-bold uppercase">IFSC NO:</span>
+                <span className="col-span-2 font-bold text-gray-700 tracking-wider">UTIB0002095</span>
+              </div>
+            </div>
+
+            {/* Sign off and footer */}
+            <div className="flex justify-between items-end pt-8 font-sans text-xs">
+              <div>
+                <div className="text-gray-400 uppercase font-bold text-[9px]">Prepared By</div>
+                <div className="font-bold text-gray-700 mt-4">Customer Relation Manager</div>
+                <div className="text-gray-400 italic mt-0.5">(Mrs. J. Mary)</div>
+              </div>
+              <div className="text-right">
+                <div className="text-gray-400 uppercase font-bold text-[9px]">For John Buildwell India (P) Ltd.</div>
+                <div className="mt-8 border-t border-dashed border-gray-400 w-40 pt-1 text-gray-400 italic">Authorized Signatory</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Styled Printable styles strictly used in CSS layout mapping */}
+      <style>{`
+        @media screen {
+          .print-only-document {
+            display: none !important;
+          }
+        }
+        @page {
+          size: A4;
+          margin: 0;
+        }
+        @media print {
+          /* Hide sidebar, navigation menus, and non-printable elements */
+          #root, aside, nav, header, .no-print, button, .top-navbar, svg {
+            display: none !important;
+          }
+          /* Reset root layout padding, background, margins */
+          body, html {
+            background: white !important;
+            color: black !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            width: 100% !important;
+            height: auto !important;
+            box-shadow: none !important;
+          }
+          .print-only-document {
+            display: block !important;
+            width: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
+          }
+          .printable-area {
+            display: block !important;
+            box-sizing: border-box !important;
+            width: calc(100% - 3cm) !important;
+            min-height: calc(29.7cm - 3cm) !important;
+            margin: 1.5cm !important;
+            padding: 2cm !important;
+            border: 3px double #0e623a !important; /* Premium green double border */
+            box-shadow: none !important;
+            background: white !important;
+            font-family: Georgia, serif !important;
+            font-size: 14px !important;
+            line-height: 1.6 !important;
+            color: #000 !important;
+          }
+          .border-b-2 {
+            border-bottom-width: 2px !important;
+            border-color: #0e623a !important;
+          }
+        }
+      `}</style>
+    </div>
+  );
+};
+
+export default CRDFlow;
