@@ -361,7 +361,33 @@ const QuotationForm = () => {
             </div>
 
             {projectDetails ? (
-              <div>
+              <div className="space-y-6">
+                {/* Real Layout Plan Map Image if configured */}
+                {projectDetails.layoutPlanImage && (
+                  <div className="bg-gray-50 border border-gray-150 p-4 rounded-2xl flex flex-col md:flex-row gap-6 items-center">
+                    <div className="w-full md:w-1/2 rounded-xl overflow-hidden border border-gray-250 bg-white cursor-pointer relative group flex items-center justify-center min-h-[200px]">
+                      <img 
+                        src={projectDetails.layoutPlanImage} 
+                        alt={`${projectDetails.name} Layout Plan`} 
+                        className="max-h-[300px] w-auto object-contain transition group-hover:scale-102"
+                        onClick={() => window.open(projectDetails.layoutPlanImage, '_blank')}
+                      />
+                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition duration-200">
+                        <span className="text-xs text-white font-extrabold bg-gray-900/80 px-3 py-1.5 rounded-xl">Click to Expand Layout Plan Map</span>
+                      </div>
+                    </div>
+                    <div className="flex-1 space-y-2 text-xs text-gray-550 leading-relaxed text-left">
+                      <h4 className="font-extrabold text-gray-800 text-sm">Interactive Project Map</h4>
+                      <p>Use the layout map on the left to locate plot positions, roads, and dimensions. Once identified, select the corresponding plot identifiers in the selection panel below.</p>
+                      <div className="flex flex-wrap gap-4 mt-2">
+                        <span className="flex items-center gap-1.5 font-bold"><span className="w-2.5 h-2.5 rounded bg-[#0e623a]"></span>Selected</span>
+                        <span className="flex items-center gap-1.5 font-bold"><span className="w-2.5 h-2.5 rounded bg-yellow-400"></span>Booked / Sold</span>
+                        <span className="flex items-center gap-1.5 font-bold"><span className="w-2.5 h-2.5 rounded bg-[#ebfaf1]"></span>Available</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {/* Plots Grid */}
                 {projectType === 'Plot' && (
                   <div className="grid grid-cols-4 sm:grid-cols-6 gap-3">

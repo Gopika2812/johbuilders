@@ -57,7 +57,7 @@ router.get('/phone/:phone', protect, async (req, res) => {
 // @route   POST /api/leads
 // @desc    Create a new lead (or reopen existing if duplicate phone)
 router.post('/', protect, async (req, res) => {
-  const { leadType, name, phone, address, bankLoan, leadSource, activeAd, projectLocation, project, assignedTo } = req.body;
+  const { leadType, name, phone, address, bankLoan, leadSource, activeAd, projectLocation, project, assignedTo, leadCost } = req.body;
 
   try {
     // 1. Phone number tracking for reopening existing leads
@@ -80,6 +80,7 @@ router.post('/', protect, async (req, res) => {
       lead.project = project;
       lead.assignedTo = (assignedTo && assignedTo.toString().trim() !== '') ? assignedTo : undefined;
       lead.status = defaultStatus; // reset/set status on reopen
+      lead.leadCost = Number(leadCost) || 0;
       
       if (leadType === 'Lead') {
         lead.leadSource = leadSource || '';
@@ -125,7 +126,8 @@ router.post('/', protect, async (req, res) => {
       bankLoan: bankLoan || 'No',
       project,
       assignedTo: (assignedTo && assignedTo.toString().trim() !== '') ? assignedTo : undefined,
-      status: defaultStatus
+      status: defaultStatus,
+      leadCost: Number(leadCost) || 0
     });
 
     if (leadType === 'Lead') {
@@ -229,6 +231,22 @@ router.put('/:id', protect, async (req, res) => {
               unit.customerName = lead.name;
               unit.customerPhone = lead.phone;
               unit.leadName = lead.name;
+            }
+          });
+          await proj.save();
+        }
+      }
+    }
+
+    if (status === 'Won') {
+      if (lead.bookingInfo && lead.bookingInfo.selectedUnits && lead.bookingInfo.selectedUnits.length > 0) {
+        const Project = require('../models/Project');
+        const proj = await Project.findById(lead.project);
+        if (proj) {
+          lead.bookingInfo.selectedUnits.forEach(unitId => {
+            const unit = proj.units.find(u => u.unitId === unitId);
+            if (unit) {
+              unit.status = 'Sold Out';
             }
           });
           await proj.save();

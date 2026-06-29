@@ -142,6 +142,7 @@ const LeadsDirectory = () => {
   const [projectLocation, setProjectLocation] = useState('');
   const [locations, setLocations] = useState([]); // Unique project locations
   const [bankLoan, setBankLoan] = useState('No');
+  const [leadCost, setLeadCost] = useState('0');
 
   // Booking & Quotation Modal States
   const [bookingModalOpen, setBookingModalOpen] = useState(false);
@@ -305,6 +306,7 @@ const LeadsDirectory = () => {
       bankLoan,
       project: selectedProjectId,
       assignedTo: assignedToId,
+      leadCost: Number(leadCost) || 0,
       leadSource: leadType === 'Lead' ? leadSource : 'Direct Visit',
       activeAd: leadType === 'Lead' && adObj ? { name: adObj.name, link: adObj.link } : undefined,
       projectLocation: leadType === 'Direct Visit' ? projectLocation : undefined
@@ -419,7 +421,13 @@ const LeadsDirectory = () => {
     const hasFollowUp = ['Contacted', 'Follow-Up', 'Site Visit', 'Qualified', 'Negotiation'].includes(targetStatus);
     setFollowMode(hasFollowUp ? 'FollowUp' : 'Completed');
     
-    setNextFollowDate('');
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    setNextFollowDate(`${year}-${month}-${day}T${hours}:${minutes}`);
     setFollowThrough('Call');
     setFollowRemarks('');
     setCloseRemarks('');
@@ -614,6 +622,7 @@ const LeadsDirectory = () => {
     setFetchedAdLink('');
     setProjectLocation('');
     setDuplicateWarning(null);
+    setLeadCost('0');
   };
 
   // Filter list matching Search & Date & Tab
@@ -1059,8 +1068,8 @@ const LeadsDirectory = () => {
                 </div>
               </div>
 
-              {/* Name & Phone */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Name & Phone & Cost */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
                   <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1.5">Lead / Customer Name</label>
                   <input
@@ -1082,6 +1091,16 @@ const LeadsDirectory = () => {
                     onChange={(e) => setPhone(e.target.value)}
                     onBlur={handlePhoneBlur}
                     className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0e623a] text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1.5">Enquiry / Lead Cost (₹)</label>
+                  <input
+                    type="number"
+                    placeholder="e.g. 500"
+                    value={leadCost}
+                    onChange={(e) => setLeadCost(e.target.value)}
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0e623a] text-sm font-semibold"
                   />
                 </div>
               </div>
@@ -1663,7 +1682,33 @@ const LeadsDirectory = () => {
                 {bookingLoading ? (
                   <div className="p-8 text-center text-xs text-gray-500">Loading available layout plans and units...</div>
                 ) : bookingProjectDetails ? (
-                  <div>
+                  <div className="space-y-6">
+                    {/* Real Layout Plan Map Image if configured */}
+                    {bookingProjectDetails.layoutPlanImage && (
+                      <div className="bg-gray-50 border border-gray-150 p-4 rounded-2xl flex flex-col md:flex-row gap-6 items-center">
+                        <div className="w-full md:w-1/2 rounded-xl overflow-hidden border border-gray-250 bg-white cursor-pointer relative group flex items-center justify-center min-h-[200px]">
+                          <img 
+                            src={bookingProjectDetails.layoutPlanImage} 
+                            alt={`${bookingProjectDetails.name} Layout Plan`} 
+                            className="max-h-[300px] w-auto object-contain transition group-hover:scale-102"
+                            onClick={() => window.open(bookingProjectDetails.layoutPlanImage, '_blank')}
+                          />
+                          <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition duration-200">
+                            <span className="text-xs text-white font-extrabold bg-gray-900/80 px-3 py-1.5 rounded-xl">Click to Expand Layout Plan Map</span>
+                          </div>
+                        </div>
+                        <div className="flex-1 space-y-2 text-xs text-gray-550 leading-relaxed text-left">
+                          <h4 className="font-extrabold text-gray-800 text-sm">Interactive Project Map</h4>
+                          <p>Use the layout map on the left to locate plot positions, roads, and dimensions. Once identified, select the corresponding plot identifiers in the selection panel below.</p>
+                          <div className="flex flex-wrap gap-4 mt-2">
+                            <span className="flex items-center gap-1.5 font-bold"><span className="w-2.5 h-2.5 rounded bg-[#0e623a]"></span>Selected</span>
+                            <span className="flex items-center gap-1.5 font-bold"><span className="w-2.5 h-2.5 rounded bg-yellow-400"></span>Booked / Sold</span>
+                            <span className="flex items-center gap-1.5 font-bold"><span className="w-2.5 h-2.5 rounded bg-[#ebfaf1]"></span>Available</span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
                     {/* Plots Layout styling - Real representation (grass color, grid boxes) */}
                     {bookingProjectDetails.projectType === 'Plot' && (
                       <div className="space-y-2">

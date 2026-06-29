@@ -57,6 +57,10 @@ const ProjectSchema = new mongoose.Schema({
     enum: ['Plot', 'Flat', 'House'],
     required: true
   },
+  layoutPlanImage: {
+    type: String,
+    default: ''
+  },
   location: {
     type: String,
     required: true

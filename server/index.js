@@ -13,6 +13,9 @@ const crdFlowRoutes = require('./routes/crdFlow');
 const leadGroupRoutes = require('./routes/leadGroups');
 const budgetPlanRoutes = require('./routes/budgetPlans');
 const leadTargetRoutes = require('./routes/leadTargets');
+const summaryPlanRoutes = require('./routes/summaryPlans');
+const rolePermissionRoutes = require('./routes/rolePermissions');
+const dashboardRoutes = require('./routes/dashboard');
 
 const app = express();
 
@@ -112,6 +115,9 @@ app.use('/api/crd-flow', crdFlowRoutes);
 app.use('/api/lead-groups', leadGroupRoutes);
 app.use('/api/budget-plans', budgetPlanRoutes);
 app.use('/api/lead-targets', leadTargetRoutes);
+app.use('/api/summary-plans', summaryPlanRoutes);
+app.use('/api/role-permissions', rolePermissionRoutes);
+app.use('/api/dashboard', dashboardRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

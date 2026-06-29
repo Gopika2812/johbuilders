@@ -186,4 +186,70 @@ router.delete('/:id', protect, async (req, res) => {
   }
 });
 
+// @route   GET /api/quotations/summary-stats/:month
+// @desc    Get aggregated stats for overall sales target, houses sold, plots sold for this and last month
+router.get('/summary-stats/:month', protect, async (req, res) => {
+  const { month } = req.params; // format: "YYYY-MM"
+  try {
+    const getStatsForMonth = async (targetMonth) => {
+      const startDate = new Date(`${targetMonth}-01T00:00:00.000Z`);
+      const year = parseInt(targetMonth.split('-')[0]);
+      const monthNum = parseInt(targetMonth.split('-')[1]);
+      const endDate = new Date(year, monthNum, 1);
+
+      // Find all quotations created in this range
+      const quotations = await Quotation.find({
+        createdAt: { $gte: startDate, $lt: endDate }
+      }).populate('lead');
+
+      // Filter only those whose lead status is 'Booking'
+      const bookingQuotations = quotations.filter(q => q.lead && q.lead.status === 'Booking');
+
+      let salesValue = 0; // In rupees
+      let housesCount = 0; // count of Flat/House units
+      let plotsCount = 0;  // count of Plot units
+
+      bookingQuotations.forEach(q => {
+        salesValue += q.totalValue || 0;
+        const unitCount = q.selectedUnits?.length || 1;
+        if (q.projectType === 'Plot') {
+          plotsCount += unitCount;
+        } else {
+          housesCount += unitCount;
+        }
+      });
+
+      // Sales target in Crores (1 Crore = 10,000,000)
+      const salesInCrores = salesValue / 10000000;
+
+      return {
+        salesValue: parseFloat(salesInCrores.toFixed(4)),
+        housesCount,
+        plotsCount
+      };
+    };
+
+    const currentStats = await getStatsForMonth(month);
+
+    // Calculate last month string YYYY-MM
+    const currentYear = parseInt(month.split('-')[0]);
+    const currentMonthNum = parseInt(month.split('-')[1]);
+    let prevYear = currentYear;
+    let prevMonthNum = currentMonthNum - 1;
+    if (prevMonthNum === 0) {
+      prevMonthNum = 12;
+      prevYear -= 1;
+    }
+    const prevMonthStr = `${prevYear}-${prevMonthNum.toString().padStart(2, '0')}`;
+    const lastMonthStats = await getStatsForMonth(prevMonthStr);
+
+    res.json({
+      current: currentStats,
+      lastMonth: lastMonthStats
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 module.exports = router;

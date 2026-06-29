@@ -41,6 +41,7 @@ const RegisterProject = () => {
   const [location, setLocation] = useState('');
   const [totalLandArea, setTotalLandArea] = useState('');
   const [pricePerSqFt, setPricePerSqFt] = useState('');
+  const [layoutPlanImage, setLayoutPlanImage] = useState('');
 
   // Marketing states
   const [sourceType, setSourceType] = useState('');
@@ -178,6 +179,7 @@ const RegisterProject = () => {
       name,
       code: code.toUpperCase().trim(),
       projectType,
+      layoutPlanImage,
       location,
       totalLandArea: Number(totalLandArea),
       pricePerSqFt: Number(pricePerSqFt),
@@ -297,6 +299,54 @@ const RegisterProject = () => {
                 <option value="Flat">Flat / Apartment Project</option>
                 <option value="House">House Project</option>
               </select>
+            </div>
+
+            {/* Layout Plan Map Image */}
+            <div>
+              <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-2">Layout Plan Map Image</label>
+              <div className="flex flex-wrap items-center gap-4 bg-white/20 border border-[#0e623a]/20 p-4 rounded-xl">
+                <input 
+                  type="file" 
+                  id="register-file-upload"
+                  accept="image/*"
+                  onChange={(e) => {
+                    const file = e.target.files[0];
+                    if (file) {
+                      const reader = new FileReader();
+                      reader.onloadend = () => {
+                        setLayoutPlanImage(reader.result);
+                      };
+                      reader.readAsDataURL(file);
+                    }
+                  }}
+                  className="hidden"
+                />
+                <button
+                  type="button"
+                  onClick={() => document.getElementById('register-file-upload').click()}
+                  className="px-4 py-2.5 bg-[#0e623a] text-white hover:bg-[#0b4d2d] text-xs font-bold rounded-xl transition cursor-pointer"
+                >
+                  Choose Layout Plan Image
+                </button>
+                {layoutPlanImage ? (
+                  <div className="relative">
+                    <img 
+                      src={layoutPlanImage} 
+                      alt="Layout Preview" 
+                      className="w-14 h-14 object-cover rounded-xl border border-[#bce2cb]"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setLayoutPlanImage('')}
+                      className="absolute -top-1.5 -right-1.5 bg-red-150 hover:bg-red-200 text-red-700 rounded-full w-4 h-4 flex items-center justify-center text-[10px] font-bold"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ) : (
+                  <span className="text-xs text-gray-400 italic font-semibold">No image selected</span>
+                )}
+              </div>
             </div>
 
             {/* Location */}

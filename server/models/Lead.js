@@ -97,6 +97,10 @@ const LeadSchema = new mongoose.Schema({
       note: { type: String, default: '' }
     }
   ],
+  leadCost: {
+    type: Number,
+    default: 0
+  },
   createdAt: {
     type: Date,
     default: Date.now

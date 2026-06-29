@@ -36,7 +36,8 @@ const ProjectsDictionary = () => {
     name: '',
     location: '',
     totalLandArea: '',
-    pricePerSqFt: ''
+    pricePerSqFt: '',
+    layoutPlanImage: ''
   });
 
   // Filter states
@@ -51,7 +52,8 @@ const ProjectsDictionary = () => {
       name: project.name,
       location: project.location,
       totalLandArea: project.totalLandArea.toString(),
-      pricePerSqFt: project.pricePerSqFt.toString()
+      pricePerSqFt: project.pricePerSqFt.toString(),
+      layoutPlanImage: project.layoutPlanImage || ''
     });
   };
 
@@ -61,7 +63,8 @@ const ProjectsDictionary = () => {
       name: '',
       location: '',
       totalLandArea: '',
-      pricePerSqFt: ''
+      pricePerSqFt: '',
+      layoutPlanImage: ''
     });
   };
 
@@ -77,7 +80,8 @@ const ProjectsDictionary = () => {
           name: editForm.name,
           location: editForm.location,
           totalLandArea: Number(editForm.totalLandArea),
-          pricePerSqFt: Number(editForm.pricePerSqFt)
+          pricePerSqFt: Number(editForm.pricePerSqFt),
+          layoutPlanImage: editForm.layoutPlanImage
         })
       });
 
@@ -367,6 +371,7 @@ const ProjectsDictionary = () => {
                   <th className="p-4">Project Name</th>
                   <th className="p-4 w-28">Code</th>
                   <th className="p-4 w-32">Type</th>
+                  <th className="p-4 w-28">Map Layout</th>
                   <th className="p-4">Location</th>
                   <th className="p-4 w-36">Total Land Area (sq.ft)</th>
                   <th className="p-4 w-36">Price / sq.ft</th>
@@ -399,6 +404,53 @@ const ProjectsDictionary = () => {
                         <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border ${getTypeBadgeStyle(project.projectType)}`}>
                           {project.projectType}
                         </span>
+                      </td>
+                      <td className="p-4">
+                        {isEditing ? (
+                          <div className="flex flex-col gap-1 w-24">
+                            <input 
+                              type="file" 
+                              id={`edit-file-${project._id}`}
+                              accept="image/*"
+                              onChange={(e) => {
+                                const file = e.target.files[0];
+                                if (file) {
+                                  const reader = new FileReader();
+                                  reader.onloadend = () => {
+                                    setEditForm({ ...editForm, layoutPlanImage: reader.result });
+                                  };
+                                  reader.readAsDataURL(file);
+                                }
+                              }}
+                              className="hidden"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => document.getElementById(`edit-file-${project._id}`).click()}
+                              className="px-2 py-1 bg-[#0e623a]/10 hover:bg-[#0e623a]/20 text-[#0e623a] text-[10px] font-bold rounded-lg border border-[#bce2cb]"
+                            >
+                              Upload File
+                            </button>
+                            {editForm.layoutPlanImage && (
+                              <img 
+                                src={editForm.layoutPlanImage} 
+                                alt="Thumb" 
+                                className="w-10 h-10 object-cover rounded border"
+                              />
+                            )}
+                          </div>
+                        ) : (
+                          project.layoutPlanImage ? (
+                            <img 
+                              src={project.layoutPlanImage} 
+                              alt="Map Layout" 
+                              className="w-10 h-10 object-cover rounded border cursor-pointer hover:opacity-80 transition"
+                              onClick={() => window.open(project.layoutPlanImage, '_blank')}
+                            />
+                          ) : (
+                            <span className="text-gray-400 italic text-[10px]">No Layout</span>
+                          )
+                        )}
                       </td>
                       <td className="p-4">
                         {isEditing ? (

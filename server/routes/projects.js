@@ -111,6 +111,7 @@ router.post('/', protect, authorize('Admin', 'Manager'), async (req, res) => {
       name,
       code,
       projectType,
+      layoutPlanImage: req.body.layoutPlanImage || '',
       location,
       totalLandArea: area,
       pricePerSqFt: price,
@@ -407,7 +408,7 @@ router.put('/:id/unit-status', protect, async (req, res) => {
 // @route   PUT /api/projects/:id
 // @desc    Update project details
 router.put('/:id', protect, async (req, res) => {
-  const { name, location, totalLandArea, pricePerSqFt } = req.body;
+  const { name, location, totalLandArea, pricePerSqFt, layoutPlanImage } = req.body;
   try {
     const project = await Project.findById(req.params.id);
     if (!project) {
@@ -418,6 +419,7 @@ router.put('/:id', protect, async (req, res) => {
     if (location !== undefined) project.location = location;
     if (totalLandArea !== undefined) project.totalLandArea = Number(totalLandArea);
     if (pricePerSqFt !== undefined) project.pricePerSqFt = Number(pricePerSqFt);
+    if (layoutPlanImage !== undefined) project.layoutPlanImage = layoutPlanImage;
 
     await project.save();
 

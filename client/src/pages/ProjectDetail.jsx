@@ -487,27 +487,41 @@ const ProjectDetail = () => {
               {/* Map/Layout Placeholder Graphic */}
               <div className="bg-white border border-gray-200 p-6 rounded-3xl lg:col-span-1 space-y-4 shadow-sm h-fit">
                 <h3 className="text-sm font-bold text-gray-700">Project Layout Map</h3>
-                <div className="w-full bg-[#f0f9f4] rounded-2xl flex flex-col items-center justify-center p-6 border border-[#0e623a]/10 min-h-[220px]">
-                  <Building className="w-12 h-12 text-[#0e623a]/30 mb-2" />
-                  <span className="text-xs font-semibold text-[#0e623a]">{project.code} Master Plan</span>
-                  <span className="text-[10px] text-gray-400 mt-1">Grid units generate auto-proportions</span>
-                  <div className="grid grid-cols-5 gap-1 w-full mt-4">
-                    {project.units.map((unit, idx) => (
-                      <div
-                        key={idx}
-                        className={`h-4 rounded-sm border text-[8px] flex items-center justify-center font-bold ${
-                          unit.status === 'New' ? 'bg-emerald-100 border-emerald-300 text-emerald-800' :
-                          unit.status === 'Booked' ? 'bg-yellow-100 border-yellow-300 text-yellow-800' :
-                          unit.status === 'Under Construction' ? 'bg-purple-100 border-purple-300 text-purple-800' :
-                          'bg-red-100 border-red-300 text-red-800'
-                        }`}
-                        title={unit.unitId}
-                      >
-                        {idx + 1}
-                      </div>
-                    ))}
+                {project.layoutPlanImage ? (
+                  <div className="w-full bg-[#f0f9f4] rounded-2xl overflow-hidden border border-[#0e623a]/10 cursor-pointer relative group flex items-center justify-center min-h-[220px]">
+                    <img 
+                      src={project.layoutPlanImage} 
+                      alt={`${project.name} Layout Plan`} 
+                      className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
+                      onClick={() => window.open(project.layoutPlanImage, '_blank')}
+                    />
+                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition duration-200">
+                      <span className="text-[10px] text-white font-extrabold uppercase bg-gray-900/80 px-2.5 py-1 rounded-xl">View Layout Map</span>
+                    </div>
                   </div>
-                </div>
+                ) : (
+                  <div className="w-full bg-[#f0f9f4] rounded-2xl flex flex-col items-center justify-center p-6 border border-[#0e623a]/10 min-h-[220px]">
+                    <Building className="w-12 h-12 text-[#0e623a]/30 mb-2" />
+                    <span className="text-xs font-semibold text-[#0e623a]">{project.code} Master Plan</span>
+                    <span className="text-[10px] text-gray-400 mt-1">Grid units generate auto-proportions</span>
+                    <div className="grid grid-cols-5 gap-1 w-full mt-4">
+                      {project.units.map((unit, idx) => (
+                        <div
+                          key={idx}
+                          className={`h-4 rounded-sm border text-[8px] flex items-center justify-center font-bold ${
+                            unit.status === 'New' ? 'bg-emerald-100 border-emerald-300 text-emerald-800' :
+                            unit.status === 'Booked' ? 'bg-yellow-100 border-yellow-300 text-yellow-800' :
+                            unit.status === 'Under Construction' ? 'bg-purple-100 border-purple-300 text-purple-800' :
+                            'bg-red-100 border-red-300 text-red-800'
+                          }`}
+                          title={unit.unitId}
+                        >
+                          {idx + 1}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 <div className="text-[10px] text-gray-500 leading-relaxed bg-gray-50 p-3 rounded-lg border">
                   <strong>Color Legend:</strong>
                   <div className="flex flex-wrap gap-2 mt-1.5">
