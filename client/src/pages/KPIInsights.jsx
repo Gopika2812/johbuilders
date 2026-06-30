@@ -291,6 +291,7 @@ const KPIInsights = () => {
   const [selectedGroup, setSelectedGroup] = useState(null);
   const [activeCpeDrillDown, setActiveCpeDrillDown] = useState(null);
   const [exportMenuOpen, setExportMenuOpen] = useState(false);
+  const [crdMenuOpen, setCrdMenuOpen] = useState(false);
 
 
 
@@ -1657,17 +1658,17 @@ const KPIInsights = () => {
 
       // Apply active dashboard filters
       const filtered = data.filter(lead => {
-        // 1. Must be in Won (Registration/Handover) stage
-        const isWon = lead.status === 'Won';
-        if (!isWon) return false;
+        // Must be in Booking or Won stage
+        const isValidStage = lead.status === 'Booking' || lead.status === 'Won';
+        if (!isValidStage) return false;
 
-        // 2. Project filter
+        // Project filter
         if (selectedProject && (lead.project?._id || lead.project) !== selectedProject) return false;
 
-        // 3. User/Executive filter
+        // User/Executive filter
         if (selectedUser && (lead.assignedTo?._id || lead.assignedTo) !== selectedUser) return false;
 
-        // 4. Date range filter
+        // Date range filter
         const createdAt = new Date(lead.createdAt);
         if (fromDate && createdAt < new Date(fromDate)) return false;
         if (toDate) {
@@ -1680,7 +1681,7 @@ const KPIInsights = () => {
       });
 
       if (filtered.length === 0) {
-        alert('No registration records found for the selected filters.');
+        alert('No registration/booking records found for the selected filters.');
         return;
       }
 
@@ -1695,6 +1696,77 @@ const KPIInsights = () => {
       const monthNames = ["JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE", "JULY", "AUGUST", "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER"];
       const dateForMonth = fromDate ? new Date(fromDate) : new Date();
       const monthTitle = `MONTH OF ${monthNames[dateForMonth.getMonth()]} - ${dateForMonth.getFullYear()}`;
+
+      // Separate Booking and Won stages
+      const bookingLeads = filtered.filter(l => l.status === 'Booking');
+      const wonLeads = filtered.filter(l => l.status === 'Won');
+
+      // Group Booking leads by Project Code
+      const groupedBooking = {};
+      bookingLeads.forEach(lead => {
+        const projCode = lead.project?.code || 'UNASSIGNED';
+        if (!groupedBooking[projCode]) groupedBooking[projCode] = [];
+        groupedBooking[projCode].push(lead);
+      });
+
+      // Group Won leads by Project Code
+      const groupedWon = {};
+      wonLeads.forEach(lead => {
+        const projCode = lead.project?.code || 'UNASSIGNED';
+        if (!groupedWon[projCode]) groupedWon[projCode] = [];
+        groupedWon[projCode].push(lead);
+      });
+
+      // Helper function to build rows for a given grouped structure
+      const buildRowsHtml = (groupedData) => {
+        let rowsHtml = '';
+        let localSNo = 1;
+
+        Object.keys(groupedData).forEach(projCode => {
+          // Project group banner row
+          rowsHtml += `
+            <tr>
+              <td colspan="8" style="background-color: #E2EFDA; font-weight: bold; text-align: center; font-size: 11px; height: 22px;">${projCode.toUpperCase()}</td>
+            </tr>
+          `;
+
+          // Lead rows
+          groupedData[projCode].forEach(lead => {
+            const advDate = lead.bookingInfo?.bookingDate 
+              ? new Date(lead.bookingInfo.bookingDate).toLocaleDateString('en-GB').replace(/\//g, '.')
+              : '';
+              
+            const plotNo = lead.bookingInfo?.selectedUnits?.join(' & ') || '';
+            const custName = lead.name || '';
+            
+            // House: mapping projectType to Land/House/Flat
+            const typeRaw = (lead.project?.projectType || '').toLowerCase();
+            let houseType = 'Land';
+            if (typeRaw.includes('villa') || typeRaw.includes('house') || typeRaw.includes('individual')) {
+              houseType = 'House';
+            } else if (typeRaw.includes('apartment') || typeRaw.includes('flat')) {
+              houseType = 'Flat';
+            }
+
+            const remarksStr = lead.followUpInfo?.remarks || '';
+            const commentsStr = lead.closeRemarks || '';
+
+            rowsHtml += `
+              <tr>
+                <td>${localSNo++}</td>
+                <td>${advDate}</td>
+                <td>${projCode}</td>
+                <td>${plotNo}</td>
+                <td class="text-left">${custName}</td>
+                <td>${houseType}</td>
+                <td>${remarksStr}</td>
+                <td class="text-left">${commentsStr}</td>
+              </tr>
+            `;
+          });
+        });
+        return rowsHtml;
+      };
 
       // Build HTML
       let html = `
@@ -1719,7 +1791,7 @@ const KPIInsights = () => {
             <tr>
               <td colspan="8" style="background-color: #B4C6E7; font-weight: bold; font-size: 14px; height: 30px; text-align: center; text-transform: uppercase;">${titleText}</td>
             </tr>
-            <!-- Month Header -->
+            <!-- Table Headers -->
             <tr class="table-headers">
               <th>S No</th>
               <th>Adv Date</th>
@@ -1730,70 +1802,27 @@ const KPIInsights = () => {
               <th>Remarks</th>
               <th>Comments / Action notes</th>
             </tr>
-      `;
-
-      // Group leads by Project Code
-      const groupedByProj = {};
-      filtered.forEach(lead => {
-        const projCode = lead.project?.code || 'UNASSIGNED';
-        if (!groupedByProj[projCode]) groupedByProj[projCode] = [];
-        groupedByProj[projCode].push(lead);
-      });
-
-      let globalSNo = 1;
-
-      Object.keys(groupedByProj).forEach(projCode => {
-        // Project group banner row
-        html += `
-          <tr>
-            <td colspan="8" style="background-color: #E2EFDA; font-weight: bold; text-align: center; font-size: 11px; height: 22px;">${projCode.toUpperCase()}</td>
-          </tr>
-        `;
-
-        // Lead rows
-        groupedByProj[projCode].forEach(lead => {
-          const advDate = lead.bookingInfo?.bookingDate 
-            ? new Date(lead.bookingInfo.bookingDate).toLocaleDateString('en-GB').replace(/\//g, '.')
-            : '';
             
-          const plotNo = lead.bookingInfo?.selectedUnits?.join(' & ') || '';
-          const custName = lead.name || '';
-          
-          // House: mapping projectType to Land/House/Flat
-          const typeRaw = (lead.project?.projectType || '').toLowerCase();
-          let houseType = 'Land';
-          if (typeRaw.includes('villa') || typeRaw.includes('house') || typeRaw.includes('individual')) {
-            houseType = 'House';
-          } else if (typeRaw.includes('apartment') || typeRaw.includes('flat')) {
-            houseType = 'Flat';
-          }
+            <!-- BOOKING STAGE LEADS (REGISTRATION THIS MONTH TARGET) -->
+            ${buildRowsHtml(groupedBooking)}
 
-          const remarksStr = lead.followUpInfo?.remarks || '';
-          const commentsStr = lead.closeRemarks || '';
-
-          html += `
+            <!-- REGISTRATION PENDING HEADER -->
             <tr>
-              <td>${globalSNo++}</td>
-              <td>${advDate}</td>
-              <td>${projCode}</td>
-              <td>${plotNo}</td>
-              <td class="text-left">${custName}</td>
-              <td>${houseType}</td>
-              <td>${remarksStr}</td>
-              <td class="text-left">${commentsStr}</td>
+              <td colspan="8" class="pending-header" style="background-color: #F8CBAD; text-transform: uppercase;">REGISTRATION PENDING</td>
             </tr>
-          `;
-        });
-      });
+            <tr class="table-headers">
+              <th>S No</th>
+              <th>Adv Date</th>
+              <th>Project</th>
+              <th>Plot No</th>
+              <th>Customer Name</th>
+              <th>House</th>
+              <th>Remarks</th>
+              <th>Comments / Action notes</th>
+            </tr>
 
-      // RENDER REGISTRATION PENDING HEADER
-      html += `
-        <tr>
-          <td colspan="8" class="pending-header" style="background-color: #F8CBAD; text-transform: uppercase;">REGISTRATION PENDING</td>
-        </tr>
-      `;
-
-      html += `
+            <!-- WON STAGE LEADS (REGISTRATION PENDING) -->
+            ${buildRowsHtml(groupedWon)}
           </table>
         </body>
         </html>
@@ -2372,11 +2401,35 @@ const KPIInsights = () => {
               <span>Lead Sources Report</span>
             </button>
 
+          </div>
+        )}
+
+        {/* Main Floating Toggle Button */}
+        <button
+          onClick={() => {
+            setExportMenuOpen(!exportMenuOpen);
+            setCrdMenuOpen(false);
+          }}
+          className="bg-emerald-700 hover:bg-emerald-800 text-white p-4 rounded-full shadow-2xl hover:scale-105 transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer border border-emerald-600/50"
+          title="Export Reports Menu"
+        >
+          <FileText className="w-5 h-5 text-white" />
+          <span className="text-[11px] font-extrabold uppercase tracking-wide">
+            {exportMenuOpen ? 'Close Menu' : 'Export Reports'}
+          </span>
+        </button>
+      </div>
+
+      {/* Floating CRD Speed Dial */}
+      <div className="fixed right-56 bottom-24 z-40 flex flex-col items-end gap-3 no-print">
+        {/* CRD Menu Items */}
+        {crdMenuOpen && (
+          <div className="flex flex-col items-end gap-2 mb-2 animate-fadeIn">
             {/* Registration Report Export */}
             <button
               onClick={() => {
                 handleExportRegistrationReport();
-                setExportMenuOpen(false);
+                setCrdMenuOpen(false);
               }}
               className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2.5 rounded-2xl shadow-xl flex items-center gap-2 hover:scale-105 transition cursor-pointer text-[10px] font-bold uppercase tracking-wider border border-purple-500/50"
             >
@@ -2386,15 +2439,18 @@ const KPIInsights = () => {
           </div>
         )}
 
-        {/* Main Floating Toggle Button */}
+        {/* CRD Main Floating Toggle Button */}
         <button
-          onClick={() => setExportMenuOpen(!exportMenuOpen)}
-          className="bg-emerald-700 hover:bg-emerald-800 text-white p-4 rounded-full shadow-2xl hover:scale-105 transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer border border-emerald-600/50"
-          title="Export Reports Menu"
+          onClick={() => {
+            setCrdMenuOpen(!crdMenuOpen);
+            setExportMenuOpen(false);
+          }}
+          className="bg-purple-700 hover:bg-purple-800 text-white p-4 rounded-full shadow-2xl hover:scale-105 transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer border border-purple-600/50"
+          title="CRD Reports Menu"
         >
-          <FileText className="w-5 h-5 text-white" />
+          <CheckCircle className="w-5 h-5 text-white" />
           <span className="text-[11px] font-extrabold uppercase tracking-wide">
-            {exportMenuOpen ? 'Close Menu' : 'Export Reports'}
+            {crdMenuOpen ? 'Close Menu' : 'CRD Reports'}
           </span>
         </button>
       </div>
