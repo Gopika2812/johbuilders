@@ -37,6 +37,15 @@ const UnitSchema = new mongoose.Schema({
   isLocked: {
     type: Boolean,
     default: false // tracks if edited/locked for redistribution
+  },
+  mapCoordinates: {
+    x: { type: Number },
+    y: { type: Number }
+  },
+  unitType: {
+    type: String,
+    enum: ['Plot', 'Flat', 'House'],
+    default: 'Plot'
   }
 });
 
@@ -52,11 +61,10 @@ const ProjectSchema = new mongoose.Schema({
     trim: true,
     unique: true
   },
-  projectType: {
+  projectType: [{
     type: String,
-    enum: ['Plot', 'Flat', 'House'],
-    required: true
-  },
+    enum: ['Plot', 'Flat', 'House']
+  }],
   layoutPlanImage: {
     type: String,
     default: ''
@@ -92,6 +100,7 @@ const ProjectSchema = new mongoose.Schema({
         name: { type: String, default: '' },
         link: { type: String, default: '' },
         status: { type: String, enum: ['Active', 'Paused'], default: 'Active' },
+        cost: { type: Number, default: 0 },
         updatedAt: { type: Date, default: Date.now }
       }
     ],
@@ -100,6 +109,7 @@ const ProjectSchema = new mongoose.Schema({
         name: { type: String, default: '' },
         link: { type: String, default: '' },
         status: { type: String, enum: ['Active', 'Paused'], default: 'Active' },
+        cost: { type: Number, default: 0 },
         updatedAt: { type: Date, default: Date.now }
       }
     ]
@@ -118,7 +128,7 @@ ProjectSchema.pre('save', function (next) {
   });
 
   // Calculate remaining land (primarily for Plot projects)
-  if (this.projectType === 'Plot') {
+  if (this.projectType && this.projectType.includes('Plot')) {
     const lockedUnitsSize = this.units
       .filter(u => u.isLocked)
       .reduce((sum, u) => sum + u.size, 0);

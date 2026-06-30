@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const Project = require('../models/Project');
 const AuditLog = require('../models/AuditLog');
-const { protect, authorize } = require('../middleware/auth');
+const { protect, authorize, checkPermission } = require('../middleware/auth');
 
 // @route   GET /api/projects
 // @desc    Get all projects
@@ -31,7 +31,7 @@ router.get('/:id', protect, async (req, res) => {
 
 // @route   POST /api/projects
 // @desc    Create a new project & auto-generate units
-router.post('/', protect, authorize('Admin', 'Manager'), async (req, res) => {
+router.post('/', protect, checkPermission('projects', 'edit'), async (req, res) => {
   const {
     name,
     code,
@@ -60,51 +60,71 @@ router.post('/', protect, authorize('Admin', 'Manager'), async (req, res) => {
       return res.status(400).json({ message: 'Price per sq.ft is mandatory and must be greater than 0' });
     }
 
-    const units = [];
+    let units = [];
 
-    if (projectType === 'Plot') {
-      const count = Number(initialUnitCount) || 10;
-      const initialSize = area / count;
-      for (let i = 1; i <= count; i++) {
-        units.push({
-          unitId: `${code}P${i}`,
-          size: initialSize,
-          price: initialSize * price,
-          status: 'New',
-          isLocked: false
-        });
-      }
-    } else if (projectType === 'House') {
-      const count = Number(initialUnitCount) || 5;
-      const initialSize = area / count;
-      for (let i = 1; i <= count; i++) {
-        units.push({
-          unitId: `${code}H${i}`,
-          size: initialSize,
-          price: initialSize * price,
-          status: 'New',
-          isLocked: false
-        });
-      }
-    } else if (projectType === 'Flat') {
-      const floors = Number(floorCount) || 3;
-      const flatPerFloor = Number(unitsPerFloor) || 4;
-      const totalFlats = floors * flatPerFloor;
-      const initialSize = area / totalFlats;
-      
-      for (let f = 1; f <= floors; f++) {
-        for (let r = 1; r <= flatPerFloor; r++) {
-          const flatNum = 100 + r; // e.g. 101, 102
-          units.push({
-            unitId: `${code}-F${f}-${f}${flatNum.toString().slice(1)}`,
-            floor: `Floor ${f}`,
-            size: initialSize,
-            price: initialSize * price,
-            status: 'New',
-            isLocked: false
-          });
+    if (req.body.units && req.body.units.length > 0) {
+      units = req.body.units.map(u => ({
+        unitId: u.unitId,
+        size: Number(u.size) || 0,
+        price: (Number(u.size) || 0) * price,
+        status: u.status || 'New',
+        floor: u.floor || '',
+        remarks: u.remarks || '',
+        isLocked: !!u.isLocked,
+        mapCoordinates: u.mapCoordinates,
+        unitType: u.unitType || (projectType.includes('Plot') ? 'Plot' : projectType.includes('House') ? 'House' : 'Flat')
+      }));
+    } else {
+      const types = Array.isArray(projectType) ? projectType : [projectType];
+      types.forEach(type => {
+        if (type === 'Plot') {
+          const count = Number(req.body.initialPlotCount) || Number(initialUnitCount) || 10;
+          const initialSize = area / count;
+          for (let i = 1; i <= count; i++) {
+            units.push({
+              unitId: `${code}P${i}`,
+              size: initialSize,
+              price: initialSize * price,
+              status: 'New',
+              isLocked: false,
+              unitType: 'Plot'
+            });
+          }
+        } else if (type === 'House') {
+          const count = Number(req.body.initialHouseCount) || Number(initialUnitCount) || 5;
+          const initialSize = area / count;
+          for (let i = 1; i <= count; i++) {
+            units.push({
+              unitId: `${code}H${i}`,
+              size: initialSize,
+              price: initialSize * price,
+              status: 'New',
+              isLocked: false,
+              unitType: 'House'
+            });
+          }
+        } else if (type === 'Flat') {
+          const floors = Number(floorCount) || 3;
+          const flatPerFloor = Number(unitsPerFloor) || 4;
+          const totalFlats = floors * flatPerFloor;
+          const initialSize = area / totalFlats;
+          
+          for (let f = 1; f <= floors; f++) {
+            for (let r = 1; r <= flatPerFloor; r++) {
+              const flatNum = 100 + r; // e.g. 101, 102
+              units.push({
+                unitId: `${code}-F${f}-${f}${flatNum.toString().slice(1)}`,
+                floor: `Floor ${f}`,
+                size: initialSize,
+                price: initialSize * price,
+                status: 'New',
+                isLocked: false,
+                unitType: 'Flat'
+              });
+            }
+          }
         }
-      }
+      });
     }
 
     const project = new Project({
@@ -137,7 +157,7 @@ router.post('/', protect, authorize('Admin', 'Manager'), async (req, res) => {
 
 // @route   PUT /api/projects/:id/marketing
 // @desc    Update project marketing/promotional details
-router.put('/:id/marketing', protect, authorize('Admin', 'Manager'), async (req, res) => {
+router.put('/:id/marketing', protect, checkPermission('projects', 'edit'), async (req, res) => {
   const { sourceType, videos, posters } = req.body;
 
   try {
@@ -164,6 +184,7 @@ router.put('/:id/marketing', protect, authorize('Admin', 'Manager'), async (req,
         name: incomingVid.name || '',
         link: incomingVid.link || '',
         status: incomingVid.status || 'Active',
+        cost: Number(incomingVid.cost) || 0,
         updatedAt
       };
       if (!isTemp) {
@@ -190,6 +211,7 @@ router.put('/:id/marketing', protect, authorize('Admin', 'Manager'), async (req,
         name: incomingPos.name || '',
         link: incomingPos.link || '',
         status: incomingPos.status || 'Active',
+        cost: Number(incomingPos.cost) || 0,
         updatedAt
       };
       if (!isTemp) {
@@ -222,7 +244,7 @@ router.put('/:id/marketing', protect, authorize('Admin', 'Manager'), async (req,
 
 // @route   PUT /api/projects/:id/price
 // @desc    Update project pricing engine (base price per sq.ft)
-router.put('/:id/price', protect, authorize('Admin', 'Manager'), async (req, res) => {
+router.put('/:id/price', protect, checkPermission('projects', 'edit'), async (req, res) => {
   const { pricePerSqFt } = req.body;
 
   try {
@@ -258,7 +280,7 @@ router.put('/:id/price', protect, authorize('Admin', 'Manager'), async (req, res
 
 // @route   PUT /api/projects/:id/resize-plot
 // @desc    Dynamic Plot Resizing Engine
-router.put('/:id/resize-plot', protect, authorize('Admin', 'Manager'), async (req, res) => {
+router.put('/:id/resize-plot', protect, checkPermission('projects', 'edit'), async (req, res) => {
   const {
     unitId,
     newSize,
@@ -272,7 +294,7 @@ router.put('/:id/resize-plot', protect, authorize('Admin', 'Manager'), async (re
       return res.status(404).json({ message: 'Project not found' });
     }
 
-    if (project.projectType !== 'Plot') {
+    if (!project.projectType || !project.projectType.includes('Plot')) {
       return res.status(400).json({ message: 'Dynamic size adjustment is only supported for Plot projects' });
     }
 

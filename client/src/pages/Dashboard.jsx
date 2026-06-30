@@ -15,7 +15,8 @@ import {
   Percent,
   FileText,
   User,
-  FolderOpen
+  FolderOpen,
+  Layers
 } from 'lucide-react';
 
 const getCoordinatesForPercent = (percent) => {
@@ -216,16 +217,33 @@ const Dashboard = () => {
   // Date filters - default to current month
   const [fromDate, setFromDate] = useState(() => {
     const d = new Date();
-    return new Date(d.getFullYear(), d.getMonth(), 1).toISOString().slice(0, 10);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    return `${year}-${month}-01`;
   });
   const [toDate, setToDate] = useState(() => {
     const d = new Date();
-    return new Date(d.getFullYear(), d.getMonth() + 1, 0).toISOString().slice(0, 10);
+    const lastDayVal = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(lastDayVal).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   });
 
   // User and Project filters
-  const [selectedUser, setSelectedUser] = useState('');
+  const [selectedUser, setSelectedUser] = useState(() => {
+    const isPrivileged = user?.role === 'Super Admin' || user?.role === 'Admin';
+    return isPrivileged ? '' : (user?._id || '');
+  });
+  
+  useEffect(() => {
+    if (user && user.role !== 'Super Admin' && user.role !== 'Admin') {
+      setSelectedUser(user._id);
+    }
+  }, [user]);
+
   const [selectedProject, setSelectedProject] = useState('');
+  const [selectedProjectType, setSelectedProjectType] = useState('');
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const [loading, setLoading] = useState(true);
@@ -234,7 +252,7 @@ const Dashboard = () => {
       enquiries: { total: 0, contacted: 0, followup: 0, closed: 0 },
       siteVisits: { total: 0, siteVisit: 0, followup: 0, closed: 0 },
       hotList: 0,
-      conversion: { count: 0, value: 0 },
+      conversion: { count: 0, value: 0, received: 0, pending: 0 },
       inventory: { totalProjects: 0, totalUnits: 0, availableUnits: 0, bookedUnits: 0, handoverUnits: 0 }
     },
     sourceStats: {},
@@ -248,7 +266,7 @@ const Dashboard = () => {
 
   useEffect(() => {
     fetchDashboardStats();
-  }, [fromDate, toDate, selectedUser, selectedProject]);
+  }, [fromDate, toDate, selectedUser, selectedProject, selectedProjectType]);
 
   const fetchDashboardStats = async () => {
     setLoading(true);
@@ -256,6 +274,7 @@ const Dashboard = () => {
       let url = `${API_URL}/dashboard/stats?fromDate=${fromDate}&toDate=${toDate}`;
       if (selectedUser) url += `&userId=${selectedUser}`;
       if (selectedProject) url += `&projectId=${selectedProject}`;
+      if (selectedProjectType) url += `&projectType=${selectedProjectType}`;
       
       const response = await fetch(url, {
         headers: { 'Authorization': `Bearer ${token}` }
@@ -290,11 +309,14 @@ const Dashboard = () => {
     );
   };
 
-const handleMonthChange = (monthVal) => {
+  const handleMonthChange = (monthVal) => {
     if (!monthVal) return;
-    const [year, month] = monthVal.split('-');
-    const firstDay = new Date(year, month - 1, 1).toISOString().slice(0, 10);
-    const lastDay = new Date(year, month, 0).toISOString().slice(0, 10);
+    const [yearStr, monthStr] = monthVal.split('-');
+    const year = parseInt(yearStr, 10);
+    const month = parseInt(monthStr, 10);
+    const firstDay = `${year}-${String(month).padStart(2, '0')}-01`;
+    const lastDayVal = new Date(year, month, 0).getDate();
+    const lastDay = `${year}-${String(month).padStart(2, '0')}-${String(lastDayVal).padStart(2, '0')}`;
     setFromDate(firstDay);
     setToDate(lastDay);
   };
@@ -344,19 +366,21 @@ const handleMonthChange = (monthVal) => {
         <div className="flex flex-wrap items-center gap-4 bg-gray-50 p-2.5 rounded-2xl border border-gray-150 w-full xl:w-auto xl:justify-end">
           
           {/* User Select */}
-          <div className="flex items-center gap-1.5">
-            <User className="w-4 h-4 text-gray-450 shrink-0" />
-            <select
-              value={selectedUser}
-              onChange={(e) => setSelectedUser(e.target.value)}
-              className="px-3 py-1.5 text-xs bg-white border border-gray-250 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-gray-700 font-bold"
-            >
-              <option value="">All Users</option>
-              {(stats.users || []).map(u => (
-                <option key={u._id} value={u._id}>{u.name} ({u.role})</option>
-              ))}
-            </select>
-          </div>
+          {(user?.role === 'Super Admin' || user?.role === 'Admin') && (
+            <div className="flex items-center gap-1.5">
+              <User className="w-4 h-4 text-gray-455 shrink-0" />
+              <select
+                value={selectedUser}
+                onChange={(e) => setSelectedUser(e.target.value)}
+                className="px-3 py-1.5 text-xs bg-white border border-gray-255 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-gray-700 font-bold"
+              >
+                <option value="">All Users</option>
+                {(stats.users || []).map(u => (
+                  <option key={u._id} value={u._id}>{u.name} ({u.role})</option>
+                ))}
+              </select>
+            </div>
+          )}
 
           {/* Project Select */}
           <div className="flex items-center gap-1.5">
@@ -370,6 +394,21 @@ const handleMonthChange = (monthVal) => {
               {(stats.projects || []).map(p => (
                 <option key={p._id} value={p._id}>{p.code || p.name}</option>
               ))}
+            </select>
+          </div>
+
+          {/* Project Type Select */}
+          <div className="flex items-center gap-1.5">
+            <Layers className="w-4 h-4 text-gray-455 shrink-0" />
+            <select
+              value={selectedProjectType}
+              onChange={(e) => setSelectedProjectType(e.target.value)}
+              className="px-3 py-1.5 text-xs bg-white border border-gray-250 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-gray-700 font-bold"
+            >
+              <option value="">All Types</option>
+              <option value="Plot">Plot</option>
+              <option value="Flat">Flat</option>
+              <option value="House">House</option>
             </select>
           </div>
 
@@ -413,15 +452,53 @@ const handleMonthChange = (monthVal) => {
           <h3 className="text-xl font-extrabold text-gray-800 mt-1">{stats.cards.inventory?.totalProjects || 0}</h3>
           <p className="text-[9px] text-gray-400 mt-2 font-medium">Active construction projects</p>
         </div>
-        <div className="bg-white border border-gray-100 rounded-3xl p-5 shadow-sm hover:shadow-md transition">
+        <div className="relative group bg-white border border-gray-100 rounded-3xl p-5 shadow-sm hover:shadow-md transition cursor-pointer select-none">
           <span className="text-[10px] text-gray-400 font-extrabold uppercase tracking-wider block">Total Units</span>
           <h3 className="text-xl font-extrabold text-gray-800 mt-1">{stats.cards.inventory?.totalUnits || 0}</h3>
           <p className="text-[9px] text-gray-400 mt-2 font-medium">Plots/Flats/Houses registered</p>
+          <div className="absolute inset-0 bg-gray-900/95 backdrop-blur-sm rounded-3xl p-4 flex flex-col justify-center text-left opacity-0 group-hover:opacity-100 transition duration-300 pointer-events-none z-20">
+            <h4 className="text-[10px] font-bold text-white uppercase tracking-wider mb-1.5 pb-1 border-b border-gray-800">
+              Total Units Breakdown
+            </h4>
+            <div className="space-y-1 text-[10px] font-bold text-gray-300">
+              <div className="flex justify-between">
+                <span>Flats:</span>
+                <span className="text-white">{stats.cards.inventory?.totalByType?.Flat || 0}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Plots:</span>
+                <span className="text-white">{stats.cards.inventory?.totalByType?.Plot || 0}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Houses:</span>
+                <span className="text-white">{stats.cards.inventory?.totalByType?.House || 0}</span>
+              </div>
+            </div>
+          </div>
         </div>
-        <div className="bg-white border border-emerald-100 rounded-3xl p-5 shadow-sm hover:shadow-md transition bg-emerald-50/10">
+        <div className="relative group bg-white border border-emerald-100 rounded-3xl p-5 shadow-sm hover:shadow-md transition bg-emerald-50/10 cursor-pointer select-none">
           <span className="text-[10px] text-emerald-600 font-extrabold uppercase tracking-wider block">Available Units</span>
           <h3 className="text-xl font-extrabold text-emerald-800 mt-1">{stats.cards.inventory?.availableUnits || 0}</h3>
           <p className="text-[9px] text-emerald-500 mt-2 font-medium">Ready for allocation</p>
+          <div className="absolute inset-0 bg-gray-900/95 backdrop-blur-sm rounded-3xl p-4 flex flex-col justify-center text-left opacity-0 group-hover:opacity-100 transition duration-300 pointer-events-none z-20">
+            <h4 className="text-[10px] font-bold text-white uppercase tracking-wider mb-1.5 pb-1 border-b border-gray-800">
+              Available Units Breakdown
+            </h4>
+            <div className="space-y-1 text-[10px] font-bold text-gray-300">
+              <div className="flex justify-between">
+                <span>Flats:</span>
+                <span className="text-white">{stats.cards.inventory?.availableByType?.Flat || 0}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Plots:</span>
+                <span className="text-white">{stats.cards.inventory?.availableByType?.Plot || 0}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Houses:</span>
+                <span className="text-white">{stats.cards.inventory?.availableByType?.House || 0}</span>
+              </div>
+            </div>
+          </div>
         </div>
         <div className="bg-white border border-amber-100 rounded-3xl p-5 shadow-sm hover:shadow-md transition bg-amber-50/10">
           <span className="text-[10px] text-amber-600 font-extrabold uppercase tracking-wider block">Booked Units</span>
@@ -441,16 +518,34 @@ const handleMonthChange = (monthVal) => {
         </div>
       ) : (
         <>
-          {/* 4 State Cards Panel */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {/* 5 State Cards Panel */}
+          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6">
             
+            {/* Card 0: Total Leads */}
+            <div className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm hover:shadow-md transition">
+              <div className="flex items-center justify-between">
+                <div>
+                  <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Total Leads</span>
+                  <h3 className="text-2xl font-extrabold text-gray-800 mt-1">
+                    {stats.cards.totalLeads || 0}
+                  </h3>
+                </div>
+                <div className="p-3 bg-[#0e623a]/10 text-[#0e623a] rounded-2xl">
+                  <TrendingUp className="w-5 h-5" />
+                </div>
+              </div>
+              <p className="text-[10px] text-gray-400 mt-3 font-semibold uppercase tracking-wider">
+                Overall Leads Count
+              </p>
+            </div>
+
             {/* Card 1: Total Enquiries */}
             <div className="relative group bg-white border border-gray-100 rounded-3xl p-6 shadow-sm hover:shadow-md transition cursor-pointer select-none">
               <div className="flex items-center justify-between">
                 <div>
                   <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Total Enquiries</span>
                   <h3 className="text-2xl font-extrabold text-gray-800 mt-1">
-                    {stats.cards.enquiries.total}
+                    {(stats.cards.enquiries.closed || 0) + (stats.cards.enquiries.followup || 0)}
                   </h3>
                 </div>
                 <div className="p-3 bg-[#0e623a]/10 text-[#0e623a] rounded-2xl">
@@ -484,7 +579,7 @@ const handleMonthChange = (monthVal) => {
                 <div>
                   <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Total Site Visits</span>
                   <h3 className="text-2xl font-extrabold text-gray-800 mt-1">
-                    {stats.cards.siteVisits.total}
+                    {(stats.cards.siteVisits.closed || 0) + (stats.cards.siteVisits.followup || 0)}
                   </h3>
                 </div>
                 <div className="p-3 bg-blue-50 text-blue-600 rounded-2xl">
@@ -543,9 +638,20 @@ const handleMonthChange = (monthVal) => {
                   <DollarSign className="w-5 h-5" />
                 </div>
               </div>
-              <p className="text-[10px] text-[#0e623a] mt-3 font-extrabold uppercase tracking-wider">
-                Value: ₹{Math.round(stats.cards.conversion.value).toLocaleString()}
-              </p>
+              <div className="mt-3 pt-2 border-t border-gray-50 space-y-1 text-[10px] font-bold uppercase">
+                <div className="flex justify-between text-gray-500">
+                  <span>Total Value:</span>
+                  <span className="text-gray-800 font-extrabold">₹{Math.round(stats.cards.conversion.value || 0).toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between text-emerald-600">
+                  <span>Received:</span>
+                  <span className="text-emerald-800 font-extrabold">₹{Math.round(stats.cards.conversion.received || 0).toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between text-rose-600">
+                  <span>Pending:</span>
+                  <span className="text-rose-800 font-extrabold">₹{Math.round(stats.cards.conversion.pending || 0).toLocaleString()}</span>
+                </div>
+              </div>
             </div>
 
           </div>

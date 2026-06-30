@@ -104,6 +104,22 @@ router.put('/:id/stage/:stageIndex/complete', protect, async (req, res) => {
       flow.stages[idx].uploadedPdfs = uploadedPdfs;
     }
 
+    // Check if this is the Handing Over stage
+    const isHandingOver = flow.stages[idx].name.toLowerCase().includes('handing over') || 
+                         flow.stages[idx].name.toLowerCase().includes('handover');
+    if (isHandingOver) {
+      const project = await Project.findById(flow.project);
+      if (project) {
+        const unitIdsToUpdate = flow.unitId.split(',').map(uid => uid.trim());
+        project.units.forEach(u => {
+          if (unitIdsToUpdate.includes(u.unitId)) {
+            u.status = 'Sold Out';
+          }
+        });
+        await project.save();
+      }
+    }
+
     await flow.save();
 
     await AuditLog.create({

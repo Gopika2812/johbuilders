@@ -17,7 +17,7 @@ import {
   BarChart3
 } from 'lucide-react';
 
-const Sidebar = () => {
+const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
   const { user, logout, isAdmin } = useAuth();
   const location = useLocation();
   const [projectMenuOpen, setProjectMenuOpen] = useState(true);
@@ -27,8 +27,16 @@ const Sidebar = () => {
 
   const isActive = (path) => location.pathname === path;
 
+  const handleNavClick = (e) => {
+    if (e.target.closest('a')) {
+      setSidebarOpen(false);
+    }
+  };
+
   return (
-    <aside className="w-64 bg-[#0e623a] text-white flex flex-col h-screen fixed left-0 top-0 z-20 border-r border-[#0b4d2d] shadow-lg">
+    <aside className={`w-64 bg-[#0e623a] text-white flex flex-col h-screen fixed left-0 top-0 z-20 border-r border-[#0b4d2d] shadow-lg transition-transform duration-300 transform ${
+      sidebarOpen ? 'translate-x-0' : 'translate-x-[-100%] md:translate-x-0'
+    }`}>
       {/* Brand Logo Header */}
       <div className="p-6 border-b border-white/10 flex items-center gap-3">
         <div className="p-2 bg-white/10 rounded-lg border border-white/20">
@@ -41,7 +49,7 @@ const Sidebar = () => {
       </div>
 
       {/* Navigation Items */}
-      <nav className="flex-1 px-4 py-6 overflow-y-auto space-y-4">
+      <nav className="flex-1 px-4 py-6 overflow-y-auto space-y-4" onClick={handleNavClick}>
         {/* Dashboard */}
         <Link
           to="/"
@@ -84,7 +92,7 @@ const Sidebar = () => {
           {projectMenuOpen && (
             <div className="pl-8 mt-1 space-y-1">
               {/* Register Project */}
-              {(user?.role === 'Admin' || user?.role === 'Manager') && (
+              {(user?.role === 'Admin' || user?.permissions?.find(p => p.pageId === 'projects')?.canEdit) && (
                 <Link
                   to="/projects/register"
                   className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm transition ${

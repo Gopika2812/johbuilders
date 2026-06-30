@@ -3,6 +3,7 @@ const router = express.Router();
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const AuditLog = require('../models/AuditLog');
+const RolePermission = require('../models/RolePermission');
 const { protect } = require('../middleware/auth');
 
 // Generate JWT Helper
@@ -43,13 +44,17 @@ router.post('/register', async (req, res) => {
       description: `Registered user ${user.name} (${user.email}). ${isFirstUser ? 'First user auto-promoted to Admin.' : 'Awaiting approval.'}`
     });
 
+    const rolePerm = await RolePermission.findOne({ role: user.role });
+    const permissions = rolePerm ? rolePerm.permissions : [];
+
     res.status(201).json({
       _id: user._id,
       name: user.name,
       email: user.email,
       role: user.role,
       isApproved: user.isApproved,
-      token: generateToken(user._id)
+      token: generateToken(user._id),
+      permissions
     });
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -85,13 +90,17 @@ router.post('/login', async (req, res) => {
       description: `User logged in successfully`
     });
 
+    const rolePerm = await RolePermission.findOne({ role: user.role });
+    const permissions = rolePerm ? rolePerm.permissions : [];
+
     res.json({
       _id: user._id,
       name: user.name,
       email: user.email,
       role: user.role,
       isApproved: user.isApproved,
-      token: generateToken(user._id)
+      token: generateToken(user._id),
+      permissions
     });
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -101,7 +110,17 @@ router.post('/login', async (req, res) => {
 // @route   GET /api/auth/me
 // @desc    Get current user profile
 router.get('/me', protect, async (req, res) => {
-  res.json(req.user);
+  try {
+    const rolePerm = await RolePermission.findOne({ role: req.user.role });
+    const permissions = rolePerm ? rolePerm.permissions : [];
+    
+    res.json({
+      ...req.user.toObject(),
+      permissions
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
 });
 
 module.exports = router;

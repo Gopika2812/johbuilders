@@ -108,6 +108,13 @@ const LeadsDirectory = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [assignedFilter, setAssignedFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [campaignFilter, setCampaignFilter] = useState('');
+  const [locationFilter, setLocationFilter] = useState('');
+  const [bankLoanFilter, setBankLoanFilter] = useState('');
+  const [reopenedFilter, setReopenedFilter] = useState('');
+  const [projectFilter, setProjectFilter] = useState('');
 
   // Sync activeTab with URL search params status
   useEffect(() => {
@@ -198,12 +205,12 @@ const LeadsDirectory = () => {
         if (proj.marketingInfo.videos) {
           proj.marketingInfo.videos
             .filter(v => v.status === 'Active')
-            .forEach(v => adsList.push({ id: v._id, name: v.name, link: v.link, type: 'Video' }));
+            .forEach(v => adsList.push({ id: v._id, name: v.name, link: v.link, type: 'Video', cost: v.cost || 0 }));
         }
         if (proj.marketingInfo.posters) {
           proj.marketingInfo.posters
             .filter(p => p.status === 'Active')
-            .forEach(p => adsList.push({ id: p._id, name: p.name, link: p.link, type: 'Poster' }));
+            .forEach(p => adsList.push({ id: p._id, name: p.name, link: p.link, type: 'Poster', cost: p.cost || 0 }));
         }
         setActiveAds(adsList);
       } else {
@@ -214,12 +221,13 @@ const LeadsDirectory = () => {
     }
   }, [selectedProjectId, leadType, projects]);
 
-  // Update link when ad changes
+  // Update link and cost when ad changes
   useEffect(() => {
     if (selectedAdId) {
       const ad = activeAds.find(a => a.id === selectedAdId);
       if (ad) {
         setFetchedAdLink(ad.link);
+        setLeadCost(String(ad.cost || 0));
       } else {
         setFetchedAdLink('');
       }
@@ -610,6 +618,26 @@ const LeadsDirectory = () => {
     }
   };
 
+  const handleProjectChange = async (leadId, newProjectId) => {
+    try {
+      const res = await fetch(`${API_URL}/leads/${leadId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ project: newProjectId })
+      });
+      if (res.ok) {
+        fetchLeads();
+        setSuccessMsg('Project updated successfully!');
+        setTimeout(() => setSuccessMsg(''), 3000);
+      }
+    } catch (err) {
+      setError('Failed to update project');
+    }
+  };
+
   const resetForm = () => {
     setName('');
     setPhone('');
@@ -625,10 +653,11 @@ const LeadsDirectory = () => {
     setLeadCost('0');
   };
 
-  // Filter list matching Search & Date & Tab
+  // Filter list matching Search & Date & Tab & Advanced Filters
   const getFilteredLeads = () => {
     return leads.filter(lead => {
       const matchesTab = activeTab === 'All' || lead.status === activeTab;
+      const matchesStatus = !statusFilter || lead.status === statusFilter;
       
       const matchesSearch = !searchTerm || 
         lead.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -643,7 +672,23 @@ const LeadsDirectory = () => {
       const matchesStartDate = !startTime || itemTime >= startTime;
       const matchesEndDate = !endTime || itemTime <= endTime;
 
-      return matchesTab && matchesSearch && matchesStartDate && matchesEndDate;
+      const matchesAssigned = !assignedFilter || lead.assignedTo?._id === assignedFilter;
+      const matchesCampaign = !campaignFilter || lead.leadSource === campaignFilter;
+      const matchesLocation = !locationFilter || lead.projectLocation === locationFilter;
+      const matchesBankLoan = !bankLoanFilter || lead.bankLoan === bankLoanFilter;
+      const matchesProject = !projectFilter || (lead.project?._id || lead.project) === projectFilter;
+
+      let matchesState = true;
+      if (reopenedFilter === 'Open') {
+        matchesState = !lead.isClosed;
+      } else if (reopenedFilter === 'Closed') {
+        matchesState = lead.isClosed;
+      } else if (reopenedFilter === 'Reopened') {
+        matchesState = lead.isReopened === true || (lead.history && lead.history.some(h => h.note && h.note.toLowerCase().includes('reopened')));
+      }
+
+      return matchesTab && matchesStatus && matchesSearch && matchesStartDate && matchesEndDate &&
+             matchesAssigned && matchesCampaign && matchesLocation && matchesBankLoan && matchesState && matchesProject;
     });
   };
 
@@ -718,45 +763,154 @@ const LeadsDirectory = () => {
       </div>
 
       {/* Filters & Search Menu */}
-      <div className="bg-white p-4 border border-gray-150 shadow-sm rounded-3xl grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
-        <div className="md:col-span-2 space-y-1">
-          <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Search Lead Name / Phone / Project Code</label>
-          <div className="relative">
-            <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-gray-400">
-              <Search className="w-4 h-4" />
-            </span>
+      <div className="space-y-2">
+        <div className="bg-white p-4 border border-gray-150 shadow-sm rounded-3xl grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+          <div className="md:col-span-2 space-y-1">
+            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Search Lead Name / Phone / Project Code</label>
+            <div className="relative">
+              <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-gray-400">
+                <Search className="w-4 h-4" />
+              </span>
+              <input
+                type="text"
+                placeholder="Search leads..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-3 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-sm"
+              />
+            </div>
+          </div>
+          <div className="space-y-1">
+            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Start Date</label>
             <input
-              type="text"
-              placeholder="Search leads..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-3 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-sm"
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-sm font-semibold text-gray-600"
+            />
+          </div>
+          <div className="space-y-1">
+            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">End Date</label>
+            <input
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-sm font-semibold text-gray-600"
             />
           </div>
         </div>
-        <div className="space-y-1">
-          <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Start Date</label>
-          <input
-            type="date"
-            value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
-            className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-sm font-semibold text-gray-600"
-          />
-        </div>
-        <div className="space-y-1">
-          <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">End Date</label>
-          <input
-            type="date"
-            value={endDate}
-            onChange={(e) => setEndDate(e.target.value)}
-            className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-sm font-semibold text-gray-600"
-          />
+
+        <div className="bg-white p-4 border border-gray-150 shadow-sm rounded-3xl grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-4 items-end">
+          {/* Assigned Executive */}
+          <div className="space-y-1">
+            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Assigned Executive</label>
+            <select
+              value={assignedFilter}
+              onChange={(e) => setAssignedFilter(e.target.value)}
+              className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-xs font-bold text-gray-700"
+            >
+              <option value="">All Executives</option>
+              {employees.map(emp => (
+                <option key={emp._id} value={emp._id}>{emp.name}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Workflow Status */}
+          <div className="space-y-1">
+            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Workflow Status</label>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-xs font-bold text-gray-700"
+            >
+              <option value="">All Statuses</option>
+              {LEAD_STATUSES.map(st => (
+                <option key={st} value={st}>{st}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Project Select */}
+          <div className="space-y-1">
+            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Project</label>
+            <select
+              value={projectFilter}
+              onChange={(e) => setProjectFilter(e.target.value)}
+              className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-xs font-bold text-gray-700"
+            >
+              <option value="">All Projects</option>
+              {projects.map(p => (
+                <option key={p._id} value={p._id}>{p.code}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Campaign / Source */}
+          <div className="space-y-1">
+            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Campaign / Source</label>
+            <select
+              value={campaignFilter}
+              onChange={(e) => setCampaignFilter(e.target.value)}
+              className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-xs font-bold text-gray-700"
+            >
+              <option value="">All Campaigns</option>
+              {SOURCE_TYPES.map(src => (
+                <option key={src} value={src}>{src}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Project Location */}
+          <div className="space-y-1">
+            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Project Location</label>
+            <select
+              value={locationFilter}
+              onChange={(e) => setLocationFilter(e.target.value)}
+              className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-xs font-bold text-gray-700"
+            >
+              <option value="">All Locations</option>
+              {locations.map(loc => (
+                <option key={loc} value={loc}>{loc}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Requires Bank Loan */}
+          <div className="space-y-1">
+            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Bank Loan</label>
+            <select
+              value={bankLoanFilter}
+              onChange={(e) => setBankLoanFilter(e.target.value)}
+              className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-xs font-bold text-gray-700"
+            >
+              <option value="">All</option>
+              <option value="Yes">Requires Loan (Yes)</option>
+              <option value="No">No Loan (No)</option>
+            </select>
+          </div>
+
+          {/* Lead State */}
+          <div className="space-y-1">
+            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Lead State</label>
+            <select
+              value={reopenedFilter}
+              onChange={(e) => setReopenedFilter(e.target.value)}
+              className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-xs font-bold text-gray-700"
+            >
+              <option value="">All Leads</option>
+              <option value="Open">Active / Open Only</option>
+              <option value="Closed">Closed Only</option>
+              <option value="Reopened">Reopened Only</option>
+            </select>
+          </div>
         </div>
       </div>
 
       {/* Leads Main Table */}
       <div className="bg-white border border-gray-150 shadow-sm rounded-3xl overflow-hidden">
-        <table className="w-full text-left border-collapse">
+        <div className="overflow-x-auto w-full">
+          <table className="w-full text-left border-collapse min-w-[900px]">
           <thead>
             <tr className="bg-gray-50 border-b border-gray-150 text-xs font-bold text-gray-500 uppercase tracking-wider">
               <th className="p-4">Customer Details</th>
@@ -780,7 +934,14 @@ const LeadsDirectory = () => {
               >
                 {/* Customer */}
                 <td className="p-4">
-                  <div className="font-bold text-gray-800">{lead.name}</div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-gray-800">{lead.name}</span>
+                    {(lead.isReopened === true || (lead.history && lead.history.some(h => h.note && h.note.toLowerCase().includes('reopened')))) && (
+                      <span className="bg-amber-100 text-amber-800 border border-amber-250 text-[9px] font-extrabold px-1.5 py-0.5 rounded-full uppercase tracking-wider shrink-0 shadow-sm animate-pulse">
+                        Reopened
+                      </span>
+                    )}
+                  </div>
                   <div className="flex items-center gap-1 text-[10px] text-gray-400 mt-1">
                     <Phone className="w-3 h-3 text-gray-300" />
                     <span>{lead.phone}</span>
@@ -844,37 +1005,34 @@ const LeadsDirectory = () => {
  
                 {/* Project */}
                 <td className="p-4">
-                  {lead.project ? (
-                    <div>
-                      <div className="font-bold text-[#0e623a]">{lead.project.code}</div>
-                      <div className="text-[10px] text-gray-400">{lead.project.name}</div>
-                    </div>
-                  ) : (
-                    <span className="text-gray-400 text-xs">—</span>
-                  )}
+                  <select
+                    value={lead.project?._id || lead.project || ''}
+                    onChange={(e) => handleProjectChange(lead._id, e.target.value)}
+                    className="px-2 py-1 bg-gray-50 border border-gray-200 rounded text-xs focus:outline-none font-semibold text-gray-700 cursor-pointer hover:bg-gray-100 transition"
+                  >
+                    <option value="">Select Project</option>
+                    {projects.map(p => (
+                      <option key={p._id} value={p._id}>
+                        {p.code}
+                      </option>
+                    ))}
+                  </select>
                 </td>
  
                 {/* Assignment & Reassign Control */}
                 <td className="p-4">
-                  {user.role === 'Admin' || user.role === 'Manager' ? (
-                    <select
-                      value={lead.assignedTo?._id || ''}
-                      onChange={(e) => handleReassign(lead._id, e.target.value)}
-                      className="px-2 py-1 bg-gray-50 border border-gray-200 rounded text-xs focus:outline-none font-semibold text-gray-700"
-                    >
-                      <option value="">Unassigned</option>
-                      {employees.map(emp => (
-                        <option key={emp._id} value={emp._id}>
-                          {emp.name} ({emp.role})
-                        </option>
-                      ))}
-                    </select>
-                  ) : (
-                    <div>
-                      <div className="font-semibold text-gray-700">{lead.assignedTo?.name || 'Unassigned'}</div>
-                      <div className="text-[10px] text-gray-400">{lead.assignedTo?.role || ''}</div>
-                    </div>
-                  )}
+                  <select
+                    value={lead.assignedTo?._id || ''}
+                    onChange={(e) => handleReassign(lead._id, e.target.value)}
+                    className="px-2 py-1 bg-gray-50 border border-gray-200 rounded text-xs focus:outline-none font-semibold text-gray-700 cursor-pointer hover:bg-gray-100 transition"
+                  >
+                    <option value="">Unassigned</option>
+                    {employees.map(emp => (
+                      <option key={emp._id} value={emp._id}>
+                        {emp.name} ({emp.role})
+                      </option>
+                    ))}
+                  </select>
                 </td>
  
                 {/* Workflow Status Dropdown */}
@@ -1021,6 +1179,7 @@ const LeadsDirectory = () => {
             )}
           </tbody>
         </table>
+        </div>
       </div>
 
       {/* 🔐 MODAL: Create New Lead / Direct Visit Form */}
@@ -1086,11 +1245,11 @@ const LeadsDirectory = () => {
                   <input
                     type="text"
                     required
-                    placeholder="e.g. +1 555-0144"
+                    placeholder="e.g. 9876543210"
                     value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
+                    onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
                     onBlur={handlePhoneBlur}
-                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0e623a] text-sm"
+                    className="w-full px-4 py-3 bg-gray-55 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0e623a] text-sm"
                   />
                 </div>
                 <div>
@@ -1137,57 +1296,39 @@ const LeadsDirectory = () => {
                 <>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {/* Lead Source */}
-                    <div>
+                    <div className="flex flex-col">
                       <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1.5">Lead Source</label>
-                      <select
-                        required
+                      <SearchableSelect
+                        options={SOURCE_TYPES}
                         value={leadSource}
-                        onChange={(e) => setLeadSource(e.target.value)}
-                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none text-sm font-semibold text-gray-700"
-                      >
-                        <option value="">Select Ad Source / Campaign</option>
-                        {SOURCE_TYPES.map(src => (
-                          <option key={src} value={src}>{src}</option>
-                        ))}
-                      </select>
+                        onChange={setLeadSource}
+                        placeholder="Select Ad Source / Campaign"
+                      />
                     </div>
 
                     {/* Project Code selection */}
-                    <div>
+                    <div className="flex flex-col">
                       <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1.5">Project Code</label>
-                      <select
-                        required
+                      <SearchableSelect
+                        options={projects.map(p => ({ value: p._id, label: `${p.code} - ${p.name} (${p.projectType})` }))}
                         value={selectedProjectId}
-                        onChange={(e) => setSelectedProjectId(e.target.value)}
-                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none text-sm font-semibold text-gray-700"
-                      >
-                        <option value="">Select Project</option>
-                        {projects.map(p => (
-                          <option key={p._id} value={p._id}>
-                            {p.code} - {p.name} ({p.projectType})
-                          </option>
-                        ))}
-                      </select>
+                        onChange={setSelectedProjectId}
+                        placeholder="Select Project"
+                      />
                     </div>
                   </div>
 
                   {/* Ads Sub-dropdown (dynamic based on project) */}
                   {selectedProjectId && (
                     <div className="bg-[#f0f9f4] p-4 rounded-2xl border border-[#bce2cb]/40 space-y-3">
-                      <div>
+                      <div className="flex flex-col">
                         <label className="text-xs font-bold text-[#0e623a] uppercase tracking-wider block mb-1.5">Active Ad Campaign</label>
-                        <select
+                        <SearchableSelect
+                          options={activeAds.map(ad => ({ value: ad.id, label: `[${ad.type}] ${ad.name}` }))}
                           value={selectedAdId}
-                          onChange={(e) => setSelectedAdId(e.target.value)}
-                          className="w-full px-4 py-3 bg-white border border-[#bce2cb] rounded-xl focus:outline-none text-sm font-semibold text-gray-700"
-                        >
-                          <option value="">Select Active Campaign Ad</option>
-                          {activeAds.map(ad => (
-                            <option key={ad.id} value={ad.id}>
-                              [{ad.type}] {ad.name}
-                            </option>
-                          ))}
-                        </select>
+                          onChange={setSelectedAdId}
+                          placeholder="Select Active Campaign Ad"
+                        />
                         <span className="text-[10px] text-gray-400 mt-1 block">
                           * Displays only active reels/posters for the selected project code.
                         </span>
@@ -1209,37 +1350,25 @@ const LeadsDirectory = () => {
                 <>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     {/* Project Location */}
-                    <div>
+                    <div className="flex flex-col">
                       <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1.5">Project Location</label>
-                      <select
-                        required
+                      <SearchableSelect
+                        options={locations}
                         value={projectLocation}
-                        onChange={(e) => setProjectLocation(e.target.value)}
-                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none text-sm font-semibold text-gray-700"
-                      >
-                        <option value="">Select Location</option>
-                        {locations.map(loc => (
-                          <option key={loc} value={loc}>{loc}</option>
-                        ))}
-                      </select>
+                        onChange={setProjectLocation}
+                        placeholder="Select Location"
+                      />
                     </div>
 
                     {/* Project Code selection */}
-                    <div className="sm:col-span-2">
+                    <div className="sm:col-span-2 flex flex-col">
                       <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1.5">Project Code</label>
-                      <select
-                        required
+                      <SearchableSelect
+                        options={projects.map(p => ({ value: p._id, label: `${p.code} - ${p.name} (${p.projectType})` }))}
                         value={selectedProjectId}
-                        onChange={(e) => setSelectedProjectId(e.target.value)}
-                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none text-sm font-semibold text-gray-700"
-                      >
-                        <option value="">Select Project</option>
-                        {projects.map(p => (
-                          <option key={p._id} value={p._id}>
-                            {p.code} - {p.name} ({p.projectType})
-                          </option>
-                        ))}
-                      </select>
+                        onChange={setSelectedProjectId}
+                        placeholder="Select Project"
+                      />
                     </div>
                   </div>
                 </>
@@ -1275,21 +1404,14 @@ const LeadsDirectory = () => {
               </div>
 
               {/* Assigned Executive */}
-              <div>
+              <div className="flex flex-col">
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1.5">Assigned Executive / Member</label>
-                <select
-                  required
+                <SearchableSelect
+                  options={employees.map(emp => ({ value: emp._id, label: `${emp.name} (${emp.role})` }))}
                   value={assignedToId}
-                  onChange={(e) => setAssignedToId(e.target.value)}
-                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none text-sm font-semibold text-gray-700"
-                >
-                  <option value="">Select Executive</option>
-                  {employees.map(emp => (
-                    <option key={emp._id} value={emp._id}>
-                      {emp.name} ({emp.role})
-                    </option>
-                  ))}
-                </select>
+                  onChange={setAssignedToId}
+                  placeholder="Select Executive"
+                />
               </div>
 
               {/* Submit Buttons */}
@@ -1738,7 +1860,7 @@ const LeadsDirectory = () => {
                               >
                                 <div className="text-[10px] uppercase font-semibold text-gray-400">Plot</div>
                                 <div className="text-xs font-bold">{u.unitId}</div>
-                                <div className="text-[9px] mt-0.5 opacity-80">{u.size} Sq.Ft</div>
+                                <div className="text-[9px] mt-0.5 opacity-80">{Number(u.size).toFixed(2)} Sq.Ft</div>
                                 {isSelected && (
                                   <span className="absolute top-1 right-1 bg-white text-emerald-800 rounded-full p-0.5 shadow-sm">
                                     <Check className="w-2.5 h-2.5" />
@@ -1783,7 +1905,7 @@ const LeadsDirectory = () => {
                                   >
                                     <Building2 className={`w-4 h-4 mb-0.5 ${isSelected ? 'text-white' : 'text-gray-400'}`} />
                                     <div className="text-xs font-bold">{u.unitId}</div>
-                                    <div className="text-[9px] mt-0.5 opacity-80">{u.size} Sq.Ft</div>
+                                    <div className="text-[9px] mt-0.5 opacity-80">{Number(u.size).toFixed(2)} Sq.Ft</div>
                                     {isSelected && (
                                       <span className="absolute top-1 right-1 bg-white text-[#0e623a] rounded-full p-0.5">
                                         <Check className="w-2.5 h-2.5" />
@@ -1826,7 +1948,7 @@ const LeadsDirectory = () => {
                             >
                               <Home className={`w-5 h-5 mb-1.5 ${isSelected ? 'text-white' : 'text-[#0e623a]'}`} />
                               <div className="text-xs font-bold">{u.unitId}</div>
-                              <div className="text-[10px] text-gray-400 font-semibold">{u.size} Sq.Ft</div>
+                              <div className="text-[10px] text-gray-400 font-semibold">{Number(u.size).toFixed(2)} Sq.Ft</div>
                               {isSelected && (
                                 <span className="absolute top-1.5 right-1.5 bg-white text-[#0e623a] rounded-full p-0.5">
                                   <Check className="w-2.5 h-2.5" />
@@ -1857,7 +1979,7 @@ const LeadsDirectory = () => {
                       <span className="font-semibold text-gray-800">
                         {bookingProjectDetails.units
                           ?.filter(u => selectedBookingUnits.includes(u.unitId))
-                          .reduce((sum, u) => sum + u.size, 0)} Sq.Ft
+                          .reduce((sum, u) => sum + u.size, 0).toFixed(2)} Sq.Ft
                       </span>
                     </div>
                     <div className="flex justify-between border-t pt-1.5 text-sm font-bold text-gray-800">
@@ -1883,7 +2005,7 @@ const LeadsDirectory = () => {
                       type="text"
                       placeholder="Alternative Phone No"
                       value={bookingAltPhone}
-                      onChange={(e) => setBookingAltPhone(e.target.value)}
+                      onChange={(e) => setBookingAltPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
                       className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-xs"
                     />
                   </div>
@@ -1893,7 +2015,7 @@ const LeadsDirectory = () => {
                       type="text"
                       placeholder="12 digit aadhar"
                       value={bookingAadhar}
-                      onChange={(e) => setBookingAadhar(e.target.value)}
+                      onChange={(e) => setBookingAadhar(e.target.value.replace(/\D/g, '').slice(0, 12))}
                       className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-xs"
                     />
                   </div>
@@ -1948,6 +2070,7 @@ const LeadsDirectory = () => {
                           placeholder="e.g. 1500000"
                           value={loanAmount}
                           onChange={(e) => setLoanAmount(e.target.value)}
+                          onBlur={() => setLoanAmount(prev => prev ? Number(Number(prev).toFixed(2)) : 0)}
                           className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-xs"
                         />
                       </div>

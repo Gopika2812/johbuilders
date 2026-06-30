@@ -50,6 +50,8 @@ const CRDFlow = () => {
   const { token } = useAuth();
   const [projects, setProjects] = useState([]);
   const [bookings, setBookings] = useState([]);
+  const [flows, setFlows] = useState([]);
+  const [quotations, setQuotations] = useState([]);
   
   const [selectedProjectId, setSelectedProjectId] = useState('');
   const [selectedBookingId, setSelectedBookingId] = useState('');
@@ -112,12 +114,26 @@ const CRDFlow = () => {
       const leadRes = await fetch(`${API_URL}/leads?status=Booking`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
+      const flowsRes = await fetch(`${API_URL}/crd-flow`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const quotRes = await fetch(`${API_URL}/quotations`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
       
       if (projRes.ok && leadRes.ok) {
-        const projData = await projRes.ok ? await projRes.json() : [];
-        const leadData = await leadRes.ok ? await leadRes.json() : [];
+        const projData = await projRes.json();
+        const leadData = await leadRes.json();
         setProjects(projData);
         setBookings(leadData);
+      }
+      if (flowsRes.ok) {
+        const flowsData = await flowsRes.json();
+        setFlows(flowsData);
+      }
+      if (quotRes.ok) {
+        const quotData = await quotRes.json();
+        setQuotations(quotData);
       }
     } catch (err) {
       setError('Connection error fetching master items');
@@ -408,9 +424,16 @@ const CRDFlow = () => {
   const filteredBookings = bookings.filter(b => !selectedProjectId || (b.project?._id || b.project) === selectedProjectId);
 
   const selectedBookingDetails = bookings.find(b => b._id === selectedBookingId);
+  
+  const totalReceived = activeFlow
+    ? activeFlow.stages.reduce((sum, stage) => sum + (stage.payments?.reduce((pSum, p) => pSum + p.amount, 0) || 0), 0)
+    : 0;
+  const totalPending = activeFlow
+    ? Math.max(0, activeFlow.totalCurrentValue - totalReceived)
+    : 0;
 
   return (
-    <div className="space-y-6 max-w-6xl mx-auto">
+    <div className="space-y-6 w-full mx-auto px-4 lg:px-8">
       {/* Top Header Section */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white border border-gray-150 p-6 rounded-3xl shadow-sm">
         <div>
@@ -422,13 +445,19 @@ const CRDFlow = () => {
         </div>
 
         {activeFlow && (
-          <div className="bg-emerald-50 border border-emerald-200 p-4 rounded-2xl flex flex-col items-end self-end sm:self-center">
-            <span className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider">Total Project Valuation</span>
-            <span className="text-lg font-extrabold text-[#0e623a] mt-0.5">
-              Rs. {activeFlow.totalCurrentValue.toLocaleString()}
-            </span>
+          <div className="bg-emerald-50 border border-emerald-200 p-4 rounded-2xl flex flex-col items-end self-end sm:self-center text-right space-y-1">
+            <span className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider">Overall Valuation Summary</span>
+            <div className="text-xs text-gray-650 font-semibold">
+              Total Valuation: <span className="text-gray-900 font-extrabold">Rs. {activeFlow.totalCurrentValue.toLocaleString()}</span>
+            </div>
+            <div className="text-xs text-emerald-700 font-semibold">
+              Received: <span className="text-emerald-900 font-extrabold">Rs. {totalReceived.toLocaleString()}</span>
+            </div>
+            <div className={`text-xs font-semibold ${totalPending > 0 ? 'text-rose-700' : 'text-emerald-700'}`}>
+              Pending: <span className={`${totalPending > 0 ? 'text-rose-900' : 'text-emerald-800'} font-extrabold`}>Rs. {totalPending.toLocaleString()}</span>
+            </div>
             {activeFlow.totalExtraWorksValue > 0 && (
-              <span className="text-[9px] text-gray-400 mt-0.5">
+              <span className="text-[9px] text-gray-400 mt-1">
                 (Base: Rs. {activeFlow.totalOriginalValue.toLocaleString()} + Extra: Rs. {activeFlow.totalExtraWorksValue.toLocaleString()})
               </span>
             )}
@@ -529,8 +558,23 @@ const CRDFlow = () => {
                         <div className="font-semibold text-gray-700">
                           {lead.project?.code || 'N/A'} - {lead.project?.name || 'N/A'}
                         </div>
-                        <div className="text-[10px] text-emerald-800 font-bold bg-emerald-50 px-2 py-0.5 rounded inline-block mt-1">
-                          Units: {lead.bookingInfo?.selectedUnits?.join(', ') || 'N/A'}
+                        <div className="flex flex-wrap gap-1 mt-1 items-center">
+                          <div className="text-[10px] text-emerald-800 font-bold bg-emerald-50 px-2 py-0.5 rounded inline-block">
+                            Units: {lead.bookingInfo?.selectedUnits?.join(', ') || 'N/A'}
+                          </div>
+                          {(() => {
+                            const flow = flows.find(f => (f.lead?._id || f.lead) === lead._id);
+                            const quot = quotations.find(q => (q.lead?._id || q.lead) === lead._id);
+                            const value = flow ? flow.totalCurrentValue : (quot ? quot.totalValue : null);
+                            if (value !== null) {
+                              return (
+                                <div className="text-[10px] text-blue-800 font-extrabold bg-blue-50 border border-blue-200 px-2 py-0.5 rounded inline-block">
+                                  Value: Rs. {value.toLocaleString()}
+                                </div>
+                              );
+                            }
+                            return null;
+                          })()}
                         </div>
                       </td>
                       <td className="p-4 text-gray-600">
@@ -852,13 +896,21 @@ const CRDFlow = () => {
                           </div>
                         </div>
 
-                        <div className="space-y-1 border-t sm:border-t-0 sm:border-l border-gray-200 sm:pl-4">
+                        <div className="space-y-1 border-t sm:border-t-0 sm:border-l border-gray-200 sm:pl-4 text-left">
                           <div className="text-gray-600">
-                            Total Amount Paid: <span className="font-semibold text-gray-800">Rs. {totalPaid.toLocaleString()}</span>
+                            Total Amount: <span className="font-semibold text-gray-800">Rs. {totalDue.toLocaleString()}</span>
                           </div>
-                          <div className={`font-bold ${isPaidOff ? 'text-[#0e623a]' : 'text-amber-600'}`}>
-                            {isPaidOff ? 'Paid Off' : `Remaining: Rs. ${(totalDue - totalPaid).toLocaleString()}`}
+                          <div className="text-emerald-700">
+                            Received: <span className="font-semibold text-emerald-800">Rs. {totalPaid.toLocaleString()}</span>
                           </div>
+                          <div className={`font-bold ${isPaidOff ? 'text-emerald-600' : 'text-rose-600'}`}>
+                            Pending: <span>Rs. {Math.max(0, totalDue - totalPaid).toLocaleString()}</span>
+                          </div>
+                          {isPaidOff && (
+                            <span className="text-[10px] bg-emerald-50 border border-emerald-250 text-emerald-800 px-2 py-0.5 rounded-full font-bold inline-block mt-1">
+                              Paid Off
+                            </span>
+                          )}
                         </div>
                       </div>
 

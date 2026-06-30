@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth, API_URL } from '../context/AuthContext';
-import { Building, MapPin, Ruler, DollarSign, ListPlus, ShieldAlert, Share2, Video, Image as ImageIcon, Plus, Trash } from 'lucide-react';
+import { Building, MapPin, Ruler, DollarSign, ListPlus, ShieldAlert, Share2, Video, Image as ImageIcon, Plus, Trash, Table, Grid, Trash2 } from 'lucide-react';
 import SearchableSelect from '../components/SearchableSelect';
 
 const SOURCE_TYPES = [
@@ -37,7 +37,16 @@ const RegisterProject = () => {
 
   const [name, setName] = useState('');
   const [code, setCode] = useState('');
-  const [projectType, setProjectType] = useState('Plot');
+  const [projectTypes, setProjectTypes] = useState(['Plot']);
+  const handleToggleProjectType = (type) => {
+    if (projectTypes.includes(type)) {
+      if (projectTypes.length > 1) {
+        setProjectTypes(projectTypes.filter(t => t !== type));
+      }
+    } else {
+      setProjectTypes([...projectTypes, type]);
+    }
+  };
   const [location, setLocation] = useState('');
   const [totalLandArea, setTotalLandArea] = useState('');
   const [pricePerSqFt, setPricePerSqFt] = useState('');
@@ -49,15 +58,19 @@ const RegisterProject = () => {
   const [posters, setPosters] = useState([{ name: '', link: '', status: 'Active' }]);
 
   // Unit generation variables
-  const [initialUnitCount, setInitialUnitCount] = useState('10');
+  const [initialPlotCount, setInitialPlotCount] = useState('10');
+  const [initialHouseCount, setInitialHouseCount] = useState('5');
   const [floorCount, setFloorCount] = useState('3');
   const [unitsPerFloor, setUnitsPerFloor] = useState('4');
 
   // Custom unit import states
-  const [generationMode, setGenerationMode] = useState('auto'); // 'auto' | 'import'
+  const [generationMode, setGenerationMode] = useState('auto'); // 'auto' | 'import' | 'visual'
   const [pastedData, setPastedData] = useState('');
   const [parsedUnits, setParsedUnits] = useState([]);
   const [importViewMode, setImportViewMode] = useState('table'); // 'table' | 'card'
+  const [activeVisualCoords, setActiveVisualCoords] = useState(null);
+  const [visualFormData, setVisualFormData] = useState({ unitId: '', size: 1000 });
+  const [selectedImportPlotId, setSelectedImportPlotId] = useState('');
 
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -100,6 +113,7 @@ const RegisterProject = () => {
     setPastedData(text);
     if (!text.trim()) {
       setParsedUnits([]);
+      setSelectedImportPlotId('');
       return;
     }
 
@@ -111,41 +125,64 @@ const RegisterProject = () => {
       if (!line.trim()) return;
       const cols = line.split(line.includes('\t') ? '\t' : ',').map(c => c.trim());
       
-      // Skip header row
-      if (cols.some(col => col.toLowerCase().includes('sr no') || col.toLowerCase().includes('unit no') || col.toLowerCase().includes('sub project'))) {
-        return;
-      }
+      // Look at the pasted row horizontally in chunks of 3 columns (repeating side-by-side layout)
+      for (let i = 0; i < cols.length; i += 3) {
+        const chunk = cols.slice(i, i + 3);
+        if (chunk.length < 2) continue; // Must have at least Pl.No and Area size
+        
+        const plotNo = chunk[0];
+        const sizeStr = chunk[1];
+        const cents = chunk[2] || '';
+        
+        // Skip header blocks
+        if (
+          !plotNo || 
+          plotNo.toLowerCase().includes('pl.no') || 
+          plotNo.toLowerCase().includes('land in') || 
+          plotNo.toLowerCase().includes('total') || 
+          plotNo.toLowerCase().includes('cent')
+        ) {
+          continue;
+        }
+        
+        // Parse size
+        const size = Number(sizeStr) || 0;
+        if (size === 0) continue;
+        
+        // Handle double units e.g. "306-307" or split units, clean prefix
+        const prefix = code ? code.toUpperCase().trim() : 'PLOT';
+        const unitId = plotNo.toUpperCase().includes(prefix) ? plotNo.toUpperCase().trim() : `${prefix}-${plotNo.trim()}`;
+        
+        // Skip duplicate records in case of overlap
+        if (units.some(u => u.unitId === unitId)) continue;
 
-      if (cols.length < 5) return;
-
-      const floor = cols[2] || '';
-      const unitId = cols[3] || '';
-      const unitType = cols[4] || '';
-      const size = Number(cols[5]) || 0;
-      
-      let status = 'New';
-      const soldConsideration = cols[12];
-      const soldRate = cols[11];
-      if ((soldConsideration && Number(soldConsideration) > 0) || (soldRate && Number(soldRate) > 0)) {
-        status = 'Sold Out';
-      }
-
-      if (unitId) {
         units.push({
           unitId,
-          floor: floor ? `Floor ${floor}` : '',
-          unitType,
+          floor: 'Floor 1',
+          unitType: 'Plot',
           size,
           price: size * (Number(pricePerSqFt) || 2000),
-          status,
-          remarks: cols[13] || '',
+          status: 'New',
+          remarks: cents ? `Cents: ${cents}` : '',
           isLocked: false
         });
         calculatedTotalArea += size;
       }
     });
 
+    // Sort units numerically so they list in sequence (e.g. Plot 1, Plot 2, Plot 3...)
+    units.sort((a, b) => {
+      const numA = parseInt(a.unitId.replace(/^\D+/g, ''), 10) || 0;
+      const numB = parseInt(b.unitId.replace(/^\D+/g, ''), 10) || 0;
+      return numA - numB;
+    });
+
     setParsedUnits(units);
+    if (units.length > 0) {
+      setSelectedImportPlotId(units[0].unitId);
+    } else {
+      setSelectedImportPlotId('');
+    }
     if (calculatedTotalArea > 0) {
       setTotalLandArea(calculatedTotalArea.toString());
     }
@@ -169,8 +206,11 @@ const RegisterProject = () => {
     setSuccess('');
     setLoading(true);
 
-    if (user.role !== 'Admin' && user.role !== 'Manager') {
-      setError('Unauthorized. Only Admins or Managers can register projects.');
+    const projectPermission = user?.permissions?.find(p => p.pageId === 'projects');
+    const canEdit = user?.role === 'Admin' || projectPermission?.canEdit;
+
+    if (!canEdit) {
+      setError('Unauthorized. You do not have edit access to Register Projects.');
       setLoading(false);
       return;
     }
@@ -178,7 +218,7 @@ const RegisterProject = () => {
     const payload = {
       name,
       code: code.toUpperCase().trim(),
-      projectType,
+      projectType: projectTypes,
       layoutPlanImage,
       location,
       totalLandArea: Number(totalLandArea),
@@ -190,10 +230,11 @@ const RegisterProject = () => {
       }
     };
 
-    if (generationMode === 'import' && parsedUnits.length > 0) {
+    if (generationMode === 'import' || generationMode === 'visual') {
       payload.units = parsedUnits;
     } else {
-      payload.initialUnitCount = Number(initialUnitCount);
+      payload.initialPlotCount = Number(initialPlotCount);
+      payload.initialHouseCount = Number(initialHouseCount);
       payload.floorCount = Number(floorCount);
       payload.unitsPerFloor = Number(unitsPerFloor);
     }
@@ -289,16 +330,36 @@ const RegisterProject = () => {
 
             {/* Project Type */}
             <div>
-              <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-2">Project Type</label>
-              <select
-                value={projectType}
-                onChange={(e) => setProjectType(e.target.value)}
-                className="w-full px-4 py-3 bg-white/20 border border-[#0e623a]/20 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0e623a] focus:border-transparent transition"
-              >
-                <option value="Plot">Plot Project</option>
-                <option value="Flat">Flat / Apartment Project</option>
-                <option value="House">House Project</option>
-              </select>
+              <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-2">Project Type Composition</label>
+              <div className="flex flex-wrap gap-4 px-4 py-3 bg-white/20 border border-[#0e623a]/20 rounded-xl justify-start items-center">
+                <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={projectTypes.includes('Plot')}
+                    onChange={() => handleToggleProjectType('Plot')}
+                    className="w-4 h-4 text-[#0e623a] focus:ring-[#0e623a] border-gray-300 rounded"
+                  />
+                  <span>Plot</span>
+                </label>
+                <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={projectTypes.includes('House')}
+                    onChange={() => handleToggleProjectType('House')}
+                    className="w-4 h-4 text-[#0e623a] focus:ring-[#0e623a] border-gray-300 rounded"
+                  />
+                  <span>House</span>
+                </label>
+                <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={projectTypes.includes('Flat')}
+                    onChange={() => handleToggleProjectType('Flat')}
+                    className="w-4 h-4 text-[#0e623a] focus:ring-[#0e623a] border-gray-300 rounded"
+                  />
+                  <span>Flat</span>
+                </label>
+              </div>
             </div>
 
             {/* Layout Plan Map Image */}
@@ -313,8 +374,35 @@ const RegisterProject = () => {
                     const file = e.target.files[0];
                     if (file) {
                       const reader = new FileReader();
-                      reader.onloadend = () => {
-                        setLayoutPlanImage(reader.result);
+                      reader.onload = (event) => {
+                        const img = new Image();
+                        img.onload = () => {
+                          const canvas = document.createElement('canvas');
+                          let width = img.width;
+                          let height = img.height;
+                          
+                          // Limit max dimension to 1800px to shrink payload significantly
+                          const maxDim = 1800;
+                          if (width > maxDim || height > maxDim) {
+                            if (width > height) {
+                              height = Math.round((height * maxDim) / width);
+                              width = maxDim;
+                            } else {
+                              width = Math.round((width * maxDim) / height);
+                              height = maxDim;
+                            }
+                          }
+                          
+                          canvas.width = width;
+                          canvas.height = height;
+                          const ctx = canvas.getContext('2d');
+                          ctx.drawImage(img, 0, 0, width, height);
+                          
+                          // Export compressed JPEG base64 (approx 65% quality)
+                          const compressedBase64 = canvas.toDataURL('image/jpeg', 0.65);
+                          setLayoutPlanImage(compressedBase64);
+                        };
+                        img.src = event.target.result;
                       };
                       reader.readAsDataURL(file);
                     }
@@ -414,7 +502,7 @@ const RegisterProject = () => {
             </h3>
 
             {/* Mode selection buttons */}
-            <div className="grid grid-cols-2 gap-4 mb-6">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
               <button
                 type="button"
                 onClick={() => setGenerationMode('auto')}
@@ -437,11 +525,25 @@ const RegisterProject = () => {
               >
                 Import Custom Specifications (Excel Paste)
               </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setGenerationMode('visual');
+                  setParsedUnits([]);
+                }}
+                className={`py-3 rounded-2xl text-xs font-bold border transition ${
+                  generationMode === 'visual'
+                    ? 'bg-[#0e623a] border-[#0e623a] text-white shadow-md'
+                    : 'bg-white border-[#0e623a]/20 text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                Visual Plot Seeding (Interactive Map)
+              </button>
             </div>
 
-            {generationMode === 'auto' ? (
-              <>
-                {projectType === 'Plot' && (
+            {generationMode === 'auto' && (
+              <div className="space-y-4">
+                {projectTypes.includes('Plot') && (
                   <div className="bg-white/20 backdrop-blur-sm border-2 border-[#0e623a]/30 rounded-2xl p-6 space-y-4">
                     <p className="text-xs text-gray-600 leading-normal text-left">
                       Plots will be generated using code prefix: <strong>{code ? code.toUpperCase() : 'JMDP'}P1</strong>, <strong>{code ? code.toUpperCase() : 'JMDP'}P2</strong>... The total land area of {totalLandArea || '0'} sq.ft will initially be split equally.
@@ -451,15 +553,15 @@ const RegisterProject = () => {
                       <input
                         type="number"
                         min="1"
-                        value={initialUnitCount}
-                        onChange={(e) => setInitialUnitCount(e.target.value)}
+                        value={initialPlotCount}
+                        onChange={(e) => setInitialPlotCount(e.target.value)}
                         className="w-32 px-4 py-2.5 bg-white/40 border border-[#0e623a]/20 rounded-xl focus:ring-2 focus:ring-[#0e623a] focus:outline-none"
                       />
                     </div>
                   </div>
                 )}
 
-                {projectType === 'House' && (
+                {projectTypes.includes('House') && (
                   <div className="bg-white/20 backdrop-blur-sm border-2 border-[#0e623a]/30 rounded-2xl p-6 space-y-4">
                     <p className="text-xs text-gray-600 leading-normal text-left">
                       Houses will be generated using code prefix: <strong>{code ? code.toUpperCase() : 'JMDH'}H1</strong>, <strong>{code ? code.toUpperCase() : 'JMDH'}H2...</strong>
@@ -469,15 +571,15 @@ const RegisterProject = () => {
                       <input
                         type="number"
                         min="1"
-                        value={initialUnitCount}
-                        onChange={(e) => setInitialUnitCount(e.target.value)}
+                        value={initialHouseCount}
+                        onChange={(e) => setInitialHouseCount(e.target.value)}
                         className="w-32 px-4 py-2.5 bg-white/40 border border-[#0e623a]/20 rounded-xl focus:ring-2 focus:ring-[#0e623a] focus:outline-none"
                       />
                     </div>
                   </div>
                 )}
 
-                {projectType === 'Flat' && (
+                {projectTypes.includes('Flat') && (
                   <div className="bg-white/20 backdrop-blur-sm border-2 border-[#0e623a]/30 rounded-2xl p-6 grid grid-cols-1 sm:grid-cols-2 gap-6 text-left">
                     <div className="sm:col-span-2">
                       <p className="text-xs text-gray-600">
@@ -506,8 +608,10 @@ const RegisterProject = () => {
                     </div>
                   </div>
                 )}
-              </>
-            ) : (
+              </div>
+            )}
+
+            {generationMode === 'import' && (
               <div className="bg-white/20 backdrop-blur-sm border-2 border-[#0e623a]/30 rounded-2xl p-6 space-y-6 text-left animate-fadeIn">
                 <div className="space-y-1">
                   <h4 className="text-xs font-bold text-[#0e623a] uppercase tracking-wider">Bulk Import Custom Unit Specifications</h4>
@@ -517,7 +621,7 @@ const RegisterProject = () => {
                 <div>
                   <textarea
                     rows="4"
-                    placeholder="Paste spreadsheet data here (e.g. 1	Lake Breeze	1	1F1	3 BHK	1357		6200...)"
+                    placeholder="Paste spreadsheet data here (e.g. 1	1848	4.24)"
                     value={pastedData}
                     onChange={(e) => handlePasteChange(e.target.value)}
                     className="w-full p-4 bg-white/50 border border-[#0e623a]/25 focus:border-[#0e623a] focus:outline-none focus:ring-1 focus:ring-[#0e623a] rounded-xl text-xs font-mono"
@@ -534,6 +638,118 @@ const RegisterProject = () => {
                           Total: {parsedUnits.length} units | Land Area: {totalLandArea} sq.ft | Sold: {parsedUnits.filter(u => u.status === 'Sold Out').length}
                         </span>
                       </div>
+                    </div>
+
+                    {/* 📍 Click-to-Map Coordinates Seeder */}
+                    {layoutPlanImage && (
+                      <div className="bg-white/45 p-5 rounded-2xl border border-[#0e623a]/20 space-y-4 text-left">
+                        <div className="space-y-1">
+                          <h5 className="text-xs font-bold text-[#0e623a] uppercase tracking-wider">Excel Plot Coordinate Seeder Workspace</h5>
+                          <p className="text-[10px] text-gray-500">
+                            Click a plot in the list on the right, then click on the layout map on the left to map its position. It will automatically advance to the next plot.
+                          </p>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-2">
+                          {/* Left: Interactive Map */}
+                          <div className="md:col-span-2 relative border border-gray-200 rounded-2xl overflow-hidden shadow-xs bg-gray-50 max-w-full inline-block">
+                            <img 
+                              src={layoutPlanImage} 
+                              alt="Excel Seeder Map" 
+                              className="w-full h-auto cursor-crosshair max-h-[50vh] object-contain"
+                              onClick={(e) => {
+                                if (!selectedImportPlotId) return alert('Please select a plot from the list on the right first!');
+                                const rect = e.target.getBoundingClientRect();
+                                const x = ((e.clientX - rect.left) / rect.width) * 100;
+                                const y = ((e.clientY - rect.top) / rect.height) * 100;
+                                
+                                // Set coordinates on parsed unit
+                                const updated = [...parsedUnits];
+                                const idx = updated.findIndex(u => u.unitId === selectedImportPlotId);
+                                if (idx !== -1) {
+                                  updated[idx].mapCoordinates = { x, y };
+                                  setParsedUnits(updated);
+                                  
+                                  // Find the next unmapped unit to auto-select
+                                  const nextUnmapped = updated.find((u, i) => i > idx && !u.mapCoordinates);
+                                  if (nextUnmapped) {
+                                    setSelectedImportPlotId(nextUnmapped.unitId);
+                                  } else {
+                                    // Try to find any unmapped unit from start
+                                    const anyUnmapped = updated.find(u => !u.mapCoordinates);
+                                    if (anyUnmapped) {
+                                      setSelectedImportPlotId(anyUnmapped.unitId);
+                                    } else {
+                                      setSelectedImportPlotId('');
+                                    }
+                                  }
+                                }
+                              }}
+                            />
+                            
+                            {/* Display placed pins */}
+                            {parsedUnits.map((u, idx) => {
+                              if (!u.mapCoordinates) return null;
+                              return (
+                                <div 
+                                  key={idx}
+                                  className="absolute -translate-x-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-emerald-500 border border-white flex items-center justify-center shadow-md z-15"
+                                  style={{ left: `${u.mapCoordinates.x}%`, top: `${u.mapCoordinates.y}%` }}
+                                  title={`Plot ${u.unitId}`}
+                                >
+                                  <span className="text-[7.5px] text-white font-extrabold">{u.unitId.split('-').pop()}</span>
+                                </div>
+                              );
+                            })}
+                          </div>
+
+                          {/* Right: Unmapped plots selection panel */}
+                          <div className="flex flex-col h-[50vh] bg-white border border-gray-150 rounded-2xl overflow-hidden text-left">
+                            <div className="bg-[#0e623a]/5 p-3 border-b border-gray-150 flex items-center justify-between">
+                              <span className="text-[10px] font-bold text-[#0e623a] uppercase">Pasted Plots Queue</span>
+                              <span className="text-[9px] bg-emerald-50 text-[#0e623a] border border-[#bce2cb] font-bold px-2 py-0.5 rounded-full">
+                                {parsedUnits.filter(u => u.mapCoordinates).length} / {parsedUnits.length} Mapped
+                              </span>
+                            </div>
+                            <div className="flex-1 overflow-y-auto p-3 space-y-1.5 scrollbar-thin">
+                              {parsedUnits.map((u) => {
+                                const isSelected = selectedImportPlotId === u.unitId;
+                                const isMapped = !!u.mapCoordinates;
+                                return (
+                                  <button
+                                    type="button"
+                                    key={u.unitId}
+                                    onClick={() => setSelectedImportPlotId(u.unitId)}
+                                    className={`w-full flex items-center justify-between p-2.5 rounded-xl text-[10px] font-bold border transition text-left cursor-pointer ${
+                                      isSelected 
+                                        ? 'bg-[#0e623a] text-white border-[#0e623a] shadow-sm' 
+                                        : isMapped 
+                                        ? 'bg-emerald-50/50 border-emerald-100 text-emerald-800' 
+                                        : 'bg-gray-50 border-gray-200 text-gray-700 hover:bg-gray-100'
+                                    }`}
+                                  >
+                                    <div className="min-w-0">
+                                      <span className="block truncate">{u.unitId}</span>
+                                      <span className="text-[8px] opacity-60 font-semibold block">{u.size} sqft</span>
+                                    </div>
+                                    {isMapped ? (
+                                      <span className="text-[8px] bg-emerald-500 text-white px-1.5 py-0.5 rounded-full font-bold">Mapped</span>
+                                    ) : (
+                                      <span className="text-[8px] bg-gray-200 text-gray-500 px-1.5 py-0.5 rounded-full font-bold">Unplaced</span>
+                                    )}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between bg-[#0e623a]/10 px-4 py-3 rounded-2xl border border-[#0e623a]/20 gap-4 mt-4">
+                      <div>
+                        {/* Empty container spacer */}
+                      </div>
 
                       <div className="flex items-center gap-2">
                         {/* Table/Card Layout Switcher Toggle */}
@@ -545,7 +761,7 @@ const RegisterProject = () => {
                               importViewMode === 'table' ? 'bg-[#0e623a] text-white shadow-sm' : 'text-gray-550 hover:text-gray-800'
                             }`}
                           >
-                            <TableIcon className="w-3.5 h-3.5" />
+                            <Table className="w-3.5 h-3.5" />
                             <span>Table (Editable)</span>
                           </button>
                           <button
@@ -719,6 +935,151 @@ const RegisterProject = () => {
                             </button>
                           </div>
                         ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {generationMode === 'visual' && (
+              <div className="bg-white/20 backdrop-blur-sm border-2 border-[#0e623a]/30 rounded-2xl p-6 space-y-6 text-left animate-fadeIn">
+                <div className="space-y-1">
+                  <h4 className="text-xs font-bold text-[#0e623a] uppercase tracking-wider">Visual Plot Coordinate Seeding Workspace</h4>
+                  <p className="text-[11px] text-gray-500">
+                    Upload a map image above, then click directly on the map below to position and name your plots visually.
+                  </p>
+                </div>
+
+                {!layoutPlanImage ? (
+                  <div className="border border-dashed border-[#0e623a]/30 p-8 rounded-xl text-center text-xs text-gray-400 italic">
+                    Please upload the Project Layout Map Image above first to enable interactive plotting workspace.
+                  </div>
+                ) : (
+                  <div className="space-y-6">
+                    <div className="relative inline-block border border-[#0e623a]/20 rounded-3xl overflow-hidden shadow-md max-w-full bg-gray-50">
+                      <img 
+                        src={layoutPlanImage} 
+                        alt="Visual Workspace" 
+                        className="w-full h-auto cursor-crosshair max-h-[60vh] object-contain"
+                        onClick={(e) => {
+                          const rect = e.target.getBoundingClientRect();
+                          const x = ((e.clientX - rect.left) / rect.width) * 100;
+                          const y = ((e.clientY - rect.top) / rect.height) * 100;
+                          setActiveVisualCoords({ x, y });
+                        }}
+                      />
+
+                      {/* Display Plotted Pins */}
+                      {parsedUnits.map((u, idx) => {
+                        if (!u.mapCoordinates) return null;
+                        return (
+                          <div 
+                            key={idx}
+                            className="absolute -translate-x-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-emerald-500 border-2 border-white flex items-center justify-center shadow-lg group hover:scale-130 transition cursor-pointer"
+                            style={{ left: `${u.mapCoordinates.x}%`, top: `${u.mapCoordinates.y}%` }}
+                          >
+                            <span className="text-[7.5px] text-white font-extrabold">{idx + 1}</span>
+                            <div className="absolute bottom-full mb-1.5 bg-gray-900 text-white text-[9px] font-bold px-2 py-0.5 rounded shadow pointer-events-none opacity-0 group-hover:opacity-100 transition whitespace-nowrap z-30">
+                              {u.unitId} ({u.size} sq.ft)
+                            </div>
+                          </div>
+                        );
+                      })}
+
+                      {/* Click Pin Placement Dialog */}
+                      {activeVisualCoords && (
+                        <div 
+                          className="absolute bg-white border border-gray-200 p-4 rounded-2xl shadow-2xl space-y-3 z-30 w-56 -translate-x-1/2 -translate-y-[110%]"
+                          style={{ left: `${activeVisualCoords.x}%`, top: `${activeVisualCoords.y}%` }}
+                        >
+                          <h5 className="text-[10px] font-bold text-gray-400 uppercase">Seeding Details</h5>
+                          <div className="space-y-2 text-xs">
+                            <div>
+                              <label className="text-[9px] font-bold text-gray-500 uppercase block mb-1">Plot / Unit Number</label>
+                              <input 
+                                type="text"
+                                placeholder="e.g. 45"
+                                value={visualFormData.unitId}
+                                onChange={e => setVisualFormData({ ...visualFormData, unitId: e.target.value })}
+                                className="w-full px-2 py-1.5 bg-gray-50 border rounded-lg focus:outline-none"
+                              />
+                            </div>
+                            <div>
+                              <label className="text-[9px] font-bold text-gray-500 uppercase block mb-1">Plot Size (sq.ft)</label>
+                              <input 
+                                type="number"
+                                placeholder="e.g. 1200"
+                                value={visualFormData.size}
+                                onChange={e => setVisualFormData({ ...visualFormData, size: Number(e.target.value) || 0 })}
+                                className="w-full px-2 py-1.5 bg-gray-50 border rounded-lg focus:outline-none"
+                              />
+                            </div>
+                          </div>
+                          <div className="flex gap-2">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (!visualFormData.unitId) return alert('Enter Plot Number!');
+                                const prefix = code ? code.toUpperCase().trim() : 'UNIT';
+                                const uId = visualFormData.unitId.toUpperCase().includes(prefix) 
+                                  ? visualFormData.unitId.toUpperCase().trim() 
+                                  : `${prefix}-${visualFormData.unitId.trim()}`;
+
+                                setParsedUnits([
+                                  ...parsedUnits,
+                                  {
+                                    unitId: uId,
+                                    floor: 'Floor 1',
+                                    unitType: 'Plot',
+                                    size: visualFormData.size,
+                                    price: visualFormData.size * (Number(pricePerSqFt) || 2000),
+                                    status: 'New',
+                                    remarks: 'Visually Plotted',
+                                    isLocked: false,
+                                    mapCoordinates: activeVisualCoords
+                                  }
+                                ]);
+                                setVisualFormData({ unitId: '', size: 1000 });
+                                setActiveVisualCoords(null);
+                              }}
+                              className="flex-1 py-1.5 bg-[#0e623a] text-white rounded-lg text-[10px] font-bold hover:bg-[#0b4d2d] cursor-pointer"
+                            >
+                              Add Plot
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setActiveVisualCoords(null)}
+                              className="py-1.5 px-2 bg-gray-100 text-gray-500 rounded-lg text-[10px] font-bold hover:bg-gray-200 cursor-pointer"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Plotted plots summary list */}
+                    {parsedUnits.length > 0 && (
+                      <div className="space-y-2">
+                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Created Plot Pins ({parsedUnits.length})</span>
+                        <div className="flex flex-wrap gap-2 max-h-40 overflow-y-auto bg-gray-50/50 p-3 rounded-xl border border-gray-150">
+                          {parsedUnits.map((u, idx) => (
+                            <div key={idx} className="flex items-center gap-1.5 bg-white px-2.5 py-1 rounded-lg border text-xs font-semibold text-gray-700 shadow-xs">
+                              <span>{u.unitId}</span>
+                              <span className="text-gray-400 font-normal">({u.size} sqft)</span>
+                              <button 
+                                type="button" 
+                                onClick={() => {
+                                  setParsedUnits(parsedUnits.filter((_, i) => i !== idx));
+                                }}
+                                className="text-red-500 hover:text-red-700 ml-1 font-bold cursor-pointer"
+                              >
+                                ✕
+                              </button>
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     )}
                   </div>

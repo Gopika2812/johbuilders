@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -27,18 +27,28 @@ import SummaryPlanning from './pages/SummaryPlanning';
 import KPIInsights from './pages/KPIInsights';
 
 const Layout = ({ children }) => {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
   return (
     <div className="min-h-screen bg-gray-50 flex relative overflow-hidden">
+      {/* Mobile Sidebar backdrop overlay */}
+      {sidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black/40 backdrop-blur-xs z-15 md:hidden transition-opacity duration-300"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
       {/* Fixed Sidebar */}
-      <Sidebar />
+      <Sidebar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
 
       {/* Main Panel Content Frame */}
-      <div className="flex-1 pl-64 flex flex-col min-h-screen relative z-10">
+      <div className="flex-1 pl-0 md:pl-64 flex flex-col min-h-screen relative z-10">
         {/* Top Navbar */}
-        <Navbar />
+        <Navbar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
 
         {/* Dynamic Page Views */}
-        <main className="flex-grow pt-24 px-8 pb-12 overflow-x-hidden relative z-10">
+        <main className="flex-grow pt-20 md:pt-24 px-4 md:px-8 pb-12 overflow-x-hidden relative z-10">
           {children}
         </main>
       </div>

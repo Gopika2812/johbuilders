@@ -89,6 +89,7 @@ const ProjectDetail = () => {
   const [mPosters, setMPosters] = useState([{ name: '', link: '', status: 'Active', updatedAt: new Date().toISOString() }]);
   const [activeTab, setActiveTab] = useState('project'); // 'project' | 'marketing'
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [selectedInventoryType, setSelectedInventoryType] = useState('');
 
   // Marketing Search and Date Filter States
   const [marketingSearch, setMarketingSearch] = useState('');
@@ -96,6 +97,16 @@ const ProjectDetail = () => {
   const [endDate, setEndDate] = useState('');
 
   const generateTempId = () => 'temp_' + Math.random().toString(36).substr(2, 9) + Date.now();
+
+  const projectTypesArray = project && project.projectType
+    ? (Array.isArray(project.projectType) ? project.projectType : [project.projectType])
+    : ['Plot'];
+
+  useEffect(() => {
+    if (project && !selectedInventoryType && projectTypesArray.length > 0) {
+      setSelectedInventoryType(projectTypesArray[0]);
+    }
+  }, [project, projectTypesArray, selectedInventoryType]);
 
   useEffect(() => {
     fetchProjectDetails();
@@ -432,8 +443,11 @@ const ProjectDetail = () => {
         </button>
       </div>
 
-      {activeTab === 'project' && (
-        <>
+      {activeTab === 'project' && (() => {
+        const activeType = selectedInventoryType || projectTypesArray[0] || 'Plot';
+        const displayedUnits = project.units.filter(u => u.unitType === activeType || (!u.unitType && activeType === 'Plot'));
+        return (
+          <>
 
       {/* Grid vs Table View Controller */}
       <div className="bg-white p-4 border border-gray-100 shadow-sm rounded-2xl flex items-center justify-between">
@@ -447,7 +461,7 @@ const ProjectDetail = () => {
             <Ruler className="w-4 h-4 text-gray-400" />
             <span>{project.totalLandArea.toLocaleString()} sq.ft</span>
           </div>
-          {project.projectType === 'Plot' && (
+          {projectTypesArray.includes('Plot') && (
             <>
               <span>•</span>
               <span className="font-medium text-amber-600">Remaining Land: {project.remainingLand.toLocaleString()} sq.ft</span>
@@ -477,10 +491,29 @@ const ProjectDetail = () => {
         </div>
       </div>
 
+      {/* Sub-tabs for Hybrid Projects */}
+      {projectTypesArray.length > 1 && (
+        <div className="flex bg-white border border-gray-150 p-1.5 rounded-2xl gap-1.5 w-fit shadow-xs">
+          {projectTypesArray.map(type => (
+            <button
+              key={type}
+              onClick={() => setSelectedInventoryType(type)}
+              className={`px-4 py-2 text-xs font-bold rounded-xl transition ${
+                (selectedInventoryType || projectTypesArray[0]) === type
+                  ? 'bg-[#0e623a] text-white shadow-sm'
+                  : 'text-gray-500 hover:text-gray-800'
+              }`}
+            >
+              {type === 'Plot' ? 'Plots Composition' : type === 'House' ? 'Houses Composition' : 'Flats Composition'}
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* Grid / Table Layout Views based on type */}
 
       {/* 🟢 PLOT PROJECT VIEW */}
-      {project.projectType === 'Plot' && (
+      {activeType === 'Plot' && (
         <>
           {viewMode === 'grid' ? (
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
@@ -505,7 +538,7 @@ const ProjectDetail = () => {
                     <span className="text-xs font-semibold text-[#0e623a]">{project.code} Master Plan</span>
                     <span className="text-[10px] text-gray-400 mt-1">Grid units generate auto-proportions</span>
                     <div className="grid grid-cols-5 gap-1 w-full mt-4">
-                      {project.units.map((unit, idx) => (
+                      {displayedUnits.map((unit, idx) => (
                         <div
                           key={idx}
                           className={`h-4 rounded-sm border text-[8px] flex items-center justify-center font-bold ${
@@ -535,7 +568,7 @@ const ProjectDetail = () => {
 
               {/* Grid cards */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:col-span-3">
-                {project.units.map((unit) => (
+                {displayedUnits.map((unit) => (
                   <div key={unit.unitId} className="bg-white border border-gray-100 shadow-sm rounded-3xl p-6 hover:shadow-md transition space-y-4">
                     <div className="flex items-center justify-between">
                       <div>
@@ -613,7 +646,7 @@ const ProjectDetail = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50 text-sm">
-                  {project.units.map((unit) => (
+                  {displayedUnits.map((unit) => (
                     <tr key={unit.unitId} className="hover:bg-gray-50/50">
                       <td className="p-5 font-bold text-gray-800">
                         <div className="flex items-center gap-1.5">
@@ -671,19 +704,19 @@ const ProjectDetail = () => {
       )}
 
       {/* 🔵 FLAT PROJECT VIEW */}
-      {project.projectType === 'Flat' && (
+      {activeType === 'Flat' && (
         <>
           {viewMode === 'grid' ? (
             <div className="space-y-8">
               {/* Group by Floor */}
-              {Array.from(new Set(project.units.map(u => u.floor))).sort().map(floor => (
+              {Array.from(new Set(displayedUnits.map(u => u.floor))).sort().map(floor => (
                 <div key={floor} className="space-y-4">
                   <h3 className="text-base font-bold text-gray-800 border-b pb-2 flex items-center gap-2">
                     <Building className="w-5 h-5 text-[#0e623a]" />
                     <span>{floor}</span>
                   </h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
-                    {project.units.filter(u => u.floor === floor).map(unit => (
+                    {displayedUnits.filter(u => u.floor === floor).map(unit => (
                       <div key={unit.unitId} className="bg-white border border-gray-100 shadow-sm rounded-3xl p-6 hover:shadow-md transition space-y-4">
                         <div className="flex items-center justify-between">
                           <h4 className="font-extrabold text-gray-800">{unit.unitId}</h4>
@@ -735,7 +768,7 @@ const ProjectDetail = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50 text-sm">
-                  {project.units.map((unit) => (
+                  {displayedUnits.map((unit) => (
                     <tr key={unit.unitId} className="hover:bg-gray-50/50">
                       <td className="p-5 font-bold text-gray-800">{unit.unitId}</td>
                       <td className="p-5 text-gray-600">{unit.floor}</td>
@@ -772,11 +805,11 @@ const ProjectDetail = () => {
       )}
 
       {/* 🟠 HOUSE PROJECT VIEW */}
-      {project.projectType === 'House' && (
+      {activeType === 'House' && (
         <>
           {viewMode === 'grid' ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
-              {project.units.map(unit => (
+              {displayedUnits.map(unit => (
                 <div key={unit.unitId} className="bg-white border border-gray-100 shadow-sm rounded-3xl p-6 hover:shadow-md transition space-y-4">
                   <div className="flex items-center justify-between">
                     <h4 className="font-extrabold text-gray-800">{unit.unitId}</h4>
@@ -824,7 +857,7 @@ const ProjectDetail = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50 text-sm">
-                  {project.units.map((unit) => (
+                  {displayedUnits.map((unit) => (
                     <tr key={unit.unitId} className="hover:bg-gray-50/50">
                       <td className="p-5 font-bold text-gray-800">{unit.unitId}</td>
                       <td className="p-5 text-gray-600">{Math.round(unit.size).toLocaleString()} sq.ft</td>
@@ -858,8 +891,9 @@ const ProjectDetail = () => {
           )}
         </>
       )}
-      </>
-      )}
+          </>
+        );
+      })()}
             {/* Inline Marketing View */}
       {activeTab === 'marketing' && (() => {
         // Filter helper for both lists
@@ -966,6 +1000,7 @@ const ProjectDetail = () => {
                       <tr className="bg-gray-50 border-b border-gray-150 font-bold text-gray-500 text-xs">
                         <th className="p-4">Video Name</th>
                         <th className="p-4">Video Link / URL</th>
+                        <th className="p-4 w-32">Cost per Enquiry (₹)</th>
                         <th className="p-4 w-32">Status</th>
                         <th className="p-4 w-28 text-center">Preview</th>
                         <th className="p-4 w-16 text-center">Action</th>
@@ -995,6 +1030,17 @@ const ProjectDetail = () => {
                               value={vid.link}
                               onChange={(e) => {
                                 setMVideos(mVideos.map(v => v._id === vid._id ? { ...v, link: e.target.value } : v));
+                              }}
+                              className="w-full px-3 py-2 bg-white border border-gray-250 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#0e623a] transition text-sm"
+                            />
+                          </td>
+                          <td className="p-3">
+                            <input
+                              type="number"
+                              placeholder="e.g. 50"
+                              value={vid.cost || 0}
+                              onChange={(e) => {
+                                setMVideos(mVideos.map(v => v._id === vid._id ? { ...v, cost: Number(e.target.value) || 0 } : v));
                               }}
                               className="w-full px-3 py-2 bg-white border border-gray-250 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#0e623a] transition text-sm"
                             />
@@ -1075,6 +1121,7 @@ const ProjectDetail = () => {
                       <tr className="bg-gray-50 border-b border-gray-150 font-bold text-gray-500 text-xs">
                         <th className="p-4">Poster Name</th>
                         <th className="p-4">Poster Link / URL</th>
+                        <th className="p-4 w-32">Cost per Enquiry (₹)</th>
                         <th className="p-4 w-32">Status</th>
                         <th className="p-4 w-28 text-center">Preview</th>
                         <th className="p-4 w-16 text-center">Action</th>
@@ -1106,6 +1153,17 @@ const ProjectDetail = () => {
                                 setMPosters(mPosters.map(p => p._id === pos._id ? { ...p, link: e.target.value } : p));
                               }}
                               className="w-full px-3 py-2 bg-white border border-gray-255 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#0e623a] transition text-sm"
+                            />
+                          </td>
+                          <td className="p-3">
+                            <input
+                              type="number"
+                              placeholder="e.g. 50"
+                              value={pos.cost || 0}
+                              onChange={(e) => {
+                                setMPosters(mPosters.map(p => p._id === pos._id ? { ...p, cost: Number(e.target.value) || 0 } : p));
+                              }}
+                              className="w-full px-3 py-2 bg-white border border-gray-250 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#0e623a] transition text-sm"
                             />
                           </td>
                           <td className="p-3">

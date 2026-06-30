@@ -94,14 +94,42 @@ connectDB().then(async () => {
         }
       }
     }
+
+    // Sync Sold Out/Handover units from CRD Flow completed stages
+    const CRDFlow = require('./models/CRDFlow');
+    const flows = await CRDFlow.find({});
+    for (const flow of flows) {
+      const handoverStageCompleted = flow.stages?.some(s => 
+        (s.name.toLowerCase().includes('handing over') || s.name.toLowerCase().includes('handover')) && 
+        s.isCompleted === true
+      );
+      if (handoverStageCompleted) {
+        const proj = await Project.findById(flow.project);
+        if (proj) {
+          let updated = false;
+          const unitIdsToUpdate = flow.unitId.split(',').map(uid => uid.trim());
+          proj.units.forEach(u => {
+            if (unitIdsToUpdate.includes(u.unitId) && u.status !== 'Sold Out') {
+              u.status = 'Sold Out';
+              updated = true;
+            }
+          });
+          if (updated) {
+            await proj.save();
+            console.log(`Synced handover/sold out units from CRD Flow for unit ${flow.unitId}`);
+          }
+        }
+      }
+    }
   } catch (err) {
-    console.error('Error syncing booked units:', err.message);
+    console.error('Error syncing units:', err.message);
   }
 });
 
 // Middleware
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(morgan('dev'));
 
 

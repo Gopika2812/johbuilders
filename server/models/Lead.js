@@ -87,6 +87,7 @@ const LeadSchema = new mongoose.Schema({
     remarks: { type: String, default: '' }
   },
   isClosed: { type: Boolean, default: false },
+  isReopened: { type: Boolean, default: false },
   closeRemarks: { type: String, default: '' },
   history: [
     {

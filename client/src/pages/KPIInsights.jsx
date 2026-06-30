@@ -23,9 +23,11 @@ const getCoordinatesForPercent = (percent) => {
 };
 
 // 🔵 REUSABLE MATTE PIE CHART
-const ObservedPieChart = ({ dataArray, valueKey, labelKey, colorPalette, isCount }) => {
-  const [isVisible, setIsVisible] = useState(false);
+const ObservedPieChart = ({ dataArray, valueKey, labelKey, colorPalette, isCount, onSegmentClick }) => {
+  const [isVisible, setIsVisible] = useState(true);
   const containerRef = useRef(null);
+  const [hoveredItem, setHoveredItem] = useState(null);
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -61,7 +63,7 @@ const ObservedPieChart = ({ dataArray, valueKey, labelKey, colorPalette, isCount
     <div ref={containerRef} className="flex flex-col items-center gap-4 justify-center w-full">
       <div className="relative w-48 h-48 shrink-0">
         <svg 
-          className={`w-full h-full opacity-0 ${isVisible ? 'animate-chart-wheel' : ''}`} 
+          className={`w-full h-full opacity-100 ${isVisible ? 'animate-chart-wheel' : ''}`} 
           viewBox="0 0 160 160"
         >
           {dataArray.map((item, index) => {
@@ -96,7 +98,7 @@ const ObservedPieChart = ({ dataArray, valueKey, labelKey, colorPalette, isCount
             const labelText = item[labelKey];
 
             return (
-              <g key={index} className="group cursor-pointer">
+              <g key={index} className="group cursor-pointer" onClick={() => onSegmentClick && onSegmentClick(item)}>
                 <path
                   d={pathData}
                   fill={color}
@@ -105,9 +107,16 @@ const ObservedPieChart = ({ dataArray, valueKey, labelKey, colorPalette, isCount
                     transformOrigin: '80px 80px',
                     animationDelay: `${index * 0.1}s`
                   }}
-                >
-                  <title>{`${labelText}: ${(percent * 100).toFixed(1)}% (${isCount ? val : '₹' + Math.round(val).toLocaleString()})`}</title>
-                </path>
+                  onMouseEnter={() => setHoveredItem(item)}
+                  onMouseMove={(e) => {
+                    const rect = e.currentTarget.ownerSVGElement.getBoundingClientRect();
+                    setMousePos({
+                      x: e.clientX - rect.left + 10,
+                      y: e.clientY - rect.top - 40
+                    });
+                  }}
+                  onMouseLeave={() => setHoveredItem(null)}
+                />
                 {percent > 0.05 && (
                   <g className="pointer-events-none select-none text-[8px] font-bold text-white">
                     <text x={labelX} y={labelY - 1} textAnchor="middle" fill="white" style={{ textShadow: '1px 1px 1px rgba(0,0,0,0.8)' }}>
@@ -122,6 +131,24 @@ const ObservedPieChart = ({ dataArray, valueKey, labelKey, colorPalette, isCount
             );
           })}
         </svg>
+
+        {hoveredItem && (
+          <div 
+            className="absolute bg-gray-950/95 text-white text-[10px] font-bold px-2 py-1 rounded-xl shadow-lg border border-gray-800 pointer-events-none z-50 transition-all duration-75 whitespace-nowrap"
+            style={{ 
+              left: `${mousePos.x}px`, 
+              top: `${mousePos.y}px`
+            }}
+          >
+            <div className="text-[9px] text-gray-400 font-extrabold uppercase">{hoveredItem[labelKey]}</div>
+            <div className="text-white mt-0.5">
+              {((hoveredItem[valueKey] / total) * 100).toFixed(1)}% 
+              <span className="text-gray-300 ml-1">
+                ({isCount ? hoveredItem[valueKey] : '₹' + Math.round(hoveredItem[valueKey]).toLocaleString()})
+              </span>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="space-y-1.5 text-left flex-1 max-h-36 overflow-y-auto pr-2 w-full border-t border-gray-100 pt-3">
@@ -130,7 +157,11 @@ const ObservedPieChart = ({ dataArray, valueKey, labelKey, colorPalette, isCount
           const percentage = (val / total) * 100;
           const color = colorPalette[index % colorPalette.length];
           return (
-            <div key={index} className="flex items-center justify-between text-[10px] gap-2 border-b border-gray-50 pb-0.5">
+            <div 
+              key={index} 
+              className={`flex items-center justify-between text-[10px] gap-2 border-b border-gray-50 pb-0.5 ${onSegmentClick ? 'cursor-pointer hover:bg-gray-50/50 px-1.5 py-0.5 rounded transition' : ''}`}
+              onClick={() => onSegmentClick && onSegmentClick(item)}
+            >
               <div className="flex items-center gap-1.5 min-w-0">
                 <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: color }}></span>
                 <span className="font-bold text-gray-700 truncate uppercase" title={item[labelKey]}>{item[labelKey]}</span>
@@ -224,28 +255,45 @@ const ObservedBarChart = ({ dataArray, xKey, yKey, barColor, isPercent = false }
 };
 
 const KPIInsights = () => {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   
   // Date filters - default to current month
   const [fromDate, setFromDate] = useState(() => {
     const d = new Date();
-    return new Date(d.getFullYear(), d.getMonth(), 1).toISOString().slice(0, 10);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    return `${year}-${month}-01`;
   });
   const [toDate, setToDate] = useState(() => {
     const d = new Date();
-    return new Date(d.getFullYear(), d.getMonth() + 1, 0).toISOString().slice(0, 10);
+    const lastDayVal = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(lastDayVal).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   });
 
-  const [selectedUser, setSelectedUser] = useState('');
+  const [selectedUser, setSelectedUser] = useState(() => {
+    const isPrivileged = user?.role === 'Super Admin' || user?.role === 'Admin';
+    return isPrivileged ? '' : (user?._id || '');
+  });
+  
+  useEffect(() => {
+    if (user && user.role !== 'Super Admin' && user.role !== 'Admin') {
+      setSelectedUser(user._id);
+    }
+  }, [user]);
+
   const [selectedProject, setSelectedProject] = useState('');
   const [loading, setLoading] = useState(true);
+  const [selectedGroup, setSelectedGroup] = useState(null);
 
   const [stats, setStats] = useState({
     cards: {
       enquiries: { total: 0, contacted: 0, followup: 0, closed: 0 },
       siteVisits: { total: 0, siteVisit: 0, followup: 0, closed: 0 },
       hotList: 0,
-      conversion: { count: 0, value: 0 },
+      conversion: { count: 0, value: 0, received: 0, pending: 0 },
       inventory: { totalProjects: 0, totalUnits: 0, availableUnits: 0, bookedUnits: 0, handoverUnits: 0 }
     },
     insights: {
@@ -257,6 +305,7 @@ const KPIInsights = () => {
       handoverRate: 0
     },
     sourceStats: {},
+    groupStats: {},
     userStats: {},
     projectStats: {},
     stageStats: {},
@@ -265,6 +314,7 @@ const KPIInsights = () => {
   });
 
   useEffect(() => {
+    setSelectedGroup(null);
     fetchInsightsData();
   }, [fromDate, toDate, selectedUser, selectedProject]);
 
@@ -291,9 +341,12 @@ const KPIInsights = () => {
 
   const handleMonthChange = (monthVal) => {
     if (!monthVal) return;
-    const [year, month] = monthVal.split('-');
-    const firstDay = new Date(year, month - 1, 1).toISOString().slice(0, 10);
-    const lastDay = new Date(year, month, 0).toISOString().slice(0, 10);
+    const [yearStr, monthStr] = monthVal.split('-');
+    const year = parseInt(yearStr, 10);
+    const month = parseInt(monthStr, 10);
+    const firstDay = `${year}-${String(month).padStart(2, '0')}-01`;
+    const lastDayVal = new Date(year, month, 0).getDate();
+    const lastDay = `${year}-${String(month).padStart(2, '0')}-${String(lastDayVal).padStart(2, '0')}`;
     setFromDate(firstDay);
     setToDate(lastDay);
   };
@@ -327,19 +380,21 @@ const KPIInsights = () => {
         {/* Filters Panel */}
         <div className="flex flex-wrap items-center gap-4 bg-white p-3 rounded-2xl border border-gray-150 shadow-xs">
           {/* User Select */}
-          <div className="flex items-center gap-1">
-            <User className="w-3.5 h-3.5 text-gray-400" />
-            <select
-              value={selectedUser}
-              onChange={(e) => setSelectedUser(e.target.value)}
-              className="px-2.5 py-1.5 text-xs bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-gray-700 font-bold"
-            >
-              <option value="">All Users</option>
-              {(stats.users || []).map(u => (
-                <option key={u._id} value={u._id}>{u.name}</option>
-              ))}
-            </select>
-          </div>
+          {(user?.role === 'Super Admin' || user?.role === 'Admin') && (
+            <div className="flex items-center gap-1">
+              <User className="w-3.5 h-3.5 text-gray-400" />
+              <select
+                value={selectedUser}
+                onChange={(e) => setSelectedUser(e.target.value)}
+                className="px-2.5 py-1.5 text-xs bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-gray-700 font-bold"
+              >
+                <option value="">All Users</option>
+                {(stats.users || []).map(u => (
+                  <option key={u._id} value={u._id}>{u.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
 
           {/* Project Select */}
           <div className="flex items-center gap-1">
@@ -396,6 +451,7 @@ const KPIInsights = () => {
       ) : (
         <div className="space-y-8">
           {/* 🟢 TOP ANALYTICAL SUMMARY CARD GRID */}
+          {/* 🟢 TOP ANALYTICAL SUMMARY CARD GRID */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {/* Enquiry Spend KPI */}
             <div className="bg-white border border-gray-150 p-5 rounded-3xl shadow-sm hover:shadow-md transition">
@@ -415,7 +471,11 @@ const KPIInsights = () => {
             <div className="bg-white border border-gray-150 p-5 rounded-3xl shadow-sm hover:shadow-md transition">
               <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Total Bookings Count</span>
               <h3 className="text-2xl font-black text-gray-800 mt-1">{stats.cards.conversion.count} Converted</h3>
-              <p className="text-[9px] text-[#0e623a] font-bold mt-2">Value: ₹{Math.round(stats.cards.conversion.value).toLocaleString()}</p>
+              <div className="mt-2 space-y-0.5 text-[9px] font-bold uppercase">
+                <div className="text-gray-500">Total: ₹{Math.round(stats.cards.conversion.value || 0).toLocaleString()}</div>
+                <div className="text-emerald-700">Received: ₹{Math.round(stats.cards.conversion.received || 0).toLocaleString()}</div>
+                <div className="text-rose-700">Pending: ₹{Math.round(stats.cards.conversion.pending || 0).toLocaleString()}</div>
+              </div>
             </div>
 
             {/* Handover Rate */}
@@ -426,48 +486,138 @@ const KPIInsights = () => {
             </div>
           </div>
 
+          {/* 🟢 DYNAMIC DRILL-DOWN MARKETING PIE CHARTS GRID */}
+          <div className="bg-white border border-gray-150 rounded-3xl p-6 shadow-sm space-y-6">
+            <div className="border-b border-gray-100 pb-3 flex items-center justify-between gap-2">
+              <div>
+                <h3 className="text-sm font-extrabold text-gray-800 uppercase tracking-wide flex items-center gap-2">
+                  <Compass className="w-4 h-4 text-[#0e623a]" />
+                  <span>Marketing Performance: {selectedGroup ? `Drilled down: ${selectedGroup}` : 'Spend & Revenue returns by Group'}</span>
+                </h3>
+                <p className="text-[10px] text-gray-400 mt-0.5">Click any group slice/item to drill down into detailed source breakdown</p>
+              </div>
+              {selectedGroup && (
+                <button 
+                  onClick={() => setSelectedGroup(null)}
+                  className="text-[10px] bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1.5 rounded-xl font-bold transition flex items-center gap-1 cursor-pointer"
+                >
+                  ← Back to Groups
+                </button>
+              )}
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              {/* Chart 1: Budget Allocation (Planned) */}
+              <div className="space-y-3 text-center">
+                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block text-left">1. Budget Allocation (Planned)</span>
+                {(() => {
+                  const budgetData = selectedGroup
+                    ? (stats.groupStats?.[selectedGroup]?.sources || []).filter(s => s.budget > 0)
+                    : Object.keys(stats.groupStats || {}).map(gName => ({
+                        groupName: gName,
+                        budget: stats.groupStats[gName].budget || 0
+                      })).filter(g => g.budget > 0);
+                  return (
+                    <ObservedPieChart 
+                      dataArray={budgetData}
+                      valueKey="budget"
+                      labelKey={selectedGroup ? "source" : "groupName"}
+                      colorPalette={primaryColors}
+                      onSegmentClick={!selectedGroup ? (item) => setSelectedGroup(item.groupName) : null}
+                    />
+                  );
+                })()}
+              </div>
+
+              {/* Chart 2: Spent Allocation (Actual) */}
+              <div className="space-y-3 text-center">
+                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block text-left">2. Spent Allocation (Actual)</span>
+                {(() => {
+                  const spendData = selectedGroup
+                    ? (stats.groupStats?.[selectedGroup]?.sources || []).filter(s => s.spent > 0)
+                    : Object.keys(stats.groupStats || {}).map(gName => ({
+                        groupName: gName,
+                        spent: stats.groupStats[gName].spent || 0
+                      })).filter(g => g.spent > 0);
+                  return (
+                    <ObservedPieChart 
+                      dataArray={spendData}
+                      valueKey="spent"
+                      labelKey={selectedGroup ? "source" : "groupName"}
+                      colorPalette={primaryColors}
+                      onSegmentClick={!selectedGroup ? (item) => setSelectedGroup(item.groupName) : null}
+                    />
+                  );
+                })()}
+              </div>
+
+              {/* Chart 3: Project Value Generated (Revenue) */}
+              <div className="space-y-3 text-center">
+                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block text-left">3. Lead Valuation Generated (Revenue)</span>
+                {(() => {
+                  const valueData = selectedGroup
+                    ? (stats.groupStats?.[selectedGroup]?.sources || []).filter(s => s.value > 0)
+                    : Object.keys(stats.groupStats || {}).map(gName => ({
+                        groupName: gName,
+                        value: stats.groupStats[gName].value || 0
+                      })).filter(g => g.value > 0);
+                  return (
+                    <ObservedPieChart 
+                      dataArray={valueData}
+                      valueKey="value"
+                      labelKey={selectedGroup ? "source" : "groupName"}
+                      colorPalette={primaryColors}
+                      onSegmentClick={!selectedGroup ? (item) => setSelectedGroup(item.groupName) : null}
+                    />
+                  );
+                })()}
+              </div>
+            </div>
+          </div>
+
           {/* 🟢 COMPARATIVE CHART ROWS */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             
-            {/* Chart 1: Pipeline Conversion Rates (Site Visit Rate vs Booking Rate vs Handover Rate) */}
+            {/* Chart 1: Pipeline Conversion Rates */}
             <div className="bg-white border border-gray-150 rounded-3xl p-6 shadow-sm space-y-4">
               <h3 className="text-sm font-extrabold text-gray-800 uppercase tracking-wide border-b border-gray-100 pb-3 flex items-center gap-2">
                 <Percent className="w-4 h-4 text-[#0e623a]" />
-                <span>Conversion Pipeline Stage Efficiency (%)</span>
+                <span>Conversion Stage Efficiency (%)</span>
               </h3>
               <ObservedBarChart 
                 dataArray={[
-                  { stage: 'Site Visit Rate', rate: stats.insights?.siteVisitConversionRate || 0 },
-                  { stage: 'Booking Rate', rate: stats.insights?.bookingConversionRate || 0 },
-                  { stage: 'Registration Rate', rate: stats.insights?.handoverRate || 0 }
+                  { stage: 'Site Visit', rate: stats.insights?.siteVisitConversionRate || 0 },
+                  { stage: 'Booking', rate: stats.insights?.bookingConversionRate || 0 },
+                  { stage: 'Registration', rate: stats.insights?.handoverRate || 0 }
                 ]}
                 xKey="stage"
                 yKey="rate"
                 barColor="#68809A" // Matte Slate Blue
                 isPercent={true}
               />
-              <p className="text-[10px] text-gray-400 italic">
-                Tracks conversion ratios across pipeline stages: Site Visit Conversion Rate, Booking Rate relative to total enquiries, and Final Registration (Handover) Rate.
+              <p className="text-[9px] text-gray-400 italic">
+                Site Visit, Booking, and Handover rates.
               </p>
             </div>
 
-            {/* Chart 2: Spent Budget Distribution Pie */}
+            {/* Chart 2: Cost Per Enquiry (CPE) by Campaign Source */}
             <div className="bg-white border border-gray-150 rounded-3xl p-6 shadow-sm space-y-4">
               <h3 className="text-sm font-extrabold text-gray-800 uppercase tracking-wide border-b border-gray-100 pb-3 flex items-center gap-2">
-                <Compass className="w-4 h-4 text-[#0e623a]" />
-                <span>Spent Budget Distribution by Campaign Source</span>
+                <DollarSign className="w-4 h-4 text-[#0e623a]" />
+                <span>Cost Per Enquiry (CPE) by Source (₹)</span>
               </h3>
-              <div className="flex justify-center py-2">
-                <ObservedPieChart 
-                  dataArray={Object.keys(stats.sourceStats || {}).map(src => ({
-                    source: src,
-                    spent: stats.sourceStats[src].spent || 0
-                  }))}
-                  valueKey="spent"
-                  labelKey="source"
-                  colorPalette={primaryColors}
-                />
-              </div>
+              <ObservedBarChart 
+                dataArray={Object.keys(stats.sourceStats || {}).map(src => ({
+                  source: src,
+                  cpe: stats.sourceStats[src].cpe || 0
+                })).filter(item => item.cpe > 0)}
+                xKey="source"
+                yKey="cpe"
+                barColor="#DFBA84" // Matte Yellow
+              />
+              <p className="text-[9px] text-gray-400 italic">
+                Average cost spent to acquire a single enquiry from each campaign source type.
+              </p>
             </div>
 
             {/* Chart 3: Enquiries Breakdown Pie */}
@@ -494,14 +644,14 @@ const KPIInsights = () => {
             <div className="bg-white border border-gray-150 rounded-3xl p-6 shadow-sm space-y-4">
               <h3 className="text-sm font-extrabold text-gray-800 uppercase tracking-wide border-b border-gray-100 pb-3 flex items-center gap-2">
                 <Target className="w-4 h-4 text-[#0e623a]" />
-                <span>Site Visit Engagements Breakdown</span>
+                <span>Site Visit Engagements</span>
               </h3>
               <div className="flex justify-center py-2">
                 <ObservedPieChart 
                   dataArray={[
                     { label: 'Visits Conducted', count: stats.cards.siteVisits.siteVisit },
                     { label: 'Follow-up Visits', count: stats.cards.siteVisits.followup },
-                    { label: 'Site Visit Closed (Lost)', count: stats.cards.siteVisits.closed }
+                    { label: 'Site Visit Closed', count: stats.cards.siteVisits.closed }
                   ]}
                   valueKey="count"
                   labelKey="label"
@@ -549,7 +699,11 @@ const KPIInsights = () => {
                     <td className="p-4 text-center">{stats.cards.conversion.count} leads</td>
                     <td className="p-4 text-center">—</td>
                     <td className="p-4 text-right">{(stats.insights?.bookingConversionRate || 0).toFixed(1)}%</td>
-                    <td className="p-4 text-right text-[#0e623a] font-extrabold">₹{Math.round(stats.cards.conversion.value).toLocaleString()}</td>
+                    <td className="p-4 text-right text-gray-800 font-bold">
+                      <div>Total: ₹{Math.round(stats.cards.conversion.value || 0).toLocaleString()}</div>
+                      <div className="text-emerald-700 text-[10px]">Recv: ₹{Math.round(stats.cards.conversion.received || 0).toLocaleString()}</div>
+                      <div className="text-rose-700 text-[10px]">Pend: ₹{Math.round(stats.cards.conversion.pending || 0).toLocaleString()}</div>
+                    </td>
                   </tr>
                   <tr className="hover:bg-gray-50/50">
                     <td className="p-4 font-bold text-gray-900">Registration / Handovers</td>

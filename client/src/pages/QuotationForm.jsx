@@ -136,7 +136,7 @@ const QuotationForm = () => {
           if (projRes.ok) {
             const projData = await projRes.json();
             setProjectDetails(projData);
-            setProjectType(projData.projectType);
+            setProjectType(Array.isArray(projData.projectType) ? (projData.projectType[0] || 'Plot') : (projData.projectType || 'Plot'));
             setPricePerSqFt(projData.pricePerSqFt || 0);
           }
         } else {
@@ -157,14 +157,22 @@ const QuotationForm = () => {
     if (!projectDetails || !projectDetails.units) return;
     const units = projectDetails.units.filter(u => selectedUnits.includes(u.unitId));
     const area = units.reduce((sum, u) => sum + (u.size || 0), 0);
-    setTotalArea(area);
+    setTotalArea(Number(area.toFixed(2)));
     
     // Only auto-update totalValue if we aren't editing, or if value was 0
     if (!isEdit || totalValue === 0) {
       const calculatedValuation = units.reduce((sum, u) => sum + (u.price || 0), 0);
-      setTotalValue(calculatedValuation);
+      setTotalValue(Number(calculatedValuation.toFixed(2)));
     }
   }, [selectedUnits, projectDetails]);
+
+  // Auto-calculate Total Valuation when totalArea or pricePerSqFt changes
+  useEffect(() => {
+    const val = Number(totalArea) * Number(pricePerSqFt);
+    if (!isNaN(val)) {
+      setTotalValue(Number(val.toFixed(2)));
+    }
+  }, [totalArea, pricePerSqFt]);
 
   const toggleUnitSelection = (unitId) => {
     if (selectedUnits.includes(unitId)) {
@@ -303,8 +311,8 @@ const QuotationForm = () => {
                   type="text"
                   required
                   value={customerPhone}
-                  onChange={(e) => setCustomerPhone(e.target.value)}
-                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-xs font-semibold text-gray-700"
+                  onChange={(e) => setCustomerPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                  className="w-full px-4 py-2.5 bg-gray-55 border border-gray-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-xs font-semibold text-gray-700"
                 />
               </div>
             </div>
@@ -360,144 +368,194 @@ const QuotationForm = () => {
               </span>
             </div>
 
-            {projectDetails ? (
-              <div className="space-y-6">
-                {/* Real Layout Plan Map Image if configured */}
-                {projectDetails.layoutPlanImage && (
-                  <div className="bg-gray-50 border border-gray-150 p-4 rounded-2xl flex flex-col md:flex-row gap-6 items-center">
-                    <div className="w-full md:w-1/2 rounded-xl overflow-hidden border border-gray-250 bg-white cursor-pointer relative group flex items-center justify-center min-h-[200px]">
-                      <img 
-                        src={projectDetails.layoutPlanImage} 
-                        alt={`${projectDetails.name} Layout Plan`} 
-                        className="max-h-[300px] w-auto object-contain transition group-hover:scale-102"
-                        onClick={() => window.open(projectDetails.layoutPlanImage, '_blank')}
-                      />
-                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition duration-200">
-                        <span className="text-xs text-white font-extrabold bg-gray-900/80 px-3 py-1.5 rounded-xl">Click to Expand Layout Plan Map</span>
-                      </div>
-                    </div>
-                    <div className="flex-1 space-y-2 text-xs text-gray-550 leading-relaxed text-left">
-                      <h4 className="font-extrabold text-gray-800 text-sm">Interactive Project Map</h4>
-                      <p>Use the layout map on the left to locate plot positions, roads, and dimensions. Once identified, select the corresponding plot identifiers in the selection panel below.</p>
-                      <div className="flex flex-wrap gap-4 mt-2">
-                        <span className="flex items-center gap-1.5 font-bold"><span className="w-2.5 h-2.5 rounded bg-[#0e623a]"></span>Selected</span>
-                        <span className="flex items-center gap-1.5 font-bold"><span className="w-2.5 h-2.5 rounded bg-yellow-400"></span>Booked / Sold</span>
-                        <span className="flex items-center gap-1.5 font-bold"><span className="w-2.5 h-2.5 rounded bg-[#ebfaf1]"></span>Available</span>
-                      </div>
-                    </div>
-                  </div>
-                )}
+            {projectDetails ? (() => {
+              const projectTypesArray = projectDetails.projectType
+                ? (Array.isArray(projectDetails.projectType) ? projectDetails.projectType : [projectDetails.projectType])
+                : ['Plot'];
 
-                {/* Plots Grid */}
-                {projectType === 'Plot' && (
-                  <div className="grid grid-cols-4 sm:grid-cols-6 gap-3">
-                    {projectDetails.units?.map(u => {
-                      const isSelected = selectedUnits.includes(u.unitId);
-                      const isBooked = u.status === 'Booked' || u.status === 'Sold Out';
-                      return (
+              return (
+                <div className="space-y-6">
+                  {/* Tabs for Hybrid Projects */}
+                  {projectTypesArray.length > 1 && (
+                    <div className="flex bg-gray-100/60 p-1.5 rounded-2xl gap-1.5 w-fit mb-4">
+                      {projectTypesArray.map(type => (
                         <button
-                          key={u.unitId}
+                          key={type}
                           type="button"
-                          disabled={isBooked}
-                          onClick={() => toggleUnitSelection(u.unitId)}
-                          className={`p-2.5 rounded-xl border flex flex-col items-center justify-center relative transition min-h-[75px] cursor-pointer ${
-                            isBooked
-                              ? 'bg-yellow-100 border-yellow-300 text-yellow-800 cursor-not-allowed opacity-90 font-bold'
-                              : isSelected
-                              ? 'bg-[#0e623a] border-[#0a4d2c] text-white shadow-md font-bold scale-105 ring-2 ring-emerald-300'
-                              : 'bg-gradient-to-br from-emerald-50 to-green-150 hover:from-emerald-100 hover:to-green-200 border-emerald-250 text-emerald-800 hover:scale-102'
+                          onClick={() => setProjectType(type)}
+                          className={`px-4 py-2 text-xs font-bold rounded-xl transition ${
+                            projectType === type
+                              ? 'bg-[#0e623a] text-white shadow-sm'
+                              : 'text-gray-500 hover:text-gray-800'
                           }`}
                         >
-                          <div className="text-[9px] uppercase font-semibold text-gray-400">Plot</div>
-                          <div className="text-xs font-bold">{u.unitId}</div>
-                          <div className="text-[9px] mt-0.5 opacity-80">{u.size} Sq.Ft</div>
-                          {isSelected && (
-                            <span className="absolute top-1 right-1 bg-white text-emerald-800 rounded-full p-0.5 shadow-sm">
-                              <Check className="w-2.5 h-2.5 font-bold" />
-                            </span>
-                          )}
+                          {type === 'Plot' ? 'Plots' : type === 'House' ? 'Houses' : 'Flats'}
                         </button>
-                      );
-                    })}
-                  </div>
-                )}
+                      ))}
+                    </div>
+                  )}
 
-                {/* Flats grouped by Floors */}
-                {projectType === 'Flat' && (
-                  <div className="space-y-4">
-                    {Array.from(new Set(projectDetails.units?.map(u => u.floor || 'G') || [])).sort().map(floor => (
-                      <div key={floor} className="bg-gray-50/50 p-3 rounded-2xl border border-gray-150 space-y-2">
-                        <h5 className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Floor: {floor}</h5>
-                        <div className="grid grid-cols-4 sm:grid-cols-6 gap-3">
-                          {projectDetails.units?.filter(u => (u.floor || 'G') === floor).map(u => {
-                            const isSelected = selectedUnits.includes(u.unitId);
-                            const isBooked = u.status === 'Booked' || u.status === 'Sold Out';
-                            return (
-                              <button
-                                key={u.unitId}
-                                type="button"
-                                disabled={isBooked}
-                                onClick={() => toggleUnitSelection(u.unitId)}
-                                className={`p-2.5 rounded-xl border flex flex-col items-center justify-center relative transition cursor-pointer ${
-                                  isBooked
-                                    ? 'bg-yellow-100 border-yellow-300 text-yellow-800 cursor-not-allowed opacity-90 font-bold'
-                                    : isSelected
-                                    ? 'bg-[#0e623a] border-[#0a4d2c] text-white shadow-md font-bold scale-105 ring-2 ring-emerald-300'
-                                    : 'bg-white hover:bg-gray-50 border-gray-200 text-gray-700'
-                                }`}
-                              >
-                                <Building2 className={`w-4 h-4 mb-0.5 ${isSelected ? 'text-white' : 'text-gray-400'}`} />
-                                <div className="text-xs font-bold">{u.unitId}</div>
-                                <div className="text-[9px] mt-0.5 opacity-80">{u.size} Sq.Ft</div>
-                                {isSelected && (
-                                  <span className="absolute top-1 right-1 bg-white text-[#0e623a] rounded-full p-0.5">
-                                    <Check className="w-2.5 h-2.5" />
-                                  </span>
-                                )}
-                              </button>
-                            );
-                          })}
+                  {/* Real Layout Plan Map Image if configured */}
+                  {projectDetails.layoutPlanImage && (
+                    <div className="bg-gray-50 border border-gray-150 p-4 rounded-2xl flex flex-col md:flex-row gap-6 items-center">
+                      <div className="w-full md:w-1/2 rounded-xl overflow-hidden border border-gray-250 bg-white relative inline-block">
+                        <img 
+                          src={projectDetails.layoutPlanImage} 
+                          alt={`${projectDetails.name} Layout Plan`} 
+                          className="w-full h-auto object-contain max-h-[300px]"
+                        />
+                        
+                        {/* Interactive pins (filtered to current type selected in tabs) */}
+                        {projectDetails.units?.filter(u => u.unitType === projectType || (!u.unitType && projectType === 'Plot')).map((u, idx) => {
+                          if (!u.mapCoordinates) return null;
+                          const isSelected = selectedUnits.includes(u.unitId);
+                          const isBooked = u.status === 'Booked' || u.status === 'Sold Out';
+                          
+                          const pinColor = isBooked 
+                            ? 'bg-yellow-400 border-yellow-600' 
+                            : isSelected 
+                            ? 'bg-[#0e623a] border-emerald-300 ring-2 ring-emerald-200 scale-125' 
+                            : 'bg-emerald-500 border-white hover:scale-120';
+
+                          return (
+                            <button
+                              key={idx}
+                              type="button"
+                              disabled={isBooked}
+                              onClick={() => toggleUnitSelection(u.unitId)}
+                              className={`absolute -translate-x-1/2 -translate-y-1/2 w-4 h-4 rounded-full border flex items-center justify-center shadow-lg transition duration-150 ${pinColor} cursor-pointer z-10`}
+                              style={{ left: `${u.mapCoordinates.x}%`, top: `${u.mapCoordinates.y}%` }}
+                              title={`Unit ${u.unitId} (${u.status})`}
+                            >
+                              <span className="text-[7.5px] text-white font-extrabold">{u.unitId.split('-').pop()}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                      <div className="flex-1 space-y-2 text-xs text-gray-555 leading-relaxed text-left">
+                        <h4 className="font-extrabold text-gray-800 text-sm">Interactive Project Map</h4>
+                        <p>You can click directly on the unit pins on the layout map to select them, or use the selection grid below. Available units are shown in green, selected in dark green, and booked/sold in yellow.</p>
+                        <div className="flex flex-wrap gap-4 mt-2">
+                          <span className="flex items-center gap-1.5 font-bold"><span className="w-2.5 h-2.5 rounded bg-[#0e623a]"></span>Selected</span>
+                          <span className="flex items-center gap-1.5 font-bold"><span className="w-2.5 h-2.5 rounded bg-yellow-400"></span>Booked / Sold</span>
+                          <span className="flex items-center gap-1.5 font-bold"><span className="w-2.5 h-2.5 rounded bg-[#10b981]"></span>Available</span>
                         </div>
                       </div>
-                    ))}
-                  </div>
-                )}
+                    </div>
+                  )}
 
-                {/* Houses Layout */}
-                {projectType === 'House' && (
-                  <div className="grid grid-cols-3 sm:grid-cols-4 gap-4">
-                    {projectDetails.units?.map(u => {
-                      const isSelected = selectedUnits.includes(u.unitId);
-                      const isBooked = u.status === 'Booked' || u.status === 'Sold Out';
-                      return (
-                        <button
-                          key={u.unitId}
-                          type="button"
-                          disabled={isBooked}
-                          onClick={() => toggleUnitSelection(u.unitId)}
-                          className={`p-3.5 rounded-2xl border flex flex-col items-center justify-center relative transition min-h-[90px] cursor-pointer ${
-                            isBooked
-                              ? 'bg-yellow-100 border-yellow-300 text-yellow-800 cursor-not-allowed opacity-90 font-bold'
-                              : isSelected
-                              ? 'bg-[#0e623a] border-[#0a4d2c] text-white shadow-md font-bold scale-105 ring-2 ring-emerald-300'
-                              : 'bg-white hover:bg-gray-50 border-gray-200 text-gray-700'
-                          }`}
-                        >
-                          <Home className={`w-5 h-5 mb-1.5 ${isSelected ? 'text-white' : 'text-[#0e623a]'}`} />
-                          <div className="text-xs font-bold">{u.unitId}</div>
-                          <div className="text-[10px] text-gray-400 font-semibold">{u.size} Sq.Ft</div>
-                          {isSelected && (
-                            <span className="absolute top-1.5 right-1.5 bg-white text-[#0e623a] rounded-full p-0.5">
-                              <Check className="w-2.5 h-2.5" />
-                            </span>
-                          )}
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            ) : (
+                  {/* Plots Grid */}
+                  {projectType === 'Plot' && (
+                    <div className="grid grid-cols-4 sm:grid-cols-6 gap-3">
+                      {projectDetails.units?.filter(u => u.unitType === 'Plot' || !u.unitType).map(u => {
+                        const isSelected = selectedUnits.includes(u.unitId);
+                        const isBooked = u.status === 'Booked' || u.status === 'Sold Out';
+                        return (
+                          <button
+                            key={u.unitId}
+                            type="button"
+                            disabled={isBooked}
+                            onClick={() => toggleUnitSelection(u.unitId)}
+                            className={`p-2.5 rounded-xl border flex flex-col items-center justify-center relative transition min-h-[75px] cursor-pointer ${
+                              isBooked
+                                ? 'bg-yellow-100 border-yellow-300 text-yellow-800 cursor-not-allowed opacity-90 font-bold'
+                                : isSelected
+                                ? 'bg-[#0e623a] border-[#0a4d2c] text-white shadow-md font-bold scale-105 ring-2 ring-emerald-300'
+                                : 'bg-gradient-to-br from-emerald-50 to-green-150 hover:from-emerald-100 hover:to-green-200 border-emerald-250 text-emerald-800 hover:scale-102'
+                            }`}
+                          >
+                            <div className="text-[9px] uppercase font-semibold text-gray-400">Plot</div>
+                            <div className="text-xs font-bold">{u.unitId}</div>
+                            <div className="text-[9px] mt-0.5 opacity-80">{Number(u.size).toFixed(2)} Sq.Ft</div>
+                            {isSelected && (
+                              <span className="absolute top-1 right-1 bg-white text-emerald-800 rounded-full p-0.5 shadow-sm">
+                                <Check className="w-2.5 h-2.5 font-bold" />
+                              </span>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {/* Flats grouped by Floors */}
+                  {projectType === 'Flat' && (
+                    <div className="space-y-4">
+                      {Array.from(new Set(projectDetails.units?.filter(u => u.unitType === 'Flat').map(u => u.floor || 'G') || [])).sort().map(floor => (
+                        <div key={floor} className="bg-gray-50/50 p-3 rounded-2xl border border-gray-150 space-y-2">
+                          <h5 className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Floor: {floor}</h5>
+                          <div className="grid grid-cols-4 sm:grid-cols-6 gap-3">
+                            {projectDetails.units?.filter(u => (u.floor || 'G') === floor && u.unitType === 'Flat').map(u => {
+                              const isSelected = selectedUnits.includes(u.unitId);
+                              const isBooked = u.status === 'Booked' || u.status === 'Sold Out';
+                              return (
+                                <button
+                                  key={u.unitId}
+                                  type="button"
+                                  disabled={isBooked}
+                                  onClick={() => toggleUnitSelection(u.unitId)}
+                                  className={`p-2.5 rounded-xl border flex flex-col items-center justify-center relative transition cursor-pointer ${
+                                    isBooked
+                                      ? 'bg-yellow-100 border-yellow-300 text-yellow-800 cursor-not-allowed opacity-90 font-bold'
+                                      : isSelected
+                                      ? 'bg-[#0e623a] border-[#0a4d2c] text-white shadow-md font-bold scale-105 ring-2 ring-emerald-300'
+                                      : 'bg-white hover:bg-gray-50 border-gray-200 text-gray-700'
+                                  }`}
+                                >
+                                  <Building2 className={`w-4 h-4 mb-0.5 ${isSelected ? 'text-white' : 'text-gray-400'}`} />
+                                  <div className="text-xs font-bold">{u.unitId}</div>
+                                  <div className="text-[9px] mt-0.5 opacity-80">{Number(u.size).toFixed(2)} Sq.Ft</div>
+                                  {isSelected && (
+                                    <span className="absolute top-1 right-1 bg-white text-[#0e623a] rounded-full p-0.5">
+                                      <Check className="w-2.5 h-2.5" />
+                                    </span>
+                                  )}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Houses Layout */}
+                  {projectType === 'House' && (
+                    <div className="grid grid-cols-3 sm:grid-cols-4 gap-4">
+                      {projectDetails.units?.filter(u => u.unitType === 'House').map(u => {
+                        const isSelected = selectedUnits.includes(u.unitId);
+                        const isBooked = u.status === 'Booked' || u.status === 'Sold Out';
+                        return (
+                          <button
+                            key={u.unitId}
+                            type="button"
+                            disabled={isBooked}
+                            onClick={() => toggleUnitSelection(u.unitId)}
+                            className={`p-3.5 rounded-2xl border flex flex-col items-center justify-center relative transition min-h-[90px] cursor-pointer ${
+                              isBooked
+                                ? 'bg-yellow-100 border-yellow-300 text-yellow-800 cursor-not-allowed opacity-90 font-bold'
+                                : isSelected
+                                ? 'bg-[#0e623a] border-[#0a4d2c] text-white shadow-md font-bold scale-105 ring-2 ring-emerald-300'
+                                : 'bg-white hover:bg-gray-50 border-gray-200 text-gray-700'
+                            }`}
+                          >
+                            <Home className={`w-5 h-5 mb-1.5 ${isSelected ? 'text-white' : 'text-[#0e623a]'}`} />
+                            <div className="text-xs font-bold">{u.unitId}</div>
+                            <div className="text-[10px] text-gray-400 font-semibold">{Number(u.size).toFixed(2)} Sq.Ft</div>
+                            {isSelected && (
+                              <span className="absolute top-1.5 right-1.5 bg-white text-[#0e623a] rounded-full p-0.5">
+                                <Check className="w-2.5 h-2.5" />
+                              </span>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            })()
+            : (
               <div className="p-4 text-center text-xs text-gray-400">Loading units layout plans...</div>
             )}
           </div>
@@ -512,7 +570,7 @@ const QuotationForm = () => {
                 <input
                   type="number"
                   disabled
-                  value={totalArea}
+                  value={totalArea ? Number(totalArea).toFixed(2) : ''}
                   className="w-full px-4 py-2.5 bg-gray-100 border border-gray-200 rounded-xl text-xs font-bold text-gray-500"
                 />
               </div>
@@ -521,8 +579,9 @@ const QuotationForm = () => {
                 <input
                   type="number"
                   value={pricePerSqFt}
-                  onChange={(e) => setPricePerSqFt(Number(e.target.value))}
-                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-xs font-bold text-gray-700"
+                  onChange={(e) => setPricePerSqFt(e.target.value)}
+                  onBlur={() => setPricePerSqFt(prev => prev ? Number(Number(prev).toFixed(2)) : 0)}
+                  className="w-full px-4 py-2.5 bg-gray-55 border border-gray-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-xs font-bold text-gray-700"
                 />
               </div>
               <div>
@@ -531,7 +590,8 @@ const QuotationForm = () => {
                   type="number"
                   required
                   value={totalValue}
-                  onChange={(e) => setTotalValue(Number(e.target.value))}
+                  onChange={(e) => setTotalValue(e.target.value)}
+                  onBlur={() => setTotalValue(prev => prev ? Number(Number(prev).toFixed(2)) : 0)}
                   className="w-full px-4 py-2.5 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0e623a] text-xs font-bold"
                 />
                 <span className="text-[9px] text-gray-400 mt-1 block">
@@ -551,7 +611,7 @@ const QuotationForm = () => {
                 <input
                   type="text"
                   value={alternativePhone}
-                  onChange={(e) => setAlternativePhone(e.target.value)}
+                  onChange={(e) => setAlternativePhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
                   className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-xs font-semibold text-gray-700"
                 />
               </div>
@@ -560,7 +620,7 @@ const QuotationForm = () => {
                 <input
                   type="text"
                   value={aadharNumber}
-                  onChange={(e) => setAadharNumber(e.target.value)}
+                  onChange={(e) => setAadharNumber(e.target.value.replace(/\D/g, '').slice(0, 12))}
                   className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-xs font-semibold text-gray-700"
                 />
               </div>

@@ -40,4 +40,43 @@ const authorize = (...roles) => {
   };
 };
 
-module.exports = { protect, authorize };
+// Check if role has dynamic permissions configured
+const RolePermission = require('../models/RolePermission');
+const checkPermission = (pageId, action) => {
+  return async (req, res, next) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ message: 'Not authenticated' });
+      }
+      
+      // Admin bypasses all checks
+      if (req.user.role === 'Admin') {
+        return next();
+      }
+      
+      const rolePerm = await RolePermission.findOne({ role: req.user.role });
+      if (!rolePerm) {
+        return res.status(403).json({ message: `Access denied. No permissions configured for role '${req.user.role}'.` });
+      }
+      
+      const permission = rolePerm.permissions.find(p => p.pageId === pageId);
+      if (!permission) {
+        return res.status(403).json({ message: `Access denied. Module '${pageId}' is not configured for role '${req.user.role}'.` });
+      }
+      
+      if (action === 'view' && !permission.canView) {
+        return res.status(403).json({ message: `Access denied. Role '${req.user.role}' does not have view permission for '${pageId}'.` });
+      }
+      
+      if (action === 'edit' && !permission.canEdit) {
+        return res.status(403).json({ message: `Access denied. Role '${req.user.role}' does not have edit permission for '${pageId}'.` });
+      }
+      
+      next();
+    } catch (err) {
+      return res.status(500).json({ message: 'Internal authorization validation error: ' + err.message });
+    }
+  };
+};
+
+module.exports = { protect, authorize, checkPermission };

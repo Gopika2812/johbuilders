@@ -80,6 +80,8 @@ router.post('/', protect, async (req, res) => {
       lead.project = project;
       lead.assignedTo = (assignedTo && assignedTo.toString().trim() !== '') ? assignedTo : undefined;
       lead.status = defaultStatus; // reset/set status on reopen
+      lead.isClosed = false;
+      lead.isReopened = true;
       lead.leadCost = Number(leadCost) || 0;
       
       if (leadType === 'Lead') {
@@ -214,7 +216,12 @@ router.put('/:id', protect, async (req, res) => {
     if (project) lead.project = project;
 
     if (followUpInfo !== undefined) lead.followUpInfo = followUpInfo;
-    if (isClosed !== undefined) lead.isClosed = isClosed;
+    if (isClosed !== undefined) {
+      if (lead.isClosed === true && isClosed === false) {
+        lead.isReopened = true;
+      }
+      lead.isClosed = isClosed;
+    }
     if (closeRemarks !== undefined) lead.closeRemarks = closeRemarks;
 
     if (status === 'Booking' && bookingInfo) {

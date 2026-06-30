@@ -5,12 +5,14 @@ const Quotation = require('../models/Quotation');
 const Project = require('../models/Project');
 const BudgetPlan = require('../models/BudgetPlan');
 const User = require('../models/User');
+const CRDFlow = require('../models/CRDFlow');
+const LeadGroup = require('../models/LeadGroup');
 const { protect } = require('../middleware/auth');
 
 // @route   GET /api/dashboard/stats
 // @desc    Get aggregate stats for dashboard insights with date range, user and project filtering
 router.get('/stats', protect, async (req, res) => {
-  const { fromDate, toDate, userId, projectId } = req.query;
+  const { fromDate, toDate, userId, projectId, projectType } = req.query;
   try {
     // 1. Build leads filters
     let query = {};
@@ -23,9 +25,24 @@ router.get('/stats', protect, async (req, res) => {
         query.createdAt.$lte = end;
       }
     }
-    if (projectId) {
+    
+    if (projectType) {
+      const matchingProjects = await Project.find({ projectType: projectType });
+      const matchingProjectIds = matchingProjects.map(p => p._id);
+      
+      if (projectId) {
+        if (matchingProjectIds.map(id => id.toString()).includes(projectId.toString())) {
+          query.project = projectId;
+        } else {
+          query.project = new mongoose.Types.ObjectId(); // matches nothing
+        }
+      } else {
+        query.project = { $in: matchingProjectIds };
+      }
+    } else if (projectId) {
       query.project = projectId;
     }
+
     if (userId) {
       query.assignedTo = userId;
     }
@@ -37,9 +54,24 @@ router.get('/stats', protect, async (req, res) => {
     if (fromDate || toDate) {
       qQuery.createdAt = query.createdAt;
     }
-    if (projectId) {
+    
+    if (projectType) {
+      const matchingProjects = await Project.find({ projectType: projectType });
+      const matchingProjectIds = matchingProjects.map(p => p._id);
+      
+      if (projectId) {
+        if (matchingProjectIds.map(id => id.toString()).includes(projectId.toString())) {
+          qQuery.project = projectId;
+        } else {
+          qQuery.project = new mongoose.Types.ObjectId();
+        }
+      } else {
+        qQuery.project = { $in: matchingProjectIds };
+      }
+    } else if (projectId) {
       qQuery.project = projectId;
     }
+
     if (userId) {
       const userLeads = await Lead.find({ assignedTo: userId });
       const leadIds = userLeads.map(ul => ul._id);
@@ -50,8 +82,6 @@ router.get('/stats', protect, async (req, res) => {
 
     // 3. Fetch budget plans
     const budgetPlans = await BudgetPlan.find({});
-
-    // Fetch lists for filters
     const allUsers = await User.find({}, 'name role');
     const dbProjects = await Project.find({}, 'name code');
 
@@ -85,22 +115,36 @@ router.get('/stats', protect, async (req, res) => {
     // Seed sources
     budgetPlans.forEach(plan => {
       plan.allocations?.forEach(alloc => {
-        if (!sourceStats[alloc.source]) {
-          sourceStats[alloc.source] = { budget: 0, spent: 0, count: 0, value: 0 };
+        if (!alloc.source) return;
+        // Format to Title Case e.g. "LOCAL TV" -> "Local TV", "PAPER AD" -> "Paper Ad"
+        const formattedSource = alloc.source.split(' ')
+          .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+          .join(' ');
+
+        if (!sourceStats[formattedSource]) {
+          sourceStats[formattedSource] = { budget: 0, spent: 0, count: 0, value: 0 };
         }
-        sourceStats[alloc.source].budget += alloc.budget || 0;
-        sourceStats[alloc.source].spent += alloc.spent || 0;
+        sourceStats[formattedSource].budget += alloc.budget || 0;
+        sourceStats[formattedSource].spent += alloc.spent || 0;
       });
     });
 
+    const getNormalizedSourceKey = (src) => {
+      const keys = Object.keys(sourceStats);
+      const match = keys.find(k => k.toLowerCase() === src.toLowerCase());
+      return match || src;
+    };
+
     leads.forEach(lead => {
       const status = lead.status;
-      const src = lead.leadSource || 'Direct Visit';
+      const srcRaw = lead.leadSource || 'Direct Visit';
+      const src = getNormalizedSourceKey(srcRaw);
 
       if (!sourceStats[src]) {
-        sourceStats[src] = { budget: 0, spent: 0, count: 0, value: 0 };
+        sourceStats[src] = { budget: 0, spent: 0, count: 0, value: 0, leadCost: 0 };
       }
       sourceStats[src].count += 1;
+      sourceStats[src].leadCost = (sourceStats[src].leadCost || 0) + (lead.leadCost || 0);
 
       if (!stageStats[status]) {
         stageStats[status] = { count: 0, value: 0 };
@@ -145,6 +189,12 @@ router.get('/stats', protect, async (req, res) => {
       }
     });
 
+    Object.keys(sourceStats).forEach(src => {
+      const statsObj = sourceStats[src];
+      statsObj.leadCost = statsObj.leadCost || 0;
+      statsObj.cpe = statsObj.count > 0 ? (statsObj.leadCost / statsObj.count) : 0;
+    });
+
     quotations.forEach(q => {
       const val = q.totalValue || 0;
       const isBooking = q.lead && (q.lead.status === 'Booking' || q.lead.status === 'Won');
@@ -152,7 +202,7 @@ router.get('/stats', protect, async (req, res) => {
       if (isBooking) {
         bookingValueTotal += val;
 
-        const pType = q.project?.projectType || 'Plot';
+        const pType = Array.isArray(q.project?.projectType) ? (q.project.projectType[0] || 'Plot') : (q.project?.projectType || 'Plot');
         layeredStats.projectTypes[pType] = (layeredStats.projectTypes[pType] || 0) + val;
 
         const stageName = q.lead?.status || 'Booking';
@@ -162,7 +212,8 @@ router.get('/stats', protect, async (req, res) => {
         layeredStats.sources[src] = (layeredStats.sources[src] || 0) + val;
       }
 
-      const src = q.lead?.leadSource || 'Direct Visit';
+      const srcRaw = q.lead?.leadSource || 'Direct Visit';
+      const src = getNormalizedSourceKey(srcRaw);
       if (!sourceStats[src]) {
         sourceStats[src] = { budget: 0, spent: 0, count: 0, value: 0 };
       }
@@ -201,27 +252,70 @@ router.get('/stats', protect, async (req, res) => {
     });
 
     // Calculate Projects & Units Inventory Stats
-    const allProjects = await Project.find({});
+    let projectFilter = {};
+    if (projectType) {
+      projectFilter.projectType = projectType;
+    }
+    if (projectId) {
+      projectFilter._id = projectId;
+    }
+    const allProjects = await Project.find(projectFilter);
     let totalProjects = allProjects.length;
     let totalUnits = 0;
     let availableUnits = 0;
     let bookedUnits = 0;
     let handoverUnits = 0;
+    let totalByType = { Plot: 0, Flat: 0, House: 0 };
+    let availableByType = { Plot: 0, Flat: 0, House: 0 };
 
     allProjects.forEach(p => {
       p.units?.forEach(u => {
+        const type = u.unitType || 'Plot';
+        if (projectType && type !== projectType) return;
+
         totalUnits += 1;
+        totalByType[type] = (totalByType[type] || 0) + 1;
+
         if (u.status === 'New') {
           availableUnits += 1;
+          availableByType[type] = (availableByType[type] || 0) + 1;
         } else if (u.status === 'Booked') {
           bookedUnits += 1;
         } else if (u.status === 'Sold Out') {
           handoverUnits += 1;
         } else {
           availableUnits += 1;
+          availableByType[type] = (availableByType[type] || 0) + 1;
         }
       });
     });
+
+    // Compute stage-by-stage payments from CRD Flow
+    const bookingLeads = leads.filter(l => l.status === 'Booking' || l.status === 'Won');
+    const bookingLeadIds = bookingLeads.map(l => l._id);
+    const crdFlows = await CRDFlow.find({ lead: { $in: bookingLeadIds } });
+
+    let crdTotalValue = 0;
+    let crdReceivedValue = 0;
+
+    bookingLeads.forEach(lead => {
+      const cf = crdFlows.find(flow => flow.lead.toString() === lead._id.toString());
+      if (cf) {
+        crdTotalValue += cf.totalCurrentValue || 0;
+        cf.stages?.forEach(stage => {
+          stage.payments?.forEach(p => {
+            crdReceivedValue += p.amount || 0;
+          });
+        });
+      } else {
+        const q = quotations.find(quot => quot.lead && quot.lead._id.toString() === lead._id.toString());
+        if (q) {
+          crdTotalValue += q.totalValue || 0;
+        }
+      }
+    });
+
+    const crdPendingValue = Math.max(0, crdTotalValue - crdReceivedValue);
 
     // Calculate custom insights
     const totalMarketingSpend = budgetPlans.reduce((sum, plan) => sum + (plan.allocations?.reduce((s, alloc) => s + (alloc.spent || 0), 0) || 0), 0);
@@ -232,18 +326,61 @@ router.get('/stats', protect, async (req, res) => {
     const bookingConversionRate = totalEnquiries > 0 ? (siteConversionsCount / totalEnquiries) * 100 : 0;
     const handoverRate = totalUnits > 0 ? (handoverUnits / totalUnits) * 100 : 0;
 
+    // Calculate Group-wise stats for marketing spend drill-down
+    const leadGroups = await LeadGroup.find({});
+    const groupStats = {};
+
+    leadGroups.forEach(g => {
+      groupStats[g.name] = { budget: 0, spent: 0, value: 0, sources: [] };
+    });
+    groupStats['Other / Unassigned'] = { budget: 0, spent: 0, value: 0, sources: [] };
+
+    Object.keys(sourceStats).forEach(srcName => {
+      const statsObj = sourceStats[srcName];
+      
+      const matchingGroup = leadGroups.find(g => 
+        g.sources?.some(s => s.toLowerCase() === srcName.toLowerCase())
+      );
+
+      const groupName = matchingGroup ? matchingGroup.name : 'Other / Unassigned';
+      
+      groupStats[groupName].budget += statsObj.budget || 0;
+      groupStats[groupName].spent += statsObj.spent || 0;
+      groupStats[groupName].value += statsObj.value || 0;
+      groupStats[groupName].sources.push({
+        source: srcName,
+        budget: statsObj.budget || 0,
+        spent: statsObj.spent || 0,
+        value: statsObj.value || 0,
+        leadCost: statsObj.leadCost || 0,
+        cpe: statsObj.cpe || 0
+      });
+    });
+
+    if (groupStats['Other / Unassigned'].budget === 0 && groupStats['Other / Unassigned'].spent === 0 && groupStats['Other / Unassigned'].value === 0) {
+      delete groupStats['Other / Unassigned'];
+    }
+
     res.json({
       cards: {
+        totalLeads: leads.length,
         enquiries: { total: totalEnquiries, contacted: contactedCount, followup: followupCount, closed: closedEnquiries },
         siteVisits: { total: totalSiteVisits, siteVisit: siteVisitCount, followup: siteVisitFollowupCount, closed: closedSiteVisits },
         hotList: hotListCount,
-        conversion: { count: siteConversionsCount, value: bookingValueTotal },
+        conversion: { 
+          count: siteConversionsCount, 
+          value: crdTotalValue,
+          received: crdReceivedValue,
+          pending: crdPendingValue
+        },
         inventory: {
           totalProjects,
           totalUnits,
           availableUnits,
           bookedUnits,
-          handoverUnits
+          handoverUnits,
+          totalByType,
+          availableByType
         }
       },
       insights: {
@@ -255,6 +392,7 @@ router.get('/stats', protect, async (req, res) => {
         handoverRate
       },
       sourceStats,
+      groupStats,
       userStats,
       projectStats,
       stageStats,
