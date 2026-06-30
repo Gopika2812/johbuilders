@@ -12,7 +12,7 @@ router.get('/', protect, async (req, res) => {
   try {
     const flows = await CRDFlow.find({})
       .populate('project', 'name code location')
-      .populate('lead', 'name phone')
+      .populate('lead', 'name phone bankLoan')
       .sort({ updatedAt: -1 });
     res.json(flows);
   } catch (err) {
