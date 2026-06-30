@@ -695,7 +695,7 @@ const LeadsDirectory = () => {
   const filteredLeadsList = getFilteredLeads();
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 w-full max-w-full overflow-hidden">
       {/* Title Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
@@ -711,7 +711,7 @@ const LeadsDirectory = () => {
             resetForm();
             setCreateModalOpen(true);
           }}
-          className="flex items-center justify-center gap-1.5 px-5 py-3 bg-[#0e623a] hover:bg-[#0b4d2d] text-white text-xs font-bold rounded-2xl transition shadow-md"
+          className="flex items-center justify-center gap-1.5 px-5 py-3 bg-[#0e623a] hover:bg-[#0b4d2d] text-white text-xs font-bold rounded-2xl transition shadow-md w-full sm:w-auto"
         >
           <Plus className="w-4 h-4" />
           <span>Create New Lead</span>
@@ -733,33 +733,35 @@ const LeadsDirectory = () => {
       )}
 
       {/* Tab Switcher - Leads Phases */}
-      <div className="flex overflow-x-auto bg-white border border-gray-150 p-1.5 rounded-2xl gap-1 scrollbar-none shadow-sm">
-        <button
-          onClick={() => setActiveTab('All')}
-          className={`px-4 py-2 text-xs font-bold rounded-xl transition shrink-0 ${
-            activeTab === 'All'
-              ? 'bg-[#0e623a] text-white shadow-sm'
-              : 'text-gray-500 hover:bg-gray-50 hover:text-gray-800'
-          }`}
-        >
-          All Leads ({leads.length})
-        </button>
-        {LEAD_STATUSES.map(st => {
-          const count = leads.filter(l => l.status === st).length;
-          return (
-            <button
-              key={st}
-              onClick={() => setActiveTab(st)}
-              className={`px-4 py-2 text-xs font-bold rounded-xl transition shrink-0 ${
-                activeTab === st
-                  ? 'bg-[#0e623a] text-white shadow-sm'
-                  : 'text-gray-500 hover:bg-gray-50 hover:text-gray-800'
-              }`}
-            >
-              {st} ({count})
-            </button>
-          );
-        })}
+      <div className="w-full max-w-full overflow-x-auto bg-white border border-gray-150 p-1.5 rounded-2xl shadow-sm scrollbar-none">
+        <div className="flex gap-1 min-w-max">
+          <button
+            onClick={() => setActiveTab('All')}
+            className={`px-4 py-2 text-xs font-bold rounded-xl transition ${
+              activeTab === 'All'
+                ? 'bg-[#0e623a] text-white shadow-sm'
+                : 'text-gray-500 hover:bg-gray-50 hover:text-gray-800'
+            }`}
+          >
+            All Leads ({leads.length})
+          </button>
+          {LEAD_STATUSES.map(st => {
+            const count = leads.filter(l => l.status === st).length;
+            return (
+              <button
+                key={st}
+                onClick={() => setActiveTab(st)}
+                className={`px-4 py-2 text-xs font-bold rounded-xl transition ${
+                  activeTab === st
+                    ? 'bg-[#0e623a] text-white shadow-sm'
+                    : 'text-gray-500 hover:bg-gray-50 hover:text-gray-800'
+                }`}
+              >
+                {st} ({count})
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* Filters & Search Menu */}
@@ -807,7 +809,7 @@ const LeadsDirectory = () => {
             <select
               value={assignedFilter}
               onChange={(e) => setAssignedFilter(e.target.value)}
-              className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-xs font-bold text-gray-700"
+              className="w-full max-w-full truncate px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-xs font-bold text-gray-700"
             >
               <option value="">All Executives</option>
               {employees.map(emp => (
@@ -822,7 +824,7 @@ const LeadsDirectory = () => {
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-xs font-bold text-gray-700"
+              className="w-full max-w-full truncate px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-xs font-bold text-gray-700"
             >
               <option value="">All Statuses</option>
               {LEAD_STATUSES.map(st => (
@@ -837,7 +839,7 @@ const LeadsDirectory = () => {
             <select
               value={projectFilter}
               onChange={(e) => setProjectFilter(e.target.value)}
-              className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-xs font-bold text-gray-700"
+              className="w-full max-w-full truncate px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-xs font-bold text-gray-700"
             >
               <option value="">All Projects</option>
               {projects.map(p => (
@@ -852,7 +854,7 @@ const LeadsDirectory = () => {
             <select
               value={campaignFilter}
               onChange={(e) => setCampaignFilter(e.target.value)}
-              className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-xs font-bold text-gray-700"
+              className="w-full max-w-full truncate px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-xs font-bold text-gray-700"
             >
               <option value="">All Campaigns</option>
               {SOURCE_TYPES.map(src => (
@@ -867,7 +869,7 @@ const LeadsDirectory = () => {
             <select
               value={locationFilter}
               onChange={(e) => setLocationFilter(e.target.value)}
-              className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-xs font-bold text-gray-700"
+              className="w-full max-w-full truncate px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-xs font-bold text-gray-700"
             >
               <option value="">All Locations</option>
               {locations.map(loc => (
@@ -882,7 +884,7 @@ const LeadsDirectory = () => {
             <select
               value={bankLoanFilter}
               onChange={(e) => setBankLoanFilter(e.target.value)}
-              className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-xs font-bold text-gray-700"
+              className="w-full max-w-full truncate px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-xs font-bold text-gray-700"
             >
               <option value="">All</option>
               <option value="Yes">Requires Loan (Yes)</option>
@@ -896,7 +898,7 @@ const LeadsDirectory = () => {
             <select
               value={reopenedFilter}
               onChange={(e) => setReopenedFilter(e.target.value)}
-              className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-xs font-bold text-gray-700"
+              className="w-full max-w-full truncate px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-xs font-bold text-gray-700"
             >
               <option value="">All Leads</option>
               <option value="Open">Active / Open Only</option>

@@ -34,7 +34,7 @@ const Layout = ({ children }) => {
       {/* Mobile Sidebar backdrop overlay */}
       {sidebarOpen && (
         <div 
-          className="fixed inset-0 bg-black/40 backdrop-blur-xs z-15 md:hidden transition-opacity duration-300"
+          className="fixed inset-0 bg-black/40 backdrop-blur-xs z-40 md:hidden transition-opacity duration-300"
           onClick={() => setSidebarOpen(false)}
         />
       )}
@@ -43,7 +43,7 @@ const Layout = ({ children }) => {
       <Sidebar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
 
       {/* Main Panel Content Frame */}
-      <div className="flex-1 pl-0 md:pl-64 flex flex-col min-h-screen relative z-10">
+      <div className="flex-1 pl-0 md:pl-64 flex flex-col min-h-screen relative z-10 w-full max-w-full min-w-0 overflow-hidden">
         {/* Top Navbar */}
         <Navbar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
 

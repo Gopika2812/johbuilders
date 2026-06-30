@@ -363,16 +363,16 @@ const Dashboard = () => {
         </div>
 
         {/* Filtration Forms Container */}
-        <div className="flex flex-wrap items-center gap-4 bg-gray-50 p-2.5 rounded-2xl border border-gray-150 w-full xl:w-auto xl:justify-end">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:flex xl:flex-wrap items-center gap-3 bg-gray-50 p-4 rounded-2xl border border-gray-150 w-full xl:w-auto xl:justify-end">
           
           {/* User Select */}
           {(user?.role === 'Super Admin' || user?.role === 'Admin') && (
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1.5 w-full xl:w-auto">
               <User className="w-4 h-4 text-gray-455 shrink-0" />
               <select
                 value={selectedUser}
                 onChange={(e) => setSelectedUser(e.target.value)}
-                className="px-3 py-1.5 text-xs bg-white border border-gray-255 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-gray-700 font-bold"
+                className="w-full xl:w-auto px-3 py-1.5 text-xs bg-white border border-gray-255 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-gray-700 font-bold"
               >
                 <option value="">All Users</option>
                 {(stats.users || []).map(u => (
@@ -383,12 +383,12 @@ const Dashboard = () => {
           )}
 
           {/* Project Select */}
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1.5 w-full xl:w-auto">
             <FolderOpen className="w-4 h-4 text-gray-455 shrink-0" />
             <select
               value={selectedProject}
               onChange={(e) => setSelectedProject(e.target.value)}
-              className="px-3 py-1.5 text-xs bg-white border border-gray-250 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-gray-700 font-bold"
+              className="w-full xl:w-auto px-3 py-1.5 text-xs bg-white border border-gray-250 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-gray-700 font-bold"
             >
               <option value="">All Projects</option>
               {(stats.projects || []).map(p => (
@@ -398,12 +398,12 @@ const Dashboard = () => {
           </div>
 
           {/* Project Type Select */}
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1.5 w-full xl:w-auto">
             <Layers className="w-4 h-4 text-gray-455 shrink-0" />
             <select
               value={selectedProjectType}
               onChange={(e) => setSelectedProjectType(e.target.value)}
-              className="px-3 py-1.5 text-xs bg-white border border-gray-250 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-gray-700 font-bold"
+              className="w-full xl:w-auto px-3 py-1.5 text-xs bg-white border border-gray-255 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-gray-700 font-bold"
             >
               <option value="">All Types</option>
               <option value="Plot">Plot</option>
@@ -412,41 +412,41 @@ const Dashboard = () => {
             </select>
           </div>
 
-          <div className="hidden sm:block border-l border-gray-250 h-5"></div>
+          <div className="hidden xl:block border-l border-gray-250 h-5"></div>
 
           {/* Month Wise */}
-          <div className="flex items-center gap-1.5 text-xs text-gray-550 font-bold">
+          <div className="flex items-center gap-1.5 text-xs text-gray-550 font-bold w-full xl:w-auto">
             <Calendar className="w-4 h-4 text-[#0e623a]" />
-            <span>Month:</span>
+            <span className="shrink-0">Month:</span>
+            <input
+              type="month"
+              onChange={(e) => handleMonthChange(e.target.value)}
+              className="w-full xl:w-auto px-3 py-1.5 text-xs bg-white border border-gray-255 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-gray-700 font-bold"
+            />
           </div>
-          <input
-            type="month"
-            onChange={(e) => handleMonthChange(e.target.value)}
-            className="px-3 py-1.5 text-xs bg-white border border-gray-255 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-gray-700 font-bold"
-          />
 
           {/* Range picker */}
-          <div className="flex items-center gap-1.5 text-xs text-gray-500 font-bold">
-            <span>Range:</span>
+          <div className="flex flex-col gap-2 text-xs text-gray-500 font-bold w-full xl:w-auto sm:flex-row sm:items-center">
+            <span className="shrink-0">Range:</span>
+            <input
+              type="date"
+              value={fromDate}
+              onChange={(e) => setFromDate(e.target.value)}
+              className="w-full xl:w-32 px-3 py-1.5 text-xs bg-white border border-gray-250 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-gray-700 font-bold"
+            />
+            <span className="text-xs text-gray-400 font-bold text-center sm:text-left">to</span>
+            <input
+              type="date"
+              value={toDate}
+              onChange={(e) => setToDate(e.target.value)}
+              className="w-full xl:w-32 px-3 py-1.5 text-xs bg-white border border-gray-250 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-gray-700 font-bold"
+            />
           </div>
-          <input
-            type="date"
-            value={fromDate}
-            onChange={(e) => setFromDate(e.target.value)}
-            className="px-3 py-1.5 text-xs bg-white border border-gray-250 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-gray-700 font-bold"
-          />
-          <span className="text-xs text-gray-400 font-bold">to</span>
-          <input
-            type="date"
-            value={toDate}
-            onChange={(e) => setToDate(e.target.value)}
-            className="px-3 py-1.5 text-xs bg-white border border-gray-250 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-gray-700 font-bold"
-          />
         </div>
       </div>
 
       {/* Inventory Status Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
         <div className="bg-white border border-gray-100 rounded-3xl p-5 shadow-sm hover:shadow-md transition">
           <span className="text-[10px] text-gray-400 font-extrabold uppercase tracking-wider block">Total Projects</span>
           <h3 className="text-xl font-extrabold text-gray-800 mt-1">{stats.cards.inventory?.totalProjects || 0}</h3>

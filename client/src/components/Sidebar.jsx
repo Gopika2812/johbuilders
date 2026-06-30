@@ -34,8 +34,8 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
   };
 
   return (
-    <aside className={`w-64 bg-[#0e623a] text-white flex flex-col h-screen fixed left-0 top-0 z-20 border-r border-[#0b4d2d] shadow-lg transition-transform duration-300 transform ${
-      sidebarOpen ? 'translate-x-0' : 'translate-x-[-100%] md:translate-x-0'
+    <aside className={`w-64 bg-[#0e623a] text-white flex flex-col h-screen fixed left-0 top-0 z-50 border-r border-[#0b4d2d] shadow-lg transition-transform duration-300 transform ${
+      sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
     }`}>
       {/* Brand Logo Header */}
       <div className="p-6 border-b border-white/10 flex items-center gap-3">
