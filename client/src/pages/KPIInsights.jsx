@@ -2800,6 +2800,18 @@ const KPIInsights = () => {
         {/* Menu Items */}
         {exportMenuOpen && (
           <div className="flex flex-col items-end gap-2 mb-2 animate-fadeIn">
+            {/* Summary of Report Export */}
+            <button
+              onClick={() => {
+                handleExportSummaryReport();
+                setExportMenuOpen(false);
+              }}
+              className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-2xl shadow-xl flex items-center gap-2 hover:scale-105 transition cursor-pointer text-[10px] font-bold uppercase tracking-wider border border-indigo-500/50"
+            >
+              <FolderOpen className="w-4 h-4" />
+              <span>Summary of Report</span>
+            </button>
+
             {/* Enquiry Sheet Export */}
             <button
               onClick={() => {
@@ -2848,18 +2860,6 @@ const KPIInsights = () => {
               <span>Export Bookings Sheet</span>
             </button>
 
-            {/* Summary of Report Export */}
-            <button
-              onClick={() => {
-                handleExportSummaryReport();
-                setExportMenuOpen(false);
-              }}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-2xl shadow-xl flex items-center gap-2 hover:scale-105 transition cursor-pointer text-[10px] font-bold uppercase tracking-wider border border-indigo-500/50"
-            >
-              <FolderOpen className="w-4 h-4" />
-              <span>Summary of Report</span>
-            </button>
-
             {/* Marketing Performance Report Export */}
             <button
               onClick={() => {
@@ -2883,7 +2883,6 @@ const KPIInsights = () => {
               <Users className="w-4 h-4" />
               <span>Lead Sources Report</span>
             </button>
-
           </div>
         )}
 
