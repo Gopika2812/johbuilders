@@ -2479,6 +2479,139 @@ const KPIInsights = () => {
     }
   };
 
+  const handleExportComplaintsReport = async () => {
+    try {
+      setLoading(true);
+      const res = await fetch(`${API_URL}/crd-flow`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (!res.ok) {
+        alert('Failed to load CRD flows details for export');
+        return;
+      }
+      const data = await res.json();
+
+      const complaintsList = [];
+
+      data.forEach(flow => {
+        const lead = flow.lead;
+        if (!lead) return;
+
+        // Apply active dashboard filters
+        if (selectedProject && (flow.project?._id || flow.project) !== selectedProject) return;
+        if (selectedUser && (lead.assignedTo?._id || lead.assignedTo) !== selectedUser) return;
+
+        const complaints = flow.complaints || [];
+        complaints.forEach(comp => {
+          const compDate = new Date(comp.reportedAt);
+
+          // Apply date filters at complaint reported date level
+          if (fromDate && compDate < new Date(fromDate)) return;
+          if (toDate) {
+            const end = new Date(toDate);
+            end.setHours(23, 59, 59, 999);
+            if (compDate > end) return;
+          }
+
+          complaintsList.push({
+            reportedDate: compDate,
+            customerName: lead.name || '',
+            projectType: flow.project?.projectType || 'Land',
+            projectCode: flow.project?.code || 'UNASSIGNED',
+            unitId: flow.unitId || '',
+            description: comp.description || '',
+            status: comp.status || 'Pending'
+          });
+        });
+      });
+
+      if (complaintsList.length === 0) {
+        alert('No complaints found matching the active filters to export.');
+        return;
+      }
+
+      // Sort by reported date ascending
+      complaintsList.sort((a, b) => a.reportedDate - b.reportedDate);
+
+      // Generate styled HTML sheet
+      const dateForMonth = fromDate ? new Date(fromDate) : new Date();
+      const monthNames = ["JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE", "JULY", "AUGUST", "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER"];
+      const titleText = `CUSTOMER COMPLAINTS REPORT - ${monthNames[dateForMonth.getMonth()]} ${dateForMonth.getFullYear()}`;
+
+      let html = `
+        <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+        <head>
+          <meta charset="utf-8">
+          <style>
+            table { border-collapse: collapse; font-family: Calibri, sans-serif; width: 100%; }
+            td, th { border: 1px solid #000000; padding: 6px; text-align: center; font-size: 11px; }
+            .title-header { background-color: #F8CBAD; font-weight: bold; font-size: 14px; height: 32px; text-transform: uppercase; color: #C65911; }
+            .table-headers { background-color: #F2C4C4; font-weight: bold; }
+            .text-left { text-align: left; }
+          </style>
+        </head>
+        <body>
+          <table>
+            <!-- Title Header -->
+            <tr>
+              <td colspan="7" class="title-header">${titleText}</td>
+            </tr>
+            <!-- Table Headers -->
+            <tr class="table-headers">
+              <th>S No</th>
+              <th>Reported Date</th>
+              <th>Customer Name</th>
+              <th>Project Type</th>
+              <th>Unit / Flat / Plot No</th>
+              <th>Complaint</th>
+              <th>Status</th>
+            </tr>
+      `;
+
+      complaintsList.forEach((comp, index) => {
+        const dateStr = comp.reportedDate.toLocaleDateString('en-GB').replace(/\//g, '.');
+        let statusColor = '#C65911'; // Orange
+        if (comp.status === 'Resolved') statusColor = '#385723'; // Green
+        else if (comp.status === 'In Progress') statusColor = '#2F5597'; // Blue
+
+        html += `
+          <tr>
+            <td>${index + 1}</td>
+            <td>${dateStr}</td>
+            <td class="text-left">${comp.customerName}</td>
+            <td>${comp.projectType} (${comp.projectCode})</td>
+            <td>${comp.unitId}</td>
+            <td class="text-left">${comp.description}</td>
+            <td style="font-weight: bold; color: ${statusColor};">${comp.status}</td>
+          </tr>
+        `;
+      });
+
+      html += `
+          </table>
+        </body>
+        </html>
+      `;
+
+      // Trigger download
+      const blob = new Blob([html], { type: 'application/vnd.ms-excel' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `JB_COMPLAINTS_REPORT_${dateForMonth.getFullYear()}_${dateForMonth.getMonth() + 1}.xls`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+    } catch (err) {
+      console.error(err);
+      alert('Error exporting customer complaints report');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleMonthChange = (monthVal) => {
     if (!monthVal) return;
     const [yearStr, monthStr] = monthVal.split('-');
@@ -3113,6 +3246,18 @@ const KPIInsights = () => {
             >
               <FileText className="w-4 h-4" />
               <span>Extra Works</span>
+            </button>
+
+            {/* Complaints Report Export */}
+            <button
+              onClick={() => {
+                handleExportComplaintsReport();
+                setCrdMenuOpen(false);
+              }}
+              className="bg-rose-600 hover:bg-rose-700 text-white px-4 py-2.5 rounded-2xl shadow-xl flex items-center gap-2 hover:scale-105 transition cursor-pointer text-[10px] font-bold uppercase tracking-wider border border-rose-500/50"
+            >
+              <AlertCircle className="w-4 h-4" />
+              <span>Complaints</span>
             </button>
           </div>
         )}
