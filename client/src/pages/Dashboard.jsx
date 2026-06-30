@@ -364,15 +364,18 @@ const Dashboard = () => {
       <body>
         <table>
           <tr>
-            <td colspan="3" style="border:none; height:80px; vertical-align:middle; text-align:left;">
-              <img src="${logoPath}" height="60" />
+            <td colspan="3" rowspan="3" style="background-color: #0e623a; border: none; text-align: center; vertical-align: middle; height: 110px;">
+              <img src="${logoPath}" height="95" style="height: 95px; width: auto;" />
             </td>
-            <td colspan="6" class="title-row" style="border:none; vertical-align:middle; text-align:right;">JohnBuildwell ERP - OVERALL STATUS REPORT</td>
+            <td colspan="6" class="title-row" style="border:none; vertical-align:middle; text-align:right; font-size: 16pt;">JohnBuildwell ERP - OVERALL STATUS REPORT</td>
           </tr>
           <tr>
-            <td colspan="9" class="meta-label" style="border:none; text-align:right; padding-top:0;">Generated on: ${new Date().toLocaleString()}</td>
+            <td colspan="6" style="border:none;"></td>
           </tr>
-          <tr><td colspan="9" style="border:none;"></td></tr>
+          <tr>
+            <td colspan="6" class="meta-label" style="border:none; text-align:right; padding-top:0; vertical-align:middle;">Generated on: ${new Date().toLocaleString()}</td>
+          </tr>
+          <tr><td colspan="9" style="border:none; height: 10px;"></td></tr>
           
           <!-- PART 1 -->
           <tr><td colspan="9" class="section-banner">PART 1: PROJECTS & UNIT TYPE SUMMARY</td></tr>
