@@ -151,6 +151,22 @@ const LeadsDirectory = () => {
   const [bankLoan, setBankLoan] = useState('No');
   const [leadCost, setLeadCost] = useState('0');
 
+  // Edit Lead Modal State
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [selectedLeadForEdit, setSelectedLeadForEdit] = useState(null);
+  const [editName, setEditName] = useState('');
+  const [editPhone, setEditPhone] = useState('');
+  const [editAddress, setEditAddress] = useState('');
+  const [editLeadType, setEditLeadType] = useState('Lead');
+  const [editProjectId, setEditProjectId] = useState('');
+  const [editAssignedToId, setEditAssignedToId] = useState('');
+  const [editLeadSource, setEditLeadSource] = useState('');
+  const [editAdId, setEditAdId] = useState('');
+  const [editBankLoan, setEditBankLoan] = useState('No');
+  const [editLeadCost, setEditLeadCost] = useState('0');
+  const [editProjectLocation, setEditProjectLocation] = useState('');
+  const [editActiveAds, setEditActiveAds] = useState([]);
+
   // Booking & Quotation Modal States
   const [bookingModalOpen, setBookingModalOpen] = useState(false);
   const [selectedLeadForBooking, setSelectedLeadForBooking] = useState(null);
@@ -235,6 +251,102 @@ const LeadsDirectory = () => {
       setFetchedAdLink('');
     }
   }, [selectedAdId, activeAds]);
+
+  // Update edit-active ads dropdown when edit project changes
+  useEffect(() => {
+    if (editLeadType === 'Lead' && editProjectId) {
+      const proj = projects.find(p => p._id === editProjectId);
+      if (proj && proj.marketingInfo) {
+        const adsList = [];
+        if (proj.marketingInfo.videos) {
+          proj.marketingInfo.videos
+            .filter(v => v.status === 'Active')
+            .forEach(v => adsList.push({ id: v._id, name: v.name, link: v.link, type: 'Video', cost: v.cost || 0 }));
+        }
+        if (proj.marketingInfo.posters) {
+          proj.marketingInfo.posters
+            .filter(p => p.status === 'Active')
+            .forEach(p => adsList.push({ id: p._id, name: p.name, link: p.link, type: 'Poster', cost: p.cost || 0 }));
+        }
+        setEditActiveAds(adsList);
+      } else {
+        setEditActiveAds([]);
+      }
+    }
+  }, [editProjectId, editLeadType, projects]);
+
+  const handleOpenEditModal = (lead) => {
+    setSelectedLeadForEdit(lead);
+    setEditName(lead.name || '');
+    setEditPhone(lead.phone || '');
+    setEditAddress(lead.address || '');
+    setEditLeadType(lead.leadType || 'Lead');
+    setEditProjectId(lead.project?._id || lead.project || '');
+    setEditAssignedToId(lead.assignedTo?._id || lead.assignedTo || '');
+    setEditLeadSource(lead.leadSource || '');
+    setEditBankLoan(lead.bankLoan || 'No');
+    setEditLeadCost(String(lead.leadCost || '0'));
+    setEditProjectLocation(lead.projectLocation || '');
+
+    // Prepopulate ad id if matches ad name
+    const proj = projects.find(p => p._id === (lead.project?._id || lead.project));
+    let adId = '';
+    if (proj && proj.marketingInfo && lead.activeAd?.name) {
+      const allAds = [
+        ...(proj.marketingInfo.videos || []),
+        ...(proj.marketingInfo.posters || [])
+      ];
+      const matchedAd = allAds.find(a => a.name === lead.activeAd.name);
+      if (matchedAd) adId = matchedAd._id;
+    }
+    setEditAdId(adId);
+    setEditModalOpen(true);
+  };
+
+  const handleUpdateLead = async (e) => {
+    e.preventDefault();
+    setError('');
+    setSuccessMsg('');
+
+    const adObj = editAdId ? editActiveAds.find(a => a.id === editAdId) : null;
+
+    const payload = {
+      leadType: editLeadType,
+      name: editName,
+      phone: editPhone,
+      address: editAddress,
+      bankLoan: editBankLoan,
+      project: editProjectId || undefined,
+      assignedTo: editAssignedToId || '',
+      leadCost: Number(editLeadCost) || 0,
+      leadSource: editLeadType === 'Lead' ? editLeadSource : 'Direct Visit',
+      activeAd: editLeadType === 'Lead' && adObj ? { name: adObj.name, link: adObj.link } : { name: '', link: '' },
+      projectLocation: editLeadType === 'Direct Visit' ? editProjectLocation : undefined
+    };
+
+    try {
+      const res = await fetch(`${API_URL}/leads/${selectedLeadForEdit._id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (res.ok) {
+        setSuccessMsg('Lead updated successfully!');
+        setEditModalOpen(false);
+        fetchLeads();
+        setTimeout(() => setSuccessMsg(''), 3000);
+      } else {
+        const data = await res.json();
+        setError(data.message || 'Failed to update lead');
+      }
+    } catch (err) {
+      setError('Error updating lead');
+    }
+  };
 
   const fetchLeads = async () => {
     try {
@@ -921,7 +1033,7 @@ const LeadsDirectory = () => {
               <th className="p-4">Project</th>
               <th className="p-4">Assigned Executive</th>
               <th className="p-4">Workflow Status</th>
-              <th className="p-4 text-center">History</th>
+              <th className="p-4 text-center">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100 text-sm">
@@ -1157,18 +1269,29 @@ const LeadsDirectory = () => {
                   )}
                 </td>
 
-                {/* History Trigger */}
+                {/* Action Triggers: History & Edit */}
                 <td className="p-4 text-center">
-                  <button
-                    onClick={() => {
-                      setSelectedLeadForHistory(lead);
-                      setHistoryModalOpen(true);
-                    }}
-                    className="p-1.5 text-gray-500 hover:text-[#0e623a] hover:bg-[#0e623a]/5 rounded-lg transition"
-                    title="View Lead History Logs"
-                  >
-                    <History className="w-4 h-4 mx-auto" />
-                  </button>
+                  <div className="flex items-center justify-center gap-1.5">
+                    <button
+                      onClick={() => {
+                        setSelectedLeadForHistory(lead);
+                        setHistoryModalOpen(true);
+                      }}
+                      className="p-1.5 text-gray-500 hover:text-[#0e623a] hover:bg-[#0e623a]/5 rounded-lg transition cursor-pointer"
+                      title="View Lead History Logs"
+                    >
+                      <History className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => handleOpenEditModal(lead)}
+                      className="p-1.5 text-gray-500 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition cursor-pointer"
+                      title="Edit Entire Lead Details"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                      </svg>
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}
@@ -1437,6 +1560,225 @@ const LeadsDirectory = () => {
         </div>
       )}
 
+      {/* 🔐 MODAL: Edit Lead Record */}
+      {editModalOpen && selectedLeadForEdit && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl max-w-xl w-full overflow-hidden shadow-2xl border border-gray-100">
+            <div className="bg-amber-600 p-6 text-white">
+              <h3 className="text-lg font-bold">Edit Lead Information</h3>
+              <p className="text-amber-100 text-xs mt-1">Modify details for: {selectedLeadForEdit.name}</p>
+            </div>
+
+            <form onSubmit={handleUpdateLead} className="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
+              {/* Lead Type Radio Group */}
+              <div className="bg-gray-50 p-4 rounded-2xl border border-gray-150">
+                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-2">Lead Record Category</label>
+                <div className="flex gap-6">
+                  <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="editLeadType"
+                      value="Lead"
+                      checked={editLeadType === 'Lead'}
+                      onChange={() => setEditLeadType('Lead')}
+                      className="text-amber-600 focus:ring-amber-600 w-4 h-4"
+                    />
+                    <span>Lead (Campaigns & Referrals)</span>
+                  </label>
+                  <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="editLeadType"
+                      value="Direct Visit"
+                      checked={editLeadType === 'Direct Visit'}
+                      onChange={() => setEditLeadType('Direct Visit')}
+                      className="text-amber-600 focus:ring-amber-600 w-4 h-4"
+                    />
+                    <span>Direct Visit</span>
+                  </label>
+                </div>
+              </div>
+
+              {/* Name & Phone & Cost */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-left">
+                <div>
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1.5">Lead / Customer Name</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. David Brown"
+                    value={editName}
+                    onChange={(e) => setEditName(e.target.value)}
+                    className="w-full px-4 py-3 bg-gray-55 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-600 text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1.5">Phone Number</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. 9876543210"
+                    value={editPhone}
+                    onChange={(e) => setEditPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                    className="w-full px-4 py-3 bg-gray-55 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-600 text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1.5">Enquiry / Lead Cost (₹)</label>
+                  <input
+                    type="number"
+                    placeholder="e.g. 500"
+                    value={editLeadCost}
+                    onChange={(e) => setEditLeadCost(e.target.value)}
+                    className="w-full px-4 py-3 bg-gray-55 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-600 text-sm font-semibold"
+                  />
+                </div>
+              </div>
+
+              {/* Address */}
+              <div className="text-left">
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1.5">Customer Address</label>
+                <textarea
+                  required
+                  rows="2"
+                  placeholder="Street details, city, pincode..."
+                  value={editAddress}
+                  onChange={(e) => setEditAddress(e.target.value)}
+                  className="w-full px-4 py-3 bg-gray-55 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-600 text-sm"
+                />
+              </div>
+
+              {/* Conditionally rendered details based on Lead Type */}
+              {editLeadType === 'Lead' ? (
+                <>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-left">
+                    {/* Lead Source */}
+                    <div className="flex flex-col">
+                      <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1.5">Lead Source</label>
+                      <SearchableSelect
+                        options={SOURCE_TYPES}
+                        value={editLeadSource}
+                        onChange={setEditLeadSource}
+                        placeholder="Select Ad Source / Campaign"
+                      />
+                    </div>
+
+                    {/* Project Code selection */}
+                    <div className="flex flex-col">
+                      <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1.5">Project Code</label>
+                      <SearchableSelect
+                        options={projects.map(p => ({ value: p._id, label: `${p.code} - ${p.name} (${p.projectType})` }))}
+                        value={editProjectId}
+                        onChange={setEditProjectId}
+                        placeholder="Select Project"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Ads Sub-dropdown (dynamic based on project) */}
+                  {editProjectId && (
+                    <div className="bg-amber-50/50 p-4 rounded-2xl border border-amber-200/40 space-y-3 text-left">
+                      <div className="flex flex-col">
+                        <label className="text-xs font-bold text-amber-800 uppercase tracking-wider block mb-1.5">Active Ad Campaign</label>
+                        <SearchableSelect
+                          options={editActiveAds.map(ad => ({ value: ad.id, label: `[${ad.type}] ${ad.name}` }))}
+                          value={editAdId}
+                          onChange={setEditAdId}
+                          placeholder="Select Active Campaign Ad"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-left">
+                    {/* Project Location */}
+                    <div className="flex flex-col">
+                      <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1.5">Project Location</label>
+                      <SearchableSelect
+                        options={locations}
+                        value={editProjectLocation}
+                        onChange={setEditProjectLocation}
+                        placeholder="Select Location"
+                      />
+                    </div>
+
+                    {/* Project Code selection */}
+                    <div className="sm:col-span-2 flex flex-col">
+                      <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1.5">Project Code</label>
+                      <SearchableSelect
+                        options={projects.map(p => ({ value: p._id, label: `${p.code} - ${p.name} (${p.projectType})` }))}
+                        value={editProjectId}
+                        onChange={setEditProjectId}
+                        placeholder="Select Project"
+                      />
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {/* Bank Loan Selection */}
+              <div className="bg-gray-50 p-4 rounded-2xl border border-gray-150 text-left">
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-2">Requires Bank Loan?</label>
+                <div className="flex gap-6">
+                  <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="editBankLoan"
+                      value="Yes"
+                      checked={editBankLoan === 'Yes'}
+                      onChange={() => setEditBankLoan('Yes')}
+                      className="text-amber-600 focus:ring-amber-600 w-4 h-4"
+                    />
+                    <span>Yes</span>
+                  </label>
+                  <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="editBankLoan"
+                      value="No"
+                      checked={editBankLoan === 'No'}
+                      onChange={() => setEditBankLoan('No')}
+                      className="text-amber-600 focus:ring-amber-600 w-4 h-4"
+                    />
+                    <span>No</span>
+                  </label>
+                </div>
+              </div>
+
+              {/* Assigned Executive */}
+              <div className="flex flex-col text-left">
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1.5">Assigned Executive / Member</label>
+                <SearchableSelect
+                  options={employees.map(emp => ({ value: emp._id, label: `${emp.name} (${emp.role})` }))}
+                  value={editAssignedToId}
+                  onChange={setEditAssignedToId}
+                  placeholder="Select Executive"
+                />
+              </div>
+
+              {/* Submit Buttons */}
+              <div className="flex items-center gap-3 pt-4 border-t">
+                <button
+                  type="button"
+                  onClick={() => setEditModalOpen(false)}
+                  className="flex-1 py-3 border border-gray-200 rounded-xl text-xs font-bold text-gray-500 hover:bg-gray-50 transition cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-3 bg-amber-600 text-white rounded-xl text-xs font-bold hover:bg-amber-700 transition shadow-md cursor-pointer"
+                >
+                  Update Lead Record
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+      
       {/* 🔐 MODAL: View History Logs */}
       {historyModalOpen && selectedLeadForHistory && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">

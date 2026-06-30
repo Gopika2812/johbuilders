@@ -161,10 +161,20 @@ router.get('/stats', protect, async (req, res) => {
       const src = getNormalizedSourceKey(srcRaw);
 
       if (!sourceStats[src]) {
-        sourceStats[src] = { budget: 0, spent: 0, count: 0, value: 0, leadCost: 0 };
+        sourceStats[src] = { budget: 0, spent: 0, count: 0, value: 0, leadCost: 0, leads: [] };
+      }
+      if (!sourceStats[src].leads) {
+        sourceStats[src].leads = [];
       }
       sourceStats[src].count += 1;
       sourceStats[src].leadCost = (sourceStats[src].leadCost || 0) + (lead.leadCost || 0);
+      sourceStats[src].leads.push({
+        name: lead.name,
+        phone: lead.phone,
+        leadCost: lead.leadCost || 0,
+        projectType: lead.project?.projectType || 'N/A',
+        projectName: lead.project?.name || 'N/A'
+      });
 
       if (!stageStats[status]) {
         stageStats[status] = { count: 0, value: 0 };
@@ -487,7 +497,8 @@ router.get('/stats', protect, async (req, res) => {
         spent: statsObj.spent || 0,
         value: statsObj.value || 0,
         leadCost: statsObj.leadCost || 0,
-        cpe: statsObj.cpe || 0
+        cpe: statsObj.cpe || 0,
+        leads: statsObj.leads || []
       });
     });
 
@@ -541,7 +552,7 @@ router.get('/stats', protect, async (req, res) => {
       stageStats,
       layeredStats,
       users: allUsers,
-      projects: dbProjects.map(dp => ({ _id: dp._id, name: dp.name, code: dp.code }))
+      projects: dbProjects.map(dp => ({ _id: dp._id, name: dp.name, code: dp.code, projectType: dp.projectType }))
     });
   } catch (err) {
     res.status(500).json({ message: err.message });
