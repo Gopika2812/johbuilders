@@ -2331,6 +2331,154 @@ const KPIInsights = () => {
     }
   };
 
+  const handleExportExtraWorksReport = async () => {
+    try {
+      setLoading(true);
+      const res = await fetch(`${API_URL}/crd-flow`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (!res.ok) {
+        alert('Failed to load CRD flows details for export');
+        return;
+      }
+      const data = await res.json();
+
+      const extraWorksList = [];
+
+      data.forEach(flow => {
+        const lead = flow.lead;
+        if (!lead) return;
+
+        // Apply active dashboard filters
+        if (selectedProject && (flow.project?._id || flow.project) !== selectedProject) return;
+        if (selectedUser && (lead.assignedTo?._id || lead.assignedTo) !== selectedUser) return;
+
+        const stages = flow.stages || [];
+        stages.forEach(stage => {
+          const extras = stage.extraWorks || [];
+          extras.forEach(ew => {
+            const addedDate = new Date(ew.addedAt || flow.createdAt);
+
+            // Apply date filters at extra work added date level
+            if (fromDate && addedDate < new Date(fromDate)) return;
+            if (toDate) {
+              const end = new Date(toDate);
+              end.setHours(23, 59, 59, 999);
+              if (addedDate > end) return;
+            }
+
+            extraWorksList.push({
+              projectCode: flow.project?.code || 'UNASSIGNED',
+              projectType: flow.project?.projectType || 'Land',
+              customerName: lead.name || '',
+              contactNumber: lead.phone || '',
+              extraWorkName: ew.name || '',
+              value: ew.amount || 0,
+              status: stage.isCompleted ? 'Completed' : 'Pending',
+              addedAt: addedDate
+            });
+          });
+        });
+      });
+
+      if (extraWorksList.length === 0) {
+        alert('No extra works records found for the selected filters.');
+        return;
+      }
+
+      // Sort by date ascending
+      extraWorksList.sort((a, b) => a.addedAt - b.addedAt);
+
+      // Generate the styled HTML sheet
+      const dateForMonth = fromDate ? new Date(fromDate) : new Date();
+      const monthNames = ["JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE", "JULY", "AUGUST", "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER"];
+      const titleText = `EXTRA WORKS REPORT - ${monthNames[dateForMonth.getMonth()]} ${dateForMonth.getFullYear()}`;
+
+      // Build HTML
+      let html = `
+        <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+        <head>
+          <meta charset="utf-8">
+          <style>
+            table { border-collapse: collapse; font-family: Calibri, sans-serif; width: 100%; }
+            td, th { border: 1px solid #000000; padding: 6px; text-align: center; font-size: 11px; }
+            .title-header { background-color: #FCE4D6; font-weight: bold; font-size: 14px; height: 32px; text-transform: uppercase; color: #C65911; }
+            .table-headers { background-color: #F8CBAD; font-weight: bold; color: #000000; }
+            .text-left { text-align: left; }
+            .text-right { text-align: right; }
+          </style>
+        </head>
+        <body>
+          <table>
+            <!-- Title Header -->
+            <tr>
+              <td colspan="7" class="title-header">${titleText}</td>
+            </tr>
+            <!-- Table Headers -->
+            <tr class="table-headers">
+              <th>S No</th>
+              <th>Project Type</th>
+              <th>Customer Name</th>
+              <th>Contact Number</th>
+              <th>Extra Work</th>
+              <th>Value of Work</th>
+              <th>Status</th>
+            </tr>
+      `;
+
+      let totalValue = 0;
+
+      extraWorksList.forEach((ew, index) => {
+        totalValue += ew.value;
+        const phoneStr = ew.contactNumber ? `'${ew.contactNumber}` : '';
+
+        html += `
+          <tr>
+            <td>${index + 1}</td>
+            <td>${ew.projectType} (${ew.projectCode})</td>
+            <td class="text-left">${ew.customerName}</td>
+            <td>${phoneStr}</td>
+            <td class="text-left">${ew.extraWorkName}</td>
+            <td class="text-right">₹ ${ew.value.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+            <td style="font-weight: bold; color: ${ew.status === 'Completed' ? '#385723' : '#C65911'}">${ew.status}</td>
+          </tr>
+        `;
+      });
+
+      // Total Row
+      html += `
+        <tr style="background-color: #F2F2F2; font-weight: bold;">
+          <td colspan="5" class="text-right">TOTAL VALUE OF EXTRA WORKS</td>
+          <td class="text-right">₹ ${totalValue.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+          <td></td>
+        </tr>
+      `;
+
+      html += `
+          </table>
+        </body>
+        </html>
+      `;
+
+      // Trigger download
+      const blob = new Blob([html], { type: 'application/vnd.ms-excel' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `JB_EXTRA_WORKS_REPORT_${dateForMonth.getFullYear()}_${dateForMonth.getMonth() + 1}.xls`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+    } catch (err) {
+      console.error(err);
+      alert('Error exporting extra works report');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleMonthChange = (monthVal) => {
     if (!monthVal) return;
     const [yearStr, monthStr] = monthVal.split('-');
@@ -2953,6 +3101,18 @@ const KPIInsights = () => {
             >
               <Building className="w-4 h-4" />
               <span>Bank Loan Report</span>
+            </button>
+
+            {/* Extra Works Report Export */}
+            <button
+              onClick={() => {
+                handleExportExtraWorksReport();
+                setCrdMenuOpen(false);
+              }}
+              className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2.5 rounded-2xl shadow-xl flex items-center gap-2 hover:scale-105 transition cursor-pointer text-[10px] font-bold uppercase tracking-wider border border-amber-500/50"
+            >
+              <FileText className="w-4 h-4" />
+              <span>Extra Works</span>
             </button>
           </div>
         )}
