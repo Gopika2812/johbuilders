@@ -156,8 +156,75 @@ router.put('/:id/stage/:stageIndex/extra-work', protect, async (req, res) => {
     }
 
     flow.stages[idx].extraWorks.push({ name, amount: extraAmt });
+
+    const stagesCount = flow.stages.length - idx;
+    if (stagesCount > 0) {
+      let sumSplit = 0;
+      for (let j = idx; j < flow.stages.length; j++) {
+        let currentSplit = Math.round(extraAmt / stagesCount);
+        if (j === flow.stages.length - 1) {
+          currentSplit = extraAmt - sumSplit;
+        } else {
+          sumSplit += currentSplit;
+        }
+        flow.stages[j].amount += currentSplit;
+      }
+    }
+
     flow.totalExtraWorksValue += extraAmt;
     flow.totalCurrentValue += extraAmt;
+
+    await flow.save();
+
+    const populated = await CRDFlow.findById(flow._id).populate('project').populate('lead');
+    res.json(populated);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// @route   DELETE /api/crd-flow/:id/stage/:stageIndex/extra-work/:workId
+// @desc    Revert/Delete an extra work item and deduct its split values
+router.delete('/:id/stage/:stageIndex/extra-work/:workId', protect, async (req, res) => {
+  try {
+    const flow = await CRDFlow.findById(req.params.id);
+    if (!flow) return res.status(404).json({ message: 'Flow record not found' });
+
+    const idx = Number(req.params.stageIndex);
+    if (idx < 0 || idx >= flow.stages.length) {
+      return res.status(400).json({ message: 'Invalid stage index' });
+    }
+
+    const workId = req.params.workId;
+    const stage = flow.stages[idx];
+    const workItem = stage.extraWorks.id(workId);
+    if (!workItem) {
+      return res.status(404).json({ message: 'Extra work item not found' });
+    }
+
+    const extraAmt = workItem.amount;
+
+    // Deduct split amount from current and next stages
+    const stagesCount = flow.stages.length - idx;
+    if (stagesCount > 0) {
+      let sumSplit = 0;
+      for (let j = idx; j < flow.stages.length; j++) {
+        let currentSplit = Math.round(extraAmt / stagesCount);
+        if (j === flow.stages.length - 1) {
+          currentSplit = extraAmt - sumSplit;
+        } else {
+          sumSplit += currentSplit;
+        }
+        flow.stages[j].amount -= currentSplit;
+      }
+    }
+
+    // Remove the extra work item
+    stage.extraWorks.pull(workId);
+
+    // Deduct from total values
+    flow.totalExtraWorksValue -= extraAmt;
+    flow.totalCurrentValue -= extraAmt;
 
     await flow.save();
 

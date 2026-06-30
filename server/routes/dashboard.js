@@ -12,7 +12,7 @@ const { protect } = require('../middleware/auth');
 // @route   GET /api/dashboard/stats
 // @desc    Get aggregate stats for dashboard insights with date range, user and project filtering
 router.get('/stats', protect, async (req, res) => {
-  const { fromDate, toDate, userId, projectId, projectType } = req.query;
+  const { fromDate, toDate, userId, projectId, projectType, source } = req.query;
   try {
     // 1. Build leads filters
     let query = {};
@@ -47,6 +47,10 @@ router.get('/stats', protect, async (req, res) => {
       query.assignedTo = userId;
     }
 
+    if (source) {
+      query.leadSource = source;
+    }
+
     const leads = await Lead.find(query).populate('project').populate('assignedTo');
 
     // 2. Build quotations filters
@@ -56,6 +60,7 @@ router.get('/stats', protect, async (req, res) => {
     }
     
     if (projectType) {
+      qQuery.projectType = projectType;
       const matchingProjects = await Project.find({ projectType: projectType });
       const matchingProjectIds = matchingProjects.map(p => p._id);
       
@@ -72,8 +77,11 @@ router.get('/stats', protect, async (req, res) => {
       qQuery.project = projectId;
     }
 
-    if (userId) {
-      const userLeads = await Lead.find({ assignedTo: userId });
+    if (userId || source) {
+      let leadFilter = {};
+      if (userId) leadFilter.assignedTo = userId;
+      if (source) leadFilter.leadSource = source;
+      const userLeads = await Lead.find(leadFilter);
       const leadIds = userLeads.map(ul => ul._id);
       qQuery.lead = { $in: leadIds };
     }
@@ -81,7 +89,19 @@ router.get('/stats', protect, async (req, res) => {
     const quotations = await Quotation.find(qQuery).populate('lead').populate('project').populate('createdBy');
 
     // 3. Fetch budget plans
-    const budgetPlans = await BudgetPlan.find({});
+    let budgetQuery = {};
+    if (fromDate || toDate) {
+      const startMonth = fromDate ? fromDate.substring(0, 7) : null;
+      const endMonth = toDate ? toDate.substring(0, 7) : null;
+      if (startMonth && endMonth) {
+        budgetQuery.month = { $gte: startMonth, $lte: endMonth };
+      } else if (startMonth) {
+        budgetQuery.month = { $gte: startMonth };
+      } else if (endMonth) {
+        budgetQuery.month = { $lte: endMonth };
+      }
+    }
+    const budgetPlans = await BudgetPlan.find(budgetQuery);
     const allUsers = await User.find({}, 'name role');
     const dbProjects = await Project.find({}, 'name code');
 
@@ -259,6 +279,15 @@ router.get('/stats', protect, async (req, res) => {
     if (projectId) {
       projectFilter._id = projectId;
     }
+    if (fromDate || toDate) {
+      projectFilter.createdAt = {};
+      if (fromDate) projectFilter.createdAt.$gte = new Date(fromDate);
+      if (toDate) {
+        const end = new Date(toDate);
+        end.setUTCHours(23, 59, 59, 999);
+        projectFilter.createdAt.$lte = end;
+      }
+    }
     const allProjects = await Project.find(projectFilter);
     let totalProjects = allProjects.length;
     let totalUnits = 0;
@@ -267,27 +296,132 @@ router.get('/stats', protect, async (req, res) => {
     let handoverUnits = 0;
     let totalByType = { Plot: 0, Flat: 0, House: 0 };
     let availableByType = { Plot: 0, Flat: 0, House: 0 };
+    let bookedByType = { Plot: 0, Flat: 0, House: 0 };
+    let handoverByType = { Plot: 0, Flat: 0, House: 0 };
+
+    let totalValueByType = { Plot: 0, Flat: 0, House: 0 };
+    let availableValueByType = { Plot: 0, Flat: 0, House: 0 };
+    let bookedValueByType = { Plot: 0, Flat: 0, House: 0 };
+    let handoverValueByType = { Plot: 0, Flat: 0, House: 0 };
+
+    let projectsByType = { Plot: 0, Flat: 0, House: 0 };
 
     allProjects.forEach(p => {
+      const types = p.projectType || [];
+      if (types.includes('Plot')) projectsByType.Plot += 1;
+      if (types.includes('Flat')) projectsByType.Flat += 1;
+      if (types.includes('House')) projectsByType.House += 1;
+
       p.units?.forEach(u => {
         const type = u.unitType || 'Plot';
         if (projectType && type !== projectType) return;
+        const val = u.price || 0;
 
         totalUnits += 1;
         totalByType[type] = (totalByType[type] || 0) + 1;
+        totalValueByType[type] = (totalValueByType[type] || 0) + val;
 
         if (u.status === 'New') {
           availableUnits += 1;
           availableByType[type] = (availableByType[type] || 0) + 1;
+          availableValueByType[type] = (availableValueByType[type] || 0) + val;
         } else if (u.status === 'Booked') {
           bookedUnits += 1;
+          bookedByType[type] = (bookedByType[type] || 0) + 1;
+          bookedValueByType[type] = (bookedValueByType[type] || 0) + val;
         } else if (u.status === 'Sold Out') {
           handoverUnits += 1;
+          handoverByType[type] = (handoverByType[type] || 0) + 1;
+          handoverValueByType[type] = (handoverValueByType[type] || 0) + val;
         } else {
           availableUnits += 1;
           availableByType[type] = (availableByType[type] || 0) + 1;
+          availableValueByType[type] = (availableValueByType[type] || 0) + val;
         }
       });
+    });
+
+    // Calculate project-based stages breakdown
+    const projectStages = {};
+    allProjects.forEach(proj => {
+      projectStages[proj.code || proj.name] = {
+        totalLeads: 0,
+        enquiries: 0,
+        siteVisits: 0,
+        hotList: 0,
+        booked: 0,
+        handover: 0
+      };
+    });
+
+    // Calculate person-wise project-wise stages breakdown
+    const personProjectStages = {};
+
+    leads.forEach(lead => {
+      const uName = lead.assignedTo?.name || 'Unassigned';
+      const pCode = lead.project?.code || lead.project?.name || 'No Project';
+      const personProjectKey = `${uName}___${pCode}`;
+
+      // Check if lead corresponds to a handed over unit (status is Won, or unit is Sold Out in project)
+      let isHandover = lead.status === 'Won';
+      if (!isHandover && lead.project && lead.bookingInfo?.selectedUnits?.length > 0) {
+        const projId = lead.project._id || lead.project;
+        const proj = allProjects.find(p => p._id.toString() === projId.toString());
+        if (proj) {
+          isHandover = lead.bookingInfo.selectedUnits.some(unitId => {
+            const unit = proj.units?.find(u => u.unitId === unitId);
+            return unit && unit.status === 'Sold Out';
+          });
+        }
+      }
+
+      if (!personProjectStages[personProjectKey]) {
+        personProjectStages[personProjectKey] = {
+          personName: uName,
+          projectName: pCode,
+          totalLeads: 0,
+          enquiries: 0,
+          siteVisits: 0,
+          hotList: 0,
+          booked: 0,
+          handover: 0
+        };
+      }
+
+      personProjectStages[personProjectKey].totalLeads += 1;
+      const status = lead.status;
+      if (status === 'Contacted' || status === 'Follow-Up') {
+        personProjectStages[personProjectKey].enquiries += 1;
+      } else if (status === 'Site Visit' || status === 'Site Visit Follow-up') {
+        personProjectStages[personProjectKey].siteVisits += 1;
+      } else if (status === 'Qualified') {
+        personProjectStages[personProjectKey].hotList += 1;
+      } else if (status === 'Booking') {
+        personProjectStages[personProjectKey].booked += 1;
+      }
+      if (isHandover) {
+        personProjectStages[personProjectKey].handover += 1;
+      }
+
+      if (lead.project) {
+        const pCode = lead.project.code || lead.project.name;
+        if (!projectStages[pCode]) {
+          projectStages[pCode] = { totalLeads: 0, enquiries: 0, siteVisits: 0, hotList: 0, booked: 0, handover: 0 };
+        }
+        projectStages[pCode].totalLeads += 1;
+        if (status === 'Contacted' || status === 'Follow-Up') {
+          projectStages[pCode].enquiries += 1;
+        } else if (status === 'Site Visit' || status === 'Site Visit Follow-up') {
+          projectStages[pCode].siteVisits += 1;
+        } else if (status === 'Qualified') {
+          projectStages[pCode].hotList += 1;
+        } else if (status === 'Booking') {
+          projectStages[pCode].booked += 1;
+        }
+        if (isHandover) {
+          projectStages[pCode].handover += 1;
+        }
+      }
     });
 
     // Compute stage-by-stage payments from CRD Flow
@@ -380,7 +514,14 @@ router.get('/stats', protect, async (req, res) => {
           bookedUnits,
           handoverUnits,
           totalByType,
-          availableByType
+          availableByType,
+          bookedByType,
+          handoverByType,
+          totalValueByType,
+          availableValueByType,
+          bookedValueByType,
+          handoverValueByType,
+          projectsByType
         }
       },
       insights: {
@@ -391,6 +532,8 @@ router.get('/stats', protect, async (req, res) => {
         bookingConversionRate,
         handoverRate
       },
+      projectStages,
+      personProjectStages,
       sourceStats,
       groupStats,
       userStats,

@@ -280,6 +280,17 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
                 <span>CRD Flow</span>
               </Link>
 
+              <Link
+                to="/crd-flow/bank-loan-history"
+                className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs transition ${
+                  isActive('/crd-flow/bank-loan-history')
+                    ? 'text-white font-extrabold border-l-2 border-white pl-2'
+                    : 'text-emerald-150 hover:text-white hover:bg-white/5'
+                }`}
+              >
+                <span>Bank Loan History</span>
+              </Link>
+
              
             </div>
           )}

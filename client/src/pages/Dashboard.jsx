@@ -16,7 +16,8 @@ import {
   FileText,
   User,
   FolderOpen,
-  Layers
+  Layers,
+  Download
 } from 'lucide-react';
 
 const getCoordinatesForPercent = (percent) => {
@@ -215,6 +216,12 @@ const Dashboard = () => {
   const { token, user } = useAuth();
   
   // Date filters - default to current month
+  const [selectedMonth, setSelectedMonth] = useState(() => {
+    const d = new Date();
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    return `${year}-${month}`;
+  });
   const [fromDate, setFromDate] = useState(() => {
     const d = new Date();
     const year = d.getFullYear();
@@ -246,6 +253,15 @@ const Dashboard = () => {
   const [selectedProjectType, setSelectedProjectType] = useState('');
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
+  const [showUserModal, setShowUserModal] = useState(false);
+  const [selectedUsersList, setSelectedUsersList] = useState([]);
+  const [showProjectModal, setShowProjectModal] = useState(false);
+  const [selectedProjectsList, setSelectedProjectsList] = useState([]);
+  
+  const [selectedSource, setSelectedSource] = useState('');
+  const [showSourceModal, setShowSourceModal] = useState(false);
+  const [selectedSourcesList, setSelectedSourcesList] = useState([]);
+
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
     cards: {
@@ -266,7 +282,7 @@ const Dashboard = () => {
 
   useEffect(() => {
     fetchDashboardStats();
-  }, [fromDate, toDate, selectedUser, selectedProject, selectedProjectType]);
+  }, [fromDate, toDate, selectedUser, selectedProject, selectedProjectType, selectedSource]);
 
   const fetchDashboardStats = async () => {
     setLoading(true);
@@ -275,6 +291,7 @@ const Dashboard = () => {
       if (selectedUser) url += `&userId=${selectedUser}`;
       if (selectedProject) url += `&projectId=${selectedProject}`;
       if (selectedProjectType) url += `&projectType=${selectedProjectType}`;
+      if (selectedSource) url += `&source=${selectedSource}`;
       
       const response = await fetch(url, {
         headers: { 'Authorization': `Bearer ${token}` }
@@ -311,14 +328,469 @@ const Dashboard = () => {
 
   const handleMonthChange = (monthVal) => {
     if (!monthVal) return;
+    setSelectedMonth(monthVal);
     const [yearStr, monthStr] = monthVal.split('-');
     const year = parseInt(yearStr, 10);
     const month = parseInt(monthStr, 10);
-    const firstDay = `${year}-${String(month).padStart(2, '0')}-01`;
-    const lastDayVal = new Date(year, month, 0).getDate();
+            const lastDayVal = new Date(year, month, 0).getDate();
     const lastDay = `${year}-${String(month).padStart(2, '0')}-${String(lastDayVal).padStart(2, '0')}`;
     setFromDate(firstDay);
     setToDate(lastDay);
+  };
+
+  const logoPath = "E:\\builders\\client\\public\\jb_logo.jpg";
+
+  const handleExportExcel = async () => {
+    const inventory = stats.cards.inventory || {};
+    
+    const availableProjCount = inventory.totalProjects || 0;
+    const availableProjVal = (inventory.availableValueByType?.Plot || 0) + 
+                             (inventory.availableValueByType?.Flat || 0) + 
+                             (inventory.availableValueByType?.House || 0);
+
+    let htmlContent = `
+      <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+      <head>
+        <meta charset="utf-8"/>
+        <style>
+          table { border-collapse: collapse; }
+          td, th { border: 1px solid #cccccc; padding: 8px; font-family: 'Segoe UI', Calibri, sans-serif; font-size: 11pt; }
+          th { font-weight: bold; background-color: #0e623a; color: white; border: 1px solid #0b4d2d; }
+          .title-row { font-size: 14pt; font-weight: bold; color: #0e623a; }
+          .section-banner { font-size: 12pt; font-weight: bold; background-color: #e2f0d9; color: #385723; padding: 10px; border: 1px solid #c5e1a5; }
+          .meta-label { color: #7f7f7f; font-size: 9pt; }
+        </style>
+      </head>
+      <body>
+        <table>
+          <tr>
+            <td colspan="3" style="border:none; height:80px; vertical-align:middle; text-align:left;">
+              <img src="${logoPath}" height="60" />
+            </td>
+            <td colspan="6" class="title-row" style="border:none; vertical-align:middle; text-align:right;">JohnBuildwell ERP - OVERALL STATUS REPORT</td>
+          </tr>
+          <tr>
+            <td colspan="9" class="meta-label" style="border:none; text-align:right; padding-top:0;">Generated on: ${new Date().toLocaleString()}</td>
+          </tr>
+          <tr><td colspan="9" style="border:none;"></td></tr>
+          
+          <!-- PART 1 -->
+          <tr><td colspan="9" class="section-banner">PART 1: PROJECTS & UNIT TYPE SUMMARY</td></tr>
+          <tr>
+            <th colspan="3">Metric</th>
+            <th colspan="3">Count</th>
+            <th colspan="3">Total Value (INR)</th>
+          </tr>
+          <tr>
+            <td colspan="3">Available Projects (Common)</td>
+            <td colspan="3">${availableProjCount}</td>
+            <td colspan="3">Rs. ${availableProjVal.toLocaleString()}</td>
+          </tr>
+          <tr>
+            <td colspan="3">Available Projects (Plot)</td>
+            <td colspan="3">${inventory.projectsByType?.Plot || 0}</td>
+            <td colspan="3">Rs. ${(inventory.availableValueByType?.Plot || 0).toLocaleString()}</td>
+          </tr>
+          <tr>
+            <td colspan="3">Available Projects (Flat)</td>
+            <td colspan="3">${inventory.projectsByType?.Flat || 0}</td>
+            <td colspan="3">Rs. ${(inventory.availableValueByType?.Flat || 0).toLocaleString()}</td>
+          </tr>
+          <tr>
+            <td colspan="3">Available Projects (House)</td>
+            <td colspan="3">${inventory.projectsByType?.House || 0}</td>
+            <td colspan="3">Rs. ${(inventory.availableValueByType?.House || 0).toLocaleString()}</td>
+          </tr>
+          <tr><td colspan="9" style="border:none;"></td></tr>
+          
+          <tr>
+            <th>Project Type</th>
+            <th>Overall Count</th>
+            <th>Overall Value (INR)</th>
+            <th>Available Count</th>
+            <th>Available Value (INR)</th>
+            <th>Booked Count</th>
+            <th>Booked Value (INR)</th>
+            <th>Sold Out Count</th>
+            <th>Sold Out Value (INR)</th>
+          </tr>
+    `;
+
+    ['Plot', 'Flat', 'House'].forEach(type => {
+      const overallCount = inventory.totalByType?.[type] || 0;
+      const overallVal = inventory.totalValueByType?.[type] || 0;
+      const availCount = inventory.availableByType?.[type] || 0;
+      const availVal = inventory.availableValueByType?.[type] || 0;
+      const bookedCount = inventory.bookedByType?.[type] || 0;
+      const bookedVal = inventory.bookedValueByType?.[type] || 0;
+      const soldCount = inventory.handoverByType?.[type] || 0;
+      const soldVal = inventory.handoverValueByType?.[type] || 0;
+      
+      htmlContent += `
+        <tr>
+          <td><b>${type}</b></td>
+          <td>${overallCount}</td>
+          <td>Rs. ${overallVal.toLocaleString()}</td>
+          <td>${availCount}</td>
+          <td>Rs. ${availVal.toLocaleString()}</td>
+          <td>${bookedCount}</td>
+          <td>Rs. ${bookedVal.toLocaleString()}</td>
+          <td>${soldCount}</td>
+          <td>Rs. ${soldVal.toLocaleString()}</td>
+        </tr>
+      `;
+    });
+
+    htmlContent += `
+          <tr><td colspan="9" style="border:none;"></td></tr>
+          
+          <!-- PART 2 -->
+          <tr><td colspan="9" class="section-banner">PART 2: PROJECT BASED WORKFLOW STAGES</td></tr>
+          <tr>
+            <th colspan="2">Project Name</th>
+            <th>Total Leads</th>
+            <th>Enquiries</th>
+            <th>Site Visit</th>
+            <th>Hot List</th>
+            <th>Booked</th>
+            <th colspan="2">Site Conversion (Handover)</th>
+          </tr>
+    `;
+
+    Object.keys(stats.projectStages || {}).forEach(projName => {
+      const stages = stats.projectStages[projName];
+      htmlContent += `
+        <tr>
+          <td colspan="2"><b>${projName}</b></td>
+          <td>${stages.totalLeads}</td>
+          <td>${stages.enquiries}</td>
+          <td>${stages.siteVisits}</td>
+          <td>${stages.hotList}</td>
+          <td>${stages.booked}</td>
+          <td colspan="2">${stages.handover}</td>
+        </tr>
+      `;
+    });
+
+    htmlContent += `
+          <tr><td colspan="9" style="border:none;"></td></tr>
+          
+          <!-- PART 3 -->
+          <tr><td colspan="9" class="section-banner">PART 3: PERSONS WISE PROJECT BREAKDOWN</td></tr>
+          <tr>
+            <th colspan="2">Person Name</th>
+            <th colspan="2">Project Name</th>
+            <th>Total Leads</th>
+            <th>Enquiries</th>
+            <th>Site Visit</th>
+            <th>Hot List</th>
+            <th>Booked</th>
+            <th>Site Conversion (Handover)</th>
+          </tr>
+    `;
+
+    Object.keys(stats.personProjectStages || {}).forEach(key => {
+      const row = stats.personProjectStages[key];
+      htmlContent += `
+        <tr>
+          <td colspan="2"><b>${row.personName}</b></td>
+          <td colspan="2">${row.projectName}</td>
+          <td>${row.totalLeads}</td>
+          <td>${row.enquiries}</td>
+          <td>${row.siteVisits}</td>
+          <td>${row.hotList}</td>
+          <td>${row.booked}</td>
+          <td>${row.handover}</td>
+        </tr>
+      `;
+    });
+
+    htmlContent += `
+        </table>
+      </body>
+      </html>
+    `;
+
+    const blob = new Blob([htmlContent], { type: 'application/vnd.ms-excel;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `JohnBuildwell_ERP_Overall_Report_${new Date().toISOString().substring(0, 10)}.xls`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleExportUserReport = async (selectedUserNames) => {
+    let htmlContent = `
+      <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+      <head>
+        <meta charset="utf-8"/>
+        <style>
+          table { border-collapse: collapse; }
+          td, th { border: 1px solid #cccccc; padding: 8px; font-family: 'Segoe UI', Calibri, sans-serif; font-size: 11pt; }
+          th { font-weight: bold; background-color: #0e623a; color: white; border: 1px solid #0b4d2d; }
+          .title-row { font-size: 14pt; font-weight: bold; color: #0e623a; }
+          .section-banner { font-size: 12pt; font-weight: bold; background-color: #e2f0d9; color: #385723; padding: 10px; border: 1px solid #c5e1a5; }
+          .meta-label { color: #7f7f7f; font-size: 9pt; }
+        </style>
+      </head>
+      <body>
+        <table>
+          <tr>
+            <td colspan="3" style="border:none; height:80px; vertical-align:middle; text-align:left;">
+              <img src="${logoPath}" height="60" />
+            </td>
+            <td colspan="4" class="title-row" style="border:none; vertical-align:middle; text-align:right;">JohnBuildwell ERP - USER WISE PERFORMANCE REPORT</td>
+          </tr>
+          <tr>
+            <td colspan="7" class="meta-label" style="border:none; text-align:right; padding-top:0;">Generated on: ${new Date().toLocaleString()}</td>
+          </tr>
+          <tr><td colspan="7" style="border:none;"></td></tr>
+    `;
+
+    selectedUserNames.forEach(uName => {
+      let uTotalLeads = 0, uEnquiries = 0, uSiteVisits = 0, uHotList = 0, uBooked = 0, uHandover = 0;
+      let rows = [];
+
+      Object.keys(stats.personProjectStages || {}).forEach(key => {
+        const row = stats.personProjectStages[key];
+        if (row.personName === uName) {
+          uTotalLeads += row.totalLeads;
+          uEnquiries += row.enquiries;
+          uSiteVisits += row.siteVisits;
+          uHotList += row.hotList;
+          uBooked += row.booked;
+          uHandover += row.handover;
+          rows.push(row);
+        }
+      });
+
+      htmlContent += `
+        <tr><td colspan="7" class="section-banner">USER: ${uName}</td></tr>
+        <tr>
+          <th>Project Name</th>
+          <th>Total Leads</th>
+          <th>Enquiries</th>
+          <th>Site Visit</th>
+          <th>Hot List</th>
+          <th>Booked</th>
+          <th>Site Conversion (Handover)</th>
+        </tr>
+        <tr style="background-color:#f9f9f9; font-weight:bold;">
+          <td><b>OVERALL SUMMARY</b></td>
+          <td>${uTotalLeads}</td>
+          <td>${uEnquiries}</td>
+          <td>${uSiteVisits}</td>
+          <td>${uHotList}</td>
+          <td>${uBooked}</td>
+          <td>${uHandover}</td>
+        </tr>
+      `;
+
+      rows.forEach(row => {
+        htmlContent += `
+          <tr>
+            <td>${row.projectName}</td>
+            <td>${row.totalLeads}</td>
+            <td>${row.enquiries}</td>
+            <td>${row.siteVisits}</td>
+            <td>${row.hotList}</td>
+            <td>${row.booked}</td>
+            <td>${row.handover}</td>
+          </tr>
+        `;
+      });
+
+      htmlContent += `<tr><td colspan="7" style="border:none; height:15px;"></td></tr>`;
+    });
+
+    htmlContent += `
+        </table>
+      </body>
+      </html>
+    `;
+
+    const blob = new Blob([htmlContent], { type: 'application/vnd.ms-excel;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `User_Wise_Report_${new Date().toISOString().substring(0, 10)}.xls`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleExportProjectReport = async (selectedProjectNames) => {
+    let htmlContent = `
+      <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+      <head>
+        <meta charset="utf-8"/>
+        <style>
+          table { border-collapse: collapse; }
+          td, th { border: 1px solid #cccccc; padding: 8px; font-family: 'Segoe UI', Calibri, sans-serif; font-size: 11pt; }
+          th { font-weight: bold; background-color: #0e623a; color: white; border: 1px solid #0b4d2d; }
+          .title-row { font-size: 14pt; font-weight: bold; color: #0e623a; }
+          .section-banner { font-size: 12pt; font-weight: bold; background-color: #e2f0d9; color: #385723; padding: 10px; border: 1px solid #c5e1a5; }
+          .meta-label { color: #7f7f7f; font-size: 9pt; }
+        </style>
+      </head>
+      <body>
+        <table>
+          <tr>
+            <td colspan="3" style="border:none; height:80px; vertical-align:middle; text-align:left;">
+              <img src="${logoPath}" height="60" />
+            </td>
+            <td colspan="4" class="title-row" style="border:none; vertical-align:middle; text-align:right;">JohnBuildwell ERP - PROJECT WISE PERFORMANCE REPORT</td>
+          </tr>
+          <tr>
+            <td colspan="7" class="meta-label" style="border:none; text-align:right; padding-top:0;">Generated on: ${new Date().toLocaleString()}</td>
+          </tr>
+          <tr><td colspan="7" style="border:none;"></td></tr>
+    `;
+
+    selectedProjectNames.forEach(projName => {
+      const stages = stats.projectStages[projName] || { totalLeads: 0, enquiries: 0, siteVisits: 0, hotList: 0, booked: 0, handover: 0 };
+      
+      htmlContent += `
+        <tr><td colspan="7" class="section-banner">PROJECT: ${projName}</td></tr>
+        <tr>
+          <th colspan="3">Workflow Stage</th>
+          <th colspan="4">Count</th>
+        </tr>
+        <tr>
+          <td colspan="3">Total Leads</td>
+          <td colspan="4">${stages.totalLeads}</td>
+        </tr>
+        <tr>
+          <td colspan="3">Enquiries</td>
+          <td colspan="4">${stages.enquiries}</td>
+        </tr>
+        <tr>
+          <td colspan="3">Site Visits</td>
+          <td colspan="4">${stages.siteVisits}</td>
+        </tr>
+        <tr>
+          <td colspan="3">Hot List</td>
+          <td colspan="4">${stages.hotList}</td>
+        </tr>
+        <tr>
+          <td colspan="3">Booked Units</td>
+          <td colspan="4">${stages.booked}</td>
+        </tr>
+        <tr>
+          <td colspan="3">Site Conversion (Handover)</td>
+          <td colspan="4">${stages.handover}</td>
+        </tr>
+        
+        <tr><td colspan="7" style="border:none; height:10px;"></td></tr>
+        
+        <tr>
+          <th colspan="2">Executive Name</th>
+          <th>Total Leads</th>
+          <th>Enquiries</th>
+          <th>Site Visit</th>
+          <th>Hot List</th>
+          <th>Booked</th>
+        </tr>
+      `;
+
+      Object.keys(stats.personProjectStages || {}).forEach(key => {
+        const row = stats.personProjectStages[key];
+        if (row.projectName === projName) {
+          htmlContent += `
+            <tr>
+              <td colspan="2"><b>${row.personName}</b></td>
+              <td>${row.totalLeads}</td>
+              <td>${row.enquiries}</td>
+              <td>${row.siteVisits}</td>
+              <td>${row.hotList}</td>
+              <td>${row.booked}</td>
+            </tr>
+          `;
+        }
+      });
+
+      htmlContent += `<tr><td colspan="7" style="border:none; height:20px;"></td></tr>`;
+    });
+
+    htmlContent += `
+        </table>
+      </body>
+      </html>
+    `;
+
+    const blob = new Blob([htmlContent], { type: 'application/vnd.ms-excel;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `Project_Wise_Report_${new Date().toISOString().substring(0, 10)}.xls`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleExportSourceReport = async (selectedSources) => {
+    let htmlContent = `
+      <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+      <head>
+        <meta charset="utf-8"/>
+        <style>
+          table { border-collapse: collapse; }
+          td, th { border: 1px solid #cccccc; padding: 8px; font-family: 'Segoe UI', Calibri, sans-serif; font-size: 11pt; }
+          th { font-weight: bold; background-color: #0e623a; color: white; border: 1px solid #0b4d2d; }
+          .title-row { font-size: 13pt; font-weight: bold; color: #0e623a; }
+          .section-banner { font-size: 12pt; font-weight: bold; background-color: #e2f0d9; color: #385723; padding: 10px; border: 1px solid #c5e1a5; }
+          .meta-label { color: #7f7f7f; font-size: 9pt; }
+        </style>
+      </head>
+      <body>
+        <table>
+          <tr>
+            <td colspan="2" style="border:none; height:80px; vertical-align:middle; text-align:left;">
+              <img src="${logoPath}" height="60" />
+            </td>
+            <td colspan="2" class="title-row" style="border:none; vertical-align:middle; text-align:right;">JohnBuildwell ERP - SOURCE WISE PERFORMANCE REPORT</td>
+          </tr>
+          <tr>
+            <td colspan="4" class="meta-label" style="border:none; text-align:right; padding-top:0;">Generated on: ${new Date().toLocaleString()}</td>
+          </tr>
+          <tr><td colspan="4" style="border:none;"></td></tr>
+          
+          <tr>
+            <th>Source Type</th>
+            <th>Budget Allocation</th>
+            <th>Spent Value</th>
+            <th>Networth Value</th>
+          </tr>
+    `;
+
+    selectedSources.forEach(src => {
+      const s = stats.sourceStats[src] || { budget: 0, spent: 0, value: 0 };
+      htmlContent += `
+        <tr>
+          <td><b>${src}</b></td>
+          <td>Rs. ${(s.budget || 0).toLocaleString()}</td>
+          <td>Rs. ${(s.spent || 0).toLocaleString()}</td>
+          <td>Rs. ${(s.value || 0).toLocaleString()}</td>
+        </tr>
+      `;
+    });
+
+    htmlContent += `
+        </table>
+      </body>
+      </html>
+    `;
+
+    const blob = new Blob([htmlContent], { type: 'application/vnd.ms-excel;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `Source_Wise_Report_${new Date().toISOString().substring(0, 10)}.xls`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   const getSourcesData = () => {
@@ -351,97 +823,164 @@ const Dashboard = () => {
 
   return (
     <div className="space-y-8 w-full mx-auto text-left animate-fadeIn">
-      
-      {/* Date & User/Project filtration Bar */}
-      <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm flex flex-col xl:flex-row items-center justify-between gap-6">
+      {/* Title Header Bar */}
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <div>
-          <h2 className="text-xl font-extrabold text-gray-800 flex items-center gap-2">
+          <h2 className="text-xl md:text-2xl font-extrabold text-gray-800 flex items-center gap-2">
             <BarChart3 className="w-6 h-6 text-[#0e623a]" />
             <span>Dashboard Overview</span>
           </h2>
-          <p className="text-xs text-gray-500 mt-1">Real-time pipelines, employee metrics, sales performance, and marketing conversions</p>
+          <p className="text-xs text-gray-550 mt-1">Real-time pipelines, employee metrics, sales performance, and marketing conversions</p>
         </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={handleExportExcel}
+            className="flex items-center justify-center gap-1.5 px-4 py-2.5 bg-[#0e623a] hover:bg-[#0b4d2d] text-white text-xs font-bold rounded-xl transition shadow-sm"
+          >
+            <Download className="w-4 h-4" />
+            <span>Export Overall Report</span>
+          </button>
+          
+          <button
+            onClick={() => setShowUserModal(true)}
+            className="flex items-center justify-center gap-1.5 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition shadow-sm"
+          >
+            <Download className="w-4 h-4" />
+            <span>Export User Report</span>
+          </button>
 
-        {/* Filtration Forms Container */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:flex xl:flex-wrap items-center gap-3 bg-gray-50 p-4 rounded-2xl border border-gray-150 w-full xl:w-auto xl:justify-end">
+          <button
+            onClick={() => setShowProjectModal(true)}
+            className="flex items-center justify-center gap-1.5 px-4 py-2.5 bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold rounded-xl transition shadow-sm"
+          >
+            <Download className="w-4 h-4" />
+            <span>Export Project Report</span>
+          </button>
+
+          <button
+            onClick={() => setShowSourceModal(true)}
+            className="flex items-center justify-center gap-1.5 px-4 py-2.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl transition shadow-sm"
+          >
+            <Download className="w-4 h-4" />
+            <span>Export Source Report</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Filtration Header Card */}
+      <div className="bg-white border border-gray-150 shadow-sm rounded-3xl p-5 w-full">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4 items-end">
           
           {/* User Select */}
-          {(user?.role === 'Super Admin' || user?.role === 'Admin') && (
-            <div className="flex items-center gap-1.5 w-full xl:w-auto">
-              <User className="w-4 h-4 text-gray-455 shrink-0" />
-              <select
-                value={selectedUser}
-                onChange={(e) => setSelectedUser(e.target.value)}
-                className="w-full xl:w-auto px-3 py-1.5 text-xs bg-white border border-gray-255 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-gray-700 font-bold"
-              >
-                <option value="">All Users</option>
-                {(stats.users || []).map(u => (
-                  <option key={u._id} value={u._id}>{u.name} ({u.role})</option>
-                ))}
-              </select>
+          {(user?.role === 'Super Admin' || user?.role === 'Admin') ? (
+            <div className="flex flex-col gap-1 w-full">
+              <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Filtered User</label>
+              <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 px-3 py-1.5 rounded-xl">
+                <User className="w-4 h-4 text-gray-455 shrink-0" />
+                <select
+                  value={selectedUser}
+                  onChange={(e) => setSelectedUser(e.target.value)}
+                  className="w-full bg-transparent text-xs text-gray-700 font-bold focus:outline-none focus:ring-0 border-0 p-0"
+                >
+                  <option value="">All Users</option>
+                  {(stats.users || []).map(u => (
+                    <option key={u._id} value={u._id}>{u.name} ({u.role})</option>
+                  ))}
+                </select>
+              </div>
             </div>
+          ) : (
+            <div className="hidden lg:block"></div>
           )}
 
           {/* Project Select */}
-          <div className="flex items-center gap-1.5 w-full xl:w-auto">
-            <FolderOpen className="w-4 h-4 text-gray-455 shrink-0" />
-            <select
-              value={selectedProject}
-              onChange={(e) => setSelectedProject(e.target.value)}
-              className="w-full xl:w-auto px-3 py-1.5 text-xs bg-white border border-gray-250 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-gray-700 font-bold"
-            >
-              <option value="">All Projects</option>
-              {(stats.projects || []).map(p => (
-                <option key={p._id} value={p._id}>{p.code || p.name}</option>
-              ))}
-            </select>
+          <div className="flex flex-col gap-1 w-full">
+            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Filtered Project</label>
+            <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 px-3 py-1.5 rounded-xl">
+              <FolderOpen className="w-4 h-4 text-gray-455 shrink-0" />
+              <select
+                value={selectedProject}
+                onChange={(e) => setSelectedProject(e.target.value)}
+                className="w-full bg-transparent text-xs text-gray-700 font-bold focus:outline-none focus:ring-0 border-0 p-0"
+              >
+                <option value="">All Projects</option>
+                {(stats.projects || []).map(p => (
+                  <option key={p._id} value={p._id}>{p.code || p.name}</option>
+                ))}
+              </select>
+            </div>
           </div>
 
           {/* Project Type Select */}
-          <div className="flex items-center gap-1.5 w-full xl:w-auto">
-            <Layers className="w-4 h-4 text-gray-455 shrink-0" />
-            <select
-              value={selectedProjectType}
-              onChange={(e) => setSelectedProjectType(e.target.value)}
-              className="w-full xl:w-auto px-3 py-1.5 text-xs bg-white border border-gray-255 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-gray-700 font-bold"
-            >
-              <option value="">All Types</option>
-              <option value="Plot">Plot</option>
-              <option value="Flat">Flat</option>
-              <option value="House">House</option>
-            </select>
+          <div className="flex flex-col gap-1 w-full">
+            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Filtered Type</label>
+            <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 px-3 py-1.5 rounded-xl">
+              <Layers className="w-4 h-4 text-gray-455 shrink-0" />
+              <select
+                value={selectedProjectType}
+                onChange={(e) => setSelectedProjectType(e.target.value)}
+                className="w-full bg-transparent text-xs text-gray-700 font-bold focus:outline-none focus:ring-0 border-0 p-0"
+              >
+                <option value="">All Types</option>
+                <option value="Plot">Plot</option>
+                <option value="Flat">Flat</option>
+                <option value="House">House</option>
+              </select>
+            </div>
           </div>
 
-          <div className="hidden xl:block border-l border-gray-250 h-5"></div>
+          {/* Source Select */}
+          <div className="flex flex-col gap-1 w-full">
+            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Filtered Source</label>
+            <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 px-3 py-1.5 rounded-xl">
+              <Target className="w-4 h-4 text-gray-455 shrink-0" />
+              <select
+                value={selectedSource}
+                onChange={(e) => setSelectedSource(e.target.value)}
+                className="w-full bg-transparent text-xs text-gray-700 font-bold focus:outline-none focus:ring-0 border-0 p-0"
+              >
+                <option value="">All Sources</option>
+                {Object.keys(stats.sourceStats || {}).map(src => (
+                  <option key={src} value={src}>{src}</option>
+                ))}
+              </select>
+            </div>
+          </div>
 
           {/* Month Wise */}
-          <div className="flex items-center gap-1.5 text-xs text-gray-550 font-bold w-full xl:w-auto">
-            <Calendar className="w-4 h-4 text-[#0e623a]" />
-            <span className="shrink-0">Month:</span>
-            <input
-              type="month"
-              onChange={(e) => handleMonthChange(e.target.value)}
-              className="w-full xl:w-auto px-3 py-1.5 text-xs bg-white border border-gray-255 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-gray-700 font-bold"
-            />
+          <div className="flex flex-col gap-1 w-full">
+            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Select Month</label>
+            <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 px-3 py-1.5 rounded-xl">
+              <Calendar className="w-4 h-4 text-[#0e623a] shrink-0" />
+              <input
+                type="month"
+                value={selectedMonth}
+                onChange={(e) => handleMonthChange(e.target.value)}
+                className="w-full bg-transparent text-xs text-gray-700 font-bold focus:outline-none focus:ring-0 border-0 p-0"
+              />
+            </div>
           </div>
 
           {/* Range picker */}
-          <div className="flex flex-col gap-2 text-xs text-gray-500 font-bold w-full xl:w-auto sm:flex-row sm:items-center">
-            <span className="shrink-0">Range:</span>
-            <input
-              type="date"
-              value={fromDate}
-              onChange={(e) => setFromDate(e.target.value)}
-              className="w-full xl:w-32 px-3 py-1.5 text-xs bg-white border border-gray-250 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-gray-700 font-bold"
-            />
-            <span className="text-xs text-gray-400 font-bold text-center sm:text-left">to</span>
-            <input
-              type="date"
-              value={toDate}
-              onChange={(e) => setToDate(e.target.value)}
-              className="w-full xl:w-32 px-3 py-1.5 text-xs bg-white border border-gray-250 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-gray-700 font-bold"
-            />
+          <div className="flex flex-col gap-1 w-full">
+            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Custom Date Range</label>
+            <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 px-3 py-1.5 rounded-xl">
+              <input
+                type="date"
+                value={fromDate}
+                onChange={(e) => setFromDate(e.target.value)}
+                className="w-1/2 bg-transparent text-xs text-gray-700 font-bold focus:outline-none focus:ring-0 border-0 p-0 text-center"
+              />
+              <span className="text-[10px] text-gray-400 font-bold">to</span>
+              <input
+                type="date"
+                value={toDate}
+                onChange={(e) => setToDate(e.target.value)}
+                className="w-1/2 bg-transparent text-xs text-gray-700 font-bold focus:outline-none focus:ring-0 border-0 p-0 text-center"
+              />
+            </div>
           </div>
+
         </div>
       </div>
 
@@ -500,15 +1039,53 @@ const Dashboard = () => {
             </div>
           </div>
         </div>
-        <div className="bg-white border border-amber-100 rounded-3xl p-5 shadow-sm hover:shadow-md transition bg-amber-50/10">
+        <div className="relative group bg-white border border-amber-100 rounded-3xl p-5 shadow-sm hover:shadow-md transition bg-amber-50/10 cursor-pointer select-none">
           <span className="text-[10px] text-amber-600 font-extrabold uppercase tracking-wider block">Booked Units</span>
           <h3 className="text-xl font-extrabold text-amber-800 mt-1">{stats.cards.inventory?.bookedUnits || 0}</h3>
           <p className="text-[9px] text-amber-500 mt-2 font-medium">Awaiting final agreement</p>
+          <div className="absolute inset-0 bg-gray-900/95 backdrop-blur-sm rounded-3xl p-4 flex flex-col justify-center text-left opacity-0 group-hover:opacity-100 transition duration-300 pointer-events-none z-20">
+            <h4 className="text-[10px] font-bold text-white uppercase tracking-wider mb-1.5 pb-1 border-b border-gray-800">
+              Booked Units Breakdown
+            </h4>
+            <div className="space-y-1 text-[10px] font-bold text-gray-300">
+              <div className="flex justify-between">
+                <span>Flats:</span>
+                <span className="text-white">{stats.cards.inventory?.bookedByType?.Flat || 0}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Plots:</span>
+                <span className="text-white">{stats.cards.inventory?.bookedByType?.Plot || 0}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Houses:</span>
+                <span className="text-white">{stats.cards.inventory?.bookedByType?.House || 0}</span>
+              </div>
+            </div>
+          </div>
         </div>
-        <div className="bg-white border border-rose-100 rounded-3xl p-5 shadow-sm hover:shadow-md transition bg-rose-50/10">
+        <div className="relative group bg-white border border-rose-100 rounded-3xl p-5 shadow-sm hover:shadow-md transition bg-rose-50/10 cursor-pointer select-none">
           <span className="text-[10px] text-rose-600 font-extrabold uppercase tracking-wider block">Handover Units</span>
           <h3 className="text-xl font-extrabold text-rose-800 mt-1">{stats.cards.inventory?.handoverUnits || 0}</h3>
           <p className="text-[9px] text-rose-500 mt-2 font-medium">Key Handover completed (Sold)</p>
+          <div className="absolute inset-0 bg-gray-900/95 backdrop-blur-sm rounded-3xl p-4 flex flex-col justify-center text-left opacity-0 group-hover:opacity-100 transition duration-300 pointer-events-none z-20">
+            <h4 className="text-[10px] font-bold text-white uppercase tracking-wider mb-1.5 pb-1 border-b border-gray-800">
+              Handover Units Breakdown
+            </h4>
+            <div className="space-y-1 text-[10px] font-bold text-gray-300">
+              <div className="flex justify-between">
+                <span>Flats:</span>
+                <span className="text-white">{stats.cards.inventory?.handoverByType?.Flat || 0}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Plots:</span>
+                <span className="text-white">{stats.cards.inventory?.handoverByType?.Plot || 0}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Houses:</span>
+                <span className="text-white">{stats.cards.inventory?.handoverByType?.House || 0}</span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -659,15 +1236,7 @@ const Dashboard = () => {
           {/* comparison pie charts */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             
-            {/* Chart 1: Incoming Networth Value */}
-            <div className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm space-y-4 text-center">
-              <h3 className="text-sm font-extrabold text-gray-800 uppercase tracking-wide text-left">
-                Incoming Networth Value
-              </h3>
-              {renderPieChart(networthData, 'networth', 'source', primaryColors)}
-            </div>
-
-            {/* Chart 2: Budget Allocation Sources */}
+            {/* Chart 1: Budget Allocation Sources */}
             <div className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm space-y-4 text-center">
               <h3 className="text-sm font-extrabold text-gray-800 uppercase tracking-wide text-left">
                 Budget Allocation Sources
@@ -675,12 +1244,20 @@ const Dashboard = () => {
               {renderPieChart(budgetData, 'budget', 'source', primaryColors)}
             </div>
 
-            {/* Chart 3: Spent Marketing Sources */}
+            {/* Chart 2: Spent Marketing Sources */}
             <div className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm space-y-4 text-center">
               <h3 className="text-sm font-extrabold text-gray-800 uppercase tracking-wide text-left">
                 Spent Marketing Sources
               </h3>
               {renderPieChart(spentData, 'spent', 'source', primaryColors)}
+            </div>
+
+            {/* Chart 3: Incoming Networth Value */}
+            <div className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm space-y-4 text-center">
+              <h3 className="text-sm font-extrabold text-gray-800 uppercase tracking-wide text-left">
+                Incoming Networth Value
+              </h3>
+              {renderPieChart(networthData, 'networth', 'source', primaryColors)}
             </div>
 
           </div>
@@ -838,6 +1415,238 @@ const Dashboard = () => {
           </div>
 
         </>
+      )}
+
+      {/* User Selection Modal */}
+      {showUserModal && (
+        <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm z-[999] flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl shadow-xl w-full max-w-md overflow-hidden border border-gray-100 text-left">
+            <div className="p-6 border-b border-gray-150">
+              <h3 className="text-lg font-extrabold text-gray-800">Export User Wise Report</h3>
+              <p className="text-xs text-gray-500 mt-1">Select one or more sales executives to include in the report</p>
+            </div>
+            
+            <div className="p-6 max-h-60 overflow-y-auto space-y-2">
+              <label className="flex items-center gap-2.5 p-2 hover:bg-gray-50 rounded-xl cursor-pointer transition">
+                <input
+                  type="checkbox"
+                  checked={selectedUsersList.length === (stats.users || []).length}
+                  onChange={(e) => {
+                    if (e.target.checked) {
+                      setSelectedUsersList((stats.users || []).map(u => u.name));
+                    } else {
+                      setSelectedUsersList([]);
+                    }
+                  }}
+                  className="rounded text-[#0e623a] focus:ring-[#0e623a] w-4 h-4"
+                />
+                <span className="text-xs font-bold text-[#0e623a]">Select All Users</span>
+              </label>
+              
+              <div className="h-px bg-gray-100 my-2"></div>
+              
+              {(stats.users || []).map(user => (
+                <label key={user._id} className="flex items-center gap-2.5 p-2 hover:bg-gray-50 rounded-xl cursor-pointer transition">
+                  <input
+                    type="checkbox"
+                    checked={selectedUsersList.includes(user.name)}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setSelectedUsersList([...selectedUsersList, user.name]);
+                      } else {
+                        setSelectedUsersList(selectedUsersList.filter(name => name !== user.name));
+                      }
+                    }}
+                    className="rounded text-[#0e623a] focus:ring-[#0e623a] w-4 h-4"
+                  />
+                  <span className="text-xs text-gray-700 font-bold">{user.name}</span>
+                  <span className="text-[10px] bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full ml-auto uppercase tracking-wider font-extrabold">{user.role}</span>
+                </label>
+              ))}
+            </div>
+            
+            <div className="p-6 bg-gray-50 border-t border-gray-150 flex items-center justify-end gap-2">
+              <button
+                onClick={() => {
+                  setShowUserModal(false);
+                  setSelectedUsersList([]);
+                }}
+                className="px-4 py-2 text-xs font-bold text-gray-500 hover:text-gray-750 transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  if (selectedUsersList.length === 0) {
+                    alert("Please select at least one user to export.");
+                    return;
+                  }
+                  handleExportUserReport(selectedUsersList);
+                  setShowUserModal(false);
+                  setSelectedUsersList([]);
+                }}
+                className="px-5 py-2 bg-[#0e623a] hover:bg-[#0b4d2d] text-white text-xs font-bold rounded-xl transition shadow-sm"
+              >
+                Export Report ({selectedUsersList.length})
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Project Selection Modal */}
+      {showProjectModal && (
+        <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm z-[999] flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl shadow-xl w-full max-w-md overflow-hidden border border-gray-100 text-left">
+            <div className="p-6 border-b border-gray-150">
+              <h3 className="text-lg font-extrabold text-gray-800">Export Project Wise Report</h3>
+              <p className="text-xs text-gray-550 mt-1">Select one or more projects to include in the report</p>
+            </div>
+            
+            <div className="p-6 max-h-60 overflow-y-auto space-y-2">
+              <label className="flex items-center gap-2.5 p-2 hover:bg-gray-50 rounded-xl cursor-pointer transition">
+                <input
+                  type="checkbox"
+                  checked={selectedProjectsList.length === (stats.projects || []).length}
+                  onChange={(e) => {
+                    if (e.target.checked) {
+                      setSelectedProjectsList((stats.projects || []).map(p => p.code || p.name));
+                    } else {
+                      setSelectedProjectsList([]);
+                    }
+                  }}
+                  className="rounded text-[#0e623a] focus:ring-[#0e623a] w-4 h-4"
+                />
+                <span className="text-xs font-bold text-[#0e623a]">Select All Projects</span>
+              </label>
+              
+              <div className="h-px bg-gray-100 my-2"></div>
+              
+              {(stats.projects || []).map(proj => {
+                const name = proj.code || proj.name;
+                return (
+                  <label key={proj._id} className="flex items-center gap-2.5 p-2 hover:bg-gray-50 rounded-xl cursor-pointer transition">
+                    <input
+                      type="checkbox"
+                      checked={selectedProjectsList.includes(name)}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedProjectsList([...selectedProjectsList, name]);
+                        } else {
+                          setSelectedProjectsList(selectedProjectsList.filter(pName => pName !== name));
+                        }
+                      }}
+                      className="rounded text-[#0e623a] focus:ring-[#0e623a] w-4 h-4"
+                    />
+                    <span className="text-xs text-gray-700 font-bold">{name}</span>
+                  </label>
+                );
+              })}
+            </div>
+            
+            <div className="p-6 bg-gray-50 border-t border-gray-150 flex items-center justify-end gap-2">
+              <button
+                onClick={() => {
+                  setShowProjectModal(false);
+                  setSelectedProjectsList([]);
+                }}
+                className="px-4 py-2 text-xs font-bold text-gray-500 hover:text-gray-750 transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  if (selectedProjectsList.length === 0) {
+                    alert("Please select at least one project to export.");
+                    return;
+                  }
+                  handleExportProjectReport(selectedProjectsList);
+                  setShowProjectModal(false);
+                  setSelectedProjectsList([]);
+                }}
+                className="px-5 py-2 bg-[#0e623a] hover:bg-[#0b4d2d] text-white text-xs font-bold rounded-xl transition shadow-sm"
+              >
+                Export Report ({selectedProjectsList.length})
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Source Selection Modal */}
+      {showSourceModal && (
+        <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm z-[999] flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl shadow-xl w-full max-w-md overflow-hidden border border-gray-100 text-left">
+            <div className="p-6 border-b border-gray-150">
+              <h3 className="text-lg font-extrabold text-gray-800">Export Source Wise Report</h3>
+              <p className="text-xs text-gray-550 mt-1">Select one or more marketing sources to include in the report</p>
+            </div>
+            
+            <div className="p-6 max-h-60 overflow-y-auto space-y-2">
+              <label className="flex items-center gap-2.5 p-2 hover:bg-gray-50 rounded-xl cursor-pointer transition">
+                <input
+                  type="checkbox"
+                  checked={selectedSourcesList.length === Object.keys(stats.sourceStats || {}).length}
+                  onChange={(e) => {
+                    if (e.target.checked) {
+                      setSelectedSourcesList(Object.keys(stats.sourceStats || {}));
+                    } else {
+                      setSelectedSourcesList([]);
+                    }
+                  }}
+                  className="rounded text-[#0e623a] focus:ring-[#0e623a] w-4 h-4"
+                />
+                <span className="text-xs font-bold text-[#0e623a]">Select All Sources</span>
+              </label>
+              
+              <div className="h-px bg-gray-100 my-2"></div>
+              
+              {Object.keys(stats.sourceStats || {}).map(src => (
+                <label key={src} className="flex items-center gap-2.5 p-2 hover:bg-gray-50 rounded-xl cursor-pointer transition">
+                  <input
+                    type="checkbox"
+                    checked={selectedSourcesList.includes(src)}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setSelectedSourcesList([...selectedSourcesList, src]);
+                      } else {
+                        setSelectedSourcesList(selectedSourcesList.filter(sName => sName !== src));
+                      }
+                    }}
+                    className="rounded text-[#0e623a] focus:ring-[#0e623a] w-4 h-4"
+                  />
+                  <span className="text-xs text-gray-700 font-bold">{src}</span>
+                </label>
+              ))}
+            </div>
+            
+            <div className="p-6 bg-gray-50 border-t border-gray-150 flex items-center justify-end gap-2">
+              <button
+                onClick={() => {
+                  setShowSourceModal(false);
+                  setSelectedSourcesList([]);
+                }}
+                className="px-4 py-2 text-xs font-bold text-gray-500 hover:text-gray-750 transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  if (selectedSourcesList.length === 0) {
+                    alert("Please select at least one source to export.");
+                    return;
+                  }
+                  handleExportSourceReport(selectedSourcesList);
+                  setShowSourceModal(false);
+                  setSelectedSourcesList([]);
+                }}
+                className="px-5 py-2 bg-[#0e623a] hover:bg-[#0b4d2d] text-white text-xs font-bold rounded-xl transition shadow-sm"
+              >
+                Export Report ({selectedSourcesList.length})
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

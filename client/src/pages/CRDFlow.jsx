@@ -180,17 +180,26 @@ const CRDFlow = () => {
     const file = e.target.files[0];
     if (file) {
       setFileName(file.name);
-      // Pre-fill stages simulation based on user screenshot percentages
       const selectedBooking = bookings.find(b => b._id === selectedBookingId);
-      const valuation = selectedBooking?.bookingInfo?.selectedUnits?.length 
+      const quot = quotations.find(q => (q.lead?._id || q.lead) === selectedBookingId);
+      const valuation = quot ? quot.totalValue : (selectedBooking?.bookingInfo?.selectedUnits?.length 
         ? selectedBooking.bookingInfo.selectedUnits.length * (selectedBooking.project?.pricePerSqFt || 2000) * 1000
-        : 2500000;
+        : 2500000);
       
-      const parsed = defaultStagesTemplate.map(stage => ({
-        name: stage.name,
-        percentage: stage.percentage,
-        amount: Math.round((stage.percentage / 100) * valuation)
-      }));
+      let sumAmount = 0;
+      const parsed = defaultStagesTemplate.map((stage, idx) => {
+        let amount = Math.round((stage.percentage / 100) * valuation);
+        if (idx === defaultStagesTemplate.length - 1) {
+          amount = valuation - sumAmount;
+        } else {
+          sumAmount += amount;
+        }
+        return {
+          name: stage.name,
+          percentage: stage.percentage,
+          amount: amount
+        };
+      });
       setExcelStages(parsed);
     }
   };
@@ -198,15 +207,25 @@ const CRDFlow = () => {
   const handleLoadPresetTemplate = () => {
     setFileName('Preset_Stages_Template.xlsx');
     const selectedBooking = bookings.find(b => b._id === selectedBookingId);
-    const valuation = selectedBooking?.bookingInfo?.selectedUnits?.length 
-      ? selectedBooking.bookingInfo.selectedUnits.length * 1500 * 2000 // estimate calculation helper
-      : 3500000;
+    const quot = quotations.find(q => (q.lead?._id || q.lead) === selectedBookingId);
+    const valuation = quot ? quot.totalValue : (selectedBooking?.bookingInfo?.selectedUnits?.length 
+      ? selectedBooking.bookingInfo.selectedUnits.length * 1500 * 2000 
+      : 3500000);
     
-    const parsed = defaultStagesTemplate.map(stage => ({
-      name: stage.name,
-      percentage: stage.percentage,
-      amount: Math.round((stage.percentage / 100) * valuation)
-    }));
+    let sumAmount = 0;
+    const parsed = defaultStagesTemplate.map((stage, idx) => {
+      let amount = Math.round((stage.percentage / 100) * valuation);
+      if (idx === defaultStagesTemplate.length - 1) {
+        amount = valuation - sumAmount;
+      } else {
+        sumAmount += amount;
+      }
+      return {
+        name: stage.name,
+        percentage: stage.percentage,
+        amount: amount
+      };
+    });
     setExcelStages(parsed);
   };
 
@@ -279,6 +298,32 @@ const CRDFlow = () => {
       }
     } catch (err) {
       setError('Error adding extra work');
+    }
+  };
+
+  const handleRevertExtraWork = async (stageIdx, workId) => {
+    if (!window.confirm("Are you sure you want to revert/remove this extra work? This will deduct the split amounts from the current and next stages.")) {
+      return;
+    }
+    try {
+      setLoading(true);
+      const res = await fetch(`${API_URL}/crd-flow/${activeFlow._id}/stage/${stageIdx}/extra-work/${workId}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const updated = await res.json();
+        setActiveFlow(updated);
+        setSuccess('Extra work reverted successfully!');
+        setTimeout(() => setSuccess(''), 3000);
+      } else {
+        const data = await res.json();
+        setError(data.message || 'Failed to revert extra work');
+      }
+    } catch (err) {
+      setError('Error reverting extra work');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -409,12 +454,32 @@ const CRDFlow = () => {
   };
 
   const getStageTotal = (stage) => {
-    const extraTotal = stage.extraWorks?.reduce((sum, w) => sum + w.amount, 0) || 0;
-    return stage.amount + extraTotal;
+    return stage.amount;
   };
 
   const getStagePaid = (stage) => {
     return stage.payments?.reduce((sum, p) => sum + p.amount, 0) || 0;
+  };
+
+  const getPendingPreviousStages = (idx) => {
+    const pendingStages = [];
+    if (!activeFlow) return pendingStages;
+    for (let j = 0; j < idx; j++) {
+      const stage = activeFlow.stages[j];
+      const due = stage.amount;
+      const paid = stage.payments?.reduce((sum, p) => sum + p.amount, 0) || 0;
+      const pending = due - paid;
+      if (pending > 0) {
+        pendingStages.push({
+          name: stage.name,
+          percentage: stage.percentage,
+          pending: pending,
+          total: due,
+          paid: paid
+        });
+      }
+    }
+    return pendingStages;
   };
 
   const triggerPrintDemandLetter = () => {
@@ -671,6 +736,15 @@ const CRDFlow = () => {
                       <td className="p-4 text-right font-semibold text-[#0e623a]">Rs. {s.amount.toLocaleString()}</td>
                     </tr>
                   ))}
+                  <tr className="bg-gray-100/50 font-bold border-t border-gray-200">
+                    <td className="p-4 text-gray-800 font-extrabold">TOTAL VALUE</td>
+                    <td className="p-4 text-gray-800 font-extrabold">
+                      {excelStages.reduce((sum, s) => sum + s.percentage, 0)}%
+                    </td>
+                    <td className="p-4 text-right text-emerald-800 font-extrabold text-sm">
+                      Rs. {excelStages.reduce((sum, s) => sum + s.amount, 0).toLocaleString()}
+                    </td>
+                  </tr>
                 </tbody>
               </table>
 
@@ -919,9 +993,18 @@ const CRDFlow = () => {
                         <div className="border-t border-gray-200/60 pt-2 space-y-1.5">
                           <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Adjusted Extra Works:</span>
                           {stage.extraWorks.map((work, wIdx) => (
-                            <div key={wIdx} className="flex justify-between items-center text-xs text-gray-600">
+                            <div key={wIdx} className="flex justify-between items-center text-xs text-gray-650">
                               <span>• {work.name}</span>
-                              <span className="font-semibold">+ Rs. {work.amount.toLocaleString()}</span>
+                              <div className="flex items-center gap-2">
+                                <span className="font-semibold text-gray-800">+ Rs. {work.amount.toLocaleString()}</span>
+                                <button
+                                  onClick={() => handleRevertExtraWork(idx, work._id)}
+                                  className="text-red-650 hover:text-red-800 font-bold text-[10px] hover:underline"
+                                  title="Revert Extra Work"
+                                >
+                                  (Revert)
+                                </button>
+                              </div>
                             </div>
                           ))}
                         </div>
@@ -1327,16 +1410,56 @@ const CRDFlow = () => {
                 </div>
 
                 {/* Letter Paragraphs */}
-                <div className="space-y-4 text-gray-700 mb-6 font-sans text-[10px] leading-relaxed">
-                  <p>Dear Sir,</p>
-                  <p>
-                    We are writing to inform you that the <strong className="text-gray-900">{activeFlow.stages[demandLetterStageIdx].name} ({activeFlow.stages[demandLetterStageIdx].percentage}%)</strong> milestone has been successfully completed for Unit No. <strong className="text-gray-900">{activeFlow.unitId}</strong> in our premium project <strong className="text-gray-900">"{activeFlow.project?.name}"</strong>, located at {activeFlow.project?.location || 'Palayamkottai, Tirunelveli'}.
-                  </p>
-                  <p>
-                    As per the project's schedule and agreements, we kindly request you to release the corresponding stage payment of <strong className="text-[#0e623a]">Rs. {getStageTotal(activeFlow.stages[demandLetterStageIdx]).toLocaleString()}/-</strong> (<em>{numberToWords(getStageTotal(activeFlow.stages[demandLetterStageIdx]))}</em>) towards the completed milestone work.
-                  </p>
-                  <p>Please do the needful and credit the payment to our official account details below:</p>
-                </div>
+                {(() => {
+                  const pendingPrev = getPendingPreviousStages(demandLetterStageIdx);
+                  const currentStageTotal = getStageTotal(activeFlow.stages[demandLetterStageIdx]);
+                  const prevPendingTotal = pendingPrev.reduce((sum, s) => sum + s.pending, 0);
+                  const grandTotalRequested = currentStageTotal + prevPendingTotal;
+
+                  return (
+                    <div className="space-y-4 text-gray-700 mb-6 font-sans text-[10px] leading-relaxed">
+                      <p>Dear Sir,</p>
+                      <p>
+                        We are writing to inform you that the <strong className="text-gray-900">{activeFlow.stages[demandLetterStageIdx].name} ({activeFlow.stages[demandLetterStageIdx].percentage}%)</strong> milestone has been successfully completed for Unit No. <strong className="text-gray-900">{activeFlow.unitId}</strong> in our premium project <strong className="text-gray-900">"{activeFlow.project?.name}"</strong>, located at {activeFlow.project?.location || 'Palayamkottai, Tirunelveli'}.
+                      </p>
+                      
+                      {pendingPrev.length > 0 && (
+                        <div className="bg-red-50/50 border border-red-200 p-4 rounded-xl my-4 text-gray-800">
+                          <span className="text-[10px] font-bold text-red-800 uppercase tracking-wider block mb-2">Previous Outstanding Balances:</span>
+                          <table className="w-full text-left text-[9px] border-collapse">
+                            <thead>
+                              <tr className="border-b border-red-200">
+                                <th className="pb-1 text-gray-500">Milestone Stage</th>
+                                <th className="pb-1 text-right text-gray-500">Stage Total</th>
+                                <th className="pb-1 text-right text-gray-500">Amount Paid</th>
+                                <th className="pb-1 text-right text-gray-500 font-bold">Balance Due</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {pendingPrev.map((prev, pIdx) => (
+                                <tr key={pIdx} className="border-b border-red-100/50">
+                                  <td className="py-1 font-semibold">{prev.name} ({prev.percentage}%)</td>
+                                  <td className="py-1 text-right text-gray-650">Rs. {prev.total.toLocaleString()}</td>
+                                  <td className="py-1 text-right text-gray-650">Rs. {prev.paid.toLocaleString()}</td>
+                                  <td className="py-1 text-right font-bold text-red-750">Rs. {prev.pending.toLocaleString()}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                          <div className="mt-2 text-right font-bold text-red-800 text-[10px]">
+                            Total Previous Outstanding: Rs. {prevPendingTotal.toLocaleString()}/-
+                          </div>
+                        </div>
+                      )}
+
+                      <p>
+                        As per the project's schedule and agreements, we kindly request you to release the payment of <strong className="text-[#0e623a]">Rs. {grandTotalRequested.toLocaleString()}/-</strong> (<em>{numberToWords(grandTotalRequested)}</em>) towards the completed milestone work.
+                        {pendingPrev.length > 0 && ` This total includes the current milestone request of Rs. ${currentStageTotal.toLocaleString()}/- and the accumulated previous outstanding balance of Rs. ${prevPendingTotal.toLocaleString()}/-.`}
+                      </p>
+                      <p>Please do the needful and credit the payment to our official account details below:</p>
+                    </div>
+                  );
+                })()}
 
                 {/* Corporate Bank accounts info */}
                 <div className="bg-gray-50 p-4 border rounded-2xl space-y-1 text-[10px] font-sans mb-6">

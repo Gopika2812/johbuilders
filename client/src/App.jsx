@@ -21,6 +21,7 @@ import QuotationsDirectory from './pages/QuotationsDirectory';
 import QuotationForm from './pages/QuotationForm';
 import QuotationView from './pages/QuotationView';
 import CRDFlow from './pages/CRDFlow';
+import BankLoanHistory from './pages/BankLoanHistory';
 import BudgetPlanning from './pages/BudgetPlanning';
 import LeadTargetPlanning from './pages/LeadTargetPlanning';
 import SummaryPlanning from './pages/SummaryPlanning';
@@ -110,6 +111,7 @@ function App() {
 
             {/* Customer Relationship (CRD) Flow */}
             <Route path="/crd-flow" element={<Layout><CRDFlow /></Layout>} />
+            <Route path="/crd-flow/bank-loan-history" element={<Layout><BankLoanHistory /></Layout>} />
             
             {/* KPI Insights & Conversions */}
             <Route path="/kpi-insights" element={<Layout><KPIInsights /></Layout>} />
