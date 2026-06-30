@@ -2180,6 +2180,157 @@ const KPIInsights = () => {
     }
   };
 
+  const handleExportBankLoanReport = async () => {
+    try {
+      setLoading(true);
+      const res = await fetch(`${API_URL}/crd-flow`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (!res.ok) {
+        alert('Failed to load CRD flows details for export');
+        return;
+      }
+      const data = await res.json();
+
+      const loanList = [];
+
+      data.forEach(flow => {
+        const lead = flow.lead;
+        if (!lead) return;
+
+        // Apply filters
+        if (selectedProject && (flow.project?._id || flow.project) !== selectedProject) return;
+        if (selectedUser && (lead.assignedTo?._id || lead.assignedTo) !== selectedUser) return;
+
+        const stages = flow.stages || [];
+        stages.forEach(stage => {
+          const payments = stage.payments || [];
+          payments.forEach(pay => {
+            if (pay.method !== 'Bank Loan') return;
+
+            const payDate = new Date(pay.date);
+
+            // Apply date filters at payment date level
+            if (fromDate && payDate < new Date(fromDate)) return;
+            if (toDate) {
+              const end = new Date(toDate);
+              end.setHours(23, 59, 59, 999);
+              if (payDate > end) return;
+            }
+
+            loanList.push({
+              customerName: lead.name || '',
+              projectCode: flow.project?.code || 'UNASSIGNED',
+              plotNo: flow.unitId || '',
+              stageName: stage.name || '',
+              bankName: pay.details?.preferredBank || pay.details?.bankName || 'UNSPECIFIED',
+              amount: pay.amount || 0,
+              date: payDate
+            });
+          });
+        });
+      });
+
+      if (loanList.length === 0) {
+        alert('No bank loan collection records found for the selected filters.');
+        return;
+      }
+
+      // Sort by date ascending
+      loanList.sort((a, b) => a.date - b.date);
+
+      // Generate the styled HTML sheet
+      const dateForMonth = fromDate ? new Date(fromDate) : new Date();
+      const monthNames = ["JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE", "JULY", "AUGUST", "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER"];
+      const titleText = `BANK LOAN CUSTOMERS REPORT - ${monthNames[dateForMonth.getMonth()]} ${dateForMonth.getFullYear()}`;
+
+      // Build HTML
+      let html = `
+        <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+        <head>
+          <meta charset="utf-8">
+          <style>
+            table { border-collapse: collapse; font-family: Calibri, sans-serif; width: 100%; }
+            td, th { border: 1px solid #000000; padding: 6px; text-align: center; font-size: 11px; }
+            .title-header { background-color: #D9E1F2; font-weight: bold; font-size: 14px; height: 32px; text-transform: uppercase; }
+            .table-headers { background-color: #BDD7EE; font-weight: bold; }
+            .text-left { text-align: left; }
+            .text-right { text-align: right; }
+          </style>
+        </head>
+        <body>
+          <table>
+            <!-- Title Header -->
+            <tr>
+              <td colspan="8" class="title-header">${titleText}</td>
+            </tr>
+            <!-- Table Headers -->
+            <tr class="table-headers">
+              <th>S No</th>
+              <th>Customer Name</th>
+              <th>PROJECT</th>
+              <th>PLOT NO</th>
+              <th>Payment Stage</th>
+              <th>Bank Name</th>
+              <th>Loan Value</th>
+              <th>Date</th>
+            </tr>
+      `;
+
+      let totalLoan = 0;
+
+      loanList.forEach((loan, index) => {
+        const dateStr = loan.date.toLocaleDateString('en-GB').replace(/\//g, '.');
+        totalLoan += loan.amount;
+
+        html += `
+          <tr>
+            <td>${index + 1}</td>
+            <td class="text-left">${loan.customerName}</td>
+            <td>${loan.projectCode}</td>
+            <td>${loan.plotNo}</td>
+            <td class="text-left">${loan.stageName}</td>
+            <td>${loan.bankName}</td>
+            <td class="text-right">₹ ${loan.amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+            <td>${dateStr}</td>
+          </tr>
+        `;
+      });
+
+      // Total Row
+      html += `
+        <tr style="background-color: #F2F2F2; font-weight: bold;">
+          <td colspan="6" class="text-right">TOTAL LOAN RECEIVED</td>
+          <td class="text-right">₹ ${totalLoan.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+          <td></td>
+        </tr>
+      `;
+
+      html += `
+          </table>
+        </body>
+        </html>
+      `;
+
+      // Trigger download
+      const blob = new Blob([html], { type: 'application/vnd.ms-excel' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `JB_BANK_LOAN_REPORT_${dateForMonth.getFullYear()}_${dateForMonth.getMonth() + 1}.xls`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+    } catch (err) {
+      console.error(err);
+      alert('Error exporting bank loan report');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleMonthChange = (monthVal) => {
     if (!monthVal) return;
     const [yearStr, monthStr] = monthVal.split('-');
@@ -2791,6 +2942,18 @@ const KPIInsights = () => {
             >
               <DollarSign className="w-4 h-4" />
               <span>Collection Report</span>
+            </button>
+
+            {/* Bank Loan Report Export */}
+            <button
+              onClick={() => {
+                handleExportBankLoanReport();
+                setCrdMenuOpen(false);
+              }}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-2xl shadow-xl flex items-center gap-2 hover:scale-105 transition cursor-pointer text-[10px] font-bold uppercase tracking-wider border border-blue-500/50"
+            >
+              <Building className="w-4 h-4" />
+              <span>Bank Loan Report</span>
             </button>
           </div>
         )}
