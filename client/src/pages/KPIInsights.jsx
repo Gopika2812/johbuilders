@@ -15,7 +15,8 @@ import {
   Users,
   Compass,
   FileText,
-  CheckCircle
+  CheckCircle,
+  Key
 } from 'lucide-react';
 
 const getCoordinatesForPercent = (percent) => {
@@ -1726,7 +1727,7 @@ const KPIInsights = () => {
           // Project group banner row
           rowsHtml += `
             <tr>
-              <td colspan="8" style="background-color: #E2EFDA; font-weight: bold; text-align: center; font-size: 11px; height: 22px;">${projCode.toUpperCase()}</td>
+              <td colspan="7" style="background-color: #E2EFDA; font-weight: bold; text-align: center; font-size: 11px; height: 22px;">${projCode.toUpperCase()}</td>
             </tr>
           `;
 
@@ -1748,7 +1749,6 @@ const KPIInsights = () => {
               houseType = 'Flat';
             }
 
-            const remarksStr = lead.followUpInfo?.remarks || '';
             const commentsStr = lead.closeRemarks || '';
 
             rowsHtml += `
@@ -1759,7 +1759,6 @@ const KPIInsights = () => {
                 <td>${plotNo}</td>
                 <td class="text-left">${custName}</td>
                 <td>${houseType}</td>
-                <td>${remarksStr}</td>
                 <td class="text-left">${commentsStr}</td>
               </tr>
             `;
@@ -1789,7 +1788,7 @@ const KPIInsights = () => {
           <table>
             <!-- Title Header -->
             <tr>
-              <td colspan="8" style="background-color: #B4C6E7; font-weight: bold; font-size: 14px; height: 30px; text-align: center; text-transform: uppercase;">${titleText}</td>
+              <td colspan="7" style="background-color: #B4C6E7; font-weight: bold; font-size: 14px; height: 30px; text-align: center; text-transform: uppercase;">${titleText}</td>
             </tr>
             <!-- Table Headers -->
             <tr class="table-headers">
@@ -1799,7 +1798,6 @@ const KPIInsights = () => {
               <th>Plot No</th>
               <th>Customer Name</th>
               <th>House</th>
-              <th>Remarks</th>
               <th>Comments / Action notes</th>
             </tr>
             
@@ -1808,7 +1806,7 @@ const KPIInsights = () => {
 
             <!-- REGISTRATION PENDING HEADER -->
             <tr>
-              <td colspan="8" class="pending-header" style="background-color: #F8CBAD; text-transform: uppercase;">REGISTRATION PENDING</td>
+              <td colspan="7" class="pending-header" style="background-color: #F8CBAD; text-transform: uppercase;">REGISTRATION PENDING</td>
             </tr>
             <tr class="table-headers">
               <th>S No</th>
@@ -1817,7 +1815,6 @@ const KPIInsights = () => {
               <th>Plot No</th>
               <th>Customer Name</th>
               <th>House</th>
-              <th>Remarks</th>
               <th>Comments / Action notes</th>
             </tr>
 
@@ -1843,6 +1840,337 @@ const KPIInsights = () => {
     } catch (err) {
       console.error(err);
       alert('Error exporting registration report');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleExportKeyHandoverReport = async () => {
+    try {
+      setLoading(true);
+      const res = await fetch(`${API_URL}/crd-flow`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (!res.ok) {
+        alert('Failed to load CRD flows details for export');
+        return;
+      }
+      const data = await res.json();
+
+      // Apply active dashboard filters
+      const filtered = data.filter(flow => {
+        const lead = flow.lead;
+        if (!lead) return false;
+
+        // Project filter
+        if (selectedProject && (flow.project?._id || flow.project) !== selectedProject) return false;
+
+        // User/Executive filter
+        if (selectedUser && (lead.assignedTo?._id || lead.assignedTo) !== selectedUser) return false;
+
+        // Date range filter
+        const createdAt = new Date(flow.createdAt);
+        if (fromDate && createdAt < new Date(fromDate)) return false;
+        if (toDate) {
+          const end = new Date(toDate);
+          end.setHours(23, 59, 59, 999);
+          if (createdAt > end) return false;
+        }
+
+        return true;
+      });
+
+      if (filtered.length === 0) {
+        alert('No CRD Flow records found for the selected filters.');
+        return;
+      }
+
+      // Separate completed handover flows and pending handover flows
+      // Handover is completed if the stage containing "Handing Over" or the last stage isCompleted === true.
+      const completedFlows = [];
+      const pendingFlows = [];
+
+      filtered.forEach(flow => {
+        const stages = flow.stages || [];
+        const handoverStage = stages.find(s => s.name.toLowerCase().includes('handing over') || s.name.toLowerCase().includes('handover')) || stages[stages.length - 1];
+        
+        if (handoverStage && handoverStage.isCompleted) {
+          completedFlows.push(flow);
+        } else {
+          pendingFlows.push(flow);
+        }
+      });
+
+      // Format date headers
+      const dateForMonth = fromDate ? new Date(fromDate) : new Date();
+      const monthNames = ["JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE", "JULY", "AUGUST", "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER"];
+      const monthTitle = `MONTH OF ${monthNames[dateForMonth.getMonth()]} - ${dateForMonth.getFullYear()}`;
+
+      // Build HTML
+      let html = `
+        <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+        <head>
+          <meta charset="utf-8">
+          <style>
+            table { border-collapse: collapse; font-family: Calibri, sans-serif; width: 100%; }
+            td, th { border: 1px solid #000000; padding: 6px; text-align: center; font-size: 11px; }
+            .title-header { background-color: #D9E1F2; font-weight: bold; font-size: 14px; height: 30px; text-transform: uppercase; }
+            .pending-header { background-color: #F8CBAD; font-weight: bold; font-size: 12px; height: 26px; }
+            .table-headers { background-color: #D9D9D9; font-weight: bold; }
+            .text-left { text-align: left; }
+          </style>
+        </head>
+        <body>
+          <table>
+            <!-- Title Header -->
+            <tr>
+              <td colspan="6" style="background-color: #E2EFDA; font-weight: bold; font-size: 14px; height: 30px; text-align: center; text-transform: uppercase;">KEY HANDOVER THIS MONTH TARGET</td>
+            </tr>
+            <tr class="table-headers">
+              <th>S No</th>
+              <th>Adv Date</th>
+              <th>Project</th>
+              <th>Plot No</th>
+              <th>Customer Name</th>
+              <th>House Status</th>
+            </tr>
+      `;
+
+      // Render Completed Handover rows
+      completedFlows.forEach((flow, index) => {
+        const lead = flow.lead || {};
+        const advDate = lead.bookingInfo?.bookingDate 
+          ? new Date(lead.bookingInfo.bookingDate).toLocaleDateString('en-GB').replace(/\//g, '.')
+          : '';
+        const projCode = flow.project?.code || 'UNASSIGNED';
+        const plotNo = flow.unitId || '';
+        const custName = lead.name || '';
+        
+        html += `
+          <tr>
+            <td>${index + 1}</td>
+            <td>${advDate}</td>
+            <td>${projCode}</td>
+            <td>${plotNo}</td>
+            <td class="text-left">${custName}</td>
+            <td>Completed</td>
+          </tr>
+        `;
+      });
+
+      // Render Key Handover Pending Header
+      html += `
+        <tr>
+          <td colspan="6" class="pending-header" style="background-color: #F8CBAD; text-transform: uppercase;">Key Handover Pending</td>
+        </tr>
+        <tr class="table-headers">
+          <th>SI No</th>
+          <th>Adv Date</th>
+          <th>Project code</th>
+          <th>Plot No</th>
+          <th>Name</th>
+          <th>House Status</th>
+        </tr>
+      `;
+
+      // Render Pending Handover rows
+      pendingFlows.forEach((flow, index) => {
+        const lead = flow.lead || {};
+        const advDate = lead.bookingInfo?.bookingDate 
+          ? new Date(lead.bookingInfo.bookingDate).toLocaleDateString('en-GB').replace(/\//g, '.')
+          : '';
+        const projCode = flow.project?.code || 'UNASSIGNED';
+        const plotNo = flow.unitId || '';
+        const custName = lead.name || '';
+        
+        // Property type (House/Villa -> House, Flat/Apartment -> Flat, Land/Plot -> Land)
+        const typeRaw = (flow.project?.projectType || '').toLowerCase();
+        let houseStatus = 'House';
+        if (typeRaw.includes('villa') || typeRaw.includes('house') || typeRaw.includes('individual')) {
+          houseStatus = 'House';
+        } else if (typeRaw.includes('apartment') || typeRaw.includes('flat')) {
+          houseStatus = 'Flat';
+        } else {
+          houseStatus = 'Land';
+        }
+
+        html += `
+          <tr>
+            <td>${index + 1}</td>
+            <td>${advDate}</td>
+            <td>${projCode}</td>
+            <td>${plotNo}</td>
+            <td class="text-left">${custName}</td>
+            <td>${houseStatus}</td>
+          </tr>
+        `;
+      });
+
+      html += `
+          </table>
+        </body>
+        </html>
+      `;
+
+      // Trigger download
+      const blob = new Blob([html], { type: 'application/vnd.ms-excel' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const fileCode = projectTitle ? projectTitle : 'ALL_PROJECTS';
+      a.download = `JB_${fileCode}_KEY_HANDOVER_REPORT_${dateForMonth.getFullYear()}_${dateForMonth.getMonth() + 1}.xls`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+    } catch (err) {
+      console.error(err);
+      alert('Error exporting key handover report');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleExportCollectionReport = async () => {
+    try {
+      setLoading(true);
+      const res = await fetch(`${API_URL}/crd-flow`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (!res.ok) {
+        alert('Failed to load CRD flows details for export');
+        return;
+      }
+      const data = await res.json();
+
+      // Collect all payments across all flows
+      const paymentsList = [];
+
+      data.forEach(flow => {
+        const lead = flow.lead;
+        if (!lead) return;
+
+        // Apply filters at flow level
+        if (selectedProject && (flow.project?._id || flow.project) !== selectedProject) return;
+        if (selectedUser && (lead.assignedTo?._id || lead.assignedTo) !== selectedUser) return;
+
+        const stages = flow.stages || [];
+        stages.forEach(stage => {
+          const payments = stage.payments || [];
+          payments.forEach(pay => {
+            const payDate = new Date(pay.date);
+
+            // Apply date filters at payment date level
+            if (fromDate && payDate < new Date(fromDate)) return;
+            if (toDate) {
+              const end = new Date(toDate);
+              end.setHours(23, 59, 59, 999);
+              if (payDate > end) return;
+            }
+
+            paymentsList.push({
+              customerName: lead.name || '',
+              projectCode: flow.project?.code || 'UNASSIGNED',
+              plotNo: flow.unitId || '',
+              date: payDate,
+              amount: pay.amount || 0
+            });
+          });
+        });
+      });
+
+      if (paymentsList.length === 0) {
+        alert('No collections found for the selected filters.');
+        return;
+      }
+
+      // Sort payments by date ascending
+      paymentsList.sort((a, b) => a.date - b.date);
+
+      // Generate the styled HTML sheet
+      const monthNames = ["JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE", "JULY", "AUGUST", "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER"];
+      const dateForMonth = fromDate ? new Date(fromDate) : new Date();
+      const monthName = monthNames[dateForMonth.getMonth()];
+      const titleText = `COLLECTION REPORT - ${monthName}`;
+
+      // Build HTML
+      let html = `
+        <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+        <head>
+          <meta charset="utf-8">
+          <style>
+            table { border-collapse: collapse; font-family: Calibri, sans-serif; width: 100%; }
+            td, th { border: 1px solid #000000; padding: 6px; text-align: center; font-size: 11px; }
+            .title-header { background-color: #E2E2D0; font-weight: bold; font-size: 14px; height: 32px; text-transform: uppercase; }
+            .table-headers { background-color: #F2C4C4; font-weight: bold; }
+            .text-left { text-align: left; }
+            .text-right { text-align: right; }
+          </style>
+        </head>
+        <body>
+          <table>
+            <!-- Title Header -->
+            <tr>
+              <td colspan="6" class="title-header">${titleText}</td>
+            </tr>
+            <!-- Table Headers -->
+            <tr class="table-headers">
+              <th>S No</th>
+              <th>Customer Name</th>
+              <th>PROJECT</th>
+              <th>PLOT NO</th>
+              <th>Date</th>
+              <th>AMOUNT</th>
+            </tr>
+      `;
+
+      let totalAmount = 0;
+
+      paymentsList.forEach((pay, index) => {
+        const dateStr = pay.date.toLocaleDateString('en-GB').replace(/\//g, '.');
+        totalAmount += pay.amount;
+
+        html += `
+          <tr>
+            <td>${index + 1}</td>
+            <td class="text-left">${pay.customerName}</td>
+            <td>${pay.projectCode}</td>
+            <td>${pay.plotNo}</td>
+            <td>${dateStr}</td>
+            <td class="text-right">₹ ${pay.amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+          </tr>
+        `;
+      });
+
+      // Total Row
+      html += `
+        <tr style="background-color: #F2F2F2; font-weight: bold;">
+          <td colspan="5" class="text-right">TOTAL</td>
+          <td class="text-right">₹ ${totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+        </tr>
+      `;
+
+      html += `
+          </table>
+        </body>
+        </html>
+      `;
+
+      // Trigger download
+      const blob = new Blob([html], { type: 'application/vnd.ms-excel' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `JB_COLLECTION_REPORT_${dateForMonth.getFullYear()}_${dateForMonth.getMonth() + 1}.xls`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+    } catch (err) {
+      console.error(err);
+      alert('Error exporting collection report');
     } finally {
       setLoading(false);
     }
@@ -2435,6 +2763,30 @@ const KPIInsights = () => {
             >
               <CheckCircle className="w-4 h-4" />
               <span>Registration Report</span>
+            </button>
+
+            {/* Key Handover Report Export */}
+            <button
+              onClick={() => {
+                handleExportKeyHandoverReport();
+                setCrdMenuOpen(false);
+              }}
+              className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-2xl shadow-xl flex items-center gap-2 hover:scale-105 transition cursor-pointer text-[10px] font-bold uppercase tracking-wider border border-indigo-500/50"
+            >
+              <Key className="w-4 h-4" />
+              <span>Key Handover Report</span>
+            </button>
+
+            {/* Collection Report Export */}
+            <button
+              onClick={() => {
+                handleExportCollectionReport();
+                setCrdMenuOpen(false);
+              }}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-2xl shadow-xl flex items-center gap-2 hover:scale-105 transition cursor-pointer text-[10px] font-bold uppercase tracking-wider border border-emerald-500/50"
+            >
+              <DollarSign className="w-4 h-4" />
+              <span>Collection Report</span>
             </button>
           </div>
         )}
