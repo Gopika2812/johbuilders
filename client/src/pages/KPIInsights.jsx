@@ -2821,7 +2821,7 @@ const KPIInsights = () => {
               className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-2xl shadow-xl flex items-center gap-2 hover:scale-105 transition cursor-pointer text-[10px] font-bold uppercase tracking-wider border border-emerald-500/50"
             >
               <FileText className="w-4 h-4" />
-              <span>Export Enquiry Sheet</span>
+              <span>Enquiry</span>
             </button>
 
             {/* Site Visit Sheet Export */}
@@ -2833,7 +2833,7 @@ const KPIInsights = () => {
               className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-2xl shadow-xl flex items-center gap-2 hover:scale-105 transition cursor-pointer text-[10px] font-bold uppercase tracking-wider border border-blue-500/50"
             >
               <Compass className="w-4 h-4" />
-              <span>Export Site Visit Sheet</span>
+              <span>Site Visit</span>
             </button>
 
             {/* Hot List Sheet Export */}
@@ -2845,7 +2845,7 @@ const KPIInsights = () => {
               className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2.5 rounded-2xl shadow-xl flex items-center gap-2 hover:scale-105 transition cursor-pointer text-[10px] font-bold uppercase tracking-wider border border-orange-500/50"
             >
               <TrendingUp className="w-4 h-4" />
-              <span>Export Hot List Sheet</span>
+              <span>Hot List</span>
             </button>
 
             {/* Bookings Sheet Export */}
@@ -2857,7 +2857,7 @@ const KPIInsights = () => {
               className="bg-[#385723] hover:bg-[#2c441c] text-white px-4 py-2.5 rounded-2xl shadow-xl flex items-center gap-2 hover:scale-105 transition cursor-pointer text-[10px] font-bold uppercase tracking-wider border border-emerald-700/50"
             >
               <Building className="w-4 h-4" />
-              <span>Export Bookings Sheet</span>
+              <span>Booking</span>
             </button>
 
             {/* Marketing Performance Report Export */}
@@ -2869,7 +2869,7 @@ const KPIInsights = () => {
               className="bg-[#2f5597] hover:bg-[#254378] text-white px-4 py-2.5 rounded-2xl shadow-xl flex items-center gap-2 hover:scale-105 transition cursor-pointer text-[10px] font-bold uppercase tracking-wider border border-blue-600/50"
             >
               <Target className="w-4 h-4" />
-              <span>Marketing Performance Report</span>
+              <span>Marketing Performance</span>
             </button>
 
             {/* Lead Sources Report Export */}
@@ -2881,7 +2881,7 @@ const KPIInsights = () => {
               className="bg-teal-600 hover:bg-teal-700 text-white px-4 py-2.5 rounded-2xl shadow-xl flex items-center gap-2 hover:scale-105 transition cursor-pointer text-[10px] font-bold uppercase tracking-wider border border-teal-500/50"
             >
               <Users className="w-4 h-4" />
-              <span>Lead Sources Report</span>
+              <span>Lead Sources</span>
             </button>
           </div>
         )}
