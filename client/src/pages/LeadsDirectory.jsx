@@ -23,7 +23,8 @@ import {
   Check,
   DollarSign,
   Building2,
-  CalendarClock
+  CalendarClock,
+  FileSpreadsheet
 } from 'lucide-react';
 
 const SOURCE_TYPES = [
@@ -750,6 +751,104 @@ const LeadsDirectory = () => {
     }
   };
 
+  const handleExportExcel = () => {
+    try {
+      if (filteredLeadsList.length === 0) {
+        alert('No leads found matching the active filters to export.');
+        return;
+      }
+
+      // Generate styled HTML sheet
+      let html = `
+        <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+        <head>
+          <meta charset="utf-8">
+          <style>
+            table { border-collapse: collapse; font-family: Calibri, sans-serif; width: 100%; }
+            td, th { border: 1px solid #000000; padding: 6px; text-align: center; font-size: 11px; }
+            .title-header { background-color: #0e623a; color: white; font-weight: bold; font-size: 14px; height: 32px; text-transform: uppercase; }
+            .table-headers { background-color: #D9E1F2; font-weight: bold; }
+            .text-left { text-align: left; }
+            .text-right { text-align: right; }
+          </style>
+        </head>
+        <body>
+          <table>
+            <!-- Title Header -->
+            <tr>
+              <td colspan="12" class="title-header">LEADS DIRECTORY REPORT</td>
+            </tr>
+            <!-- Table Headers -->
+            <tr class="table-headers">
+              <th>S No</th>
+              <th>Customer Name</th>
+              <th>Contact Number</th>
+              <th>Lead Type</th>
+              <th>Source / Campaign</th>
+              <th>Project</th>
+              <th>Project Location</th>
+              <th>Assigned Executive</th>
+              <th>Workflow Status</th>
+              <th>Bank Loan</th>
+              <th>Lead Cost</th>
+              <th>Registration Date</th>
+            </tr>
+      `;
+
+      filteredLeadsList.forEach((lead, index) => {
+        const custName = lead.name || '';
+        const contactNo = lead.phone || '';
+        const lType = lead.leadType || '';
+        const sourceStr = lead.leadType === 'Lead' ? (lead.leadSource || '') : 'Direct Visit';
+        const projectStr = lead.project?.code || lead.project?.name || '';
+        const locStr = lead.leadType === 'Direct Visit' ? (lead.projectLocation || '') : '';
+        const execName = lead.assignedTo?.name || 'UNASSIGNED';
+        const wStatus = lead.status || '';
+        const hasLoan = lead.bankLoan || 'No';
+        const lCost = lead.leadCost ? `₹ ${lead.leadCost.toLocaleString()}` : '₹ 0';
+        const regDate = lead.createdAt ? new Date(lead.createdAt).toLocaleDateString('en-GB').replace(/\//g, '.') : '';
+
+        html += `
+          <tr>
+            <td>${index + 1}</td>
+            <td class="text-left">${custName}</td>
+            <td>'${contactNo}</td>
+            <td>${lType}</td>
+            <td class="text-left">${sourceStr}</td>
+            <td>${projectStr}</td>
+            <td class="text-left">${locStr}</td>
+            <td>${execName}</td>
+            <td>${wStatus}</td>
+            <td>${hasLoan}</td>
+            <td class="text-right">${lCost}</td>
+            <td>${regDate}</td>
+          </tr>
+        `;
+      });
+
+      html += `
+          </table>
+        </body>
+        </html>
+      `;
+
+      // Trigger download
+      const blob = new Blob([html], { type: 'application/vnd.ms-excel' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `JB_LEADS_DIRECTORY_REPORT_${new Date().getFullYear()}_${new Date().getMonth() + 1}.xls`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+    } catch (err) {
+      console.error(err);
+      alert('Error exporting leads directory data');
+    }
+  };
+
   const resetForm = () => {
     setName('');
     setPhone('');
@@ -818,16 +917,26 @@ const LeadsDirectory = () => {
           <p className="text-gray-500 text-xs mt-1">Store and track lead details, campaigns, allocations, and pipeline status</p>
         </div>
 
-        <button
-          onClick={() => {
-            resetForm();
-            setCreateModalOpen(true);
-          }}
-          className="flex items-center justify-center gap-1.5 px-5 py-3 bg-[#0e623a] hover:bg-[#0b4d2d] text-white text-xs font-bold rounded-2xl transition shadow-md w-full sm:w-auto"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Create New Lead</span>
-        </button>
+        <div className="flex flex-col sm:flex-row items-center gap-2 w-full sm:w-auto">
+          <button
+            onClick={handleExportExcel}
+            className="flex items-center justify-center gap-1.5 px-5 py-3 bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 text-xs font-bold rounded-2xl transition shadow-sm w-full sm:w-auto cursor-pointer"
+          >
+            <FileSpreadsheet className="w-4 h-4 text-emerald-700" />
+            <span>Export Excel</span>
+          </button>
+          
+          <button
+            onClick={() => {
+              resetForm();
+              setCreateModalOpen(true);
+            }}
+            className="flex items-center justify-center gap-1.5 px-5 py-3 bg-[#0e623a] hover:bg-[#0b4d2d] text-white text-xs font-bold rounded-2xl transition shadow-md w-full sm:w-auto cursor-pointer"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Create New Lead</span>
+          </button>
+        </div>
       </div>
 
       {/* Notifications */}
