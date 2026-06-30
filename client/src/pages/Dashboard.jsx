@@ -338,7 +338,7 @@ const Dashboard = () => {
     setToDate(lastDay);
   };
 
-  const logoPath = "E:\\builders\\client\\public\\jb_logo.jpg";
+  const logoPath = window.location.origin + "/jb_logo.jpg";
 
   const handleExportExcel = async () => {
     const inventory = stats.cards.inventory || {};
