@@ -35,6 +35,13 @@ const StageSchema = new mongoose.Schema({
   }
 });
 
+const ComplaintSchema = new mongoose.Schema({
+  description: { type: String, required: true },
+  status: { type: String, enum: ['Pending', 'In Progress', 'Resolved'], default: 'Pending' },
+  reportedAt: { type: Date, default: Date.now },
+  resolvedAt: { type: Date }
+});
+
 const CRDFlowSchema = new mongoose.Schema({
   project: {
     type: mongoose.Schema.Types.ObjectId,
@@ -51,6 +58,7 @@ const CRDFlowSchema = new mongoose.Schema({
     required: true
   },
   stages: [StageSchema],
+  complaints: [ComplaintSchema],
   totalOriginalValue: { type: Number, required: true },
   totalExtraWorksValue: { type: Number, default: 0 },
   totalCurrentValue: { type: Number, required: true },

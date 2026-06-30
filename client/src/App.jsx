@@ -26,6 +26,7 @@ import BudgetPlanning from './pages/BudgetPlanning';
 import LeadTargetPlanning from './pages/LeadTargetPlanning';
 import SummaryPlanning from './pages/SummaryPlanning';
 import KPIInsights from './pages/KPIInsights';
+import Customers from './pages/Customers';
 
 const Layout = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -112,6 +113,7 @@ function App() {
             {/* Customer Relationship (CRD) Flow */}
             <Route path="/crd-flow" element={<Layout><CRDFlow /></Layout>} />
             <Route path="/crd-flow/bank-loan-history" element={<Layout><BankLoanHistory /></Layout>} />
+            <Route path="/customers" element={<Layout><Customers /></Layout>} />
             
             {/* KPI Insights & Conversions */}
             <Route path="/kpi-insights" element={<Layout><KPIInsights /></Layout>} />

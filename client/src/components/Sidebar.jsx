@@ -296,6 +296,22 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
           )}
         </div>
 
+        {/* Customers Module */}
+        <div>
+          <Link
+            to="/customers"
+            onClick={handleNavClick}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition duration-200 ${
+              isActive('/customers')
+                ? 'bg-white/10 text-white font-bold'
+                : 'text-emerald-100 hover:bg-white/5 hover:text-white'
+            }`}
+          >
+            <Users2 className="w-5 h-5 text-emerald-300" />
+            <span className="font-semibold">Customers</span>
+          </Link>
+        </div>
+
         {/* Employees Directory */}
         <div>
           <button

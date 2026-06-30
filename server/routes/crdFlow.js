@@ -276,4 +276,48 @@ router.put('/:id/stage/:stageIndex/payment', protect, async (req, res) => {
   }
 });
 
+// @route   POST /api/crd-flow/:id/complaints
+// @desc    Add a customer complaint
+router.post('/:id/complaints', protect, async (req, res) => {
+  const { description } = req.body;
+  try {
+    const flow = await CRDFlow.findById(req.params.id);
+    if (!flow) return res.status(404).json({ message: 'Flow record not found' });
+
+    flow.complaints.push({ description, status: 'Pending' });
+    await flow.save();
+
+    const populated = await CRDFlow.findById(flow._id).populate('project').populate('lead');
+    res.json(populated);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// @route   PUT /api/crd-flow/:id/complaints/:complaintId
+// @desc    Update complaint status or resolve
+router.put('/:id/complaints/:complaintId', protect, async (req, res) => {
+  const { status } = req.body;
+  try {
+    const flow = await CRDFlow.findById(req.params.id);
+    if (!flow) return res.status(404).json({ message: 'Flow record not found' });
+
+    const complaint = flow.complaints.id(req.params.complaintId);
+    if (!complaint) return res.status(404).json({ message: 'Complaint not found' });
+
+    complaint.status = status;
+    if (status === 'Resolved') {
+      complaint.resolvedAt = Date.now();
+    } else {
+      complaint.resolvedAt = undefined;
+    }
+
+    await flow.save();
+    const populated = await CRDFlow.findById(flow._id).populate('project').populate('lead');
+    res.json(populated);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 module.exports = router;
