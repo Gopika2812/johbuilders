@@ -1901,6 +1901,10 @@ const KPIInsights = () => {
         }
       });
 
+      const projectTitle = selectedProject 
+        ? (stats.projects.find(p => p._id === selectedProject)?.code || 'PROJECT')
+        : '';
+
       // Format date headers
       const dateForMonth = fromDate ? new Date(fromDate) : new Date();
       const monthNames = ["JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE", "JULY", "AUGUST", "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER"];
