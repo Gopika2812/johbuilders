@@ -16,7 +16,8 @@ import {
   Compass,
   FileText,
   CheckCircle,
-  Key
+  Key,
+  AlertCircle
 } from 'lucide-react';
 
 const getCoordinatesForPercent = (percent) => {
