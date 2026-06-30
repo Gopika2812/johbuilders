@@ -365,15 +365,15 @@ const Dashboard = () => {
         <table>
           <tr>
             <td colspan="3" rowspan="3" style="background-color: #0e623a; border: none; text-align: center; vertical-align: middle; height: 110px;">
-              <img src="${logoPath}" height="95" style="height: 95px; width: auto;" />
+              <img src="${logoPath}" height="80" style="height: 80px; width: auto; display: block; margin: 0 auto;" />
             </td>
-            <td colspan="6" class="title-row" style="border:none; vertical-align:middle; text-align:right; font-size: 16pt;">JohnBuildwell ERP - OVERALL STATUS REPORT</td>
+            <td colspan="6" class="title-row" style="border:none; vertical-align:middle; text-align:center; font-size: 16pt;">JohnBuildwell ERP - OVERALL STATUS REPORT</td>
           </tr>
           <tr>
             <td colspan="6" style="border:none;"></td>
           </tr>
           <tr>
-            <td colspan="6" class="meta-label" style="border:none; text-align:right; padding-top:0; vertical-align:middle;">Generated on: ${new Date().toLocaleString()}</td>
+            <td colspan="6" class="meta-label" style="border:none; text-align:center; padding-top:0; vertical-align:middle;">Generated on: ${new Date().toLocaleString()}</td>
           </tr>
           <tr><td colspan="9" style="border:none; height: 10px;"></td></tr>
           
