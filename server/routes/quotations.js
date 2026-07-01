@@ -118,6 +118,38 @@ router.put('/:id', protect, async (req, res) => {
       return res.status(404).json({ message: 'Quotation not found' });
     }
 
+    const prevData = quotation.toObject();
+    const changedFields = [];
+    const fieldsToTrack = [
+      'customerName', 'customerPhone', 'customerAddress', 'projectType', 
+      'selectedUnits', 'pricePerSqFt', 'totalArea', 'totalValue', 
+      'alternativePhone', 'aadharNumber', 'panNumber', 'bankLoanRequired', 
+      'loanAmount', 'preferredBank'
+    ];
+
+    fieldsToTrack.forEach(field => {
+      if (req.body[field] !== undefined) {
+        let prevVal = prevData[field];
+        let newVal = req.body[field];
+
+        if (Array.isArray(prevVal) && Array.isArray(newVal)) {
+          if (JSON.stringify([...prevVal].sort()) !== JSON.stringify([...newVal].sort())) {
+            changedFields.push({
+              field,
+              prev: prevVal.join(', '),
+              next: newVal.join(', ')
+            });
+          }
+        } else if (prevVal !== newVal && String(prevVal) !== String(newVal)) {
+          changedFields.push({
+            field,
+            prev: prevVal === undefined || prevVal === null ? 'N/A' : String(prevVal),
+            next: newVal === undefined || newVal === null ? 'N/A' : String(newVal)
+          });
+        }
+      }
+    });
+
     Object.assign(quotation, req.body);
     await quotation.save();
 
@@ -134,12 +166,18 @@ router.put('/:id', protect, async (req, res) => {
       await lead.save();
     }
 
+    let auditDescription = `Updated quotation for customer ${quotation.customerName} (${quotation.customerPhone})`;
+    if (changedFields.length > 0) {
+      auditDescription += `. Changes: ${changedFields.map(f => `${f.field}: "${f.prev}" → "${f.next}"`).join('; ')}`;
+    }
+
     await AuditLog.create({
       user: req.user._id,
       userName: req.user.name,
       userRole: req.user.role,
       action: 'Update Quotation',
-      description: `Updated quotation ${quotation._id} for customer ${quotation.customerName}`
+      description: auditDescription,
+      metadata: changedFields.length > 0 ? { changedFields } : null
     });
 
     res.json(quotation);

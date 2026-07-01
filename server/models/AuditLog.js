@@ -22,6 +22,10 @@ const AuditLogSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  metadata: {
+    type: mongoose.Schema.Types.Mixed,
+    default: null
+  },
   createdAt: {
     type: Date,
     default: Date.now

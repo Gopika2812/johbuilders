@@ -293,12 +293,35 @@ router.put('/:id', protect, async (req, res) => {
 
     await lead.save();
 
+    let auditAction = 'Update Lead';
+    let auditDescription = `Updated lead ${lead.name} (${lead.phone}). Status: ${lead.status === 'Qualified' ? 'Hot List' : lead.status}`;
+
+    if (statusChanged) {
+      const displayStatus = lead.status === 'Qualified' ? 'Hot List' : lead.status;
+      auditAction = `Lead Stage: ${displayStatus}`;
+      auditDescription = `Lead ${lead.name} (${lead.phone}) transitioned from stage ${prevStatus === 'Qualified' ? 'Hot List' : prevStatus} to ${displayStatus}`;
+      if (lead.status === 'Booking' && bookingInfo) {
+        auditAction = 'Unit Booked';
+        auditDescription = `Booked unit(s) ${bookingInfo.selectedUnits?.join(', ')} for customer ${lead.name} (${lead.phone})`;
+      } else if (lead.status === 'Won') {
+        auditAction = 'Handover Completed';
+        auditDescription = `Successfully completed key handover (Won) for customer ${lead.name} (${lead.phone})`;
+      }
+    } else if (assignmentChanged) {
+      auditAction = 'Reassign Lead';
+      auditDescription = `Reassigned lead ${lead.name} (${lead.phone}) to executive ID ${lead.assignedTo || 'Unassigned'}`;
+    } else if (followUpLogged) {
+      auditAction = 'Schedule Follow-up';
+      const followDateStr = followUpInfo.nextFollowUpDate ? new Date(followUpInfo.nextFollowUpDate).toLocaleString() : '';
+      auditDescription = `Scheduled follow-up for lead ${lead.name} (${lead.phone}) on ${followDateStr}. Remarks: ${followUpInfo.remarks || 'None'}`;
+    }
+
     await AuditLog.create({
       user: req.user._id,
       userName: req.user.name,
       userRole: req.user.role,
-      action: 'Update Lead',
-      description: `Updated lead ${lead.name} (${lead.phone}). Status: ${lead.status}`
+      action: auditAction,
+      description: auditDescription
     });
 
     const populated = await Lead.findById(lead._id)

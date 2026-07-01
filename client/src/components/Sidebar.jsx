@@ -327,20 +327,24 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
                 <Users2 className="w-4 h-4 text-emerald-300" />
                 <span>Approve Access</span>
               </Link>
-              
-              <Link
-                to="/employees/history"
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm transition ${
-                  isActive('/employees/history')
-                    ? 'text-white font-extrabold border-l-2 border-white pl-2'
-                    : 'text-emerald-150 hover:text-white hover:bg-white/5'
-                }`}
-              >
-                <History className="w-4 h-4 text-emerald-300" />
-                <span>Employee History</span>
-              </Link>
             </div>
           )}
+        </div>
+
+        {/* Audit Logs */}
+        <div>
+          <Link
+            to="/audit-logs"
+            onClick={handleNavClick}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition duration-200 ${
+              isActive('/audit-logs')
+                ? 'bg-white/10 text-white font-bold'
+                : 'text-emerald-100 hover:bg-white/5 hover:text-white'
+            }`}
+          >
+            <History className="w-5 h-5 text-emerald-300" />
+            <span className="font-semibold">Audit Logs</span>
+          </Link>
         </div>
 
         {/* Finance & Accounts */}

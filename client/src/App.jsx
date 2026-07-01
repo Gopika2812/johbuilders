@@ -14,6 +14,7 @@ import ProjectsDictionary from './pages/ProjectsDictionary';
 import ProjectDetail from './pages/ProjectDetail';
 import EmployeesDirectory from './pages/EmployeesDirectory';
 import EmployeeHistory from './pages/EmployeeHistory';
+import AuditLogs from './pages/AuditLogs';
 import AccessControl from './pages/AccessControl';
 import Settings from './pages/Settings';
 import LeadsDirectory from './pages/LeadsDirectory';
@@ -100,6 +101,7 @@ function App() {
             {/* Employee Directory Modules */}
             <Route path="/employees" element={<Layout><EmployeesDirectory /></Layout>} />
             <Route path="/employees/history" element={<Layout><EmployeeHistory /></Layout>} />
+            <Route path="/audit-logs" element={<Layout><AuditLogs /></Layout>} />
             
             {/* Leads Directory Module */}
             <Route path="/leads" element={<Layout><LeadsDirectory /></Layout>} />

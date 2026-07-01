@@ -16,6 +16,7 @@ const leadTargetRoutes = require('./routes/leadTargets');
 const summaryPlanRoutes = require('./routes/summaryPlans');
 const rolePermissionRoutes = require('./routes/rolePermissions');
 const dashboardRoutes = require('./routes/dashboard');
+const auditLogRoutes = require('./routes/auditLogs');
 
 const app = express();
 
@@ -146,6 +147,7 @@ app.use('/api/lead-targets', leadTargetRoutes);
 app.use('/api/summary-plans', summaryPlanRoutes);
 app.use('/api/role-permissions', rolePermissionRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/audit-logs', auditLogRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
