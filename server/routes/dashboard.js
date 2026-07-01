@@ -304,6 +304,8 @@ router.get('/stats', protect, async (req, res) => {
     let availableUnits = 0;
     let bookedUnits = 0;
     let handoverUnits = 0;
+    let bookedUnitsList = [];
+    let handoverUnitsList = [];
     let totalByType = { Plot: 0, Flat: 0, House: 0 };
     let availableByType = { Plot: 0, Flat: 0, House: 0 };
     let bookedByType = { Plot: 0, Flat: 0, House: 0 };
@@ -323,7 +325,31 @@ router.get('/stats', protect, async (req, res) => {
       if (types.includes('House')) projectsByType.House += 1;
 
       p.units?.forEach(u => {
-        const type = u.unitType || 'Plot';
+        let type = 'Plot';
+        const projTypes = p.projectType || [];
+        if (projTypes.length === 1) {
+          type = projTypes[0];
+        } else {
+          const uType = u.unitType || '';
+          if (uType === 'Plot') {
+            type = 'Plot';
+          } else if (uType === 'Flat') {
+            type = 'Flat';
+          } else if (uType === 'House' || uType === 'Villa') {
+            type = 'House';
+          } else if (uType.includes('BHK')) {
+            if (projTypes.includes('Flat') && !projTypes.includes('House')) {
+              type = 'Flat';
+            } else if (projTypes.includes('House') && !projTypes.includes('Flat')) {
+              type = 'House';
+            } else {
+              type = projTypes.includes('Flat') ? 'Flat' : 'House';
+            }
+          } else {
+            type = projTypes[0] || 'Plot';
+          }
+        }
+
         if (projectType && type !== projectType) return;
         const val = u.price || 0;
 
@@ -339,10 +365,30 @@ router.get('/stats', protect, async (req, res) => {
           bookedUnits += 1;
           bookedByType[type] = (bookedByType[type] || 0) + 1;
           bookedValueByType[type] = (bookedValueByType[type] || 0) + val;
+          bookedUnitsList.push({
+            projectName: p.name,
+            projectCode: p.code,
+            unitId: u.unitId,
+            unitType: type,
+            size: u.size,
+            price: val,
+            customerName: u.customerName || 'N/A',
+            customerPhone: u.customerPhone || 'N/A'
+          });
         } else if (u.status === 'Sold Out') {
           handoverUnits += 1;
           handoverByType[type] = (handoverByType[type] || 0) + 1;
           handoverValueByType[type] = (handoverValueByType[type] || 0) + val;
+          handoverUnitsList.push({
+            projectName: p.name,
+            projectCode: p.code,
+            unitId: u.unitId,
+            unitType: type,
+            size: u.size,
+            price: val,
+            customerName: u.customerName || 'N/A',
+            customerPhone: u.customerPhone || 'N/A'
+          });
         } else {
           availableUnits += 1;
           availableByType[type] = (availableByType[type] || 0) + 1;
@@ -509,6 +555,13 @@ router.get('/stats', protect, async (req, res) => {
     res.json({
       cards: {
         totalLeads: leads.length,
+        leadsList: leads.map(l => ({
+          _id: l._id,
+          name: l.name,
+          leadSource: l.leadSource || 'Direct Visit',
+          projectType: l.project?.projectType || 'N/A',
+          projectName: l.project?.name || 'N/A'
+        })),
         enquiries: { total: totalEnquiries, contacted: contactedCount, followup: followupCount, closed: closedEnquiries },
         siteVisits: { total: totalSiteVisits, siteVisit: siteVisitCount, followup: siteVisitFollowupCount, closed: closedSiteVisits },
         hotList: hotListCount,
@@ -523,7 +576,9 @@ router.get('/stats', protect, async (req, res) => {
           totalUnits,
           availableUnits,
           bookedUnits,
+          bookedUnitsList,
           handoverUnits,
+          handoverUnitsList,
           totalByType,
           availableByType,
           bookedByType,

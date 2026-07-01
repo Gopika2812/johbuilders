@@ -25,7 +25,8 @@ import {
   Plus,
   Trash,
   Play,
-  Pause
+  Pause,
+  Home
 } from 'lucide-react';
 
 const SOURCE_TYPES = [
@@ -348,10 +349,25 @@ const ProjectDetail = () => {
   const lockedPlotsCount = project.units.filter(u => u.isLocked).length;
   const lockedPlotsSize = project.units.filter(u => u.isLocked).reduce((s, u) => s + u.size, 0);
 
+  // Billing and Value metrics
+  const totalValue = project.units.reduce((sum, u) => sum + (u.price || 0), 0);
+  const achievedValue = project.units.reduce((sum, u) => {
+    if (u.status === 'Sold Out' || u.status === 'Booked') {
+      return sum + (u.soldConsideration || u.price || 0);
+    }
+    return sum;
+  }, 0);
+  const pendingValue = project.units.reduce((sum, u) => {
+    if (u.status === 'New' || u.status === 'Under Construction') {
+      return sum + (u.price || 0);
+    }
+    return sum;
+  }, 0);
+
   return (
-    <div className="space-y-8">
+    <div className="space-y-5">
       {/* Back to Dictionary Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
         <div className="flex items-center gap-3">
           <Link to="/projects" className="p-2 bg-white rounded-xl border border-gray-200 text-gray-500 hover:text-[#0e623a] transition">
             <ChevronLeft className="w-5 h-5" />
@@ -365,25 +381,25 @@ const ProjectDetail = () => {
                 • {project.projectType} Inventory
               </span>
             </div>
-            <h1 className="text-2xl font-bold text-gray-800">{project.name}</h1>
+            <h1 className="text-xl font-bold text-gray-800">{project.name}</h1>
           </div>
         </div>
 
-        {/* Pricing Engine Configurator Panel */}
-        <div className="bg-white border border-gray-200 p-4 rounded-2xl shadow-sm flex items-center gap-4">
-          <div className="space-y-0.5">
-            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Price Per Sq.Ft</span>
+        {/* Pricing Engine Configurator & Value Panel */}
+        <div className="bg-white border border-gray-200 p-3 px-5 rounded-2xl shadow-sm flex flex-wrap items-center gap-6">
+          <div className="space-y-0.5 text-left">
+            <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider block">Price Per Sq.Ft</span>
             {priceEditing ? (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5">
                 <input
                   type="number"
                   value={basePriceInput}
                   onChange={(e) => setBasePriceInput(e.target.value)}
-                  className="w-24 px-2 py-1 bg-gray-50 border border-gray-300 rounded text-sm focus:outline-none"
+                  className="w-20 px-2 py-1 bg-gray-50 border border-gray-300 rounded text-xs focus:outline-none"
                 />
                 <button
                   onClick={handleUpdateBasePrice}
-                  className="px-2.5 py-1 bg-[#0e623a] text-white text-xs font-semibold rounded hover:bg-[#0b4d2d]"
+                  className="px-2 py-0.5 bg-[#0e623a] text-white text-[10px] font-semibold rounded hover:bg-[#0b4d2d]"
                 >
                   Save
                 </button>
@@ -392,29 +408,45 @@ const ProjectDetail = () => {
                     setBasePriceInput(project.pricePerSqFt.toString());
                     setPriceEditing(false);
                   }}
-                  className="px-2.5 py-1 bg-gray-100 text-gray-600 text-xs font-semibold rounded hover:bg-gray-200"
+                  className="px-2 py-0.5 bg-gray-100 text-gray-600 text-[10px] font-semibold rounded hover:bg-gray-200"
                 >
-                  Cancel
+                  ✕
                 </button>
               </div>
             ) : (
-              <div className="flex items-center gap-2">
-                <span className="text-lg font-extrabold text-[#0e623a]">${project.pricePerSqFt}</span>
+              <div className="flex items-center gap-1">
+                <span className="text-sm font-extrabold text-[#0e623a]">Rs. {project.pricePerSqFt.toLocaleString()}</span>
                 {(user.role === 'Admin' || user.role === 'Manager') && (
                   <button
                     onClick={() => setPriceEditing(true)}
-                    className="p-1 hover:bg-gray-100 rounded text-gray-400 hover:text-[#0e623a]"
+                    className="p-0.5 hover:bg-gray-100 rounded text-gray-400 hover:text-[#0e623a]"
                   >
-                    <Edit className="w-3.5 h-3.5" />
+                    <Edit className="w-3 h-3" />
                   </button>
                 )}
               </div>
             )}
           </div>
-          <div className="border-l border-gray-200 h-8"></div>
-          <div>
-            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Valuation</span>
-            <span className="text-lg font-extrabold text-gray-800">${project.totalValuation?.toLocaleString()}</span>
+          
+          <div className="border-l border-gray-200 h-8 hidden sm:block"></div>
+          
+          <div className="space-y-0.5 text-left">
+            <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider block">Total Value</span>
+            <span className="text-sm font-black text-gray-800">Rs. {totalValue.toLocaleString()}</span>
+          </div>
+
+          <div className="border-l border-gray-200 h-8 hidden sm:block"></div>
+
+          <div className="space-y-0.5 text-left">
+            <span className="text-[9px] font-bold text-emerald-650 uppercase tracking-wider block">Achieved Value</span>
+            <span className="text-sm font-black text-emerald-700">Rs. {achievedValue.toLocaleString()}</span>
+          </div>
+
+          <div className="border-l border-gray-200 h-8 hidden sm:block"></div>
+
+          <div className="space-y-0.5 text-left">
+            <span className="text-[9px] font-bold text-red-650 uppercase tracking-wider block">Pending Value</span>
+            <span className="text-sm font-black text-red-650">Rs. {pendingValue.toLocaleString()}</span>
           </div>
         </div>
       </div>      {/* Tab Switcher Navigation */}
@@ -445,7 +477,21 @@ const ProjectDetail = () => {
 
       {activeTab === 'project' && (() => {
         const activeType = selectedInventoryType || projectTypesArray[0] || 'Plot';
-        const displayedUnits = project.units.filter(u => u.unitType === activeType || (!u.unitType && activeType === 'Plot'));
+        const displayedUnits = project.units.filter(u => {
+          if (projectTypesArray.length === 1) {
+            return true;
+          }
+          if (activeType === 'Flat') {
+            return u.unitType === 'Flat' || u.unitType?.includes('BHK') || (!u.unitType && !projectTypesArray.includes('Plot') && !projectTypesArray.includes('House'));
+          }
+          if (activeType === 'Plot') {
+            return u.unitType === 'Plot' || (!u.unitType && (projectTypesArray.includes('Plot') || projectTypesArray.length === 0));
+          }
+          if (activeType === 'House') {
+            return u.unitType === 'House' || u.unitType === 'Villa' || u.unitType?.includes('BHK');
+          }
+          return u.unitType === activeType;
+        });
         return (
           <>
 
@@ -597,6 +643,14 @@ const ProjectDetail = () => {
                       </div>
                     </div>
 
+                    {unit.status === 'Booked' && unit.customerName && (
+                      <div className="text-[11px] text-amber-700 font-bold bg-amber-50 border border-amber-200 p-3 rounded-2xl flex flex-col gap-0.5">
+                        <span className="text-[9px] text-amber-500 uppercase tracking-wide">Customer Details</span>
+                        <span>Name: {unit.customerName}</span>
+                        {unit.customerPhone && <span>Phone: {unit.customerPhone}</span>}
+                      </div>
+                    )}
+
                     <div className="flex items-center gap-2">
                       <button
                         onClick={() => {
@@ -707,51 +761,63 @@ const ProjectDetail = () => {
       {activeType === 'Flat' && (
         <>
           {viewMode === 'grid' ? (
-            <div className="space-y-8">
-              {/* Group by Floor */}
-              {Array.from(new Set(displayedUnits.map(u => u.floor))).sort().map(floor => (
-                <div key={floor} className="space-y-4">
-                  <h3 className="text-base font-bold text-gray-800 border-b pb-2 flex items-center gap-2">
-                    <Building className="w-5 h-5 text-[#0e623a]" />
-                    <span>{floor}</span>
-                  </h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
-                    {displayedUnits.filter(u => u.floor === floor).map(unit => (
-                      <div key={unit.unitId} className="bg-white border border-gray-100 shadow-sm rounded-3xl p-6 hover:shadow-md transition space-y-4">
-                        <div className="flex items-center justify-between">
-                          <h4 className="font-extrabold text-gray-800">{unit.unitId}</h4>
-                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${getStatusBadge(unit.status)}`}>
-                            {unit.status}
-                          </span>
-                        </div>
-                        <div className="grid grid-cols-2 gap-4 py-2 border-y border-gray-50">
-                          <div>
-                            <span className="text-[10px] text-gray-400 uppercase tracking-wider block">Size</span>
-                            <span className="text-xs font-bold text-gray-700">{Math.round(unit.size).toLocaleString()} sq.ft</span>
-                          </div>
-                          <div>
-                            <span className="text-[10px] text-gray-400 uppercase tracking-wider block">Value</span>
-                            <span className="text-xs font-bold text-[#0e623a]">${Math.round(unit.price).toLocaleString()}</span>
-                          </div>
-                        </div>
-                        <button
-                          onClick={() => {
-                            setSelectedUnit(unit);
-                            setUnitStatus(unit.status);
-                            setCustomerName(unit.customerName || '');
-                            setCustomerPhone(unit.customerPhone || '');
-                            setLeadName(unit.leadName || '');
-                            setBookingModalOpen(true);
-                          }}
-                          className="w-full py-2 border border-gray-200 hover:border-[#0e623a]/20 hover:bg-[#0e623a]/5 rounded-xl text-xs font-bold text-gray-700 hover:text-[#0e623a] transition"
-                        >
-                          Booking Details
-                        </button>
+            <div className="max-h-[600px] overflow-y-auto pr-3 scrollbar-thin scrollbar-thumb-[#0e623a]/20 scrollbar-track-transparent rounded-3xl p-1 w-full">
+              <div className="flex flex-col gap-6 w-full max-w-none">
+                {/* Group by Floor (Descending: Top floor at the top) */}
+                {Array.from(new Set(displayedUnits.map(u => u.floor)))
+                  .sort((a, b) => b.localeCompare(a, undefined, { numeric: true, sensitivity: 'base' }))
+                  .map(floor => (
+                    <div key={floor} className="space-y-4 bg-white/50 backdrop-blur-md p-8 rounded-3xl border-2 border-[#0e623a]/10 shadow-[0_8px_30px_rgb(0,0,0,0.02)] flex flex-col items-center w-full">
+                      <h3 className="text-sm font-black text-gray-700 flex items-center justify-center gap-2 border-b border-gray-100 pb-2 w-full">
+                        <Building className="w-4 h-4 text-[#0e623a]" />
+                        <span>{floor}</span>
+                      </h3>
+                      <div className="flex flex-wrap gap-3 pt-2 justify-center w-full">
+                        {displayedUnits.filter(u => u.floor === floor).map(unit => {
+                          const isBooked = unit.status === 'Booked';
+                          const isSold = unit.status === 'Sold Out';
+                          const isUnderConstruction = unit.status === 'Under Construction';
+                          
+                          let bgClass = 'bg-gradient-to-br from-emerald-500 to-emerald-600 border-emerald-400 text-white shadow-[0_3px_8px_rgba(16,185,129,0.15)] hover:shadow-[0_6px_15px_rgba(16,185,129,0.3)]';
+                          if (isSold) {
+                            bgClass = 'bg-gradient-to-br from-red-500 to-rose-600 border-red-400 text-white shadow-[0_3px_8px_rgba(239,68,68,0.15)] hover:shadow-[0_6px_15px_rgba(239,68,68,0.3)]';
+                          } else if (isBooked) {
+                            bgClass = 'bg-gradient-to-br from-amber-400 to-yellow-500 border-amber-300 text-white shadow-[0_3px_8px_rgba(245,158,11,0.15)] hover:shadow-[0_6px_15px_rgba(245,158,11,0.3)]';
+                          } else if (isUnderConstruction) {
+                            bgClass = 'bg-gradient-to-br from-purple-500 to-indigo-600 border-purple-400 text-white shadow-[0_3px_8px_rgba(139,92,246,0.15)] hover:shadow-[0_6px_15px_rgba(139,92,246,0.3)]';
+                          }
+                          
+                          return (
+                            <button
+                              key={unit.unitId}
+                              type="button"
+                              onClick={() => {
+                                setSelectedUnit(unit);
+                                setUnitStatus(unit.status);
+                                setCustomerName(unit.customerName || '');
+                                setCustomerPhone(unit.customerPhone || '');
+                                setLeadName(unit.leadName || '');
+                                setBookingModalOpen(true);
+                              }}
+                              title={`Unit ${unit.unitId} - ${unit.status} (${unit.size} sq.ft) - ${unit.unitType} ${unit.customerName ? '- Customer: ' + unit.customerName : ''}`}
+                              className={`w-[75px] h-[75px] flex flex-col items-center justify-center rounded-xl text-[12px] font-black tracking-wide border transition-all duration-200 hover:-translate-y-1 hover:scale-110 active:scale-95 cursor-pointer gap-1 ${bgClass}`}
+                            >
+                              <Building className="w-4 h-4 opacity-90" />
+                              <span className="leading-none">{unit.unitId}</span>
+                              {isBooked ? (
+                                <span className="text-[7.5px] font-extrabold uppercase bg-black/20 px-1 rounded truncate max-w-[65px] text-center" title={unit.customerName}>
+                                  {unit.customerName || 'Booked'}
+                                </span>
+                              ) : (
+                                <span className="text-[10px] font-bold opacity-85">{unit.unitType || 'Flat'}</span>
+                              )}
+                            </button>
+                          );
+                        })}
                       </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
+                    </div>
+                  ))}
+              </div>
             </div>
           ) : (
             <div className="bg-white border border-gray-100 shadow-sm rounded-3xl overflow-hidden">
@@ -808,40 +874,61 @@ const ProjectDetail = () => {
       {activeType === 'House' && (
         <>
           {viewMode === 'grid' ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
-              {displayedUnits.map(unit => (
-                <div key={unit.unitId} className="bg-white border border-gray-100 shadow-sm rounded-3xl p-6 hover:shadow-md transition space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h4 className="font-extrabold text-gray-800">{unit.unitId}</h4>
-                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${getStatusBadge(unit.status)}`}>
-                      {unit.status}
-                    </span>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4 py-2 border-y border-gray-50">
-                    <div>
-                      <span className="text-[10px] text-gray-400 uppercase tracking-wider block">Size</span>
-                      <span className="text-xs font-bold text-gray-700">{Math.round(unit.size).toLocaleString()} sq.ft</span>
+            <div className="max-h-[600px] overflow-y-auto pr-3 scrollbar-thin scrollbar-thumb-[#0e623a]/20 scrollbar-track-transparent rounded-3xl p-1 w-full">
+              <div className="flex flex-col gap-6 w-full max-w-none">
+                {/* Group by Floor / Section */}
+                {Array.from(new Set(displayedUnits.map(u => u.floor || 'Houses'))).sort().map(floor => (
+                  <div key={floor} className="space-y-4 bg-white/50 backdrop-blur-md p-8 rounded-3xl border-2 border-[#0e623a]/10 shadow-[0_8px_30px_rgb(0,0,0,0.02)] flex flex-col items-center w-full">
+                    <h3 className="text-sm font-black text-gray-700 flex items-center justify-center gap-2 border-b border-gray-100 pb-2 w-full">
+                      <Home className="w-4 h-4 text-[#0e623a]" />
+                      <span>{floor}</span>
+                    </h3>
+                    <div className="grid grid-cols-2 sm:grid-cols-5 md:grid-cols-10 gap-5 pt-2 justify-center w-full max-w-[1120px] mx-auto">
+                      {displayedUnits.filter(u => (u.floor || 'Houses') === floor).map(unit => {
+                        const isBooked = unit.status === 'Booked';
+                        const isSold = unit.status === 'Sold Out';
+                        const isUnderConstruction = unit.status === 'Under Construction';
+                        
+                        let bgClass = 'bg-gradient-to-br from-emerald-500 to-emerald-600 border-emerald-400 text-white shadow-[0_3px_8px_rgba(16,185,129,0.15)] hover:shadow-[0_6px_15px_rgba(16,185,129,0.3)]';
+                        if (isSold) {
+                          bgClass = 'bg-gradient-to-br from-red-500 to-rose-600 border-red-400 text-white shadow-[0_3px_8px_rgba(239,68,68,0.15)] hover:shadow-[0_6px_15px_rgba(239,68,68,0.3)]';
+                        } else if (isBooked) {
+                          bgClass = 'bg-gradient-to-br from-amber-400 to-yellow-500 border-amber-300 text-white shadow-[0_3px_8px_rgba(245,158,11,0.15)] hover:shadow-[0_6px_15px_rgba(245,158,11,0.3)]';
+                        } else if (isUnderConstruction) {
+                          bgClass = 'bg-gradient-to-br from-purple-500 to-indigo-600 border-purple-400 text-white shadow-[0_3px_8px_rgba(139,92,246,0.15)] hover:shadow-[0_6px_15px_rgba(139,92,246,0.3)]';
+                        }
+                        
+                        return (
+                          <button
+                            key={unit.unitId}
+                            type="button"
+                            onClick={() => {
+                              setSelectedUnit(unit);
+                              setUnitStatus(unit.status);
+                              setCustomerName(unit.customerName || '');
+                              setCustomerPhone(unit.customerPhone || '');
+                              setLeadName(unit.leadName || '');
+                              setBookingModalOpen(true);
+                            }}
+                            title={`Unit ${unit.unitId} - ${unit.status} (${unit.size} sq.ft) - ${unit.unitType} ${unit.customerName ? '- Customer: ' + unit.customerName : ''}`}
+                            className={`w-[90px] h-[90px] flex flex-col items-center justify-center rounded-2xl text-[15px] font-black tracking-wide border transition-all duration-200 hover:-translate-y-1.5 hover:scale-110 active:scale-95 cursor-pointer gap-1 ${bgClass}`}
+                          >
+                            <Home className="w-6 h-6 opacity-90" />
+                            <span className="leading-none">{unit.unitId}</span>
+                            {isBooked ? (
+                              <span className="text-[9px] font-extrabold uppercase bg-black/20 px-1 py-0.5 rounded truncate max-w-[80px] text-center" title={unit.customerName}>
+                                {unit.customerName || 'Booked'}
+                              </span>
+                            ) : (
+                              <span className="text-[11.5px] font-bold opacity-85">{unit.unitType || 'House'}</span>
+                            )}
+                          </button>
+                        );
+                      })}
                     </div>
-                    <div>
-                      <span className="text-[10px] text-gray-400 uppercase tracking-wider block">Value</span>
-                      <span className="text-xs font-bold text-[#0e623a]">${Math.round(unit.price).toLocaleString()}</span>
-                    </div>
                   </div>
-                  <button
-                    onClick={() => {
-                      setSelectedUnit(unit);
-                      setUnitStatus(unit.status);
-                      setCustomerName(unit.customerName || '');
-                      setCustomerPhone(unit.customerPhone || '');
-                      setLeadName(unit.leadName || '');
-                      setBookingModalOpen(true);
-                    }}
-                    className="w-full py-2 border border-gray-200 hover:border-[#0e623a]/20 hover:bg-[#0e623a]/5 rounded-xl text-xs font-bold text-gray-700 hover:text-[#0e623a] transition"
-                  >
-                    Booking Details
-                  </button>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           ) : (
             <div className="bg-white border border-gray-100 shadow-sm rounded-3xl overflow-hidden">
@@ -1244,9 +1331,41 @@ const ProjectDetail = () => {
             </div>
 
             <form onSubmit={handleBookingSubmit} className="p-6 space-y-4">
+              {/* Unit Specifications Details Box */}
+              <div className="p-4 bg-gray-50 rounded-2xl border border-gray-150 space-y-2 text-xs text-left">
+                <div className="flex justify-between border-b border-gray-200/60 pb-1.5">
+                  <span className="text-gray-400 font-bold uppercase tracking-wider">Floor Number</span>
+                  <span className="font-extrabold text-gray-800">{selectedUnit.floor || 'Floor 1'}</span>
+                </div>
+                <div className="flex justify-between border-b border-gray-200/60 pb-1.5">
+                  <span className="text-gray-400 font-bold uppercase tracking-wider">Unit No</span>
+                  <span className="font-extrabold text-gray-800">{selectedUnit.unitId}</span>
+                </div>
+                <div className="flex justify-between border-b border-gray-200/60 pb-1.5">
+                  <span className="text-gray-400 font-bold uppercase tracking-wider">Unit Type</span>
+                  <span className="font-extrabold text-gray-800">{selectedUnit.unitType || 'Flat'}</span>
+                </div>
+                <div className="flex justify-between border-b border-gray-200/60 pb-1.5">
+                  <span className="text-gray-400 font-bold uppercase tracking-wider">Rate per UOM</span>
+                  <span className="font-extrabold text-[#0e623a]">Rs. {(selectedUnit.ratePerUom || project.pricePerSqFt || 0).toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between border-b border-gray-200/60 pb-1.5">
+                  <span className="text-gray-400 font-bold uppercase tracking-wider">Sold Rate per UOM</span>
+                  <span className="font-extrabold text-red-650">Rs. {(selectedUnit.soldRatePerUom || 0).toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between border-b border-gray-200/60 pb-1.5">
+                  <span className="text-gray-400 font-bold uppercase tracking-wider">Total Unit Amount</span>
+                  <span className="font-extrabold text-emerald-700">Rs. {Math.round(selectedUnit.price || 0).toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-400 font-bold uppercase tracking-wider">Sold Consideration</span>
+                  <span className="font-extrabold text-red-700">Rs. {(selectedUnit.soldConsideration || 0).toLocaleString()}</span>
+                </div>
+              </div>
+
               {/* Unit Status */}
               <div>
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-2">Workflow Status</label>
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-2 text-left">Workflow Status</label>
                 <select
                   value={unitStatus}
                   onChange={(e) => setUnitStatus(e.target.value)}
@@ -1266,7 +1385,7 @@ const ProjectDetail = () => {
 
               {/* Customer Details */}
               <div>
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-2">Customer Name</label>
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-2 text-left">Customer Name</label>
                 <input
                   type="text"
                   placeholder="e.g. Robert Miller"
@@ -1277,7 +1396,7 @@ const ProjectDetail = () => {
               </div>
 
               <div>
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-2">Customer Phone</label>
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-2 text-left">Customer Phone</label>
                 <input
                   type="text"
                   placeholder="e.g. +1 555-0199"
@@ -1289,7 +1408,7 @@ const ProjectDetail = () => {
 
               {project.projectType === 'Plot' && (
                 <div>
-                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-2">Lead / Marketing Channel</label>
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-2 text-left">Lead / Marketing Channel</label>
                   <input
                     type="text"
                     placeholder="e.g. Digital Ad, Broker Referral"
@@ -1299,18 +1418,6 @@ const ProjectDetail = () => {
                   />
                 </div>
               )}
-
-              {/* Pricing breakdown summary */}
-              <div className="p-4 bg-gray-50 rounded-xl border space-y-1">
-                <div className="flex justify-between text-xs text-gray-500">
-                  <span>Unit Size:</span>
-                  <span className="font-semibold text-gray-800">{Math.round(selectedUnit.size).toLocaleString()} sq.ft</span>
-                </div>
-                <div className="flex justify-between text-xs text-gray-500">
-                  <span>Unit Value Valuation:</span>
-                  <span className="font-bold text-[#0e623a]">${Math.round(selectedUnit.price).toLocaleString()}</span>
-                </div>
-              </div>
 
               {/* Action Buttons */}
               <div className="flex items-center gap-3 pt-2">

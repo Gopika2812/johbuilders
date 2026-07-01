@@ -364,4 +364,29 @@ router.get('/target-stats/:month', protect, async (req, res) => {
   }
 });
 
+// @route   DELETE /api/leads/:id
+// @desc    Delete a lead
+router.delete('/:id', protect, authorize('Admin', 'Manager'), async (req, res) => {
+  try {
+    const lead = await Lead.findById(req.params.id);
+    if (!lead) {
+      return res.status(404).json({ message: 'Lead not found' });
+    }
+
+    await Lead.findByIdAndDelete(req.params.id);
+
+    await AuditLog.create({
+      user: req.user._id,
+      userName: req.user.name,
+      userRole: req.user.role,
+      action: 'Delete Lead',
+      description: `Deleted lead: ${lead.name} (${lead.phone})`
+    });
+
+    res.json({ message: 'Lead deleted successfully' });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 module.exports = router;

@@ -228,12 +228,12 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
               <Link
                 to="/leads?status=Qualified"
                 className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs transition ${
-                  location.pathname === '/leads' && location.search.includes('status=Qualified') && !location.search.includes('tab=Hot')
+                  location.pathname === '/leads' && location.search.includes('status=Qualified')
                     ? 'text-white font-extrabold border-l-2 border-white pl-2'
                     : 'text-emerald-150 hover:text-white hover:bg-white/5'
                 }`}
               >
-                <span>Qualified</span>
+                <span>Hot List</span>
               </Link>
 
               <Link
@@ -256,17 +256,6 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
                 }`}
               >
                 <span>Booking</span>
-              </Link>
-
-               <Link
-                to="/leads?status=Qualified&tab=Hot"
-                className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs transition ${
-                  location.pathname === '/leads' && location.search.includes('tab=Hot')
-                    ? 'text-white font-extrabold border-l-2 border-white pl-2'
-                    : 'text-emerald-150 hover:text-white hover:bg-white/5'
-                }`}
-              >
-                <span>Hot List</span>
               </Link>
 
               <Link

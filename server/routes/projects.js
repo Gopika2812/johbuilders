@@ -66,13 +66,16 @@ router.post('/', protect, checkPermission('projects', 'edit'), async (req, res) 
       units = req.body.units.map(u => ({
         unitId: u.unitId,
         size: Number(u.size) || 0,
-        price: (Number(u.size) || 0) * price,
+        price: (Number(u.size) || 0) * (Number(u.ratePerUom) || price),
         status: u.status || 'New',
         floor: u.floor || '',
         remarks: u.remarks || '',
         isLocked: !!u.isLocked,
         mapCoordinates: u.mapCoordinates,
-        unitType: u.unitType || (projectType.includes('Plot') ? 'Plot' : projectType.includes('House') ? 'House' : 'Flat')
+        unitType: u.unitType || (projectType.includes('Plot') ? 'Plot' : projectType.includes('House') ? 'House' : 'Flat'),
+        ratePerUom: Number(u.ratePerUom) || 0,
+        soldRatePerUom: Number(u.soldRatePerUom) || 0,
+        soldConsideration: Number(u.soldConsideration) || 0
       }));
     } else {
       const types = Array.isArray(projectType) ? projectType : [projectType];

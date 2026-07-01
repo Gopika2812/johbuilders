@@ -259,8 +259,29 @@ const QuotationForm = () => {
     }
   };
 
+  const projectTypesArray = projectDetails?.projectType
+    ? (Array.isArray(projectDetails.projectType) ? projectDetails.projectType : [projectDetails.projectType])
+    : ['Plot'];
+
+  const getFilteredUnits = (type) => {
+    if (!projectDetails || !projectDetails.units) return [];
+    if (projectTypesArray.length === 1) {
+      return projectDetails.units;
+    }
+    if (type === 'Flat') {
+      return projectDetails.units.filter(u => u.unitType === 'Flat' || u.unitType?.includes('BHK') || (!u.unitType && !projectTypesArray.includes('Plot') && !projectTypesArray.includes('House')));
+    }
+    if (type === 'Plot') {
+      return projectDetails.units.filter(u => u.unitType === 'Plot' || (!u.unitType && (projectTypesArray.includes('Plot') || projectTypesArray.length === 0)));
+    }
+    if (type === 'House') {
+      return projectDetails.units.filter(u => u.unitType === 'House' || u.unitType === 'Villa' || u.unitType?.includes('BHK'));
+    }
+    return projectDetails.units.filter(u => u.unitType === type);
+  };
+
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
+    <div className="w-full space-y-6">
       {/* Top Breadcrumb Header Bar */}
       <div className="flex items-center justify-between bg-white border border-gray-150 p-4 rounded-3xl shadow-sm">
         <button
@@ -406,7 +427,7 @@ const QuotationForm = () => {
                         />
                         
                         {/* Interactive pins (filtered to current type selected in tabs) */}
-                        {projectDetails.units?.filter(u => u.unitType === projectType || (!u.unitType && projectType === 'Plot')).map((u, idx) => {
+                        {getFilteredUnits(projectType).map((u, idx) => {
                           if (!u.mapCoordinates) return null;
                           const isSelected = selectedUnits.includes(u.unitId);
                           const isBooked = u.status === 'Booked' || u.status === 'Sold Out';
@@ -447,7 +468,7 @@ const QuotationForm = () => {
                   {/* Plots Grid */}
                   {projectType === 'Plot' && (
                     <div className="grid grid-cols-4 sm:grid-cols-6 gap-3">
-                      {projectDetails.units?.filter(u => u.unitType === 'Plot' || !u.unitType).map(u => {
+                      {getFilteredUnits('Plot').map(u => {
                         const isSelected = selectedUnits.includes(u.unitId);
                         const isBooked = u.status === 'Booked' || u.status === 'Sold Out';
                         return (
@@ -481,11 +502,11 @@ const QuotationForm = () => {
                   {/* Flats grouped by Floors */}
                   {projectType === 'Flat' && (
                     <div className="space-y-4">
-                      {Array.from(new Set(projectDetails.units?.filter(u => u.unitType === 'Flat').map(u => u.floor || 'G') || [])).sort().map(floor => (
+                      {Array.from(new Set(getFilteredUnits('Flat').map(u => u.floor || 'G') || [])).sort().map(floor => (
                         <div key={floor} className="bg-gray-50/50 p-3 rounded-2xl border border-gray-150 space-y-2">
                           <h5 className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Floor: {floor}</h5>
                           <div className="grid grid-cols-4 sm:grid-cols-6 gap-3">
-                            {projectDetails.units?.filter(u => (u.floor || 'G') === floor && u.unitType === 'Flat').map(u => {
+                            {getFilteredUnits('Flat').filter(u => (u.floor || 'G') === floor).map(u => {
                               const isSelected = selectedUnits.includes(u.unitId);
                               const isBooked = u.status === 'Booked' || u.status === 'Sold Out';
                               return (
@@ -521,31 +542,39 @@ const QuotationForm = () => {
 
                   {/* Houses Layout */}
                   {projectType === 'House' && (
-                    <div className="grid grid-cols-3 sm:grid-cols-4 gap-4">
-                      {projectDetails.units?.filter(u => u.unitType === 'House').map(u => {
+                    <div className="grid grid-cols-2 sm:grid-cols-5 md:grid-cols-10 gap-5 pt-2 justify-center w-full max-w-[1120px] mx-auto">
+                      {getFilteredUnits('House').map(u => {
                         const isSelected = selectedUnits.includes(u.unitId);
-                        const isBooked = u.status === 'Booked' || u.status === 'Sold Out';
+                        const isBooked = u.status === 'Booked';
+                        const isSold = u.status === 'Sold Out';
+                        
+                        let bgClass = 'bg-gradient-to-br from-emerald-500 to-emerald-600 border-emerald-400 text-white shadow-[0_3px_8px_rgba(16,185,129,0.15)] hover:shadow-[0_6px_15px_rgba(16,185,129,0.3)] hover:-translate-y-1 hover:scale-105';
+                        if (isSold) {
+                          bgClass = 'bg-gradient-to-br from-red-500 to-rose-600 border-red-400 text-white shadow-[0_3px_8px_rgba(239,68,68,0.15)] cursor-not-allowed opacity-90';
+                        } else if (isBooked) {
+                          bgClass = 'bg-gradient-to-br from-amber-400 to-yellow-500 border-amber-300 text-white shadow-[0_3px_8px_rgba(245,158,11,0.15)] cursor-not-allowed opacity-90';
+                        } else if (isSelected) {
+                          bgClass = 'bg-[#0e623a] border-[#0a4d2c] text-white shadow-md font-bold scale-105 ring-2 ring-emerald-300';
+                        }
+                        
                         return (
                           <button
                             key={u.unitId}
                             type="button"
-                            disabled={isBooked}
+                            disabled={isSold || isBooked}
                             onClick={() => toggleUnitSelection(u.unitId)}
-                            className={`p-3.5 rounded-2xl border flex flex-col items-center justify-center relative transition min-h-[90px] cursor-pointer ${
-                              isBooked
-                                ? 'bg-yellow-100 border-yellow-300 text-yellow-800 cursor-not-allowed opacity-90 font-bold'
-                                : isSelected
-                                ? 'bg-[#0e623a] border-[#0a4d2c] text-white shadow-md font-bold scale-105 ring-2 ring-emerald-300'
-                                : 'bg-white hover:bg-gray-50 border-gray-200 text-gray-700'
-                            }`}
+                            className={`w-[90px] h-[90px] flex flex-col items-center justify-center rounded-2xl text-[13px] font-black tracking-wide border transition-all duration-200 active:scale-95 cursor-pointer gap-1 ${bgClass}`}
                           >
-                            <Home className={`w-5 h-5 mb-1.5 ${isSelected ? 'text-white' : 'text-[#0e623a]'}`} />
-                            <div className="text-xs font-bold">{u.unitId}</div>
-                            <div className="text-[10px] text-gray-400 font-semibold">{Number(u.size).toFixed(2)} Sq.Ft</div>
-                            {isSelected && (
-                              <span className="absolute top-1.5 right-1.5 bg-white text-[#0e623a] rounded-full p-0.5">
-                                <Check className="w-2.5 h-2.5" />
+                            <Home className="w-5 h-5 opacity-90" />
+                            <span className="leading-none">{u.unitId}</span>
+                            {isBooked ? (
+                              <span className="text-[8px] font-extrabold uppercase bg-black/20 px-1 rounded truncate max-w-[80px] text-center" title={u.customerName}>
+                                {u.customerName || 'Booked'}
                               </span>
+                            ) : isSold ? (
+                              <span className="text-[8.5px] font-extrabold uppercase bg-black/20 px-1 rounded">Sold</span>
+                            ) : (
+                              <span className="text-[9.5px] font-bold opacity-85">{u.unitType || 'House'}</span>
                             )}
                           </button>
                         );

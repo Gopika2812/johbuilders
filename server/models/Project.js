@@ -44,8 +44,19 @@ const UnitSchema = new mongoose.Schema({
   },
   unitType: {
     type: String,
-    enum: ['Plot', 'Flat', 'House'],
-    default: 'Plot'
+    default: 'Flat'
+  },
+  ratePerUom: {
+    type: Number,
+    default: 0
+  },
+  soldRatePerUom: {
+    type: Number,
+    default: 0
+  },
+  soldConsideration: {
+    type: Number,
+    default: 0
   }
 });
 
@@ -122,9 +133,13 @@ const ProjectSchema = new mongoose.Schema({
 
 // Calculate total valuation and remaining land before saving
 ProjectSchema.pre('save', function (next) {
-  // Update unit values based on size and current pricePerSqFt
+  // Update unit values based on size and price
   this.units.forEach(unit => {
-    unit.price = unit.size * this.pricePerSqFt;
+    if (unit.ratePerUom && unit.ratePerUom > 0) {
+      unit.price = unit.size * unit.ratePerUom;
+    } else {
+      unit.price = unit.size * this.pricePerSqFt;
+    }
   });
 
   // Calculate remaining land (primarily for Plot projects)

@@ -276,6 +276,16 @@ const LeadsDirectory = () => {
     }
   }, [editProjectId, editLeadType, projects]);
 
+  // Update edit-ad link and cost when edit ad changes
+  useEffect(() => {
+    if (editAdId) {
+      const ad = editActiveAds.find(a => a.id === editAdId);
+      if (ad) {
+        setEditLeadCost(String(ad.cost || 0));
+      }
+    }
+  }, [editAdId, editActiveAds]);
+
   const handleOpenEditModal = (lead) => {
     setSelectedLeadForEdit(lead);
     setEditName(lead.name || '');
@@ -346,6 +356,32 @@ const LeadsDirectory = () => {
       }
     } catch (err) {
       setError('Error updating lead');
+    }
+  };
+
+  const handleDeleteLead = async (leadId, leadName) => {
+    if (!window.confirm(`Are you sure you want to permanently delete lead "${leadName}"?`)) {
+      return;
+    }
+    setError('');
+    setSuccessMsg('');
+    try {
+      const res = await fetch(`${API_URL}/leads/${leadId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      if (res.ok) {
+        setSuccessMsg('Lead deleted successfully!');
+        fetchLeads();
+        setTimeout(() => setSuccessMsg(''), 3000);
+      } else {
+        const data = await res.json();
+        setError(data.message || 'Failed to delete lead');
+      }
+    } catch (err) {
+      setError('Connection error deleting lead record');
     }
   };
 
@@ -616,7 +652,7 @@ const LeadsDirectory = () => {
         if (followMode === 'FollowUp') {
           setSuccessMsg(`Follow-up scheduled successfully for ${new Date(nextFollowDate).toLocaleString()}!`);
         } else if (followTargetStatus === 'Qualified') {
-          setSuccessMsg('Lead advanced to Qualified stage successfully & saved to Hot List!');
+          setSuccessMsg('Lead advanced to Hot List stage successfully!');
         } else {
           setSuccessMsg(`Deal marked as Completed & Closed under ${followTargetStatus} stage.`);
         }
@@ -867,7 +903,11 @@ const LeadsDirectory = () => {
   // Filter list matching Search & Date & Tab & Advanced Filters
   const getFilteredLeads = () => {
     return leads.filter(lead => {
-      const matchesTab = activeTab === 'All' || lead.status === activeTab;
+      let matchesTab = activeTab === 'All' || lead.status === activeTab;
+      if (activeTab === 'Qualified') {
+        const wasQualified = lead.status === 'Qualified' || (lead.history && lead.history.some(h => h.status === 'Qualified'));
+        matchesTab = wasQualified;
+      }
       const matchesStatus = !statusFilter || lead.status === statusFilter;
       
       const matchesSearch = !searchTerm || 
@@ -967,7 +1007,10 @@ const LeadsDirectory = () => {
             All Leads ({leads.length})
           </button>
           {LEAD_STATUSES.map(st => {
-            const count = leads.filter(l => l.status === st).length;
+            let count = leads.filter(l => l.status === st).length;
+            if (st === 'Qualified') {
+              count = leads.filter(l => l.status === 'Qualified' || (l.history && l.history.some(h => h.status === 'Qualified'))).length;
+            }
             return (
               <button
                 key={st}
@@ -978,7 +1021,7 @@ const LeadsDirectory = () => {
                     : 'text-gray-500 hover:bg-gray-50 hover:text-gray-800'
                 }`}
               >
-                {st} ({count})
+                {st === 'Qualified' ? 'Hot List' : st} ({count})
               </button>
             );
           })}
@@ -1131,8 +1174,8 @@ const LeadsDirectory = () => {
       </div>
 
       {/* Leads Main Table */}
-      <div className="bg-white border border-gray-150 shadow-sm rounded-3xl overflow-hidden">
-        <div className="overflow-x-auto w-full">
+      <div className="bg-white border border-gray-150 shadow-sm rounded-3xl overflow-visible">
+        <div className="overflow-x-auto w-full min-h-[350px]">
           <table className="w-full text-left border-collapse min-w-[900px]">
           <thead>
             <tr className="bg-gray-50 border-b border-gray-150 text-xs font-bold text-gray-500 uppercase tracking-wider">
@@ -1292,10 +1335,15 @@ const LeadsDirectory = () => {
                       >
                         <span className="flex items-center gap-1.5">
                           <span className={`w-2 h-2 rounded-full ${STATUS_COLORS[lead.status]?.dot || 'bg-gray-450'}`}></span>
-                          {lead.status}
+                          {lead.status === 'Qualified' ? 'Hot List' : lead.status}
                         </span>
                         <ChevronDown className="w-3 h-3 opacity-75 shrink-0" />
                       </button>
+                      {activeTab === 'Qualified' && lead.status !== 'Qualified' && (
+                        <div className="text-[10px] text-emerald-700 font-extrabold mt-1 py-0.5 px-2 bg-emerald-50 rounded border border-emerald-100 text-center">
+                          Moved to {lead.status}
+                        </div>
+                      )}
 
                       {openDropdownLeadId === lead._id && (
                         <>
@@ -1361,7 +1409,7 @@ const LeadsDirectory = () => {
                                     >
                                       <span className="flex items-center gap-2">
                                         <span className={`w-2 h-2 rounded-full ${STATUS_COLORS[st]?.dot || 'bg-gray-450'}`}></span>
-                                        {st}
+                                        {st === 'Qualified' ? 'Hot List' : st}
                                       </span>
                                       {isCurrent && (
                                         <Check className="w-3 h-3 text-[#0e623a]" />
@@ -1378,30 +1426,41 @@ const LeadsDirectory = () => {
                   )}
                 </td>
 
-                {/* Action Triggers: History & Edit */}
-                <td className="p-4 text-center">
-                  <div className="flex items-center justify-center gap-1.5">
-                    <button
-                      onClick={() => {
-                        setSelectedLeadForHistory(lead);
-                        setHistoryModalOpen(true);
-                      }}
-                      className="p-1.5 text-gray-500 hover:text-[#0e623a] hover:bg-[#0e623a]/5 rounded-lg transition cursor-pointer"
-                      title="View Lead History Logs"
-                    >
-                      <History className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => handleOpenEditModal(lead)}
-                      className="p-1.5 text-gray-500 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition cursor-pointer"
-                      title="Edit Entire Lead Details"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                      </svg>
-                    </button>
-                  </div>
-                </td>
+                 {/* Action Triggers: History, Edit & Delete */}
+                 <td className="p-4 text-center">
+                   <div className="flex items-center justify-center gap-1.5">
+                     <button
+                       onClick={() => {
+                         setSelectedLeadForHistory(lead);
+                         setHistoryModalOpen(true);
+                       }}
+                       className="p-1.5 text-gray-500 hover:text-[#0e623a] hover:bg-[#0e623a]/5 rounded-lg transition cursor-pointer"
+                       title="View Lead History Logs"
+                     >
+                       <History className="w-4 h-4" />
+                     </button>
+                     <button
+                       onClick={() => handleOpenEditModal(lead)}
+                       className="p-1.5 text-gray-500 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition cursor-pointer"
+                       title="Edit Entire Lead Details"
+                     >
+                       <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                         <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                       </svg>
+                     </button>
+                     {(user?.role === 'Admin' || user?.role === 'Manager') && (
+                       <button
+                         onClick={() => handleDeleteLead(lead._id, lead.name)}
+                         className="p-1.5 text-gray-500 hover:text-red-650 hover:bg-red-50 rounded-lg transition cursor-pointer"
+                         title="Delete Lead Record"
+                       >
+                         <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                           <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                         </svg>
+                       </button>
+                     )}
+                   </div>
+                 </td>
               </tr>
             ))}
             {filteredLeadsList.length === 0 && (
@@ -1461,8 +1520,8 @@ const LeadsDirectory = () => {
                 </div>
               </div>
 
-              {/* Name & Phone & Cost */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {/* Name & Phone */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1.5">Lead / Customer Name</label>
                   <input
@@ -1471,7 +1530,7 @@ const LeadsDirectory = () => {
                     placeholder="e.g. David Brown"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0e623a] text-sm"
+                    className="w-full px-4 py-3 bg-gray-55 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0e623a] text-sm"
                   />
                 </div>
                 <div>
@@ -1484,16 +1543,6 @@ const LeadsDirectory = () => {
                     onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
                     onBlur={handlePhoneBlur}
                     className="w-full px-4 py-3 bg-gray-55 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0e623a] text-sm"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1.5">Enquiry / Lead Cost (₹)</label>
-                  <input
-                    type="number"
-                    placeholder="e.g. 500"
-                    value={leadCost}
-                    onChange={(e) => setLeadCost(e.target.value)}
-                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0e623a] text-sm font-semibold"
                   />
                 </div>
               </div>
@@ -1558,7 +1607,7 @@ const LeadsDirectory = () => {
                       <div className="flex flex-col">
                         <label className="text-xs font-bold text-[#0e623a] uppercase tracking-wider block mb-1.5">Active Ad Campaign</label>
                         <SearchableSelect
-                          options={activeAds.map(ad => ({ value: ad.id, label: `[${ad.type}] ${ad.name}` }))}
+                          options={activeAds.map(ad => ({ value: ad.id, label: `[${ad.type}] ${ad.name} (₹${ad.cost || 0})` }))}
                           value={selectedAdId}
                           onChange={setSelectedAdId}
                           placeholder="Select Active Campaign Ad"
@@ -1708,8 +1757,8 @@ const LeadsDirectory = () => {
                 </div>
               </div>
 
-              {/* Name & Phone & Cost */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-left">
+              {/* Name & Phone */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-left">
                 <div>
                   <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1.5">Lead / Customer Name</label>
                   <input
@@ -1730,16 +1779,6 @@ const LeadsDirectory = () => {
                     value={editPhone}
                     onChange={(e) => setEditPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
                     className="w-full px-4 py-3 bg-gray-55 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-600 text-sm"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1.5">Enquiry / Lead Cost (₹)</label>
-                  <input
-                    type="number"
-                    placeholder="e.g. 500"
-                    value={editLeadCost}
-                    onChange={(e) => setEditLeadCost(e.target.value)}
-                    className="w-full px-4 py-3 bg-gray-55 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-600 text-sm font-semibold"
                   />
                 </div>
               </div>
@@ -1790,7 +1829,7 @@ const LeadsDirectory = () => {
                       <div className="flex flex-col">
                         <label className="text-xs font-bold text-amber-800 uppercase tracking-wider block mb-1.5">Active Ad Campaign</label>
                         <SearchableSelect
-                          options={editActiveAds.map(ad => ({ value: ad.id, label: `[${ad.type}] ${ad.name}` }))}
+                          options={editActiveAds.map(ad => ({ value: ad.id, label: `[${ad.type}] ${ad.name} (₹${ad.cost || 0})` }))}
                           value={editAdId}
                           onChange={setEditAdId}
                           placeholder="Select Active Campaign Ad"

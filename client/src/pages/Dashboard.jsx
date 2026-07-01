@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth, API_URL } from '../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import { 
   TrendingUp, 
   Users, 
@@ -214,6 +215,53 @@ const ObservedPieChart = ({ dataArray, valueKey, labelKey, colorPalette, isCount
 
 const Dashboard = () => {
   const { token, user } = useAuth();
+  const navigate = useNavigate();
+  const [leadsModalOpen, setLeadsModalOpen] = useState(false);
+  const [bookedModalOpen, setBookedModalOpen] = useState(false);
+  const clickTimeoutRef = useRef(null);
+  const bookedClickTimeoutRef = useRef(null);
+
+  const handleLeadsCardClick = () => {
+    if (clickTimeoutRef.current) {
+      clearTimeout(clickTimeoutRef.current);
+      clickTimeoutRef.current = null;
+      navigate('/leads');
+    } else {
+      clickTimeoutRef.current = setTimeout(() => {
+        clickTimeoutRef.current = null;
+        setLeadsModalOpen(true);
+      }, 300);
+    }
+  };
+
+  const handleBookedCardClick = () => {
+    if (bookedClickTimeoutRef.current) {
+      clearTimeout(bookedClickTimeoutRef.current);
+      bookedClickTimeoutRef.current = null;
+      navigate('/leads?status=Booking');
+    } else {
+      bookedClickTimeoutRef.current = setTimeout(() => {
+        bookedClickTimeoutRef.current = null;
+        setBookedModalOpen(true);
+      }, 300);
+    }
+  };
+
+  const [handoverModalOpen, setHandoverModalOpen] = useState(false);
+  const handoverClickTimeoutRef = useRef(null);
+
+  const handleHandoverCardClick = () => {
+    if (handoverClickTimeoutRef.current) {
+      clearTimeout(handoverClickTimeoutRef.current);
+      handoverClickTimeoutRef.current = null;
+      navigate('/leads?status=Won');
+    } else {
+      handoverClickTimeoutRef.current = setTimeout(() => {
+        handoverClickTimeoutRef.current = null;
+        setHandoverModalOpen(true);
+      }, 300);
+    }
+  };
   
   // Date filters - default to current month
   const [selectedMonth, setSelectedMonth] = useState(() => {
@@ -1042,7 +1090,10 @@ const Dashboard = () => {
             </div>
           </div>
         </div>
-        <div className="relative group bg-white border border-amber-100 rounded-3xl p-5 shadow-sm hover:shadow-md transition bg-amber-50/10 cursor-pointer select-none">
+        <div 
+          onClick={handleBookedCardClick}
+          className="relative group bg-white border border-amber-100 rounded-3xl p-5 shadow-sm hover:shadow-md transition bg-amber-50/10 cursor-pointer select-none active:scale-[0.99] duration-150"
+        >
           <span className="text-[10px] text-amber-600 font-extrabold uppercase tracking-wider block">Booked Units</span>
           <h3 className="text-xl font-extrabold text-amber-800 mt-1">{stats.cards.inventory?.bookedUnits || 0}</h3>
           <p className="text-[9px] text-amber-500 mt-2 font-medium">Awaiting final agreement</p>
@@ -1066,7 +1117,10 @@ const Dashboard = () => {
             </div>
           </div>
         </div>
-        <div className="relative group bg-white border border-rose-100 rounded-3xl p-5 shadow-sm hover:shadow-md transition bg-rose-50/10 cursor-pointer select-none">
+        <div 
+          onClick={handleHandoverCardClick}
+          className="relative group bg-white border border-rose-100 rounded-3xl p-5 shadow-sm hover:shadow-md transition bg-rose-50/10 cursor-pointer select-none active:scale-[0.99] duration-150"
+        >
           <span className="text-[10px] text-rose-600 font-extrabold uppercase tracking-wider block">Handover Units</span>
           <h3 className="text-xl font-extrabold text-rose-800 mt-1">{stats.cards.inventory?.handoverUnits || 0}</h3>
           <p className="text-[9px] text-rose-500 mt-2 font-medium">Key Handover completed (Sold)</p>
@@ -1102,7 +1156,10 @@ const Dashboard = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6">
             
             {/* Card 0: Total Leads */}
-            <div className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm hover:shadow-md transition">
+            <div 
+              onClick={handleLeadsCardClick}
+              className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm hover:shadow-md transition cursor-pointer select-none active:scale-[0.99] duration-150"
+            >
               <div className="flex items-center justify-between">
                 <div>
                   <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Total Leads</span>
@@ -1646,6 +1703,251 @@ const Dashboard = () => {
                 className="px-5 py-2 bg-[#0e623a] hover:bg-[#0b4d2d] text-white text-xs font-bold rounded-xl transition shadow-sm"
               >
                 Export Report ({selectedSourcesList.length})
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Leads List Modal Popup */}
+      {leadsModalOpen && (
+        <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm z-[999] flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl border border-gray-150 shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden text-left animate-fadeIn">
+            {/* Header */}
+            <div className="p-6 border-b border-gray-150 flex items-center justify-between bg-gray-50/50">
+              <div>
+                <h3 className="text-base font-extrabold text-gray-800">Filtered Leads Directory</h3>
+                <p className="text-[10px] text-gray-500 mt-0.5">Showing leads corresponding to current active filters</p>
+              </div>
+              <button 
+                onClick={() => setLeadsModalOpen(false)}
+                className="w-8 h-8 rounded-full flex items-center justify-center bg-gray-100 text-gray-400 hover:bg-red-50 hover:text-red-500 transition cursor-pointer font-bold"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* List Content */}
+            <div className="flex-grow p-6 overflow-y-auto max-h-[50vh] scrollbar-thin">
+              {stats.cards.leadsList && stats.cards.leadsList.length > 0 ? (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="border-b border-gray-100 text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                        <th className="pb-3">Lead Name</th>
+                        <th className="pb-3">Lead Source</th>
+                        <th className="pb-3">Project Details</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-50 text-xs font-semibold text-gray-700">
+                      {stats.cards.leadsList.map((lead, idx) => (
+                        <tr key={lead._id || idx} className="hover:bg-gray-50/50 transition">
+                          <td className="py-3.5 font-bold text-gray-850">{lead.name}</td>
+                          <td className="py-3.5">
+                            <span className="bg-gray-100 text-gray-600 px-2.5 py-0.5 rounded-full text-[10px] font-bold">
+                              {lead.leadSource}
+                            </span>
+                          </td>
+                          <td className="py-3.5">
+                            <div className="flex flex-col gap-0.5">
+                              <span className="font-bold text-gray-800">{lead.projectName}</span>
+                              <span className="text-[10px] text-gray-450 font-bold uppercase tracking-wide">
+                                Type: {Array.isArray(lead.projectType) ? lead.projectType.join(', ') : lead.projectType}
+                              </span>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="py-12 text-center text-gray-450 italic text-xs">
+                  No leads available for this filtered configuration.
+                </div>
+              )}
+            </div>
+            
+            {/* Footer */}
+            <div className="p-5 border-t border-gray-150 bg-gray-50/30 flex justify-end">
+              <button
+                onClick={() => {
+                  setLeadsModalOpen(false);
+                  navigate('/leads');
+                }}
+                className="px-4 py-2 bg-[#0e623a] hover:bg-[#0b4d2d] text-white text-xs font-bold rounded-xl transition shadow-sm"
+              >
+                Go to Leads Directory →
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Booked Units Modal Popup */}
+      {bookedModalOpen && (
+        <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm z-[999] flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl border border-gray-150 shadow-2xl w-full max-w-3xl max-h-[85vh] flex flex-col overflow-hidden text-left animate-fadeIn">
+            {/* Header */}
+            <div className="p-6 border-b border-gray-150 flex items-center justify-between bg-amber-500/10">
+              <div>
+                <h3 className="text-base font-extrabold text-amber-800">Booked Units Directory</h3>
+                <p className="text-[10px] text-amber-700 mt-0.5">Showing registered unit bookings and customer information</p>
+              </div>
+              <button 
+                onClick={() => setBookedModalOpen(false)}
+                className="w-8 h-8 rounded-full flex items-center justify-center bg-white text-gray-400 hover:bg-red-50 hover:text-red-500 transition cursor-pointer font-bold border border-gray-150"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* List Content */}
+            <div className="flex-grow p-6 overflow-y-auto max-h-[50vh] scrollbar-thin">
+              {stats.cards.inventory?.bookedUnitsList && stats.cards.inventory.bookedUnitsList.length > 0 ? (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="border-b border-gray-100 text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                        <th className="pb-3">Customer Details</th>
+                        <th className="pb-3">Project / Unit</th>
+                        <th className="pb-3">Unit Specifications</th>
+                        <th className="pb-3 text-right">Booking Value</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-50 text-xs font-semibold text-gray-700">
+                      {stats.cards.inventory.bookedUnitsList.map((unit, idx) => (
+                        <tr key={idx} className="hover:bg-gray-50/50 transition">
+                          <td className="py-3.5">
+                            <div className="flex flex-col gap-0.5">
+                              <span className="font-bold text-gray-850">{unit.customerName}</span>
+                              <span className="text-[10px] text-gray-500 font-bold">{unit.customerPhone}</span>
+                            </div>
+                          </td>
+                          <td className="py-3.5">
+                            <div className="flex flex-col gap-0.5">
+                              <span className="font-bold text-gray-800">{unit.projectName}</span>
+                              <span className="text-[10px] text-gray-450 font-bold uppercase tracking-wide">
+                                Unit: {unit.unitId}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="py-3.5">
+                            <div className="flex flex-col gap-0.5">
+                              <span className="font-bold text-gray-755">{unit.unitType}</span>
+                              <span className="text-[10px] text-gray-450 font-semibold">{unit.size.toLocaleString()} Sq.Ft</span>
+                            </div>
+                          </td>
+                          <td className="py-3.5 text-right font-extrabold text-[#0e623a] text-sm">
+                            ₹{Math.round(unit.price).toLocaleString()}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="py-12 text-center text-gray-450 italic text-xs">
+                  No active unit bookings recorded.
+                </div>
+              )}
+            </div>
+            
+            {/* Footer */}
+            <div className="p-5 border-t border-gray-150 bg-gray-50/30 flex justify-end">
+              <button
+                onClick={() => {
+                  setBookedModalOpen(false);
+                  navigate('/leads?status=Booking');
+                }}
+                className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl transition shadow-sm"
+              >
+                Go to Bookings Tab →
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Handover Units Modal Popup */}
+      {handoverModalOpen && (
+        <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm z-[999] flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl border border-gray-150 shadow-2xl w-full max-w-3xl max-h-[85vh] flex flex-col overflow-hidden text-left animate-fadeIn">
+            {/* Header */}
+            <div className="p-6 border-b border-gray-150 flex items-center justify-between bg-rose-500/10">
+              <div>
+                <h3 className="text-base font-extrabold text-rose-800">Handover Units Directory</h3>
+                <p className="text-[10px] text-rose-700 mt-0.5">Showing completed handovers and client information</p>
+              </div>
+              <button 
+                onClick={() => setHandoverModalOpen(false)}
+                className="w-8 h-8 rounded-full flex items-center justify-center bg-white text-gray-400 hover:bg-red-50 hover:text-red-500 transition cursor-pointer font-bold border border-gray-150"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* List Content */}
+            <div className="flex-grow p-6 overflow-y-auto max-h-[50vh] scrollbar-thin">
+              {stats.cards.inventory?.handoverUnitsList && stats.cards.inventory.handoverUnitsList.length > 0 ? (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="border-b border-gray-100 text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                        <th className="pb-3">Customer Details</th>
+                        <th className="pb-3">Project / Unit</th>
+                        <th className="pb-3">Unit Specifications</th>
+                        <th className="pb-3 text-right">Value (Consideration)</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-50 text-xs font-semibold text-gray-700">
+                      {stats.cards.inventory.handoverUnitsList.map((unit, idx) => (
+                        <tr key={idx} className="hover:bg-gray-50/50 transition">
+                          <td className="py-3.5">
+                            <div className="flex flex-col gap-0.5">
+                              <span className="font-bold text-gray-850">{unit.customerName}</span>
+                              <span className="text-[10px] text-gray-500 font-bold">{unit.customerPhone}</span>
+                            </div>
+                          </td>
+                          <td className="py-3.5">
+                            <div className="flex flex-col gap-0.5">
+                              <span className="font-bold text-gray-800">{unit.projectName}</span>
+                              <span className="text-[10px] text-gray-450 font-bold uppercase tracking-wide">
+                                Unit: {unit.unitId}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="py-3.5">
+                            <div className="flex flex-col gap-0.5">
+                              <span className="font-bold text-gray-755">{unit.unitType}</span>
+                              <span className="text-[10px] text-gray-450 font-semibold">{unit.size.toLocaleString()} Sq.Ft</span>
+                            </div>
+                          </td>
+                          <td className="py-3.5 text-right font-extrabold text-[#0e623a] text-sm">
+                            ₹{Math.round(unit.price).toLocaleString()}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="py-12 text-center text-gray-450 italic text-xs">
+                  No completed handovers recorded.
+                </div>
+              )}
+            </div>
+            
+            {/* Footer */}
+            <div className="p-5 border-t border-gray-150 bg-gray-50/30 flex justify-end">
+              <button
+                onClick={() => {
+                  setHandoverModalOpen(false);
+                  navigate('/leads?status=Won');
+                }}
+                className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl transition shadow-sm"
+              >
+                Go to Won Leads Tab →
               </button>
             </div>
           </div>
