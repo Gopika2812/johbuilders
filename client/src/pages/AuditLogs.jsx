@@ -4,8 +4,6 @@ import { History, Calendar, User, Search, Filter, ChevronLeft, ChevronRight, Ref
 
 const AuditLogs = () => {
   const { token } = useAuth();
-  
-  // State
   const [logs, setLogs] = useState([]);
   const [uniqueActions, setUniqueActions] = useState([]);
   const [loading, setLoading] = useState(true);
