@@ -330,9 +330,8 @@ const LeadsDirectory = () => {
       project: editProjectId || undefined,
       assignedTo: editAssignedToId || '',
       leadCost: Number(editLeadCost) || 0,
-      leadSource: editLeadType === 'Lead' ? editLeadSource : 'Direct Visit',
-      activeAd: editLeadType === 'Lead' && adObj ? { name: adObj.name, link: adObj.link } : { name: '', link: '' },
-      projectLocation: editLeadType === 'Direct Visit' ? editProjectLocation : undefined
+      leadSource: editLeadSource,
+      activeAd: editLeadType === 'Lead' && adObj ? { name: adObj.name, link: adObj.link } : { name: '', link: '' }
     };
 
     try {
@@ -464,9 +463,8 @@ const LeadsDirectory = () => {
       project: selectedProjectId,
       assignedTo: assignedToId,
       leadCost: Number(leadCost) || 0,
-      leadSource: leadType === 'Lead' ? leadSource : 'Direct Visit',
-      activeAd: leadType === 'Lead' && adObj ? { name: adObj.name, link: adObj.link } : undefined,
-      projectLocation: leadType === 'Direct Visit' ? projectLocation : undefined
+      leadSource: leadSource,
+      activeAd: leadType === 'Lead' && adObj ? { name: adObj.name, link: adObj.link } : undefined
     };
 
     try {
@@ -812,11 +810,12 @@ const LeadsDirectory = () => {
           <table>
             <!-- Title Header -->
             <tr>
-              <td colspan="12" class="title-header">LEADS DIRECTORY REPORT</td>
+              <td colspan="13" class="title-header">LEADS DIRECTORY REPORT</td>
             </tr>
             <!-- Table Headers -->
             <tr class="table-headers">
               <th>S No</th>
+              <th>Date</th>
               <th>Customer Name</th>
               <th>Contact Number</th>
               <th>Lead Type</th>
@@ -827,7 +826,7 @@ const LeadsDirectory = () => {
               <th>Workflow Status</th>
               <th>Bank Loan</th>
               <th>Lead Cost</th>
-              <th>Registration Date</th>
+              <th>Remarks / Notes</th>
             </tr>
       `;
 
@@ -835,18 +834,20 @@ const LeadsDirectory = () => {
         const custName = lead.name || '';
         const contactNo = lead.phone || '';
         const lType = lead.leadType || '';
-        const sourceStr = lead.leadType === 'Lead' ? (lead.leadSource || '') : 'Direct Visit';
+        const sourceStr = lead.leadSource || (lead.leadType === 'Direct Visit' ? 'Direct Visit' : '');
         const projectStr = lead.project?.code || lead.project?.name || '';
-        const locStr = lead.leadType === 'Direct Visit' ? (lead.projectLocation || '') : '';
+        const locStr = lead.project?.location || lead.projectLocation || '';
         const execName = lead.assignedTo?.name || 'UNASSIGNED';
         const wStatus = lead.status || '';
         const hasLoan = lead.bankLoan || 'No';
         const lCost = lead.leadCost ? `₹ ${lead.leadCost.toLocaleString()}` : '₹ 0';
         const regDate = lead.createdAt ? new Date(lead.createdAt).toLocaleDateString('en-GB').replace(/\//g, '.') : '';
+        const remarksStr = [lead.followUpInfo?.remarks, lead.closeRemarks].filter(Boolean).join(' / ') || '';
 
         html += `
           <tr>
             <td>${index + 1}</td>
+            <td>${regDate}</td>
             <td class="text-left">${custName}</td>
             <td>'${contactNo}</td>
             <td>${lType}</td>
@@ -857,7 +858,7 @@ const LeadsDirectory = () => {
             <td>${wStatus}</td>
             <td>${hasLoan}</td>
             <td class="text-right">${lCost}</td>
-            <td>${regDate}</td>
+            <td class="text-left">${remarksStr}</td>
           </tr>
         `;
       });
@@ -925,7 +926,7 @@ const LeadsDirectory = () => {
 
       const matchesAssigned = !assignedFilter || lead.assignedTo?._id === assignedFilter;
       const matchesCampaign = !campaignFilter || lead.leadSource === campaignFilter;
-      const matchesLocation = !locationFilter || lead.projectLocation === locationFilter;
+      const matchesLocation = !locationFilter || lead.projectLocation === locationFilter || lead.project?.location === locationFilter;
       const matchesBankLoan = !bankLoanFilter || lead.bankLoan === bankLoanFilter;
       const matchesProject = !projectFilter || (lead.project?._id || lead.project) === projectFilter;
 
@@ -1247,26 +1248,25 @@ const LeadsDirectory = () => {
  
                 {/* Campaign Info */}
                 <td className="p-4">
-                  {lead.leadType === 'Lead' ? (
-                    <div className="space-y-0.5">
-                      <div className="text-xs font-semibold text-gray-700">Source: {lead.leadSource}</div>
-                      {lead.activeAd?.name && (
-                        <div className="text-[10px] text-gray-500 flex items-center gap-1">
-                          <span>Ad: {lead.activeAd.name}</span>
-                          {lead.activeAd.link && (
-                            <a href={lead.activeAd.link} target="_blank" rel="noopener noreferrer" className="text-[#0e623a] hover:underline">
-                              <ExternalLink className="w-2.5 h-2.5 inline" />
-                            </a>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-1 text-xs font-semibold text-gray-600">
-                      <MapPin className="w-3.5 h-3.5 text-gray-400" />
-                      <span>Loc: {lead.projectLocation || '—'}</span>
-                    </div>
-                  )}
+                  <div className="space-y-0.5">
+                    <div className="text-xs font-semibold text-gray-700">Source: {lead.leadSource || (lead.leadType === 'Direct Visit' ? 'Direct Visit' : '—')}</div>
+                    {lead.leadType === 'Lead' && lead.activeAd?.name && (
+                      <div className="text-[10px] text-gray-500 flex items-center gap-1">
+                        <span>Ad: {lead.activeAd.name}</span>
+                        {lead.activeAd.link && (
+                          <a href={lead.activeAd.link} target="_blank" rel="noopener noreferrer" className="text-[#0e623a] hover:underline">
+                            <ExternalLink className="w-2.5 h-2.5 inline" />
+                          </a>
+                        )}
+                      </div>
+                    )}
+                    {(lead.project?.location || lead.projectLocation) && (
+                      <div className="flex items-center gap-1 text-[10px] text-gray-400">
+                        <MapPin className="w-3 h-3 text-gray-300" />
+                        <span>Loc: {lead.project?.location || lead.projectLocation}</span>
+                      </div>
+                    )}
+                  </div>
                 </td>
  
                 {/* Project */}
@@ -1631,20 +1631,20 @@ const LeadsDirectory = () => {
                 </>
               ) : (
                 <>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    {/* Project Location */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {/* Lead Source */}
                     <div className="flex flex-col">
-                      <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1.5">Project Location</label>
+                      <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1.5">Lead Source</label>
                       <SearchableSelect
-                        options={locations}
-                        value={projectLocation}
-                        onChange={setProjectLocation}
-                        placeholder="Select Location"
+                        options={SOURCE_TYPES}
+                        value={leadSource}
+                        onChange={setLeadSource}
+                        placeholder="Select Ad Source / Campaign"
                       />
                     </div>
 
                     {/* Project Code selection */}
-                    <div className="sm:col-span-2 flex flex-col">
+                    <div className="flex flex-col">
                       <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1.5">Project Code</label>
                       <SearchableSelect
                         options={projects.map(p => ({ value: p._id, label: `${p.code} - ${p.name} (${p.projectType})` }))}
@@ -1840,20 +1840,20 @@ const LeadsDirectory = () => {
                 </>
               ) : (
                 <>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-left">
-                    {/* Project Location */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-left">
+                    {/* Lead Source */}
                     <div className="flex flex-col">
-                      <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1.5">Project Location</label>
+                      <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1.5">Lead Source</label>
                       <SearchableSelect
-                        options={locations}
-                        value={editProjectLocation}
-                        onChange={setEditProjectLocation}
-                        placeholder="Select Location"
+                        options={SOURCE_TYPES}
+                        value={editLeadSource}
+                        onChange={setEditLeadSource}
+                        placeholder="Select Ad Source / Campaign"
                       />
                     </div>
 
                     {/* Project Code selection */}
-                    <div className="sm:col-span-2 flex flex-col">
+                    <div className="flex flex-col">
                       <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1.5">Project Code</label>
                       <SearchableSelect
                         options={projects.map(p => ({ value: p._id, label: `${p.code} - ${p.name} (${p.projectType})` }))}

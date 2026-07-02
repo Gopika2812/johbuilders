@@ -303,6 +303,8 @@ const KPIInsights = () => {
       siteVisits: { total: 0, siteVisit: 0, followup: 0, closed: 0 },
       hotList: 0,
       conversion: { count: 0, value: 0, received: 0, pending: 0 },
+      booked: { count: 0, value: 0, received: 0, pending: 0 },
+      handover: { count: 0, value: 0, received: 0, pending: 0 },
       inventory: { totalProjects: 0, totalUnits: 0, availableUnits: 0, bookedUnits: 0, handoverUnits: 0 }
     },
     insights: {
@@ -2948,9 +2950,8 @@ const KPIInsights = () => {
               <div className="flex justify-center py-2">
                 <ObservedPieChart 
                   dataArray={[
-                    { label: 'Visits Conducted', count: stats.cards.siteVisits.siteVisit },
-                    { label: 'Follow-up Visits', count: stats.cards.siteVisits.followup },
-                    { label: 'Site Visit Closed', count: stats.cards.siteVisits.closed }
+                    { label: 'Visits Conducted', count: (stats.cards.siteVisits.siteVisit || 0) + (stats.cards.siteVisits.followup || 0) },
+                    { label: 'Site Visit Closed', count: stats.cards.siteVisits.closed || 0 }
                   ]}
                   valueKey="count"
                   labelKey="label"

@@ -1,4 +1,5 @@
 const express = require('express');
+const mongoose = require('mongoose');
 const router = express.Router();
 const Lead = require('../models/Lead');
 const Quotation = require('../models/Quotation');
@@ -176,10 +177,12 @@ router.get('/stats', protect, async (req, res) => {
         projectName: lead.project?.name || 'N/A'
       });
 
-      if (!stageStats[status]) {
-        stageStats[status] = { count: 0, value: 0 };
+      const displayStatus = status === 'Site Visit Follow-up' ? 'Site Visit' : status;
+
+      if (!stageStats[displayStatus]) {
+        stageStats[displayStatus] = { count: 0, value: 0 };
       }
-      stageStats[status].count += 1;
+      stageStats[displayStatus].count += 1;
 
       if (lead.project) {
         const pCode = lead.project.code || lead.project.name;
@@ -187,7 +190,7 @@ router.get('/stats', protect, async (req, res) => {
           projectStats[pCode] = { count: 0, value: 0, stages: {} };
         }
         projectStats[pCode].count += 1;
-        projectStats[pCode].stages[status] = (projectStats[pCode].stages[status] || 0) + 1;
+        projectStats[pCode].stages[displayStatus] = (projectStats[pCode].stages[displayStatus] || 0) + 1;
       }
 
       if (status === 'Contacted' || status === 'Follow-Up') {
@@ -235,7 +238,8 @@ router.get('/stats', protect, async (req, res) => {
         const pType = Array.isArray(q.project?.projectType) ? (q.project.projectType[0] || 'Plot') : (q.project?.projectType || 'Plot');
         layeredStats.projectTypes[pType] = (layeredStats.projectTypes[pType] || 0) + val;
 
-        const stageName = q.lead?.status || 'Booking';
+        const rawStage = q.lead?.status || 'Booking';
+        const stageName = rawStage === 'Site Visit Follow-up' ? 'Site Visit' : rawStage;
         layeredStats.stages[stageName] = (layeredStats.stages[stageName] || 0) + val;
 
         const src = q.lead?.leadSource || 'Direct Visit';
@@ -272,7 +276,8 @@ router.get('/stats', protect, async (req, res) => {
         }
       }
 
-      const stage = q.lead?.status || 'Booking';
+      const rawStage2 = q.lead?.status || 'Booking';
+      const stage = rawStage2 === 'Site Visit Follow-up' ? 'Site Visit' : rawStage2;
       if (!stageStats[stage]) {
         stageStats[stage] = { count: 0, value: 0 };
       }
@@ -440,7 +445,8 @@ router.get('/stats', protect, async (req, res) => {
           siteVisits: 0,
           hotList: 0,
           booked: 0,
-          handover: 0
+          handover: 0,
+          lost: 0
         };
       }
 
@@ -458,11 +464,14 @@ router.get('/stats', protect, async (req, res) => {
       if (isHandover) {
         personProjectStages[personProjectKey].handover += 1;
       }
+      if (status === 'Lost' || lead.isClosed) {
+        personProjectStages[personProjectKey].lost += 1;
+      }
 
       if (lead.project) {
         const pCode = lead.project.code || lead.project.name;
         if (!projectStages[pCode]) {
-          projectStages[pCode] = { totalLeads: 0, enquiries: 0, siteVisits: 0, hotList: 0, booked: 0, handover: 0 };
+          projectStages[pCode] = { totalLeads: 0, enquiries: 0, siteVisits: 0, hotList: 0, booked: 0, handover: 0, lost: 0 };
         }
         projectStages[pCode].totalLeads += 1;
         if (status === 'Contacted' || status === 'Follow-Up') {
@@ -477,6 +486,9 @@ router.get('/stats', protect, async (req, res) => {
         if (isHandover) {
           projectStages[pCode].handover += 1;
         }
+        if (status === 'Lost' || lead.isClosed) {
+          projectStages[pCode].lost += 1;
+        }
       }
     });
 
@@ -489,7 +501,7 @@ router.get('/stats', protect, async (req, res) => {
     let crdReceivedValue = 0;
 
     bookingLeads.forEach(lead => {
-      const cf = crdFlows.find(flow => flow.lead.toString() === lead._id.toString());
+      const cf = crdFlows.find(flow => flow.lead && flow.lead.toString() === lead._id.toString());
       if (cf) {
         crdTotalValue += cf.totalCurrentValue || 0;
         cf.stages?.forEach(stage => {
@@ -506,6 +518,58 @@ router.get('/stats', protect, async (req, res) => {
     });
 
     const crdPendingValue = Math.max(0, crdTotalValue - crdReceivedValue);
+
+    // Booked Stage leads metrics
+    const bookedLeads = leads.filter(l => l.status === 'Booking');
+    const bookedLeadIds = bookedLeads.map(l => l._id);
+    const bookedCrdFlows = crdFlows.filter(cf => cf.lead && bookedLeadIds.map(id => id.toString()).includes(cf.lead.toString()));
+
+    let bookedTotalValue = 0;
+    let bookedReceivedValue = 0;
+
+    bookedLeads.forEach(lead => {
+      const cf = bookedCrdFlows.find(flow => flow.lead && flow.lead.toString() === lead._id.toString());
+      if (cf) {
+        bookedTotalValue += cf.totalCurrentValue || 0;
+        cf.stages?.forEach(stage => {
+          stage.payments?.forEach(p => {
+            bookedReceivedValue += p.amount || 0;
+          });
+        });
+      } else {
+        const q = quotations.find(quot => quot.lead && quot.lead._id.toString() === lead._id.toString());
+        if (q) {
+          bookedTotalValue += q.totalValue || 0;
+        }
+      }
+    });
+    const bookedPendingValue = Math.max(0, bookedTotalValue - bookedReceivedValue);
+
+    // Handover (Won) Stage leads metrics
+    const handoverLeads = leads.filter(l => l.status === 'Won');
+    const handoverLeadIds = handoverLeads.map(l => l._id);
+    const handoverCrdFlows = crdFlows.filter(cf => cf.lead && handoverLeadIds.map(id => id.toString()).includes(cf.lead.toString()));
+
+    let handoverTotalValue = 0;
+    let handoverReceivedValue = 0;
+
+    handoverLeads.forEach(lead => {
+      const cf = handoverCrdFlows.find(flow => flow.lead && flow.lead.toString() === lead._id.toString());
+      if (cf) {
+        handoverTotalValue += cf.totalCurrentValue || 0;
+        cf.stages?.forEach(stage => {
+          stage.payments?.forEach(p => {
+            handoverReceivedValue += p.amount || 0;
+          });
+        });
+      } else {
+        const q = quotations.find(quot => quot.lead && quot.lead._id.toString() === lead._id.toString());
+        if (q) {
+          handoverTotalValue += q.totalValue || 0;
+        }
+      }
+    });
+    const handoverPendingValue = Math.max(0, handoverTotalValue - handoverReceivedValue);
 
     // Calculate custom insights
     const totalMarketingSpend = budgetPlans.reduce((sum, plan) => sum + (plan.allocations?.reduce((s, alloc) => s + (alloc.spent || 0), 0) || 0), 0);
@@ -570,6 +634,18 @@ router.get('/stats', protect, async (req, res) => {
           value: crdTotalValue,
           received: crdReceivedValue,
           pending: crdPendingValue
+        },
+        booked: {
+          count: bookedLeads.length,
+          value: bookedTotalValue,
+          received: bookedReceivedValue,
+          pending: bookedPendingValue
+        },
+        handover: {
+          count: handoverLeads.length,
+          value: handoverTotalValue,
+          received: handoverReceivedValue,
+          pending: handoverPendingValue
         },
         inventory: {
           totalProjects,

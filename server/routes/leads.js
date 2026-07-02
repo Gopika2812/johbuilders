@@ -89,8 +89,8 @@ router.post('/', protect, async (req, res) => {
         lead.activeAd = activeAd || { name: '', link: '' };
         lead.projectLocation = '';
       } else {
-        lead.projectLocation = projectLocation || '';
-        lead.leadSource = 'Direct Visit';
+        lead.projectLocation = '';
+        lead.leadSource = leadSource || 'Direct Visit';
         lead.activeAd = { name: '', link: '' };
       }
 
@@ -136,8 +136,8 @@ router.post('/', protect, async (req, res) => {
       lead.leadSource = leadSource || '';
       lead.activeAd = activeAd || { name: '', link: '' };
     } else {
-      lead.projectLocation = projectLocation || '';
-      lead.leadSource = 'Direct Visit';
+      lead.projectLocation = '';
+      lead.leadSource = leadSource || 'Direct Visit';
     }
 
     lead.history.push({
@@ -264,11 +264,11 @@ router.put('/:id', protect, async (req, res) => {
       }
     }
     
+    if (leadSource) lead.leadSource = leadSource;
     if (lead.leadType === 'Lead') {
-      if (leadSource) lead.leadSource = leadSource;
       if (activeAd) lead.activeAd = activeAd;
     } else {
-      if (projectLocation) lead.projectLocation = projectLocation;
+      lead.projectLocation = '';
     }
 
     const followUpLogged = followUpInfo && (followUpInfo.nextFollowUpDate || followUpInfo.remarks);
