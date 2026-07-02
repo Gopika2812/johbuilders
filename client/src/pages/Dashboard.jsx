@@ -278,6 +278,70 @@ const Dashboard = () => {
       }, 300);
     }
   };
+
+  const [breakdownModalOpen, setBreakdownModalOpen] = useState(false);
+  const [breakdownModalData, setBreakdownModalData] = useState({ title: '', users: [] });
+
+  const handleStageClick = (stageLabel, sourceContext) => {
+    if (!stats.cards.leadsList) return;
+
+    let filtered = [...stats.cards.leadsList];
+
+    // 1. Filter by Context
+    if (sourceContext === 'user') {
+      if (selectedUserPerfName) {
+        filtered = filtered.filter(l => l.assignedTo === selectedUserPerfName);
+      }
+    } else if (sourceContext === 'source') {
+      if (selectedSourceGroup) {
+        if (selectedSubSource) {
+          filtered = filtered.filter(l => l.leadSource.toLowerCase() === selectedSubSource.toLowerCase());
+        } else {
+          const groupObj = stats.groupStats[selectedSourceGroup];
+          const groupSources = (groupObj?.sources || []).map(s => s.source.toLowerCase());
+          filtered = filtered.filter(l => groupSources.includes(l.leadSource.toLowerCase()));
+        }
+      }
+    }
+
+    // 2. Filter by Stage
+    if (stageLabel === 'Enquiries') {
+      filtered = filtered.filter(l => l.status === 'Contacted' || l.status === 'Follow-Up');
+    } else if (stageLabel === 'Site Visit') {
+      filtered = filtered.filter(l => l.status === 'Site Visit' || l.status === 'Site Visit Follow-up');
+    } else if (stageLabel === 'Hot List') {
+      filtered = filtered.filter(l => l.status === 'Qualified');
+    } else if (stageLabel === 'Booking') {
+      filtered = filtered.filter(l => l.status === 'Booking');
+    } else if (stageLabel === 'Handover') {
+      filtered = filtered.filter(l => l.status === 'Won');
+    } else if (stageLabel === 'Lost') {
+      filtered = filtered.filter(l => l.status === 'Lost');
+    }
+    // 'Total Leads' needs no status filter.
+
+    // 3. Group by User Name and Count
+    const counts = {};
+    filtered.forEach(l => {
+      const user = l.assignedTo || 'Unassigned';
+      counts[user] = (counts[user] || 0) + 1;
+    });
+
+    const userBreakdown = Object.keys(counts).map(name => ({
+      name,
+      count: counts[name]
+    })).sort((a, b) => b.count - a.count);
+
+    const titleContext = sourceContext === 'user'
+      ? (selectedUserPerfName || 'All Users')
+      : (selectedSubSource ? `${selectedSourceGroup} - ${selectedSubSource}` : (selectedSourceGroup || 'All Sources'));
+
+    setBreakdownModalData({
+      title: `${stageLabel} - User Breakdown (${titleContext})`,
+      users: userBreakdown
+    });
+    setBreakdownModalOpen(true);
+  };
   
   // Date filters - default to current month
   const [selectedMonth, setSelectedMonth] = useState(() => {
@@ -331,12 +395,15 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
     cards: {
-      enquiries: { total: 0, contacted: 0, followup: 0, closed: 0 },
-      siteVisits: { total: 0, siteVisit: 0, followup: 0, closed: 0 },
-      hotList: 0,
+      totalLeads: 0,
+      liveLeads: 0,
+      today: { leads: 0, enquiries: 0, siteVisits: 0, hotList: 0, booked: 0, handover: 0 },
+      enquiries: { total: 0, live: 0, contacted: 0, followup: 0, closed: 0 },
+      siteVisits: { total: 0, live: 0, siteVisit: 0, followup: 0, closed: 0 },
+      hotList: { total: 0, live: 0 },
       conversion: { count: 0, value: 0, received: 0, pending: 0 },
-      booked: { count: 0, value: 0, received: 0, pending: 0 },
-      handover: { count: 0, value: 0, received: 0, pending: 0 },
+      booked: { total: 0, live: 0, count: 0, value: 0, received: 0, pending: 0 },
+      handover: { total: 0, live: 0, count: 0, value: 0, received: 0, pending: 0 },
       inventory: { totalProjects: 0, totalUnits: 0, availableUnits: 0, bookedUnits: 0, handoverUnits: 0 }
     },
     sourceStats: {},
@@ -1583,17 +1650,22 @@ const Dashboard = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Total Leads</span>
-                  <h3 className="text-2xl font-extrabold text-gray-800 mt-1">
-                    {stats.cards.totalLeads || 0}
+                  <h3 className="text-2xl font-extrabold text-gray-800 mt-1 flex items-baseline gap-1">
+                    <span>{stats.cards.totalLeads || 0}</span>
+                    <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider ml-0.5">Total</span>
+                    <span className="text-gray-300 text-xs mx-0.5">/</span>
+                    <span className="text-emerald-700">{stats.cards.liveLeads || 0}</span>
+                    <span className="text-[10px] text-gray-450 font-bold uppercase tracking-wider ml-0.5">Active</span>
                   </h3>
                 </div>
                 <div className="p-3 bg-[#0e623a]/10 text-[#0e623a] rounded-2xl">
                   <TrendingUp className="w-5 h-5" />
                 </div>
               </div>
-              <p className="text-[10px] text-gray-400 mt-3 font-semibold uppercase tracking-wider">
-                Overall Leads Count
-              </p>
+              <div className="flex justify-between items-center mt-4 pt-2 border-t border-gray-50 text-[10px] font-bold">
+                <span className="text-gray-400 font-semibold uppercase tracking-wider">Overall Leads</span>
+                <span className="text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">Today: {stats.cards.today?.leads || 0}</span>
+              </div>
             </div>
 
             {/* Card 1: Total Enquiries */}
@@ -1601,18 +1673,25 @@ const Dashboard = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Total Enquiries</span>
-                  <h3 className="text-2xl font-extrabold text-gray-800 mt-1">
-                    {(stats.cards.enquiries.closed || 0) + (stats.cards.enquiries.followup || 0)}
+                  <h3 className="text-2xl font-extrabold text-gray-800 mt-1 flex items-baseline gap-1">
+                    <span>{stats.cards.enquiries?.total || 0}</span>
+                    <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider ml-0.5">Total</span>
+                    <span className="text-gray-300 text-xs mx-0.5">/</span>
+                    <span className="text-[#0e623a]">{stats.cards.enquiries?.live || 0}</span>
+                    <span className="text-[10px] text-gray-455 font-bold uppercase tracking-wider ml-0.5">Active</span>
                   </h3>
                 </div>
                 <div className="p-3 bg-[#0e623a]/10 text-[#0e623a] rounded-2xl">
                   <Users className="w-5 h-5" />
                 </div>
               </div>
-              <p className="text-[10px] text-gray-400 mt-3 font-semibold uppercase tracking-wider flex items-center gap-1">
-                <span>Hover for stage breakdown</span>
-                <ArrowRight className="w-3 h-3 group-hover:translate-x-1 transition" />
-              </p>
+              <div className="flex justify-between items-center mt-4 pt-2 border-t border-gray-50 text-[10px] font-bold">
+                <span className="text-gray-400 font-semibold uppercase tracking-wider flex items-center gap-1">
+                  <span>Breakdown</span>
+                  <ArrowRight className="w-3 h-3 group-hover:translate-x-1 transition" />
+                </span>
+                <span className="text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">Today: {stats.cards.today?.enquiries || 0}</span>
+              </div>
               <div className="absolute inset-0 bg-gray-900/95 backdrop-blur-sm rounded-3xl p-5 flex flex-col justify-center text-left opacity-0 group-hover:opacity-100 transition duration-300 pointer-events-none z-20">
                 <h4 className="text-xs font-bold text-white uppercase tracking-wider mb-2 pb-1 border-b border-gray-800">
                   Enquiries Stage Breakdown
@@ -1635,18 +1714,25 @@ const Dashboard = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Total Site Visits</span>
-                  <h3 className="text-2xl font-extrabold text-gray-800 mt-1">
-                    {(stats.cards.siteVisits.siteVisit || 0) + (stats.cards.siteVisits.followup || 0) + (stats.cards.siteVisits.closed || 0)}
+                  <h3 className="text-2xl font-extrabold text-gray-800 mt-1 flex items-baseline gap-1">
+                    <span>{stats.cards.siteVisits?.total || 0}</span>
+                    <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider ml-0.5">Total</span>
+                    <span className="text-gray-300 text-xs mx-0.5">/</span>
+                    <span className="text-blue-600">{stats.cards.siteVisits?.live || 0}</span>
+                    <span className="text-[10px] text-gray-455 font-bold uppercase tracking-wider ml-0.5">Active</span>
                   </h3>
                 </div>
                 <div className="p-3 bg-blue-50 text-blue-600 rounded-2xl">
                   <MapPin className="w-5 h-5" />
                 </div>
               </div>
-              <p className="text-[10px] text-gray-400 mt-3 font-semibold uppercase tracking-wider flex items-center gap-1">
-                <span>Hover for stage breakdown</span>
-                <ArrowRight className="w-3 h-3 group-hover:translate-x-1 transition" />
-              </p>
+              <div className="flex justify-between items-center mt-4 pt-2 border-t border-gray-50 text-[10px] font-bold">
+                <span className="text-gray-400 font-semibold uppercase tracking-wider flex items-center gap-1">
+                  <span>Breakdown</span>
+                  <ArrowRight className="w-3 h-3 group-hover:translate-x-1 transition" />
+                </span>
+                <span className="text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">Today: {stats.cards.today?.siteVisits || 0}</span>
+              </div>
               <div className="absolute inset-0 bg-gray-900/95 backdrop-blur-sm rounded-3xl p-5 flex flex-col justify-center text-left opacity-0 group-hover:opacity-100 transition duration-300 pointer-events-none z-20">
                 <h4 className="text-xs font-bold text-white uppercase tracking-wider mb-2 pb-1 border-b border-gray-800">
                   Site Visit Breakdown
@@ -1669,17 +1755,22 @@ const Dashboard = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Hot List</span>
-                  <h3 className="text-2xl font-extrabold text-gray-800 mt-1">
-                    {stats.cards.hotList}
+                  <h3 className="text-2xl font-extrabold text-gray-800 mt-1 flex items-baseline gap-1">
+                    <span>{stats.cards.hotList?.total || 0}</span>
+                    <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider ml-0.5">Total</span>
+                    <span className="text-gray-300 text-xs mx-0.5">/</span>
+                    <span className="text-amber-600">{stats.cards.hotList?.live || 0}</span>
+                    <span className="text-[10px] text-gray-455 font-bold uppercase tracking-wider ml-0.5">Active</span>
                   </h3>
                 </div>
                 <div className="p-3 bg-amber-50 text-amber-600 rounded-2xl">
                   <Target className="w-5 h-5" />
                 </div>
               </div>
-              <p className="text-[10px] text-gray-400 mt-3 font-semibold uppercase tracking-wider">
-                Qualified Stage Leads count
-              </p>
+              <div className="flex justify-between items-center mt-4 pt-2 border-t border-gray-50 text-[10px] font-bold">
+                <span className="text-gray-400 font-semibold uppercase tracking-wider">Qualified Leads</span>
+                <span className="text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">Today: {stats.cards.today?.hotList || 0}</span>
+              </div>
             </div>
 
             {/* Card 4: Booked */}
@@ -1690,12 +1781,19 @@ const Dashboard = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Booked</span>
-                  <h3 className="text-2xl font-extrabold text-gray-800 mt-1">
-                    {stats.cards.booked?.count || 0}
+                  <h3 className="text-2xl font-extrabold text-gray-800 mt-1 flex items-baseline gap-1 flex-wrap">
+                    <span>{stats.cards.booked?.total || 0}</span>
+                    <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider ml-0.5">Total</span>
+                    <span className="text-gray-300 text-xs mx-0.5">/</span>
+                    <span className="text-rose-600">{stats.cards.booked?.live || 0}</span>
+                    <span className="text-[10px] text-gray-455 font-bold uppercase tracking-wider ml-0.5">Active</span>
                   </h3>
                 </div>
-                <div className="p-3 bg-rose-50 text-rose-600 rounded-2xl">
-                  <DollarSign className="w-5 h-5" />
+                <div className="flex flex-col items-end gap-1.5 shrink-0">
+                  <div className="p-3 bg-rose-50 text-rose-600 rounded-2xl">
+                    <DollarSign className="w-5 h-5" />
+                  </div>
+                  <span className="text-[9px] text-gray-500 font-bold bg-gray-100 px-2 py-0.5 rounded-full">Today: {stats.cards.today?.booked || 0}</span>
                 </div>
               </div>
               <div className="mt-3 pt-2 border-t border-gray-50 space-y-1 text-[10px] font-bold uppercase">
@@ -1722,12 +1820,19 @@ const Dashboard = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Handover</span>
-                  <h3 className="text-2xl font-extrabold text-gray-800 mt-1">
-                    {stats.cards.handover?.count || 0}
+                  <h3 className="text-2xl font-extrabold text-gray-800 mt-1 flex items-baseline gap-1 flex-wrap">
+                    <span>{stats.cards.handover?.total || 0}</span>
+                    <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider ml-0.5">Total</span>
+                    <span className="text-gray-300 text-xs mx-0.5">/</span>
+                    <span className="text-emerald-700">{stats.cards.handover?.live || 0}</span>
+                    <span className="text-[10px] text-gray-455 font-bold uppercase tracking-wider ml-0.5">Active</span>
                   </h3>
                 </div>
-                <div className="p-3 bg-emerald-50 text-[#0e623a] rounded-2xl">
-                  <Building className="w-5 h-5" />
+                <div className="flex flex-col items-end gap-1.5 shrink-0">
+                  <div className="p-3 bg-emerald-50 text-[#0e623a] rounded-2xl">
+                    <Building className="w-5 h-5" />
+                  </div>
+                  <span className="text-[9px] text-gray-500 font-bold bg-gray-100 px-2 py-0.5 rounded-full">Today: {stats.cards.today?.handover || 0}</span>
                 </div>
               </div>
               <div className="mt-3 pt-2 border-t border-gray-50 space-y-1 text-[10px] font-bold uppercase">
@@ -1848,13 +1953,18 @@ const Dashboard = () => {
                         ? (m.count / selectedUserPerfData.totalLeads) * 100 
                         : 0;
                       return (
-                        <div key={idx} className="space-y-1">
+                        <div 
+                          key={idx} 
+                          className="space-y-1 cursor-pointer hover:bg-gray-100 p-1.5 rounded-xl transition duration-150"
+                          onClick={() => handleStageClick(m.label, 'user')}
+                          title={`Click to see User breakdown for ${m.label}`}
+                        >
                           <div className="flex items-center justify-between text-[11px]">
                             <div className="flex items-center gap-2">
                               <div className="text-gray-700">
                                 <IconComponent className="w-3.5 h-3.5" />
                               </div>
-                              <span className="font-bold text-gray-700">{m.label}</span>
+                              <span className="font-bold text-gray-750">{m.label}</span>
                             </div>
                             <div className="font-extrabold text-gray-800">
                               {m.count}
@@ -1978,13 +2088,18 @@ const Dashboard = () => {
                         ? (m.count / selectedSourcePerfData.totalLeads) * 100 
                         : 0;
                       return (
-                        <div key={idx} className="space-y-1">
+                        <div 
+                          key={idx} 
+                          className="space-y-1 cursor-pointer hover:bg-gray-100 p-1.5 rounded-xl transition duration-150"
+                          onClick={() => handleStageClick(m.label, 'source')}
+                          title={`Click to see User breakdown for ${m.label}`}
+                        >
                           <div className="flex items-center justify-between text-[11px]">
                             <div className="flex items-center gap-2">
                               <div className="text-gray-700">
                                 <IconComponent className="w-3.5 h-3.5" />
                               </div>
-                              <span className="font-bold text-gray-700">{m.label}</span>
+                              <span className="font-bold text-gray-750">{m.label}</span>
                             </div>
                             <div className="font-extrabold text-gray-800">
                               {m.count}
@@ -2340,6 +2455,55 @@ const Dashboard = () => {
                 className="px-5 py-2 bg-[#0e623a] hover:bg-[#0b4d2d] text-white text-xs font-bold rounded-xl transition shadow-sm"
               >
                 Export Report ({selectedSourcesList.length})
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Stage User Breakdown Modal Popup */}
+      {breakdownModalOpen && (
+        <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm z-[999] flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl border border-gray-150 shadow-2xl w-full max-w-md max-h-[80vh] flex flex-col overflow-hidden text-left animate-fadeIn animate-duration-150">
+            {/* Header */}
+            <div className="p-6 border-b border-gray-150 flex items-center justify-between bg-gray-50/50">
+              <div>
+                <h3 className="text-sm font-extrabold text-gray-800 uppercase tracking-wide">{breakdownModalData.title}</h3>
+                <p className="text-[10px] text-gray-500 mt-0.5">Assigned executives and lead counts</p>
+              </div>
+              <button 
+                onClick={() => setBreakdownModalOpen(false)}
+                className="w-8 h-8 rounded-full flex items-center justify-center bg-gray-100 text-gray-400 hover:bg-red-50 hover:text-red-500 transition cursor-pointer font-bold text-sm animate-scaleUp"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Content List */}
+            <div className="flex-grow p-6 overflow-y-auto max-h-[45vh] scrollbar-thin space-y-3">
+              {breakdownModalData.users && breakdownModalData.users.length > 0 ? (
+                breakdownModalData.users.map((userObj, idx) => (
+                  <div key={idx} className="flex justify-between items-center bg-gray-50/50 border border-gray-100 p-3 rounded-2xl">
+                    <span className="text-xs font-bold text-gray-750">{userObj.name}</span>
+                    <span className="text-xs font-extrabold text-[#0e623a] bg-[#0e623a]/10 px-3 py-1 rounded-xl">
+                      {userObj.count} {userObj.count === 1 ? 'Lead' : 'Leads'}
+                    </span>
+                  </div>
+                ))
+              ) : (
+                <div className="py-8 text-center text-gray-450 italic text-xs">
+                  No active leads for this stage matching configuration.
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="p-5 border-t border-gray-150 bg-gray-50/30 flex justify-end">
+              <button
+                onClick={() => setBreakdownModalOpen(false)}
+                className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-705 text-xs font-bold rounded-xl transition shadow-sm"
+              >
+                Close
               </button>
             </div>
           </div>

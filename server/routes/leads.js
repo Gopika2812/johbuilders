@@ -43,6 +43,45 @@ router.get('/', protect, async (req, res) => {
   }
 });
 
+// @route   GET /api/leads/today-assigned
+// @desc    Get leads assigned today that are still in Assigned/New status
+router.get('/today-assigned', protect, async (req, res) => {
+  try {
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    const todayEnd = new Date();
+    todayEnd.setHours(23, 59, 59, 999);
+
+    let query = {};
+    if (req.user.role !== 'Admin' && req.user.role !== 'Manager' && req.user.role !== 'Super Admin') {
+      query.assignedTo = req.user._id;
+    }
+
+    query.status = { $in: ['New', 'Assigned'] };
+
+    query.$or = [
+      { createdAt: { $gte: todayStart, $lte: todayEnd }, assignedTo: { $exists: true, $ne: null } },
+      { 
+        history: { 
+          $elemMatch: { 
+            status: 'Assigned',
+            timestamp: { $gte: todayStart, $lte: todayEnd }
+          }
+        } 
+      }
+    ];
+
+    const leads = await Lead.find(query)
+      .populate('project', 'name code')
+      .populate('assignedTo', 'name role')
+      .sort({ createdAt: -1 });
+
+    res.json(leads);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 // @route   GET /api/leads/phone/:phone
 // @desc    Check for existing lead by phone
 router.get('/phone/:phone', protect, async (req, res) => {

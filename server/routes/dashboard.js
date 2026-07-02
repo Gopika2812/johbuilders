@@ -18,14 +18,19 @@ router.get('/stats', protect, async (req, res) => {
     const projectsForHandover = await Project.find({}, 'units');
     // 1. Build leads filters
     let query = {};
+    let dateFilter = null;
     if (fromDate || toDate) {
-      query.createdAt = {};
-      if (fromDate) query.createdAt.$gte = new Date(fromDate);
+      dateFilter = {};
+      if (fromDate) dateFilter.$gte = new Date(fromDate);
       if (toDate) {
         const end = new Date(toDate);
         end.setUTCHours(23, 59, 59, 999);
-        query.createdAt.$lte = end;
+        dateFilter.$lte = end;
       }
+      query.$or = [
+        { createdAt: dateFilter },
+        { 'history.timestamp': dateFilter }
+      ];
     }
     
     if (projectType) {
@@ -57,8 +62,8 @@ router.get('/stats', protect, async (req, res) => {
 
     // 2. Build quotations filters
     let qQuery = {};
-    if (fromDate || toDate) {
-      qQuery.createdAt = query.createdAt;
+    if (dateFilter) {
+      qQuery.createdAt = dateFilter;
     }
     
     if (projectType) {
@@ -108,15 +113,44 @@ router.get('/stats', protect, async (req, res) => {
     const dbProjects = await Project.find({}, 'name code');
 
     // Computation variables
-    let totalEnquiries = 0;
+    const rangeStart = fromDate ? new Date(fromDate) : null;
+    let rangeEnd = null;
+    if (toDate) {
+      rangeEnd = new Date(toDate);
+      rangeEnd.setUTCHours(23, 59, 59, 999);
+    }
+
+    const inRange = (date) => {
+      if (!date) return false;
+      const d = new Date(date);
+      if (rangeStart && d < rangeStart) return false;
+      if (rangeEnd && d > rangeEnd) return false;
+      return true;
+    };
+
+    let cumulativeLeads = 0;
+    let liveLeadsCount = 0;
+
+    let cumulativeEnquiries = 0;
+    let liveEnquiries = 0;
     let contactedCount = 0;
     let followupCount = 0;
     let closedEnquiries = 0;
 
-    let totalSiteVisits = 0;
+    let cumulativeSiteVisits = 0;
+    let liveSiteVisits = 0;
     let siteVisitCount = 0;
     let siteVisitFollowupCount = 0;
     let closedSiteVisits = 0;
+
+    let cumulativeHotList = 0;
+    let liveHotList = 0;
+
+    let cumulativeBooked = 0;
+    let liveBooked = 0;
+
+    let cumulativeHandover = 0;
+    let liveHandover = 0;
 
     let hotListCount = 0;
     let siteConversionsCount = 0;
@@ -235,16 +269,68 @@ router.get('/stats', protect, async (req, res) => {
         projectStats[pCode].stages[displayStatus] = (projectStats[pCode].stages[displayStatus] || 0) + 1;
       }
 
-      if (status === 'Contacted' || status === 'Follow-Up') {
-        totalEnquiries += 1;
-        if (status === 'Contacted') contactedCount += 1;
-        if (status === 'Follow-Up') followupCount += 1;
+      // 1. Total Leads / Live Leads
+      const createdInRange = inRange(lead.createdAt);
+      if (createdInRange) {
+        cumulativeLeads++;
+      }
+      if (!lead.isClosed && status !== 'Lost') {
+        liveLeadsCount++;
       }
 
-      if (status === 'Site Visit' || status === 'Site Visit Follow-up') {
-        totalSiteVisits += 1;
-        if (status === 'Site Visit') siteVisitCount += 1;
-        if (status === 'Site Visit Follow-up') siteVisitFollowupCount += 1;
+      // Check transitions in the date range
+      let enteredEnquiry = false;
+      let enteredSiteVisit = false;
+      let enteredHotList = false;
+      let enteredBooked = false;
+      let enteredHandover = false;
+
+      lead.history?.forEach(entry => {
+        if (inRange(entry.timestamp)) {
+          const s = entry.status;
+          if (s === 'Contacted' || s === 'Follow-Up') enteredEnquiry = true;
+          if (s === 'Site Visit' || s === 'Site Visit Follow-up') enteredSiteVisit = true;
+          if (s === 'Qualified') enteredHotList = true;
+          if (s === 'Booking') enteredBooked = true;
+          if (s === 'Won') enteredHandover = true;
+        }
+      });
+
+      // If lead was created in range with that status, or if status currently matches and we have no other history
+      if (createdInRange) {
+        if (status === 'Contacted' || status === 'Follow-Up') enteredEnquiry = true;
+        if (status === 'Site Visit' || status === 'Site Visit Follow-up') enteredSiteVisit = true;
+        if (status === 'Qualified') enteredHotList = true;
+        if (status === 'Booking') enteredBooked = true;
+        if (status === 'Won') enteredHandover = true;
+      }
+
+      if (enteredEnquiry) cumulativeEnquiries++;
+      if (enteredSiteVisit) cumulativeSiteVisits++;
+      if (enteredHotList) cumulativeHotList++;
+      if (enteredBooked) cumulativeBooked++;
+      if (enteredHandover) cumulativeHandover++;
+
+      // Current Statuses (Live counts)
+      if (status === 'Contacted' || status === 'Follow-Up') {
+        liveEnquiries++;
+        if (status === 'Contacted') contactedCount++;
+        if (status === 'Follow-Up') followupCount++;
+      } else if (status === 'Site Visit' || status === 'Site Visit Follow-up') {
+        liveSiteVisits++;
+        if (status === 'Site Visit') siteVisitCount++;
+        if (status === 'Site Visit Follow-up') siteVisitFollowupCount++;
+      } else if (status === 'Qualified') {
+        liveHotList++;
+        hotListCount++;
+      } else if (status === 'Booking') {
+        liveBooked++;
+      } else if (status === 'Won') {
+        liveHandover++;
+      }
+
+      if (status === 'Booking' || status === 'Won') {
+        siteConversionsCount += 1;
       }
 
       if (status === 'Lost' || status === 'Closed' || lead.isClosed) {
@@ -254,13 +340,6 @@ router.get('/stats', protect, async (req, res) => {
         } else {
           closedEnquiries += 1;
         }
-      }
-
-      if (status === 'Qualified') {
-        hotListCount += 1;
-      }
-      if (status === 'Booking' || status === 'Won') {
-        siteConversionsCount += 1;
       }
     });
 
@@ -616,10 +695,10 @@ router.get('/stats', protect, async (req, res) => {
     // Calculate custom insights
     const totalMarketingSpend = budgetPlans.reduce((sum, plan) => sum + (plan.allocations?.reduce((s, alloc) => s + (alloc.spent || 0), 0) || 0), 0);
     const totalLeadCost = leads.reduce((sum, lead) => sum + (lead.leadCost || 0), 0);
-    const costPerEnquiry = totalEnquiries > 0 ? (totalLeadCost / totalEnquiries) : 0;
+    const costPerEnquiry = cumulativeEnquiries > 0 ? (totalLeadCost / cumulativeEnquiries) : 0;
     
-    const siteVisitConversionRate = totalSiteVisits > 0 ? (siteConversionsCount / totalSiteVisits) * 100 : 0;
-    const bookingConversionRate = totalEnquiries > 0 ? (siteConversionsCount / totalEnquiries) * 100 : 0;
+    const siteVisitConversionRate = cumulativeSiteVisits > 0 ? (siteConversionsCount / cumulativeSiteVisits) * 100 : 0;
+    const bookingConversionRate = cumulativeEnquiries > 0 ? (siteConversionsCount / cumulativeEnquiries) * 100 : 0;
     const handoverRate = totalUnits > 0 ? (handoverUnits / totalUnits) * 100 : 0;
 
     // Calculate Group-wise stats for marketing spend drill-down
@@ -665,19 +744,91 @@ router.get('/stats', protect, async (req, res) => {
       delete groupStats['Other / Unassigned'];
     }
 
+    // Calculate today's stable counts
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    const todayEnd = new Date();
+    todayEnd.setHours(23, 59, 59, 999);
+
+    const todayQuery = {
+      $or: [
+        { createdAt: { $gte: todayStart, $lte: todayEnd } },
+        { 'history.timestamp': { $gte: todayStart, $lte: todayEnd } }
+      ]
+    };
+
+    if (query.project) todayQuery.project = query.project;
+    if (query.assignedTo) todayQuery.assignedTo = query.assignedTo;
+    if (query.leadSource) todayQuery.leadSource = query.leadSource;
+
+    const todayLeads = await Lead.find(todayQuery);
+
+    let todayLeadsCount = 0;
+    let todayEnquiriesCount = 0;
+    let todaySiteVisitsCount = 0;
+    let todayHotListCount = 0;
+    let todayBookingCount = 0;
+    let todayHandoverCount = 0;
+
+    todayLeads.forEach(lead => {
+      if (lead.createdAt >= todayStart && lead.createdAt <= todayEnd) {
+        todayLeadsCount++;
+      }
+
+      let hasEnquiryToday = false;
+      let hasSiteVisitToday = false;
+      let hasHotListToday = false;
+      let hasBookingToday = false;
+      let hasHandoverToday = false;
+
+      lead.history?.forEach(entry => {
+        if (entry.timestamp >= todayStart && entry.timestamp <= todayEnd) {
+          const status = entry.status;
+          if (status === 'Contacted' || status === 'Follow-Up') {
+            hasEnquiryToday = true;
+          } else if (status === 'Site Visit' || status === 'Site Visit Follow-up') {
+            hasSiteVisitToday = true;
+          } else if (status === 'Qualified') {
+            hasHotListToday = true;
+          } else if (status === 'Booking') {
+            hasBookingToday = true;
+          } else if (status === 'Won') {
+            hasHandoverToday = true;
+          }
+        }
+      });
+
+      if (hasEnquiryToday) todayEnquiriesCount++;
+      if (hasSiteVisitToday) todaySiteVisitsCount++;
+      if (hasHotListToday) todayHotListCount++;
+      if (hasBookingToday) todayBookingCount++;
+      if (hasHandoverToday) todayHandoverCount++;
+    });
+
     res.json({
       cards: {
-        totalLeads: leads.length,
+        totalLeads: cumulativeLeads,
+        liveLeads: liveLeadsCount,
+        today: {
+          leads: todayLeadsCount,
+          enquiries: todayEnquiriesCount,
+          siteVisits: todaySiteVisitsCount,
+          hotList: todayHotListCount,
+          booked: todayBookingCount,
+          handover: todayHandoverCount
+        },
         leadsList: leads.map(l => ({
           _id: l._id,
           name: l.name,
           leadSource: l.leadSource || 'Direct Visit',
           projectType: l.project?.projectType || 'N/A',
-          projectName: l.project?.name || 'N/A'
+          projectName: l.project?.name || 'N/A',
+          assignedTo: l.assignedTo?.name || 'Unassigned',
+          status: l.status
         })),
-        enquiries: { total: totalEnquiries, contacted: contactedCount, followup: followupCount, closed: closedEnquiries },
-        siteVisits: { total: totalSiteVisits, siteVisit: siteVisitCount, followup: siteVisitFollowupCount, closed: closedSiteVisits },
-        hotList: hotListCount,
+        enquiries: { total: cumulativeEnquiries, live: liveEnquiries, contacted: contactedCount, followup: followupCount, closed: closedEnquiries },
+        siteVisits: { total: cumulativeSiteVisits, live: liveSiteVisits, siteVisit: siteVisitCount, followup: siteVisitFollowupCount, closed: closedSiteVisits },
+        hotList: { total: cumulativeHotList, live: liveHotList },
         conversion: { 
           count: siteConversionsCount, 
           value: crdTotalValue,
@@ -685,13 +836,17 @@ router.get('/stats', protect, async (req, res) => {
           pending: crdPendingValue
         },
         booked: {
-          count: bookedLeads.length,
+          total: cumulativeBooked,
+          live: liveBooked,
+          count: liveBooked,
           value: bookedTotalValue,
           received: bookedReceivedValue,
           pending: bookedPendingValue
         },
         handover: {
-          count: handoverLeads.length,
+          total: cumulativeHandover,
+          live: liveHandover,
+          count: liveHandover,
           value: handoverTotalValue,
           received: handoverReceivedValue,
           pending: handoverPendingValue

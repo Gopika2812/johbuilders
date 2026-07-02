@@ -907,7 +907,7 @@ const LeadsDirectory = () => {
           <table>
             <!-- Title Header -->
             <tr>
-              <td colspan="13" class="title-header">LEADS DIRECTORY REPORT</td>
+              <td colspan="11" class="title-header">LEADS DIRECTORY REPORT</td>
             </tr>
             <!-- Table Headers -->
             <tr class="table-headers">
@@ -918,29 +918,25 @@ const LeadsDirectory = () => {
               <th>Lead Type</th>
               <th>Source / Campaign</th>
               <th>Project</th>
-              <th>Project Location</th>
               <th>Assigned Executive</th>
               <th>Workflow Status</th>
-              <th>Bank Loan</th>
               <th>Lead Cost</th>
               <th>Remarks / Notes</th>
             </tr>
       `;
-
+ 
       filteredLeadsList.forEach((lead, index) => {
         const custName = lead.name || '';
         const contactNo = lead.phone || '';
         const lType = lead.leadType || '';
         const sourceStr = lead.leadSource || (lead.leadType === 'Direct Visit' ? 'Direct Visit' : '');
         const projectStr = lead.project?.code || lead.project?.name || '';
-        const locStr = lead.project?.location || lead.projectLocation || '';
         const execName = lead.assignedTo?.name || 'UNASSIGNED';
         const wStatus = lead.status || '';
-        const hasLoan = lead.bankLoan || 'No';
         const lCost = lead.leadCost ? `₹ ${lead.leadCost.toLocaleString()}` : '₹ 0';
         const regDate = lead.createdAt ? new Date(lead.createdAt).toLocaleDateString('en-GB').replace(/\//g, '.') : '';
         const remarksStr = [lead.followUpInfo?.remarks, lead.closeRemarks].filter(Boolean).join(' / ') || '';
-
+ 
         html += `
           <tr>
             <td>${index + 1}</td>
@@ -950,16 +946,14 @@ const LeadsDirectory = () => {
             <td>${lType}</td>
             <td class="text-left">${sourceStr}</td>
             <td>${projectStr}</td>
-            <td class="text-left">${locStr}</td>
             <td>${execName}</td>
             <td>${wStatus}</td>
-            <td>${hasLoan}</td>
             <td class="text-right">${lCost}</td>
             <td class="text-left">${remarksStr}</td>
           </tr>
         `;
       });
-
+ 
       html += `
           </table>
         </body>
