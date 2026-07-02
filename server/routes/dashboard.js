@@ -15,6 +15,7 @@ const { protect } = require('../middleware/auth');
 router.get('/stats', protect, async (req, res) => {
   const { fromDate, toDate, userId, projectId, projectType, source } = req.query;
   try {
+    const projectsForHandover = await Project.find({}, 'units');
     // 1. Build leads filters
     let query = {};
     if (fromDate || toDate) {
@@ -162,7 +163,20 @@ router.get('/stats', protect, async (req, res) => {
       const src = getNormalizedSourceKey(srcRaw);
 
       if (!sourceStats[src]) {
-        sourceStats[src] = { budget: 0, spent: 0, count: 0, value: 0, leadCost: 0, leads: [] };
+        sourceStats[src] = { 
+          budget: 0, 
+          spent: 0, 
+          count: 0, 
+          value: 0, 
+          leadCost: 0, 
+          leads: [],
+          enquiries: 0,
+          siteVisits: 0,
+          hotList: 0,
+          booked: 0,
+          handover: 0,
+          lost: 0
+        };
       }
       if (!sourceStats[src].leads) {
         sourceStats[src].leads = [];
@@ -176,6 +190,34 @@ router.get('/stats', protect, async (req, res) => {
         projectType: lead.project?.projectType || 'N/A',
         projectName: lead.project?.name || 'N/A'
       });
+
+      let isLeadHandover = lead.status === 'Won';
+      if (!isLeadHandover && lead.project && lead.bookingInfo?.selectedUnits?.length > 0) {
+        const projId = lead.project._id || lead.project;
+        const proj = projectsForHandover.find(p => p._id.toString() === projId.toString());
+        if (proj) {
+          isLeadHandover = lead.bookingInfo.selectedUnits.some(unitId => {
+            const unit = proj.units?.find(u => u.unitId === unitId);
+            return unit && unit.status === 'Sold Out';
+          });
+        }
+      }
+
+      if (status === 'Contacted' || status === 'Follow-Up') {
+        sourceStats[src].enquiries = (sourceStats[src].enquiries || 0) + 1;
+      } else if (status === 'Site Visit' || status === 'Site Visit Follow-up') {
+        sourceStats[src].siteVisits = (sourceStats[src].siteVisits || 0) + 1;
+      } else if (status === 'Qualified') {
+        sourceStats[src].hotList = (sourceStats[src].hotList || 0) + 1;
+      } else if (status === 'Booking') {
+        sourceStats[src].booked = (sourceStats[src].booked || 0) + 1;
+      }
+      if (isLeadHandover) {
+        sourceStats[src].handover = (sourceStats[src].handover || 0) + 1;
+      }
+      if (status === 'Lost' || lead.isClosed) {
+        sourceStats[src].lost = (sourceStats[src].lost || 0) + 1;
+      }
 
       const displayStatus = status === 'Site Visit Follow-up' ? 'Site Visit' : status;
 
@@ -311,29 +353,29 @@ router.get('/stats', protect, async (req, res) => {
     let handoverUnits = 0;
     let bookedUnitsList = [];
     let handoverUnitsList = [];
-    let totalByType = { Plot: 0, Flat: 0, House: 0 };
-    let availableByType = { Plot: 0, Flat: 0, House: 0 };
-    let bookedByType = { Plot: 0, Flat: 0, House: 0 };
-    let handoverByType = { Plot: 0, Flat: 0, House: 0 };
+    let totalByType = { Plot: 0, Flat: 0, Villa: 0 };
+    let availableByType = { Plot: 0, Flat: 0, Villa: 0 };
+    let bookedByType = { Plot: 0, Flat: 0, Villa: 0 };
+    let handoverByType = { Plot: 0, Flat: 0, Villa: 0 };
 
-    let totalValueByType = { Plot: 0, Flat: 0, House: 0 };
-    let availableValueByType = { Plot: 0, Flat: 0, House: 0 };
-    let bookedValueByType = { Plot: 0, Flat: 0, House: 0 };
-    let handoverValueByType = { Plot: 0, Flat: 0, House: 0 };
+    let totalValueByType = { Plot: 0, Flat: 0, Villa: 0 };
+    let availableValueByType = { Plot: 0, Flat: 0, Villa: 0 };
+    let bookedValueByType = { Plot: 0, Flat: 0, Villa: 0 };
+    let handoverValueByType = { Plot: 0, Flat: 0, Villa: 0 };
 
-    let projectsByType = { Plot: 0, Flat: 0, House: 0 };
+    let projectsByType = { Plot: 0, Flat: 0, Villa: 0 };
 
     allProjects.forEach(p => {
       const types = p.projectType || [];
       if (types.includes('Plot')) projectsByType.Plot += 1;
       if (types.includes('Flat')) projectsByType.Flat += 1;
-      if (types.includes('House')) projectsByType.House += 1;
+      if (types.includes('House') || types.includes('Villa')) projectsByType.Villa += 1;
 
       p.units?.forEach(u => {
         let type = 'Plot';
         const projTypes = p.projectType || [];
         if (projTypes.length === 1) {
-          type = projTypes[0];
+          type = projTypes[0] === 'House' ? 'Villa' : projTypes[0];
         } else {
           const uType = u.unitType || '';
           if (uType === 'Plot') {
@@ -341,17 +383,17 @@ router.get('/stats', protect, async (req, res) => {
           } else if (uType === 'Flat') {
             type = 'Flat';
           } else if (uType === 'House' || uType === 'Villa') {
-            type = 'House';
+            type = 'Villa';
           } else if (uType.includes('BHK')) {
-            if (projTypes.includes('Flat') && !projTypes.includes('House')) {
+            if (projTypes.includes('Flat') && !projTypes.includes('House') && !projTypes.includes('Villa')) {
               type = 'Flat';
-            } else if (projTypes.includes('House') && !projTypes.includes('Flat')) {
-              type = 'House';
+            } else if ((projTypes.includes('House') || projTypes.includes('Villa')) && !projTypes.includes('Flat')) {
+              type = 'Villa';
             } else {
-              type = projTypes.includes('Flat') ? 'Flat' : 'House';
+              type = projTypes.includes('Flat') ? 'Flat' : 'Villa';
             }
           } else {
-            type = projTypes[0] || 'Plot';
+            type = projTypes[0] === 'House' ? 'Villa' : (projTypes[0] || 'Plot');
           }
         }
 
@@ -608,7 +650,14 @@ router.get('/stats', protect, async (req, res) => {
         value: statsObj.value || 0,
         leadCost: statsObj.leadCost || 0,
         cpe: statsObj.cpe || 0,
-        leads: statsObj.leads || []
+        leads: statsObj.leads || [],
+        count: statsObj.count || 0,
+        enquiries: statsObj.enquiries || 0,
+        siteVisits: statsObj.siteVisits || 0,
+        hotList: statsObj.hotList || 0,
+        booked: statsObj.booked || 0,
+        handover: statsObj.handover || 0,
+        lost: statsObj.lost || 0
       });
     });
 

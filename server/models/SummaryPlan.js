@@ -7,7 +7,7 @@ const SummaryPlanSchema = new mongoose.Schema({
     unique: true
   },
   salesTarget: { type: Number, default: 0 },
-  housesTarget: { type: Number, default: 0 },
+  villasTarget: { type: Number, default: 0 },
   plotsTarget: { type: Number, default: 0 },
   projectTargets: [{
     projectId: String,

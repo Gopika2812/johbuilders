@@ -191,7 +191,7 @@ router.get('/:month', protect, async (req, res) => {
       plan = {
         month: req.params.month,
         salesTarget: 0,
-        housesTarget: 0,
+        villasTarget: 0,
         plotsTarget: 0,
         projectTargets: [],
         marketingTargets: []
@@ -206,16 +206,17 @@ router.get('/:month', protect, async (req, res) => {
 // @route   POST /api/summary-plans
 // @desc    Save or update monthly summary targets
 router.post('/', protect, async (req, res) => {
-  const { month, salesTarget, housesTarget, plotsTarget, projectTargets, marketingTargets } = req.body;
+  const { month, salesTarget, housesTarget, villasTarget, plotsTarget, projectTargets, marketingTargets } = req.body;
   try {
     if (!month) {
       return res.status(400).json({ message: 'Month string is required' });
     }
 
     let plan = await SummaryPlan.findOne({ month });
+    const targetVillas = villasTarget !== undefined ? villasTarget : housesTarget;
     if (plan) {
       if (salesTarget !== undefined) plan.salesTarget = Number(salesTarget) || 0;
-      if (housesTarget !== undefined) plan.housesTarget = Number(housesTarget) || 0;
+      if (targetVillas !== undefined) plan.villasTarget = Number(targetVillas) || 0;
       if (plotsTarget !== undefined) plan.plotsTarget = Number(plotsTarget) || 0;
       if (projectTargets !== undefined) plan.projectTargets = projectTargets || [];
       if (marketingTargets !== undefined) plan.marketingTargets = marketingTargets || [];
@@ -224,7 +225,7 @@ router.post('/', protect, async (req, res) => {
       plan = new SummaryPlan({
         month,
         salesTarget: Number(salesTarget) || 0,
-        housesTarget: Number(housesTarget) || 0,
+        villasTarget: Number(targetVillas) || 0,
         plotsTarget: Number(plotsTarget) || 0,
         projectTargets: projectTargets || [],
         marketingTargets: marketingTargets || []

@@ -148,13 +148,22 @@ const ProjectsDictionary = () => {
     fetchProjects();
   }, [token]);
 
+  const displayProjectType = (typeVal) => {
+    if (Array.isArray(typeVal)) {
+      return typeVal.map(t => t === 'House' ? 'Villa' : t).join(', ');
+    }
+    return typeVal === 'House' ? 'Villa' : typeVal;
+  };
+
   const getTypeBadgeStyle = (type) => {
-    switch (type) {
+    const resolved = Array.isArray(type) ? type[0] : type;
+    switch (resolved) {
       case 'Plot':
         return 'bg-emerald-50 text-emerald-700 border-emerald-200';
       case 'Flat':
         return 'bg-blue-50 text-blue-700 border-blue-200';
       case 'House':
+      case 'Villa':
         return 'bg-amber-50 text-amber-700 border-amber-200';
       default:
         return 'bg-gray-50 text-gray-700 border-gray-200';
@@ -177,7 +186,7 @@ const ProjectsDictionary = () => {
       project.location.toLowerCase().includes(searchTerm.toLowerCase());
 
     // 2. Project type filter
-    const matchesType = projectType === 'All' || project.projectType === projectType;
+    const matchesType = projectType === 'All' || project.projectType === projectType || (projectType === 'Villa' && project.projectType === 'House');
 
     // 3. Date range filter
     let matchesDate = true;
@@ -268,7 +277,7 @@ const ProjectsDictionary = () => {
               <option value="All">All Project Types</option>
               <option value="Plot">Plot Projects</option>
               <option value="Flat">Flat Projects</option>
-              <option value="House">House Projects</option>
+              <option value="Villa">Villa Projects</option>
             </select>
           </div>
 
@@ -402,7 +411,7 @@ const ProjectsDictionary = () => {
                       <td className="p-4 font-mono font-bold text-gray-650">{project.code}</td>
                       <td className="p-4">
                         <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border ${getTypeBadgeStyle(project.projectType)}`}>
-                          {project.projectType}
+                          {displayProjectType(project.projectType)}
                         </span>
                       </td>
                       <td className="p-4">
@@ -553,7 +562,7 @@ const ProjectsDictionary = () => {
               <div className="p-5 border-b border-gray-100 space-y-3">
                 <div className="flex items-center justify-between">
                   <span className={`text-xs font-bold px-2.5 py-0.5 rounded-full border ${getTypeBadgeStyle(project.projectType)}`}>
-                    {project.projectType}
+                    {displayProjectType(project.projectType)}
                   </span>
                   <span className="text-[11px] font-mono font-bold text-[#0e623a] bg-[#0e623a]/5 px-2 py-0.5 rounded">
                     {project.code}

@@ -13,6 +13,58 @@ import {
   AlertCircle 
 } from 'lucide-react';
 
+const parsePhoneDetails = (fullPhone) => {
+  if (!fullPhone) return { countryCode: '+91', localPhone: '' };
+  const commonCodes = ['+91', '+971', '+44', '+1', '+966', '+965', '+973', '+968', '+974', '+65', '+61'];
+  for (const code of commonCodes) {
+    if (fullPhone.startsWith(code)) {
+      return { countryCode: code, localPhone: fullPhone.slice(code.length) };
+    }
+  }
+  if (fullPhone.startsWith('+')) {
+    return { countryCode: '+', localPhone: fullPhone.slice(1) };
+  }
+  return { countryCode: '+91', localPhone: fullPhone };
+};
+
+const validatePhone = (countryCode, localPhone, fieldName = 'Phone number') => {
+  if (!localPhone) return `${fieldName} is required!`;
+  if (countryCode === '+91' && localPhone.length !== 10) {
+    return 'Indian phone number must be exactly 10 digits!';
+  }
+  if (countryCode === '+1' && localPhone.length !== 10) {
+    return 'US/Canada phone number must be exactly 10 digits!';
+  }
+  if (countryCode === '+971' && localPhone.length !== 9) {
+    return 'UAE phone number must be exactly 9 digits!';
+  }
+  if (countryCode === '+44' && (localPhone.length < 10 || localPhone.length > 11)) {
+    return 'UK phone number must be 10 or 11 digits!';
+  }
+  if (countryCode === '+966' && localPhone.length !== 9) {
+    return 'KSA phone number must be exactly 9 digits!';
+  }
+  if (localPhone.length < 7) {
+    return `${fieldName} must have at least 7 digits!`;
+  }
+  return null;
+};
+
+const handleLocalPhoneChange = (val, countryCode, setter) => {
+  const digits = val.replace(/\D/g, '');
+  if (countryCode === '+91' || countryCode === '+1') {
+    setter(digits.slice(0, 10));
+  } else if (countryCode === '+971') {
+    setter(digits.slice(0, 9));
+  } else if (countryCode === '+44') {
+    setter(digits.slice(0, 11));
+  } else if (countryCode === '+966') {
+    setter(digits.slice(0, 9));
+  } else {
+    setter(digits.slice(0, 15));
+  }
+};
+
 const QuotationForm = () => {
   const { token } = useAuth();
   const navigate = useNavigate();
@@ -31,20 +83,25 @@ const QuotationForm = () => {
   const [leadId, setLeadId] = useState('');
   const [projectId, setProjectId] = useState('');
   const [customerName, setCustomerName] = useState('');
-  const [customerPhone, setCustomerPhone] = useState('');
+  const [customerCountryCode, setCustomerCountryCode] = useState('+91');
+  const [customerLocalPhone, setCustomerLocalPhone] = useState('');
   const [customerAddress, setCustomerAddress] = useState('');
   const [projectType, setProjectType] = useState('Plot');
   const [selectedUnits, setSelectedUnits] = useState([]);
   const [pricePerSqFt, setPricePerSqFt] = useState(0);
   const [totalArea, setTotalArea] = useState(0);
   const [totalValue, setTotalValue] = useState(0);
-  
-  const [alternativePhone, setAlternativePhone] = useState('');
+  const [alternativeCountryCode, setAlternativeCountryCode] = useState('+91');
+  const [alternativeLocalPhone, setAlternativeLocalPhone] = useState('');
   const [aadharNumber, setAadharNumber] = useState('');
   const [panNumber, setPanNumber] = useState('');
   const [bankLoanRequired, setBankLoanRequired] = useState('No');
   const [loanAmount, setLoanAmount] = useState(0);
   const [preferredBank, setPreferredBank] = useState('');
+
+  // Field validation error states
+  const [customerPhoneErr, setCustomerPhoneErr] = useState('');
+  const [alternativePhoneErr, setAlternativePhoneErr] = useState('');
 
   // Fetch initial data
   useEffect(() => {
@@ -67,15 +124,18 @@ const QuotationForm = () => {
         const data = await res.json();
         setLeadId(data.lead?._id || data.lead);
         setProjectId(data.project?._id || data.project);
-        setCustomerName(data.customerName);
-        setCustomerPhone(data.customerPhone);
+        const custParsed = parsePhoneDetails(data.customerPhone || '');
+        setCustomerCountryCode(custParsed.countryCode);
+        setCustomerLocalPhone(custParsed.localPhone);
         setCustomerAddress(data.customerAddress);
         setProjectType(data.projectType);
         setSelectedUnits(data.selectedUnits);
         setPricePerSqFt(data.pricePerSqFt);
         setTotalArea(data.totalArea);
         setTotalValue(data.totalValue);
-        setAlternativePhone(data.alternativePhone || '');
+        const altParsed = parsePhoneDetails(data.alternativePhone || '');
+        setAlternativeCountryCode(altParsed.countryCode);
+        setAlternativeLocalPhone(altParsed.localPhone);
         setAadharNumber(data.aadharNumber || '');
         setPanNumber(data.panNumber || '');
         setBankLoanRequired(data.bankLoanRequired || 'No');
@@ -112,14 +172,17 @@ const QuotationForm = () => {
           setLeadId(lead._id);
           const pId = lead.project?._id || lead.project;
           setProjectId(pId);
-          setCustomerName(lead.name);
-          setCustomerPhone(lead.phone);
+          const custParsed = parsePhoneDetails(lead.phone || '');
+          setCustomerCountryCode(custParsed.countryCode);
+          setCustomerLocalPhone(custParsed.localPhone);
           setCustomerAddress(lead.address || '');
           setBankLoanRequired(lead.bankLoan || 'No');
           
           // Prepopulate booking info if exists
           if (lead.bookingInfo) {
-            setAlternativePhone(lead.bookingInfo.alternativePhone || '');
+            const altParsed = parsePhoneDetails(lead.bookingInfo.alternativePhone || '');
+            setAlternativeCountryCode(altParsed.countryCode);
+            setAlternativeLocalPhone(altParsed.localPhone);
             setAadharNumber(lead.bookingInfo.aadharNumber || '');
             setPanNumber(lead.bookingInfo.panNumber || '');
             setBankLoanRequired(lead.bookingInfo.hasLoan || lead.bankLoan || 'No');
@@ -185,9 +248,25 @@ const QuotationForm = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (selectedUnits.length === 0) {
-      alert('Please select at least one plot/flat/house unit to construct the quotation!');
+      alert('Please select at least one plot/flat/villa unit to construct the quotation!');
       return;
     }
+
+    const custPhoneError = validatePhone(customerCountryCode, customerLocalPhone, 'Customer Phone number');
+    if (custPhoneError) {
+      setError(custPhoneError);
+      return;
+    }
+    const customerPhone = customerCountryCode === '+' ? `+${customerLocalPhone}` : `${customerCountryCode}${customerLocalPhone}`;
+
+    if (alternativeLocalPhone) {
+      const altPhoneError = validatePhone(alternativeCountryCode, alternativeLocalPhone, 'Alternative Contact');
+      if (altPhoneError) {
+        setError(altPhoneError);
+        return;
+      }
+    }
+    const alternativePhone = alternativeLocalPhone ? (alternativeCountryCode === '+' ? `+${alternativeLocalPhone}` : `${alternativeCountryCode}${alternativeLocalPhone}`) : '';
 
     const payload = {
       lead: leadId,
@@ -269,12 +348,12 @@ const QuotationForm = () => {
       return projectDetails.units;
     }
     if (type === 'Flat') {
-      return projectDetails.units.filter(u => u.unitType === 'Flat' || u.unitType?.includes('BHK') || (!u.unitType && !projectTypesArray.includes('Plot') && !projectTypesArray.includes('House')));
+      return projectDetails.units.filter(u => u.unitType === 'Flat' || u.unitType?.includes('BHK') || (!u.unitType && !projectTypesArray.includes('Plot') && !projectTypesArray.includes('House') && !projectTypesArray.includes('Villa')));
     }
     if (type === 'Plot') {
       return projectDetails.units.filter(u => u.unitType === 'Plot' || (!u.unitType && (projectTypesArray.includes('Plot') || projectTypesArray.length === 0)));
     }
-    if (type === 'House') {
+    if (type === 'House' || type === 'Villa') {
       return projectDetails.units.filter(u => u.unitType === 'House' || u.unitType === 'Villa' || u.unitType?.includes('BHK'));
     }
     return projectDetails.units.filter(u => u.unitType === type);
@@ -328,13 +407,43 @@ const QuotationForm = () => {
               </div>
               <div>
                 <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1.5">Phone Number</label>
-                <input
-                  type="text"
-                  required
-                  value={customerPhone}
-                  onChange={(e) => setCustomerPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
-                  className="w-full px-4 py-2.5 bg-gray-55 border border-gray-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-xs font-semibold text-gray-700"
-                />
+                <div className={`flex items-center bg-gray-55 border rounded-xl focus-within:ring-2 transition-all overflow-hidden ${customerPhoneErr ? 'border-red-500 focus-within:ring-red-500' : 'border-gray-250 focus-within:ring-[#0e623a] focus-within:border-transparent'}`}>
+                  <select
+                    value={customerCountryCode}
+                    onChange={(e) => {
+                      setCustomerCountryCode(e.target.value);
+                      setCustomerLocalPhone('');
+                      setCustomerPhoneErr('');
+                    }}
+                    className="bg-transparent pl-4 pr-6 py-2.5 text-xs font-bold text-gray-700 outline-none cursor-pointer border-r border-gray-200/80 hover:bg-gray-100/50 transition-colors w-20 appearance-none"
+                    style={{ backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 4px center', backgroundSize: '10px' }}
+                  >
+                    <option value="+91">+91</option>
+                    <option value="+971">+971</option>
+                    <option value="+1">+1</option>
+                    <option value="+44">+44</option>
+                    <option value="+966">+966</option>
+                    <option value="+">+</option>
+                  </select>
+                  <input
+                    type="text"
+                    required
+                    placeholder={customerCountryCode === '+91' ? '10 digit number' : customerCountryCode === '+971' ? '9 digit number' : 'Phone number'}
+                    value={customerLocalPhone}
+                    onChange={(e) => {
+                      handleLocalPhoneChange(e.target.value, customerCountryCode, setCustomerLocalPhone);
+                      setCustomerPhoneErr('');
+                    }}
+                    onBlur={() => {
+                      const err = validatePhone(customerCountryCode, customerLocalPhone, 'Phone number');
+                      setCustomerPhoneErr(err || '');
+                    }}
+                    className="flex-grow px-4 py-2.5 bg-transparent outline-none text-xs font-semibold text-gray-700"
+                  />
+                </div>
+                {customerPhoneErr && (
+                  <p className="text-[10px] text-red-500 font-bold mt-1">{customerPhoneErr}</p>
+                )}
               </div>
             </div>
 
@@ -410,7 +519,7 @@ const QuotationForm = () => {
                               : 'text-gray-500 hover:text-gray-800'
                           }`}
                         >
-                          {type === 'Plot' ? 'Plots' : type === 'House' ? 'Houses' : 'Flats'}
+                          {type === 'Plot' ? 'Plots' : (type === 'House' || type === 'Villa') ? 'Villas' : 'Flats'}
                         </button>
                       ))}
                     </div>
@@ -541,9 +650,9 @@ const QuotationForm = () => {
                   )}
 
                   {/* Houses Layout */}
-                  {projectType === 'House' && (
+                  {(projectType === 'House' || projectType === 'Villa') && (
                     <div className="grid grid-cols-2 sm:grid-cols-5 md:grid-cols-10 gap-5 pt-2 justify-center w-full max-w-[1120px] mx-auto">
-                      {getFilteredUnits('House').map(u => {
+                      {getFilteredUnits(projectType).map(u => {
                         const isSelected = selectedUnits.includes(u.unitId);
                         const isBooked = u.status === 'Booked';
                         const isSold = u.status === 'Sold Out';
@@ -574,7 +683,7 @@ const QuotationForm = () => {
                             ) : isSold ? (
                               <span className="text-[8.5px] font-extrabold uppercase bg-black/20 px-1 rounded">Sold</span>
                             ) : (
-                              <span className="text-[9.5px] font-bold opacity-85">{u.unitType || 'House'}</span>
+                              <span className="text-[9.5px] font-bold opacity-85">{u.unitType || 'Villa'}</span>
                             )}
                           </button>
                         );
@@ -637,12 +746,46 @@ const QuotationForm = () => {
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
                 <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1.5">Alternative Contact No</label>
-                <input
-                  type="text"
-                  value={alternativePhone}
-                  onChange={(e) => setAlternativePhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
-                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-xs font-semibold text-gray-700"
-                />
+                <div className={`flex items-center bg-gray-55 border rounded-xl focus-within:ring-2 transition-all overflow-hidden ${alternativePhoneErr ? 'border-red-500 focus-within:ring-red-500' : 'border-gray-250 focus-within:ring-[#0e623a] focus-within:border-transparent'}`}>
+                  <select
+                    value={alternativeCountryCode}
+                    onChange={(e) => {
+                      setAlternativeCountryCode(e.target.value);
+                      setAlternativeLocalPhone('');
+                      setAlternativePhoneErr('');
+                    }}
+                    className="bg-transparent pl-3 pr-5 py-2.5 text-xs font-bold text-gray-700 outline-none cursor-pointer border-r border-gray-200/80 hover:bg-gray-100/50 transition-colors w-20 appearance-none"
+                    style={{ backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 4px center', backgroundSize: '10px' }}
+                  >
+                    <option value="+91">+91</option>
+                    <option value="+971">+971</option>
+                    <option value="+1">+1</option>
+                    <option value="+44">+44</option>
+                    <option value="+966">+966</option>
+                    <option value="+">+</option>
+                  </select>
+                  <input
+                    type="text"
+                    placeholder="Alternative Phone No"
+                    value={alternativeLocalPhone}
+                    onChange={(e) => {
+                      handleLocalPhoneChange(e.target.value, alternativeCountryCode, setAlternativeLocalPhone);
+                      setAlternativePhoneErr('');
+                    }}
+                    onBlur={() => {
+                      if (alternativeLocalPhone) {
+                        const err = validatePhone(alternativeCountryCode, alternativeLocalPhone, 'Alternative Contact');
+                        setAlternativePhoneErr(err || '');
+                      } else {
+                        setAlternativePhoneErr('');
+                      }
+                    }}
+                    className="flex-grow px-4 py-2.5 bg-gray-50 border-none outline-none text-xs font-semibold text-gray-700"
+                  />
+                </div>
+                {alternativePhoneErr && (
+                  <p className="text-[10px] text-red-500 font-bold mt-1">{alternativePhoneErr}</p>
+                )}
               </div>
               <div>
                 <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1.5">Aadhar Number</label>

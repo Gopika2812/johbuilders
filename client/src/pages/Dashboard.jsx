@@ -326,6 +326,7 @@ const Dashboard = () => {
   const [showSourceModal, setShowSourceModal] = useState(false);
   const [selectedSourcesList, setSelectedSourcesList] = useState([]);
   const [showDetailedPreviewModal, setShowDetailedPreviewModal] = useState(false);
+  const [showSourceDetailedPreviewModal, setShowSourceDetailedPreviewModal] = useState(false);
 
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
@@ -425,6 +426,95 @@ const Dashboard = () => {
       lost: 0
     };
   }, [selectedUserPerfName, userPerformanceData]);
+
+  const [selectedSourceGroup, setSelectedSourceGroup] = useState(null);
+  const [selectedSubSource, setSelectedSubSource] = useState(null);
+
+  // Group-level totals
+  const sourceGroupsPerformanceData = React.useMemo(() => {
+    return Object.keys(stats.groupStats || {}).map(groupName => {
+      const g = stats.groupStats[groupName];
+      const totals = {
+        groupName: groupName,
+        totalLeads: 0,
+        enquiries: 0,
+        siteVisits: 0,
+        hotList: 0,
+        booked: 0,
+        handover: 0,
+        lost: 0
+      };
+      (g.sources || []).forEach(src => {
+        totals.totalLeads += src.count || 0;
+        totals.enquiries += src.enquiries || 0;
+        totals.siteVisits += src.siteVisits || 0;
+        totals.hotList += src.hotList || 0;
+        totals.booked += src.booked || 0;
+        totals.handover += src.handover || 0;
+        totals.lost += src.lost || 0;
+      });
+      return totals;
+    });
+  }, [stats.groupStats]);
+
+  // Sub-sources data under the selected group
+  const subSourcesPerformanceData = React.useMemo(() => {
+    if (!selectedSourceGroup) return [];
+    const g = stats.groupStats[selectedSourceGroup];
+    if (!g) return [];
+    return (g.sources || []).map(src => ({
+      subSourceName: src.source,
+      totalLeads: src.count || 0,
+      enquiries: src.enquiries || 0,
+      siteVisits: src.siteVisits || 0,
+      hotList: src.hotList || 0,
+      booked: src.booked || 0,
+      handover: src.handover || 0,
+      lost: src.lost || 0
+    }));
+  }, [selectedSourceGroup, stats.groupStats]);
+
+  // The metrics to display on the details card
+  const selectedSourcePerfData = React.useMemo(() => {
+    if (!selectedSourceGroup) {
+      // Combined totals of all groups
+      const totals = {
+        displayName: 'All Sources Combined',
+        totalLeads: 0,
+        enquiries: 0,
+        siteVisits: 0,
+        hotList: 0,
+        booked: 0,
+        handover: 0,
+        lost: 0
+      };
+      sourceGroupsPerformanceData.forEach(g => {
+        totals.totalLeads += g.totalLeads;
+        totals.enquiries += g.enquiries;
+        totals.siteVisits += g.siteVisits;
+        totals.hotList += g.hotList;
+        totals.booked += g.booked;
+        totals.handover += g.handover;
+        totals.lost += g.lost;
+      });
+      return totals;
+    }
+
+    if (selectedSubSource) {
+      const match = subSourcesPerformanceData.find(s => s.subSourceName === selectedSubSource);
+      return match ? { ...match, displayName: `${selectedSourceGroup} - ${selectedSubSource}` } : {
+        displayName: selectedSubSource,
+        totalLeads: 0, enquiries: 0, siteVisits: 0, hotList: 0, booked: 0, handover: 0, lost: 0
+      };
+    }
+
+    // Selected group totals
+    const groupMatch = sourceGroupsPerformanceData.find(g => g.groupName === selectedSourceGroup);
+    return groupMatch ? { ...groupMatch, displayName: selectedSourceGroup } : {
+      displayName: selectedSourceGroup,
+      totalLeads: 0, enquiries: 0, siteVisits: 0, hotList: 0, booked: 0, handover: 0, lost: 0
+    };
+  }, [selectedSourceGroup, selectedSubSource, sourceGroupsPerformanceData, subSourcesPerformanceData]);
 
   const handleExportDetailedExcel = () => {
     let htmlContent = `
@@ -531,6 +621,129 @@ const Dashboard = () => {
     document.body.removeChild(link);
   };
 
+  const handleExportSourceDetailedExcel = () => {
+    let htmlContent = `
+      <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+      <head>
+        <meta charset="utf-8"/>
+        <style>
+          table { border-collapse: collapse; }
+          td, th { border: 1px solid #cccccc; padding: 8px; font-family: 'Segoe UI', Calibri, sans-serif; font-size: 11pt; }
+          th { font-weight: bold; background-color: #0e623a; color: white; border: 1px solid #0b4d2d; }
+          .title-row { font-size: 14pt; font-weight: bold; color: #0e623a; }
+          .meta-label { color: #7f7f7f; font-size: 9pt; }
+        </style>
+      </head>
+      <body>
+        <table>
+          <tr>
+            <td colspan="9" class="title-row" style="border:none; text-align:center; font-size: 16pt;">JohnBuildwell ERP - MARKETING SOURCE PERFORMANCE DETAILS</td>
+          </tr>
+          <tr>
+            <td colspan="9" class="meta-label" style="border:none; text-align:center; padding-top:0;">
+              Generated on: ${new Date().toLocaleString()} ${selectedSourceGroup ? `| Filtered for: ${selectedSourceGroup}` : ''}
+            </td>
+          </tr>
+          <tr><td colspan="9" style="border:none; height: 10px;"></td></tr>
+          
+          <tr>
+            <th>Group Name</th>
+            <th>Source Name</th>
+            <th>Total Leads</th>
+            <th>Enquiries</th>
+            <th>Site Visit</th>
+            <th>Hot List</th>
+            <th>Booking</th>
+            <th>Handover</th>
+            <th>Lost</th>
+          </tr>
+    `;
+
+    const rows = [];
+    Object.keys(stats.groupStats || {}).forEach(groupName => {
+      if (selectedSourceGroup && groupName !== selectedSourceGroup) return;
+      const g = stats.groupStats[groupName];
+      (g.sources || []).forEach(src => {
+        if (selectedSubSource && src.source !== selectedSubSource) return;
+        rows.push({
+          groupName: groupName,
+          sourceName: src.source,
+          totalLeads: src.count || 0,
+          enquiries: src.enquiries || 0,
+          siteVisits: src.siteVisits || 0,
+          hotList: src.hotList || 0,
+          booked: src.booked || 0,
+          handover: src.handover || 0,
+          lost: src.lost || 0
+        });
+      });
+    });
+
+    rows.forEach(row => {
+      htmlContent += `
+        <tr>
+          <td><b>${row.groupName}</b></td>
+          <td>${row.sourceName}</td>
+          <td>${row.totalLeads}</td>
+          <td>${row.enquiries}</td>
+          <td>${row.siteVisits}</td>
+          <td>${row.hotList}</td>
+          <td>${row.booked}</td>
+          <td>${row.handover}</td>
+          <td>${row.lost}</td>
+        </tr>
+      `;
+    });
+
+    if (rows.length > 1) {
+      const totals = {
+        totalLeads: 0,
+        enquiries: 0,
+        siteVisits: 0,
+        hotList: 0,
+        booked: 0,
+        handover: 0,
+        lost: 0
+      };
+      rows.forEach(r => {
+        totals.totalLeads += r.totalLeads;
+        totals.enquiries += r.enquiries;
+        totals.siteVisits += r.siteVisits;
+        totals.hotList += r.hotList;
+        totals.booked += r.booked;
+        totals.handover += r.handover;
+        totals.lost += r.lost;
+      });
+      htmlContent += `
+        <tr style="background-color:#e2f0d9; font-weight:bold;">
+          <td colspan="2"><b>TOTAL</b></td>
+          <td>${totals.totalLeads}</td>
+          <td>${totals.enquiries}</td>
+          <td>${totals.siteVisits}</td>
+          <td>${totals.hotList}</td>
+          <td>${totals.booked}</td>
+          <td>${totals.handover}</td>
+          <td>${totals.lost}</td>
+        </tr>
+      `;
+    }
+
+    htmlContent += `
+        </table>
+      </body>
+      </html>
+    `;
+
+    const blob = new Blob([htmlContent], { type: 'application/vnd.ms-excel;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `Source_Performance_Detailed_${selectedSourceGroup || 'All'}_${new Date().toISOString().substring(0, 10)}.xls`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   useEffect(() => {
     fetchDashboardStats();
   }, [fromDate, toDate, selectedUser, selectedProject, selectedProjectType, selectedSource]);
@@ -600,6 +813,7 @@ const Dashboard = () => {
     const availableProjCount = inventory.totalProjects || 0;
     const availableProjVal = (inventory.availableValueByType?.Plot || 0) + 
                              (inventory.availableValueByType?.Flat || 0) + 
+                             (inventory.availableValueByType?.Villa || 0) +
                              (inventory.availableValueByType?.House || 0);
 
     let htmlContent = `
@@ -654,9 +868,9 @@ const Dashboard = () => {
             <td colspan="3">Rs. ${(inventory.availableValueByType?.Flat || 0).toLocaleString()}</td>
           </tr>
           <tr>
-            <td colspan="3">Available Projects (House)</td>
-            <td colspan="3">${inventory.projectsByType?.House || 0}</td>
-            <td colspan="3">Rs. ${(inventory.availableValueByType?.House || 0).toLocaleString()}</td>
+            <td colspan="3">Available Projects (Villa)</td>
+            <td colspan="3">${(inventory.projectsByType?.Villa || 0) + (inventory.projectsByType?.House || 0)}</td>
+            <td colspan="3">Rs. ${((inventory.availableValueByType?.Villa || 0) + (inventory.availableValueByType?.House || 0)).toLocaleString()}</td>
           </tr>
           <tr><td colspan="9" style="border:none;"></td></tr>
           
@@ -673,15 +887,15 @@ const Dashboard = () => {
           </tr>
     `;
 
-    ['Plot', 'Flat', 'House'].forEach(type => {
-      const overallCount = inventory.totalByType?.[type] || 0;
-      const overallVal = inventory.totalValueByType?.[type] || 0;
-      const availCount = inventory.availableByType?.[type] || 0;
-      const availVal = inventory.availableValueByType?.[type] || 0;
-      const bookedCount = inventory.bookedByType?.[type] || 0;
-      const bookedVal = inventory.bookedValueByType?.[type] || 0;
-      const soldCount = inventory.handoverByType?.[type] || 0;
-      const soldVal = inventory.handoverValueByType?.[type] || 0;
+    ['Plot', 'Flat', 'Villa'].forEach(type => {
+      const overallCount = (inventory.totalByType?.[type] || 0) + (type === 'Villa' ? (inventory.totalByType?.House || 0) : 0);
+      const overallVal = (inventory.totalValueByType?.[type] || 0) + (type === 'Villa' ? (inventory.totalValueByType?.House || 0) : 0);
+      const availCount = (inventory.availableByType?.[type] || 0) + (type === 'Villa' ? (inventory.availableByType?.House || 0) : 0);
+      const availVal = (inventory.availableValueByType?.[type] || 0) + (type === 'Villa' ? (inventory.availableValueByType?.House || 0) : 0);
+      const bookedCount = (inventory.bookedByType?.[type] || 0) + (type === 'Villa' ? (inventory.bookedByType?.House || 0) : 0);
+      const bookedVal = (inventory.bookedValueByType?.[type] || 0) + (type === 'Villa' ? (inventory.bookedValueByType?.House || 0) : 0);
+      const soldCount = (inventory.handoverByType?.[type] || 0) + (type === 'Villa' ? (inventory.handoverByType?.House || 0) : 0);
+      const soldVal = (inventory.handoverValueByType?.[type] || 0) + (type === 'Villa' ? (inventory.handoverValueByType?.House || 0) : 0);
       
       htmlContent += `
         <tr>
@@ -1181,7 +1395,7 @@ const Dashboard = () => {
                 <option value="">All Types</option>
                 <option value="Plot">Plot</option>
                 <option value="Flat">Flat</option>
-                <option value="House">House</option>
+                <option value="Villa">Villa</option>
               </select>
             </div>
           </div>
@@ -1251,7 +1465,7 @@ const Dashboard = () => {
         <div className="relative group bg-white border border-gray-100 rounded-3xl p-5 shadow-sm hover:shadow-md transition cursor-pointer select-none">
           <span className="text-[10px] text-gray-400 font-extrabold uppercase tracking-wider block">Total Units</span>
           <h3 className="text-xl font-extrabold text-gray-800 mt-1">{stats.cards.inventory?.totalUnits || 0}</h3>
-          <p className="text-[9px] text-gray-400 mt-2 font-medium">Plots/Flats/Houses registered</p>
+          <p className="text-[9px] text-gray-400 mt-2 font-medium">Plots/Flats/Villas registered</p>
           <div className="absolute inset-0 bg-gray-900/95 backdrop-blur-sm rounded-3xl p-4 flex flex-col justify-center text-left opacity-0 group-hover:opacity-100 transition duration-300 pointer-events-none z-20">
             <h4 className="text-[10px] font-bold text-white uppercase tracking-wider mb-1.5 pb-1 border-b border-gray-800">
               Total Units Breakdown
@@ -1266,8 +1480,8 @@ const Dashboard = () => {
                 <span className="text-white">{stats.cards.inventory?.totalByType?.Plot || 0}</span>
               </div>
               <div className="flex justify-between">
-                <span>Houses:</span>
-                <span className="text-white">{stats.cards.inventory?.totalByType?.House || 0}</span>
+                <span>Villas:</span>
+                <span className="text-white">{(stats.cards.inventory?.totalByType?.Villa || 0) + (stats.cards.inventory?.totalByType?.House || 0)}</span>
               </div>
             </div>
           </div>
@@ -1290,8 +1504,8 @@ const Dashboard = () => {
                 <span className="text-white">{stats.cards.inventory?.availableByType?.Plot || 0}</span>
               </div>
               <div className="flex justify-between">
-                <span>Houses:</span>
-                <span className="text-white">{stats.cards.inventory?.availableByType?.House || 0}</span>
+                <span>Villas:</span>
+                <span className="text-white">{(stats.cards.inventory?.availableByType?.Villa || 0) + (stats.cards.inventory?.availableByType?.House || 0)}</span>
               </div>
             </div>
           </div>
@@ -1317,8 +1531,8 @@ const Dashboard = () => {
                 <span className="text-white">{stats.cards.inventory?.bookedByType?.Plot || 0}</span>
               </div>
               <div className="flex justify-between">
-                <span>Houses:</span>
-                <span className="text-white">{stats.cards.inventory?.bookedByType?.House || 0}</span>
+                <span>Villas:</span>
+                <span className="text-white">{(stats.cards.inventory?.bookedByType?.Villa || 0) + (stats.cards.inventory?.bookedByType?.House || 0)}</span>
               </div>
             </div>
           </div>
@@ -1344,8 +1558,8 @@ const Dashboard = () => {
                 <span className="text-white">{stats.cards.inventory?.handoverByType?.Plot || 0}</span>
               </div>
               <div className="flex justify-between">
-                <span>Houses:</span>
-                <span className="text-white">{stats.cards.inventory?.handoverByType?.House || 0}</span>
+                <span>Villas:</span>
+                <span className="text-white">{(stats.cards.inventory?.handoverByType?.Villa || 0) + (stats.cards.inventory?.handoverByType?.House || 0)}</span>
               </div>
             </div>
           </div>
@@ -1663,26 +1877,133 @@ const Dashboard = () => {
               </div>
             </div>
 
-            {/* Stage wise count Pie Chart */}
-            <div className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm space-y-4">
-              <h3 className="text-sm font-extrabold text-gray-800 uppercase tracking-wide border-b border-gray-100 pb-3 text-left">
-                Pipeline Stages Analysis
-              </h3>
-              <div>
-                {Object.keys(stats.stageStats || {}).length === 0 ? (
-                  <p className="text-gray-400 italic text-xs py-8 text-center">No stages data compiled</p>
-                ) : (
-                  renderPieChart(
-                    Object.keys(stats.stageStats).map(stage => ({
-                      stageName: stage,
-                      count: stats.stageStats[stage].count
-                    })),
-                    'count',
-                    'stageName',
-                    primaryColors,
-                    true // isCount = true
-                  )
-                )}
+            {/* Source Wise drill down Pie Chart */}
+            <div className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-gray-100 pb-3 gap-2">
+                <div>
+                  <h3 className="text-sm font-extrabold text-gray-800 uppercase tracking-wide">
+                    Source Wise Lead Performance
+                  </h3>
+                  <p className="text-[10px] text-gray-400 mt-0.5">
+                    {selectedSourceGroup 
+                      ? `Sub-sources for: ${selectedSourceGroup}` 
+                      : 'Click a source group slice to drill down'}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 self-start sm:self-auto">
+                  <button
+                    onClick={() => setShowSourceDetailedPreviewModal(true)}
+                    className="flex items-center gap-1 px-2.5 py-1 text-[10px] font-bold text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100/80 rounded-xl transition"
+                  >
+                    <FileText className="w-3.5 h-3.5" />
+                    <span>Preview & Export</span>
+                  </button>
+                  {selectedSourceGroup && (
+                    <button 
+                      onClick={() => {
+                        if (selectedSubSource) {
+                          setSelectedSubSource(null);
+                        } else {
+                          setSelectedSourceGroup(null);
+                        }
+                      }}
+                      className="px-2.5 py-1 text-[10px] font-bold text-[#0e623a] bg-emerald-50 hover:bg-emerald-100 transition rounded-xl"
+                    >
+                      ← {selectedSubSource ? 'Back to Group' : 'Back to Groups'}
+                    </button>
+                  )}
+                  {(selectedSourceGroup || selectedSubSource) && (
+                    <button 
+                      onClick={() => {
+                        setSelectedSourceGroup(null);
+                        setSelectedSubSource(null);
+                      }}
+                      className="px-2.5 py-1 text-[10px] font-bold text-gray-655 bg-gray-100 hover:bg-gray-150 transition rounded-xl"
+                    >
+                      Reset All
+                    </button>
+                  )}
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
+                <div className="md:col-span-6">
+                  {sourceGroupsPerformanceData.length === 0 ? (
+                    <p className="text-gray-400 italic text-xs py-8 text-center">No source performance recorded</p>
+                  ) : (
+                    !selectedSourceGroup ? (
+                      renderPieChart(
+                        sourceGroupsPerformanceData,
+                        'totalLeads',
+                        'groupName',
+                        primaryColors,
+                        true,
+                        (item) => setSelectedSourceGroup(item.groupName),
+                        null
+                      )
+                    ) : (
+                      renderPieChart(
+                        subSourcesPerformanceData,
+                        'totalLeads',
+                        'subSourceName',
+                        primaryColors,
+                        true,
+                        (item) => setSelectedSubSource(item.subSourceName),
+                        selectedSubSource
+                      )
+                    )
+                  )}
+                </div>
+                
+                <div className="md:col-span-6 bg-gray-50/50 rounded-2xl p-4 border border-gray-100 space-y-4">
+                  <div className="border-b border-gray-200/60 pb-2">
+                    <span className="text-[9px] text-gray-400 font-extrabold uppercase tracking-wider block">Currently Showing</span>
+                    <h4 className="text-xs font-extrabold text-gray-800 uppercase tracking-wide truncate mt-0.5">
+                      {selectedSourcePerfData.displayName}
+                    </h4>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    {[
+                      { label: 'Total Leads', count: selectedSourcePerfData.totalLeads, color: 'bg-gray-400', icon: TrendingUp },
+                      { label: 'Enquiries', count: selectedSourcePerfData.enquiries, color: 'bg-emerald-600', icon: Users },
+                      { label: 'Site Visit', count: selectedSourcePerfData.siteVisits, color: 'bg-blue-500', icon: MapPin },
+                      { label: 'Hot List', count: selectedSourcePerfData.hotList, color: 'bg-amber-500', icon: Target },
+                      { label: 'Booking', count: selectedSourcePerfData.booked, color: 'bg-rose-500', icon: DollarSign },
+                      { label: 'Handover', count: selectedSourcePerfData.handover, color: 'bg-emerald-700', icon: Building },
+                      { label: 'Lost', count: selectedSourcePerfData.lost, color: 'bg-red-500', icon: TrendingDown }
+                    ].map((m, idx) => {
+                      const IconComponent = m.icon;
+                      const percentageOfTotal = selectedSourcePerfData.totalLeads > 0 
+                        ? (m.count / selectedSourcePerfData.totalLeads) * 100 
+                        : 0;
+                      return (
+                        <div key={idx} className="space-y-1">
+                          <div className="flex items-center justify-between text-[11px]">
+                            <div className="flex items-center gap-2">
+                              <div className="text-gray-700">
+                                <IconComponent className="w-3.5 h-3.5" />
+                              </div>
+                              <span className="font-bold text-gray-700">{m.label}</span>
+                            </div>
+                            <div className="font-extrabold text-gray-800">
+                              {m.count}
+                              {m.label !== 'Total Leads' && selectedSourcePerfData.totalLeads > 0 && (
+                                <span className="text-[9px] text-gray-450 font-normal ml-1">({percentageOfTotal.toFixed(0)}%)</span>
+                              )}
+                            </div>
+                          </div>
+                          <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                            <div 
+                              className={`h-full ${m.color} rounded-full transition-all duration-500`}
+                              style={{ width: `${Math.min(100, percentageOfTotal || (m.label === 'Total Leads' && m.count > 0 ? 100 : 0))}%` }}
+                            ></div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -2351,6 +2672,125 @@ const Dashboard = () => {
                 onClick={() => {
                   handleExportDetailedExcel();
                   setShowDetailedPreviewModal(false);
+                }}
+                className="px-5 py-2 bg-[#0e623a] hover:bg-[#0b4d2d] text-white text-xs font-bold rounded-xl transition shadow-sm flex items-center gap-1.5"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>Download Excel</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Source Detailed Preview Modal */}
+      {showSourceDetailedPreviewModal && (
+        <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm z-[999] flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl border border-gray-150 shadow-2xl w-full max-w-4xl max-h-[85vh] flex flex-col overflow-hidden text-left animate-fadeIn">
+            {/* Header */}
+            <div className="p-6 border-b border-gray-150 flex items-center justify-between bg-blue-500/10">
+              <div>
+                <h3 className="text-base font-extrabold text-blue-800">Source Detailed Performance Report Preview</h3>
+                <p className="text-[10px] text-blue-700 mt-0.5">Review the overall stage splits for all marketing sources before downloading</p>
+              </div>
+              <button 
+                onClick={() => setShowSourceDetailedPreviewModal(false)}
+                className="w-8 h-8 rounded-full flex items-center justify-center bg-white text-gray-400 hover:bg-red-50 hover:text-red-500 transition cursor-pointer font-bold border border-gray-150"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="flex-grow p-6 overflow-y-auto scrollbar-thin">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="border-b border-gray-100 text-[10px] font-bold text-gray-400 uppercase tracking-wider bg-gray-50/50">
+                      <th className="p-3 w-10 text-center">S.No</th>
+                      <th className="p-3">Group Name</th>
+                      <th className="p-3">Source Name</th>
+                      <th className="p-3 text-center">Total Leads</th>
+                      <th className="p-3 text-center">Enquiries</th>
+                      <th className="p-3 text-center">Site Visit</th>
+                      <th className="p-3 text-center">Hot List</th>
+                      <th className="p-3 text-center">Booking</th>
+                      <th className="p-3 text-center">Handover</th>
+                      <th className="p-3 text-center text-red-500">Lost</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50 text-xs font-semibold text-gray-700">
+                    {(() => {
+                      const rows = [];
+                      Object.keys(stats.groupStats || {}).forEach(groupName => {
+                        if (selectedSourceGroup && groupName !== selectedSourceGroup) return;
+                        const g = stats.groupStats[groupName];
+                        (g.sources || []).forEach(src => {
+                          if (selectedSubSource && src.source !== selectedSubSource) return;
+                          rows.push({
+                            groupName: groupName,
+                            sourceName: src.source,
+                            totalLeads: src.count || 0,
+                            enquiries: src.enquiries || 0,
+                            siteVisits: src.siteVisits || 0,
+                            hotList: src.hotList || 0,
+                            booked: src.booked || 0,
+                            handover: src.handover || 0,
+                            lost: src.lost || 0
+                          });
+                        });
+                      });
+                      
+                      return (
+                        <>
+                          {rows.map((row, idx) => (
+                            <tr key={idx} className="hover:bg-gray-50/50 transition">
+                              <td className="p-3 text-center font-bold text-gray-455">{idx + 1}</td>
+                              <td className="p-3 font-bold text-gray-700 uppercase">{row.groupName}</td>
+                              <td className="p-3 font-extrabold text-gray-850 uppercase">{row.sourceName}</td>
+                              <td className="p-3 text-center font-bold text-gray-700">{row.totalLeads}</td>
+                              <td className="p-3 text-center text-emerald-700">{row.enquiries}</td>
+                              <td className="p-3 text-center text-blue-700">{row.siteVisits}</td>
+                              <td className="p-3 text-center text-amber-700">{row.hotList}</td>
+                              <td className="p-3 text-center text-rose-700">{row.booked}</td>
+                              <td className="p-3 text-center text-emerald-800">{row.handover}</td>
+                              <td className="p-3 text-center text-red-600">{row.lost}</td>
+                            </tr>
+                          ))}
+                          
+                          {/* Totals Row */}
+                          {rows.length > 0 && (
+                            <tr className="bg-emerald-50/20 font-bold text-gray-855 border-t border-gray-200">
+                              <td className="p-3 text-center" colSpan="3">Total Sum</td>
+                              <td className="p-3 text-center">{rows.reduce((sum, r) => sum + r.totalLeads, 0)}</td>
+                              <td className="p-3 text-center">{rows.reduce((sum, r) => sum + r.enquiries, 0)}</td>
+                              <td className="p-3 text-center">{rows.reduce((sum, r) => sum + r.siteVisits, 0)}</td>
+                              <td className="p-3 text-center">{rows.reduce((sum, r) => sum + r.hotList, 0)}</td>
+                              <td className="p-3 text-center">{rows.reduce((sum, r) => sum + r.booked, 0)}</td>
+                              <td className="p-3 text-center">{rows.reduce((sum, r) => sum + r.handover, 0)}</td>
+                              <td className="p-3 text-center text-red-650">{rows.reduce((sum, r) => sum + r.lost, 0)}</td>
+                            </tr>
+                          )}
+                        </>
+                      );
+                    })()}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="p-5 border-t border-gray-150 bg-gray-50/30 flex justify-end gap-2">
+              <button
+                onClick={() => setShowSourceDetailedPreviewModal(false)}
+                className="px-4 py-2 text-xs font-bold text-gray-500 hover:text-gray-750 transition"
+              >
+                Close
+              </button>
+              <button
+                onClick={() => {
+                  handleExportSourceDetailedExcel();
+                  setShowSourceDetailedPreviewModal(false);
                 }}
                 className="px-5 py-2 bg-[#0e623a] hover:bg-[#0b4d2d] text-white text-xs font-bold rounded-xl transition shadow-sm flex items-center gap-1.5"
               >

@@ -59,7 +59,7 @@ const RegisterProject = () => {
 
   // Unit generation variables
   const [initialPlotCount, setInitialPlotCount] = useState('10');
-  const [initialHouseCount, setInitialHouseCount] = useState('5');
+  const [initialVillaCount, setInitialVillaCount] = useState('5');
   const [floorCount, setFloorCount] = useState('3');
   const [unitsPerFloor, setUnitsPerFloor] = useState('4');
 
@@ -329,7 +329,7 @@ const RegisterProject = () => {
       payload.units = parsedUnits;
     } else {
       payload.initialPlotCount = Number(initialPlotCount);
-      payload.initialHouseCount = Number(initialHouseCount);
+      payload.initialVillaCount = Number(initialVillaCount);
       payload.floorCount = Number(floorCount);
       payload.unitsPerFloor = Number(unitsPerFloor);
     }
@@ -439,11 +439,11 @@ const RegisterProject = () => {
                 <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 cursor-pointer">
                   <input
                     type="checkbox"
-                    checked={projectTypes.includes('House')}
-                    onChange={() => handleToggleProjectType('House')}
+                    checked={projectTypes.includes('Villa')}
+                    onChange={() => handleToggleProjectType('Villa')}
                     className="w-4 h-4 text-[#0e623a] focus:ring-[#0e623a] border-gray-300 rounded"
                   />
-                  <span>House</span>
+                  <span>Villa</span>
                 </label>
                 <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 cursor-pointer">
                   <input
@@ -656,18 +656,18 @@ const RegisterProject = () => {
                   </div>
                 )}
 
-                {projectTypes.includes('House') && (
+                {projectTypes.includes('Villa') && (
                   <div className="bg-white/20 backdrop-blur-sm border-2 border-[#0e623a]/30 rounded-2xl p-6 space-y-4">
                     <p className="text-xs text-gray-600 leading-normal text-left">
-                      Houses will be generated using code prefix: <strong>{code ? code.toUpperCase() : 'JMDH'}H1</strong>, <strong>{code ? code.toUpperCase() : 'JMDH'}H2...</strong>
+                      Villas will be generated using code prefix: <strong>{code ? code.toUpperCase() : 'JMDV'}V1</strong>, <strong>{code ? code.toUpperCase() : 'JMDV'}V2...</strong>
                     </p>
                     <div className="text-left">
-                      <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-2">Initial House Count</label>
+                      <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-2">Initial Villa Count</label>
                       <input
                         type="number"
                         min="1"
-                        value={initialHouseCount}
-                        onChange={(e) => setInitialHouseCount(e.target.value)}
+                        value={initialVillaCount}
+                        onChange={(e) => setInitialVillaCount(e.target.value)}
                         className="w-32 px-4 py-2.5 bg-white/40 border border-[#0e623a]/20 rounded-xl focus:ring-2 focus:ring-[#0e623a] focus:outline-none"
                       />
                     </div>

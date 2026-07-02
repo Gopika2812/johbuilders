@@ -25,6 +25,11 @@ router.get('/', protect, async (req, res) => {
     ];
   }
 
+  // Restrict to assigned leads for Sales Executives and Site Engineers (non-Admin/non-Manager)
+  if (req.user.role !== 'Admin' && req.user.role !== 'Manager') {
+    query.assignedTo = req.user._id;
+  }
+
   try {
     const leads = await Lead.find(query)
       .populate('project', 'name code location')

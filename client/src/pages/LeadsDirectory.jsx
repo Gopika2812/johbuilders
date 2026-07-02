@@ -93,6 +93,58 @@ const getPreviousStatus = (lead) => {
   return null;
 };
 
+const parsePhoneDetails = (fullPhone) => {
+  if (!fullPhone) return { countryCode: '+91', localPhone: '' };
+  const commonCodes = ['+91', '+971', '+44', '+1', '+966', '+965', '+973', '+968', '+974', '+65', '+61'];
+  for (const code of commonCodes) {
+    if (fullPhone.startsWith(code)) {
+      return { countryCode: code, localPhone: fullPhone.slice(code.length) };
+    }
+  }
+  if (fullPhone.startsWith('+')) {
+    return { countryCode: '+', localPhone: fullPhone.slice(1) };
+  }
+  return { countryCode: '+91', localPhone: fullPhone };
+};
+
+const validatePhone = (countryCode, localPhone, fieldName = 'Phone number') => {
+  if (!localPhone) return `${fieldName} is required!`;
+  if (countryCode === '+91' && localPhone.length !== 10) {
+    return 'Indian phone number must be exactly 10 digits!';
+  }
+  if (countryCode === '+1' && localPhone.length !== 10) {
+    return 'US/Canada phone number must be exactly 10 digits!';
+  }
+  if (countryCode === '+971' && localPhone.length !== 9) {
+    return 'UAE phone number must be exactly 9 digits!';
+  }
+  if (countryCode === '+44' && (localPhone.length < 10 || localPhone.length > 11)) {
+    return 'UK phone number must be 10 or 11 digits!';
+  }
+  if (countryCode === '+966' && localPhone.length !== 9) {
+    return 'KSA phone number must be exactly 9 digits!';
+  }
+  if (localPhone.length < 7) {
+    return `${fieldName} must have at least 7 digits!`;
+  }
+  return null;
+};
+
+const handleLocalPhoneChange = (val, countryCode, setter) => {
+  const digits = val.replace(/\D/g, '');
+  if (countryCode === '+91' || countryCode === '+1') {
+    setter(digits.slice(0, 10));
+  } else if (countryCode === '+971') {
+    setter(digits.slice(0, 9));
+  } else if (countryCode === '+44') {
+    setter(digits.slice(0, 11));
+  } else if (countryCode === '+966') {
+    setter(digits.slice(0, 9));
+  } else {
+    setter(digits.slice(0, 15));
+  }
+};
+
 const LeadsDirectory = () => {
   const { token, user } = useAuth();
   const location = useLocation();
@@ -135,7 +187,11 @@ const LeadsDirectory = () => {
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [leadType, setLeadType] = useState('Lead'); // 'Lead' | 'Direct Visit'
   const [name, setName] = useState('');
-  const [phone, setPhone] = useState('');
+  const [phoneCountryCode, setPhoneCountryCode] = useState('+91');
+  const [phoneLocal, setPhoneLocal] = useState('');
+  const [createPhoneErr, setCreatePhoneErr] = useState('');
+  const [editPhoneErr, setEditPhoneErr] = useState('');
+  const [bookingAltPhoneErr, setBookingAltPhoneErr] = useState('');
   const [address, setAddress] = useState('');
   const [selectedProjectId, setSelectedProjectId] = useState('');
   const [assignedToId, setAssignedToId] = useState('');
@@ -156,7 +212,8 @@ const LeadsDirectory = () => {
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [selectedLeadForEdit, setSelectedLeadForEdit] = useState(null);
   const [editName, setEditName] = useState('');
-  const [editPhone, setEditPhone] = useState('');
+  const [editPhoneCountryCode, setEditPhoneCountryCode] = useState('+91');
+  const [editPhoneLocal, setEditPhoneLocal] = useState('');
   const [editAddress, setEditAddress] = useState('');
   const [editLeadType, setEditLeadType] = useState('Lead');
   const [editProjectId, setEditProjectId] = useState('');
@@ -173,7 +230,8 @@ const LeadsDirectory = () => {
   const [selectedLeadForBooking, setSelectedLeadForBooking] = useState(null);
   const [bookingProjectDetails, setBookingProjectDetails] = useState(null);
   const [selectedBookingUnits, setSelectedBookingUnits] = useState([]);
-  const [bookingAltPhone, setBookingAltPhone] = useState('');
+  const [bookingAltCountryCode, setBookingAltCountryCode] = useState('+91');
+  const [bookingAltLocal, setBookingAltLocal] = useState('');
   const [bookingAadhar, setBookingAadhar] = useState('');
   const [bookingPan, setBookingPan] = useState('');
   const [bookingHasLoan, setBookingHasLoan] = useState('No');
@@ -289,7 +347,9 @@ const LeadsDirectory = () => {
   const handleOpenEditModal = (lead) => {
     setSelectedLeadForEdit(lead);
     setEditName(lead.name || '');
-    setEditPhone(lead.phone || '');
+    const parsed = parsePhoneDetails(lead.phone || '');
+    setEditPhoneCountryCode(parsed.countryCode);
+    setEditPhoneLocal(parsed.localPhone);
     setEditAddress(lead.address || '');
     setEditLeadType(lead.leadType || 'Lead');
     setEditProjectId(lead.project?._id || lead.project || '');
@@ -318,6 +378,13 @@ const LeadsDirectory = () => {
     e.preventDefault();
     setError('');
     setSuccessMsg('');
+
+    const phoneError = validatePhone(editPhoneCountryCode, editPhoneLocal, 'Phone number');
+    if (phoneError) {
+      setError(phoneError);
+      return;
+    }
+    const editPhone = editPhoneCountryCode === '+' ? `+${editPhoneLocal}` : `${editPhoneCountryCode}${editPhoneLocal}`;
 
     const adObj = editAdId ? editActiveAds.find(a => a.id === editAdId) : null;
 
@@ -431,7 +498,17 @@ const LeadsDirectory = () => {
   };
 
   const handlePhoneBlur = async () => {
-    if (!phone) return;
+    if (!phoneLocal) {
+      setCreatePhoneErr('Phone number is required!');
+      return;
+    }
+    const validationErr = validatePhone(phoneCountryCode, phoneLocal, 'Phone number');
+    if (validationErr) {
+      setCreatePhoneErr(validationErr);
+      return;
+    }
+    setCreatePhoneErr('');
+    const phone = phoneCountryCode === '+' ? `+${phoneLocal}` : `${phoneCountryCode}${phoneLocal}`;
     try {
       const res = await fetch(`${API_URL}/leads/phone/${phone}`, {
         headers: { 'Authorization': `Bearer ${token}` }
@@ -452,6 +529,15 @@ const LeadsDirectory = () => {
     setError('');
     setSuccessMsg('');
 
+    const phoneError = validatePhone(phoneCountryCode, phoneLocal, 'Phone number');
+    if (phoneError) {
+      setCreatePhoneErr(phoneError);
+      setError(phoneError);
+      return;
+    }
+    setCreatePhoneErr('');
+    const phone = phoneCountryCode === '+' ? `+${phoneLocal}` : `${phoneCountryCode}${phoneLocal}`;
+
     const adObj = selectedAdId ? activeAds.find(a => a.id === selectedAdId) : null;
 
     const payload = {
@@ -461,7 +547,7 @@ const LeadsDirectory = () => {
       address,
       bankLoan,
       project: selectedProjectId,
-      assignedTo: assignedToId,
+      assignedTo: (user?.role === 'Admin' || user?.role === 'Manager') ? assignedToId : user?._id,
       leadCost: Number(leadCost) || 0,
       leadSource: leadSource,
       activeAd: leadType === 'Lead' && adObj ? { name: adObj.name, link: adObj.link } : undefined
@@ -498,7 +584,9 @@ const LeadsDirectory = () => {
     setBookingModalOpen(true);
     
     // Prepopulate base fields
-    setBookingAltPhone('');
+    const parsed = parsePhoneDetails(lead.bookingInfo?.alternativePhone || '');
+    setBookingAltCountryCode(parsed.countryCode);
+    setBookingAltLocal(parsed.localPhone);
     setBookingAadhar('');
     setBookingPan('');
     setBookingHasLoan(lead.bankLoan || 'No');
@@ -526,9 +614,18 @@ const LeadsDirectory = () => {
   const handleBookingSubmit = async (e) => {
     e.preventDefault();
     if (selectedBookingUnits.length === 0) {
-      alert('Please select at least one unit (plot/flat/house) to confirm booking!');
+      alert('Please select at least one unit (plot/flat/villa) to confirm booking!');
       return;
     }
+
+    if (bookingAltLocal) {
+      const phoneError = validatePhone(bookingAltCountryCode, bookingAltLocal, 'Alternative Contact');
+      if (phoneError) {
+        alert(phoneError);
+        return;
+      }
+    }
+    const bookingAltPhone = bookingAltLocal ? (bookingAltCountryCode === '+' ? `+${bookingAltLocal}` : `${bookingAltCountryCode}${bookingAltLocal}`) : '';
     
     const payload = {
       status: 'Booking',
@@ -888,7 +985,8 @@ const LeadsDirectory = () => {
 
   const resetForm = () => {
     setName('');
-    setPhone('');
+    setPhoneCountryCode('+91');
+    setPhoneLocal('');
     setAddress('');
     setBankLoan('No');
     setSelectedProjectId('');
@@ -1070,17 +1168,22 @@ const LeadsDirectory = () => {
         <div className="bg-white p-4 border border-gray-150 shadow-sm rounded-3xl grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-4 items-end">
           {/* Assigned Executive */}
           <div className="space-y-1">
-            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Assigned Executive</label>
-            <select
-              value={assignedFilter}
-              onChange={(e) => setAssignedFilter(e.target.value)}
-              className="w-full max-w-full truncate px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-xs font-bold text-gray-700"
-            >
-              <option value="">All Executives</option>
-              {employees.map(emp => (
-                <option key={emp._id} value={emp._id}>{emp.name}</option>
-              ))}
-            </select>
+          {/* Assigned Executive */}
+          {(user?.role === 'Admin' || user?.role === 'Manager') && (
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Assigned Executive</label>
+              <select
+                value={assignedFilter}
+                onChange={(e) => setAssignedFilter(e.target.value)}
+                className="w-full max-w-full truncate px-3 py-2 bg-gray-55 border border-gray-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-xs font-bold text-gray-700"
+              >
+                <option value="">All Executives</option>
+                {employees.map(emp => (
+                  <option key={emp._id} value={emp._id}>{emp.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
           </div>
 
           {/* Workflow Status */}
@@ -1535,15 +1638,40 @@ const LeadsDirectory = () => {
                 </div>
                 <div>
                   <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1.5">Phone Number</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. 9876543210"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
-                    onBlur={handlePhoneBlur}
-                    className="w-full px-4 py-3 bg-gray-55 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0e623a] text-sm"
-                  />
+                  <div className={`flex items-center bg-gray-55 border rounded-xl focus-within:ring-2 transition-all overflow-hidden ${createPhoneErr ? 'border-red-500 focus-within:ring-red-500' : 'border-gray-200 focus-within:ring-[#0e623a] focus-within:border-transparent'}`}>
+                    <select
+                      value={phoneCountryCode}
+                      onChange={(e) => {
+                        setPhoneCountryCode(e.target.value);
+                        setPhoneLocal('');
+                        setCreatePhoneErr('');
+                      }}
+                      className="bg-transparent pl-4 pr-6 py-3 text-sm font-bold text-gray-700 outline-none cursor-pointer border-r border-gray-200/80 hover:bg-gray-100/50 transition-colors w-24 appearance-none"
+                      style={{ backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 6px center', backgroundSize: '12px' }}
+                    >
+                      <option value="+91">🇮🇳 +91</option>
+                      <option value="+971">🇦🇪 +971</option>
+                      <option value="+1">🇺🇸 +1</option>
+                      <option value="+44">🇬🇧 +44</option>
+                      <option value="+966">🇸🇦 +966</option>
+                      <option value="+">Other</option>
+                    </select>
+                    <input
+                      type="text"
+                      required
+                      placeholder={phoneCountryCode === '+91' ? '10 digit number' : phoneCountryCode === '+971' ? '9 digit number' : 'Phone number'}
+                      value={phoneLocal}
+                      onChange={(e) => {
+                        handleLocalPhoneChange(e.target.value, phoneCountryCode, setPhoneLocal);
+                        setCreatePhoneErr('');
+                      }}
+                      onBlur={handlePhoneBlur}
+                      className="flex-grow px-4 py-3 bg-transparent outline-none text-sm text-gray-800"
+                    />
+                  </div>
+                  {createPhoneErr && (
+                    <p className="text-[10px] text-red-500 font-bold mt-1">{createPhoneErr}</p>
+                  )}
                 </div>
               </div>
 
@@ -1687,15 +1815,17 @@ const LeadsDirectory = () => {
               </div>
 
               {/* Assigned Executive */}
-              <div className="flex flex-col">
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1.5">Assigned Executive / Member</label>
-                <SearchableSelect
-                  options={employees.map(emp => ({ value: emp._id, label: `${emp.name} (${emp.role})` }))}
-                  value={assignedToId}
-                  onChange={setAssignedToId}
-                  placeholder="Select Executive"
-                />
-              </div>
+              {(user?.role === 'Admin' || user?.role === 'Manager') && (
+                <div className="flex flex-col">
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1.5">Assigned Executive / Member</label>
+                  <SearchableSelect
+                    options={employees.map(emp => ({ value: emp._id, label: `${emp.name} (${emp.role})` }))}
+                    value={assignedToId}
+                    onChange={setAssignedToId}
+                    placeholder="Select Executive"
+                  />
+                </div>
+              )}
 
               {/* Submit Buttons */}
               <div className="flex items-center gap-3 pt-4 border-t">
@@ -1772,14 +1902,43 @@ const LeadsDirectory = () => {
                 </div>
                 <div>
                   <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1.5">Phone Number</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. 9876543210"
-                    value={editPhone}
-                    onChange={(e) => setEditPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
-                    className="w-full px-4 py-3 bg-gray-55 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-600 text-sm"
-                  />
+                  <div className={`flex items-center bg-gray-55 border rounded-xl focus-within:ring-2 transition-all overflow-hidden ${editPhoneErr ? 'border-red-500 focus-within:ring-red-500' : 'border-gray-200 focus-within:ring-amber-600 focus-within:border-transparent'}`}>
+                    <select
+                      value={editPhoneCountryCode}
+                      onChange={(e) => {
+                        setEditPhoneCountryCode(e.target.value);
+                        setEditPhoneLocal('');
+                        setEditPhoneErr('');
+                      }}
+                      className="bg-transparent pl-4 pr-6 py-3 text-sm font-bold text-gray-700 outline-none cursor-pointer border-r border-gray-200/80 hover:bg-gray-100/50 transition-colors w-24 appearance-none"
+                      style={{ backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 6px center', backgroundSize: '12px' }}
+                    >
+                      <option value="+91">🇮🇳 +91</option>
+                      <option value="+971">🇦🇪 +971</option>
+                      <option value="+1">🇺🇸 +1</option>
+                      <option value="+44">🇬🇧 +44</option>
+                      <option value="+966">🇸🇦 +966</option>
+                      <option value="+">Other</option>
+                    </select>
+                    <input
+                      type="text"
+                      required
+                      placeholder={editPhoneCountryCode === '+91' ? '10 digit number' : editPhoneCountryCode === '+971' ? '9 digit number' : 'Phone number'}
+                      value={editPhoneLocal}
+                      onChange={(e) => {
+                        handleLocalPhoneChange(e.target.value, editPhoneCountryCode, setEditPhoneLocal);
+                        setEditPhoneErr('');
+                      }}
+                      onBlur={() => {
+                        const err = validatePhone(editPhoneCountryCode, editPhoneLocal, 'Phone number');
+                        setEditPhoneErr(err || '');
+                      }}
+                      className="flex-grow px-4 py-3 bg-transparent border-none focus:outline-none focus:ring-0 text-sm"
+                    />
+                  </div>
+                  {editPhoneErr && (
+                    <p className="text-[10px] text-red-500 font-bold mt-1">{editPhoneErr}</p>
+                  )}
                 </div>
               </div>
 
@@ -1896,15 +2055,17 @@ const LeadsDirectory = () => {
               </div>
 
               {/* Assigned Executive */}
-              <div className="flex flex-col text-left">
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1.5">Assigned Executive / Member</label>
-                <SearchableSelect
-                  options={employees.map(emp => ({ value: emp._id, label: `${emp.name} (${emp.role})` }))}
-                  value={editAssignedToId}
-                  onChange={setEditAssignedToId}
-                  placeholder="Select Executive"
-                />
-              </div>
+              {(user?.role === 'Admin' || user?.role === 'Manager') && (
+                <div className="flex flex-col text-left">
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1.5">Assigned Executive / Member</label>
+                  <SearchableSelect
+                    options={employees.map(emp => ({ value: emp._id, label: `${emp.name} (${emp.role})` }))}
+                    value={editAssignedToId}
+                    onChange={setEditAssignedToId}
+                    placeholder="Select Executive"
+                  />
+                </div>
+              )}
 
               {/* Submit Buttons */}
               <div className="flex items-center gap-3 pt-4 border-t">
@@ -2412,8 +2573,8 @@ const LeadsDirectory = () => {
                       </div>
                     )}
 
-                    {/* Houses Layout styling - House icons */}
-                    {bookingProjectDetails.projectType === 'House' && (
+                    {/* Villas Layout styling - House icons */}
+                    {(bookingProjectDetails.projectType === 'House' || bookingProjectDetails.projectType === 'Villa' || bookingProjectDetails.projectType?.includes?.('House') || bookingProjectDetails.projectType?.includes?.('Villa')) && (
                       <div className="grid grid-cols-3 sm:grid-cols-4 gap-4">
                         {bookingProjectDetails.units?.map(u => {
                           const isSelected = selectedBookingUnits.includes(u.unitId);
@@ -2493,13 +2654,46 @@ const LeadsDirectory = () => {
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div>
                     <label className="text-xs font-semibold text-gray-600 block mb-1">Alternative Contact</label>
-                    <input
-                      type="text"
-                      placeholder="Alternative Phone No"
-                      value={bookingAltPhone}
-                      onChange={(e) => setBookingAltPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
-                      className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-xs"
-                    />
+                    <div className={`flex items-center bg-gray-50 border rounded-xl focus-within:ring-1 transition-all overflow-hidden w-full ${bookingAltPhoneErr ? 'border-red-500 focus-within:ring-red-500' : 'border-gray-200 focus-within:ring-[#0e623a] focus-within:border-transparent'}`}>
+                      <select
+                        value={bookingAltCountryCode}
+                        onChange={(e) => {
+                          setBookingAltCountryCode(e.target.value);
+                          setBookingAltLocal('');
+                          setBookingAltPhoneErr('');
+                        }}
+                        className="bg-transparent pl-3 pr-5 py-2 text-xs font-bold text-gray-700 outline-none cursor-pointer border-r border-gray-200/80 hover:bg-gray-100/50 transition-colors w-20 appearance-none"
+                        style={{ backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 4px center', backgroundSize: '10px' }}
+                      >
+                        <option value="+91">+91</option>
+                        <option value="+971">+971</option>
+                        <option value="+1">+1</option>
+                        <option value="+44">+44</option>
+                        <option value="+966">+966</option>
+                        <option value="+">+</option>
+                      </select>
+                      <input
+                        type="text"
+                        placeholder="Alternative Phone No"
+                        value={bookingAltLocal}
+                        onChange={(e) => {
+                          handleLocalPhoneChange(e.target.value, bookingAltCountryCode, setBookingAltLocal);
+                          setBookingAltPhoneErr('');
+                        }}
+                        onBlur={() => {
+                          if (bookingAltLocal) {
+                            const err = validatePhone(bookingAltCountryCode, bookingAltLocal, 'Alternative Contact');
+                            setBookingAltPhoneErr(err || '');
+                          } else {
+                            setBookingAltPhoneErr('');
+                          }
+                        }}
+                        className="flex-grow px-3 py-2 bg-transparent outline-none text-xs text-gray-800"
+                      />
+                    </div>
+                    {bookingAltPhoneErr && (
+                      <p className="text-[10px] text-red-500 font-bold mt-1">{bookingAltPhoneErr}</p>
+                    )}
                   </div>
                   <div>
                     <label className="text-xs font-semibold text-gray-600 block mb-1">Aadhar Card Number</label>

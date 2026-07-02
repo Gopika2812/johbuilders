@@ -20,12 +20,12 @@ const SummaryPlanning = () => {
 
   // Phase 1: User-defined targets
   const [salesTarget, setSalesTarget] = useState(0);
-  const [housesTarget, setHousesTarget] = useState(0);
+  const [villasTarget, setVillasTarget] = useState(0);
   const [plotsTarget, setPlotsTarget] = useState(0);
 
   // Phase 1: Dynamically aggregated stats
-  const [achievedStats, setAchievedStats] = useState({ salesValue: 0, housesCount: 0, plotsCount: 0 });
-  const [lastMonthStats, setLastMonthStats] = useState({ salesValue: 0, housesCount: 0, plotsCount: 0 });
+  const [achievedStats, setAchievedStats] = useState({ salesValue: 0, villasCount: 0, plotsCount: 0 });
+  const [lastMonthStats, setLastMonthStats] = useState({ salesValue: 0, villasCount: 0, plotsCount: 0 });
 
   // Phase 2: Project targets state
   const [projectTargetsState, setProjectTargetsState] = useState({});
@@ -51,7 +51,7 @@ const SummaryPlanning = () => {
       if (targetsRes.ok) {
         targetData = await targetsRes.json();
         setSalesTarget(targetData.salesTarget || 0);
-        setHousesTarget(targetData.housesTarget || 0);
+        setVillasTarget(targetData.villasTarget || targetData.housesTarget || 0);
         setPlotsTarget(targetData.plotsTarget || 0);
       }
 
@@ -61,8 +61,16 @@ const SummaryPlanning = () => {
       });
       if (statsRes.ok) {
         const statsData = await statsRes.json();
-        setAchievedStats(statsData.current || { salesValue: 0, housesCount: 0, plotsCount: 0 });
-        setLastMonthStats(statsData.lastMonth || { salesValue: 0, housesCount: 0, plotsCount: 0 });
+        setAchievedStats({
+          salesValue: statsData.current?.salesValue || 0,
+          villasCount: statsData.current?.villasCount || statsData.current?.housesCount || 0,
+          plotsCount: statsData.current?.plotsCount || 0
+        });
+        setLastMonthStats({
+          salesValue: statsData.lastMonth?.salesValue || 0,
+          villasCount: statsData.lastMonth?.villasCount || statsData.lastMonth?.housesCount || 0,
+          plotsCount: statsData.lastMonth?.plotsCount || 0
+        });
       }
 
       // 3. Fetch Phase 2 Project Wise Stats
@@ -172,7 +180,7 @@ const SummaryPlanning = () => {
         body: JSON.stringify({
           month: selectedMonth,
           salesTarget: Number(salesTarget),
-          housesTarget: Number(housesTarget),
+          villasTarget: Number(villasTarget),
           plotsTarget: Number(plotsTarget),
           projectTargets: pTargetsArray,
           marketingTargets: mTargetsArray
@@ -403,25 +411,25 @@ const SummaryPlanning = () => {
 
                   <tr className="hover:bg-gray-50 transition align-middle">
                     <td className="p-4 text-center font-bold text-gray-400">2</td>
-                    <td className="p-4 font-bold text-gray-750">Total Houses to be Sold</td>
+                    <td className="p-4 font-bold text-gray-750">Total Villas to be Sold</td>
                     <td className="p-4 text-right">
                       <input
                         type="number"
                         placeholder="0"
-                        value={housesTarget || ''}
-                        onChange={(e) => setHousesTarget(Number(e.target.value) || 0)}
-                        className="px-3 py-1.5 bg-gray-50 border border-gray-255 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-xs font-bold text-right w-36 mx-auto inline-block"
+                        value={villasTarget || ''}
+                        onChange={(e) => setVillasTarget(Number(e.target.value) || 0)}
+                        className="px-3 py-1.5 bg-gray-55 border border-gray-255 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-xs font-bold text-right w-36 mx-auto inline-block"
                       />
                     </td>
                     <td className="p-4 text-gray-500 font-semibold">Units</td>
                     <td className="p-4 text-right font-extrabold text-gray-800">
-                      {achievedStats.housesCount}
+                      {achievedStats.villasCount}
                     </td>
                     <td className="p-4 text-right font-extrabold text-[#0e623a]">
-                      {housesTarget - achievedStats.housesCount}
+                      {villasTarget - achievedStats.villasCount}
                     </td>
                     <td className="p-4 text-right font-bold text-gray-500">
-                      {lastMonthStats.housesCount}
+                      {lastMonthStats.villasCount}
                     </td>
                   </tr>
 

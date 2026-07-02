@@ -1020,11 +1020,19 @@ const KPIInsights = () => {
 
       // Parse states matching SummaryPlanning.jsx logic
       const sTarget = targetData.salesTarget || 0;
-      const hTarget = targetData.housesTarget || 0;
+      const hTarget = targetData.villasTarget || targetData.housesTarget || 0;
       const pTarget = targetData.plotsTarget || 0;
 
-      const currentAchieved = statsData.current || { salesValue: 0, housesCount: 0, plotsCount: 0 };
-      const lastMonthAchieved = statsData.lastMonth || { salesValue: 0, housesCount: 0, plotsCount: 0 };
+      const currentAchieved = {
+        salesValue: statsData.current?.salesValue || 0,
+        villasCount: statsData.current?.villasCount || statsData.current?.housesCount || 0,
+        plotsCount: statsData.current?.plotsCount || 0
+      };
+      const lastMonthAchieved = {
+        salesValue: statsData.lastMonth?.salesValue || 0,
+        villasCount: statsData.lastMonth?.villasCount || statsData.lastMonth?.housesCount || 0,
+        plotsCount: statsData.lastMonth?.plotsCount || 0
+      };
 
       // Project wise targets map
       const projectTargetsMap = {};
@@ -1178,12 +1186,12 @@ const KPIInsights = () => {
               </tr>
               <tr>
                 <td>2</td>
-                <td class="text-left font-bold">Total Houses to be Sold</td>
+                <td class="text-left font-bold">Total Villas to be Sold</td>
                 <td class="text-right font-bold">${hTarget}</td>
                 <td>Units</td>
-                <td class="text-right">${currentAchieved.housesCount}</td>
-                <td class="text-right">${Math.max(0, hTarget - currentAchieved.housesCount)}</td>
-                <td class="text-right">${lastMonthAchieved.housesCount}</td>
+                <td class="text-right">${currentAchieved.villasCount}</td>
+                <td class="text-right">${Math.max(0, hTarget - currentAchieved.villasCount)}</td>
+                <td class="text-right">${lastMonthAchieved.villasCount}</td>
                 <td colspan="3" style="border: none; background-color: #ffffff;"></td>
               </tr>
               <tr>
@@ -1743,11 +1751,11 @@ const KPIInsights = () => {
             const plotNo = lead.bookingInfo?.selectedUnits?.join(' & ') || '';
             const custName = lead.name || '';
             
-            // House: mapping projectType to Land/House/Flat
+            // Villa: mapping projectType to Land/Villa/Flat
             const typeRaw = (lead.project?.projectType || '').toLowerCase();
             let houseType = 'Land';
             if (typeRaw.includes('villa') || typeRaw.includes('house') || typeRaw.includes('individual')) {
-              houseType = 'House';
+              houseType = 'Villa';
             } else if (typeRaw.includes('apartment') || typeRaw.includes('flat')) {
               houseType = 'Flat';
             }
@@ -1800,7 +1808,7 @@ const KPIInsights = () => {
               <th>Project</th>
               <th>Plot No</th>
               <th>Customer Name</th>
-              <th>House</th>
+              <th>Villa</th>
               <th>Comments / Action notes</th>
             </tr>
             
@@ -1817,7 +1825,7 @@ const KPIInsights = () => {
               <th>Project</th>
               <th>Plot No</th>
               <th>Customer Name</th>
-              <th>House</th>
+              <th>Villa</th>
               <th>Comments / Action notes</th>
             </tr>
 
@@ -1939,7 +1947,7 @@ const KPIInsights = () => {
               <th>Project</th>
               <th>Plot No</th>
               <th>Customer Name</th>
-              <th>House Status</th>
+              <th>Villa Status</th>
             </tr>
       `;
 
@@ -1976,7 +1984,7 @@ const KPIInsights = () => {
           <th>Project code</th>
           <th>Plot No</th>
           <th>Name</th>
-          <th>House Status</th>
+          <th>Villa Status</th>
         </tr>
       `;
 
@@ -1990,11 +1998,11 @@ const KPIInsights = () => {
         const plotNo = flow.unitId || '';
         const custName = lead.name || '';
         
-        // Property type (House/Villa -> House, Flat/Apartment -> Flat, Land/Plot -> Land)
+        // Property type (House/Villa -> Villa, Flat/Apartment -> Flat, Land/Plot -> Land)
         const typeRaw = (flow.project?.projectType || '').toLowerCase();
-        let houseStatus = 'House';
+        let houseStatus = 'Villa';
         if (typeRaw.includes('villa') || typeRaw.includes('house') || typeRaw.includes('individual')) {
-          houseStatus = 'House';
+          houseStatus = 'Villa';
         } else if (typeRaw.includes('apartment') || typeRaw.includes('flat')) {
           houseStatus = 'Flat';
         } else {

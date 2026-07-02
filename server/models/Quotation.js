@@ -27,7 +27,7 @@ const QuotationSchema = new mongoose.Schema({
   },
   projectType: {
     type: String,
-    enum: ['Plot', 'Flat', 'House'],
+    enum: ['Plot', 'Flat', 'House', 'Villa'],
     required: true
   },
   selectedUnits: [{
