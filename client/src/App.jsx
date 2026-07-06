@@ -33,7 +33,7 @@ const Layout = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-gray-50 flex relative overflow-hidden">
+    <div className="min-h-screen bg-gray-50 flex relative">
       {/* Mobile Sidebar backdrop overlay */}
       {sidebarOpen && (
         <div 
@@ -46,12 +46,12 @@ const Layout = ({ children }) => {
       <Sidebar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
 
       {/* Main Panel Content Frame */}
-      <div className="flex-1 pl-0 md:pl-64 flex flex-col min-h-screen relative z-10 w-full max-w-full min-w-0 overflow-hidden">
+      <div className="flex-1 pl-0 md:pl-64 flex flex-col min-h-screen relative z-10 w-full max-w-full min-w-0">
         {/* Top Navbar */}
         <Navbar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
 
         {/* Dynamic Page Views */}
-        <main className="flex-grow pt-20 md:pt-24 px-4 md:px-8 pb-12 overflow-x-hidden relative z-10">
+        <main className="flex-grow pt-20 md:pt-24 px-4 md:px-8 pb-12 relative z-10">
           {children}
         </main>
       </div>

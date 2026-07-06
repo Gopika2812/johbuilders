@@ -124,6 +124,7 @@ const QuotationForm = () => {
         const data = await res.json();
         setLeadId(data.lead?._id || data.lead);
         setProjectId(data.project?._id || data.project);
+        setCustomerName(data.customerName || '');
         const custParsed = parsePhoneDetails(data.customerPhone || '');
         setCustomerCountryCode(custParsed.countryCode);
         setCustomerLocalPhone(custParsed.localPhone);
@@ -172,6 +173,7 @@ const QuotationForm = () => {
           setLeadId(lead._id);
           const pId = lead.project?._id || lead.project;
           setProjectId(pId);
+          setCustomerName(lead.name || '');
           const custParsed = parsePhoneDetails(lead.phone || '');
           setCustomerCountryCode(custParsed.countryCode);
           setCustomerLocalPhone(custParsed.localPhone);

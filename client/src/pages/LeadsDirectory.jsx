@@ -152,6 +152,7 @@ const LeadsDirectory = () => {
   const [leads, setLeads] = useState([]);
   const [projects, setProjects] = useState([]);
   const [employees, setEmployees] = useState([]);
+  const [quotations, setQuotations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
@@ -269,6 +270,7 @@ const LeadsDirectory = () => {
     fetchLeads();
     fetchProjects();
     fetchEmployees();
+    fetchQuotations();
   }, [token]);
 
   // Update active ads dropdown when project changes
@@ -493,6 +495,18 @@ const LeadsDirectory = () => {
         const data = await res.json();
         // Only show approved employees
         setEmployees(data.filter(emp => emp.isApproved));
+      }
+    } catch (err) {}
+  };
+
+  const fetchQuotations = async () => {
+    try {
+      const res = await fetch(`${API_URL}/quotations`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setQuotations(data);
       }
     } catch (err) {}
   };
@@ -890,7 +904,7 @@ const LeadsDirectory = () => {
       }
 
       const logoPath = window.location.origin + "/jb_logo.jpg";
-
+ 
       // Generate styled HTML sheet
       let html = `
         <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
@@ -898,22 +912,37 @@ const LeadsDirectory = () => {
           <meta charset="utf-8">
           <style>
             table { border-collapse: collapse; }
-            td, th { border: 1px solid #cbd5e1; padding: 10px 14px; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; font-size: 10pt; color: #334155; }
-            th { font-weight: bold; background-color: #0e623a; color: white; border: 1px solid #0e623a; text-align: center; }
-            .title-row { font-size: 14pt; font-weight: bold; color: #0e623a; }
-            .even-row { background-color: #f8fafc; }
+            td, th { border: 1px solid #e2e8f0; padding: 10px 12px; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; font-size: 10pt; color: #475569; }
+            th { font-weight: bold; background-color: #0b4d2d; color: white; border: 1px solid #0b4d2d; text-align: center; text-transform: uppercase; font-size: 9pt; letter-spacing: 0.5px; }
+            .title-row { font-size: 16pt; font-weight: 800; color: #ffffff; letter-spacing: 1.5px; }
+            .even-row { background-color: #f4fbf7; }
             .bold-label { font-weight: bold; color: #0f172a; }
             .text-left { text-align: left; }
+            .text-center { text-align: center; }
             .text-right { text-align: right; }
           </style>
         </head>
         <body>
           <table>
-            <tr style="height: 120px;">
-              <td colspan="3" style="background-color: #0e623a; border: none; text-align: center; vertical-align: middle; height: 120px;">
-                <img src="${logoPath}" height="95" style="height: 95px; width: auto; display: block; margin: 0 auto;" />
+            <!-- Column Width Config for Excel -->
+            <col width="60" />
+            <col width="100" />
+            <col width="180" />
+            <col width="140" />
+            <col width="100" />
+            <col width="180" />
+            <col width="90" />
+            <col width="150" />
+            <col width="150" />
+            <col width="150" />
+            <col width="140" />
+            <col width="300" />
+
+            <tr style="height: 100px;">
+              <td colspan="3" style="background-color: #0e623a; border: none; text-align: center; vertical-align: middle; height: 100px;">
+                <img src="${logoPath}" height="80" style="height: 80px; width: auto; display: block; margin: 0 auto;" />
               </td>
-              <td colspan="9" class="title-row" style="border:none; vertical-align:middle; text-align:center; font-size: 14pt; font-weight: bold; color: #0e623a; height: 120px;">
+              <td colspan="9" class="title-row" style="background-color: #0e623a; border: none; vertical-align: middle; text-align: center; font-size: 16pt; font-weight: 800; color: #ffffff; height: 100px; font-family: 'Segoe UI', sans-serif;">
                 LEADS DIRECTORY REPORT
               </td>
             </tr>
@@ -936,6 +965,20 @@ const LeadsDirectory = () => {
             </tr>
       `;
  
+      const STATUS_EXCEL_STYLES = {
+        'New': 'background-color: #eff6ff; color: #1e40af; font-weight: bold;',
+        'Assigned': 'background-color: #f3e8ff; color: #6b21a8; font-weight: bold;',
+        'Contacted': 'background-color: #e0e7ff; color: #3730a3; font-weight: bold;',
+        'Follow-Up': 'background-color: #fffbeb; color: #92400e; font-weight: bold;',
+        'Site Visit': 'background-color: #fff1f2; color: #9f1239; font-weight: bold;',
+        'Site Visit Follow-up': 'background-color: #fdf2f8; color: #9d174d; font-weight: bold;',
+        'Qualified': 'background-color: #f0fdf4; color: #166534; font-weight: bold;',
+        'Negotiation': 'background-color: #fff7ed; color: #9a3412; font-weight: bold;',
+        'Booking': 'background-color: #fef9c3; color: #854d0e; font-weight: bold;',
+        'Won': 'background-color: #ecfdf5; color: #065f46; font-weight: bold;',
+        'Lost': 'background-color: #f3f4f6; color: #374151; font-weight: bold;'
+      };
+
       filteredLeadsList.forEach((lead, index) => {
         const custName = lead.name || '';
         const contactNo = lead.phone || '';
@@ -946,9 +989,12 @@ const LeadsDirectory = () => {
         const assignerName = lead.assignedBy?.name || '—';
         const wStatus = lead.status || '';
         
-        // Calculate booking value from selected units
+        // Calculate booking value from selected units or finalized quotation value
         let bookingVal = 0;
-        if (lead.bookingInfo?.selectedUnits && lead.project?.units) {
+        const matchedQtn = quotations.find(q => (q.lead?._id || q.lead) === lead._id);
+        if (matchedQtn) {
+          bookingVal = matchedQtn.totalValue || 0;
+        } else if (lead.bookingInfo?.selectedUnits && lead.project?.units) {
           lead.bookingInfo.selectedUnits.forEach(unitId => {
             const unit = lead.project.units.find(u => u.unitId === unitId);
             if (unit) {
@@ -957,6 +1003,7 @@ const LeadsDirectory = () => {
           });
         }
         const bookingValStr = bookingVal > 0 ? `₹ ${bookingVal.toLocaleString()}` : '₹ 0';
+        const bookingValColor = bookingVal > 0 ? 'color: #0e623a; font-weight: bold;' : 'color: #94a3b8;';
 
         const regDate = lead.createdAt ? new Date(lead.createdAt).toLocaleDateString('en-GB').replace(/\//g, '.') : '';
         const remarksStr = [lead.followUpInfo?.remarks, lead.closeRemarks].filter(Boolean).join(' / ') || '';
@@ -964,17 +1011,17 @@ const LeadsDirectory = () => {
  
         html += `
           <tr ${rowClass}>
-            <td>${index + 1}</td>
-            <td>${regDate}</td>
+            <td class="text-center">${index + 1}</td>
+            <td class="text-center">${regDate}</td>
             <td class="text-left bold-label">${custName}</td>
-            <td>'${contactNo}</td>
-            <td>${lType}</td>
+            <td class="text-center">'${contactNo}</td>
+            <td class="text-center">${lType}</td>
             <td class="text-left">${sourceStr}</td>
-            <td>${projectStr}</td>
-            <td>${execName}</td>
-            <td>${assignerName}</td>
-            <td>${wStatus}</td>
-            <td class="text-right">${bookingValStr}</td>
+            <td class="text-center bold-label">${projectStr}</td>
+            <td class="text-left">${execName}</td>
+            <td class="text-left">${assignerName}</td>
+            <td class="text-center" style="${STATUS_EXCEL_STYLES[wStatus] || ''}">${wStatus}</td>
+            <td class="text-right" style="${bookingValColor}">${bookingValStr}</td>
             <td class="text-left">${remarksStr}</td>
           </tr>
         `;
@@ -1022,10 +1069,16 @@ const LeadsDirectory = () => {
   // Filter list matching Search & Date & Tab & Advanced Filters
   const getFilteredLeads = () => {
     return leads.filter(lead => {
-      let matchesTab = activeTab === 'All' || lead.status === activeTab;
+      let matchesTab = activeTab === 'All';
       if (activeTab === 'Qualified') {
         const wasQualified = lead.status === 'Qualified' || (lead.history && lead.history.some(h => h.status === 'Qualified'));
-        matchesTab = wasQualified;
+        matchesTab = wasQualified && !lead.isClosed;
+      } else if (activeTab === 'Lost') {
+        matchesTab = lead.status === 'Lost' || (lead.isClosed && lead.status !== 'Won');
+      } else if (activeTab === 'Won') {
+        matchesTab = lead.status === 'Won';
+      } else if (activeTab !== 'All') {
+        matchesTab = lead.status === activeTab && !lead.isClosed;
       }
       const matchesStatus = !statusFilter || lead.status === statusFilter;
       
@@ -1126,9 +1179,15 @@ const LeadsDirectory = () => {
             All Leads ({leads.length})
           </button>
           {LEAD_STATUSES.map(st => {
-            let count = leads.filter(l => l.status === st).length;
-            if (st === 'Qualified') {
-              count = leads.filter(l => l.status === 'Qualified' || (l.history && l.history.some(h => h.status === 'Qualified'))).length;
+            let count = 0;
+            if (st === 'Lost') {
+              count = leads.filter(l => l.status === 'Lost' || (l.isClosed && l.status !== 'Won')).length;
+            } else if (st === 'Won') {
+              count = leads.filter(l => l.status === 'Won').length;
+            } else if (st === 'Qualified') {
+              count = leads.filter(l => (l.status === 'Qualified' || (l.history && l.history.some(h => h.status === 'Qualified'))) && !l.isClosed).length;
+            } else {
+              count = leads.filter(l => l.status === st && !l.isClosed).length;
             }
             return (
               <button
@@ -1148,7 +1207,7 @@ const LeadsDirectory = () => {
       </div>
 
       {/* Filters & Search Menu */}
-      <div className="space-y-2">
+      <div className="space-y-2 sticky top-16 z-20 bg-gray-50/90 backdrop-blur-md py-2">
         <div className="bg-white p-4 border border-gray-150 shadow-sm rounded-3xl grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
           <div className="md:col-span-2 space-y-1">
             <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Search Lead Name / Phone / Project Code</label>
