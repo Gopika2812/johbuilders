@@ -443,14 +443,44 @@ router.get('/stats', protect, async (req, res) => {
     let handoverValueByType = { Plot: 0, Flat: 0, Villa: 0 };
 
     let projectsByType = { Plot: 0, Flat: 0, Villa: 0 };
+    const projectUnitsStats = {};
 
     allProjects.forEach(p => {
+      const pCode = p.code || p.name;
+      projectUnitsStats[pCode] = { 
+        total: 0, 
+        available: 0, 
+        booked: 0, 
+        handover: 0,
+        availableUnitsList: [],
+        bookedUnitsList: [],
+        handoverUnitsList: [],
+        totalUnitsList: []
+      };
+
       const types = p.projectType || [];
       if (types.includes('Plot')) projectsByType.Plot += 1;
       if (types.includes('Flat')) projectsByType.Flat += 1;
       if (types.includes('House') || types.includes('Villa')) projectsByType.Villa += 1;
 
       p.units?.forEach(u => {
+        projectUnitsStats[pCode].total += 1;
+        projectUnitsStats[pCode].totalUnitsList.push(u.unitId);
+        
+        if (u.status === 'New') {
+          projectUnitsStats[pCode].available += 1;
+          projectUnitsStats[pCode].availableUnitsList.push(u.unitId);
+        } else if (u.status === 'Booked') {
+          projectUnitsStats[pCode].booked += 1;
+          projectUnitsStats[pCode].bookedUnitsList.push(u.unitId);
+        } else if (u.status === 'Sold Out') {
+          projectUnitsStats[pCode].handover += 1;
+          projectUnitsStats[pCode].handoverUnitsList.push(u.unitId);
+        } else {
+          projectUnitsStats[pCode].available += 1;
+          projectUnitsStats[pCode].availableUnitsList.push(u.unitId);
+        }
+
         let type = 'Plot';
         const projTypes = p.projectType || [];
         if (projTypes.length === 1) {
@@ -880,6 +910,7 @@ router.get('/stats', protect, async (req, res) => {
       },
       projectStages,
       personProjectStages,
+      projectUnitsStats,
       sourceStats,
       groupStats,
       userStats,

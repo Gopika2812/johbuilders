@@ -32,8 +32,9 @@ router.get('/', protect, async (req, res) => {
 
   try {
     const leads = await Lead.find(query)
-      .populate('project', 'name code location')
+      .populate('project', 'name code location units')
       .populate('assignedTo', 'name role')
+      .populate('assignedBy', 'name role')
       .populate('history.assignedTo', 'name role')
       .populate('history.updatedBy', 'name role')
       .sort({ updatedAt: -1 });
@@ -122,6 +123,9 @@ router.post('/', protect, async (req, res) => {
       lead.address = address;
       lead.bankLoan = bankLoan || 'No';
       lead.project = project;
+      if (assignedTo && assignedTo.toString().trim() !== '') {
+        lead.assignedBy = req.user._id;
+      }
       lead.assignedTo = (assignedTo && assignedTo.toString().trim() !== '') ? assignedTo : undefined;
       lead.status = defaultStatus; // reset/set status on reopen
       lead.isClosed = false;
@@ -157,8 +161,9 @@ router.post('/', protect, async (req, res) => {
       });
 
       const populated = await Lead.findById(lead._id)
-        .populate('project', 'name code')
-        .populate('assignedTo', 'name role');
+        .populate('project', 'name code location units')
+        .populate('assignedTo', 'name role')
+        .populate('assignedBy', 'name role');
 
       return res.json({ message: 'Existing lead reopened and updated', lead: populated });
     }
@@ -172,6 +177,7 @@ router.post('/', protect, async (req, res) => {
       bankLoan: bankLoan || 'No',
       project,
       assignedTo: (assignedTo && assignedTo.toString().trim() !== '') ? assignedTo : undefined,
+      assignedBy: (assignedTo && assignedTo.toString().trim() !== '') ? req.user._id : undefined,
       status: defaultStatus,
       leadCost: Number(leadCost) || 0
     });
@@ -203,8 +209,9 @@ router.post('/', protect, async (req, res) => {
     });
 
     const populated = await Lead.findById(lead._id)
-      .populate('project', 'name code')
-      .populate('assignedTo', 'name role');
+      .populate('project', 'name code location units')
+      .populate('assignedTo', 'name role')
+      .populate('assignedBy', 'name role');
 
     res.status(201).json({ message: 'Lead created successfully', lead: populated });
   } catch (err) {
@@ -252,6 +259,10 @@ router.put('/:id', protect, async (req, res) => {
       lead.status = status;
     }
     if (assignedTo !== undefined) {
+      const prevAssigned = lead.assignedTo?.toString();
+      if (assignedTo && assignedTo !== prevAssigned) {
+        lead.assignedBy = req.user._id;
+      }
       lead.assignedTo = (assignedTo && assignedTo.toString().trim() !== '') ? assignedTo : undefined;
     }
     if (name) lead.name = name;
@@ -369,8 +380,9 @@ router.put('/:id', protect, async (req, res) => {
     });
 
     const populated = await Lead.findById(lead._id)
-      .populate('project', 'name code location')
+      .populate('project', 'name code location units')
       .populate('assignedTo', 'name role')
+      .populate('assignedBy', 'name role')
       .populate('history.assignedTo', 'name role')
       .populate('history.updatedBy', 'name role');
 

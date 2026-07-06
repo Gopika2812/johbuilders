@@ -26,6 +26,50 @@ const getCoordinatesForPercent = (percent) => {
   return [x, y];
 };
 
+const getExcelStyles = (themeColor, bannerBg, bannerText, bannerBorder) => {
+  // Enforce company branding green theme colors
+  const greenTheme = "#0e623a";
+  const greenBannerBg = "#e2f0d9";
+  const greenBannerText = "#385723";
+  const greenBannerBorder = "#c5e1a5";
+
+  return `
+    <style>
+      table { border-collapse: collapse; }
+      td, th { border: 1px solid #cbd5e1; padding: 10px 12px; font-family: 'Segoe UI', Calibri, sans-serif; font-size: 10pt; color: #334155; }
+      th, .table-headers th { font-weight: bold; background-color: ${greenTheme}; color: white; border: 1px solid ${greenTheme}; text-align: center; }
+      .title-row { font-size: 22pt; font-weight: bold; color: ${greenTheme}; }
+      .exec-banner, .month-header, .group-banner, .section-banner, .subtotal-row, .bg-header-green, .bg-accent-green, .bg-header-blue, .bg-total-banner { font-size: 11pt; font-weight: bold; background-color: ${greenBannerBg}; color: ${greenBannerText}; padding: 12px; border: 1px solid ${greenBannerBorder}; text-align: center; text-transform: uppercase; letter-spacing: 0.5px; }
+      .even-row { background-color: #f8fafc; }
+      .bold-label, .font-bold { font-weight: bold; color: #0f172a; }
+      .text-left { text-align: left; }
+      .text-right { text-align: right; }
+    </style>
+  `;
+};
+
+const getExcelHeader = (titleText, monthTitle, totalColumns, themeColor, logoPath) => {
+  const safeCols = Math.max(4, totalColumns);
+  const greenTheme = "#0e623a";
+  return `
+    <tr style="height: 120px;">
+      <td colspan="3" style="background-color: #0e623a; border: none; text-align: center; vertical-align: middle; height: 120px;">
+        <img src="${logoPath}" height="95" style="height: 95px; width: auto; display: block; margin: 0 auto;" />
+      </td>
+      <td colspan="${safeCols - 3}" class="title-row" style="border:none; vertical-align:middle; text-align:center; font-size: 22pt; font-weight: bold; color: ${greenTheme}; height: 120px;">
+        ${titleText}
+      </td>
+    </tr>
+    ${monthTitle ? `
+    <tr>
+      <td colspan="${safeCols}" class="month-header" style="height: 35px; vertical-align: middle;">
+        ${monthTitle}
+      </td>
+    </tr>` : ''}
+    <tr><td colspan="${safeCols}" style="border:none; height: 15px;"></td></tr>
+  `;
+};
+
 // 🔵 REUSABLE MATTE PIE CHART
 const ObservedPieChart = ({ dataArray, valueKey, labelKey, colorPalette, isCount, onSegmentClick }) => {
   const [isVisible, setIsVisible] = useState(true);
@@ -260,6 +304,7 @@ const ObservedBarChart = ({ dataArray, xKey, yKey, barColor, isPercent = false }
 
 const KPIInsights = () => {
   const { token, user } = useAuth();
+  const logoPath = window.location.origin + "/jb_logo.jpg";
   
   // Date filters - default to current month
   const [fromDate, setFromDate] = useState(() => {
@@ -408,27 +453,11 @@ const KPIInsights = () => {
         <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
         <head>
           <meta charset="utf-8">
-          <style>
-            table { border-collapse: collapse; font-family: Calibri, sans-serif; width: 100%; }
-            td, th { border: 1px solid #000000; padding: 6px; text-align: center; font-size: 11px; }
-            .title-header { background-color: #F8CBAD; font-weight: bold; font-size: 14px; height: 30px; text-transform: uppercase; }
-            .month-header { background-color: #D9E1F2; font-weight: bold; font-size: 12px; height: 25px; text-transform: uppercase; }
-            .exec-banner { background-color: #B4C6E7; font-weight: bold; font-size: 11px; height: 22px; color: #000000; text-align: center; }
-            .table-headers { background-color: #E2EFDA; font-weight: bold; }
-            .bold-cell { font-weight: bold; }
-            .text-left { text-align: left; }
-          </style>
+          ${getExcelStyles("#16a34a", "#dcfce7", "#166534", "#bbf7d0")}
         </head>
         <body>
           <table>
-            <!-- Title Header -->
-            <tr>
-              <td colspan="10" class="title-header">${titleText}</td>
-            </tr>
-            <!-- Month Header -->
-            <tr>
-              <td colspan="10" class="month-header">${monthTitle}</td>
-            </tr>
+            ${getExcelHeader(titleText, monthTitle, 10, "#16a34a", logoPath)}
       `;
 
       // Group leads by assigned executive to insert executive banner row (as seen in screenshot: "Veni" blue banner stretching across!)
@@ -450,20 +479,20 @@ const KPIInsights = () => {
           <!-- Table Headers -->
           <tr class="table-headers">
             <th>S.No</th>
-            <th>Enquirydate</th>
-            <th>LeadName</th>
-            <th>ContactNumber</th>
-            <th>AssignedTo</th>
-            <th>EnquiryMode</th>
+            <th>Enquiry date</th>
+            <th>Lead Name</th>
+            <th>Contact Number</th>
+            <th>Assigned To</th>
+            <th>Enquiry Mode</th>
             <th>Project</th>
             <th>Place</th>
-            <th>LeadStatus</th>
-            <th>SalesExecutiveRemarks</th>
+            <th>Lead Status</th>
+            <th>Sales Executive Remarks</th>
           </tr>
         `;
 
         // Lead rows
-        groupedByExec[execName].forEach(lead => {
+        groupedByExec[execName].forEach((lead, idx) => {
           const dateStr = new Date(lead.createdAt).toLocaleDateString('en-GB').replace(/\//g, '.');
           const phoneStr = lead.phone || '';
           const sourceStr = lead.leadSource || '';
@@ -471,12 +500,13 @@ const KPIInsights = () => {
           const placeStr = lead.address ? lead.address.split(',')[0] : '';
           const statusStr = (lead.status || '').toLowerCase().replace('-', '');
           const remarksStr = lead.followUpInfo?.remarks || lead.closeRemarks || '';
+          const rowClass = idx % 2 === 1 ? 'class="even-row"' : '';
 
           html += `
-            <tr>
+            <tr ${rowClass}>
               <td>${globalSNo++}</td>
               <td>${dateStr}</td>
-              <td class="text-left">${lead.name || ''}</td>
+              <td class="text-left bold-label">${lead.name || ''}</td>
               <td>${phoneStr}</td>
               <td>${execName.toUpperCase()}</td>
               <td>${sourceStr}</td>
@@ -573,26 +603,11 @@ const KPIInsights = () => {
         <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
         <head>
           <meta charset="utf-8">
-          <style>
-            table { border-collapse: collapse; font-family: Calibri, sans-serif; width: 100%; }
-            td, th { border: 1px solid #000000; padding: 6px; text-align: center; font-size: 11px; }
-            .title-header { background-color: #F8CBAD; font-weight: bold; font-size: 14px; height: 30px; text-transform: uppercase; }
-            .month-header { background-color: #D9E1F2; font-weight: bold; font-size: 12px; height: 25px; text-transform: uppercase; }
-            .exec-banner { background-color: #B4C6E7; font-weight: bold; font-size: 11px; height: 22px; color: #000000; text-align: center; }
-            .table-headers { background-color: #E2EFDA; font-weight: bold; }
-            .text-left { text-align: left; }
-          </style>
+          ${getExcelStyles("#2563eb", "#dbeafe", "#1e40af", "#bfdbfe")}
         </head>
         <body>
           <table>
-            <!-- Title Header -->
-            <tr>
-              <td colspan="9" class="title-header">${titleText}</td>
-            </tr>
-            <!-- Month Header -->
-            <tr>
-              <td colspan="9" class="month-header">${monthTitle}</td>
-            </tr>
+            ${getExcelHeader(titleText, monthTitle, 9, "#2563eb", logoPath)}
       `;
 
       // Group leads by assigned executive
@@ -626,7 +641,7 @@ const KPIInsights = () => {
         `;
 
         // Lead rows
-        groupedByExec[execName].forEach(lead => {
+        groupedByExec[execName].forEach((lead, idx) => {
           const dateStr = new Date(lead.createdAt).toLocaleDateString('en-GB').replace(/\//g, '.');
           const phoneStr = lead.phone || '';
           const placeStr = lead.address ? lead.address.split(',')[0] : '';
@@ -636,12 +651,13 @@ const KPIInsights = () => {
           const statusStr = lead.status === 'Site Visit Follow-up' ? 'followup' : 'completed';
           const remarksStr = lead.followUpInfo?.remarks || lead.closeRemarks || '';
           const sourceStr = lead.leadSource || '';
+          const rowClass = idx % 2 === 1 ? 'class="even-row"' : '';
 
           html += `
-            <tr>
+            <tr ${rowClass}>
               <td>${globalSNo++}</td>
               <td>${dateStr}</td>
-              <td class="text-left">${lead.name || ''}</td>
+              <td class="text-left bold-label">${lead.name || ''}</td>
               <td>${phoneStr}</td>
               <td>${visitedBy}</td>
               <td>${placeStr}</td>
@@ -737,26 +753,11 @@ const KPIInsights = () => {
         <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
         <head>
           <meta charset="utf-8">
-          <style>
-            table { border-collapse: collapse; font-family: Calibri, sans-serif; width: 100%; }
-            td, th { border: 1px solid #000000; padding: 6px; text-align: center; font-size: 11px; }
-            .title-header { background-color: #F8CBAD; font-weight: bold; font-size: 14px; height: 30px; text-transform: uppercase; }
-            .month-header { background-color: #D9E1F2; font-weight: bold; font-size: 12px; height: 25px; text-transform: uppercase; }
-            .exec-banner { background-color: #B4C6E7; font-weight: bold; font-size: 11px; height: 22px; color: #000000; text-align: center; }
-            .table-headers { background-color: #E2EFDA; font-weight: bold; }
-            .text-left { text-align: left; }
-          </style>
+          ${getExcelStyles("#ea580c", "#ffedd5", "#9a3412", "#fed7aa")}
         </head>
         <body>
           <table>
-            <!-- Title Header -->
-            <tr>
-              <td colspan="7" class="title-header">${titleText}</td>
-            </tr>
-            <!-- Month Header -->
-            <tr>
-              <td colspan="7" class="month-header">${monthTitle}</td>
-            </tr>
+            ${getExcelHeader(titleText, monthTitle, 7, "#ea580c", logoPath)}
       `;
 
       // Group leads by assigned executive
@@ -788,7 +789,7 @@ const KPIInsights = () => {
         `;
 
         // Lead rows
-        groupedByExec[execName].forEach(lead => {
+        groupedByExec[execName].forEach((lead, idx) => {
           const nameStr = lead.name || '';
           const phoneStr = lead.phone || '';
           const followBy = execName;
@@ -803,11 +804,12 @@ const KPIInsights = () => {
             : '';
             
           const remarksStr = lead.followUpInfo?.remarks || lead.closeRemarks || '';
+          const rowClass = idx % 2 === 1 ? 'class="even-row"' : '';
 
           html += `
-            <tr>
+            <tr ${rowClass}>
               <td>${globalSNo++}</td>
-              <td class="text-left">${nameStr}</td>
+              <td class="text-left bold-label">${nameStr}</td>
               <td>${phoneStr}</td>
               <td>${followBy}</td>
               <td>${lastCalledStr}</td>
@@ -902,25 +904,13 @@ const KPIInsights = () => {
         <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
         <head>
           <meta charset="utf-8">
-          <style>
-            table { border-collapse: collapse; font-family: Calibri, sans-serif; width: 100%; }
-            td, th { border: 1px solid #000000; padding: 6px; text-align: center; font-size: 11px; }
-            .text-left { text-align: left; }
-            .text-right { text-align: right; }
-          </style>
+          ${getExcelStyles("#15803d", "#dcfce7", "#166534", "#bbf7d0")}
         </head>
         <body>
           <table>
-            <!-- Title Header -->
-            <tr>
-              <td colspan="8" style="background-color: #385723; color: white; font-weight: bold; font-size: 14px; height: 30px; text-align: center; text-transform: uppercase;">${titleText}</td>
-            </tr>
-            <!-- Month Header -->
-            <tr>
-              <td colspan="8" style="background-color: #A9D08E; font-weight: bold; font-size: 12px; height: 25px; text-align: center; text-transform: uppercase;">${monthTitle}</td>
-            </tr>
+            ${getExcelHeader(titleText, monthTitle, 8, "#15803d", logoPath)}
             <!-- Table Headers -->
-            <tr style="background-color: #C6E0B4; font-weight: bold;">
+            <tr class="table-headers">
               <th>S.NO.</th>
               <th>BOOKING DATE</th>
               <th>CUSTOMER NAME</th>
@@ -945,12 +935,13 @@ const KPIInsights = () => {
         const projectStr = lead.project?.code || '';
         const unitNo = lead.bookingInfo?.selectedUnits?.join(', ') || '';
         const unitValStr = lead.leadCost ? lead.leadCost.toLocaleString() : '0';
+        const rowClass = index % 2 === 1 ? 'class="even-row"' : '';
 
         html += `
-          <tr>
+          <tr ${rowClass}>
             <td>${index + 1}</td>
             <td>${dateStr}</td>
-            <td class="text-left">${custName}</td>
+            <td class="text-left bold-label">${custName}</td>
             <td>${phoneStr}</td>
             <td>${attendedBy}</td>
             <td>${projectStr}</td>
@@ -1141,22 +1132,12 @@ const KPIInsights = () => {
         <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
         <head>
           <meta charset="utf-8">
-          <style>
-            table { border-collapse: collapse; font-family: Calibri, sans-serif; }
-            td, th { border: 1px solid #000000; padding: 6px; text-align: center; font-size: 10px; }
-            .bg-header-green { background-color: #A9D08E; font-weight: bold; }
-            .bg-accent-green { background-color: #C6E0B4; font-weight: bold; }
-            .bg-title-blue { background-color: #5B9BD5; font-weight: bold; color: white; font-size: 12px; }
-            .bg-banner-blue { background-color: #2F5597; font-weight: bold; color: white; font-size: 11px; }
-            .bg-header-blue { background-color: #BDD7EE; font-weight: bold; }
-            .bg-total-banner { background-color: #F8CBAD; font-weight: bold; font-size: 11px; }
-            .text-left { text-align: left; }
-            .text-right { text-align: right; }
-            .font-bold { font-weight: bold; }
-          </style>
+          ${getExcelStyles("#4f46e5", "#e0e7ff", "#3730a3", "#c7d2fe")}
         </head>
         <body>
           <table>
+            ${getExcelHeader("JohnBuildwell ERP - SUMMARY OF REPORT", `MONTH OF ${monthNames[dateForMonth.getMonth()].toUpperCase()} ${dateForMonth.getFullYear()}`, 10, "#4f46e5", logoPath)}
+            
             <!-- PHASE 1: Turnover Plan Table -->
             <thead>
               <tr class="bg-header-green">
@@ -1167,7 +1148,7 @@ const KPIInsights = () => {
                 <th style="width: 100px;">ACHIEVED</th>
                 <th style="width: 100px;">BALANCE</th>
                 <th style="width: 130px;">LAST MONTH ACHIEVED</th>
-                <th colspan="3" style="background-color: #70AD47; color: white; font-size: 14px; font-weight: bold; vertical-align: middle; text-align: center;">
+                <th colspan="3" style="background-color: #4f46e5; color: white; font-size: 14px; font-weight: bold; vertical-align: middle; text-align: center;">
                   ${shortMonthHeader}
                 </th>
               </tr>
@@ -1369,29 +1350,11 @@ const KPIInsights = () => {
         <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
         <head>
           <meta charset="utf-8">
-          <style>
-            table { border-collapse: collapse; font-family: Calibri, sans-serif; width: 100%; }
-            td, th { border: 1px solid #000000; padding: 6px; text-align: center; font-size: 11px; }
-            .title-header { background-color: #2F5597; color: white; font-weight: bold; font-size: 14px; height: 30px; text-transform: uppercase; }
-            .month-header { background-color: #D9E1F2; font-weight: bold; font-size: 12px; height: 25px; text-transform: uppercase; }
-            .group-banner { background-color: #B4C6E7; font-weight: bold; font-size: 11px; height: 22px; color: #000000; text-align: left; padding-left: 10px; }
-            .subtotal-row { background-color: #F2F2F2; font-weight: bold; }
-            .total-row { background-color: #F8CBAD; font-weight: bold; font-size: 12px; height: 25px; }
-            .table-headers { background-color: #D9E1F2; font-weight: bold; }
-            .text-left { text-align: left; }
-            .text-right { text-align: right; }
-          </style>
+          ${getExcelStyles("#1d4ed8", "#dbeafe", "#1e40af", "#bfdbfe")}
         </head>
         <body>
           <table>
-            <!-- Title Header -->
-            <tr>
-              <td colspan="7" class="title-header">${titleText}</td>
-            </tr>
-            <!-- Month Header -->
-            <tr>
-              <td colspan="7" class="month-header">${monthTitle}</td>
-            </tr>
+            ${getExcelHeader(titleText, monthTitle, 7, "#1d4ed8", logoPath)}
             <!-- Table Headers -->
             <tr class="table-headers">
               <th>S.No</th>
@@ -1562,27 +1525,11 @@ const KPIInsights = () => {
         <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
         <head>
           <meta charset="utf-8">
-          <style>
-            table { border-collapse: collapse; font-family: Calibri, sans-serif; width: 100%; }
-            td, th { border: 1px solid #000000; padding: 6px; text-align: center; font-size: 11px; }
-            .title-header { background-color: #D9E1F2; font-weight: bold; font-size: 13px; height: 28px; }
-            .month-header { background-color: #F2F2F2; font-weight: bold; font-size: 11px; height: 22px; text-transform: uppercase; }
-            .table-headers { background-color: #E2EFDA; font-weight: bold; }
-            .total-row { background-color: #D9D9D9; font-weight: bold; height: 24px; }
-            .text-left { text-align: left; }
-            .text-right { text-align: right; }
-          </style>
+          ${getExcelStyles("#0d9488", "#ccfbf1", "#115e59", "#99f6e4")}
         </head>
         <body>
           <table>
-            <!-- Title Header -->
-            <tr>
-              <td colspan="5" class="title-header">JB - LEAD SOURCES PERFORMANCE REPORT</td>
-            </tr>
-            <!-- Month Header -->
-            <tr>
-              <td colspan="5" class="month-header">${monthTitle}</td>
-            </tr>
+            ${getExcelHeader("JB - LEAD SOURCES PERFORMANCE REPORT", monthTitle, 5, "#0d9488", logoPath)}
             <!-- Table Headers -->
             <tr class="table-headers">
               <th>S.No</th>
@@ -1738,12 +1685,12 @@ const KPIInsights = () => {
           // Project group banner row
           rowsHtml += `
             <tr>
-              <td colspan="7" style="background-color: #E2EFDA; font-weight: bold; text-align: center; font-size: 11px; height: 22px;">${projCode.toUpperCase()}</td>
+              <td colspan="7" class="group-banner">${projCode.toUpperCase()}</td>
             </tr>
           `;
 
           // Lead rows
-          groupedData[projCode].forEach(lead => {
+          groupedData[projCode].forEach((lead, idx) => {
             const advDate = lead.bookingInfo?.bookingDate 
               ? new Date(lead.bookingInfo.bookingDate).toLocaleDateString('en-GB').replace(/\//g, '.')
               : '';
@@ -1761,14 +1708,15 @@ const KPIInsights = () => {
             }
 
             const commentsStr = lead.closeRemarks || '';
+            const rowClass = idx % 2 === 1 ? 'class="even-row"' : '';
 
             rowsHtml += `
-              <tr>
+              <tr ${rowClass}>
                 <td>${localSNo++}</td>
                 <td>${advDate}</td>
                 <td>${projCode}</td>
                 <td>${plotNo}</td>
-                <td class="text-left">${custName}</td>
+                <td class="text-left bold-label">${custName}</td>
                 <td>${houseType}</td>
                 <td class="text-left">${commentsStr}</td>
               </tr>
@@ -1783,24 +1731,12 @@ const KPIInsights = () => {
         <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
         <head>
           <meta charset="utf-8">
-          <style>
-            table { border-collapse: collapse; font-family: Calibri, sans-serif; width: 100%; }
-            td, th { border: 1px solid #000000; padding: 6px; text-align: center; font-size: 11px; }
-            .title-header { background-color: #D9E1F2; font-weight: bold; font-size: 14px; height: 30px; text-transform: uppercase; }
-            .month-header { background-color: #E2EFDA; font-weight: bold; font-size: 12px; height: 25px; text-transform: uppercase; }
-            .project-banner { background-color: #E2EFDA; font-weight: bold; font-size: 11px; height: 22px; color: #000000; text-align: center; }
-            .table-headers { background-color: #D9D9D9; font-weight: bold; }
-            .pending-header { background-color: #F8CBAD; font-weight: bold; font-size: 12px; height: 26px; }
-            .text-left { text-align: left; }
-            .text-right { text-align: right; }
-          </style>
+          ${getExcelStyles("#7c3aed", "#f3e8ff", "#5b21b6", "#e9d5ff")}
         </head>
         <body>
           <table>
-            <!-- Title Header -->
-            <tr>
-              <td colspan="7" style="background-color: #B4C6E7; font-weight: bold; font-size: 14px; height: 30px; text-align: center; text-transform: uppercase;">${titleText}</td>
-            </tr>
+            ${getExcelHeader(titleText, monthTitle, 7, "#7c3aed", logoPath)}
+            
             <!-- Table Headers -->
             <tr class="table-headers">
               <th>S No</th>
@@ -1817,7 +1753,7 @@ const KPIInsights = () => {
 
             <!-- REGISTRATION PENDING HEADER -->
             <tr>
-              <td colspan="7" class="pending-header" style="background-color: #F8CBAD; text-transform: uppercase;">REGISTRATION PENDING</td>
+              <td colspan="7" class="section-banner">REGISTRATION PENDING</td>
             </tr>
             <tr class="table-headers">
               <th>S No</th>
@@ -1926,21 +1862,11 @@ const KPIInsights = () => {
         <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
         <head>
           <meta charset="utf-8">
-          <style>
-            table { border-collapse: collapse; font-family: Calibri, sans-serif; width: 100%; }
-            td, th { border: 1px solid #000000; padding: 6px; text-align: center; font-size: 11px; }
-            .title-header { background-color: #D9E1F2; font-weight: bold; font-size: 14px; height: 30px; text-transform: uppercase; }
-            .pending-header { background-color: #F8CBAD; font-weight: bold; font-size: 12px; height: 26px; }
-            .table-headers { background-color: #D9D9D9; font-weight: bold; }
-            .text-left { text-align: left; }
-          </style>
+          ${getExcelStyles("#7c3aed", "#f3e8ff", "#5b21b6", "#e9d5ff")}
         </head>
         <body>
           <table>
-            <!-- Title Header -->
-            <tr>
-              <td colspan="6" style="background-color: #E2EFDA; font-weight: bold; font-size: 14px; height: 30px; text-align: center; text-transform: uppercase;">KEY HANDOVER THIS MONTH TARGET</td>
-            </tr>
+            ${getExcelHeader("KEY HANDOVER THIS MONTH TARGET", monthTitle, 6, "#7c3aed", logoPath)}
             <tr class="table-headers">
               <th>S No</th>
               <th>Adv Date</th>
@@ -1960,14 +1886,15 @@ const KPIInsights = () => {
         const projCode = flow.project?.code || 'UNASSIGNED';
         const plotNo = flow.unitId || '';
         const custName = lead.name || '';
+        const rowClass = index % 2 === 1 ? 'class="even-row"' : '';
         
         html += `
-          <tr>
+          <tr ${rowClass}>
             <td>${index + 1}</td>
             <td>${advDate}</td>
             <td>${projCode}</td>
             <td>${plotNo}</td>
-            <td class="text-left">${custName}</td>
+            <td class="text-left bold-label">${custName}</td>
             <td>Completed</td>
           </tr>
         `;
@@ -1976,7 +1903,7 @@ const KPIInsights = () => {
       // Render Key Handover Pending Header
       html += `
         <tr>
-          <td colspan="6" class="pending-header" style="background-color: #F8CBAD; text-transform: uppercase;">Key Handover Pending</td>
+          <td colspan="6" class="section-banner">Key Handover Pending</td>
         </tr>
         <tr class="table-headers">
           <th>SI No</th>
@@ -2008,14 +1935,15 @@ const KPIInsights = () => {
         } else {
           houseStatus = 'Land';
         }
+        const rowClass = index % 2 === 1 ? 'class="even-row"' : '';
 
         html += `
-          <tr>
+          <tr ${rowClass}>
             <td>${index + 1}</td>
             <td>${advDate}</td>
             <td>${projCode}</td>
             <td>${plotNo}</td>
-            <td class="text-left">${custName}</td>
+            <td class="text-left bold-label">${custName}</td>
             <td>${houseStatus}</td>
           </tr>
         `;
@@ -2114,21 +2042,11 @@ const KPIInsights = () => {
         <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
         <head>
           <meta charset="utf-8">
-          <style>
-            table { border-collapse: collapse; font-family: Calibri, sans-serif; width: 100%; }
-            td, th { border: 1px solid #000000; padding: 6px; text-align: center; font-size: 11px; }
-            .title-header { background-color: #E2E2D0; font-weight: bold; font-size: 14px; height: 32px; text-transform: uppercase; }
-            .table-headers { background-color: #F2C4C4; font-weight: bold; }
-            .text-left { text-align: left; }
-            .text-right { text-align: right; }
-          </style>
+          ${getExcelStyles("#7c3aed", "#f3e8ff", "#5b21b6", "#e9d5ff")}
         </head>
         <body>
           <table>
-            <!-- Title Header -->
-            <tr>
-              <td colspan="6" class="title-header">${titleText}</td>
-            </tr>
+            ${getExcelHeader(titleText, "", 6, "#7c3aed", logoPath)}
             <!-- Table Headers -->
             <tr class="table-headers">
               <th>S No</th>
@@ -2145,11 +2063,12 @@ const KPIInsights = () => {
       paymentsList.forEach((pay, index) => {
         const dateStr = pay.date.toLocaleDateString('en-GB').replace(/\//g, '.');
         totalAmount += pay.amount;
+        const rowClass = index % 2 === 1 ? 'class="even-row"' : '';
 
         html += `
-          <tr>
+          <tr ${rowClass}>
             <td>${index + 1}</td>
-            <td class="text-left">${pay.customerName}</td>
+            <td class="text-left bold-label">${pay.customerName}</td>
             <td>${pay.projectCode}</td>
             <td>${pay.plotNo}</td>
             <td>${dateStr}</td>
@@ -2160,7 +2079,7 @@ const KPIInsights = () => {
 
       // Total Row
       html += `
-        <tr style="background-color: #F2F2F2; font-weight: bold;">
+        <tr class="subtotal-row">
           <td colspan="5" class="text-right">TOTAL</td>
           <td class="text-right">₹ ${totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
         </tr>
@@ -2260,21 +2179,11 @@ const KPIInsights = () => {
         <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
         <head>
           <meta charset="utf-8">
-          <style>
-            table { border-collapse: collapse; font-family: Calibri, sans-serif; width: 100%; }
-            td, th { border: 1px solid #000000; padding: 6px; text-align: center; font-size: 11px; }
-            .title-header { background-color: #D9E1F2; font-weight: bold; font-size: 14px; height: 32px; text-transform: uppercase; }
-            .table-headers { background-color: #BDD7EE; font-weight: bold; }
-            .text-left { text-align: left; }
-            .text-right { text-align: right; }
-          </style>
+          ${getExcelStyles("#7c3aed", "#f3e8ff", "#5b21b6", "#e9d5ff")}
         </head>
         <body>
           <table>
-            <!-- Title Header -->
-            <tr>
-              <td colspan="8" class="title-header">${titleText}</td>
-            </tr>
+            ${getExcelHeader(titleText, "", 8, "#7c3aed", logoPath)}
             <!-- Table Headers -->
             <tr class="table-headers">
               <th>S No</th>
@@ -2293,11 +2202,12 @@ const KPIInsights = () => {
       loanList.forEach((loan, index) => {
         const dateStr = loan.date.toLocaleDateString('en-GB').replace(/\//g, '.');
         totalLoan += loan.amount;
+        const rowClass = index % 2 === 1 ? 'class="even-row"' : '';
 
         html += `
-          <tr>
+          <tr ${rowClass}>
             <td>${index + 1}</td>
-            <td class="text-left">${loan.customerName}</td>
+            <td class="text-left bold-label">${loan.customerName}</td>
             <td>${loan.projectCode}</td>
             <td>${loan.plotNo}</td>
             <td class="text-left">${loan.stageName}</td>
@@ -2310,7 +2220,7 @@ const KPIInsights = () => {
 
       // Total Row
       html += `
-        <tr style="background-color: #F2F2F2; font-weight: bold;">
+        <tr class="subtotal-row">
           <td colspan="6" class="text-right">TOTAL LOAN RECEIVED</td>
           <td class="text-right">₹ ${totalLoan.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
           <td></td>
@@ -2410,21 +2320,11 @@ const KPIInsights = () => {
         <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
         <head>
           <meta charset="utf-8">
-          <style>
-            table { border-collapse: collapse; font-family: Calibri, sans-serif; width: 100%; }
-            td, th { border: 1px solid #000000; padding: 6px; text-align: center; font-size: 11px; }
-            .title-header { background-color: #FCE4D6; font-weight: bold; font-size: 14px; height: 32px; text-transform: uppercase; color: #C65911; }
-            .table-headers { background-color: #F8CBAD; font-weight: bold; color: #000000; }
-            .text-left { text-align: left; }
-            .text-right { text-align: right; }
-          </style>
+          ${getExcelStyles("#7c3aed", "#f3e8ff", "#5b21b6", "#e9d5ff")}
         </head>
         <body>
           <table>
-            <!-- Title Header -->
-            <tr>
-              <td colspan="7" class="title-header">${titleText}</td>
-            </tr>
+            ${getExcelHeader(titleText, "", 7, "#7c3aed", logoPath)}
             <!-- Table Headers -->
             <tr class="table-headers">
               <th>S No</th>
@@ -2442,23 +2342,24 @@ const KPIInsights = () => {
       extraWorksList.forEach((ew, index) => {
         totalValue += ew.value;
         const phoneStr = ew.contactNumber ? `'${ew.contactNumber}` : '';
+        const rowClass = index % 2 === 1 ? 'class="even-row"' : '';
 
         html += `
-          <tr>
+          <tr ${rowClass}>
             <td>${index + 1}</td>
             <td>${ew.projectType} (${ew.projectCode})</td>
-            <td class="text-left">${ew.customerName}</td>
+            <td class="text-left bold-label">${ew.customerName}</td>
             <td>${phoneStr}</td>
             <td class="text-left">${ew.extraWorkName}</td>
             <td class="text-right">₹ ${ew.value.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-            <td style="font-weight: bold; color: ${ew.status === 'Completed' ? '#385723' : '#C65911'}">${ew.status}</td>
+            <td style="font-weight: bold; color: ${ew.status === 'Completed' ? '#16a34a' : '#ea580c'}">${ew.status}</td>
           </tr>
         `;
       });
 
       // Total Row
       html += `
-        <tr style="background-color: #F2F2F2; font-weight: bold;">
+        <tr class="subtotal-row">
           <td colspan="5" class="text-right">TOTAL VALUE OF EXTRA WORKS</td>
           <td class="text-right">₹ ${totalValue.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
           <td></td>
@@ -2553,20 +2454,11 @@ const KPIInsights = () => {
         <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
         <head>
           <meta charset="utf-8">
-          <style>
-            table { border-collapse: collapse; font-family: Calibri, sans-serif; width: 100%; }
-            td, th { border: 1px solid #000000; padding: 6px; text-align: center; font-size: 11px; }
-            .title-header { background-color: #F8CBAD; font-weight: bold; font-size: 14px; height: 32px; text-transform: uppercase; color: #C65911; }
-            .table-headers { background-color: #F2C4C4; font-weight: bold; }
-            .text-left { text-align: left; }
-          </style>
+          ${getExcelStyles("#7c3aed", "#f3e8ff", "#5b21b6", "#e9d5ff")}
         </head>
         <body>
           <table>
-            <!-- Title Header -->
-            <tr>
-              <td colspan="7" class="title-header">${titleText}</td>
-            </tr>
+            ${getExcelHeader(titleText, "", 7, "#7c3aed", logoPath)}
             <!-- Table Headers -->
             <tr class="table-headers">
               <th>S No</th>
@@ -2581,15 +2473,16 @@ const KPIInsights = () => {
 
       complaintsList.forEach((comp, index) => {
         const dateStr = comp.reportedDate.toLocaleDateString('en-GB').replace(/\//g, '.');
-        let statusColor = '#C65911'; // Orange
-        if (comp.status === 'Resolved') statusColor = '#385723'; // Green
-        else if (comp.status === 'In Progress') statusColor = '#2F5597'; // Blue
+        let statusColor = '#ea580c'; // Orange
+        if (comp.status === 'Resolved') statusColor = '#16a34a'; // Green
+        else if (comp.status === 'In Progress') statusColor = '#2563eb'; // Blue
+        const rowClass = index % 2 === 1 ? 'class="even-row"' : '';
 
         html += `
-          <tr>
+          <tr ${rowClass}>
             <td>${index + 1}</td>
             <td>${dateStr}</td>
-            <td class="text-left">${comp.customerName}</td>
+            <td class="text-left bold-label">${comp.customerName}</td>
             <td>${comp.projectType} (${comp.projectCode})</td>
             <td>${comp.unitId}</td>
             <td class="text-left">${comp.description}</td>

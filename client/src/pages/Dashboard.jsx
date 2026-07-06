@@ -27,9 +27,15 @@ const getCoordinatesForPercent = (percent) => {
   return [x, y];
 };
 
-const ObservedPieChart = ({ dataArray, valueKey, labelKey, colorPalette, isCount, onSegmentClick, selectedLabel }) => {
-  const [isVisible, setIsVisible] = useState(false);
+const ObservedSwirlPieChart = ({
+  dataArray,
+  valueKey,
+  labelKey,
+  isCount,
+  onSegmentClick
+}) => {
   const containerRef = useRef(null);
+  const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -39,18 +45,12 @@ const ObservedPieChart = ({ dataArray, valueKey, labelKey, colorPalette, isCount
           observer.unobserve(entry.target);
         }
       },
-      { threshold: 0.15 }
+      { threshold: 0.1 }
     );
-
     if (containerRef.current) {
       observer.observe(containerRef.current);
     }
-
-    return () => {
-      if (containerRef.current) {
-        observer.unobserve(containerRef.current);
-      }
-    };
+    return () => observer.disconnect();
   }, []);
 
   const total = dataArray.reduce((sum, item) => sum + (item[valueKey] || 0), 0);
@@ -62,169 +62,347 @@ const ObservedPieChart = ({ dataArray, valueKey, labelKey, colorPalette, isCount
     );
   }
 
-  let accumulatedPercent = 0;
-  const cx = 80;
-  const cy = 80;
-  const r = 70;
+  const availableItem = dataArray.find(d => d[labelKey]?.toLowerCase() === 'available') || { [valueKey]: 0, [labelKey]: 'Available' };
+  const bookedItem = dataArray.find(d => d[labelKey]?.toLowerCase() === 'booked') || { [valueKey]: 0, [labelKey]: 'Booked' };
+  const handoverItem = dataArray.find(d => d[labelKey]?.toLowerCase() === 'handover') || { [valueKey]: 0, [labelKey]: 'Handover' };
+
+  const availPct = total > 0 ? (availableItem[valueKey] / total) * 100 : 0;
+  const bookedPct = total > 0 ? (bookedItem[valueKey] / total) * 100 : 0;
+  const handoverPct = total > 0 ? (handoverItem[valueKey] / total) * 100 : 0;
+
+  const cx = 160;
+  const cy = 160;
+
+  const slots = [
+    {
+      item: availableItem,
+      pct: availPct,
+      color: '#7ebda9',
+      circleBg: '#9ad1c0',
+      label: 'Available',
+      rotation: 0
+    },
+    {
+      item: bookedItem,
+      pct: bookedPct,
+      color: '#8bc34a',
+      circleBg: '#a2d663',
+      label: 'Booked',
+      rotation: 120
+    },
+    {
+      item: handoverItem,
+      pct: handoverPct,
+      color: '#004d61',
+      circleBg: '#00657f',
+      label: 'Handover',
+      rotation: 240
+    }
+  ];
 
   return (
-    <div ref={containerRef} className="flex flex-col items-center gap-6 justify-center">
+    <div ref={containerRef} className="flex flex-col items-center justify-center w-full relative p-4">
       <style>{`
-        @keyframes chartWheelIn {
+        @keyframes swirlIn {
           0% {
-            transform: rotate(-270deg) scale(0.3);
+            transform: translate(160px, 160px) rotate(-180deg) scale(0.3);
             opacity: 0;
           }
           100% {
-            transform: rotate(0deg) scale(1);
+            transform: translate(160px, 160px) rotate(0deg) scale(1);
             opacity: 1;
           }
         }
-        .animate-chart-wheel {
-          animation: chartWheelIn 1.2s cubic-bezier(0.34, 1.56, 0.64, 1) both;
-          transform-origin: center;
+        .animate-swirl {
+          animation: swirlIn 1.3s cubic-bezier(0.25, 1, 0.5, 1) both;
+          transform-origin: 0 0;
         }
-        @keyframes chartSegmentPop {
-          0% {
-            transform: scale(0.3);
-            opacity: 0;
-          }
-          100% {
-            transform: scale(1);
-            opacity: 1;
-          }
+        .swirl-hover-effect {
+          transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.4s ease;
+          cursor: pointer;
         }
-        .animate-chart-segment {
-          animation: chartSegmentPop 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) both;
-        }
-        .chart-path-hover {
-          transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.35s, filter 0.35s !important;
-        }
-        .chart-path-hover:hover {
-          transform: scale(1.06) !important;
-          opacity: 0.95 !important;
-          filter: drop-shadow(0 12px 20px rgba(0, 0, 0, 0.2)) !important;
+        .swirl-hover-effect:hover {
+          transform: scale(1.05);
+          filter: brightness(1.08) drop-shadow(0 12px 20px rgba(0,0,0,0.15));
         }
       `}</style>
-      <div className="relative w-56 h-56 shrink-0 transition-transform duration-500 hover:scale-102">
+
+      <div className="relative w-80 h-80 shrink-0 transition-transform duration-500 hover:scale-105">
         <svg 
-          className={`w-full h-full opacity-0 ${isVisible ? 'animate-chart-wheel' : ''}`} 
-          viewBox="0 0 160 160"
+          className={`w-full h-full opacity-0 ${isVisible ? 'transition-opacity duration-300 !opacity-100' : ''}`} 
+          viewBox="0 0 320 320"
         >
-          {dataArray.map((item, index) => {
-            const val = item[valueKey] || 0;
-            const percent = val / total;
+          <defs>
+            <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+              <feDropShadow dx="2" dy="5" stdDeviation="4" floodOpacity="0.22" />
+            </filter>
+            <path 
+              id="swirl-blade"
+              d="M 0 -135 A 135 135 0 0 1 116.91 67.5 A 67.5 67.5 0 0 0 0 0 A 67.5 67.5 0 0 0 0 -135 Z"
+            />
+          </defs>
 
-            if (percent === 0) return null;
-
-            const [startX, startY] = getCoordinatesForPercent(accumulatedPercent);
-            
-            const startAngle = 2 * Math.PI * (accumulatedPercent - 0.25);
-            const endAngle = 2 * Math.PI * (accumulatedPercent + percent - 0.25);
-            const midAngle = startAngle + (endAngle - startAngle) / 2;
-
-            accumulatedPercent += percent;
-
-            const [endX, endY] = getCoordinatesForPercent(accumulatedPercent);
-
-            const x1 = cx + startX * r;
-            const y1 = cy + startY * r;
-            const x2 = cx + endX * r;
-            const y2 = cy + endY * r;
-
-            const largeArcFlag = percent > 0.5 ? 1 : 0;
-
-            const pathData = percent === 1
-              ? `M ${cx} ${cy - r} A ${r} ${r} 0 1 1 ${cx - 0.01} ${cy - r} Z`
-              : `M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 ${largeArcFlag} 1 ${x2} ${y2} Z`;
-
-            const labelRadius = r * 0.55;
-            const labelX = cx + Math.cos(midAngle) * labelRadius;
-            const labelY = cy + Math.sin(midAngle) * labelRadius;
-
-            const color = colorPalette[index % colorPalette.length];
-            const percentageText = `${(percent * 100).toFixed(0)}%`;
-            const labelText = item[labelKey];
-            const isSelected = selectedLabel && labelText === selectedLabel;
-
-            return (
-              <g 
-                key={index} 
-                className="group cursor-pointer"
-                onClick={() => onSegmentClick && onSegmentClick(item)}
-              >
-                <path
-                  d={pathData}
-                  fill={color}
-                  className={`chart-path-hover origin-center ${isVisible ? 'animate-chart-segment' : ''}`}
-                  style={{ 
-                    transformOrigin: '80px 80px',
-                    animationDelay: `${index * 0.12}s`,
-                    transform: isSelected ? 'scale(1.05)' : 'scale(1)',
-                    filter: isSelected ? 'drop-shadow(0 4px 8px rgba(0, 0, 0, 0.25))' : 'none',
-                    stroke: isSelected ? '#ffffff' : 'none',
-                    strokeWidth: isSelected ? '1.5px' : '0'
-                  }}
+          <g className={isVisible ? 'animate-swirl' : ''}>
+            {slots.map((slot, index) => {
+              return (
+                <g 
+                  key={index}
+                  className="swirl-hover-effect"
+                  transform={`rotate(${slot.rotation})`}
+                  onClick={() => onSegmentClick && onSegmentClick(slot.item)}
                 >
-                  <title>{`${labelText}: ${(percent * 100).toFixed(1)}% (${isCount ? val : '₹' + Math.round(val).toLocaleString()})`}</title>
-                </path>
-                
-                {percent > 0.05 && (
-                  <g className="pointer-events-none select-none text-[8px] font-bold text-white text-center">
+                  <use 
+                    href="#swirl-blade"
+                    fill={slot.color}
+                    filter="url(#shadow)"
+                  />
+                  <circle 
+                    cx="0" 
+                    cy="-67.5" 
+                    r="34" 
+                    fill={slot.circleBg}
+                    stroke="#ffffff"
+                    strokeWidth="2.5"
+                    filter="url(#shadow)"
+                  />
+                  <g transform="translate(0, -67.5)">
                     <text
-                      x={labelX}
-                      y={labelY - 1}
+                      x="0"
+                      y="-8"
                       textAnchor="middle"
-                      fill="white"
-                      className="font-sans font-bold"
-                      style={{ textShadow: '1px 1px 2px rgba(0,0,0,0.8)' }}
+                      fill="#ffffff"
+                      className="font-extrabold text-[8px] uppercase tracking-wider"
+                      style={{ fontFamily: '"Times New Roman", Times, serif' }}
                     >
-                      {labelText.length > 7 ? labelText.slice(0, 6) + '..' : labelText}
+                      {slot.label}
                     </text>
                     <text
-                      x={labelX}
-                      y={labelY + 7}
+                      x="0"
+                      y="4"
                       textAnchor="middle"
-                      fill="white"
-                      className="font-sans font-extrabold"
-                      style={{ textShadow: '1px 1px 2px rgba(0,0,0,0.8)' }}
+                      fill="#ffffff"
+                      className="font-black text-[11px]"
+                      style={{ fontFamily: '"Times New Roman", Times, serif' }}
                     >
-                      {percentageText}
+                      {slot.pct.toFixed(1)}%
+                    </text>
+                    <text
+                      x="0"
+                      y="14"
+                      textAnchor="middle"
+                      fill="#ffffff"
+                      className="font-bold text-[7.5px] opacity-90"
+                      style={{ fontFamily: '"Times New Roman", Times, serif' }}
+                    >
+                      {`(${slot.item[valueKey]} ${typeof isCount === 'string' ? isCount : 'Units'})`}
                     </text>
                   </g>
-                )}
-              </g>
-            );
-          })}
+                </g>
+              );
+            })}
+          </g>
         </svg>
       </div>
 
-      <div className="space-y-2 text-left flex-1 max-h-40 overflow-y-auto pr-2 w-full border-t border-gray-100 pt-4">
-        {dataArray.map((item, index) => {
-          const val = item[valueKey] || 0;
-          const percentage = (val / total) * 100;
-          const color = colorPalette[index % colorPalette.length];
-          const isSelected = selectedLabel && item[labelKey] === selectedLabel;
+      <div className="flex flex-col gap-2.5 justify-center items-center w-64 mt-6" style={{ fontFamily: '"Times New Roman", Times, serif' }}>
+        {slots.map((slot, index) => {
+          const val = slot.item[valueKey] || 0;
           return (
-            <div 
-              key={index} 
-              onClick={() => onSegmentClick && onSegmentClick(item)}
-              className={`flex items-center justify-between text-[11px] gap-4 border-b border-gray-50 pb-1 cursor-pointer transition px-2 py-1.5 rounded-xl ${
-                isSelected ? 'bg-gray-100 font-bold border-l-2 border-emerald-600' : 'hover:bg-gray-50'
-              }`}
-            >
-              <div className="flex items-center gap-2 min-w-0">
-                <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: color }}></span>
-                <span className="font-bold text-gray-750 truncate max-w-[130px] uppercase" title={item[labelKey]}>{item[labelKey]}</span>
-              </div>
-              <div className="text-right text-gray-500 font-bold shrink-0">
-                <span className="text-gray-800 font-extrabold mr-1">{percentage.toFixed(1)}%</span>
-                <span>({isCount ? `${val} Leads` : `₹${Math.round(val).toLocaleString()}`})</span>
+            <div key={index} className="flex items-center gap-3 bg-slate-50/90 backdrop-blur-sm border border-slate-100/50 rounded-2xl px-5 py-2.5 hover:bg-slate-100 transition shadow-[0_2px_8px_-3px_rgba(0,0,0,0.05)] w-full">
+              <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: slot.color }}></span>
+              <div className="flex flex-col text-left font-serif" style={{ fontFamily: '"Times New Roman", Times, serif' }}>
+                <span className="text-xs font-black text-gray-500 uppercase tracking-wider">{slot.label}</span>
+                <div className="flex items-baseline gap-1.5 mt-0.5">
+                  <span className="text-gray-900 font-black text-base">{slot.pct.toFixed(1)}%</span>
+                  <span className="text-gray-500 font-bold text-xs">({val} {typeof isCount === 'string' ? isCount : 'Units'})</span>
+                </div>
               </div>
             </div>
           );
         })}
       </div>
+    </div>
+  );
+};
+
+const ObservedPieChart = ({
+  dataArray,
+  valueKey,
+  labelKey,
+  colorPalette,
+  isCount,
+  onSegmentClick,
+  selectedLabel
+}) => {
+  const containerRef = useRef(null);
+  const [isVisible, setIsVisible] = useState(false);
+  const [hoveredItem, setHoveredItem] = useState(null);
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsVisible(true);
+          observer.unobserve(entry.target);
+        }
+      },
+      { threshold: 0.1 }
+    );
+    if (containerRef.current) {
+      observer.observe(containerRef.current);
+    }
+    return () => observer.disconnect();
+  }, []);
+
+  const total = dataArray.reduce((sum, item) => sum + (item[valueKey] || 0), 0);
+  if (total === 0) {
+    return (
+      <div className="flex items-center justify-center h-48 text-gray-400 italic text-xs">
+        No data available
+      </div>
+    );
+  }
+
+  return (
+    <div ref={containerRef} className="flex flex-col items-center justify-center w-full relative p-4">
+      <style>{`
+        .slice-hover-effect {
+          transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.3s ease;
+          cursor: pointer;
+        }
+        .slice-hover-effect:hover {
+          transform: scale(1.04);
+          filter: brightness(1.05) drop-shadow(0 6px 12px rgba(0,0,0,0.1));
+        }
+      `}</style>
+
+      <div className="relative w-72 h-72 shrink-0">
+        <svg 
+          className={`w-full h-full opacity-0 transition-opacity duration-300 ${isVisible ? '!opacity-100' : ''}`} 
+          viewBox="0 0 160 160"
+        >
+          {(() => {
+            let accumulatedPercent = 0;
+            const cx = 80;
+            const cy = 80;
+            const r = 68;
+
+            return dataArray.map((item, index) => {
+              const val = item[valueKey] || 0;
+              const percent = val / total;
+              if (percent === 0) return null;
+
+              const startAngle = 2 * Math.PI * (accumulatedPercent - 0.25);
+              const endAngle = 2 * Math.PI * (accumulatedPercent + percent - 0.25);
+              const midAngle = startAngle + (endAngle - startAngle) / 2;
+
+              accumulatedPercent += percent;
+
+              const x1 = cx + Math.cos(startAngle) * r;
+              const y1 = cy + Math.sin(startAngle) * r;
+              const x2 = cx + Math.cos(endAngle) * r;
+              const y2 = cy + Math.sin(endAngle) * r;
+
+              const largeArcFlag = percent > 0.5 ? 1 : 0;
+              const color = colorPalette[index % colorPalette.length];
+
+              const labelX = cx + Math.cos(midAngle) * r * 0.65;
+              const labelY = cy + Math.sin(midAngle) * r * 0.65;
+              const percentageText = `${(percent * 100).toFixed(0)}%`;
+
+              const isSelected = selectedLabel === item[labelKey];
+
+              return (
+                <g
+                  key={index}
+                  className="slice-hover-effect"
+                  onMouseEnter={() => setHoveredItem(item)}
+                  onMouseLeave={() => setHoveredItem(null)}
+                  onMouseMove={(e) => {
+                    const rect = containerRef.current.getBoundingClientRect();
+                    setMousePos({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+                  }}
+                  onClick={() => onSegmentClick && onSegmentClick(item)}
+                  style={{
+                    transformOrigin: `${cx}px ${cy}px`,
+                    transform: isSelected ? 'scale(1.05)' : 'none'
+                  }}
+                >
+                  <path
+                    d={`M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 ${largeArcFlag} 1 ${x2} ${y2} Z`}
+                    fill={color}
+                    stroke="#ffffff"
+                    strokeWidth="1.2"
+                  />
+                  {percent > 0.05 && (
+                    <text
+                      x={labelX}
+                      y={labelY + 2}
+                      textAnchor="middle"
+                      fill="white"
+                      className="font-extrabold text-[8px]"
+                      style={{ textShadow: '1px 1px 2px rgba(0,0,0,0.6)', fontFamily: '"Times New Roman", Times, serif' }}
+                    >
+                      {percentageText}
+                    </text>
+                  )}
+                </g>
+              );
+            });
+          })()}
+        </svg>
+      </div>
+
+      {/* Detail Tags */}
+      <div className="flex flex-col gap-1.5 justify-center items-center w-full mt-4" style={{ fontFamily: '"Times New Roman", Times, serif' }}>
+        {dataArray.map((item, index) => {
+          const val = item[valueKey] || 0;
+          const percentage = (val / total) * 100;
+          const color = colorPalette[index % colorPalette.length];
+          const isSelected = selectedLabel === item[labelKey];
+          return (
+            <div 
+              key={index} 
+              onClick={() => onSegmentClick && onSegmentClick(item)}
+              className={`flex items-center justify-between bg-slate-50/70 border rounded-xl px-4 py-1.5 hover:bg-slate-100 transition cursor-pointer w-full text-xs font-serif ${isSelected ? 'border-blue-500 bg-blue-50/30' : 'border-slate-100'}`}
+              style={{ fontFamily: '"Times New Roman", Times, serif' }}
+            >
+              <div className="flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: color }}></span>
+                <span className="font-bold text-gray-650 truncate max-w-[140px]">{item[labelKey]}</span>
+              </div>
+              <div className="flex items-baseline gap-1.5 ml-2 shrink-0">
+                <span className="text-gray-900 font-extrabold">{percentage.toFixed(1)}%</span>
+                <span className="text-gray-400 font-bold text-[10px]">({isCount ? `${val} ${typeof isCount === 'string' ? isCount : 'Leads'}` : `₹${Math.round(val).toLocaleString()}`})</span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {hoveredItem && (
+        <div 
+          className="absolute z-50 pointer-events-none bg-gray-900/95 backdrop-blur-md text-white text-[11px] px-3.5 py-2.5 rounded-2xl shadow-xl border border-gray-800 flex flex-col gap-1 pointer-events-none transition-all duration-75"
+          style={{ 
+            left: `${mousePos.x + 15}px`, 
+            top: `${mousePos.y + 15}px`,
+            fontFamily: "'Segoe UI', system-ui, sans-serif"
+          }}
+        >
+          <span className="font-extrabold text-[9px] uppercase tracking-wider text-gray-400">
+            {hoveredItem[labelKey]}
+          </span>
+          <div className="flex items-center gap-2 font-sans font-black">
+            <span className="text-[#10b981] font-black text-sm">
+              {((hoveredItem[valueKey] / total) * 100).toFixed(1)}%
+            </span>
+            <span className="text-gray-300 font-extrabold text-[10px]">
+              ({isCount ? `${hoveredItem[valueKey]} ${typeof isCount === 'string' ? isCount : 'Leads'}` : `₹${Math.round(hoveredItem[valueKey]).toLocaleString()}`})
+            </span>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -281,6 +459,8 @@ const Dashboard = () => {
 
   const [breakdownModalOpen, setBreakdownModalOpen] = useState(false);
   const [breakdownModalData, setBreakdownModalData] = useState({ title: '', users: [] });
+  const [inventoryModalOpen, setInventoryModalOpen] = useState(false);
+  const [selectedInventoryProj, setSelectedInventoryProj] = useState(null); // { projCode, stats }
 
   const handleStageClick = (stageLabel, sourceContext) => {
     if (!stats.cards.leadsList) return;
@@ -456,7 +636,7 @@ const Dashboard = () => {
       data[uName].handover += row.handover || 0;
       data[uName].lost += row.lost || 0;
     });
-    return Object.values(data);
+    return Object.values(data).filter(u => u.totalLeads > 0);
   }, [stats.personProjectStages, stats.users]);
 
   const selectedUserPerfData = React.useMemo(() => {
@@ -521,7 +701,7 @@ const Dashboard = () => {
         totals.lost += src.lost || 0;
       });
       return totals;
-    });
+    }).filter(g => g.totalLeads > 0);
   }, [stats.groupStats]);
 
   // Sub-sources data under the selected group
@@ -538,7 +718,7 @@ const Dashboard = () => {
       booked: src.booked || 0,
       handover: src.handover || 0,
       lost: src.lost || 0
-    }));
+    })).filter(s => s.totalLeads > 0);
   }, [selectedSourceGroup, stats.groupStats]);
 
   // The metrics to display on the details card
@@ -590,23 +770,25 @@ const Dashboard = () => {
         <meta charset="utf-8"/>
         <style>
           table { border-collapse: collapse; }
-          td, th { border: 1px solid #cccccc; padding: 8px; font-family: 'Segoe UI', Calibri, sans-serif; font-size: 11pt; }
-          th { font-weight: bold; background-color: #0e623a; color: white; border: 1px solid #0b4d2d; }
+          td, th { border: 1px solid #cbd5e1; padding: 10px 14px; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; font-size: 10pt; color: #334155; }
+          th { font-weight: bold; background-color: #0e623a; color: white; border: 1px solid #0e623a; text-align: center; }
           .title-row { font-size: 14pt; font-weight: bold; color: #0e623a; }
-          .meta-label { color: #7f7f7f; font-size: 9pt; }
+          .even-row { background-color: #f8fafc; }
+          .bold-label { font-weight: bold; color: #0f172a; }
+          .summary-row { font-weight: bold; background-color: #e2f0d9; color: #385723; }
         </style>
       </head>
       <body>
         <table>
-          <tr>
-            <td colspan="8" class="title-row" style="border:none; text-align:center; font-size: 16pt;">JohnBuildwell ERP - USER PERFORMANCE DETAILS</td>
-          </tr>
-          <tr>
-            <td colspan="8" class="meta-label" style="border:none; text-align:center; padding-top:0;">
-              Generated on: ${new Date().toLocaleString()} ${selectedUserPerfName ? `| Filtered for: ${selectedUserPerfName}` : ''}
+          <tr style="height: 120px;">
+            <td colspan="3" style="background-color: #0e623a; border: none; text-align: center; vertical-align: middle; height: 120px;">
+              <img src="${logoPath}" height="95" style="height: 95px; width: auto; display: block; margin: 0 auto;" />
+            </td>
+            <td colspan="5" class="title-row" style="border:none; vertical-align:middle; text-align:center; font-size: 14pt; font-weight: bold; color: #0e623a; height: 120px;">
+              JohnBuildwell ERP - USER PERFORMANCE DETAILS
             </td>
           </tr>
-          <tr><td colspan="8" style="border:none; height: 10px;"></td></tr>
+          <tr><td colspan="8" style="border:none; height: 15px;"></td></tr>
           
           <tr>
             <th>User Name</th>
@@ -624,10 +806,11 @@ const Dashboard = () => {
       ? [selectedUserPerfData] 
       : userPerformanceData;
 
-    dataToExport.forEach(row => {
+    dataToExport.forEach((row, idx) => {
+      const rowClass = idx % 2 === 1 ? 'class="even-row"' : '';
       htmlContent += `
-        <tr>
-          <td><b>${row.userName}</b></td>
+        <tr ${rowClass}>
+          <td class="bold-label">${row.userName}</td>
           <td>${row.totalLeads}</td>
           <td>${row.enquiries}</td>
           <td>${row.siteVisits}</td>
@@ -659,8 +842,8 @@ const Dashboard = () => {
         totals.lost += u.lost;
       });
       htmlContent += `
-        <tr style="background-color:#e2f0d9; font-weight:bold;">
-          <td><b>TOTAL</b></td>
+        <tr class="summary-row">
+          <td class="bold-label">TOTAL</td>
           <td>${totals.totalLeads}</td>
           <td>${totals.enquiries}</td>
           <td>${totals.siteVisits}</td>
@@ -695,23 +878,25 @@ const Dashboard = () => {
         <meta charset="utf-8"/>
         <style>
           table { border-collapse: collapse; }
-          td, th { border: 1px solid #cccccc; padding: 8px; font-family: 'Segoe UI', Calibri, sans-serif; font-size: 11pt; }
-          th { font-weight: bold; background-color: #0e623a; color: white; border: 1px solid #0b4d2d; }
+          td, th { border: 1px solid #cbd5e1; padding: 10px 14px; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; font-size: 10pt; color: #334155; }
+          th { font-weight: bold; background-color: #0e623a; color: white; border: 1px solid #0e623a; text-align: center; }
           .title-row { font-size: 14pt; font-weight: bold; color: #0e623a; }
-          .meta-label { color: #7f7f7f; font-size: 9pt; }
+          .even-row { background-color: #f8fafc; }
+          .bold-label { font-weight: bold; color: #0f172a; }
+          .summary-row { font-weight: bold; background-color: #e2f0d9; color: #385723; }
         </style>
       </head>
       <body>
         <table>
-          <tr>
-            <td colspan="9" class="title-row" style="border:none; text-align:center; font-size: 16pt;">JohnBuildwell ERP - MARKETING SOURCE PERFORMANCE DETAILS</td>
-          </tr>
-          <tr>
-            <td colspan="9" class="meta-label" style="border:none; text-align:center; padding-top:0;">
-              Generated on: ${new Date().toLocaleString()} ${selectedSourceGroup ? `| Filtered for: ${selectedSourceGroup}` : ''}
+          <tr style="height: 120px;">
+            <td colspan="3" style="background-color: #0e623a; border: none; text-align: center; vertical-align: middle; height: 120px;">
+              <img src="${logoPath}" height="95" style="height: 95px; width: auto; display: block; margin: 0 auto;" />
+            </td>
+            <td colspan="6" class="title-row" style="border:none; vertical-align:middle; text-align:center; font-size: 14pt; font-weight: bold; color: #0e623a; height: 120px;">
+              JohnBuildwell ERP - MARKETING SOURCE PERFORMANCE DETAILS
             </td>
           </tr>
-          <tr><td colspan="9" style="border:none; height: 10px;"></td></tr>
+          <tr><td colspan="9" style="border:none; height: 15px;"></td></tr>
           
           <tr>
             <th>Group Name</th>
@@ -746,10 +931,11 @@ const Dashboard = () => {
       });
     });
 
-    rows.forEach(row => {
+    rows.forEach((row, idx) => {
+      const rowClass = idx % 2 === 1 ? 'class="even-row"' : '';
       htmlContent += `
-        <tr>
-          <td><b>${row.groupName}</b></td>
+        <tr ${rowClass}>
+          <td class="bold-label">${row.groupName}</td>
           <td>${row.sourceName}</td>
           <td>${row.totalLeads}</td>
           <td>${row.enquiries}</td>
@@ -782,8 +968,8 @@ const Dashboard = () => {
         totals.lost += r.lost;
       });
       htmlContent += `
-        <tr style="background-color:#e2f0d9; font-weight:bold;">
-          <td colspan="2"><b>TOTAL</b></td>
+        <tr class="summary-row">
+          <td colspan="2" class="bold-label">TOTAL</td>
           <td>${totals.totalLeads}</td>
           <td>${totals.enquiries}</td>
           <td>${totals.siteVisits}</td>
@@ -859,6 +1045,19 @@ const Dashboard = () => {
     );
   };
 
+  // Helper to render the custom interlocking swirl pie chart for JMD/JLB Project Inventories
+  const renderSwirlPieChart = (dataArray, valueKey, labelKey, isCount = false, onSegmentClick = null) => {
+    return (
+      <ObservedSwirlPieChart 
+        dataArray={dataArray}
+        valueKey={valueKey}
+        labelKey={labelKey}
+        isCount={isCount}
+        onSegmentClick={onSegmentClick}
+      />
+    );
+  };
+
   const handleMonthChange = (monthVal) => {
     if (!monthVal) return;
     setSelectedMonth(monthVal);
@@ -889,28 +1088,25 @@ const Dashboard = () => {
         <meta charset="utf-8"/>
         <style>
           table { border-collapse: collapse; }
-          td, th { border: 1px solid #cccccc; padding: 8px; font-family: 'Segoe UI', Calibri, sans-serif; font-size: 11pt; }
-          th { font-weight: bold; background-color: #0e623a; color: white; border: 1px solid #0b4d2d; }
-          .title-row { font-size: 14pt; font-weight: bold; color: #0e623a; }
-          .section-banner { font-size: 12pt; font-weight: bold; background-color: #e2f0d9; color: #385723; padding: 10px; border: 1px solid #c5e1a5; }
-          .meta-label { color: #7f7f7f; font-size: 9pt; }
+          td, th { border: 1px solid #cbd5e1; padding: 10px 14px; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; font-size: 10pt; color: #334155; }
+          th { font-weight: bold; background-color: #0e623a; color: white; border: 1px solid #0e623a; text-align: center; }
+          .title-row { font-size: 22pt; font-weight: bold; color: #0e623a; }
+          .section-banner { font-size: 11pt; font-weight: bold; background-color: #e2f0d9; color: #385723; padding: 12px; border: 1px solid #c5e1a5; text-align: center; text-transform: uppercase; letter-spacing: 0.5px; }
+          .even-row { background-color: #f8fafc; }
+          .bold-label { font-weight: bold; color: #0f172a; }
         </style>
       </head>
       <body>
         <table>
-          <tr>
-            <td colspan="3" rowspan="3" style="background-color: #0e623a; border: none; text-align: center; vertical-align: middle; height: 110px;">
-              <img src="${logoPath}" height="80" style="height: 80px; width: auto; display: block; margin: 0 auto;" />
+          <tr style="height: 120px;">
+            <td colspan="3" style="background-color: #0e623a; border: none; text-align: center; vertical-align: middle; height: 120px;">
+              <img src="${logoPath}" height="95" style="height: 95px; width: auto; display: block; margin: 0 auto;" />
             </td>
-            <td colspan="6" class="title-row" style="border:none; vertical-align:middle; text-align:center; font-size: 16pt;">JohnBuildwell ERP - OVERALL STATUS REPORT</td>
+            <td colspan="6" class="title-row" style="border:none; vertical-align:middle; text-align:center; font-size: 22pt; font-weight: bold; color: #0e623a; height: 120px;">
+              JohnBuildwell ERP - OVERALL STATUS REPORT
+            </td>
           </tr>
-          <tr>
-            <td colspan="6" style="border:none;"></td>
-          </tr>
-          <tr>
-            <td colspan="6" class="meta-label" style="border:none; text-align:center; padding-top:0; vertical-align:middle;">Generated on: ${new Date().toLocaleString()}</td>
-          </tr>
-          <tr><td colspan="9" style="border:none; height: 10px;"></td></tr>
+          <tr><td colspan="9" style="border:none; height: 15px;"></td></tr>
           
           <!-- PART 1 -->
           <tr><td colspan="9" class="section-banner">PART 1: PROJECTS & UNIT TYPE SUMMARY</td></tr>
@@ -920,26 +1116,26 @@ const Dashboard = () => {
             <th colspan="3">Total Value (INR)</th>
           </tr>
           <tr>
-            <td colspan="3">Available Projects (Common)</td>
+            <td colspan="3" class="bold-label">Available Projects (Common)</td>
             <td colspan="3">${availableProjCount}</td>
             <td colspan="3">Rs. ${availableProjVal.toLocaleString()}</td>
           </tr>
-          <tr>
-            <td colspan="3">Available Projects (Plot)</td>
+          <tr class="even-row">
+            <td colspan="3" class="bold-label">Available Projects (Plot)</td>
             <td colspan="3">${inventory.projectsByType?.Plot || 0}</td>
             <td colspan="3">Rs. ${(inventory.availableValueByType?.Plot || 0).toLocaleString()}</td>
           </tr>
           <tr>
-            <td colspan="3">Available Projects (Flat)</td>
+            <td colspan="3" class="bold-label">Available Projects (Flat)</td>
             <td colspan="3">${inventory.projectsByType?.Flat || 0}</td>
             <td colspan="3">Rs. ${(inventory.availableValueByType?.Flat || 0).toLocaleString()}</td>
           </tr>
-          <tr>
-            <td colspan="3">Available Projects (Villa)</td>
+          <tr class="even-row">
+            <td colspan="3" class="bold-label">Available Projects (Villa)</td>
             <td colspan="3">${(inventory.projectsByType?.Villa || 0) + (inventory.projectsByType?.House || 0)}</td>
             <td colspan="3">Rs. ${((inventory.availableValueByType?.Villa || 0) + (inventory.availableValueByType?.House || 0)).toLocaleString()}</td>
           </tr>
-          <tr><td colspan="9" style="border:none;"></td></tr>
+          <tr><td colspan="9" style="border:none; height: 10px;"></td></tr>
           
           <tr>
             <th>Project Type</th>
@@ -952,9 +1148,9 @@ const Dashboard = () => {
             <th>Sold Out Count</th>
             <th>Sold Out Value (INR)</th>
           </tr>
-    `;
+     `;
 
-    ['Plot', 'Flat', 'Villa'].forEach(type => {
+    ['Plot', 'Flat', 'Villa'].forEach((type, idx) => {
       const overallCount = (inventory.totalByType?.[type] || 0) + (type === 'Villa' ? (inventory.totalByType?.House || 0) : 0);
       const overallVal = (inventory.totalValueByType?.[type] || 0) + (type === 'Villa' ? (inventory.totalValueByType?.House || 0) : 0);
       const availCount = (inventory.availableByType?.[type] || 0) + (type === 'Villa' ? (inventory.availableByType?.House || 0) : 0);
@@ -964,9 +1160,11 @@ const Dashboard = () => {
       const soldCount = (inventory.handoverByType?.[type] || 0) + (type === 'Villa' ? (inventory.handoverByType?.House || 0) : 0);
       const soldVal = (inventory.handoverValueByType?.[type] || 0) + (type === 'Villa' ? (inventory.handoverValueByType?.House || 0) : 0);
       
+      const rowClass = idx % 2 === 1 ? 'class="even-row"' : '';
+      
       htmlContent += `
-        <tr>
-          <td><b>${type}</b></td>
+        <tr ${rowClass}>
+          <td class="bold-label">${type}</td>
           <td>${overallCount}</td>
           <td>Rs. ${overallVal.toLocaleString()}</td>
           <td>${availCount}</td>
@@ -980,7 +1178,7 @@ const Dashboard = () => {
     });
 
     htmlContent += `
-          <tr><td colspan="9" style="border:none;"></td></tr>
+          <tr><td colspan="9" style="border:none; height: 10px;"></td></tr>
           
           <!-- PART 2 -->
           <tr><td colspan="9" class="section-banner">PART 2: PROJECT BASED WORKFLOW STAGES</td></tr>
@@ -995,11 +1193,12 @@ const Dashboard = () => {
           </tr>
     `;
 
-    Object.keys(stats.projectStages || {}).forEach(projName => {
+    Object.keys(stats.projectStages || {}).forEach((projName, idx) => {
       const stages = stats.projectStages[projName];
+      const rowClass = idx % 2 === 1 ? 'class="even-row"' : '';
       htmlContent += `
-        <tr>
-          <td colspan="2"><b>${projName}</b></td>
+        <tr ${rowClass}>
+          <td colspan="2" class="bold-label">${projName}</td>
           <td>${stages.totalLeads}</td>
           <td>${stages.enquiries}</td>
           <td>${stages.siteVisits}</td>
@@ -1011,34 +1210,35 @@ const Dashboard = () => {
     });
 
     htmlContent += `
-          <tr><td colspan="9" style="border:none;"></td></tr>
+          <tr><td colspan="9" style="border:none; height: 10px;"></td></tr>
           
           <!-- PART 3 -->
           <tr><td colspan="9" class="section-banner">PART 3: PERSONS WISE PROJECT BREAKDOWN</td></tr>
           <tr>
-            <th colspan="2">Person Name</th>
-            <th colspan="2">Project Name</th>
+            <th>Person Name</th>
+            <th>Project Name</th>
             <th>Total Leads</th>
             <th>Enquiries</th>
             <th>Site Visit</th>
             <th>Hot List</th>
             <th>Booked</th>
-            <th>Site Conversion (Handover)</th>
+            <th colspan="2">Site Conversion (Handover)</th>
           </tr>
     `;
 
-    Object.keys(stats.personProjectStages || {}).forEach(key => {
+    Object.keys(stats.personProjectStages || {}).forEach((key, idx) => {
       const row = stats.personProjectStages[key];
+      const rowClass = idx % 2 === 1 ? 'class="even-row"' : '';
       htmlContent += `
-        <tr>
-          <td colspan="2"><b>${row.personName}</b></td>
-          <td colspan="2">${row.projectName}</td>
+        <tr ${rowClass}>
+          <td class="bold-label">${row.personName}</td>
+          <td>${row.projectName}</td>
           <td>${row.totalLeads}</td>
           <td>${row.enquiries}</td>
           <td>${row.siteVisits}</td>
           <td>${row.hotList}</td>
           <td>${row.booked}</td>
-          <td>${row.handover}</td>
+          <td colspan="2">${row.handover}</td>
         </tr>
       `;
     });
@@ -1066,25 +1266,26 @@ const Dashboard = () => {
         <meta charset="utf-8"/>
         <style>
           table { border-collapse: collapse; }
-          td, th { border: 1px solid #cccccc; padding: 8px; font-family: 'Segoe UI', Calibri, sans-serif; font-size: 11pt; }
-          th { font-weight: bold; background-color: #0e623a; color: white; border: 1px solid #0b4d2d; }
-          .title-row { font-size: 14pt; font-weight: bold; color: #0e623a; }
-          .section-banner { font-size: 12pt; font-weight: bold; background-color: #e2f0d9; color: #385723; padding: 10px; border: 1px solid #c5e1a5; }
-          .meta-label { color: #7f7f7f; font-size: 9pt; }
+          td, th { border: 1px solid #cbd5e1; padding: 10px 14px; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; font-size: 10pt; color: #334155; }
+          th { font-weight: bold; background-color: #0e623a; color: white; border: 1px solid #0e623a; text-align: center; }
+          .title-row { font-size: 22pt; font-weight: bold; color: #0e623a; }
+          .section-banner { font-size: 11pt; font-weight: bold; background-color: #e2f0d9; color: #385723; padding: 12px; border: 1px solid #c5e1a5; text-align: center; text-transform: uppercase; letter-spacing: 0.5px; }
+          .even-row { background-color: #f8fafc; }
+          .bold-label { font-weight: bold; color: #0f172a; }
+          .summary-row { font-weight: bold; background-color: #e2f0d9; color: #385723; }
         </style>
       </head>
       <body>
         <table>
-          <tr>
-            <td colspan="3" style="border:none; height:80px; vertical-align:middle; text-align:left;">
-              <img src="${logoPath}" height="60" />
+          <tr style="height: 120px;">
+            <td colspan="3" style="background-color: #0e623a; border: none; text-align: center; vertical-align: middle; height: 120px;">
+              <img src="${logoPath}" height="95" style="height: 95px; width: auto; display: block; margin: 0 auto;" />
             </td>
-            <td colspan="4" class="title-row" style="border:none; vertical-align:middle; text-align:right;">JohnBuildwell ERP - USER WISE PERFORMANCE REPORT</td>
+            <td colspan="4" class="title-row" style="border:none; vertical-align:middle; text-align:center; font-size: 22pt; font-weight: bold; color: #0e623a; height: 120px;">
+              JohnBuildwell ERP - USER WISE PERFORMANCE REPORT
+            </td>
           </tr>
-          <tr>
-            <td colspan="7" class="meta-label" style="border:none; text-align:right; padding-top:0;">Generated on: ${new Date().toLocaleString()}</td>
-          </tr>
-          <tr><td colspan="7" style="border:none;"></td></tr>
+          <tr><td colspan="7" style="border:none; height: 15px;"></td></tr>
     `;
 
     selectedUserNames.forEach(uName => {
@@ -1115,8 +1316,8 @@ const Dashboard = () => {
           <th>Booked</th>
           <th>Site Conversion (Handover)</th>
         </tr>
-        <tr style="background-color:#f9f9f9; font-weight:bold;">
-          <td><b>OVERALL SUMMARY</b></td>
+        <tr class="summary-row">
+          <td class="bold-label">OVERALL SUMMARY</td>
           <td>${uTotalLeads}</td>
           <td>${uEnquiries}</td>
           <td>${uSiteVisits}</td>
@@ -1126,10 +1327,11 @@ const Dashboard = () => {
         </tr>
       `;
 
-      rows.forEach(row => {
+      rows.forEach((row, idx) => {
+        const rowClass = idx % 2 === 1 ? 'class="even-row"' : '';
         htmlContent += `
-          <tr>
-            <td>${row.projectName}</td>
+          <tr ${rowClass}>
+            <td class="bold-label">${row.projectName}</td>
             <td>${row.totalLeads}</td>
             <td>${row.enquiries}</td>
             <td>${row.siteVisits}</td>
@@ -1140,7 +1342,7 @@ const Dashboard = () => {
         `;
       });
 
-      htmlContent += `<tr><td colspan="7" style="border:none; height:15px;"></td></tr>`;
+      htmlContent += `<tr><td colspan="7" style="border:none; height: 15px;"></td></tr>`;
     });
 
     htmlContent += `
@@ -1166,25 +1368,25 @@ const Dashboard = () => {
         <meta charset="utf-8"/>
         <style>
           table { border-collapse: collapse; }
-          td, th { border: 1px solid #cccccc; padding: 8px; font-family: 'Segoe UI', Calibri, sans-serif; font-size: 11pt; }
-          th { font-weight: bold; background-color: #0e623a; color: white; border: 1px solid #0b4d2d; }
-          .title-row { font-size: 14pt; font-weight: bold; color: #0e623a; }
-          .section-banner { font-size: 12pt; font-weight: bold; background-color: #e2f0d9; color: #385723; padding: 10px; border: 1px solid #c5e1a5; }
-          .meta-label { color: #7f7f7f; font-size: 9pt; }
+          td, th { border: 1px solid #cbd5e1; padding: 10px 14px; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; font-size: 10pt; color: #334155; }
+          th { font-weight: bold; background-color: #0e623a; color: white; border: 1px solid #0e623a; text-align: center; }
+          .title-row { font-size: 22pt; font-weight: bold; color: #0e623a; }
+          .section-banner { font-size: 11pt; font-weight: bold; background-color: #e2f0d9; color: #385723; padding: 12px; border: 1px solid #c5e1a5; text-align: center; text-transform: uppercase; letter-spacing: 0.5px; }
+          .even-row { background-color: #f8fafc; }
+          .bold-label { font-weight: bold; color: #0f172a; }
         </style>
       </head>
       <body>
         <table>
-          <tr>
-            <td colspan="3" style="border:none; height:80px; vertical-align:middle; text-align:left;">
-              <img src="${logoPath}" height="60" />
+          <tr style="height: 120px;">
+            <td colspan="3" style="background-color: #0e623a; border: none; text-align: center; vertical-align: middle; height: 120px;">
+              <img src="${logoPath}" height="95" style="height: 95px; width: auto; display: block; margin: 0 auto;" />
             </td>
-            <td colspan="4" class="title-row" style="border:none; vertical-align:middle; text-align:right;">JohnBuildwell ERP - PROJECT WISE PERFORMANCE REPORT</td>
+            <td colspan="4" class="title-row" style="border:none; vertical-align:middle; text-align:center; font-size: 22pt; font-weight: bold; color: #0e623a; height: 120px;">
+              JohnBuildwell ERP - PROJECT WISE PERFORMANCE REPORT
+            </td>
           </tr>
-          <tr>
-            <td colspan="7" class="meta-label" style="border:none; text-align:right; padding-top:0;">Generated on: ${new Date().toLocaleString()}</td>
-          </tr>
-          <tr><td colspan="7" style="border:none;"></td></tr>
+          <tr><td colspan="7" style="border:none; height: 15px;"></td></tr>
     `;
 
     selectedProjectNames.forEach(projName => {
@@ -1197,27 +1399,27 @@ const Dashboard = () => {
           <th colspan="4">Count</th>
         </tr>
         <tr>
-          <td colspan="3">Total Leads</td>
+          <td colspan="3" class="bold-label">Total Leads</td>
           <td colspan="4">${stages.totalLeads}</td>
         </tr>
-        <tr>
-          <td colspan="3">Enquiries</td>
+        <tr class="even-row">
+          <td colspan="3" class="bold-label">Enquiries</td>
           <td colspan="4">${stages.enquiries}</td>
         </tr>
         <tr>
-          <td colspan="3">Site Visits</td>
+          <td colspan="3" class="bold-label">Site Visits</td>
           <td colspan="4">${stages.siteVisits}</td>
         </tr>
-        <tr>
-          <td colspan="3">Hot List</td>
+        <tr class="even-row">
+          <td colspan="3" class="bold-label">Hot List</td>
           <td colspan="4">${stages.hotList}</td>
         </tr>
         <tr>
-          <td colspan="3">Booked Units</td>
+          <td colspan="3" class="bold-label">Booked Units</td>
           <td colspan="4">${stages.booked}</td>
         </tr>
-        <tr>
-          <td colspan="3">Site Conversion (Handover)</td>
+        <tr class="even-row">
+          <td colspan="3" class="bold-label">Site Conversion (Handover)</td>
           <td colspan="4">${stages.handover}</td>
         </tr>
         
@@ -1233,12 +1435,15 @@ const Dashboard = () => {
         </tr>
       `;
 
+      let executiveIdx = 0;
       Object.keys(stats.personProjectStages || {}).forEach(key => {
         const row = stats.personProjectStages[key];
         if (row.projectName === projName) {
+          const rowClass = executiveIdx % 2 === 1 ? 'class="even-row"' : '';
+          executiveIdx++;
           htmlContent += `
-            <tr>
-              <td colspan="2"><b>${row.personName}</b></td>
+            <tr ${rowClass}>
+              <td colspan="2" class="bold-label">${row.personName}</td>
               <td>${row.totalLeads}</td>
               <td>${row.enquiries}</td>
               <td>${row.siteVisits}</td>
@@ -1275,25 +1480,25 @@ const Dashboard = () => {
         <meta charset="utf-8"/>
         <style>
           table { border-collapse: collapse; }
-          td, th { border: 1px solid #cccccc; padding: 8px; font-family: 'Segoe UI', Calibri, sans-serif; font-size: 11pt; }
-          th { font-weight: bold; background-color: #0e623a; color: white; border: 1px solid #0b4d2d; }
-          .title-row { font-size: 13pt; font-weight: bold; color: #0e623a; }
-          .section-banner { font-size: 12pt; font-weight: bold; background-color: #e2f0d9; color: #385723; padding: 10px; border: 1px solid #c5e1a5; }
-          .meta-label { color: #7f7f7f; font-size: 9pt; }
+          td, th { border: 1px solid #cbd5e1; padding: 10px 14px; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; font-size: 10pt; color: #334155; }
+          th { font-weight: bold; background-color: #0e623a; color: white; border: 1px solid #0e623a; text-align: center; }
+          .title-row { font-size: 22pt; font-weight: bold; color: #0e623a; }
+          .section-banner { font-size: 11pt; font-weight: bold; background-color: #e2f0d9; color: #385723; padding: 12px; border: 1px solid #c5e1a5; text-align: center; text-transform: uppercase; letter-spacing: 0.5px; }
+          .even-row { background-color: #f8fafc; }
+          .bold-label { font-weight: bold; color: #0f172a; }
         </style>
       </head>
       <body>
         <table>
-          <tr>
-            <td colspan="2" style="border:none; height:80px; vertical-align:middle; text-align:left;">
-              <img src="${logoPath}" height="60" />
+          <tr style="height: 120px;">
+            <td colspan="2" style="background-color: #0e623a; border: none; text-align: center; vertical-align: middle; height: 120px;">
+              <img src="${logoPath}" height="95" style="height: 95px; width: auto; display: block; margin: 0 auto;" />
             </td>
-            <td colspan="2" class="title-row" style="border:none; vertical-align:middle; text-align:right;">JohnBuildwell ERP - SOURCE WISE PERFORMANCE REPORT</td>
+            <td colspan="2" class="title-row" style="border:none; vertical-align:middle; text-align:center; font-size: 22pt; font-weight: bold; color: #0e623a; height: 120px;">
+              JohnBuildwell ERP - SOURCE WISE PERFORMANCE REPORT
+            </td>
           </tr>
-          <tr>
-            <td colspan="4" class="meta-label" style="border:none; text-align:right; padding-top:0;">Generated on: ${new Date().toLocaleString()}</td>
-          </tr>
-          <tr><td colspan="4" style="border:none;"></td></tr>
+          <tr><td colspan="4" style="border:none; height: 15px;"></td></tr>
           
           <tr>
             <th>Source Type</th>
@@ -1303,11 +1508,12 @@ const Dashboard = () => {
           </tr>
     `;
 
-    selectedSources.forEach(src => {
+    selectedSources.forEach((src, idx) => {
       const s = stats.sourceStats[src] || { budget: 0, spent: 0, value: 0 };
+      const rowClass = idx % 2 === 1 ? 'class="even-row"' : '';
       htmlContent += `
-        <tr>
-          <td><b>${src}</b></td>
+        <tr ${rowClass}>
+          <td class="bold-label">${src}</td>
           <td>Rs. ${(s.budget || 0).toLocaleString()}</td>
           <td>Rs. ${(s.spent || 0).toLocaleString()}</td>
           <td>Rs. ${(s.value || 0).toLocaleString()}</td>
@@ -1348,15 +1554,14 @@ const Dashboard = () => {
 
   const { budgetData, spentData, networthData } = getSourcesData();
   const primaryColors = [
-    '#4A7C59', // Matte Sage Green
-    '#68809A', // Matte Slate Blue
-    '#D98A6C', // Matte Terracotta Orange
-    '#C77B82', // Matte Dusty Rose
-    '#9B8AA9', // Matte Lavender
-    '#DFBA84', // Matte Soft Mustard Yellow
-    '#7CA5A9', // Matte Seafoam Teal
-    '#8E9AAF', // Matte Slate Grey
-    '#F4B2A8'  // Matte Soft Peach
+    '#0e623a', // Brand Green (Dominant Highlight)
+    '#3b82f6', // Electric Blue (Secondary Highlight)
+    '#94a3b8', // Slate Grey (Muted Accent)
+    '#8b5cf6', // Lavender Purple
+    '#5c8d70', // Sage Green
+    '#f59e0b', // Warm Amber
+    '#b0b3c2', // Medium Silver
+    '#e2e8f0'  // Light Slate
   ];
 
   return (
@@ -1522,115 +1727,75 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* Inventory Status Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-        <div className="bg-white border border-gray-100 rounded-3xl p-5 shadow-sm hover:shadow-md transition">
-          <span className="text-[10px] text-gray-400 font-extrabold uppercase tracking-wider block">Total Projects</span>
-          <h3 className="text-xl font-extrabold text-gray-800 mt-1">{stats.cards.inventory?.totalProjects || 0}</h3>
-          <p className="text-[9px] text-gray-400 mt-2 font-medium">Active construction projects</p>
-        </div>
-        <div className="relative group bg-white border border-gray-100 rounded-3xl p-5 shadow-sm hover:shadow-md transition cursor-pointer select-none">
-          <span className="text-[10px] text-gray-400 font-extrabold uppercase tracking-wider block">Total Units</span>
-          <h3 className="text-xl font-extrabold text-gray-800 mt-1">{stats.cards.inventory?.totalUnits || 0}</h3>
-          <p className="text-[9px] text-gray-400 mt-2 font-medium">Plots/Flats/Villas registered</p>
-          <div className="absolute inset-0 bg-gray-900/95 backdrop-blur-sm rounded-3xl p-4 flex flex-col justify-center text-left opacity-0 group-hover:opacity-100 transition duration-300 pointer-events-none z-20">
-            <h4 className="text-[10px] font-bold text-white uppercase tracking-wider mb-1.5 pb-1 border-b border-gray-800">
-              Total Units Breakdown
-            </h4>
-            <div className="space-y-1 text-[10px] font-bold text-gray-300">
-              <div className="flex justify-between">
-                <span>Flats:</span>
-                <span className="text-white">{stats.cards.inventory?.totalByType?.Flat || 0}</span>
+      {/* Project Wise Inventory Pie Charts */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {Object.keys(stats.projectUnitsStats || {}).map(projCode => {
+          // If a specific project is selected, only render that one
+          if (selectedProject) {
+            const selectedProjObj = (stats.projects || []).find(p => p._id === selectedProject);
+            const selectedCode = selectedProjObj?.code || selectedProjObj?.name;
+            if (selectedCode && projCode !== selectedCode) return null;
+          }
+
+          const pStats = stats.projectUnitsStats[projCode];
+          const chartData = [
+            { stage: 'Available', count: pStats.available },
+            { stage: 'Booked', count: pStats.booked },
+            { stage: 'Handover', count: pStats.handover }
+          ].filter(item => item.count > 0);
+
+          return (
+            <div key={projCode} className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm hover:shadow-md transition space-y-4">
+              <div className="flex justify-between items-center border-b border-gray-100 pb-3 text-left">
+                <div>
+                  <h3 className="text-sm font-extrabold text-gray-800 uppercase tracking-wide flex items-center gap-2">
+                    <Building className="w-4 h-4 text-[#0e623a]" />
+                    <span>{projCode} Project Inventory</span>
+                  </h3>
+                  <p className="text-[10px] text-gray-400 mt-0.5">Project inventory breakdown</p>
+                </div>
+                <span 
+                  onClick={() => {
+                    setSelectedInventoryProj({ projCode, stats: pStats });
+                    setInventoryModalOpen(true);
+                  }}
+                  className="text-xs bg-[#0e623a]/10 text-[#0e623a] px-3 py-1 rounded-full font-extrabold uppercase tracking-wider cursor-pointer hover:bg-[#0e623a]/25 transition"
+                >
+                  Total: {pStats.total}
+                </span>
               </div>
-              <div className="flex justify-between">
-                <span>Plots:</span>
-                <span className="text-white">{stats.cards.inventory?.totalByType?.Plot || 0}</span>
+              <div className="py-2">
+                {chartData.length === 0 ? (
+                  <div className="h-48 flex items-center justify-center text-gray-400 italic text-xs">
+                    No units registered
+                  </div>
+                ) : (
+                  renderSwirlPieChart(
+                    chartData,
+                    'count',
+                    'stage',
+                    'Units', // isCount = 'Units'
+                    () => {
+                      setSelectedInventoryProj({ projCode, stats: pStats });
+                      setInventoryModalOpen(true);
+                    }
+                  )
+                )}
               </div>
-              <div className="flex justify-between">
-                <span>Villas:</span>
-                <span className="text-white">{(stats.cards.inventory?.totalByType?.Villa || 0) + (stats.cards.inventory?.totalByType?.House || 0)}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div className="relative group bg-white border border-emerald-100 rounded-3xl p-5 shadow-sm hover:shadow-md transition bg-emerald-50/10 cursor-pointer select-none">
-          <span className="text-[10px] text-emerald-600 font-extrabold uppercase tracking-wider block">Available Units</span>
-          <h3 className="text-xl font-extrabold text-emerald-800 mt-1">{stats.cards.inventory?.availableUnits || 0}</h3>
-          <p className="text-[9px] text-emerald-500 mt-2 font-medium">Ready for allocation</p>
-          <div className="absolute inset-0 bg-gray-900/95 backdrop-blur-sm rounded-3xl p-4 flex flex-col justify-center text-left opacity-0 group-hover:opacity-100 transition duration-300 pointer-events-none z-20">
-            <h4 className="text-[10px] font-bold text-white uppercase tracking-wider mb-1.5 pb-1 border-b border-gray-800">
-              Available Units Breakdown
-            </h4>
-            <div className="space-y-1 text-[10px] font-bold text-gray-300">
-              <div className="flex justify-between">
-                <span>Flats:</span>
-                <span className="text-white">{stats.cards.inventory?.availableByType?.Flat || 0}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Plots:</span>
-                <span className="text-white">{stats.cards.inventory?.availableByType?.Plot || 0}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Villas:</span>
-                <span className="text-white">{(stats.cards.inventory?.availableByType?.Villa || 0) + (stats.cards.inventory?.availableByType?.House || 0)}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div 
-          onClick={handleBookedCardClick}
-          className="relative group bg-white border border-amber-100 rounded-3xl p-5 shadow-sm hover:shadow-md transition bg-amber-50/10 cursor-pointer select-none active:scale-[0.99] duration-150"
-        >
-          <span className="text-[10px] text-amber-600 font-extrabold uppercase tracking-wider block">Booked Units</span>
-          <h3 className="text-xl font-extrabold text-amber-800 mt-1">{stats.cards.inventory?.bookedUnits || 0}</h3>
-          <p className="text-[9px] text-amber-500 mt-2 font-medium">Awaiting final agreement</p>
-          <div className="absolute inset-0 bg-gray-900/95 backdrop-blur-sm rounded-3xl p-4 flex flex-col justify-center text-left opacity-0 group-hover:opacity-100 transition duration-300 pointer-events-none z-20">
-            <h4 className="text-[10px] font-bold text-white uppercase tracking-wider mb-1.5 pb-1 border-b border-gray-800">
-              Booked Units Breakdown
-            </h4>
-            <div className="space-y-1 text-[10px] font-bold text-gray-300">
-              <div className="flex justify-between">
-                <span>Flats:</span>
-                <span className="text-white">{stats.cards.inventory?.bookedByType?.Flat || 0}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Plots:</span>
-                <span className="text-white">{stats.cards.inventory?.bookedByType?.Plot || 0}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Villas:</span>
-                <span className="text-white">{(stats.cards.inventory?.bookedByType?.Villa || 0) + (stats.cards.inventory?.bookedByType?.House || 0)}</span>
+              <div className="pt-2 text-center border-t border-gray-50">
+                <button
+                  onClick={() => {
+                    setSelectedInventoryProj({ projCode, stats: pStats });
+                    setInventoryModalOpen(true);
+                  }}
+                  className="text-[11px] font-bold text-[#0e623a] hover:underline"
+                >
+                  View Detailed Units Breakdown
+                </button>
               </div>
             </div>
-          </div>
-        </div>
-        <div 
-          onClick={handleHandoverCardClick}
-          className="relative group bg-white border border-rose-100 rounded-3xl p-5 shadow-sm hover:shadow-md transition bg-rose-50/10 cursor-pointer select-none active:scale-[0.99] duration-150"
-        >
-          <span className="text-[10px] text-rose-600 font-extrabold uppercase tracking-wider block">Handover Units</span>
-          <h3 className="text-xl font-extrabold text-rose-800 mt-1">{stats.cards.inventory?.handoverUnits || 0}</h3>
-          <p className="text-[9px] text-rose-500 mt-2 font-medium">Key Handover completed (Sold)</p>
-          <div className="absolute inset-0 bg-gray-900/95 backdrop-blur-sm rounded-3xl p-4 flex flex-col justify-center text-left opacity-0 group-hover:opacity-100 transition duration-300 pointer-events-none z-20">
-            <h4 className="text-[10px] font-bold text-white uppercase tracking-wider mb-1.5 pb-1 border-b border-gray-800">
-              Handover Units Breakdown
-            </h4>
-            <div className="space-y-1 text-[10px] font-bold text-gray-300">
-              <div className="flex justify-between">
-                <span>Flats:</span>
-                <span className="text-white">{stats.cards.inventory?.handoverByType?.Flat || 0}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Plots:</span>
-                <span className="text-white">{stats.cards.inventory?.handoverByType?.Plot || 0}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Villas:</span>
-                <span className="text-white">{(stats.cards.inventory?.handoverByType?.Villa || 0) + (stats.cards.inventory?.handoverByType?.House || 0)}</span>
-              </div>
-            </div>
-          </div>
-        </div>
+          );
+        })}
       </div>
 
       {loading ? (
@@ -1639,247 +1804,333 @@ const Dashboard = () => {
         </div>
       ) : (
         <>
-          {/* 6 State Cards Panel */}
-          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-6">
-            
-            {/* Card 0: Total Leads */}
-            <div 
-              onClick={handleLeadsCardClick}
-              className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm hover:shadow-md transition cursor-pointer select-none active:scale-[0.99] duration-150"
-            >
-              <div className="flex items-center justify-between">
-                <div>
-                  <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Total Leads</span>
-                  <h3 className="text-2xl font-extrabold text-gray-800 mt-1 flex items-baseline gap-1">
-                    <span>{stats.cards.totalLeads || 0}</span>
-                    <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider ml-0.5">Total</span>
-                    <span className="text-gray-300 text-xs mx-0.5">/</span>
-                    <span className="text-emerald-700">{stats.cards.liveLeads || 0}</span>
-                    <span className="text-[10px] text-gray-450 font-bold uppercase tracking-wider ml-0.5">Active</span>
-                  </h3>
-                </div>
-                <div className="p-3 bg-[#0e623a]/10 text-[#0e623a] rounded-2xl">
-                  <TrendingUp className="w-5 h-5" />
-                </div>
-              </div>
-              <div className="flex justify-between items-center mt-4 pt-2 border-t border-gray-50 text-[10px] font-bold">
-                <span className="text-gray-400 font-semibold uppercase tracking-wider">Overall Leads</span>
-                <span className="text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">Today: {stats.cards.today?.leads || 0}</span>
-              </div>
-            </div>
-
-            {/* Card 1: Total Enquiries */}
-            <div className="relative group bg-white border border-gray-100 rounded-3xl p-6 shadow-sm hover:shadow-md transition cursor-pointer select-none">
-              <div className="flex items-center justify-between">
-                <div>
-                  <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Total Enquiries</span>
-                  <h3 className="text-2xl font-extrabold text-gray-800 mt-1 flex items-baseline gap-1">
-                    <span>{stats.cards.enquiries?.total || 0}</span>
-                    <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider ml-0.5">Total</span>
-                    <span className="text-gray-300 text-xs mx-0.5">/</span>
-                    <span className="text-[#0e623a]">{stats.cards.enquiries?.live || 0}</span>
-                    <span className="text-[10px] text-gray-455 font-bold uppercase tracking-wider ml-0.5">Active</span>
-                  </h3>
-                </div>
-                <div className="p-3 bg-[#0e623a]/10 text-[#0e623a] rounded-2xl">
-                  <Users className="w-5 h-5" />
-                </div>
-              </div>
-              <div className="flex justify-between items-center mt-4 pt-2 border-t border-gray-50 text-[10px] font-bold">
-                <span className="text-gray-400 font-semibold uppercase tracking-wider flex items-center gap-1">
-                  <span>Breakdown</span>
-                  <ArrowRight className="w-3 h-3 group-hover:translate-x-1 transition" />
-                </span>
-                <span className="text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">Today: {stats.cards.today?.enquiries || 0}</span>
-              </div>
-              <div className="absolute inset-0 bg-gray-900/95 backdrop-blur-sm rounded-3xl p-5 flex flex-col justify-center text-left opacity-0 group-hover:opacity-100 transition duration-300 pointer-events-none z-20">
-                <h4 className="text-xs font-bold text-white uppercase tracking-wider mb-2 pb-1 border-b border-gray-800">
-                  Enquiries Stage Breakdown
-                </h4>
-                <div className="space-y-1 text-[11px] font-bold text-gray-300">
-                  <div className="flex justify-between">
-                    <span>Contacted Closed:</span>
-                    <span className="text-white">{stats.cards.enquiries.closed}</span>
+          {/* Row 1: Total Performance Cards */}
+          <div>
+            <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 text-left">Total Performance Metrics</h4>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
+              
+              {/* Card 0: Total Leads */}
+              <div 
+                onClick={handleLeadsCardClick}
+                className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm hover:shadow-md transition cursor-pointer select-none active:scale-[0.99] duration-150 flex flex-col justify-between"
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Total Leads</span>
+                    <h3 className="text-3xl font-extrabold text-gray-800 mt-1 flex flex-col gap-1 items-start">
+                      <span>{stats.cards.totalLeads || 0}</span>
+                      <span className="text-[10px] text-rose-600 font-extrabold bg-rose-50 px-2 py-0.5 rounded-full mt-0.5">
+                        Lost: {(stats.cards.enquiries?.closed || 0) + (stats.cards.siteVisits?.closed || 0)}
+                      </span>
+                    </h3>
                   </div>
-                  <div className="flex justify-between">
-                    <span>Follow-Up:</span>
-                    <span className="text-white">{stats.cards.enquiries.followup}</span>
+                  <div className="p-3 bg-[#0e623a]/10 text-[#0e623a] rounded-2xl shrink-0">
+                    <TrendingUp className="w-5 h-5" />
+                  </div>
+                </div>
+                <div className="flex justify-between items-center mt-4 pt-2 border-t border-gray-50 text-[10px] font-bold">
+                  <span className="text-gray-400 font-semibold uppercase tracking-wider">Overall Leads</span>
+                  <span className="text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">Today: {stats.cards.today?.leads || 0}</span>
+                </div>
+              </div>
+
+              {/* Card 1: Total Followup */}
+              <div className="relative group bg-white border border-gray-100 rounded-3xl p-6 shadow-sm hover:shadow-md transition cursor-pointer select-none flex flex-col justify-between">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Total Followup</span>
+                    <h3 className="text-3xl font-extrabold text-gray-800 mt-1">{stats.cards.enquiries?.followup || 0}</h3>
+                  </div>
+                  <div className="p-3 bg-[#0e623a]/10 text-[#0e623a] rounded-2xl shrink-0">
+                    <Users className="w-5 h-5" />
+                  </div>
+                </div>
+                <div className="flex justify-between items-center mt-4 pt-2 border-t border-gray-50 text-[10px] font-bold">
+                  <span className="text-gray-400 font-semibold uppercase tracking-wider flex items-center gap-1">
+                    <span>Breakdown</span>
+                    <ArrowRight className="w-3 h-3 group-hover:translate-x-1 transition" />
+                  </span>
+                  <span className="text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">Today: {stats.cards.today?.enquiries || 0}</span>
+                </div>
+                <div className="absolute inset-0 bg-gray-900/95 backdrop-blur-sm rounded-3xl p-5 flex flex-col justify-center text-left opacity-0 group-hover:opacity-100 transition duration-300 pointer-events-none z-20">
+                  <h4 className="text-xs font-bold text-white uppercase tracking-wider mb-2 pb-1 border-b border-gray-800">
+                    Enquiries Stage Breakdown
+                  </h4>
+                  <div className="space-y-1 text-[11px] font-bold text-gray-300">
+                    <div className="flex justify-between">
+                      <span>Contacted Closed:</span>
+                      <span className="text-white">{stats.cards.enquiries.closed}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Follow-Up:</span>
+                      <span className="text-white">{stats.cards.enquiries.followup}</span>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
 
-            {/* Card 2: Total Site Visits */}
-            <div className="relative group bg-white border border-gray-100 rounded-3xl p-6 shadow-sm hover:shadow-md transition cursor-pointer select-none">
-              <div className="flex items-center justify-between">
-                <div>
-                  <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Total Site Visits</span>
-                  <h3 className="text-2xl font-extrabold text-gray-800 mt-1 flex items-baseline gap-1">
-                    <span>{stats.cards.siteVisits?.total || 0}</span>
-                    <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider ml-0.5">Total</span>
-                    <span className="text-gray-300 text-xs mx-0.5">/</span>
-                    <span className="text-blue-600">{stats.cards.siteVisits?.live || 0}</span>
-                    <span className="text-[10px] text-gray-455 font-bold uppercase tracking-wider ml-0.5">Active</span>
-                  </h3>
-                </div>
-                <div className="p-3 bg-blue-50 text-blue-600 rounded-2xl">
-                  <MapPin className="w-5 h-5" />
-                </div>
-              </div>
-              <div className="flex justify-between items-center mt-4 pt-2 border-t border-gray-50 text-[10px] font-bold">
-                <span className="text-gray-400 font-semibold uppercase tracking-wider flex items-center gap-1">
-                  <span>Breakdown</span>
-                  <ArrowRight className="w-3 h-3 group-hover:translate-x-1 transition" />
-                </span>
-                <span className="text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">Today: {stats.cards.today?.siteVisits || 0}</span>
-              </div>
-              <div className="absolute inset-0 bg-gray-900/95 backdrop-blur-sm rounded-3xl p-5 flex flex-col justify-center text-left opacity-0 group-hover:opacity-100 transition duration-300 pointer-events-none z-20">
-                <h4 className="text-xs font-bold text-white uppercase tracking-wider mb-2 pb-1 border-b border-gray-800">
-                  Site Visit Breakdown
-                </h4>
-                <div className="space-y-1 text-[11px] font-bold text-gray-300">
-                  <div className="flex justify-between">
-                    <span>Site Visit:</span>
-                    <span className="text-white">{(stats.cards.siteVisits.siteVisit || 0) + (stats.cards.siteVisits.followup || 0)}</span>
+              {/* Card 2: Total Site Visits */}
+              <div className="relative group bg-white border border-gray-100 rounded-3xl p-6 shadow-sm hover:shadow-md transition cursor-pointer select-none flex flex-col justify-between">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Total Site Visits</span>
+                    <h3 className="text-3xl font-extrabold text-gray-800 mt-1">{stats.cards.siteVisits?.total || 0}</h3>
                   </div>
-                  <div className="flex justify-between">
-                    <span>Site Visit Closed:</span>
-                    <span className="text-white">{stats.cards.siteVisits.closed || 0}</span>
+                  <div className="p-3 bg-blue-50 text-blue-600 rounded-2xl">
+                    <MapPin className="w-5 h-5" />
+                  </div>
+                </div>
+                <div className="flex justify-between items-center mt-4 pt-2 border-t border-gray-50 text-[10px] font-bold">
+                  <span className="text-gray-400 font-semibold uppercase tracking-wider flex items-center gap-1">
+                    <span>Breakdown</span>
+                    <ArrowRight className="w-3 h-3 group-hover:translate-x-1 transition" />
+                  </span>
+                  <span className="text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">Today: {stats.cards.today?.siteVisits || 0}</span>
+                </div>
+                <div className="absolute inset-0 bg-gray-900/95 backdrop-blur-sm rounded-3xl p-5 flex flex-col justify-center text-left opacity-0 group-hover:opacity-100 transition duration-300 pointer-events-none z-20">
+                  <h4 className="text-xs font-bold text-white uppercase tracking-wider mb-2 pb-1 border-b border-gray-800">
+                    Site Visit Breakdown
+                  </h4>
+                  <div className="space-y-1 text-[11px] font-bold text-gray-300">
+                    <div className="flex justify-between">
+                      <span>Site Visit:</span>
+                      <span className="text-white">{(stats.cards.siteVisits.siteVisit || 0) + (stats.cards.siteVisits.followup || 0)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Site Visit Closed:</span>
+                      <span className="text-white">{stats.cards.siteVisits.closed || 0}</span>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
 
-            {/* Card 3: Hot List */}
-            <div className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm hover:shadow-md transition">
-              <div className="flex items-center justify-between">
-                <div>
-                  <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Hot List</span>
-                  <h3 className="text-2xl font-extrabold text-gray-800 mt-1 flex items-baseline gap-1">
-                    <span>{stats.cards.hotList?.total || 0}</span>
-                    <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider ml-0.5">Total</span>
-                    <span className="text-gray-300 text-xs mx-0.5">/</span>
-                    <span className="text-amber-600">{stats.cards.hotList?.live || 0}</span>
-                    <span className="text-[10px] text-gray-455 font-bold uppercase tracking-wider ml-0.5">Active</span>
-                  </h3>
-                </div>
-                <div className="p-3 bg-amber-50 text-amber-600 rounded-2xl">
-                  <Target className="w-5 h-5" />
-                </div>
-              </div>
-              <div className="flex justify-between items-center mt-4 pt-2 border-t border-gray-50 text-[10px] font-bold">
-                <span className="text-gray-400 font-semibold uppercase tracking-wider">Qualified Leads</span>
-                <span className="text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">Today: {stats.cards.today?.hotList || 0}</span>
-              </div>
-            </div>
-
-            {/* Card 4: Booked */}
-            <div 
-              onClick={handleBookedCardClick}
-              className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm hover:shadow-md transition cursor-pointer select-none active:scale-[0.99] duration-150"
-            >
-              <div className="flex items-center justify-between">
-                <div>
-                  <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Booked</span>
-                  <h3 className="text-2xl font-extrabold text-gray-800 mt-1 flex items-baseline gap-1 flex-wrap">
-                    <span>{stats.cards.booked?.total || 0}</span>
-                    <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider ml-0.5">Total</span>
-                    <span className="text-gray-300 text-xs mx-0.5">/</span>
-                    <span className="text-rose-600">{stats.cards.booked?.live || 0}</span>
-                    <span className="text-[10px] text-gray-455 font-bold uppercase tracking-wider ml-0.5">Active</span>
-                  </h3>
-                </div>
-                <div className="flex flex-col items-end gap-1.5 shrink-0">
-                  <div className="p-3 bg-rose-50 text-rose-600 rounded-2xl">
-                    <DollarSign className="w-5 h-5" />
+              {/* Card 3: Total Hot List */}
+              <div className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm hover:shadow-md transition flex flex-col justify-between">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Total Hot List</span>
+                    <h3 className="text-3xl font-extrabold text-gray-800 mt-1">{stats.cards.hotList?.total || 0}</h3>
                   </div>
-                  <span className="text-[9px] text-gray-500 font-bold bg-gray-100 px-2 py-0.5 rounded-full">Today: {stats.cards.today?.booked || 0}</span>
-                </div>
-              </div>
-              <div className="mt-3 pt-2 border-t border-gray-50 space-y-1 text-[10px] font-bold uppercase">
-                <div className="flex justify-between text-gray-500">
-                  <span>Total Value:</span>
-                  <span className="text-gray-800 font-extrabold">₹{Math.round(stats.cards.booked?.value || 0).toLocaleString()}</span>
-                </div>
-                <div className="flex justify-between text-emerald-600">
-                  <span>Received:</span>
-                  <span className="text-emerald-800 font-extrabold">₹{Math.round(stats.cards.booked?.received || 0).toLocaleString()}</span>
-                </div>
-                <div className="flex justify-between text-rose-600">
-                  <span>Pending:</span>
-                  <span className="text-rose-800 font-extrabold">₹{Math.round(stats.cards.booked?.pending || 0).toLocaleString()}</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Card 5: Handover */}
-            <div 
-              onClick={handleHandoverCardClick}
-              className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm hover:shadow-md transition cursor-pointer select-none active:scale-[0.99] duration-150"
-            >
-              <div className="flex items-center justify-between">
-                <div>
-                  <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Handover</span>
-                  <h3 className="text-2xl font-extrabold text-gray-800 mt-1 flex items-baseline gap-1 flex-wrap">
-                    <span>{stats.cards.handover?.total || 0}</span>
-                    <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider ml-0.5">Total</span>
-                    <span className="text-gray-300 text-xs mx-0.5">/</span>
-                    <span className="text-emerald-700">{stats.cards.handover?.live || 0}</span>
-                    <span className="text-[10px] text-gray-455 font-bold uppercase tracking-wider ml-0.5">Active</span>
-                  </h3>
-                </div>
-                <div className="flex flex-col items-end gap-1.5 shrink-0">
-                  <div className="p-3 bg-emerald-50 text-[#0e623a] rounded-2xl">
-                    <Building className="w-5 h-5" />
+                  <div className="p-3 bg-amber-50 text-amber-600 rounded-2xl">
+                    <Target className="w-5 h-5" />
                   </div>
-                  <span className="text-[9px] text-gray-500 font-bold bg-gray-100 px-2 py-0.5 rounded-full">Today: {stats.cards.today?.handover || 0}</span>
+                </div>
+                <div className="flex justify-between items-center mt-4 pt-2 border-t border-gray-50 text-[10px] font-bold">
+                  <span className="text-gray-400 font-semibold uppercase tracking-wider">Qualified Leads</span>
+                  <span className="text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">Today: {stats.cards.today?.hotList || 0}</span>
                 </div>
               </div>
-              <div className="mt-3 pt-2 border-t border-gray-50 space-y-1 text-[10px] font-bold uppercase">
-                <div className="flex justify-between text-gray-500">
-                  <span>Total Value:</span>
-                  <span className="text-gray-800 font-extrabold">₹{Math.round(stats.cards.handover?.value || 0).toLocaleString()}</span>
-                </div>
-                <div className="flex justify-between text-emerald-600">
-                  <span>Received:</span>
-                  <span className="text-emerald-800 font-extrabold">₹{Math.round(stats.cards.handover?.received || 0).toLocaleString()}</span>
-                </div>
-                <div className="flex justify-between text-rose-600">
-                  <span>Pending:</span>
-                  <span className="text-rose-800 font-extrabold">₹{Math.round(stats.cards.handover?.pending || 0).toLocaleString()}</span>
-                </div>
-              </div>
-            </div>
 
+              {/* Card 4: Total Booked */}
+              <div 
+                onClick={handleBookedCardClick}
+                className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm hover:shadow-md transition cursor-pointer select-none active:scale-[0.99] duration-150 flex flex-col justify-between"
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Total Booked</span>
+                    <h3 className="text-3xl font-extrabold text-gray-800 mt-1">{stats.cards.booked?.total || 0}</h3>
+                  </div>
+                  <div className="flex flex-col items-end gap-1.5 shrink-0">
+                    <div className="p-3 bg-rose-50 text-rose-600 rounded-2xl">
+                      <DollarSign className="w-5 h-5" />
+                    </div>
+                  </div>
+                </div>
+                <div className="mt-3 pt-2 border-t border-gray-50 space-y-1 text-[10px] font-bold uppercase">
+                  <div className="flex justify-between text-gray-500">
+                    <span>Total Value:</span>
+                    <span className="text-gray-800 font-extrabold">₹{Math.round(stats.cards.booked?.value || 0).toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between text-emerald-600">
+                    <span>Received:</span>
+                    <span className="text-emerald-800 font-extrabold">₹{Math.round(stats.cards.booked?.received || 0).toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between text-rose-600">
+                    <span>Pending:</span>
+                    <span className="text-rose-800 font-extrabold">₹{Math.round(stats.cards.booked?.pending || 0).toLocaleString()}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Card 5: Total Handover */}
+              <div 
+                onClick={handleHandoverCardClick}
+                className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm hover:shadow-md transition cursor-pointer select-none active:scale-[0.99] duration-150 flex flex-col justify-between"
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Total Handover</span>
+                    <h3 className="text-3xl font-extrabold text-gray-800 mt-1">{stats.cards.handover?.total || 0}</h3>
+                  </div>
+                  <div className="flex flex-col items-end gap-1.5 shrink-0">
+                    <div className="p-3 bg-emerald-50 text-[#0e623a] rounded-2xl">
+                      <Building className="w-5 h-5" />
+                    </div>
+                  </div>
+                </div>
+                <div className="mt-3 pt-2 border-t border-gray-50 space-y-1 text-[10px] font-bold uppercase">
+                  <div className="flex justify-between text-gray-500">
+                    <span>Total Value:</span>
+                    <span className="text-gray-800 font-extrabold">₹{Math.round(stats.cards.handover?.value || 0).toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between text-emerald-600">
+                    <span>Received:</span>
+                    <span className="text-emerald-800 font-extrabold">₹{Math.round(stats.cards.handover?.received || 0).toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between text-rose-600">
+                    <span>Pending:</span>
+                    <span className="text-rose-800 font-extrabold">₹{Math.round(stats.cards.handover?.pending || 0).toLocaleString()}</span>
+                  </div>
+                </div>
+              </div>
+
+            </div>
           </div>
 
-          {/* comparison pie charts */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            
-            {/* Chart 1: Budget Allocation Sources */}
-            <div className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm space-y-4 text-center">
-              <h3 className="text-sm font-extrabold text-gray-800 uppercase tracking-wide text-left">
-                Budget Allocation Sources
-              </h3>
-              {renderPieChart(budgetData, 'budget', 'source', primaryColors)}
-            </div>
+          {/* Row 2: Active / Live Status Cards */}
+          <div className="mt-6">
+            <h4 className="text-xs font-bold text-emerald-600 uppercase tracking-wider mb-3 text-left">Active / Live Status</h4>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
 
-            {/* Chart 2: Spent Marketing Sources */}
-            <div className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm space-y-4 text-center">
-              <h3 className="text-sm font-extrabold text-gray-800 uppercase tracking-wide text-left">
-                Spent Marketing Sources
-              </h3>
-              {renderPieChart(spentData, 'spent', 'source', primaryColors)}
-            </div>
+              {/* Card 6: Active Leads */}
+              <div 
+                onClick={handleLeadsCardClick}
+                className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm hover:shadow-md transition cursor-pointer select-none active:scale-[0.99] duration-150 flex flex-col justify-between"
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Active Leads</span>
+                    <h3 className="text-3xl font-extrabold text-emerald-700 mt-1">{stats.cards.liveLeads || 0}</h3>
+                  </div>
+                  <div className="p-3 bg-emerald-50 text-emerald-700 rounded-2xl">
+                    <TrendingUp className="w-5 h-5" />
+                  </div>
+                </div>
+                <div className="flex justify-between items-center mt-4 pt-2 border-t border-gray-50 text-[10px] font-bold">
+                  <span className="text-gray-400 font-semibold uppercase tracking-wider">Live Status</span>
+                  <span className="text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">Active</span>
+                </div>
+              </div>
 
-            {/* Chart 3: Incoming Networth Value */}
-            <div className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm space-y-4 text-center">
-              <h3 className="text-sm font-extrabold text-gray-800 uppercase tracking-wide text-left">
-                Incoming Networth Value
-              </h3>
-              {renderPieChart(networthData, 'networth', 'source', primaryColors)}
-            </div>
+              {/* Card 7: Active Followup */}
+              <div className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm hover:shadow-md transition cursor-pointer select-none flex flex-col justify-between">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Active Followup</span>
+                    <h3 className="text-3xl font-extrabold text-[#0e623a] mt-1">{stats.cards.enquiries?.live || 0}</h3>
+                  </div>
+                  <div className="p-3 bg-[#0e623a]/5 text-[#0e623a] rounded-2xl">
+                    <Users className="w-5 h-5" />
+                  </div>
+                </div>
+                <div className="flex justify-between items-center mt-4 pt-2 border-t border-gray-50 text-[10px] font-bold">
+                  <span className="text-gray-400 font-semibold uppercase tracking-wider">Live Status</span>
+                  <span className="text-[#0e623a] bg-[#0e623a]/5 px-2 py-0.5 rounded-full">Active</span>
+                </div>
+              </div>
 
+              {/* Card 8: Active Site Visits */}
+              <div className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm hover:shadow-md transition cursor-pointer select-none flex flex-col justify-between">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Active Site Visits</span>
+                    <h3 className="text-3xl font-extrabold text-blue-600 mt-1">{stats.cards.siteVisits?.live || 0}</h3>
+                  </div>
+                  <div className="p-3 bg-blue-50 text-blue-600 rounded-2xl">
+                    <MapPin className="w-5 h-5" />
+                  </div>
+                </div>
+                <div className="flex justify-between items-center mt-4 pt-2 border-t border-gray-50 text-[10px] font-bold">
+                  <span className="text-gray-400 font-semibold uppercase tracking-wider">Live Status</span>
+                  <span className="text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">Active</span>
+                </div>
+              </div>
+
+              {/* Card 9: Active Hot List */}
+              <div className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm hover:shadow-md transition flex flex-col justify-between">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Active Hot List</span>
+                    <h3 className="text-3xl font-extrabold text-amber-600 mt-1">{stats.cards.hotList?.live || 0}</h3>
+                  </div>
+                  <div className="p-3 bg-amber-50 text-amber-600 rounded-2xl">
+                    <Target className="w-5 h-5" />
+                  </div>
+                </div>
+                <div className="flex justify-between items-center mt-4 pt-2 border-t border-gray-50 text-[10px] font-bold">
+                  <span className="text-gray-400 font-semibold uppercase tracking-wider">Live Status</span>
+                  <span className="text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">Active</span>
+                </div>
+              </div>
+
+              {/* Card 10: Active Booked */}
+              <div 
+                onClick={handleBookedCardClick}
+                className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm hover:shadow-md transition cursor-pointer select-none active:scale-[0.99] duration-150 flex flex-col justify-between"
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Active Booked</span>
+                    <h3 className="text-3xl font-extrabold text-rose-600 mt-1">{stats.cards.booked?.live || 0}</h3>
+                  </div>
+                  <div className="flex flex-col items-end gap-1.5 shrink-0">
+                    <div className="p-3 bg-rose-50 text-rose-600 rounded-2xl">
+                      <DollarSign className="w-5 h-5" />
+                    </div>
+                    <span className="text-[9px] text-gray-500 font-bold bg-gray-100 px-2 py-0.5 rounded-full">Today: {stats.cards.booked?.live || 0}</span>
+                  </div>
+                </div>
+                <div className="mt-3 pt-2 border-t border-gray-50 space-y-1 text-[10px] font-bold uppercase">
+                  <div className="flex justify-between text-gray-500">
+                    <span>Total Value:</span>
+                    <span className="text-gray-800 font-extrabold">₹{Math.round(stats.cards.booked?.value || 0).toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between text-emerald-600">
+                    <span>Received:</span>
+                    <span className="text-emerald-800 font-extrabold">₹{Math.round(stats.cards.booked?.received || 0).toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between text-rose-600">
+                    <span>Pending:</span>
+                    <span className="text-rose-800 font-extrabold">₹{Math.round(stats.cards.booked?.pending || 0).toLocaleString()}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Card 11: Active Handover */}
+              <div 
+                onClick={handleHandoverCardClick}
+                className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm hover:shadow-md transition cursor-pointer select-none active:scale-[0.99] duration-150 flex flex-col justify-between"
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Active Handover</span>
+                    <h3 className="text-3xl font-extrabold text-emerald-700 mt-1">{stats.cards.handover?.live || 0}</h3>
+                  </div>
+                  <div className="flex flex-col items-end gap-1.5 shrink-0">
+                    <div className="p-3 bg-emerald-50 text-[#0e623a] rounded-2xl">
+                      <Building className="w-5 h-5" />
+                    </div>
+                    <span className="text-[9px] text-gray-500 font-bold bg-gray-100 px-2 py-0.5 rounded-full">Today: {stats.cards.today?.handover || 0}</span>
+                  </div>
+                </div>
+                <div className="mt-3 pt-2 border-t border-gray-50 space-y-1 text-[10px] font-bold uppercase">
+                  <div className="flex justify-between text-gray-500">
+                    <span>Total Value:</span>
+                    <span className="text-gray-800 font-extrabold">₹{Math.round(stats.cards.handover?.value || 0).toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between text-emerald-600">
+                    <span>Received:</span>
+                    <span className="text-emerald-800 font-extrabold">₹{Math.round(stats.cards.handover?.received || 0).toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between text-rose-600">
+                    <span>Pending:</span>
+                    <span className="text-rose-800 font-extrabold">₹{Math.round(stats.cards.handover?.pending || 0).toLocaleString()}</span>
+                  </div>
+                </div>
+              </div>
+
+            </div>
           </div>
 
           {/* User Wise & Stage Wise Performance Pie Reports */}
@@ -1947,7 +2198,7 @@ const Dashboard = () => {
                       { label: 'Booking', count: selectedUserPerfData.booked, color: 'bg-rose-500', icon: DollarSign },
                       { label: 'Handover', count: selectedUserPerfData.handover, color: 'bg-emerald-700', icon: Building },
                       { label: 'Lost', count: selectedUserPerfData.lost, color: 'bg-red-500', icon: TrendingDown }
-                    ].map((m, idx) => {
+                    ].filter(m => m.label === 'Total Leads' || m.count > 0).map((m, idx) => {
                       const IconComponent = m.icon;
                       const percentageOfTotal = selectedUserPerfData.totalLeads > 0 
                         ? (m.count / selectedUserPerfData.totalLeads) * 100 
@@ -2082,7 +2333,7 @@ const Dashboard = () => {
                       { label: 'Booking', count: selectedSourcePerfData.booked, color: 'bg-rose-500', icon: DollarSign },
                       { label: 'Handover', count: selectedSourcePerfData.handover, color: 'bg-emerald-700', icon: Building },
                       { label: 'Lost', count: selectedSourcePerfData.lost, color: 'bg-red-500', icon: TrendingDown }
-                    ].map((m, idx) => {
+                    ].filter(m => m.label === 'Total Leads' || m.count > 0).map((m, idx) => {
                       const IconComponent = m.icon;
                       const percentageOfTotal = selectedSourcePerfData.totalLeads > 0 
                         ? (m.count / selectedSourcePerfData.totalLeads) * 100 
@@ -2104,7 +2355,7 @@ const Dashboard = () => {
                             <div className="font-extrabold text-gray-800">
                               {m.count}
                               {m.label !== 'Total Leads' && selectedSourcePerfData.totalLeads > 0 && (
-                                <span className="text-[9px] text-gray-450 font-normal ml-1">({percentageOfTotal.toFixed(0)}%)</span>
+                                <span className="text-[9px] text-gray-455 font-normal ml-1">({percentageOfTotal.toFixed(0)}%)</span>
                               )}
                             </div>
                           </div>
@@ -2120,6 +2371,35 @@ const Dashboard = () => {
                   </div>
                 </div>
               </div>
+            </div>
+
+          </div>
+
+          {/* comparison pie charts */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            {/* Chart 1: Budget Allocation Sources */}
+            <div className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm space-y-4 text-center">
+              <h3 className="text-sm font-extrabold text-gray-800 uppercase tracking-wide text-left">
+                Budget Allocation Sources
+              </h3>
+              {renderPieChart(budgetData, 'budget', 'source', primaryColors)}
+            </div>
+
+            {/* Chart 2: Spent Marketing Sources */}
+            <div className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm space-y-4 text-center">
+              <h3 className="text-sm font-extrabold text-gray-800 uppercase tracking-wide text-left">
+                Spent Marketing Sources
+              </h3>
+              {renderPieChart(spentData, 'spent', 'source', primaryColors)}
+            </div>
+
+            {/* Chart 3: Incoming Networth Value */}
+            <div className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm space-y-4 text-center">
+              <h3 className="text-sm font-extrabold text-gray-800 uppercase tracking-wide text-left">
+                Incoming Networth Value
+              </h3>
+              {renderPieChart(networthData, 'networth', 'source', primaryColors)}
             </div>
 
           </div>
@@ -2181,28 +2461,7 @@ const Dashboard = () => {
           </div>
 
           {/* Project Wise Visual Charts */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm space-y-4">
-              <h3 className="text-sm font-extrabold text-gray-800 uppercase tracking-wide border-b border-gray-100 pb-3 text-left">
-                Project Wise Booked Turnover
-              </h3>
-              <div>
-                {Object.keys(stats.projectStats || {}).length === 0 ? (
-                  <p className="text-gray-400 italic text-xs py-8 text-center">No project metrics logged</p>
-                ) : (
-                  renderPieChart(
-                    Object.keys(stats.projectStats).map(pCode => ({
-                      projectCode: pCode,
-                      value: stats.projectStats[pCode].value || 0
-                    })),
-                    'value',
-                    'projectCode',
-                    primaryColors
-                  )
-                )}
-              </div>
-            </div>
-
+          <div className="grid grid-cols-1 gap-6">
             <div className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm space-y-4">
               <h3 className="text-sm font-extrabold text-gray-800 uppercase tracking-wide border-b border-gray-100 pb-3 text-left">
                 Project Wise Leads Share
@@ -2960,6 +3219,141 @@ const Dashboard = () => {
               >
                 <Download className="w-3.5 h-3.5" />
                 <span>Download Excel</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Project Inventory Detail Modal */}
+      {inventoryModalOpen && selectedInventoryProj && (
+        <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm z-[999] flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl border border-gray-150 shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden text-left animate-fadeIn">
+            {/* Header */}
+            <div className="p-6 border-b border-gray-150 flex items-center justify-between bg-[#0e623a] text-white">
+              <div>
+                <h3 className="text-base font-extrabold">{selectedInventoryProj.projCode} Project Inventory Details</h3>
+                <p className="text-[10px] text-emerald-100 mt-0.5">Detailed breakdown of registered units and stages</p>
+              </div>
+              <button 
+                onClick={() => setInventoryModalOpen(false)}
+                className="w-8 h-8 rounded-full flex items-center justify-center bg-white/10 text-white hover:bg-white/20 transition cursor-pointer font-bold border border-white/25"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="flex-grow p-6 overflow-y-auto scrollbar-thin space-y-6">
+              {/* Summary Stats Grid */}
+              <div className="grid grid-cols-4 gap-4">
+                <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4 text-center">
+                  <span className="text-[10px] text-gray-400 font-extrabold uppercase tracking-wider block">Total Units</span>
+                  <span className="text-2xl font-black text-slate-800 block mt-1">{selectedInventoryProj.stats.total || 0}</span>
+                </div>
+                <div className="bg-[#7ebda9]/10 border border-[#7ebda9]/30 rounded-2xl p-4 text-center">
+                  <span className="text-[10px] text-[#5b9683] font-extrabold uppercase tracking-wider block">Available</span>
+                  <span className="text-2xl font-black text-[#004d61] block mt-1">{selectedInventoryProj.stats.available || 0}</span>
+                </div>
+                <div className="bg-[#8bc34a]/10 border border-[#8bc34a]/30 rounded-2xl p-4 text-center">
+                  <span className="text-[10px] text-[#71a632] font-extrabold uppercase tracking-wider block">Booked</span>
+                  <span className="text-2xl font-black text-[#558b2f] block mt-1">{selectedInventoryProj.stats.booked || 0}</span>
+                </div>
+                <div className="bg-[#004d61]/10 border border-[#004d61]/30 rounded-2xl p-4 text-center">
+                  <span className="text-[10px] text-[#004d61] font-extrabold uppercase tracking-wider block">Handover</span>
+                  <span className="text-2xl font-black text-[#004d61] block mt-1">{selectedInventoryProj.stats.handover || 0}</span>
+                </div>
+              </div>
+
+              {/* Units Lists sections */}
+              <div className="space-y-4 font-serif" style={{ fontFamily: '"Times New Roman", Times, serif' }}>
+                
+                {/* Available Section */}
+                <div className="space-y-2">
+                  <h4 className="text-xs font-bold text-[#004d61] uppercase tracking-wide flex items-center gap-1.5">
+                    <span className="w-2.5 h-2.5 rounded-full bg-[#7ebda9]"></span>
+                    <span>Available Units ({selectedInventoryProj.stats.availableUnitsList?.length || 0})</span>
+                  </h4>
+                  <div className="bg-emerald-50/20 border border-emerald-100/50 rounded-2xl p-4 min-h-[50px] flex flex-wrap gap-2">
+                    {selectedInventoryProj.stats.availableUnitsList?.length > 0 ? (
+                      selectedInventoryProj.stats.availableUnitsList.map(uid => (
+                        <span key={uid} className="bg-emerald-100/80 text-emerald-800 border border-emerald-250 text-xs font-bold px-3 py-1 rounded-xl">
+                          {uid}
+                        </span>
+                      ))
+                    ) : (
+                      <span className="text-gray-400 italic text-xs">No units available</span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Booked Section */}
+                <div className="space-y-2">
+                  <h4 className="text-xs font-bold text-[#558b2f] uppercase tracking-wide flex items-center gap-1.5">
+                    <span className="w-2.5 h-2.5 rounded-full bg-[#8bc34a]"></span>
+                    <span>Booked Units ({selectedInventoryProj.stats.bookedUnitsList?.length || 0})</span>
+                  </h4>
+                  <div className="bg-amber-50/20 border border-amber-100/50 rounded-2xl p-4 min-h-[50px] flex flex-wrap gap-2">
+                    {selectedInventoryProj.stats.bookedUnitsList?.length > 0 ? (
+                      selectedInventoryProj.stats.bookedUnitsList.map(uid => (
+                        <span key={uid} className="bg-amber-100/80 text-amber-800 border border-amber-250 text-xs font-bold px-3 py-1 rounded-xl">
+                          {uid}
+                        </span>
+                      ))
+                    ) : (
+                      <span className="text-gray-400 italic text-xs">No units booked</span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Handover Section */}
+                <div className="space-y-2">
+                  <h4 className="text-xs font-bold text-[#004d61] uppercase tracking-wide flex items-center gap-1.5">
+                    <span className="w-2.5 h-2.5 rounded-full bg-[#004d61]"></span>
+                    <span>Handover Units ({selectedInventoryProj.stats.handoverUnitsList?.length || 0})</span>
+                  </h4>
+                  <div className="bg-blue-50/20 border border-blue-100/50 rounded-2xl p-4 min-h-[50px] flex flex-wrap gap-2">
+                    {selectedInventoryProj.stats.handoverUnitsList?.length > 0 ? (
+                      selectedInventoryProj.stats.handoverUnitsList.map(uid => (
+                        <span key={uid} className="bg-blue-100/80 text-blue-800 border border-blue-250 text-xs font-bold px-3 py-1 rounded-xl">
+                          {uid}
+                        </span>
+                      ))
+                    ) : (
+                      <span className="text-gray-400 italic text-xs">No units handed over</span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Total Units List */}
+                <div className="space-y-2">
+                  <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wide flex items-center gap-1.5">
+                    <span className="w-2.5 h-2.5 rounded-full bg-slate-500"></span>
+                    <span>All Registered Units ({selectedInventoryProj.stats.totalUnitsList?.length || 0})</span>
+                  </h4>
+                  <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4 min-h-[50px] flex flex-wrap gap-2">
+                    {selectedInventoryProj.stats.totalUnitsList?.length > 0 ? (
+                      selectedInventoryProj.stats.totalUnitsList.map(uid => (
+                        <span key={uid} className="bg-slate-100 text-slate-700 border border-slate-200 text-xs font-bold px-3 py-1 rounded-xl">
+                          {uid}
+                        </span>
+                      ))
+                    ) : (
+                      <span className="text-gray-400 italic text-xs">No units registered</span>
+                    )}
+                  </div>
+                </div>
+
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="p-5 border-t border-gray-150 bg-gray-50/30 flex justify-end">
+              <button
+                onClick={() => setInventoryModalOpen(false)}
+                className="px-5 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 hover:text-gray-900 text-xs font-bold rounded-xl transition"
+              >
+                Close Details
               </button>
             </div>
           </div>

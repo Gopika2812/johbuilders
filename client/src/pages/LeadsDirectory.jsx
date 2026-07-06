@@ -889,26 +889,36 @@ const LeadsDirectory = () => {
         return;
       }
 
+      const logoPath = window.location.origin + "/jb_logo.jpg";
+
       // Generate styled HTML sheet
       let html = `
         <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
         <head>
           <meta charset="utf-8">
           <style>
-            table { border-collapse: collapse; font-family: Calibri, sans-serif; width: 100%; }
-            td, th { border: 1px solid #000000; padding: 6px; text-align: center; font-size: 11px; }
-            .title-header { background-color: #0e623a; color: white; font-weight: bold; font-size: 14px; height: 32px; text-transform: uppercase; }
-            .table-headers { background-color: #D9E1F2; font-weight: bold; }
+            table { border-collapse: collapse; }
+            td, th { border: 1px solid #cbd5e1; padding: 10px 14px; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; font-size: 10pt; color: #334155; }
+            th { font-weight: bold; background-color: #0e623a; color: white; border: 1px solid #0e623a; text-align: center; }
+            .title-row { font-size: 14pt; font-weight: bold; color: #0e623a; }
+            .even-row { background-color: #f8fafc; }
+            .bold-label { font-weight: bold; color: #0f172a; }
             .text-left { text-align: left; }
             .text-right { text-align: right; }
           </style>
         </head>
         <body>
           <table>
-            <!-- Title Header -->
-            <tr>
-              <td colspan="11" class="title-header">LEADS DIRECTORY REPORT</td>
+            <tr style="height: 120px;">
+              <td colspan="3" style="background-color: #0e623a; border: none; text-align: center; vertical-align: middle; height: 120px;">
+                <img src="${logoPath}" height="95" style="height: 95px; width: auto; display: block; margin: 0 auto;" />
+              </td>
+              <td colspan="9" class="title-row" style="border:none; vertical-align:middle; text-align:center; font-size: 14pt; font-weight: bold; color: #0e623a; height: 120px;">
+                LEADS DIRECTORY REPORT
+              </td>
             </tr>
+            <tr><td colspan="12" style="border:none; height: 15px;"></td></tr>
+            
             <!-- Table Headers -->
             <tr class="table-headers">
               <th>S No</th>
@@ -918,9 +928,10 @@ const LeadsDirectory = () => {
               <th>Lead Type</th>
               <th>Source / Campaign</th>
               <th>Project</th>
-              <th>Assigned Executive</th>
+              <th>Assigned Person</th>
+              <th>Assigned By</th>
               <th>Workflow Status</th>
-              <th>Lead Cost</th>
+              <th>Booking Value</th>
               <th>Remarks / Notes</th>
             </tr>
       `;
@@ -932,23 +943,38 @@ const LeadsDirectory = () => {
         const sourceStr = lead.leadSource || (lead.leadType === 'Direct Visit' ? 'Direct Visit' : '');
         const projectStr = lead.project?.code || lead.project?.name || '';
         const execName = lead.assignedTo?.name || 'UNASSIGNED';
+        const assignerName = lead.assignedBy?.name || '—';
         const wStatus = lead.status || '';
-        const lCost = lead.leadCost ? `₹ ${lead.leadCost.toLocaleString()}` : '₹ 0';
+        
+        // Calculate booking value from selected units
+        let bookingVal = 0;
+        if (lead.bookingInfo?.selectedUnits && lead.project?.units) {
+          lead.bookingInfo.selectedUnits.forEach(unitId => {
+            const unit = lead.project.units.find(u => u.unitId === unitId);
+            if (unit) {
+              bookingVal += unit.price || 0;
+            }
+          });
+        }
+        const bookingValStr = bookingVal > 0 ? `₹ ${bookingVal.toLocaleString()}` : '₹ 0';
+
         const regDate = lead.createdAt ? new Date(lead.createdAt).toLocaleDateString('en-GB').replace(/\//g, '.') : '';
         const remarksStr = [lead.followUpInfo?.remarks, lead.closeRemarks].filter(Boolean).join(' / ') || '';
+        const rowClass = index % 2 === 1 ? 'class="even-row"' : '';
  
         html += `
-          <tr>
+          <tr ${rowClass}>
             <td>${index + 1}</td>
             <td>${regDate}</td>
-            <td class="text-left">${custName}</td>
+            <td class="text-left bold-label">${custName}</td>
             <td>'${contactNo}</td>
             <td>${lType}</td>
             <td class="text-left">${sourceStr}</td>
             <td>${projectStr}</td>
             <td>${execName}</td>
+            <td>${assignerName}</td>
             <td>${wStatus}</td>
-            <td class="text-right">${lCost}</td>
+            <td class="text-right">${bookingValStr}</td>
             <td class="text-left">${remarksStr}</td>
           </tr>
         `;
