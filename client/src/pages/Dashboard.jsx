@@ -459,6 +459,7 @@ const Dashboard = () => {
   const [breakdownModalData, setBreakdownModalData] = useState({ title: '', users: [] });
   const [inventoryModalOpen, setInventoryModalOpen] = useState(false);
   const [selectedInventoryProj, setSelectedInventoryProj] = useState(null); // { projCode, stats }
+  const [cardBreakdownModal, setCardBreakdownModal] = useState({ open: false, type: '' });
 
   const handleStageClick = (stageLabel, sourceContext) => {
     if (!stats.cards.leadsList) return;
@@ -1807,7 +1808,7 @@ const Dashboard = () => {
             <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 text-left">Total Performance Metrics</h4>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
               
-              {/* Card 0: Total Leads */}
+              {/* Card 0: Total Leads / Lost Leads */}
               <div 
                 onClick={handleLeadsCardClick}
                 className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm hover:shadow-md transition cursor-pointer select-none active:scale-[0.99] duration-150 flex flex-col justify-between"
@@ -1815,15 +1816,13 @@ const Dashboard = () => {
                 <div className="flex items-center justify-between">
                   <div>
                     <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Total Leads</span>
-                    <h3 className="text-3xl font-extrabold text-gray-800 mt-1 flex flex-col gap-1 items-start">
-                      <span>{stats.cards.totalLeads || 0}</span>
-                      <span className="text-[10px] text-rose-600 font-extrabold bg-rose-50 px-2 py-0.5 rounded-full mt-0.5">
-                        Lost: {(stats.cards.enquiries?.closed || 0) + (stats.cards.siteVisits?.closed || 0)}
-                      </span>
-                    </h3>
+                    <h3 className="text-3xl font-extrabold text-gray-800 mt-1">{stats.cards.totalLeads || 0}</h3>
                   </div>
-                  <div className="p-3 bg-[#0e623a]/10 text-[#0e623a] rounded-2xl shrink-0">
-                    <TrendingUp className="w-5 h-5" />
+                  <div className="flex flex-col items-center gap-1">
+                    <div className="p-2.5 bg-rose-50 text-rose-600 rounded-2xl">
+                      <TrendingDown className="w-5 h-5" />
+                    </div>
+                    <span className="text-[10px] text-rose-600 font-extrabold">Lost: {(stats.cards.enquiries?.closed || 0) + (stats.cards.siteVisits?.closed || 0)}</span>
                   </div>
                 </div>
                 <div className="flex justify-between items-center mt-4 pt-2 border-t border-gray-50 text-[10px] font-bold">
@@ -1833,7 +1832,10 @@ const Dashboard = () => {
               </div>
 
               {/* Card 1: Total Followup */}
-              <div className="relative group bg-white border border-gray-100 rounded-3xl p-6 shadow-sm hover:shadow-md transition cursor-pointer select-none flex flex-col justify-between">
+              <div 
+                onClick={() => setCardBreakdownModal({ open: true, type: 'enquiries' })}
+                className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm hover:shadow-md transition cursor-pointer select-none active:scale-[0.99] duration-150 flex flex-col justify-between"
+              >
                 <div className="flex items-center justify-between">
                   <div>
                     <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Total Followup</span>
@@ -1846,29 +1848,17 @@ const Dashboard = () => {
                 <div className="flex justify-between items-center mt-4 pt-2 border-t border-gray-50 text-[10px] font-bold">
                   <span className="text-gray-400 font-semibold uppercase tracking-wider flex items-center gap-1">
                     <span>Breakdown</span>
-                    <ArrowRight className="w-3 h-3 group-hover:translate-x-1 transition" />
+                    <ArrowRight className="w-3 h-3" />
                   </span>
                   <span className="text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">Today: {stats.cards.today?.enquiries || 0}</span>
-                </div>
-                <div className="absolute inset-0 bg-gray-900/95 backdrop-blur-sm rounded-3xl p-5 flex flex-col justify-center text-left opacity-0 group-hover:opacity-100 transition duration-300 pointer-events-none z-20">
-                  <h4 className="text-xs font-bold text-white uppercase tracking-wider mb-2 pb-1 border-b border-gray-800">
-                    Enquiries Stage Breakdown
-                  </h4>
-                  <div className="space-y-1 text-[11px] font-bold text-gray-300">
-                    <div className="flex justify-between">
-                      <span>Contacted Closed:</span>
-                      <span className="text-white">{stats.cards.enquiries.closed}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Follow-Up:</span>
-                      <span className="text-white">{stats.cards.enquiries.followup}</span>
-                    </div>
-                  </div>
                 </div>
               </div>
 
               {/* Card 2: Total Site Visits */}
-              <div className="relative group bg-white border border-gray-100 rounded-3xl p-6 shadow-sm hover:shadow-md transition cursor-pointer select-none flex flex-col justify-between">
+              <div 
+                onClick={() => setCardBreakdownModal({ open: true, type: 'siteVisits' })}
+                className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm hover:shadow-md transition cursor-pointer select-none active:scale-[0.99] duration-150 flex flex-col justify-between"
+              >
                 <div className="flex items-center justify-between">
                   <div>
                     <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Total Site Visits</span>
@@ -1881,24 +1871,9 @@ const Dashboard = () => {
                 <div className="flex justify-between items-center mt-4 pt-2 border-t border-gray-50 text-[10px] font-bold">
                   <span className="text-gray-400 font-semibold uppercase tracking-wider flex items-center gap-1">
                     <span>Breakdown</span>
-                    <ArrowRight className="w-3 h-3 group-hover:translate-x-1 transition" />
+                    <ArrowRight className="w-3 h-3" />
                   </span>
                   <span className="text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">Today: {stats.cards.today?.siteVisits || 0}</span>
-                </div>
-                <div className="absolute inset-0 bg-gray-900/95 backdrop-blur-sm rounded-3xl p-5 flex flex-col justify-center text-left opacity-0 group-hover:opacity-100 transition duration-300 pointer-events-none z-20">
-                  <h4 className="text-xs font-bold text-white uppercase tracking-wider mb-2 pb-1 border-b border-gray-800">
-                    Site Visit Breakdown
-                  </h4>
-                  <div className="space-y-1 text-[11px] font-bold text-gray-300">
-                    <div className="flex justify-between">
-                      <span>Site Visit:</span>
-                      <span className="text-white">{(stats.cards.siteVisits.siteVisit || 0) + (stats.cards.siteVisits.followup || 0)}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Site Visit Closed:</span>
-                      <span className="text-white">{stats.cards.siteVisits.closed || 0}</span>
-                    </div>
-                  </div>
                 </div>
               </div>
 
@@ -1991,7 +1966,7 @@ const Dashboard = () => {
             <h4 className="text-xs font-bold text-emerald-600 uppercase tracking-wider mb-3 text-left">Active / Live Status</h4>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
 
-              {/* Card 6: Active Leads */}
+              {/* Card 6: Active Leads / Active Losts */}
               <div 
                 onClick={handleLeadsCardClick}
                 className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm hover:shadow-md transition cursor-pointer select-none active:scale-[0.99] duration-150 flex flex-col justify-between"
@@ -2001,8 +1976,11 @@ const Dashboard = () => {
                     <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Active Leads</span>
                     <h3 className="text-3xl font-extrabold text-emerald-700 mt-1">{stats.cards.liveLeads || 0}</h3>
                   </div>
-                  <div className="p-3 bg-emerald-50 text-emerald-700 rounded-2xl">
-                    <TrendingUp className="w-5 h-5" />
+                  <div className="flex flex-col items-center gap-1">
+                    <div className="p-2.5 bg-rose-50 text-rose-600 rounded-2xl">
+                      <TrendingDown className="w-5 h-5" />
+                    </div>
+                    <span className="text-[10px] text-rose-600 font-extrabold">Lost: {(stats.cards.enquiries?.closed || 0) + (stats.cards.siteVisits?.closed || 0)}</span>
                   </div>
                 </div>
                 <div className="flex justify-between items-center mt-4 pt-2 border-t border-gray-50 text-[10px] font-bold">
@@ -3352,6 +3330,111 @@ const Dashboard = () => {
                 className="px-5 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 hover:text-gray-900 text-xs font-bold rounded-xl transition"
               >
                 Close Details
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Card Breakdown Modal (Enquiries / Site Visits) */}
+      {cardBreakdownModal.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
+            {/* Header */}
+            <div className="p-6 pb-4 border-b border-gray-100 bg-gradient-to-r from-[#0e623a]/5 to-blue-50/50">
+              <div className="flex items-center justify-between">
+                <h3 className="text-base font-extrabold text-gray-800 flex items-center gap-2">
+                  {cardBreakdownModal.type === 'enquiries' ? (
+                    <>
+                      <Users className="w-5 h-5 text-[#0e623a]" />
+                      <span>Enquiries Stage Breakdown</span>
+                    </>
+                  ) : (
+                    <>
+                      <MapPin className="w-5 h-5 text-blue-600" />
+                      <span>Site Visit Stage Breakdown</span>
+                    </>
+                  )}
+                </h3>
+                <button
+                  onClick={() => setCardBreakdownModal({ open: false, type: '' })}
+                  className="p-2 hover:bg-gray-100 rounded-xl transition cursor-pointer"
+                >
+                  <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            {/* Body */}
+            <div className="p-6 space-y-3">
+              {cardBreakdownModal.type === 'enquiries' ? (
+                <>
+                  <div className="flex items-center justify-between bg-gray-50 rounded-2xl p-4 border border-gray-100">
+                    <div className="flex items-center gap-3">
+                      <div className="w-3 h-3 rounded-full bg-[#0e623a]"></div>
+                      <span className="text-sm font-bold text-gray-700">Follow-Up (Active)</span>
+                    </div>
+                    <span className="text-xl font-extrabold text-[#0e623a]">{stats.cards.enquiries?.followup || 0}</span>
+                  </div>
+                  <div className="flex items-center justify-between bg-gray-50 rounded-2xl p-4 border border-gray-100">
+                    <div className="flex items-center gap-3">
+                      <div className="w-3 h-3 rounded-full bg-amber-500"></div>
+                      <span className="text-sm font-bold text-gray-700">Contacted</span>
+                    </div>
+                    <span className="text-xl font-extrabold text-amber-600">{stats.cards.enquiries?.contacted || 0}</span>
+                  </div>
+                  <div className="flex items-center justify-between bg-rose-50/50 rounded-2xl p-4 border border-rose-100">
+                    <div className="flex items-center gap-3">
+                      <div className="w-3 h-3 rounded-full bg-rose-500"></div>
+                      <span className="text-sm font-bold text-rose-700">Contacted Closed (Lost)</span>
+                    </div>
+                    <span className="text-xl font-extrabold text-rose-600">{stats.cards.enquiries?.closed || 0}</span>
+                  </div>
+                  <div className="flex items-center justify-between bg-[#0e623a]/5 rounded-2xl p-4 border border-[#0e623a]/10 mt-2">
+                    <span className="text-sm font-extrabold text-gray-800">Total Enquiries</span>
+                    <span className="text-xl font-extrabold text-gray-800">{stats.cards.enquiries?.total || 0}</span>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="flex items-center justify-between bg-gray-50 rounded-2xl p-4 border border-gray-100">
+                    <div className="flex items-center gap-3">
+                      <div className="w-3 h-3 rounded-full bg-blue-500"></div>
+                      <span className="text-sm font-bold text-gray-700">Site Visit (Active)</span>
+                    </div>
+                    <span className="text-xl font-extrabold text-blue-600">{(stats.cards.siteVisits?.siteVisit || 0) + (stats.cards.siteVisits?.followup || 0)}</span>
+                  </div>
+                  <div className="flex items-center justify-between bg-gray-50 rounded-2xl p-4 border border-gray-100">
+                    <div className="flex items-center gap-3">
+                      <div className="w-3 h-3 rounded-full bg-purple-500"></div>
+                      <span className="text-sm font-bold text-gray-700">Site Visit Follow-up</span>
+                    </div>
+                    <span className="text-xl font-extrabold text-purple-600">{stats.cards.siteVisits?.followup || 0}</span>
+                  </div>
+                  <div className="flex items-center justify-between bg-rose-50/50 rounded-2xl p-4 border border-rose-100">
+                    <div className="flex items-center gap-3">
+                      <div className="w-3 h-3 rounded-full bg-rose-500"></div>
+                      <span className="text-sm font-bold text-rose-700">Site Visit Closed (Lost)</span>
+                    </div>
+                    <span className="text-xl font-extrabold text-rose-600">{stats.cards.siteVisits?.closed || 0}</span>
+                  </div>
+                  <div className="flex items-center justify-between bg-blue-50/50 rounded-2xl p-4 border border-blue-100 mt-2">
+                    <span className="text-sm font-extrabold text-gray-800">Total Site Visits</span>
+                    <span className="text-xl font-extrabold text-gray-800">{stats.cards.siteVisits?.total || 0}</span>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="p-5 border-t border-gray-100 bg-gray-50/30 flex justify-end">
+              <button
+                onClick={() => setCardBreakdownModal({ open: false, type: '' })}
+                className="px-5 py-2.5 bg-[#0e623a] hover:bg-[#0b4d2d] text-white text-xs font-bold rounded-xl transition cursor-pointer"
+              >
+                Close
               </button>
             </div>
           </div>
