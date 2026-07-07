@@ -13,7 +13,8 @@ import {
   AlertCircle, 
   Paperclip,
   Check,
-  BookOpen
+  BookOpen,
+  History
 } from 'lucide-react';
 
 const defaultStagesTemplate = [
@@ -101,6 +102,17 @@ const CRDFlow = () => {
   // Document Preview modal
   const [previewingDoc, setPreviewingDoc] = useState(null);
 
+  // Completion Notes Modal
+  const [completeStageIdx, setCompleteStageIdx] = useState(null);
+  const [completionNotes, setCompletionNotes] = useState('');
+
+  // Cancellation Modal
+  const [cancelModalOpen, setCancelModalOpen] = useState(false);
+  const [cancelNarration, setCancelNarration] = useState('');
+
+  // History Modal
+  const [historyModalOpen, setHistoryModalOpen] = useState(false);
+
   useEffect(() => {
     fetchProjectsAndBookings();
   }, [token]);
@@ -111,7 +123,7 @@ const CRDFlow = () => {
       const projRes = await fetch(`${API_URL}/projects`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
-      const leadRes = await fetch(`${API_URL}/leads?status=Booking`, {
+      const leadRes = await fetch(`${API_URL}/leads?status=Booking,Cancelled`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const flowsRes = await fetch(`${API_URL}/crd-flow`, {
@@ -359,13 +371,14 @@ const CRDFlow = () => {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ uploadedPdfs: pdfFiles })
+        body: JSON.stringify({ uploadedPdfs: pdfFiles, completionNotes })
       });
 
       if (res.ok) {
         const updated = await res.json();
         setActiveFlow(updated);
         setSuccess('Stage completed successfully with uploaded documents!');
+        setCompletionNotes('');
         setTimeout(() => setSuccess(''), 4000);
       }
     } catch (err) {
@@ -378,18 +391,76 @@ const CRDFlow = () => {
       const res = await fetch(`${API_URL}/crd-flow/${activeFlow._id}/stage/${stageIdx}/complete`, {
         method: 'PUT',
         headers: {
+          'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
-        }
+        },
+        body: JSON.stringify({ completionNotes })
       });
 
       if (res.ok) {
         const updated = await res.json();
         setActiveFlow(updated);
         setSuccess('Stage marked as completed!');
+        setCompleteStageIdx(null);
+        setCompletionNotes('');
         setTimeout(() => setSuccess(''), 4000);
       }
     } catch (err) {
       setError('Error completing stage');
+    }
+  };
+
+  const handleCancelRequest = async (e) => {
+    e.preventDefault();
+    if (!cancelNarration.trim()) {
+      alert('Narration is required to request cancellation');
+      return;
+    }
+    try {
+      const res = await fetch(`${API_URL}/crd-flow/${activeFlow._id}/cancel-request`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ narration: cancelNarration })
+      });
+      if (res.ok) {
+        const updated = await res.json();
+        setActiveFlow(updated);
+        setSuccess('Cancellation request sent successfully!');
+        setCancelModalOpen(false);
+        setCancelNarration('');
+        setTimeout(() => setSuccess(''), 4000);
+      } else {
+        const data = await res.json();
+        alert(data.message || 'Error requesting cancellation');
+      }
+    } catch (err) {
+      setError('Failed to request cancellation');
+    }
+  };
+
+  const handleReturnPayment = async () => {
+    if (!window.confirm('Are you sure you want to return the payment and make the unit available?')) return;
+    try {
+      const res = await fetch(`${API_URL}/crd-flow/${activeFlow._id}/return-payment`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      if (res.ok) {
+        const updated = await res.json();
+        setActiveFlow(updated);
+        setSuccess('Payment returned successfully. Units freed up.');
+        setTimeout(() => setSuccess(''), 4000);
+      } else {
+        const data = await res.json();
+        alert(data.message || 'Error returning payment');
+      }
+    } catch (err) {
+      setError('Failed to return payment');
     }
   };
 
@@ -526,6 +597,46 @@ const CRDFlow = () => {
                 (Base: Rs. {activeFlow.totalOriginalValue.toLocaleString()} + Extra: Rs. {activeFlow.totalExtraWorksValue.toLocaleString()})
               </span>
             )}
+
+            {/* Action Buttons */}
+            <div className="flex items-center gap-2 mt-2 pt-2 border-t border-emerald-100 w-full justify-end">
+              <button 
+                onClick={() => setHistoryModalOpen(true)}
+                className="text-[10px] font-bold bg-white text-gray-600 border border-gray-200 px-2 py-1 rounded hover:bg-gray-50"
+              >
+                View History
+              </button>
+              
+              {activeFlow.status === 'Active' && (
+                <button 
+                  onClick={() => setCancelModalOpen(true)}
+                  className="text-[10px] font-bold bg-red-50 text-red-600 border border-red-200 px-2 py-1 rounded hover:bg-red-100"
+                >
+                  Cancel Plan
+                </button>
+              )}
+              
+              {activeFlow.status === 'Cancel Requested' && (
+                <span className="text-[10px] font-bold bg-amber-50 text-amber-600 border border-amber-200 px-2 py-1 rounded">
+                  Cancellation Requested
+                </span>
+              )}
+              
+              {activeFlow.status === 'Cancelled' && (
+                <button 
+                  onClick={handleReturnPayment}
+                  className="text-[10px] font-bold bg-[#0e623a] text-white border border-[#0b4d2d] px-2 py-1 rounded hover:bg-[#0b4d2d]"
+                >
+                  Return Payment (Rs. {totalReceived.toLocaleString()})
+                </button>
+              )}
+              
+              {activeFlow.status === 'Returned' && (
+                <span className="text-[10px] font-bold bg-gray-100 text-gray-600 border border-gray-300 px-2 py-1 rounded">
+                  Payment Returned & Closed
+                </span>
+              )}
+            </div>
           </div>
         )}
       </div>
@@ -647,7 +758,9 @@ const CRDFlow = () => {
                       </td>
                       <td className="p-4">
                         <div className="font-semibold text-gray-700">{lead.phone}</div>
-                        <div className="text-[9px] text-yellow-800 font-bold uppercase mt-0.5">Booking Stage</div>
+                        <div className={`text-[9px] font-bold uppercase mt-0.5 ${lead.status === 'Cancelled' ? 'text-red-700 bg-red-50 px-2 py-0.5 border border-red-200 rounded inline-block' : 'text-yellow-800'}`}>
+                          {lead.status === 'Cancelled' ? 'Cancelled' : 'Booking Stage'}
+                        </div>
                       </td>
                       <td className="p-4 text-center">
                         <button
@@ -824,7 +937,8 @@ const CRDFlow = () => {
                               100% Paid
                             </span>
                             <button
-                              onClick={() => handleStageComplete(idx)}
+                              onClick={() => setCompleteStageIdx(idx)}
+                              disabled={activeFlow.status === 'Cancelled' || activeFlow.status === 'Returned'}
                               className="px-3 py-1 bg-[#0e623a] hover:bg-[#0b4d2d] text-white text-[10px] font-bold rounded-lg transition cursor-pointer"
                             >
                               Mark Completed
@@ -1831,6 +1945,111 @@ const CRDFlow = () => {
           }
         }
       `}</style>
+
+      {/* Complete Stage Modal */}
+      {completeStageIdx !== null && (
+        <div className="fixed inset-0 bg-black/60 z-[90] flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
+            <h2 className="text-xl font-bold text-gray-800 mb-4">Complete Stage</h2>
+            <p className="text-sm text-gray-600 mb-4">Please provide conversation notes or narration for this stage completion.</p>
+            <textarea
+              className="w-full border border-gray-300 rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-[#0e623a]"
+              rows="4"
+              value={completionNotes}
+              onChange={(e) => setCompletionNotes(e.target.value)}
+              placeholder="Enter notes..."
+            ></textarea>
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                onClick={() => { setCompleteStageIdx(null); setCompletionNotes(''); }}
+                className="px-4 py-2 text-gray-600 font-semibold hover:bg-gray-100 rounded-lg transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleStageComplete(completeStageIdx)}
+                className="px-4 py-2 bg-[#0e623a] hover:bg-[#0b4d2d] text-white font-bold rounded-lg transition shadow-md"
+              >
+                Confirm Completion
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Cancel Request Modal */}
+      {cancelModalOpen && (
+        <div className="fixed inset-0 bg-black/60 z-[90] flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 border border-red-100">
+            <h2 className="text-xl font-bold text-red-700 mb-4 flex items-center gap-2">
+              <AlertCircle className="w-5 h-5" /> Cancel CRD Plan
+            </h2>
+            <p className="text-sm text-gray-600 mb-4">This will send a cancellation request to the Super Admin. Please provide a detailed narration.</p>
+            <textarea
+              className="w-full border border-red-300 rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-red-600 bg-red-50"
+              rows="4"
+              value={cancelNarration}
+              onChange={(e) => setCancelNarration(e.target.value)}
+              placeholder="Why is this plan being cancelled?..."
+            ></textarea>
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                onClick={() => { setCancelModalOpen(false); setCancelNarration(''); }}
+                className="px-4 py-2 text-gray-600 font-semibold hover:bg-gray-100 rounded-lg transition"
+              >
+                Abort
+              </button>
+              <button
+                onClick={handleCancelRequest}
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg transition shadow-md"
+              >
+                Send Request
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* History Modal */}
+      {historyModalOpen && (
+        <div className="fixed inset-0 bg-black/60 z-[90] flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl p-6 max-h-[80vh] flex flex-col">
+            <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+              <History className="w-5 h-5 text-[#0e623a]" /> CRD Flow History
+            </h2>
+            <div className="overflow-y-auto flex-1 space-y-4 pr-2">
+              {activeFlow?.history?.length > 0 ? (
+                activeFlow.history.slice().reverse().map((entry, idx) => (
+                  <div key={idx} className="bg-gray-50 border border-gray-200 p-4 rounded-xl flex gap-4">
+                    <div className="flex-shrink-0 mt-1">
+                      <div className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-xs uppercase">
+                        {entry.user ? entry.user.slice(0, 2) : 'SY'}
+                      </div>
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-gray-800">{entry.action}</h4>
+                      <p className="text-sm text-gray-600 mt-1">{entry.notes}</p>
+                      <div className="text-xs text-gray-400 mt-2 font-medium">
+                        {new Date(entry.date).toLocaleString()} • {entry.user || 'System'}
+                      </div>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <p className="text-center text-gray-500 py-6">No history available yet.</p>
+              )}
+            </div>
+            <div className="mt-6 flex justify-end">
+              <button
+                onClick={() => setHistoryModalOpen(false)}
+                className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold rounded-lg transition shadow-sm"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

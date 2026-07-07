@@ -68,7 +68,8 @@ const LeadSchema = new mongoose.Schema({
       'Negotiation',
       'Booking',
       'Won',
-      'Lost'
+      'Lost',
+      'Cancelled'
     ],
     default: 'New'
   },

@@ -17,6 +17,7 @@ const summaryPlanRoutes = require('./routes/summaryPlans');
 const rolePermissionRoutes = require('./routes/rolePermissions');
 const dashboardRoutes = require('./routes/dashboard');
 const auditLogRoutes = require('./routes/auditLogs');
+const requestsRoutes = require('./routes/requests');
 
 const app = express();
 
@@ -148,6 +149,7 @@ app.use('/api/summary-plans', summaryPlanRoutes);
 app.use('/api/role-permissions', rolePermissionRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/audit-logs', auditLogRoutes);
+app.use('/api/requests', requestsRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

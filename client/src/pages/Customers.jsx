@@ -11,7 +11,8 @@ import {
   Clock, 
   Plus, 
   Building,
-  DollarSign
+  DollarSign,
+  History
 } from 'lucide-react';
 
 const Customers = () => {
@@ -261,6 +262,16 @@ const Customers = () => {
                   >
                     Complaints ({selectedFlow.complaints?.length || 0})
                   </button>
+                  <button
+                    onClick={() => setActiveSubTab('history')}
+                    className={`px-4 py-2 text-xs font-bold rounded-xl transition ${
+                      activeSubTab === 'history'
+                        ? 'bg-[#0e623a] text-white shadow-sm'
+                        : 'bg-gray-100 hover:bg-gray-250 text-gray-700'
+                    }`}
+                  >
+                    History
+                  </button>
                 </div>
               </div>
 
@@ -316,7 +327,7 @@ const Customers = () => {
                     );
                   })()}
                 </div>
-              ) : (
+              ) : activeSubTab === 'complaints' ? (
                 <div className="bg-white border border-gray-150 rounded-3xl p-6 shadow-sm space-y-6">
                   
                   {/* File a complaint form */}
@@ -394,7 +405,38 @@ const Customers = () => {
                     )}
                   </div>
                 </div>
-              )}
+              ) : activeSubTab === 'history' ? (
+                <div className="bg-white border border-gray-150 rounded-3xl p-6 shadow-sm space-y-4">
+                  <h3 className="text-xs font-bold text-gray-700 uppercase tracking-wide flex items-center gap-2">
+                    <History className="w-4 h-4 text-[#0e623a]" /> CRD Flow History
+                  </h3>
+                  
+                  {(!selectedFlow.history || selectedFlow.history.length === 0) ? (
+                    <div className="p-8 bg-gray-50 rounded-2xl border text-center text-xs text-gray-400 italic">
+                      No history logs for this CRD flow yet.
+                    </div>
+                  ) : (
+                    <div className="divide-y border rounded-2xl overflow-hidden bg-white">
+                      {selectedFlow.history.slice().reverse().map((entry, idx) => (
+                        <div key={idx} className="p-4 flex gap-4 hover:bg-gray-50/50 transition">
+                          <div className="flex-shrink-0 mt-1">
+                            <div className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-xs uppercase">
+                              {entry.user ? entry.user.slice(0, 2) : 'SY'}
+                            </div>
+                          </div>
+                          <div>
+                            <h4 className="font-bold text-gray-800 text-sm">{entry.action}</h4>
+                            <p className="text-xs text-gray-600 mt-1">{entry.notes}</p>
+                            <div className="text-[10px] text-gray-400 mt-2 font-medium">
+                              {new Date(entry.date).toLocaleString()} • {entry.user || 'System'}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ) : null}
 
             </div>
           )}

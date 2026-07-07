@@ -14,7 +14,8 @@ import {
   History,
   UserPlus,
   Coins,
-  BarChart3
+  BarChart3,
+  ClipboardList
 } from 'lucide-react';
 
 const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
@@ -157,6 +158,17 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
                 }`}
               >
                 <span>Quotation Records</span>
+              </Link>
+
+              <Link
+                to="/crd-dashboard"
+                className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs transition ${
+                  isActive('/crd-dashboard')
+                    ? 'text-white font-extrabold border-l-2 border-white pl-2'
+                    : 'text-emerald-150 hover:text-white hover:bg-white/5'
+                }`}
+              >
+                <span>CRD Dashboard</span>
               </Link>
               
               <Link
@@ -301,17 +313,31 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
 
         {/* Access Control (Admin Only) */}
         {isAdmin && (
-          <Link
-            to="/access-control"
-            className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${
-              isActive('/access-control') 
-                ? 'bg-white/10 text-white font-bold border border-white/10 shadow-sm' 
-                : 'text-emerald-100 hover:bg-white/5 hover:text-white'
-            }`}
-          >
-            <ShieldCheck className={`w-5 h-5 ${isActive('/access-control') ? 'text-white' : 'text-emerald-300'}`} />
-            <span>Access Control</span>
-          </Link>
+          <>
+            <Link
+              to="/access-control"
+              className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${
+                isActive('/access-control') 
+                  ? 'bg-white/10 text-white font-bold border border-white/10 shadow-sm' 
+                  : 'text-emerald-100 hover:bg-white/5 hover:text-white'
+              }`}
+            >
+              <ShieldCheck className={`w-5 h-5 ${isActive('/access-control') ? 'text-white' : 'text-emerald-300'}`} />
+              <span>Access Control</span>
+            </Link>
+
+            <Link
+              to="/requests"
+              className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${
+                isActive('/requests') 
+                  ? 'bg-white/10 text-white font-bold border border-white/10 shadow-sm' 
+                  : 'text-emerald-100 hover:bg-white/5 hover:text-white'
+              }`}
+            >
+              <ClipboardList className={`w-5 h-5 ${isActive('/requests') ? 'text-white' : 'text-emerald-300'}`} />
+              <span>Requests</span>
+            </Link>
+          </>
         )}
 
         {/* Settings */}

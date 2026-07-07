@@ -430,12 +430,15 @@ router.get('/stats', protect, async (req, res) => {
     let availableUnits = 0;
     let bookedUnits = 0;
     let handoverUnits = 0;
+    let cancelledUnits = 0;
     let bookedUnitsList = [];
     let handoverUnitsList = [];
+    let cancelledUnitsList = [];
     let totalByType = { Plot: 0, Flat: 0, Villa: 0 };
     let availableByType = { Plot: 0, Flat: 0, Villa: 0 };
     let bookedByType = { Plot: 0, Flat: 0, Villa: 0 };
     let handoverByType = { Plot: 0, Flat: 0, Villa: 0 };
+    let cancelledByType = { Plot: 0, Flat: 0, Villa: 0 };
 
     let totalValueByType = { Plot: 0, Flat: 0, Villa: 0 };
     let availableValueByType = { Plot: 0, Flat: 0, Villa: 0 };
@@ -452,9 +455,11 @@ router.get('/stats', protect, async (req, res) => {
         available: 0, 
         booked: 0, 
         handover: 0,
+        cancelled: 0,
         availableUnitsList: [],
         bookedUnitsList: [],
         handoverUnitsList: [],
+        cancelledUnitsList: [],
         totalUnitsList: []
       };
 
@@ -553,6 +558,46 @@ router.get('/stats', protect, async (req, res) => {
       });
     });
 
+    const cancelledFlows = await CRDFlow.find({ status: { $in: ['Cancelled', 'Returned'] } }).populate('project', 'name code projectType');
+    cancelledFlows.forEach(cf => {
+      if (cf.project) {
+        const pCode = cf.project.code || cf.project.name;
+        if (projectUnitsStats[pCode]) {
+          projectUnitsStats[pCode].cancelled += 1;
+          
+          let cancelNarration = 'No reason provided';
+          let cancelStageName = 'Unknown';
+          const cancelHistory = (cf.history || []).find(h => h?.action?.includes('Cancel') || h?.action?.includes('Return'));
+          if (cancelHistory) {
+            cancelNarration = cancelHistory.notes || 'No reason provided';
+          }
+          const completedStages = (cf.stages || []).filter(s => s.isCompleted);
+          if (completedStages.length > 0) {
+            cancelStageName = completedStages[completedStages.length - 1].name;
+          } else if (cf.stages && cf.stages.length > 0) {
+            cancelStageName = cf.stages[0].name;
+          }
+
+          projectUnitsStats[pCode].cancelledUnitsList.push({
+            projectName: cf.project.name,
+            projectCode: cf.project.code,
+            unitId: cf.unitId,
+            price: cf.totalCurrentValue,
+            cancelStageName,
+            cancelNarration,
+            date: cf.updatedAt
+          });
+          cancelledUnits += 1;
+          
+          const types = cf.project.projectType || [];
+          let type = 'Plot';
+          if (types.length === 1) type = types[0] === 'House' ? 'Villa' : types[0];
+          else if (types.includes('Flat')) type = 'Flat';
+          cancelledByType[type] = (cancelledByType[type] || 0) + 1;
+        }
+      }
+    });
+
     // Calculate project-based stages breakdown
     const projectStages = {};
     allProjects.forEach(proj => {
@@ -646,7 +691,7 @@ router.get('/stats', protect, async (req, res) => {
     // Compute stage-by-stage payments from CRD Flow
     const bookingLeads = leads.filter(l => l.status === 'Booking' || l.status === 'Won');
     const bookingLeadIds = bookingLeads.map(l => l._id);
-    const crdFlows = await CRDFlow.find({ lead: { $in: bookingLeadIds } });
+    const crdFlows = await CRDFlow.find({ lead: { $in: bookingLeadIds }, status: { $nin: ['Cancelled', 'Returned'] } });
 
     let crdTotalValue = 0;
     let crdReceivedValue = 0;
@@ -835,7 +880,44 @@ router.get('/stats', protect, async (req, res) => {
       if (hasHandoverToday) todayHandoverCount++;
     });
 
+    // Calculate CRD Flow Dashboard Stats
+    const crdFlowStats = {
+      stagesCount: {},
+      usersCount: {},
+      totalActive: 0
+    };
+
+    const allStatsCrdFlows = await CRDFlow.find({ lead: { $in: bookingLeadIds } });
+
+    allStatsCrdFlows.forEach(flow => {
+      crdFlowStats.totalActive++;
+
+      // Find current stage
+      let currentStageName = 'Unknown Stage';
+      if (flow.status === 'Cancelled' || flow.status === 'Returned') {
+        currentStageName = 'Cancelled';
+      } else if (flow.stages && flow.stages.length > 0) {
+        const pendingStage = flow.stages.find(s => !s.isCompleted);
+        if (pendingStage) {
+          currentStageName = pendingStage.name;
+        } else {
+          currentStageName = 'Completed';
+        }
+      } else {
+        currentStageName = 'No Stages Defined';
+      }
+
+      crdFlowStats.stagesCount[currentStageName] = (crdFlowStats.stagesCount[currentStageName] || 0) + 1;
+
+      // Find assigned user from the leads array
+      const leadMatch = bookingLeads.find(l => l._id.toString() === flow.lead?.toString());
+      const userName = leadMatch?.assignedTo?.name || 'Unassigned';
+      
+      crdFlowStats.usersCount[userName] = (crdFlowStats.usersCount[userName] || 0) + 1;
+    });
+
     res.json({
+      crdFlowStats,
       cards: {
         totalLeads: cumulativeLeads,
         liveLeads: liveLeadsCount,
@@ -886,18 +968,20 @@ router.get('/stats', protect, async (req, res) => {
           totalUnits,
           availableUnits,
           bookedUnits,
-          bookedUnitsList,
           handoverUnits,
-          handoverUnitsList,
+          cancelledUnits,
           totalByType,
           availableByType,
           bookedByType,
           handoverByType,
+          cancelledByType,
           totalValueByType,
           availableValueByType,
           bookedValueByType,
           handoverValueByType,
-          projectsByType
+          projectUnitsStats,
+          bookedUnitsList,
+          handoverUnitsList
         }
       },
       insights: {

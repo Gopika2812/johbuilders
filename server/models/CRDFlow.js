@@ -25,6 +25,7 @@ const StageSchema = new mongoose.Schema({
   amount: { type: Number, required: true },
   isCompleted: { type: Boolean, default: false },
   completedDate: { type: Date },
+  completionNotes: { type: String, default: '' },
   uploadedPdfs: [{ type: String }], // URLs or filenames of uploaded documents
   extraWorks: [ExtraWorkSchema],
   payments: [PaymentSplitSchema],
@@ -62,6 +63,13 @@ const CRDFlowSchema = new mongoose.Schema({
   totalOriginalValue: { type: Number, required: true },
   totalExtraWorksValue: { type: Number, default: 0 },
   totalCurrentValue: { type: Number, required: true },
+  status: { type: String, enum: ['Active', 'Cancel Requested', 'Cancelled', 'Returned', 'Completed'], default: 'Active' },
+  history: [{
+    action: { type: String, required: true },
+    notes: { type: String },
+    date: { type: Date, default: Date.now },
+    user: { type: String }
+  }],
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now }
 });

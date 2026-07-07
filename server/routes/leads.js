@@ -13,7 +13,11 @@ router.get('/', protect, async (req, res) => {
   const query = {};
 
   if (status) {
-    query.status = status;
+    if (status.includes(',')) {
+      query.status = { $in: status.split(',') };
+    } else {
+      query.status = status;
+    }
   }
   if (leadType) {
     query.leadType = leadType;

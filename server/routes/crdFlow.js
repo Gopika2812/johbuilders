@@ -4,6 +4,7 @@ const CRDFlow = require('../models/CRDFlow');
 const Lead = require('../models/Lead');
 const Project = require('../models/Project');
 const AuditLog = require('../models/AuditLog');
+const ApprovalRequest = require('../models/ApprovalRequest');
 const { protect } = require('../middleware/auth');
 
 // @route   GET /api/crd-flow
@@ -83,7 +84,7 @@ router.post('/', protect, async (req, res) => {
 // @route   PUT /api/crd-flow/:id/stage/:stageIndex/complete
 // @desc    Complete a stage & verify document uploads if required
 router.put('/:id/stage/:stageIndex/complete', protect, async (req, res) => {
-  const { uploadedPdfs } = req.body;
+  const { uploadedPdfs, completionNotes } = req.body;
   try {
     const flow = await CRDFlow.findById(req.params.id);
     if (!flow) return res.status(404).json({ message: 'Flow record not found' });
@@ -100,9 +101,19 @@ router.put('/:id/stage/:stageIndex/complete', protect, async (req, res) => {
 
     flow.stages[idx].isCompleted = true;
     flow.stages[idx].completedDate = new Date();
+    if (completionNotes) {
+      flow.stages[idx].completionNotes = completionNotes;
+    }
     if (uploadedPdfs) {
       flow.stages[idx].uploadedPdfs = uploadedPdfs;
     }
+
+    flow.history.push({
+      action: 'Stage Completed',
+      notes: `Stage "${flow.stages[idx].name}" completed. ${completionNotes ? 'Notes: ' + completionNotes : ''}`,
+      user: req.user.name,
+      date: Date.now()
+    });
 
     // Check if this is the Handing Over stage
     const isHandingOver = flow.stages[idx].name.toLowerCase().includes('handing over') || 
@@ -313,6 +324,105 @@ router.put('/:id/complaints/:complaintId', protect, async (req, res) => {
     }
 
     await flow.save();
+    const populated = await CRDFlow.findById(flow._id).populate('project').populate('lead');
+    res.json(populated);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// @route   PUT /api/crd-flow/:id/cancel-request
+// @desc    Submit a request to cancel the CRD flow
+router.put('/:id/cancel-request', protect, async (req, res) => {
+  const { narration } = req.body;
+  if (!narration) return res.status(400).json({ message: 'Narration is required' });
+
+  try {
+    const flow = await CRDFlow.findById(req.params.id);
+    if (!flow) return res.status(404).json({ message: 'Flow record not found' });
+
+    if (flow.status === 'Cancel Requested') {
+      return res.status(400).json({ message: 'Cancellation already requested' });
+    }
+
+    flow.status = 'Cancel Requested';
+    flow.history.push({
+      action: 'Cancel Requested',
+      notes: `Narration: ${narration}`,
+      user: req.user.name,
+      date: Date.now()
+    });
+    await flow.save();
+
+    await ApprovalRequest.create({
+      type: 'CRD_CANCELLATION',
+      referenceId: flow._id,
+      requestedBy: req.user._id,
+      narration
+    });
+
+    const populated = await CRDFlow.findById(flow._id).populate('project').populate('lead');
+    res.json(populated);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// @route   PUT /api/crd-flow/:id/return-payment
+// @desc    Return payment for a cancelled flow, set lead to Cancelled, unit to New
+router.put('/:id/return-payment', protect, async (req, res) => {
+  try {
+    const flow = await CRDFlow.findById(req.params.id);
+    if (!flow) return res.status(404).json({ message: 'Flow record not found' });
+
+    if (flow.status !== 'Cancelled') {
+      return res.status(400).json({ message: 'Flow must be cancelled first' });
+    }
+
+    flow.status = 'Returned';
+    flow.history.push({
+      action: 'Payment Returned',
+      notes: 'All payments returned. Units freed up.',
+      user: req.user.name,
+      date: Date.now()
+    });
+    await flow.save();
+
+    // Update Lead to Cancelled
+    const lead = await Lead.findById(flow.lead);
+    if (lead) {
+      lead.status = 'Cancelled';
+      lead.isClosed = true;
+      lead.history.push({
+        status: 'Cancelled',
+        assignedTo: lead.assignedTo,
+        updatedBy: req.user._id,
+        timestamp: Date.now(),
+        note: 'Payment returned and CRD flow cancelled.'
+      });
+      await lead.save();
+    }
+
+    // Update Project Units
+    const project = await Project.findById(flow.project);
+    if (project) {
+      let updated = false;
+      const unitIdsToUpdate = flow.unitId.split(',').map(uid => uid.trim());
+      project.units.forEach(u => {
+        if (unitIdsToUpdate.includes(u.unitId)) {
+          u.status = 'New';
+          u.customerName = '';
+          u.customerPhone = '';
+          u.leadName = '';
+          u.isLocked = false;
+          updated = true;
+        }
+      });
+      if (updated) {
+        await project.save();
+      }
+    }
+
     const populated = await CRDFlow.findById(flow._id).populate('project').populate('lead');
     res.json(populated);
   } catch (err) {

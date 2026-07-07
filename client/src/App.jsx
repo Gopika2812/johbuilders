@@ -16,12 +16,14 @@ import EmployeesDirectory from './pages/EmployeesDirectory';
 import EmployeeHistory from './pages/EmployeeHistory';
 import AuditLogs from './pages/AuditLogs';
 import AccessControl from './pages/AccessControl';
+import Requests from './pages/Requests';
 import Settings from './pages/Settings';
 import LeadsDirectory from './pages/LeadsDirectory';
 import QuotationsDirectory from './pages/QuotationsDirectory';
 import QuotationForm from './pages/QuotationForm';
 import QuotationView from './pages/QuotationView';
 import CRDFlow from './pages/CRDFlow';
+import CRDDashboard from './pages/CRDDashboard';
 import BankLoanHistory from './pages/BankLoanHistory';
 import BudgetPlanning from './pages/BudgetPlanning';
 import LeadTargetPlanning from './pages/LeadTargetPlanning';
@@ -113,6 +115,7 @@ function App() {
             <Route path="/quotations/:id" element={<Layout><QuotationView /></Layout>} />
 
             {/* Customer Relationship (CRD) Flow */}
+            <Route path="/crd-dashboard" element={<Layout><CRDDashboard /></Layout>} />
             <Route path="/crd-flow" element={<Layout><CRDFlow /></Layout>} />
             <Route path="/crd-flow/bank-loan-history" element={<Layout><BankLoanHistory /></Layout>} />
             <Route path="/customers" element={<Layout><Customers /></Layout>} />
@@ -127,6 +130,7 @@ function App() {
 
             {/* Administration / Utilities */}
             <Route path="/access-control" element={<Layout><AccessControl /></Layout>} />
+            <Route path="/requests" element={<Layout><Requests /></Layout>} />
             <Route path="/settings" element={<Layout><Settings /></Layout>} />
           </Route>
         </Routes>
