@@ -1767,7 +1767,7 @@ const Dashboard = () => {
         <>
           {/* Row 1: Total Performance Cards */}
           <div>
-            <h4 className="text-sm font-black text-black uppercase tracking-wider mb-3 text-left">Total Performance Metrics</h4>
+            <h4 className="text-sm font-black text-black uppercase tracking-wider mb-3 text-left">Lead Details</h4>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
               
               {/* Card 0: Total Leads / Lost Leads */}
