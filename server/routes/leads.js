@@ -456,6 +456,35 @@ router.delete('/:id', protect, authorize('Admin', 'Manager'), async (req, res) =
       return res.status(404).json({ message: 'Lead not found' });
     }
 
+    const Project = require('../models/Project');
+    const CRDFlow = require('../models/CRDFlow');
+    const Quotation = require('../models/Quotation');
+
+    // 1. Release any booked units in projects associated with this lead
+    const projectsWithLead = await Project.find({ 'units.customerPhone': lead.phone });
+    for (const proj of projectsWithLead) {
+      let isModified = false;
+      proj.units.forEach(unit => {
+        if (unit.customerPhone === lead.phone) {
+          unit.status = 'New';
+          unit.customerName = '';
+          unit.customerPhone = '';
+          unit.leadName = '';
+          isModified = true;
+        }
+      });
+      if (isModified) {
+        await proj.save();
+      }
+    }
+
+    // 2. Delete related CRDFlows
+    await CRDFlow.deleteMany({ lead: lead._id });
+
+    // 3. Delete related Quotations
+    await Quotation.deleteMany({ lead: lead._id });
+
+    // 4. Finally delete the lead itself
     await Lead.findByIdAndDelete(req.params.id);
 
     await AuditLog.create({
@@ -463,10 +492,10 @@ router.delete('/:id', protect, authorize('Admin', 'Manager'), async (req, res) =
       userName: req.user.name,
       userRole: req.user.role,
       action: 'Delete Lead',
-      description: `Deleted lead: ${lead.name} (${lead.phone})`
+      description: `Deleted lead: ${lead.name} (${lead.phone}) and all associated records.`
     });
 
-    res.json({ message: 'Lead deleted successfully' });
+    res.json({ message: 'Lead and associated records deleted successfully' });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

@@ -9,11 +9,15 @@ const { protect } = require('../middleware/auth');
 // @desc    Get all quotations
 router.get('/', protect, async (req, res) => {
   try {
-    const quotations = await Quotation.find({})
+    let quotations = await Quotation.find({})
       .populate('project', 'name code')
       .populate('lead', 'name phone')
       .populate('createdBy', 'name role')
       .sort({ createdAt: -1 });
+      
+    // Filter out orphaned quotations where lead was deleted
+    quotations = quotations.filter(q => q.lead != null);
+    
     res.json(quotations);
   } catch (err) {
     res.status(500).json({ message: err.message });

@@ -11,10 +11,14 @@ const { protect } = require('../middleware/auth');
 // @desc    Get all active CRD flows
 router.get('/', protect, async (req, res) => {
   try {
-    const flows = await CRDFlow.find({})
+    let flows = await CRDFlow.find({})
       .populate('project', 'name code location')
       .populate('lead', 'name phone bankLoan')
       .sort({ updatedAt: -1 });
+      
+    // Filter out orphaned flows where lead was deleted
+    flows = flows.filter(flow => flow.lead != null);
+    
     res.json(flows);
   } catch (err) {
     res.status(500).json({ message: err.message });

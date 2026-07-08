@@ -24,7 +24,8 @@ import {
   DollarSign,
   Building2,
   CalendarClock,
-  FileSpreadsheet
+  FileSpreadsheet,
+  X
 } from 'lucide-react';
 
 const SOURCE_TYPES = [
@@ -1661,9 +1662,18 @@ const LeadsDirectory = () => {
       {createModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
           <div className="bg-white rounded-3xl max-w-xl w-full overflow-hidden shadow-2xl border border-gray-100">
-            <div className="bg-[#0e623a] p-6 text-white">
-              <h3 className="text-lg font-bold">New Lead Registration</h3>
-              <p className="text-emerald-100 text-xs mt-1">Configure user inquiries, campaigns, and direct site visits</p>
+            <div className="bg-[#0e623a] p-6 text-white flex justify-between items-start">
+              <div>
+                <h3 className="text-lg font-bold">New Lead Registration</h3>
+                <p className="text-emerald-100 text-xs mt-1">Configure user inquiries, campaigns, and direct site visits</p>
+              </div>
+              <button 
+                onClick={() => setCreateModalOpen(false)}
+                className="text-emerald-100 hover:text-white transition cursor-pointer"
+                title="Close"
+              >
+                <X className="w-5 h-5" />
+              </button>
             </div>
 
             <form onSubmit={handleCreateLead} className="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
@@ -1931,9 +1941,18 @@ const LeadsDirectory = () => {
       {editModalOpen && selectedLeadForEdit && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
           <div className="bg-white rounded-3xl max-w-xl w-full overflow-hidden shadow-2xl border border-gray-100">
-            <div className="bg-amber-600 p-6 text-white">
-              <h3 className="text-lg font-bold">Edit Lead Information</h3>
-              <p className="text-amber-100 text-xs mt-1">Modify details for: {selectedLeadForEdit.name}</p>
+            <div className="bg-amber-600 p-6 text-white flex justify-between items-start">
+              <div>
+                <h3 className="text-lg font-bold">Edit Lead Information</h3>
+                <p className="text-amber-100 text-xs mt-1">Modify details for: {selectedLeadForEdit.name}</p>
+              </div>
+              <button 
+                onClick={() => setEditModalOpen(false)}
+                className="text-amber-100 hover:text-white transition cursor-pointer"
+                title="Close"
+              >
+                <X className="w-5 h-5" />
+              </button>
             </div>
 
             <form onSubmit={handleUpdateLead} className="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
