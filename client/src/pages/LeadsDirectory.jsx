@@ -1454,34 +1454,18 @@ const LeadsDirectory = () => {
  
                 {/* Project */}
                 <td className="p-4">
-                  <select
-                    value={lead.project?._id || lead.project || ''}
-                    onChange={(e) => handleProjectChange(lead._id, e.target.value)}
-                    className="px-2 py-1 bg-gray-50 border border-gray-200 rounded text-xs focus:outline-none font-semibold text-gray-700 cursor-pointer hover:bg-gray-100 transition"
-                  >
-                    <option value="">Select Project</option>
-                    {projects.map(p => (
-                      <option key={p._id} value={p._id}>
-                        {p.code}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="text-xs font-semibold text-gray-700">
+                    {projects.find(p => p._id === (lead.project?._id || lead.project))?.code || '—'}
+                  </div>
                 </td>
  
                 {/* Assignment & Reassign Control */}
                 <td className="p-4">
-                  <select
-                    value={lead.assignedTo?._id || ''}
-                    onChange={(e) => handleReassign(lead._id, e.target.value)}
-                    className="px-2 py-1 bg-gray-50 border border-gray-200 rounded text-xs focus:outline-none font-semibold text-gray-700 cursor-pointer hover:bg-gray-100 transition"
-                  >
-                    <option value="">Unassigned</option>
-                    {employees.map(emp => (
-                      <option key={emp._id} value={emp._id}>
-                        {emp.name} ({emp.role})
-                      </option>
-                    ))}
-                  </select>
+                  <div className="text-xs font-semibold text-gray-700">
+                    {lead.assignedTo?.name 
+                      ? `${lead.assignedTo.name} (${lead.assignedTo.role})` 
+                      : 'Unassigned'}
+                  </div>
                 </td>
  
                 {/* Workflow Status Dropdown */}
@@ -1505,12 +1489,8 @@ const LeadsDirectory = () => {
                     </div>
                   ) : (
                     <div className="relative inline-block text-left">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setOpenDropdownLeadId(openDropdownLeadId === lead._id ? null : lead._id);
-                        }}
-                        className={`flex items-center justify-between gap-1.5 px-3 py-1.5 rounded-full border text-xs font-bold transition shadow-sm hover:shadow-md cursor-pointer ${
+                      <div
+                        className={`flex items-center justify-between gap-1.5 px-3 py-1.5 rounded-full border text-xs font-bold shadow-sm ${
                           STATUS_COLORS[lead.status]?.bg || 'bg-gray-50/70'
                         } ${STATUS_COLORS[lead.status]?.text || 'text-gray-700'} ${
                           STATUS_COLORS[lead.status]?.border || 'border-gray-200'
@@ -1520,90 +1500,11 @@ const LeadsDirectory = () => {
                           <span className={`w-2 h-2 rounded-full ${STATUS_COLORS[lead.status]?.dot || 'bg-gray-450'}`}></span>
                           {lead.status === 'Qualified' ? 'Hot List' : lead.status}
                         </span>
-                        <ChevronDown className="w-3 h-3 opacity-75 shrink-0" />
-                      </button>
+                      </div>
                       {activeTab === 'Qualified' && lead.status !== 'Qualified' && (
                         <div className="text-[10px] text-emerald-700 font-extrabold mt-1 py-0.5 px-2 bg-emerald-50 rounded border border-emerald-100 text-center">
                           Moved to {lead.status}
                         </div>
-                      )}
-
-                      {openDropdownLeadId === lead._id && (
-                        <>
-                          <div 
-                            className="fixed inset-0 z-10" 
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setOpenDropdownLeadId(null);
-                            }}
-                          />
-                          <div 
-                            className={`absolute right-0 w-52 rounded-2xl bg-white border border-gray-150 shadow-xl py-1.5 z-20 animate-in fade-in duration-100 ${
-                              filteredLeadsList.indexOf(lead) >= Math.max(1, filteredLeadsList.length - 2)
-                                ? 'bottom-full mb-2 origin-bottom'
-                                : 'top-full mt-2 origin-top'
-                            }`}
-                          >
-                            {(() => {
-                              const prevStatus = getPreviousStatus(lead);
-                              if (prevStatus) {
-                                return (
-                                  <button
-                                    type="button"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleStatusChange(lead._id, prevStatus, true);
-                                      setOpenDropdownLeadId(null);
-                                    }}
-                                    className="w-full text-left px-3 py-2.5 text-xs font-bold text-amber-700 bg-amber-50/50 hover:bg-amber-100/60 border-b border-gray-100 flex items-center gap-1.5 transition cursor-pointer"
-                                  >
-                                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
-                                    <span>Undo: Revert to {prevStatus}</span>
-                                  </button>
-                                );
-                              }
-                              return null;
-                            })()}
-                            <div className="px-3 py-1.5 text-[10px] font-bold text-gray-400 uppercase tracking-wider border-b border-gray-100 mb-1">
-                              Transition Stage
-                            </div>
-                            <div className="max-h-[220px] overflow-y-auto">
-                              {(() => {
-                                const currentIndex = LEAD_STATUSES.indexOf(lead.status);
-                                const allowedStatuses = currentIndex !== -1 ? LEAD_STATUSES.slice(currentIndex) : LEAD_STATUSES;
-                                return allowedStatuses.map(st => {
-                                  const isCurrent = st === lead.status;
-                                  const isCurrentDisabled = isCurrent && !['Contacted', 'Follow-Up', 'Site Visit'].includes(st);
-                                  return (
-                                    <button
-                                      key={st}
-                                      type="button"
-                                      disabled={isCurrentDisabled}
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleStatusChange(lead._id, st);
-                                        setOpenDropdownLeadId(null);
-                                      }}
-                                      className={`w-full text-left px-3 py-2 text-xs font-semibold flex items-center justify-between transition ${
-                                        isCurrentDisabled 
-                                          ? 'text-gray-400 bg-gray-50/50 cursor-not-allowed' 
-                                          : 'text-gray-700 hover:bg-emerald-50/60 hover:text-[#0e623a] cursor-pointer'
-                                      }`}
-                                    >
-                                      <span className="flex items-center gap-2">
-                                        <span className={`w-2 h-2 rounded-full ${STATUS_COLORS[st]?.dot || 'bg-gray-450'}`}></span>
-                                        {st === 'Qualified' ? 'Hot List' : st}
-                                      </span>
-                                      {isCurrent && (
-                                        <Check className="w-3 h-3 text-[#0e623a]" />
-                                      )}
-                                    </button>
-                                  );
-                                });
-                              })()}
-                            </div>
-                          </div>
-                        </>
                       )}
                     </div>
                   )}
