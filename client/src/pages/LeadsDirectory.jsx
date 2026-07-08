@@ -226,6 +226,7 @@ const LeadsDirectory = () => {
   const [editLeadCost, setEditLeadCost] = useState('0');
   const [editProjectLocation, setEditProjectLocation] = useState('');
   const [editActiveAds, setEditActiveAds] = useState([]);
+  const [editStatus, setEditStatus] = useState('New');
 
   // Booking & Quotation Modal States
   const [bookingModalOpen, setBookingModalOpen] = useState(false);
@@ -357,6 +358,7 @@ const LeadsDirectory = () => {
     setEditLeadType(lead.leadType || 'Lead');
     setEditProjectId(lead.project?._id || lead.project || '');
     setEditAssignedToId(lead.assignedTo?._id || lead.assignedTo || '');
+    setEditStatus(lead.status || 'New');
     setEditLeadSource(lead.leadSource || '');
     setEditBankLoan(lead.bankLoan || 'No');
     setEditLeadCost(String(lead.leadCost || '0'));
@@ -399,6 +401,7 @@ const LeadsDirectory = () => {
       bankLoan: editBankLoan,
       project: editProjectId || undefined,
       assignedTo: editAssignedToId || '',
+      status: editStatus,
       leadCost: Number(editLeadCost) || 0,
       leadSource: editLeadSource,
       activeAd: editLeadType === 'Lead' && adObj ? { name: adObj.name, link: adObj.link } : { name: '', link: '' }
@@ -2065,6 +2068,21 @@ const LeadsDirectory = () => {
                   />
                 </div>
               )}
+
+              {/* Workflow Status */}
+              <div className="flex flex-col text-left">
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1.5">Workflow Status</label>
+                <select
+                  value={editStatus}
+                  onChange={(e) => setEditStatus(e.target.value)}
+                  className="w-full px-4 py-3 bg-gray-55 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-600 text-sm cursor-pointer appearance-none"
+                  style={{ backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 16px center', backgroundSize: '16px' }}
+                >
+                  {LEAD_STATUSES.map(status => (
+                    <option key={status} value={status}>{status}</option>
+                  ))}
+                </select>
+              </div>
 
               {/* Submit Buttons */}
               <div className="flex items-center gap-3 pt-4 border-t">

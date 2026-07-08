@@ -30,6 +30,8 @@ import LeadTargetPlanning from './pages/LeadTargetPlanning';
 import SummaryPlanning from './pages/SummaryPlanning';
 import KPIInsights from './pages/KPIInsights';
 import Customers from './pages/Customers';
+import ExportReports from './pages/ExportReports';
+import CRDReports from './pages/CRDReports';
 
 const Layout = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth >= 768);
@@ -122,6 +124,10 @@ function App() {
             
             {/* KPI Insights & Conversions */}
             <Route path="/kpi-insights" element={<Layout><KPIInsights /></Layout>} />
+            
+            {/* Reports Master */}
+            <Route path="/reports/export" element={<Layout><ExportReports /></Layout>} />
+            <Route path="/reports/crd" element={<Layout><CRDReports /></Layout>} />
             
             {/* Finance & Accounts Modules */}
             <Route path="/finance/budget-planning" element={<Layout><BudgetPlanning /></Layout>} />

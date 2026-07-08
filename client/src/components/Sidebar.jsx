@@ -15,7 +15,8 @@ import {
   UserPlus,
   Coins,
   BarChart3,
-  ClipboardList
+  ClipboardList,
+  FileSpreadsheet
 } from 'lucide-react';
 
 const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
@@ -25,6 +26,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
   const [employeeMenuOpen, setEmployeeMenuOpen] = useState(true);
   const [leadsMenuOpen, setLeadsMenuOpen] = useState(true);
   const [financeMenuOpen, setFinanceMenuOpen] = useState(true);
+  const [reportsMenuOpen, setReportsMenuOpen] = useState(true);
 
   const isActive = (path) => location.pathname === path;
 
@@ -194,6 +196,45 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
               </Link>
 
              
+            </div>
+          )}
+        </div>
+
+        {/* Reports Master */}
+        <div>
+          <button
+            onClick={() => setReportsMenuOpen(!reportsMenuOpen)}
+            className="w-full flex items-center justify-between px-4 py-3 text-emerald-100 hover:bg-white/5 hover:text-white rounded-xl transition duration-200"
+          >
+            <div className="flex items-center gap-3">
+              <FileSpreadsheet className="w-5 h-5 text-emerald-300" />
+              <span className="font-semibold">Reports Master</span>
+            </div>
+            <ChevronDown className={`w-4 h-4 text-emerald-300 transition-transform duration-200 ${reportsMenuOpen ? 'rotate-180' : ''}`} />
+          </button>
+          
+          {reportsMenuOpen && (
+            <div className="pl-8 mt-1 space-y-1">
+              <Link
+                to="/reports/export"
+                className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs transition ${
+                  isActive('/reports/export')
+                    ? 'text-white font-extrabold border-l-2 border-white pl-2'
+                    : 'text-emerald-150 hover:text-white hover:bg-white/5'
+                }`}
+              >
+                <span>Export Reports</span>
+              </Link>
+              <Link
+                to="/reports/crd"
+                className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs transition ${
+                  isActive('/reports/crd')
+                    ? 'text-white font-extrabold border-l-2 border-white pl-2'
+                    : 'text-emerald-150 hover:text-white hover:bg-white/5'
+                }`}
+              >
+                <span>CRD Reports</span>
+              </Link>
             </div>
           )}
         </div>
