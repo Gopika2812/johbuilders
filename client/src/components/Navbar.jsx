@@ -96,12 +96,12 @@ const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
 
   return (
     <>
-      <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-4 md:px-8 fixed top-0 right-0 left-0 md:left-64 z-30 shadow-sm">
+      <header className={`h-16 bg-white border-b border-gray-200 flex items-center justify-between px-4 md:px-8 fixed top-0 right-0 z-30 shadow-sm transition-all duration-300 ${sidebarOpen ? 'left-0 md:left-64' : 'left-0'}`}>
         {/* Title & Hamburger */}
         <div className="flex items-center gap-3">
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg md:hidden transition cursor-pointer"
+            className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition cursor-pointer"
             title="Toggle Sidebar"
           >
             <Menu className="w-5 h-5" />
