@@ -101,109 +101,8 @@ const ObservedSwirlPieChart = ({
   ];
 
   return (
-    <div ref={containerRef} className="flex flex-col md:flex-row-reverse items-center justify-center gap-6 md:gap-8 w-full relative p-4">
-      <style>{`
-        @keyframes swirlIn {
-          0% {
-            transform: translate(160px, 160px) rotate(-180deg) scale(0.3);
-            opacity: 0;
-          }
-          100% {
-            transform: translate(160px, 160px) rotate(0deg) scale(1);
-            opacity: 1;
-          }
-        }
-        .animate-swirl {
-          animation: swirlIn 1.3s cubic-bezier(0.25, 1, 0.5, 1) both;
-          transform-origin: 0 0;
-        }
-        .swirl-hover-effect {
-          transition: filter 0.3s ease;
-          cursor: pointer;
-        }
-        .swirl-hover-effect:hover {
-          filter: brightness(1.05);
-        }
-      `}</style>
-
-      <div className="relative w-80 h-80 shrink-0">
-        <svg 
-          className={`w-full h-full opacity-0 ${isVisible ? 'transition-opacity duration-300 !opacity-100' : ''}`} 
-          viewBox="0 0 320 320"
-        >
-          <defs>
-            <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
-              <feDropShadow dx="2" dy="5" stdDeviation="4" floodOpacity="0.22" />
-            </filter>
-            <path 
-              id="swirl-blade"
-              d="M 0 -135 A 135 135 0 0 1 116.91 67.5 A 67.5 67.5 0 0 0 0 0 A 67.5 67.5 0 0 0 0 -135 Z"
-            />
-          </defs>
-
-          <g className={isVisible ? 'animate-swirl' : ''}>
-            {slots.map((slot, index) => {
-              return (
-                <g 
-                  key={index}
-                  className="swirl-hover-effect"
-                  transform={`rotate(${slot.rotation})`}
-                  onClick={() => onSegmentClick && onSegmentClick(slot.item)}
-                >
-                  <use 
-                    href="#swirl-blade"
-                    fill={slot.color}
-                    filter="url(#shadow)"
-                  />
-                  <circle 
-                    cx="0" 
-                    cy="-67.5" 
-                    r="54" 
-                    fill="#ffffff"
-                    stroke={slot.color}
-                    strokeWidth="4"
-                    filter="url(#shadow)"
-                  />
-                  <g transform="translate(0, -67.5)">
-                    <text
-                      x="0"
-                      y="-16"
-                      textAnchor="middle"
-                      fill="#1e293b"
-                      className="font-black text-[14px] uppercase tracking-wider"
-                      style={{ fontFamily: "'Poppins', sans-serif" }}
-                    >
-                      {slot.label}
-                    </text>
-                    <text
-                      x="0"
-                      y="7"
-                      textAnchor="middle"
-                      fill="#0f172a"
-                      className="font-black text-[24px]"
-                      style={{ fontFamily: "'Poppins', sans-serif" }}
-                    >
-                      {slot.pct.toFixed(1)}%
-                    </text>
-                    <text
-                      x="0"
-                      y="26"
-                      textAnchor="middle"
-                      fill="#475569"
-                      className="font-black text-[11px]"
-                      style={{ fontFamily: "'Poppins', sans-serif" }}
-                    >
-                      {`(${slot.item[valueKey]} ${typeof isCount === 'string' ? isCount : 'Units'})`}
-                    </text>
-                  </g>
-                </g>
-              );
-            })}
-          </g>
-        </svg>
-      </div>
-
-      <div className="flex flex-col gap-3 justify-center items-center w-96 mt-6 md:mt-0">
+    <div className="flex flex-col items-center justify-center w-full relative p-4">
+      <div className="flex flex-col gap-3 justify-center items-center w-full mt-6 md:mt-0">
         {slots.map((slot, index) => {
           const val = slot.item[valueKey] || 0;
           return (
@@ -264,7 +163,7 @@ const ObservedPieChart = ({
   }
 
   return (
-    <div ref={containerRef} className="flex flex-col items-center justify-center w-full relative p-4">
+    <div ref={containerRef} className="flex flex-col md:flex-row items-center justify-center gap-6 md:gap-8 w-full relative p-2 md:p-6 overflow-hidden">
       <style>{`
         .slice-hover-effect {
           transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.3s ease;
@@ -274,18 +173,25 @@ const ObservedPieChart = ({
           transform: scale(1.04);
           filter: brightness(1.05) drop-shadow(0 6px 12px rgba(0,0,0,0.1));
         }
+        @keyframes wheel-in {
+          from { transform: rotate(-120deg) scale(0.5); opacity: 0; }
+          to { transform: rotate(0deg) scale(1); opacity: 1; }
+        }
+        .animate-wheel-in {
+          animation: wheel-in 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        }
       `}</style>
 
-      <div className="relative w-72 h-72 shrink-0">
+      <div className="relative flex-1 w-full min-w-[300px] max-w-[550px] shrink-0">
         <svg 
-          className={`w-full h-full opacity-0 transition-opacity duration-300 ${isVisible ? '!opacity-100' : ''}`} 
-          viewBox="0 0 160 160"
+          className={`w-full h-auto drop-shadow-sm opacity-0 ${isVisible ? 'animate-wheel-in' : ''}`} 
+          viewBox="0 0 700 500"
         >
           {(() => {
             let accumulatedPercent = 0;
-            const cx = 80;
-            const cy = 80;
-            const r = 68;
+            const cx = 350;
+            const cy = 250;
+            const r = 140;
 
             return dataArray.map((item, index) => {
               const val = item[valueKey] || 0;
@@ -306,9 +212,23 @@ const ObservedPieChart = ({
               const largeArcFlag = percent > 0.5 ? 1 : 0;
               const color = colorPalette[index % colorPalette.length];
 
-              const labelX = cx + Math.cos(midAngle) * r * 0.70;
-              const labelY = cy + Math.sin(midAngle) * r * 0.70;
-              const percentageText = `${(percent * 100).toFixed(0)}%`;
+              const isLeft = Math.cos(midAngle) < 0;
+              const textAnchor = isLeft ? "end" : "start";
+              
+              // Points for connecting line
+              const lineStartX = cx + Math.cos(midAngle) * r;
+              const lineStartY = cy + Math.sin(midAngle) * r;
+              const lineMidX = cx + Math.cos(midAngle) * (r + 15);
+              const lineMidY = cy + Math.sin(midAngle) * (r + 15);
+              const lineEndX = lineMidX + (isLeft ? -15 : 15);
+              const lineEndY = lineMidY;
+
+              const labelX = lineEndX + (isLeft ? -8 : 8);
+              const labelY = lineEndY;
+              
+              const displayText = isCount 
+                ? `${val} ${typeof isCount === 'string' ? isCount : 'Leads'}`
+                : `₹${Math.round(val).toLocaleString()}`;
 
               const isSelected = selectedLabel === item[labelKey];
 
@@ -332,34 +252,42 @@ const ObservedPieChart = ({
                     d={`M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 ${largeArcFlag} 1 ${x2} ${y2} Z`}
                     fill={color}
                     stroke="#ffffff"
-                    strokeWidth="1.2"
+                    strokeWidth="1.5"
                   />
-                  {percent > 0.05 && (
-                    <text
-                      x={labelX}
-                      y={labelY}
-                      textAnchor="middle"
-                      fill="white"
-                      style={{ textShadow: '1px 1px 3px rgba(0,0,0,0.8)', fontFamily: "'Poppins', sans-serif" }}
-                    >
-                      <tspan x={labelX} dy="-0.2em" className="font-bold text-[8px] uppercase">
-                        {item[labelKey].length > 12 ? item[labelKey].substring(0, 12) + '..' : item[labelKey]}
-                      </tspan>
-                      <tspan x={labelX} dy="1.2em" className="font-black text-[15px]">
-                        {percentageText}
-                      </tspan>
-                    </text>
+                  {percent > 0.02 && (
+                    <g>
+                      <polyline
+                        points={`${lineStartX},${lineStartY} ${lineMidX},${lineMidY} ${lineEndX},${lineEndY}`}
+                        fill="none"
+                        stroke={color}
+                        strokeWidth="2"
+                        className="opacity-70"
+                      />
+                      <text
+                        x={labelX}
+                        y={labelY}
+                        textAnchor={textAnchor}
+                        fill="#000000"
+                        style={{ fontFamily: "system-ui, -apple-system, sans-serif" }}
+                      >
+                        <tspan x={labelX} dy="-0.2em" className="font-normal text-[16px] md:text-[20px] uppercase tracking-wide">
+                          {item[labelKey].length > 18 ? item[labelKey].substring(0, 18) + '..' : item[labelKey]}
+                        </tspan>
+                        <tspan x={labelX} dy="1.4em" className="font-extrabold text-[18px] md:text-[24px]">
+                          {displayText}
+                        </tspan>
+                      </text>
+                    </g>
                   )}
                 </g>
               );
             });
           })()}
-          <circle cx="80" cy="80" r="28" fill="#ffffff" />
         </svg>
       </div>
 
       {/* Detail Tags */}
-      <div className="flex flex-col gap-1.5 justify-center items-center w-full mt-4">
+      <div className="flex flex-col gap-1.5 justify-center items-center w-full md:w-auto md:max-w-[260px] shrink-0 mt-4 md:mt-0">
         {dataArray.map((item, index) => {
           const val = item[valueKey] || 0;
           const percentage = (val / total) * 100;
@@ -377,7 +305,7 @@ const ObservedPieChart = ({
               </div>
               <div className="flex items-baseline gap-1.5 ml-2 shrink-0">
                 <span className="text-gray-900 font-extrabold">{percentage.toFixed(1)}%</span>
-                <span className="text-gray-400 font-bold text-[10px]">({isCount ? `${val} ${typeof isCount === 'string' ? isCount : 'Leads'}` : `₹${Math.round(val).toLocaleString()}`})</span>
+                <span className="text-black font-extrabold text-[10px]">({isCount ? `${val} ${typeof isCount === 'string' ? isCount : 'Leads'}` : `₹${Math.round(val).toLocaleString()}`})</span>
               </div>
             </div>
           );
@@ -504,25 +432,29 @@ const Dashboard = () => {
     }
     // 'Total Leads' needs no status filter.
 
-    // 3. Group by User Name and Count
-    const counts = {};
+    // 3. Group by User, Source, and Project Type
+    const comboCounts = {};
     filtered.forEach(l => {
       const user = l.assignedTo || 'Unassigned';
-      counts[user] = (counts[user] || 0) + 1;
+      const source = l.leadSource || 'Unknown';
+      const type = Array.isArray(l.projectType) ? l.projectType.join(', ') : (l.projectType || 'Unknown');
+      
+      const key = `${user}|${source}|${type}`;
+      if (!comboCounts[key]) {
+        comboCounts[key] = { user, source, type, count: 0 };
+      }
+      comboCounts[key].count += 1;
     });
 
-    const userBreakdown = Object.keys(counts).map(name => ({
-      name,
-      count: counts[name]
-    })).sort((a, b) => b.count - a.count);
+    const comboBreakdown = Object.values(comboCounts).sort((a, b) => b.count - a.count);
 
     const titleContext = sourceContext === 'user'
       ? (selectedUserPerfName || 'All Users')
       : (selectedSubSource ? `${selectedSourceGroup} - ${selectedSubSource}` : (selectedSourceGroup || 'All Sources'));
 
     setBreakdownModalData({
-      title: `${stageLabel} - User Breakdown (${titleContext})`,
-      users: userBreakdown
+      title: `${stageLabel} - Breakdown (${titleContext})`,
+      comboData: comboBreakdown
     });
     setBreakdownModalOpen(true);
   };
@@ -1768,41 +1700,56 @@ const Dashboard = () => {
                   Total: {pStats.total}
                 </span>
               </div>
-              <div className="py-2">
-                {chartData.length === 0 ? (
-                  <div className="h-48 flex items-center justify-center text-gray-400 italic text-xs">
+              <div className="py-4 px-2">
+                {chartData.length === 0 && (pStats.cancelled || 0) === 0 ? (
+                  <div className="h-24 flex items-center justify-center text-gray-400 italic text-xs">
                     No units registered
                   </div>
                 ) : (
-                  renderSwirlPieChart(
-                    chartData,
-                    'count',
-                    'stage',
-                    'Units', // isCount = 'Units'
-                    () => {
-                      setSelectedInventoryProj({ projCode, stats: pStats });
-                      setInventoryModalOpen(true);
-                    }
-                  )
-                )}
-              </div>
-              
-              {/* Cancelled Units display below Handover */}
-              <div 
-                onClick={() => {
-                  setSelectedInventoryProj({ projCode, stats: pStats, view: 'cancelled' });
-                  setInventoryModalOpen(true);
-                }}
-                className="mx-6 mt-1 mb-4 flex items-center gap-4 bg-red-50/90 backdrop-blur-sm border border-red-100/50 rounded-2xl px-6 py-4 hover:bg-red-100 transition shadow-[0_2px_8px_-3px_rgba(239,68,68,0.15)] cursor-pointer"
-              >
-                <span className="w-4 h-4 rounded-full bg-red-500 shrink-0"></span>
-                <div className="flex flex-col text-left">
-                  <span className="text-base font-black text-red-500 uppercase tracking-wider">Cancelled</span>
-                  <div className="flex items-baseline gap-2 mt-1">
-                    <span className="text-red-900 font-black text-3xl">{pStats.cancelled || 0}</span>
-                    <span className="text-red-500 font-bold text-base">Units</span>
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 w-full">
+                    {[
+                      { label: 'Available', count: pStats.available, color: '#7ebda9', pct: pStats.total > 0 ? (pStats.available/pStats.total)*100 : 0 },
+                      { label: 'Booked', count: pStats.booked, color: '#8bc34a', pct: pStats.total > 0 ? (pStats.booked/pStats.total)*100 : 0 },
+                      { label: 'Handover', count: pStats.handover, color: '#004d61', pct: pStats.total > 0 ? (pStats.handover/pStats.total)*100 : 0 },
+                    ].map((slot, index) => {
+                      return (
+                        <div key={index} 
+                          onClick={() => {
+                            setSelectedInventoryProj({ projCode, stats: pStats });
+                            setInventoryModalOpen(true);
+                          }}
+                          className="flex flex-col items-start bg-slate-50 border border-slate-100 rounded-2xl p-4 hover:bg-slate-100 transition shadow-sm cursor-pointer w-full">
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: slot.color }}></span>
+                            <span className="text-[10px] font-black text-gray-500 uppercase tracking-wider">{slot.label}</span>
+                          </div>
+                          <div className="flex flex-col items-start gap-0.5 mt-auto">
+                            <span className="text-gray-900 font-black text-xl leading-none">{slot.count}</span>
+                            <span className="text-gray-500 font-bold text-xs mt-1">Units ({slot.pct.toFixed(1)}%)</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                    
+                    {/* Cancelled Units display */}
+                    <div 
+                      onClick={() => {
+                        setSelectedInventoryProj({ projCode, stats: pStats, view: 'cancelled' });
+                        setInventoryModalOpen(true);
+                      }}
+                      className="flex flex-col items-start bg-red-50 border border-red-100 rounded-2xl p-4 hover:bg-red-100 transition shadow-sm cursor-pointer w-full"
+                    >
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="w-3 h-3 rounded-full shrink-0 bg-red-500"></span>
+                        <span className="text-[10px] font-black text-red-500 uppercase tracking-wider">Cancelled</span>
+                      </div>
+                      <div className="flex flex-col items-start gap-0.5 mt-auto">
+                        <span className="text-red-900 font-black text-xl leading-none">{pStats.cancelled || 0}</span>
+                        <span className="text-red-500 font-bold text-xs mt-1">Units</span>
+                      </div>
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
 
               <div className="pt-2 text-center border-t border-gray-50">
@@ -1838,11 +1785,11 @@ const Dashboard = () => {
                 className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm hover:shadow-md transition cursor-pointer select-none active:scale-[0.99] duration-150 flex flex-col justify-between"
               >
                 <div className="flex items-center justify-between w-full pb-2">
-                  <div className="flex-1 flex flex-col items-center justify-center border-r-2 border-gray-100">
+                  <div className="flex-1 flex flex-col items-start justify-center border-r-2 border-gray-100 pr-2">
                     <span className="text-sm text-black font-extrabold uppercase tracking-wider">Total Leads</span>
                     <h3 className="text-3xl font-extrabold text-gray-800 mt-1">{stats.cards.totalLeads || 0}</h3>
                   </div>
-                  <div className="flex-1 flex flex-col items-center justify-center">
+                  <div className="flex-1 flex flex-col items-start justify-center pl-4">
                     <span className="text-sm text-rose-600 font-extrabold uppercase tracking-wider">Lost Leads</span>
                     <h3 className="text-3xl font-extrabold text-rose-600 mt-1">{(stats.cards.enquiries?.closed || 0) + (stats.cards.siteVisits?.closed || 0)}</h3>
                   </div>
@@ -1980,11 +1927,11 @@ const Dashboard = () => {
                 className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm hover:shadow-md transition cursor-pointer select-none active:scale-[0.99] duration-150 flex flex-col justify-between"
               >
                 <div className="flex items-center justify-between w-full pb-2">
-                  <div className="flex-1 flex flex-col items-center justify-center border-r-2 border-gray-100">
+                  <div className="flex-1 flex flex-col items-start justify-center border-r-2 border-gray-100 pr-2">
                     <span className="text-sm text-black font-extrabold uppercase tracking-wider">Active Leads</span>
                     <h3 className="text-3xl font-extrabold text-emerald-700 mt-1">{stats.cards.liveLeads || 0}</h3>
                   </div>
-                  <div className="flex-1 flex flex-col items-center justify-center">
+                  <div className="flex-1 flex flex-col items-start justify-center pl-4">
                     <span className="text-sm text-rose-600 font-extrabold uppercase tracking-wider">Lost Leads</span>
                     <h3 className="text-3xl font-extrabold text-rose-600 mt-1">{(stats.cards.enquiries?.closed || 0) + (stats.cards.siteVisits?.closed || 0)}</h3>
                   </div>
@@ -2106,7 +2053,7 @@ const Dashboard = () => {
           </div>
 
           {/* User Wise & Stage Wise Performance Pie Reports */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="flex flex-col gap-8">
             
             {/* User turn over Pie Chart */}
             <div className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm space-y-6">
@@ -2147,7 +2094,7 @@ const Dashboard = () => {
               </div>
               
               <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
-                <div className="md:col-span-6">
+                <div className="md:col-span-7">
                   {userPerformanceData.length === 0 ? (
                     <p className="text-gray-400 italic text-xs py-8 text-center">No user performance recorded</p>
                   ) : (
@@ -2163,7 +2110,7 @@ const Dashboard = () => {
                   )}
                 </div>
                 
-                <div className="md:col-span-6 bg-gray-50/50 rounded-2xl p-4 border border-gray-100 space-y-4">
+                <div className="md:col-span-5 bg-gray-50/50 rounded-2xl p-4 border border-gray-100 space-y-4">
                   <div className="border-b border-gray-200/60 pb-2">
                     <span className="text-[9px] text-gray-400 font-extrabold uppercase tracking-wider block">Currently Showing</span>
                     <h4 className="text-xs font-extrabold text-gray-800 uppercase tracking-wide truncate mt-0.5">
@@ -2283,7 +2230,7 @@ const Dashboard = () => {
               </div>
               
               <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
-                <div className="md:col-span-6">
+                <div className="md:col-span-7">
                   {sourceGroupsPerformanceData.length === 0 ? (
                     <p className="text-gray-400 italic text-xs py-8 text-center">No source performance recorded</p>
                   ) : (
@@ -2311,7 +2258,7 @@ const Dashboard = () => {
                   )}
                 </div>
                 
-                <div className="md:col-span-6 bg-gray-50/50 rounded-2xl p-4 border border-gray-100 space-y-4">
+                <div className="md:col-span-5 bg-gray-50/50 rounded-2xl p-4 border border-gray-100 space-y-4">
                   <div className="border-b border-gray-200/60 pb-2">
                     <span className="text-[9px] text-gray-400 font-extrabold uppercase tracking-wider block">Currently Showing</span>
                     <h4 className="text-xs font-extrabold text-gray-800 uppercase tracking-wide truncate mt-0.5">
@@ -2370,34 +2317,6 @@ const Dashboard = () => {
 
           </div>
 
-          {/* comparison pie charts */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            
-            {/* Chart 1: Budget Allocation Sources */}
-            <div className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm space-y-4 text-center">
-              <h3 className="text-sm font-extrabold text-gray-800 uppercase tracking-wide text-left">
-                Budget Allocation Sources
-              </h3>
-              {renderPieChart(budgetData, 'budget', 'source', primaryColors)}
-            </div>
-
-            {/* Chart 2: Spent Marketing Sources */}
-            <div className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm space-y-4 text-center">
-              <h3 className="text-sm font-extrabold text-gray-800 uppercase tracking-wide text-left">
-                Spent Marketing Sources
-              </h3>
-              {renderPieChart(spentData, 'spent', 'source', primaryColors)}
-            </div>
-
-            {/* Chart 3: Incoming Networth Value */}
-            <div className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm space-y-4 text-center">
-              <h3 className="text-sm font-extrabold text-gray-800 uppercase tracking-wide text-left">
-                Incoming Networth Value
-              </h3>
-              {renderPieChart(networthData, 'networth', 'source', primaryColors)}
-            </div>
-
-          </div>
 
           {/* Project Code Wise Matrix Panel */}
           <div className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm space-y-4">
@@ -2722,7 +2641,7 @@ const Dashboard = () => {
             <div className="p-6 border-b border-gray-150 flex items-center justify-between bg-gray-50/50">
               <div>
                 <h3 className="text-sm font-extrabold text-gray-800 uppercase tracking-wide">{breakdownModalData.title}</h3>
-                <p className="text-[10px] text-gray-500 mt-0.5">Assigned executives and lead counts</p>
+                <p className="text-[10px] text-gray-500 mt-0.5">Assigned executives, lead sources, project types and counts</p>
               </div>
               <button 
                 onClick={() => setBreakdownModalOpen(false)}
@@ -2733,18 +2652,36 @@ const Dashboard = () => {
             </div>
 
             {/* Content List */}
-            <div className="flex-grow p-6 overflow-y-auto max-h-[45vh] scrollbar-thin space-y-3">
-              {breakdownModalData.users && breakdownModalData.users.length > 0 ? (
-                breakdownModalData.users.map((userObj, idx) => (
-                  <div key={idx} className="flex justify-between items-center bg-gray-50/50 border border-gray-100 p-3 rounded-2xl">
-                    <span className="text-xs font-bold text-gray-750">{userObj.name}</span>
-                    <span className="text-xs font-extrabold text-[#0e623a] bg-[#0e623a]/10 px-3 py-1 rounded-xl">
-                      {userObj.count} {userObj.count === 1 ? 'Lead' : 'Leads'}
-                    </span>
-                  </div>
-                ))
+            <div className="flex-grow p-0 overflow-y-auto max-h-[55vh] scrollbar-thin">
+              {breakdownModalData.comboData && breakdownModalData.comboData.length > 0 ? (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse text-xs">
+                    <thead className="bg-gray-50/80 sticky top-0 z-10 backdrop-blur-sm">
+                      <tr className="border-b border-gray-150 text-[10px] font-bold text-gray-500 uppercase tracking-wider">
+                        <th className="p-4 whitespace-nowrap">User</th>
+                        <th className="p-4 whitespace-nowrap">Source</th>
+                        <th className="p-4 whitespace-nowrap">Project Type</th>
+                        <th className="p-4 whitespace-nowrap text-right">Leads Count</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100 font-semibold text-gray-700">
+                      {breakdownModalData.comboData.map((row, idx) => (
+                        <tr key={idx} className="hover:bg-gray-50/50 transition">
+                          <td className="p-4 text-gray-850 font-bold">{row.user}</td>
+                          <td className="p-4 text-[#0e623a]">{row.source}</td>
+                          <td className="p-4 text-gray-500 truncate max-w-[150px]" title={row.type}>{row.type}</td>
+                          <td className="p-4 text-right">
+                            <span className="bg-gray-100 text-gray-800 px-2.5 py-1 rounded-xl font-extrabold text-[10px]">
+                              {row.count}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               ) : (
-                <div className="py-8 text-center text-gray-450 italic text-xs">
+                <div className="py-12 text-center text-gray-450 italic text-xs">
                   No active leads for this stage matching configuration.
                 </div>
               )}

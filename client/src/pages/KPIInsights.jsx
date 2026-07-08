@@ -2528,6 +2528,23 @@ const KPIInsights = () => {
     setToDate(lastDay);
   };
 
+  const getSourcesData = () => {
+    const budgetData = [];
+    const spentData = [];
+    const networthData = [];
+
+    Object.keys(stats.sourceStats || {}).forEach(src => {
+      const s = stats.sourceStats[src];
+      if (s.budget > 0) budgetData.push({ source: src, budget: s.budget });
+      if (s.spent > 0) spentData.push({ source: src, spent: s.spent });
+      if (s.value > 0) networthData.push({ source: src, networth: s.value });
+    });
+
+    return { budgetData, spentData, networthData };
+  };
+
+  const { budgetData, spentData, networthData } = getSourcesData();
+
   const primaryColors = [
     '#4A7C59', // Matte Sage Green
     '#68809A', // Matte Slate Blue
@@ -2663,93 +2680,48 @@ const KPIInsights = () => {
             </div>
           </div>
 
-          {/* 🟢 DYNAMIC DRILL-DOWN MARKETING PIE CHARTS GRID */}
-          <div className="bg-white border border-gray-150 rounded-3xl p-6 shadow-sm space-y-6">
-            <div className="border-b border-gray-100 pb-3 flex items-center justify-between gap-2">
-              <div>
-                <h3 className="text-sm font-extrabold text-gray-800 uppercase tracking-wide flex items-center gap-2">
-                  <Compass className="w-4 h-4 text-[#0e623a]" />
-                  <span>Marketing Performance: {selectedGroup ? `Drilled down: ${selectedGroup}` : 'Spend & Revenue returns by Group'}</span>
-                </h3>
-                <p className="text-[10px] text-gray-400 mt-0.5">Click any group slice/item to drill down into detailed source breakdown</p>
-              </div>
-              {selectedGroup && (
-                <button 
-                  onClick={() => setSelectedGroup(null)}
-                  className="text-[10px] bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1.5 rounded-xl font-bold transition flex items-center gap-1 cursor-pointer"
-                >
-                  ← Back to Groups
-                </button>
-              )}
+          {/* 🟢 COMPARISON PIE CHARTS */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            {/* Chart 1: Budget Allocation Sources */}
+            <div className="bg-white border border-gray-150 rounded-3xl p-6 shadow-sm space-y-4 text-center">
+              <h3 className="text-sm font-extrabold text-gray-800 uppercase tracking-wide text-left">
+                Budget Allocation Sources
+              </h3>
+              <ObservedPieChart 
+                dataArray={budgetData}
+                valueKey="budget"
+                labelKey="source"
+                colorPalette={primaryColors}
+              />
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-              {/* Chart 1: Budget Allocation (Planned) */}
-              <div className="space-y-3 text-center">
-                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block text-left">1. Budget Allocation (Planned)</span>
-                {(() => {
-                  const budgetData = selectedGroup
-                    ? (stats.groupStats?.[selectedGroup]?.sources || []).filter(s => s.budget > 0)
-                    : Object.keys(stats.groupStats || {}).map(gName => ({
-                        groupName: gName,
-                        budget: stats.groupStats[gName].budget || 0
-                      })).filter(g => g.budget > 0);
-                  return (
-                    <ObservedPieChart 
-                      dataArray={budgetData}
-                      valueKey="budget"
-                      labelKey={selectedGroup ? "source" : "groupName"}
-                      colorPalette={primaryColors}
-                      onSegmentClick={!selectedGroup ? (item) => setSelectedGroup(item.groupName) : null}
-                    />
-                  );
-                })()}
-              </div>
-
-              {/* Chart 2: Spent Allocation (Actual) */}
-              <div className="space-y-3 text-center">
-                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block text-left">2. Spent Allocation (Actual)</span>
-                {(() => {
-                  const spendData = selectedGroup
-                    ? (stats.groupStats?.[selectedGroup]?.sources || []).filter(s => s.spent > 0)
-                    : Object.keys(stats.groupStats || {}).map(gName => ({
-                        groupName: gName,
-                        spent: stats.groupStats[gName].spent || 0
-                      })).filter(g => g.spent > 0);
-                  return (
-                    <ObservedPieChart 
-                      dataArray={spendData}
-                      valueKey="spent"
-                      labelKey={selectedGroup ? "source" : "groupName"}
-                      colorPalette={primaryColors}
-                      onSegmentClick={!selectedGroup ? (item) => setSelectedGroup(item.groupName) : null}
-                    />
-                  );
-                })()}
-              </div>
-
-              {/* Chart 3: Project Value Generated (Revenue) */}
-              <div className="space-y-3 text-center">
-                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block text-left">3. Lead Valuation Generated (Revenue)</span>
-                {(() => {
-                  const valueData = selectedGroup
-                    ? (stats.groupStats?.[selectedGroup]?.sources || []).filter(s => s.value > 0)
-                    : Object.keys(stats.groupStats || {}).map(gName => ({
-                        groupName: gName,
-                        value: stats.groupStats[gName].value || 0
-                      })).filter(g => g.value > 0);
-                  return (
-                    <ObservedPieChart 
-                      dataArray={valueData}
-                      valueKey="value"
-                      labelKey={selectedGroup ? "source" : "groupName"}
-                      colorPalette={primaryColors}
-                      onSegmentClick={!selectedGroup ? (item) => setSelectedGroup(item.groupName) : null}
-                    />
-                  );
-                })()}
-              </div>
+            {/* Chart 2: Spent Marketing Sources */}
+            <div className="bg-white border border-gray-150 rounded-3xl p-6 shadow-sm space-y-4 text-center">
+              <h3 className="text-sm font-extrabold text-gray-800 uppercase tracking-wide text-left">
+                Spent Marketing Sources
+              </h3>
+              <ObservedPieChart 
+                dataArray={spentData}
+                valueKey="spent"
+                labelKey="source"
+                colorPalette={primaryColors}
+              />
             </div>
+
+            {/* Chart 3: Incoming Networth Value */}
+            <div className="bg-white border border-gray-150 rounded-3xl p-6 shadow-sm space-y-4 text-center">
+              <h3 className="text-sm font-extrabold text-gray-800 uppercase tracking-wide text-left">
+                Incoming Networth Value
+              </h3>
+              <ObservedPieChart 
+                dataArray={networthData}
+                valueKey="networth"
+                labelKey="source"
+                colorPalette={primaryColors}
+              />
+            </div>
+
           </div>
 
           {/* 🟢 COMPARATIVE CHART ROWS */}
