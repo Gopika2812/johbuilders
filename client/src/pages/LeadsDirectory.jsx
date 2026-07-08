@@ -25,7 +25,10 @@ import {
   Building2,
   CalendarClock,
   FileSpreadsheet,
-  X
+  X,
+  MoreVertical,
+  Edit2,
+  Trash2
 } from 'lucide-react';
 
 const SOURCE_TYPES = [
@@ -1372,12 +1375,12 @@ const LeadsDirectory = () => {
           <thead>
             <tr className="bg-gray-50 border-b border-gray-150 text-[10px] font-bold text-gray-500 uppercase tracking-wider">
               <th className="px-3 py-2">Date</th>
-              <th className="px-3 py-2">Customer Details</th>
-              <th className="px-3 py-2">Lead Type</th>
-              <th className="px-3 py-2">Campaign / Source details</th>
+              <th className="px-3 py-2">Customer Name</th>
+              <th className="px-3 py-2">Phone Number</th>
+              <th className="px-3 py-2">Source Details</th>
               <th className="px-3 py-2">Project</th>
-              <th className="px-3 py-2">Assigned Executive</th>
-              <th className="px-3 py-2">Workflow Status</th>
+              <th className="px-3 py-2">Assignment</th>
+              <th className="px-3 py-2">Lead Status</th>
               <th className="px-3 py-2 text-center">Actions</th>
             </tr>
           </thead>
@@ -1408,37 +1411,30 @@ const LeadsDirectory = () => {
                       </span>
                     )}
                   </div>
-                  <div className="flex items-center gap-1 text-[10px] text-gray-400 mt-0.5">
-                    <Phone className="w-3 h-3 text-gray-300" />
-                    <span>{lead.phone}</span>
-                  </div>
-                  {lead.followUpInfo?.remarks && (
-                    <div className="mt-0.5 flex flex-wrap gap-1">
+                </td>
+
+                {/* Phone Number */}
+                <td className="px-3 py-1.5 border-b border-gray-100">
+                  <div className="flex flex-col gap-1 text-[10px] text-gray-500">
+                    <div className="flex items-center gap-1 font-semibold">
+                      <Phone className="w-3 h-3 text-gray-300" />
+                      <span>{lead.phone}</span>
+                    </div>
+                    {lead.followUpInfo?.remarks && (
                       <span 
                         className="text-[9px] px-1.5 py-0.5 rounded font-bold bg-[#f0f9f4] text-[#0e623a] border border-[#bce2cb] max-w-[180px] truncate block" 
                         title={lead.followUpInfo.remarks}
                       >
                         Notes: {lead.followUpInfo.remarks}
                       </span>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </td>
  
-                {/* Lead Type */}
-                <td className="px-3 py-1.5 border-b border-gray-100">
-                  <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${
-                    lead.leadType === 'Lead'
-                      ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
-                      : 'bg-blue-50 border-blue-200 text-blue-700'
-                  }`}>
-                    {lead.leadType}
-                  </span>
-                </td>
- 
-                {/* Campaign Info */}
+                {/* Source Details */}
                 <td className="px-3 py-1.5 border-b border-gray-100">
                   <div className="space-y-0.5">
-                    <div className="text-[10px] font-semibold text-gray-700">Source: {lead.leadSource || (lead.leadType === 'Direct Visit' ? 'Direct Visit' : '—')}</div>
+                    <div className="text-[10px] font-semibold text-gray-700">{lead.leadSource || (lead.leadType === 'Direct Visit' ? 'Direct Visit' : '—')}</div>
                     {lead.leadType === 'Lead' && lead.activeAd?.name && (
                       <div className="text-[10px] text-gray-500 flex items-center gap-1">
                         <span>Ad: {lead.activeAd.name}</span>
@@ -1461,10 +1457,19 @@ const LeadsDirectory = () => {
  
                 {/* Assignment & Reassign Control */}
                 <td className="px-3 py-1.5 border-b border-gray-100">
-                  <div className="text-[10px] font-semibold text-gray-700">
-                    {lead.assignedTo?.name 
-                      ? `${lead.assignedTo.name} (${lead.assignedTo.role})` 
-                      : 'Unassigned'}
+                  <div className="text-[9px] space-y-1">
+                    <div className="flex items-start gap-1">
+                      <span className="text-gray-400 font-bold w-12 shrink-0">By:</span>
+                      <span className="font-semibold text-gray-600">
+                        {lead.assignedBy?.name || 'Admin'}
+                      </span>
+                    </div>
+                    <div className="flex items-start gap-1">
+                      <span className="text-gray-400 font-bold w-12 shrink-0">To:</span>
+                      <span className="font-semibold text-gray-800">
+                        {lead.assignedTo?.name ? `${lead.assignedTo.name} (${lead.assignedTo.role})` : 'Unassigned'}
+                      </span>
+                    </div>
                   </div>
                 </td>
  
@@ -1518,37 +1523,35 @@ const LeadsDirectory = () => {
 
                  {/* Action Triggers: History, Edit & Delete */}
                  <td className="px-3 py-1.5 border-b border-gray-100 text-center">
-                   <div className="flex items-center justify-center gap-1.5">
-                     <button
-                       onClick={() => {
-                         setSelectedLeadForHistory(lead);
-                         setHistoryModalOpen(true);
-                       }}
-                       className="p-1.5 text-gray-500 hover:text-[#0e623a] hover:bg-[#0e623a]/5 rounded-lg transition cursor-pointer"
-                       title="View Lead History Logs"
-                     >
-                       <History className="w-4 h-4" />
+                   <div className="relative group inline-block text-left">
+                     <button className="p-1.5 text-gray-500 hover:bg-gray-100 rounded-full transition">
+                       <MoreVertical className="w-4 h-4" />
                      </button>
-                     <button
-                       onClick={() => handleOpenEditModal(lead)}
-                       className="p-1.5 text-gray-500 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition cursor-pointer"
-                       title="Edit Entire Lead Details"
-                     >
-                       <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                         <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                       </svg>
-                     </button>
-                     {(user?.role === 'Admin' || user?.role === 'Manager') && (
+                     <div className="absolute right-6 top-0 mt-0 w-32 bg-white border border-gray-150 rounded-xl shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10 py-1">
                        <button
-                         onClick={() => handleDeleteLead(lead._id, lead.name)}
-                         className="p-1.5 text-gray-500 hover:text-red-650 hover:bg-red-50 rounded-lg transition cursor-pointer"
-                         title="Delete Lead Record"
+                         onClick={() => {
+                           setSelectedLeadForHistory(lead);
+                           setHistoryModalOpen(true);
+                         }}
+                         className="w-full text-left px-4 py-2 text-[10px] font-bold text-gray-600 hover:bg-gray-50 flex items-center gap-2"
                        >
-                         <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                           <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                         </svg>
+                         <History className="w-3.5 h-3.5" /> History
                        </button>
-                     )}
+                       <button
+                         onClick={() => handleOpenEditModal(lead)}
+                         className="w-full text-left px-4 py-2 text-[10px] font-bold text-amber-600 hover:bg-amber-50 flex items-center gap-2"
+                       >
+                         <Edit2 className="w-3.5 h-3.5" /> Edit
+                       </button>
+                       {(user?.role === 'Admin' || user?.role === 'Manager') && (
+                         <button
+                           onClick={() => handleDeleteLead(lead._id, lead.name)}
+                           className="w-full text-left px-4 py-2 text-[10px] font-bold text-red-600 hover:bg-red-50 flex items-center gap-2"
+                         >
+                           <Trash2 className="w-3.5 h-3.5" /> Delete
+                         </button>
+                       )}
+                     </div>
                    </div>
                  </td>
               </tr>
