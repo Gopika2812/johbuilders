@@ -19,7 +19,11 @@ const BudgetPlanning = () => {
   const { token } = useAuth();
   
   // Date and filter states
-  const [selectedMonth, setSelectedMonth] = useState('2026-06'); // Format: YYYY-MM
+  const getCurrentMonth = () => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  };
+  const [selectedMonth, setSelectedMonth] = useState(getCurrentMonth()); // Format: YYYY-MM
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [saveSuccess, setSaveSuccess] = useState(false);
@@ -533,10 +537,14 @@ const BudgetPlanning = () => {
               </div>
               <button
                 type="button"
-                onClick={() => setActiveExpenseSource(null)}
-                className="px-4 py-2 bg-gray-800 text-white rounded-xl text-xs font-bold hover:bg-gray-900 transition shadow-sm"
+                onClick={() => {
+                  handleSavePlan();
+                  setActiveExpenseSource(null);
+                }}
+                className="px-4 py-2 bg-[#0e623a] text-white rounded-xl text-xs font-bold hover:bg-[#0b4d2d] transition shadow-sm flex items-center gap-2"
               >
-                Done
+                <Save className="w-3.5 h-3.5" />
+                <span>Save & Close</span>
               </button>
             </div>
 
