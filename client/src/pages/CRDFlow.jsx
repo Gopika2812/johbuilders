@@ -52,6 +52,7 @@ const CRDFlow = () => {
   const [projects, setProjects] = useState([]);
   const [bookings, setBookings] = useState([]);
   const [flows, setFlows] = useState([]);
+  const [users, setUsers] = useState([]);
   const [quotations, setQuotations] = useState([]);
   
   const [selectedProjectId, setSelectedProjectId] = useState('');
@@ -132,12 +133,19 @@ const CRDFlow = () => {
       const quotRes = await fetch(`${API_URL}/quotations`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
+      const usersRes = await fetch(`${API_URL}/users`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
       
       if (projRes.ok && leadRes.ok) {
         const projData = await projRes.json();
         const leadData = await leadRes.json();
         setProjects(projData);
         setBookings(leadData);
+        if (usersRes.ok) {
+          const usersData = await usersRes.json();
+          setUsers(usersData);
+        }
       }
       if (flowsRes.ok) {
         const flowsData = await flowsRes.json();
@@ -485,6 +493,39 @@ const CRDFlow = () => {
       }
     } catch (err) {
       setError('Connection error updating Bank Loan status');
+    }
+  };
+
+  const handleUpdateAssignedTo = async (newUserId) => {
+    try {
+      const res = await fetch(`${API_URL}/leads/${selectedBookingId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ assignedTo: newUserId })
+      });
+      if (res.ok) {
+        const updatedLead = await res.json();
+        
+        // Update bookings state
+        setBookings(bookings.map(b => b._id === selectedBookingId ? { ...b, assignedTo: updatedLead.lead?.assignedTo || newUserId } : b));
+        
+        // Update flows state (since some places might read lead from flow)
+        setFlows(flows.map(f => f.lead?._id === selectedBookingId ? { 
+            ...f, 
+            lead: { ...f.lead, assignedTo: updatedLead.lead?.assignedTo || newUserId } 
+        } : f));
+        
+        setSuccess('Assigned Executive updated successfully');
+        setTimeout(() => setSuccess(''), 3000);
+      } else {
+        const data = await res.json();
+        setError(data.message || 'Failed to update Assigned Executive');
+      }
+    } catch (err) {
+      setError('Connection error updating Assigned Executive');
     }
   };
 
@@ -1222,6 +1263,20 @@ const CRDFlow = () => {
                   <div>
                     <span className="text-[10px] text-gray-400 block font-bold uppercase">Address</span>
                     <span>{selectedBookingDetails.address}</span>
+                  </div>
+                  <div className="pt-2 border-t mt-2">
+                    <span className="text-[10px] text-gray-400 block font-bold uppercase mb-1">Assigned Executive (Sales)</span>
+                    <select
+                      value={selectedBookingDetails.assignedTo?._id || selectedBookingDetails.assignedTo || ''}
+                      onChange={(e) => handleUpdateAssignedTo(e.target.value)}
+                      className="w-full px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-[#0e623a]"
+                    >
+                      <option value="">-- Unassigned --</option>
+                      {users.filter(u => u.role === 'Executive' || u.role === 'Manager').map(user => (
+                        <option key={user._id} value={user._id}>{user.name} ({user.role})</option>
+                      ))}
+                    </select>
+                    <span className="text-[9px] text-gray-400 mt-1 block">Updating this will immediately transfer the lead</span>
                   </div>
                   <div className="pt-2 border-t mt-2">
                     <span className="text-[10px] text-gray-400 block font-bold uppercase mb-1">Requires Bank Loan?</span>

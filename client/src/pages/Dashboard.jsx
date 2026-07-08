@@ -1690,15 +1690,6 @@ const Dashboard = () => {
                   </h3>
                   <p className="text-[10px] text-gray-400 mt-0.5">Project inventory breakdown</p>
                 </div>
-                <span 
-                  onClick={() => {
-                    setSelectedInventoryProj({ projCode, stats: pStats });
-                    setInventoryModalOpen(true);
-                  }}
-                  className="text-xs bg-[#0e623a]/10 text-[#0e623a] px-3 py-1 rounded-full font-extrabold uppercase tracking-wider cursor-pointer hover:bg-[#0e623a]/25 transition"
-                >
-                  Total: {pStats.total}
-                </span>
               </div>
               <div className="py-4 px-2">
                 {chartData.length === 0 && (pStats.cancelled || 0) === 0 ? (
@@ -1708,14 +1699,14 @@ const Dashboard = () => {
                 ) : (
                   <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 w-full">
                     {[
+                      { label: 'Total', count: pStats.total, color: '#94a3b8', pct: 100 },
                       { label: 'Available', count: pStats.available, color: '#7ebda9', pct: pStats.total > 0 ? (pStats.available/pStats.total)*100 : 0 },
-                      { label: 'Booked', count: pStats.booked, color: '#8bc34a', pct: pStats.total > 0 ? (pStats.booked/pStats.total)*100 : 0 },
-                      { label: 'Handover', count: pStats.handover, color: '#004d61', pct: pStats.total > 0 ? (pStats.handover/pStats.total)*100 : 0 },
+                      { label: 'Booked', count: pStats.booked + (pStats.handover || 0), color: '#8bc34a', pct: pStats.total > 0 ? ((pStats.booked + (pStats.handover || 0))/pStats.total)*100 : 0 },
                     ].map((slot, index) => {
                       return (
                         <div key={index} 
                           onClick={() => {
-                            setSelectedInventoryProj({ projCode, stats: pStats });
+                            setSelectedInventoryProj({ projCode, stats: pStats, view: slot.label === 'Total' ? '' : slot.label.toLowerCase() });
                             setInventoryModalOpen(true);
                           }}
                           className="flex flex-col items-start bg-slate-50 border border-slate-100 rounded-2xl p-4 hover:bg-slate-100 transition shadow-sm cursor-pointer w-full">
@@ -1725,7 +1716,7 @@ const Dashboard = () => {
                           </div>
                           <div className="flex flex-col items-start gap-0.5 mt-auto">
                             <span className="text-gray-900 font-black text-xl leading-none">{slot.count}</span>
-                            <span className="text-gray-500 font-bold text-xs mt-1">Units ({slot.pct.toFixed(1)}%)</span>
+                            <span className="text-gray-500 font-bold text-xs mt-1">Units {slot.label !== 'Total' ? `(${slot.pct.toFixed(1)}%)` : ''}</span>
                           </div>
                         </div>
                       );
@@ -3043,7 +3034,7 @@ const Dashboard = () => {
             {/* Content */}
             <div className="flex-grow p-6 overflow-y-auto scrollbar-thin space-y-6">
               {/* Summary Stats Grid */}
-              <div className="grid grid-cols-5 gap-4">
+              <div className="grid grid-cols-4 gap-4">
                 <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4 text-center">
                   <span className="text-[10px] text-gray-400 font-extrabold uppercase tracking-wider block">Total Units</span>
                   <span className="text-2xl font-black text-slate-800 block mt-1">{selectedInventoryProj.stats.total || 0}</span>
@@ -3054,11 +3045,7 @@ const Dashboard = () => {
                 </div>
                 <div className="bg-[#8bc34a]/10 border border-[#8bc34a]/30 rounded-2xl p-4 text-center">
                   <span className="text-[10px] text-[#71a632] font-extrabold uppercase tracking-wider block">Booked</span>
-                  <span className="text-2xl font-black text-[#558b2f] block mt-1">{selectedInventoryProj.stats.booked || 0}</span>
-                </div>
-                <div className="bg-[#004d61]/10 border border-[#004d61]/30 rounded-2xl p-4 text-center">
-                  <span className="text-[10px] text-[#004d61] font-extrabold uppercase tracking-wider block">Handover</span>
-                  <span className="text-2xl font-black text-[#004d61] block mt-1">{selectedInventoryProj.stats.handover || 0}</span>
+                  <span className="text-2xl font-black text-[#558b2f] block mt-1">{(selectedInventoryProj.stats.booked || 0) + (selectedInventoryProj.stats.handover || 0)}</span>
                 </div>
                 <div className="bg-red-50 border border-red-100 rounded-2xl p-4 text-center">
                   <span className="text-[10px] text-red-700 font-extrabold uppercase tracking-wider block">Cancelled</span>
@@ -3092,36 +3079,17 @@ const Dashboard = () => {
                 <div className="space-y-2">
                   <h4 className="text-xs font-bold text-[#558b2f] uppercase tracking-wide flex items-center gap-1.5">
                     <span className="w-2.5 h-2.5 rounded-full bg-[#8bc34a]"></span>
-                    <span>Booked Units ({selectedInventoryProj.stats.bookedUnitsList?.length || 0})</span>
+                    <span>Booked Units {`(${[...(selectedInventoryProj.stats.bookedUnitsList || []), ...(selectedInventoryProj.stats.handoverUnitsList || [])].length})`}</span>
                   </h4>
                   <div className="bg-amber-50/20 border border-amber-100/50 rounded-2xl p-4 min-h-[50px] flex flex-wrap gap-2">
-                    {selectedInventoryProj.stats.bookedUnitsList?.length > 0 ? (
-                      selectedInventoryProj.stats.bookedUnitsList.map(uid => (
+                    {[...(selectedInventoryProj.stats.bookedUnitsList || []), ...(selectedInventoryProj.stats.handoverUnitsList || [])].length > 0 ? (
+                      [...(selectedInventoryProj.stats.bookedUnitsList || []), ...(selectedInventoryProj.stats.handoverUnitsList || [])].map(uid => (
                         <span key={uid} className="bg-amber-100/80 text-amber-800 border border-amber-250 text-xs font-bold px-3 py-1 rounded-xl">
                           {uid}
                         </span>
                       ))
                     ) : (
                       <span className="text-gray-400 italic text-xs">No units booked</span>
-                    )}
-                  </div>
-                </div>
-
-                {/* Handover Section */}
-                <div className="space-y-2">
-                  <h4 className="text-xs font-bold text-[#004d61] uppercase tracking-wide flex items-center gap-1.5">
-                    <span className="w-2.5 h-2.5 rounded-full bg-[#004d61]"></span>
-                    <span>Handover Units ({selectedInventoryProj.stats.handoverUnitsList?.length || 0})</span>
-                  </h4>
-                  <div className="bg-blue-50/20 border border-blue-100/50 rounded-2xl p-4 min-h-[50px] flex flex-wrap gap-2">
-                    {selectedInventoryProj.stats.handoverUnitsList?.length > 0 ? (
-                      selectedInventoryProj.stats.handoverUnitsList.map(uid => (
-                        <span key={uid} className="bg-blue-100/80 text-blue-800 border border-blue-250 text-xs font-bold px-3 py-1 rounded-xl">
-                          {uid}
-                        </span>
-                      ))
-                    ) : (
-                      <span className="text-gray-400 italic text-xs">No units handed over</span>
                     )}
                   </div>
                 </div>
