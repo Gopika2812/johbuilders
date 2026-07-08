@@ -1489,18 +1489,24 @@ const LeadsDirectory = () => {
                     </div>
                   ) : (
                     <div className="relative inline-block text-left">
-                      <div
-                        className={`flex items-center justify-between gap-1.5 px-3 py-1.5 rounded-full border text-xs font-bold shadow-sm ${
+                      <select
+                        value={lead.status}
+                        onChange={(e) => handleStatusChange(lead._id, e.target.value)}
+                        className={`appearance-none cursor-pointer flex items-center justify-between gap-1.5 px-3 py-1.5 rounded-full border text-xs font-bold shadow-sm outline-none ${
                           STATUS_COLORS[lead.status]?.bg || 'bg-gray-50/70'
                         } ${STATUS_COLORS[lead.status]?.text || 'text-gray-700'} ${
                           STATUS_COLORS[lead.status]?.border || 'border-gray-200'
                         }`}
                       >
-                        <span className="flex items-center gap-1.5">
-                          <span className={`w-2 h-2 rounded-full ${STATUS_COLORS[lead.status]?.dot || 'bg-gray-450'}`}></span>
-                          {lead.status === 'Qualified' ? 'Hot List' : lead.status}
-                        </span>
-                      </div>
+                        {LEAD_STATUSES.filter((_, idx) => {
+                          const currentIdx = LEAD_STATUSES.indexOf(lead.status);
+                          return currentIdx === -1 || idx >= currentIdx;
+                        }).map(status => (
+                          <option key={status} value={status}>
+                            {status === 'Qualified' ? 'Hot List' : status}
+                          </option>
+                        ))}
+                      </select>
                       {activeTab === 'Qualified' && lead.status !== 'Qualified' && (
                         <div className="text-[10px] text-emerald-700 font-extrabold mt-1 py-0.5 px-2 bg-emerald-50 rounded border border-emerald-100 text-center">
                           Moved to {lead.status}
@@ -2075,7 +2081,10 @@ const LeadsDirectory = () => {
                   className="w-full px-4 py-3 bg-gray-55 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-600 text-sm cursor-pointer appearance-none"
                   style={{ backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 16px center', backgroundSize: '16px' }}
                 >
-                  {LEAD_STATUSES.map(status => (
+                  {LEAD_STATUSES.filter((_, idx) => {
+                    const currentIdx = LEAD_STATUSES.indexOf(selectedLeadForEdit.status);
+                    return currentIdx === -1 || idx >= currentIdx;
+                  }).map(status => (
                     <option key={status} value={status}>{status}</option>
                   ))}
                 </select>
@@ -2171,7 +2180,15 @@ const LeadsDirectory = () => {
       {qtnConfirmOpen && pendingLeadForBooking && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
           <div className="bg-white rounded-3xl max-w-md w-full overflow-hidden shadow-2xl border border-gray-100 animate-scale-in">
-            <div className="bg-[#0e623a] p-6 text-white text-center space-y-2">
+            <div className="bg-[#0e623a] p-6 text-white text-center space-y-2 relative">
+              <button
+                type="button"
+                onClick={() => setQtnConfirmOpen(false)}
+                className="absolute top-4 right-4 text-emerald-200 hover:text-white transition p-1 hover:bg-[#0b4d2d] rounded-full"
+                title="Cancel"
+              >
+                <X className="w-5 h-5" />
+              </button>
               <FileText className="w-12 h-12 text-emerald-300 mx-auto" />
               <h3 className="text-base font-extrabold">Quotation Estimation Required</h3>
               <p className="text-emerald-100 text-xs">
