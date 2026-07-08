@@ -1366,9 +1366,10 @@ const LeadsDirectory = () => {
           <table className="w-full text-left border-collapse min-w-[900px]">
           <thead>
             <tr className="bg-gray-50 border-b border-gray-150 text-xs font-bold text-gray-500 uppercase tracking-wider">
+              <th className="p-4">Date</th>
               <th className="p-4">Customer Details</th>
               <th className="p-4">Lead Type</th>
-              <th className="p-4">Campaign / Location details</th>
+              <th className="p-4">Campaign / Source details</th>
               <th className="p-4">Project</th>
               <th className="p-4">Assigned Executive</th>
               <th className="p-4">Workflow Status</th>
@@ -1385,6 +1386,13 @@ const LeadsDirectory = () => {
                     : ''
                 }`}
               >
+                {/* Date */}
+                <td className="p-4">
+                  <div className="text-xs font-semibold text-gray-700 whitespace-nowrap">
+                    {lead.createdAt ? new Date(lead.createdAt).toLocaleDateString('en-GB') : '—'}
+                  </div>
+                </td>
+
                 {/* Customer */}
                 <td className="p-4">
                   <div className="flex items-center gap-2">
@@ -1399,26 +1407,16 @@ const LeadsDirectory = () => {
                     <Phone className="w-3 h-3 text-gray-300" />
                     <span>{lead.phone}</span>
                   </div>
-                  <div className="text-[10px] text-gray-400 mt-0.5 truncate max-w-[200px]" title={lead.address}>
-                    {lead.address}
-                  </div>
-                  <div className="mt-1 flex flex-wrap gap-1">
-                    <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold ${
-                      lead.bankLoan === 'Yes'
-                        ? 'bg-amber-100 text-amber-800 border border-amber-200'
-                        : 'bg-gray-100 text-gray-600 border border-gray-200'
-                    }`}>
-                      Bank Loan: {lead.bankLoan || 'No'}
-                    </span>
-                    {lead.followUpInfo?.remarks && (
+                  {lead.followUpInfo?.remarks && (
+                    <div className="mt-1 flex flex-wrap gap-1">
                       <span 
-                        className="text-[9px] px-1.5 py-0.5 rounded font-bold bg-[#f0f9f4] text-[#0e623a] border border-[#bce2cb] max-w-[180px] truncate" 
+                        className="text-[9px] px-1.5 py-0.5 rounded font-bold bg-[#f0f9f4] text-[#0e623a] border border-[#bce2cb] max-w-[180px] truncate block" 
                         title={lead.followUpInfo.remarks}
                       >
                         Notes: {lead.followUpInfo.remarks}
                       </span>
-                    )}
-                  </div>
+                    </div>
+                  )}
                 </td>
  
                 {/* Lead Type */}
@@ -1444,12 +1442,6 @@ const LeadsDirectory = () => {
                             <ExternalLink className="w-2.5 h-2.5 inline" />
                           </a>
                         )}
-                      </div>
-                    )}
-                    {(lead.project?.location || lead.projectLocation) && (
-                      <div className="flex items-center gap-1 text-[10px] text-gray-400">
-                        <MapPin className="w-3 h-3 text-gray-300" />
-                        <span>Loc: {lead.project?.location || lead.projectLocation}</span>
                       </div>
                     )}
                   </div>
@@ -1552,7 +1544,7 @@ const LeadsDirectory = () => {
             ))}
             {filteredLeadsList.length === 0 && (
               <tr>
-                <td colSpan="7" className="p-8 text-center text-gray-400 text-xs">
+                <td colSpan="8" className="p-8 text-center text-gray-400 text-xs">
                   No lead records found matching selected filters.
                 </td>
               </tr>
