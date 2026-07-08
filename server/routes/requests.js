@@ -3,6 +3,7 @@ const router = express.Router();
 const ApprovalRequest = require('../models/ApprovalRequest');
 const CRDFlow = require('../models/CRDFlow');
 const AuditLog = require('../models/AuditLog');
+const Lead = require('../models/Lead');
 const { protect } = require('../middleware/auth');
 
 // @route   GET /api/requests
@@ -15,6 +16,40 @@ router.get('/', protect, async (req, res) => {
       .populate('requestedBy', 'name email role')
       .sort({ createdAt: -1 });
     res.json(requests);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ message: 'Server Error' });
+  }
+});
+
+// @route   POST /api/requests
+// @desc    Create a new approval request
+// @access  Private
+router.post('/', protect, async (req, res) => {
+  try {
+    const { type, referenceId, narration } = req.body;
+    
+    // Check if pending request already exists for this reference
+    const existingReq = await ApprovalRequest.findOne({ 
+      type, 
+      referenceId, 
+      status: 'Pending',
+      requestedBy: req.user._id 
+    });
+
+    if (existingReq) {
+      return res.status(400).json({ message: 'A pending request already exists for this item.' });
+    }
+
+    const newReq = new ApprovalRequest({
+      type,
+      referenceId,
+      requestedBy: req.user._id,
+      narration
+    });
+
+    await newReq.save();
+    res.status(201).json(newReq);
   } catch (err) {
     console.error(err.message);
     res.status(500).json({ message: 'Server Error' });
@@ -53,6 +88,30 @@ router.put('/:id/approve', protect, async (req, res) => {
           metadata: { referenceId: approvalReq.referenceId }
         });
       }
+    } else if (approvalReq.type === 'LEAD_REREGISTRATION') {
+      const lead = await Lead.findById(approvalReq.referenceId);
+      if (lead) {
+        lead.assignedTo = approvalReq.requestedBy;
+        lead.status = 'New';
+        lead.isClosed = false;
+        lead.history = lead.history || [];
+        lead.history.push({
+          action: 'Reassigned via SuperAdmin Approval',
+          notes: `Reassigned to new executive. Original narration: ${approvalReq.narration}`,
+          user: req.user.name,
+          date: Date.now()
+        });
+        await lead.save();
+
+        await AuditLog.create({
+          action: 'Lead Re-registration Approved',
+          user: req.user._id,
+          userName: req.user.name,
+          userRole: req.user.role,
+          description: `Lead ${lead.name} reassigned due to duplicate registration request.`,
+          metadata: { referenceId: approvalReq.referenceId }
+        });
+      }
     }
 
     res.json(approvalReq);
@@ -84,6 +143,18 @@ router.put('/:id/reject', protect, async (req, res) => {
           date: Date.now()
         });
         await crdFlow.save();
+      }
+    } else if (approvalReq.type === 'LEAD_REREGISTRATION') {
+      const lead = await Lead.findById(approvalReq.referenceId);
+      if (lead) {
+        lead.history = lead.history || [];
+        lead.history.push({
+          action: 'Reassignment Rejected',
+          notes: `SuperAdmin rejected the re-registration request from another executive.`,
+          user: req.user.name,
+          date: Date.now()
+        });
+        await lead.save();
       }
     }
 

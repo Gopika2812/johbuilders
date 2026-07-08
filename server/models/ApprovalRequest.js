@@ -4,7 +4,7 @@ const ApprovalRequestSchema = new mongoose.Schema({
   type: {
     type: String,
     required: true,
-    enum: ['CRD_CANCELLATION']
+    enum: ['CRD_CANCELLATION', 'LEAD_REREGISTRATION']
   },
   referenceId: {
     type: mongoose.Schema.Types.ObjectId,

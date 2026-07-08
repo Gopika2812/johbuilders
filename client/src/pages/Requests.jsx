@@ -102,8 +102,8 @@ const Requests = () => {
             <div key={request._id} className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 flex flex-col md:flex-row justify-between gap-4">
               <div>
                 <div className="flex items-center gap-3 mb-2">
-                  <span className="px-3 py-1 bg-yellow-100 text-yellow-800 text-xs font-semibold rounded-full uppercase tracking-wider">
-                    {request.type === 'CRD_CANCELLATION' ? 'CRD Cancellation' : request.type}
+                  <span className={`px-3 py-1 text-xs font-semibold rounded-full uppercase tracking-wider ${request.type === 'LEAD_REREGISTRATION' ? 'bg-amber-100 text-amber-800' : 'bg-yellow-100 text-yellow-800'}`}>
+                    {request.type === 'CRD_CANCELLATION' ? 'CRD Cancellation' : request.type === 'LEAD_REREGISTRATION' ? 'Lead Re-registration' : request.type}
                   </span>
                   <span className="text-sm text-gray-400">
                     {new Date(request.createdAt).toLocaleString()}

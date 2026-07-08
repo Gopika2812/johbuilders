@@ -604,6 +604,38 @@ const LeadsDirectory = () => {
     }
   };
 
+  const handleRequestReregistration = async () => {
+    if (!duplicateWarning) return;
+    setError('');
+    setSuccessMsg('');
+    try {
+      const res = await fetch(`${API_URL}/requests`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          type: 'LEAD_REREGISTRATION',
+          referenceId: duplicateWarning._id,
+          narration: `Requested re-registration of lead ${duplicateWarning.name} (Phone: ${duplicateWarning.phone}).`
+        })
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        setSuccessMsg('Approval request sent to Super Admin successfully!');
+        setCreateModalOpen(false);
+        resetForm();
+        setTimeout(() => setSuccessMsg(''), 4000);
+      } else {
+        setError(data.message || 'Failed to submit approval request');
+      }
+    } catch (err) {
+      setError('Connection error submitting request');
+    }
+  };
+
   const initiateBooking = async (lead) => {
     setSelectedLeadForBooking(lead);
     setBookingLoading(true);
@@ -1676,14 +1708,14 @@ const LeadsDirectory = () => {
 
               {/* Duplicate check warning */}
               {duplicateWarning && (
-                <div className="bg-amber-50 border border-amber-200 p-4 rounded-xl flex items-start gap-2.5 animate-bounce">
-                  <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
-                  <div className="text-xs text-amber-800 leading-normal">
-                    <strong>Notice:</strong> A lead with this phone number already exists: 
+                <div className="bg-red-50 border border-red-200 p-4 rounded-xl flex items-start gap-2.5 animate-bounce">
+                  <AlertCircle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
+                  <div className="text-xs text-red-800 leading-normal">
+                    <strong>Registration Blocked:</strong> A lead with this phone number already exists: 
                     <br />
                     <span className="font-semibold">{duplicateWarning.name} (Status: {duplicateWarning.status})</span>. 
                     <br />
-                    Submitting this form will **REOPEN** and update the existing lead record.
+                    You cannot re-register this lead directly. Please request Super Admin permission to reassign this lead to yourself.
                   </div>
                 </div>
               )}
@@ -1835,12 +1867,23 @@ const LeadsDirectory = () => {
                 >
                   Cancel
                 </button>
-                <button
-                  type="submit"
-                  className="flex-1 py-3 bg-[#0e623a] text-white rounded-xl text-xs font-bold hover:bg-[#0b4d2d] transition shadow-md"
-                >
-                  Save Lead Record
-                </button>
+                {duplicateWarning ? (
+                  <button
+                    type="button"
+                    onClick={handleRequestReregistration}
+                    className="flex-1 py-3 bg-red-600 text-white rounded-xl text-xs font-bold hover:bg-red-700 transition shadow-md flex items-center justify-center gap-2"
+                  >
+                    <AlertCircle className="w-4 h-4" />
+                    Request Admin Permission
+                  </button>
+                ) : (
+                  <button
+                    type="submit"
+                    className="flex-1 py-3 bg-[#0e623a] text-white rounded-xl text-xs font-bold hover:bg-[#0b4d2d] transition shadow-md"
+                  >
+                    Save Lead Record
+                  </button>
+                )}
               </div>
             </form>
           </div>

@@ -464,6 +464,30 @@ const CRDFlow = () => {
     }
   };
 
+  const handleToggleBankLoan = async (currentStatus) => {
+    const newStatus = currentStatus === 'Yes' ? 'No' : 'Yes';
+    try {
+      const res = await fetch(`${API_URL}/leads/${selectedBookingId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ bankLoan: newStatus })
+      });
+      if (res.ok) {
+        setBookings(bookings.map(b => b._id === selectedBookingId ? { ...b, bankLoan: newStatus } : b));
+        setSuccess(`Bank Loan requirement updated to ${newStatus}`);
+        setTimeout(() => setSuccess(''), 3000);
+      } else {
+        const data = await res.json();
+        setError(data.message || 'Failed to update Bank Loan status');
+      }
+    } catch (err) {
+      setError('Connection error updating Bank Loan status');
+    }
+  };
+
   const handleMakePayment = async (e) => {
     e.preventDefault();
 
@@ -1198,6 +1222,24 @@ const CRDFlow = () => {
                   <div>
                     <span className="text-[10px] text-gray-400 block font-bold uppercase">Address</span>
                     <span>{selectedBookingDetails.address}</span>
+                  </div>
+                  <div className="pt-2 border-t mt-2">
+                    <span className="text-[10px] text-gray-400 block font-bold uppercase mb-1">Requires Bank Loan?</span>
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={() => handleToggleBankLoan(selectedBookingDetails.bankLoan)}
+                        className={`px-3 py-1 text-xs font-bold rounded-lg transition-colors ${selectedBookingDetails.bankLoan === 'Yes' ? 'bg-[#0e623a] text-white shadow' : 'bg-gray-100 text-gray-500 border border-gray-200 hover:bg-gray-200'}`}
+                      >
+                        Yes
+                      </button>
+                      <button
+                        onClick={() => handleToggleBankLoan(selectedBookingDetails.bankLoan)}
+                        className={`px-3 py-1 text-xs font-bold rounded-lg transition-colors ${selectedBookingDetails.bankLoan !== 'Yes' ? 'bg-gray-700 text-white shadow' : 'bg-gray-100 text-gray-500 border border-gray-200 hover:bg-gray-200'}`}
+                      >
+                        No
+                      </button>
+                    </div>
+                    <span className="text-[9px] text-gray-400 mt-1 block">Toggle 'Yes' to show in Bank Loan Ledger</span>
                   </div>
                 </div>
               </div>
