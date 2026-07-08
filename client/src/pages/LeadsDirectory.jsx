@@ -2197,9 +2197,10 @@ const LeadsDirectory = () => {
               </div>
               <button
                 onClick={() => setHistoryModalOpen(false)}
-                className="text-white hover:text-emerald-200 font-bold"
+                className="text-emerald-100 hover:text-white transition cursor-pointer"
+                title="Close"
               >
-                ✕
+                <X className="w-5 h-5" />
               </button>
             </div>
 
