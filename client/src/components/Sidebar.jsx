@@ -79,51 +79,18 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
           <span>KPI Insights</span>
         </Link>
 
-        {/* Project Master */}
-        <div>
-          <button
-            onClick={() => setProjectMenuOpen(!projectMenuOpen)}
-            className="w-full flex items-center justify-between px-4 py-3 text-emerald-100 hover:bg-white/5 hover:text-white rounded-xl transition duration-200"
-          >
-            <div className="flex items-center gap-3">
-              <FolderGit2 className="w-5 h-5 text-emerald-300" />
-              <span className="font-semibold">Project Master</span>
-            </div>
-            <ChevronDown className={`w-4 h-4 text-emerald-300 transition-transform duration-200 ${projectMenuOpen ? 'rotate-180' : ''}`} />
-          </button>
-          
-          {projectMenuOpen && (
-            <div className="pl-8 mt-1 space-y-1">
-              {/* Register Project */}
-              {(user?.role === 'Admin' || user?.permissions?.find(p => p.pageId === 'projects')?.canEdit) && (
-                <Link
-                  to="/projects/register"
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm transition ${
-                    isActive('/projects/register')
-                      ? 'text-white font-extrabold border-l-2 border-white pl-2'
-                      : 'text-emerald-150 hover:text-white hover:bg-white/5'
-                  }`}
-                >
-                  <PlusCircle className="w-4 h-4 text-emerald-300" />
-                  <span>Register Project</span>
-                </Link>
-              )}
-
-              {/* Projects Dictionary */}
-              <Link
-                to="/projects"
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm transition ${
-                  isActive('/projects')
-                    ? 'text-white font-extrabold border-l-2 border-white pl-2'
-                    : 'text-emerald-150 hover:text-white hover:bg-white/5'
-                  }`}
-              >
-                <FolderGit2 className="w-4 h-4 text-emerald-300" />
-                <span>Projects Dictionary</span>
-              </Link>
-            </div>
-          )}
-        </div>
+        {/* Projects Directory */}
+        <Link
+          to="/projects"
+          className={`flex items-center gap-3 px-4 py-3 rounded-xl transition duration-200 ${
+            isActive('/projects') 
+              ? 'bg-white/10 text-white font-bold border-l-4 border-white' 
+              : 'text-emerald-100 hover:bg-white/5 hover:text-white'
+          }`}
+        >
+          <FolderGit2 className={`w-5 h-5 ${isActive('/projects') ? 'text-white' : 'text-emerald-300'}`} />
+          <span>Projects Directory</span>
+        </Link>
 
         {/* Leads Phase */}
         <div>

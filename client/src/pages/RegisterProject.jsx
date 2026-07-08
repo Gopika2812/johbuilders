@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth, API_URL } from '../context/AuthContext';
-import { Building, MapPin, Ruler, DollarSign, ListPlus, ShieldAlert, Share2, Video, Image as ImageIcon, Plus, Trash, Table, Grid, Trash2 } from 'lucide-react';
+import { Building, MapPin, Ruler, DollarSign, ListPlus, ShieldAlert, Share2, Video, Image as ImageIcon, Plus, Trash, Table, Grid, Trash2, ArrowLeft } from 'lucide-react';
 import SearchableSelect from '../components/SearchableSelect';
 
 const SOURCE_TYPES = [
@@ -363,6 +363,17 @@ const RegisterProject = () => {
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
+      {/* Back Button */}
+      <div className="flex justify-start">
+        <button
+          onClick={() => navigate('/projects')}
+          className="flex items-center gap-2 text-sm font-bold text-gray-600 hover:text-[#0e623a] transition bg-white/60 px-4 py-2 rounded-xl border border-gray-200 hover:border-[#0e623a]/30 shadow-sm"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          <span>Back to Projects Directory</span>
+        </button>
+      </div>
+
       {/* Alert / Badges */}
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-xl flex items-center gap-2">
