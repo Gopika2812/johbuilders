@@ -38,6 +38,20 @@ router.get('/booking/:leadId', protect, async (req, res) => {
   }
 });
 
+// @route   GET /api/crd-flow/:id
+// @desc    Get a single CRD flow by ID
+router.get('/:id', protect, async (req, res) => {
+  try {
+    const flow = await CRDFlow.findById(req.params.id)
+      .populate('project')
+      .populate('lead');
+    if (!flow) return res.status(404).json({ message: 'Flow not found' });
+    res.json(flow);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 // @route   POST /api/crd-flow
 // @desc    Initialize a CRD flow for a booking
 router.post('/', protect, async (req, res) => {

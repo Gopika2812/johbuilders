@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth, API_URL } from '../context/AuthContext';
 import { 
   Building, 
@@ -16,7 +17,8 @@ import {
   BookOpen,
   History,
   Clock,
-  Trash
+  Trash,
+  ArrowRightCircle
 } from 'lucide-react';
 
 const defaultStagesTemplate = [
@@ -51,6 +53,7 @@ function numberToWords(num) {
 
 const CRDFlow = () => {
   const { token } = useAuth();
+  const navigate = useNavigate();
   const [projects, setProjects] = useState([]);
   const [bookings, setBookings] = useState([]);
   const [flows, setFlows] = useState([]);
@@ -367,6 +370,15 @@ const CRDFlow = () => {
     setTimeout(() => setSuccess(''), 4000);
   };
 
+  const handleSingleFileUpload = (e, index) => {
+    const file = e.target.files[0];
+    if (file) {
+      const newPdfs = [...pdfFiles];
+      newPdfs[index] = file.name;
+      setPdfFiles(newPdfs);
+    }
+  };
+
   const handlePDFSubmit = async (stageIdx) => {
     // Stage 2 completion logic: requires 5 PDFs
     if (pdfFiles.filter(f => f.trim() !== '').length < 5) {
@@ -538,26 +550,15 @@ const CRDFlow = () => {
     if (paymentMethod === 'Dual Mode') {
       payload = {
         payments: [
-          {
-            method: 'Bank Transfer',
-            amount: Number(dualTransferAmount),
-            details: { accountNumber: acNo, customerName: acName, bankName: bankName }
-          },
-          {
-            method: 'Bank Loan',
-            amount: Number(dualLoanAmount),
-            details: { preferredBank: loanBank, loanAmount: Number(dualLoanAmount) }
-          }
+          { method: 'Bank Transfer', amount: Number(dualTransferAmount), details: {} },
+          { method: 'Bank Loan', amount: Number(dualLoanAmount), details: {} }
         ]
       };
     } else {
-      const details = paymentMethod === 'Bank Transfer'
-        ? { accountNumber: acNo, customerName: acName, bankName: bankName }
-        : { preferredBank: loanBank, loanAmount: Number(loanAmount) };
       payload = {
         method: paymentMethod,
         amount: Number(paymentAmount),
-        details
+        details: {}
       };
     }
 
@@ -572,18 +573,27 @@ const CRDFlow = () => {
       });
 
       if (res.ok) {
-        const updated = await res.json();
+        if (paymentStageIdx === 1 && pdfFiles.some(f => f.trim() !== '')) {
+          await fetch(`${API_URL}/crd-flow/${activeFlow._id}/stage/${paymentStageIdx}/complete`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ uploadedPdfs: pdfFiles, completionNotes: 'Auto-completed via payment submission.' })
+          });
+        }
+        
+        const updatedRes = await fetch(`${API_URL}/crd-flow/booking/${selectedBookingId}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const updated = await updatedRes.json();
+        
         setActiveFlow(updated);
         setPaymentStageIdx(null);
         setPaymentAmount('');
-        setDualTransferAmount('');
-        setDualLoanAmount('');
-        setAcNo('');
-        setAcName('');
-        setBankName('');
-        setLoanAmount('');
-        setLoanBank('');
-        setSuccess('Payment split submitted successfully!');
+        setPdfFiles(['', '', '', '', '']);
+        setSuccess('Payment submitted successfully!');
         setTimeout(() => setSuccess(''), 4000);
       }
     } catch (err) {
@@ -899,7 +909,12 @@ const CRDFlow = () => {
             <tbody className="divide-y divide-gray-50">
               <tr className="hover:bg-gray-50/50 transition">
                 <td className="p-4 align-middle">
-                  <div className="font-bold text-gray-800 text-sm mb-1">{selectedBookingDetails?.name}</div>
+                  <div 
+                    onClick={() => navigate(`/crd-flow/${activeFlow._id}/details`)}
+                    className="font-black text-[#0e623a] text-sm mb-1 cursor-pointer hover:underline"
+                  >
+                    {selectedBookingDetails?.name}
+                  </div>
                   <div className="text-gray-500">{selectedBookingDetails?.phone}</div>
                   <div className="text-gray-500">{selectedBookingDetails?.address || 'No Address Provided'}</div>
                 </td>
@@ -921,11 +936,15 @@ const CRDFlow = () => {
                   <div className="flex items-center justify-center gap-2">
                     <button
                       onClick={() => {
-                        const firstUnpaidStageIdx = activeFlow.stages.findIndex(s => getStageTotal(s) > getStagePaid(s));
-                        const idx = firstUnpaidStageIdx >= 0 ? firstUnpaidStageIdx : 0;
+                        const firstUncompletedIdx = activeFlow.stages.findIndex(s => !(s.isCompleted || getStagePaid(s) >= getStageTotal(s)));
+                        const idx = firstUncompletedIdx >= 0 ? firstUncompletedIdx : 0;
                         setPaymentStageIdx(idx);
-                        setPaymentAmount(Math.max(0, getStageTotal(activeFlow.stages[idx]) - getStagePaid(activeFlow.stages[idx])).toString());
-                        setPaymentMethod('Bank Transfer');
+                        
+                        const thisStagePending = Math.max(0, getStageTotal(activeFlow.stages[idx]) - getStagePaid(activeFlow.stages[idx]));
+                        const arrears = getPendingPreviousStages(idx).reduce((sum, s) => sum + s.pending, 0);
+                        setPaymentAmount((thisStagePending + arrears).toString());
+                        
+                        setPaymentMethod(selectedBookingDetails?.bankLoan === 'Yes' ? 'Bank Loan' : 'Bank Transfer');
                       }}
                       disabled={totalPending <= 0}
                       title="Get Payment"
@@ -934,6 +953,16 @@ const CRDFlow = () => {
                       }`}
                     >
                       <DollarSign className="w-5 h-5" />
+                    </button>
+                    <button
+                      onClick={() => {
+                        const currentStageIdx = activeFlow.stages.findIndex(s => !(s.isCompleted || getStagePaid(s) >= getStageTotal(s)));
+                        if (currentStageIdx >= 0) setCompleteStageIdx(currentStageIdx);
+                      }}
+                      title="Move Next Stage"
+                      className="p-2 bg-purple-600 text-white rounded-xl hover:bg-purple-700 transition shadow cursor-pointer flex items-center justify-center"
+                    >
+                      <ArrowRightCircle className="w-5 h-5" />
                     </button>
 
                     <button
@@ -1095,7 +1124,7 @@ const CRDFlow = () => {
       {/* Payment Split Modal Dialog */}
       {paymentStageIdx !== null && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="bg-white rounded-3xl max-w-lg w-full overflow-hidden shadow-2xl border border-gray-100">
+          <div className="bg-white rounded-3xl max-w-2xl w-full overflow-hidden shadow-2xl border border-gray-100">
             <div className="bg-[#0e623a] p-6 text-white">
               <h3 className="text-base font-bold flex items-center gap-2">
                 <CreditCard className="w-5 h-5 text-emerald-300" />
@@ -1112,14 +1141,40 @@ const CRDFlow = () => {
                   onChange={(e) => {
                     const newIdx = Number(e.target.value);
                     setPaymentStageIdx(newIdx);
-                    setPaymentAmount(Math.max(0, getStageTotal(activeFlow.stages[newIdx]) - getStagePaid(activeFlow.stages[newIdx])).toString());
+                    
+                    const thisStagePending = Math.max(0, getStageTotal(activeFlow.stages[newIdx]) - getStagePaid(activeFlow.stages[newIdx]));
+                    const arrears = getPendingPreviousStages(newIdx).reduce((sum, s) => sum + s.pending, 0);
+                    setPaymentAmount((thisStagePending + arrears).toString());
                   }}
                   className="w-full px-4 py-2.5 bg-gray-50 border border-gray-250 rounded-xl text-sm font-semibold text-gray-800"
                 >
-                  {activeFlow?.stages.map((stage, idx) => (
-                    <option key={idx} value={idx}>Stage {idx + 1}: {stage.name} (Pending: Rs. {Math.max(0, getStageTotal(stage) - getStagePaid(stage)).toLocaleString()})</option>
-                  ))}
+                  {activeFlow?.stages.map((stage, idx) => {
+                    const thisStagePending = Math.max(0, getStageTotal(stage) - getStagePaid(stage));
+                    const arrears = getPendingPreviousStages(idx).reduce((sum, s) => sum + s.pending, 0);
+                    const arrearsText = arrears > 0 ? ` + Arrears: Rs. ${arrears.toLocaleString()}` : '';
+                    return (
+                      <option key={idx} value={idx}>Stage {idx + 1}: {stage.name} (Pending: Rs. {thisStagePending.toLocaleString()}{arrearsText})</option>
+                    );
+                  })}
                 </select>
+                {paymentStageIdx !== null && paymentStageIdx < (activeFlow?.stages?.length || 0) - 1 && (
+                  <div className="flex justify-end mt-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const newIdx = paymentStageIdx + 1;
+                        setPaymentStageIdx(newIdx);
+                        const thisStagePending = Math.max(0, getStageTotal(activeFlow.stages[newIdx]) - getStagePaid(activeFlow.stages[newIdx]));
+                        const arrears = getPendingPreviousStages(newIdx).reduce((sum, s) => sum + s.pending, 0);
+                        setPaymentAmount((thisStagePending + arrears).toString());
+                      }}
+                      className="text-[10px] text-purple-600 font-bold hover:text-purple-800 flex items-center gap-1 transition cursor-pointer bg-purple-50 px-2 py-1 rounded"
+                    >
+                      <span>Skip to Next Stage</span>
+                      <ArrowRightCircle className="w-3 h-3" />
+                    </button>
+                  </div>
+                )}
               </div>
               <div className="grid grid-cols-3 gap-2">
                 <button
@@ -1157,7 +1212,7 @@ const CRDFlow = () => {
                 </button>
               </div>
 
-              {paymentMethod !== 'Dual Mode' && (
+              {paymentMethod !== 'Dual Mode' ? (
                 <div>
                   <label className="text-xs font-semibold text-gray-600 block mb-1">Paid Amount (Rs)</label>
                   <input
@@ -1169,145 +1224,78 @@ const CRDFlow = () => {
                     className="w-full px-4 py-2.5 bg-gray-50 border border-gray-250 rounded-xl text-sm font-bold text-gray-800"
                   />
                 </div>
-              )}
-
-              {paymentMethod === 'Bank Transfer' && (
-                <div className="space-y-4 pt-2 border-t">
+              ) : (
+                <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="text-xs font-semibold text-gray-600 block mb-1">Account Number</label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="Enter Bank Account No"
-                      value={acNo}
-                      onChange={(e) => setAcNo(e.target.value)}
-                      className="w-full px-4 py-2 bg-white border border-gray-200 rounded-xl text-xs"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs font-semibold text-gray-600 block mb-1">Customer / Payer Name</label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="Account Holder Name"
-                      value={acName}
-                      onChange={(e) => setAcName(e.target.value)}
-                      className="w-full px-4 py-2 bg-white border border-gray-200 rounded-xl text-xs"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs font-semibold text-gray-600 block mb-1">Bank Name</label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="e.g. SBI, Axis, ICICI"
-                      value={bankName}
-                      onChange={(e) => setBankName(e.target.value)}
-                      className="w-full px-4 py-2 bg-white border border-gray-200 rounded-xl text-xs"
-                    />
-                  </div>
-                </div>
-              )}
-
-              {paymentMethod === 'Bank Loan' && (
-                <div className="space-y-4 pt-2 border-t">
-                  <div>
-                    <label className="text-xs font-semibold text-gray-600 block mb-1">Financing Bank Name</label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="e.g. HDFC Home Loans, LIC Housing Finance"
-                      value={loanBank}
-                      onChange={(e) => setLoanBank(e.target.value)}
-                      className="w-full px-4 py-2 bg-white border border-gray-200 rounded-xl text-xs"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs font-semibold text-gray-600 block mb-1">Loan Disbursement Amount (Rs)</label>
+                    <label className="text-xs font-bold text-gray-700 block mb-1">Bank Transfer Amt (Rs)</label>
                     <input
                       type="number"
                       required
-                      placeholder="e.g. 500000"
-                      value={loanAmount}
-                      onChange={(e) => setLoanAmount(e.target.value)}
-                      className="w-full px-4 py-2 bg-white border border-gray-200 rounded-xl text-xs"
+                      placeholder="e.g. 200000"
+                      value={dualTransferAmount}
+                      onChange={(e) => setDualTransferAmount(e.target.value)}
+                      className="w-full px-3 py-2 bg-gray-50 border rounded-xl text-xs font-bold text-gray-800"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold text-[#0e623a] block mb-1">Bank Loan Amt (Rs)</label>
+                    <input
+                      type="number"
+                      required
+                      placeholder="e.g. 300000"
+                      value={dualLoanAmount}
+                      onChange={(e) => setDualLoanAmount(e.target.value)}
+                      className="w-full px-3 py-2 bg-[#0e623a]/5 border border-[#0e623a]/20 rounded-xl text-xs font-bold text-[#0e623a]"
                     />
                   </div>
                 </div>
               )}
 
-              {paymentMethod === 'Dual Mode' && (
-                <div className="space-y-4 pt-2 border-t">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-xs font-bold text-gray-700 block mb-1">Bank Transfer Amt (Rs)</label>
-                      <input
-                        type="number"
-                        required
-                        placeholder="e.g. 200000"
-                        value={dualTransferAmount}
-                        onChange={(e) => setDualTransferAmount(e.target.value)}
-                        className="w-full px-3 py-2 bg-gray-50 border rounded-xl text-xs font-bold text-gray-800"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-xs font-bold text-gray-700 block mb-1">Bank Loan Amt (Rs)</label>
-                      <input
-                        type="number"
-                        required
-                        placeholder="e.g. 100000"
-                        value={dualLoanAmount}
-                        onChange={(e) => setDualLoanAmount(e.target.value)}
-                        className="w-full px-3 py-2 bg-gray-50 border rounded-xl text-xs font-bold text-gray-800"
-                      />
-                    </div>
+              {paymentStageIdx === 1 && (
+                <div className="pt-2 border-t mt-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <label className="text-xs font-semibold text-gray-600">Agreement Documents (Required)</label>
+                    <button
+                      type="button"
+                      onClick={handleAutoPrepareDocs}
+                      className="text-[9px] font-bold text-[#0e623a] bg-emerald-50 px-2 py-1 rounded hover:bg-emerald-100 transition"
+                    >
+                      Auto-Prepare 5 PDFs
+                    </button>
                   </div>
-
-                  <div className="border-t pt-3 space-y-3">
-                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Transfer Segment details:</span>
-                    <div className="grid grid-cols-2 gap-2">
-                      <input
-                        type="text"
-                        required
-                        placeholder="A/C Number"
-                        value={acNo}
-                        onChange={(e) => setAcNo(e.target.value)}
-                        className="px-3 py-2 bg-white border border-gray-250 rounded-lg text-xs"
-                      />
-                      <input
-                        type="text"
-                        required
-                        placeholder="Bank Name"
-                        value={bankName}
-                        onChange={(e) => setBankName(e.target.value)}
-                        className="px-3 py-2 bg-white border border-gray-250 rounded-lg text-xs"
-                      />
-                    </div>
-                    <input
-                      type="text"
-                      required
-                      placeholder="Account Payer Name"
-                      value={acName}
-                      onChange={(e) => setAcName(e.target.value)}
-                      className="w-full px-3 py-2 bg-white border border-gray-250 rounded-lg text-xs"
-                    />
-                  </div>
-
-                  <div className="border-t pt-3 space-y-2">
-                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Loan Segment details:</span>
-                    <input
-                      type="text"
-                      required
-                      placeholder="Financing Bank Name"
-                      value={loanBank}
-                      onChange={(e) => setLoanBank(e.target.value)}
-                      className="w-full px-3 py-2 bg-white border border-gray-250 rounded-lg text-xs"
-                    />
+                  <div className="space-y-3">
+                    {[
+                      'Agreement of Sale',
+                      'Construction Agreement',
+                      'Deed of Sale Draft',
+                      'Stamped Property Schedule',
+                      'Registration Challan'
+                    ].map((docName, i) => (
+                      <div key={i} className="flex flex-col gap-1.5 p-2 bg-gray-50/50 border border-gray-100 rounded-xl">
+                        <div className="text-[10px] text-gray-700 font-bold flex items-center justify-between">
+                          <div className="flex items-center gap-1.5">
+                            <div className={`w-1.5 h-1.5 rounded-full ${pdfFiles[i] ? 'bg-emerald-500 shadow-sm' : 'bg-gray-300'}`}></div>
+                            {docName}
+                          </div>
+                          {pdfFiles[i] && (
+                            <span className="text-[9px] text-emerald-600 font-bold bg-emerald-50 px-1.5 py-0.5 rounded truncate max-w-[120px]">
+                              {pdfFiles[i]}
+                            </span>
+                          )}
+                        </div>
+                        <input
+                          type="file"
+                          accept=".pdf"
+                          onChange={(e) => handleSingleFileUpload(e, i)}
+                          className="w-full text-[9px] text-gray-500 file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-[9px] file:font-bold file:bg-white file:text-gray-700 file:shadow-sm hover:file:bg-gray-50 cursor-pointer"
+                        />
+                      </div>
+                    ))}
                   </div>
                 </div>
               )}
 
-              <div className="flex gap-3 pt-3 border-t">
+              <div className="flex gap-3 pt-4 border-t mt-4">
                 <button
                   type="button"
                   onClick={() => setPaymentStageIdx(null)}

@@ -70,11 +70,11 @@ const BankLoanHistory = () => {
       // Calculate total pending amount for this stage
       const stagePaidTotal = (stage.payments || []).reduce((sum, p) => sum + p.amount, 0);
       const stagePending = Math.max(0, stage.amount - stagePaidTotal);
-      
-      // Assume remaining pending amounts can be covered by bank loan if customer has any bank loan detail set
-      // (If a payment was made using bank loan, or preferred bank is present, stage is considered for bank loan tracking)
+      // Assume remaining pending amounts can be covered by bank loan if customer is flagged for bank loan
+      // or if they have made at least one bank loan payment.
       const hasBankLoanPayment = stageLoanPayments.length > 0;
-      if (hasBankLoanPayment || flow.stages.some(s => (s.payments || []).some(p => p.method === 'Bank Loan'))) {
+      const isBankLoanCustomer = flow.lead?.bankLoan === 'Yes';
+      if (hasBankLoanPayment || isBankLoanCustomer || flow.stages.some(s => (s.payments || []).some(p => p.method === 'Bank Loan'))) {
         bankLoanPending += stagePending;
       }
     });
