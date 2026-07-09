@@ -1444,20 +1444,38 @@ const CRDFlow = () => {
             </div>
 
             {/* Bottom print trigger toolbar */}
-            <div className="p-4 bg-gray-50 border-t flex justify-end gap-3">
-              <button
-                onClick={() => setDemandLetterStageIdx(null)}
-                className="px-4 py-2 border rounded-xl text-xs font-bold text-gray-500 hover:bg-gray-100 transition cursor-pointer"
-              >
-                Close
-              </button>
-              <button
-                onClick={triggerPrintDemandLetter}
-                className="px-5 py-2 bg-[#0e623a] text-white text-xs font-bold rounded-xl hover:bg-[#0b4d2d] transition shadow flex items-center gap-1.5 cursor-pointer"
-              >
-                <Printer className="w-4 h-4" />
-                <span>Print Demand Letter</span>
-              </button>
+            <div className="p-4 bg-gray-50 border-t flex justify-between items-center">
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setDemandLetterStageIdx(prev => Math.max(0, prev - 1))}
+                  disabled={demandLetterStageIdx === 0}
+                  className={`px-3 py-2 border rounded-xl text-xs font-bold transition flex items-center gap-1 ${demandLetterStageIdx === 0 ? 'text-gray-300 bg-gray-50 border-gray-100 cursor-not-allowed' : 'text-gray-600 hover:bg-gray-200 cursor-pointer'}`}
+                >
+                  &larr; Prev Stage
+                </button>
+                <button
+                  onClick={() => setDemandLetterStageIdx(prev => Math.min(activeFlow.stages.length - 1, prev + 1))}
+                  disabled={demandLetterStageIdx === activeFlow.stages.length - 1}
+                  className={`px-3 py-2 border rounded-xl text-xs font-bold transition flex items-center gap-1 ${demandLetterStageIdx === activeFlow.stages.length - 1 ? 'text-gray-300 bg-gray-50 border-gray-100 cursor-not-allowed' : 'text-gray-600 hover:bg-gray-200 cursor-pointer'}`}
+                >
+                  Next Stage &rarr;
+                </button>
+              </div>
+              <div className="flex justify-end gap-3">
+                <button
+                  onClick={() => setDemandLetterStageIdx(null)}
+                  className="px-4 py-2 border rounded-xl text-xs font-bold text-gray-500 hover:bg-gray-100 transition cursor-pointer"
+                >
+                  Close
+                </button>
+                <button
+                  onClick={triggerPrintDemandLetter}
+                  className="px-5 py-2 bg-[#0e623a] text-white text-xs font-bold rounded-xl hover:bg-[#0b4d2d] transition shadow flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Printer className="w-4 h-4" />
+                  <span>Print Demand Letter</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>
