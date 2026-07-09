@@ -2743,7 +2743,7 @@ const KPIInsights = () => {
         <div className="space-y-8">
           {/* 🟢 TOP ANALYTICAL SUMMARY CARD GRID */}
           {/* 🟢 TOP ANALYTICAL SUMMARY CARD GRID */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {/* Enquiry Spend KPI */}
             <div className="bg-white border border-gray-150 p-5 rounded-3xl shadow-sm hover:shadow-md transition">
               <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Marketing Investment</span>
@@ -2769,12 +2769,7 @@ const KPIInsights = () => {
               </div>
             </div>
 
-            {/* Handover Rate */}
-            <div className="bg-white border border-gray-150 p-5 rounded-3xl shadow-sm hover:shadow-md transition">
-              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Registration / Handover Rate</span>
-              <h3 className="text-2xl font-black text-gray-800 mt-1">{(stats.insights?.handoverRate || 0).toFixed(1)}%</h3>
-              <p className="text-[9px] text-gray-550 font-bold mt-2">{stats.cards.inventory.handoverUnits} of {stats.cards.inventory.totalUnits} Units</p>
-            </div>
+
           </div>
 
           {/* 🟢 COMPARISON PIE CHARTS */}
