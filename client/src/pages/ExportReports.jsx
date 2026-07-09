@@ -333,10 +333,13 @@ const ExportReports = () => {
 
   const [selectedProject, setSelectedProject] = useState('');
   const [loading, setLoading] = useState(true);
+  const fileCode = 'ALL_PROJECTS';
   const handlePreview = (html, filename) => {
-    if (returnHtml) return html;
-      if (returnHtml) return html;
-      const blob = new Blob([html], { type: 'application/vnd.ms-excel' });
+    if (window.__isDownloadingAll) {
+      window.__capturedHtml = html;
+      return;
+    }
+    const blob = new Blob([html], { type: 'application/vnd.ms-excel' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
