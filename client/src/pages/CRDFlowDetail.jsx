@@ -102,7 +102,7 @@ const CRDFlowDetail = () => {
         </div>
         <div className="ml-auto text-right">
           <p className="text-xs text-gray-500 font-bold uppercase mb-1">Assigned Executive</p>
-          <p className="text-base font-black text-[#0e623a]">{flow.lead?.assignedTo || 'Unassigned'}</p>
+          <p className="text-base font-black text-[#0e623a]">{flow.lead?.assignedTo?.name || flow.lead?.assignedTo || 'Unassigned'}</p>
         </div>
       </div>
 
@@ -138,7 +138,7 @@ const CRDFlowDetail = () => {
                   <td className="p-4 text-right font-black text-[#0e623a]">{total.toLocaleString()}</td>
                   <td className="p-4 text-right font-bold text-emerald-600">{paid.toLocaleString()}</td>
                   <td className="p-4 text-right font-bold text-rose-600">{pending.toLocaleString()}</td>
-                  <td className="p-4 text-center text-gray-600">{flow.lead?.assignedTo || '-'}</td>
+                  <td className="p-4 text-center text-gray-600">{flow.lead?.assignedTo?.name || flow.lead?.assignedTo || '-'}</td>
                   <td className="p-4 text-center">
                     <button
                       onClick={() => {

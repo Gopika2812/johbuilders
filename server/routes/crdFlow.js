@@ -44,7 +44,10 @@ router.get('/:id', protect, async (req, res) => {
   try {
     const flow = await CRDFlow.findById(req.params.id)
       .populate('project')
-      .populate('lead');
+      .populate({
+        path: 'lead',
+        populate: { path: 'assignedTo', select: 'name' }
+      });
     if (!flow) return res.status(404).json({ message: 'Flow not found' });
     res.json(flow);
   } catch (err) {
