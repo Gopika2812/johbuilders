@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import XLSX from 'xlsx-js-style';
 import { useAuth, API_URL } from '../context/AuthContext';
-import { TrendingUp, Calendar, MapPin,   DollarSign, 
+import { TrendingUp, Download, Calendar, MapPin,   DollarSign, 
   Target,
   User,
   FolderOpen,
@@ -2417,12 +2417,16 @@ const ExportReports = () => {
   };
 
   
-  const handleDownloadAll = async () => {
+    const handleDownloadAll = async () => {
     try {
       setLoading(true);
+      window.__isDownloadingAll = true;
       const wb = XLSX.utils.book_new();
 
-      const convertHtmlToSheet = (htmlString, sheetName) => {
+      const convertHtmlToSheet = async (exportFunc, sheetName) => {
+        window.__capturedHtml = null;
+        await exportFunc(); // It triggers handlePreview, which sets window.__capturedHtml
+        const htmlString = window.__capturedHtml;
         if (!htmlString) return;
         const div = document.createElement('div');
         div.innerHTML = htmlString;
@@ -2433,24 +2437,26 @@ const ExportReports = () => {
         }
       };
 
-      convertHtmlToSheet(await handleExportEnquiriesExcel(true), 'Enquiries');
-      convertHtmlToSheet(await handleExportSiteVisitsExcel(true), 'Site Visits');
-      convertHtmlToSheet(await handleExportHotListExcel(true), 'Hot List');
-      convertHtmlToSheet(await handleExportBookingsExcel(true), 'Bookings');
-      convertHtmlToSheet(await handleExportMarketingReturnsReport(true), 'Marketing Returns');
-      convertHtmlToSheet(await handleExportLeadSourcesReport(true), 'Lead Sources');
-      convertHtmlToSheet(await handleExportRegistrationReport(true), 'Registrations');
-      convertHtmlToSheet(await handleExportKeyHandoverReport(true), 'Handovers');
-      convertHtmlToSheet(await handleExportCollectionReport(true), 'Collections');
-      convertHtmlToSheet(await handleExportBankLoansExcel(true), 'Bank Loans');
-      convertHtmlToSheet(await handleExportExtraWorksReport(true), 'Extra Works');
-      convertHtmlToSheet(await handleExportComplaintsReport(true), 'Complaints');
+      await convertHtmlToSheet(handleExportEnquiriesExcel, 'Enquiries');
+      await convertHtmlToSheet(handleExportSiteVisitsExcel, 'Site Visits');
+      await convertHtmlToSheet(handleExportHotListExcel, 'Hot List');
+      await convertHtmlToSheet(handleExportBookingsExcel, 'Bookings');
+      await convertHtmlToSheet(handleExportSummaryReport, 'Summary');
+      await convertHtmlToSheet(handleExportMarketingReturnsReport, 'Marketing Returns');
+      await convertHtmlToSheet(handleExportLeadSourcesReport, 'Lead Sources');
+      await convertHtmlToSheet(handleExportRegistrationReport, 'Registrations');
+      await convertHtmlToSheet(handleExportKeyHandoverReport, 'Handovers');
+      await convertHtmlToSheet(handleExportCollectionReport, 'Collections');
+      await convertHtmlToSheet(handleExportBankLoansExcel, 'Bank Loans');
+      await convertHtmlToSheet(handleExportExtraWorksReport, 'Extra Works');
+      await convertHtmlToSheet(handleExportComplaintsReport, 'Complaints');
 
       XLSX.writeFile(wb, `JB_COMBINED_REPORT_${new Date().getFullYear()}_${new Date().getMonth() + 1}.xlsx`);
     } catch (err) {
       console.error(err);
       alert('Error generating combined report');
     } finally {
+      window.__isDownloadingAll = false;
       setLoading(false);
     }
   };
@@ -2567,6 +2573,17 @@ const ExportReports = () => {
 
       {/* Reports Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          <div 
+            onClick={handleDownloadAll}
+            className="bg-emerald-50 border border-emerald-100 rounded-3xl p-6 shadow-sm hover:shadow-md transition cursor-pointer flex flex-col items-center justify-center text-center gap-3 hover:-translate-y-1 duration-200"
+          >
+            <div className="p-4 bg-emerald-100 text-emerald-600 rounded-2xl">
+              <Download className="w-8 h-8" />
+            </div>
+            <h3 className="text-sm font-black text-emerald-800 uppercase tracking-wide">Download All Reports</h3>
+            <p className="text-[10px] text-emerald-600 font-semibold">Generate a single master workbook with all reports as separate tabs.</p>
+          </div>
+
         
         <div 
           onClick={handleExportSummaryReport}

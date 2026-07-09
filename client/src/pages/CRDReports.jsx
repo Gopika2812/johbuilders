@@ -2561,596 +2561,116 @@ const KPIInsights = () => {
       <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-6 border-b border-gray-200 pb-5">
         <div>
           <h1 className="text-2xl font-black text-gray-800 flex items-center gap-2">
-            <BarChart3 className="w-6 h-6 text-[#0e623a]" />
-            <span>KPI Insights & Conversions</span>
+            <CheckCircle className="w-6 h-6 text-[#0e623a]" />
+            <span>CRD Reports</span>
           </h1>
           <p className="text-gray-500 text-xs mt-1">
-            Analyze conversions, pipeline efficiency, marketing spend ratios, and performance metrics
+            Download specific CRD reports directly.
           </p>
         </div>
 
         {/* Filters Panel */}
         <div className="flex flex-wrap items-center gap-4 bg-white p-3 rounded-2xl border border-gray-150 shadow-xs">
-          {/* User Select */}
-          {(user?.role === 'Super Admin' || user?.role === 'Admin') && (
-            <div className="flex items-center gap-1">
-              <User className="w-3.5 h-3.5 text-gray-400" />
-              <select
-                value={selectedUser}
-                onChange={(e) => setSelectedUser(e.target.value)}
-                className="px-2.5 py-1.5 text-xs bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-gray-700 font-bold"
-              >
-                <option value="">All Users</option>
-                {(stats.users || []).map(u => (
-                  <option key={u._id} value={u._id}>{u.name}</option>
-                ))}
-              </select>
-            </div>
-          )}
-
-          {/* Project Select */}
-          <div className="flex items-center gap-1">
-            <FolderOpen className="w-3.5 h-3.5 text-gray-400" />
-            <select
-              value={selectedProject}
-              onChange={(e) => setSelectedProject(e.target.value)}
-              className="px-2.5 py-1.5 text-xs bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-gray-700 font-bold"
-            >
-              <option value="">All Projects</option>
-              {(stats.projects || []).map(p => (
-                <option key={p._id} value={p._id}>{p.code || p.name}</option>
-              ))}
-            </select>
-          </div>
-
-          <div className="border-l border-gray-200 h-5"></div>
-
           {/* Month Picker */}
-          <div className="flex items-center gap-1 text-xs text-gray-550 font-bold">
+          <div className="flex items-center gap-2 px-2">
             <Calendar className="w-3.5 h-3.5 text-[#0e623a]" />
-            <span>Month:</span>
+            <span className="text-xs font-bold text-gray-700">Range:</span>
+            <input
+              type="date"
+              value={fromDate}
+              onChange={(e) => setFromDate(e.target.value)}
+              className="text-xs font-bold text-gray-700 bg-transparent border-b border-gray-300 focus:outline-none focus:border-[#0e623a] px-1"
+            />
+            <span className="text-xs font-bold text-gray-500">to</span>
+            <input
+              type="date"
+              value={toDate}
+              onChange={(e) => setToDate(e.target.value)}
+              className="text-xs font-bold text-gray-700 bg-transparent border-b border-gray-300 focus:outline-none focus:border-[#0e623a] px-1"
+            />
           </div>
-          <input
-            type="month"
-            onChange={(e) => handleMonthChange(e.target.value)}
-            className="px-2 py-1.5 text-xs bg-gray-50 border border-gray-200 rounded-lg focus:outline-none text-gray-700 font-bold"
-          />
-
-          {/* Date Picker */}
-          <div className="flex items-center gap-1 text-xs text-gray-500 font-bold">
-            <span>Range:</span>
-          </div>
-          <input
-            type="date"
-            value={fromDate}
-            onChange={(e) => setFromDate(e.target.value)}
-            className="px-2 py-1.5 text-xs bg-gray-50 border border-gray-200 rounded-lg focus:outline-none text-gray-700 font-bold"
-          />
-          <span className="text-xs text-gray-400 font-bold">to</span>
-          <input
-            type="date"
-            value={toDate}
-            onChange={(e) => setToDate(e.target.value)}
-            className="px-2 py-1.5 text-xs bg-gray-50 border border-gray-200 rounded-lg focus:outline-none text-gray-700 font-bold"
-          />
         </div>
       </div>
 
-      {loading ? (
-        <div className="py-24 text-center text-gray-400 italic">
-          Fetching conversion matrices and chart metrics...
-        </div>
-      ) : (
-        <div className="space-y-8">
-          {/* 🟢 TOP ANALYTICAL SUMMARY CARD GRID */}
-          {/* 🟢 TOP ANALYTICAL SUMMARY CARD GRID */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {/* Enquiry Spend KPI */}
-            <div className="bg-white border border-gray-150 p-5 rounded-3xl shadow-sm hover:shadow-md transition">
-              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Marketing Investment</span>
-              <h3 className="text-2xl font-black text-gray-800 mt-1">₹{Math.round(stats.insights?.totalMarketingSpend || 0).toLocaleString()}</h3>
-              <p className="text-[9px] text-[#0e623a] font-bold mt-2">Combined Spent Budget</p>
-            </div>
-
-            {/* Cost Per Enquiry */}
-            <div className="bg-white border border-gray-150 p-5 rounded-3xl shadow-sm hover:shadow-md transition">
-              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Cost Per Enquiry (CPE)</span>
-              <h3 className="text-2xl font-black text-[#0e623a] mt-1">₹{Math.round(stats.insights?.costPerEnquiry || 0).toLocaleString()}</h3>
-              <p className="text-[9px] text-gray-550 font-bold mt-2">Lead Cost / Total Enquiries</p>
-            </div>
-
-            {/* Booking Stage Conversions */}
-            <div className="bg-white border border-gray-150 p-5 rounded-3xl shadow-sm hover:shadow-md transition">
-              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Total Bookings Count</span>
-              <h3 className="text-2xl font-black text-gray-800 mt-1">{stats.cards.conversion.count} Converted</h3>
-              <div className="mt-2 space-y-0.5 text-[9px] font-bold uppercase">
-                <div className="text-gray-500">Total: ₹{Math.round(stats.cards.conversion.value || 0).toLocaleString()}</div>
-                <div className="text-emerald-700">Received: ₹{Math.round(stats.cards.conversion.received || 0).toLocaleString()}</div>
-                <div className="text-rose-700">Pending: ₹{Math.round(stats.cards.conversion.pending || 0).toLocaleString()}</div>
-              </div>
-            </div>
-
-            {/* Handover Rate */}
-            <div className="bg-white border border-gray-150 p-5 rounded-3xl shadow-sm hover:shadow-md transition">
-              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Registration / Handover Rate</span>
-              <h3 className="text-2xl font-black text-gray-800 mt-1">{(stats.insights?.handoverRate || 0).toFixed(1)}%</h3>
-              <p className="text-[9px] text-gray-550 font-bold mt-2">{stats.cards.inventory.handoverUnits} of {stats.cards.inventory.totalUnits} Units</p>
-            </div>
-          </div>
-
-          {/* 🟢 COMPARISON PIE CHARTS */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            
-            {/* Chart 1: Budget Allocation Sources */}
-            <div className="bg-white border border-gray-150 rounded-3xl p-6 shadow-sm space-y-4 text-center">
-              <h3 className="text-sm font-extrabold text-gray-800 uppercase tracking-wide text-left">
-                Budget Allocation Sources
-              </h3>
-              <ObservedPieChart 
-                dataArray={budgetData}
-                valueKey="budget"
-                labelKey="source"
-                colorPalette={primaryColors}
-              />
-            </div>
-
-            {/* Chart 2: Spent Marketing Sources */}
-            <div className="bg-white border border-gray-150 rounded-3xl p-6 shadow-sm space-y-4 text-center">
-              <h3 className="text-sm font-extrabold text-gray-800 uppercase tracking-wide text-left">
-                Spent Marketing Sources
-              </h3>
-              <ObservedPieChart 
-                dataArray={spentData}
-                valueKey="spent"
-                labelKey="source"
-                colorPalette={primaryColors}
-              />
-            </div>
-
-            {/* Chart 3: Incoming Networth Value */}
-            <div className="bg-white border border-gray-150 rounded-3xl p-6 shadow-sm space-y-4 text-center">
-              <h3 className="text-sm font-extrabold text-gray-800 uppercase tracking-wide text-left">
-                Incoming Networth Value
-              </h3>
-              <ObservedPieChart 
-                dataArray={networthData}
-                valueKey="networth"
-                labelKey="source"
-                colorPalette={primaryColors}
-              />
-            </div>
-
-          </div>
-
-          {/* 🟢 COMPARATIVE CHART ROWS */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            
-            {/* Chart 1: Pipeline Conversion Rates */}
-            <div className="bg-white border border-gray-150 rounded-3xl p-6 shadow-sm space-y-4">
-              <h3 className="text-sm font-extrabold text-gray-800 uppercase tracking-wide border-b border-gray-100 pb-3 flex items-center gap-2">
-                <Percent className="w-4 h-4 text-[#0e623a]" />
-                <span>Conversion Stage Efficiency (%)</span>
-              </h3>
-              <ObservedBarChart 
-                dataArray={[
-                  { stage: 'Site Visit', rate: stats.insights?.siteVisitConversionRate || 0 },
-                  { stage: 'Booking', rate: stats.insights?.bookingConversionRate || 0 },
-                  { stage: 'Registration', rate: stats.insights?.handoverRate || 0 }
-                ]}
-                xKey="stage"
-                yKey="rate"
-                barColor="#68809A" // Matte Slate Blue
-                isPercent={true}
-              />
-              <p className="text-[9px] text-gray-400 italic">
-                Site Visit, Booking, and Handover rates.
-              </p>
-            </div>
-
-            {/* Chart 2: Cost Per Enquiry (CPE) by Campaign Source */}
-            <div className="bg-white border border-gray-150 rounded-3xl p-6 shadow-sm space-y-4">
-              <h3 className="text-sm font-extrabold text-gray-800 uppercase tracking-wide border-b border-gray-100 pb-3 flex items-center gap-2">
-                <DollarSign className="w-4 h-4 text-[#0e623a]" />
-                <span>Cost Per Enquiry (CPE) by Source (₹)</span>
-              </h3>
-              <ObservedBarChart 
-                dataArray={Object.keys(stats.sourceStats || {}).map(src => ({
-                  source: src,
-                  cpe: stats.sourceStats[src].cpe || 0
-                })).filter(item => item.cpe > 0)}
-                xKey="source"
-                yKey="cpe"
-                barColor="#DFBA84" // Matte Yellow
-              />
-              <p className="text-[9px] text-gray-400 italic">
-                Average cost spent to acquire a single enquiry from each campaign source type.
-              </p>
-            </div>
-
-            {/* Chart 2.5: Lead Source Cost Distribution Pie */}
-            <div className="bg-white border border-gray-150 rounded-3xl p-6 shadow-sm space-y-4 text-left">
-              <h3 className="text-sm font-extrabold text-gray-800 uppercase tracking-wide border-b border-gray-100 pb-3 flex items-center gap-2">
-                <DollarSign className="w-4 h-4 text-[#0e623a]" />
-                <span>Enquiry Cost Distribution by Source</span>
-              </h3>
-              <div className="flex justify-center py-2">
-                <ObservedPieChart 
-                  dataArray={Object.keys(stats.sourceStats || {}).map(src => ({
-                    source: src,
-                    leadCost: stats.sourceStats[src].leadCost || 0,
-                    leads: stats.sourceStats[src].leads || []
-                  })).filter(item => item.leadCost > 0)}
-                  valueKey="leadCost"
-                  labelKey="source"
-                  colorPalette={['#4A7C59', '#68809A', '#DFBA84', '#C77B82', '#8E7C93', '#7C9390', '#93847C']}
-                  isCount={false}
-                  onSegmentClick={(item) => setActiveCpeDrillDown(item)}
-                />
-              </div>
-              <p className="text-[9px] text-gray-400 italic">
-                Slices show total spent by source. Click any source segment or list item to drill down into lead names, their costs, and project details.
-              </p>
-            </div>
-
-            {/* Chart 3: Enquiries Breakdown Pie */}
-            <div className="bg-white border border-gray-150 rounded-3xl p-6 shadow-sm space-y-4">
-              <h3 className="text-sm font-extrabold text-gray-800 uppercase tracking-wide border-b border-gray-100 pb-3 flex items-center gap-2">
-                <Users className="w-4 h-4 text-[#0e623a]" />
-                <span>Total Enquiries Breakdown</span>
-              </h3>
-              <div className="flex justify-center py-2">
-                <ObservedPieChart 
-                  dataArray={[
-                    { label: 'Follow-Up (Active)', count: stats.cards.enquiries.followup },
-                    { label: 'Contacted Closed (Lost)', count: stats.cards.enquiries.closed }
-                  ]}
-                  valueKey="count"
-                  labelKey="label"
-                  colorPalette={['#4A7C59', '#C77B82']} // Matte Sage, Matte Rose
-                  isCount={true}
-                />
-              </div>
-            </div>
-
-            {/* Chart 4: Site Visits Breakdown Pie */}
-            <div className="bg-white border border-gray-150 rounded-3xl p-6 shadow-sm space-y-4">
-              <h3 className="text-sm font-extrabold text-gray-800 uppercase tracking-wide border-b border-gray-100 pb-3 flex items-center gap-2">
-                <Target className="w-4 h-4 text-[#0e623a]" />
-                <span>Site Visit Engagements</span>
-              </h3>
-              <div className="flex justify-center py-2">
-                <ObservedPieChart 
-                  dataArray={[
-                    { label: 'Visits Conducted', count: (stats.cards.siteVisits.siteVisit || 0) + (stats.cards.siteVisits.followup || 0) },
-                    { label: 'Site Visit Closed', count: stats.cards.siteVisits.closed || 0 }
-                  ]}
-                  valueKey="count"
-                  labelKey="label"
-                  colorPalette={['#68809A', '#DFBA84', '#C77B82']} // Matte Slate, Matte Yellow, Matte Rose
-                  isCount={true}
-                />
-              </div>
-            </div>
-
-          </div>
-
-          {/* 🟢 DETAIL METRICS DATAGRID */}
-          <div className="bg-white border border-gray-150 rounded-3xl p-6 shadow-sm space-y-4">
-            <h3 className="text-sm font-extrabold text-gray-800 uppercase tracking-wide border-b border-gray-100 pb-3">
-              KPI Conversions Detailed Metrics DataGrid
-            </h3>
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse text-xs">
-                <thead>
-                  <tr className="bg-gray-50 border-b border-gray-150 font-bold text-gray-500 uppercase tracking-wider text-[10px]">
-                    <th className="p-4">METRIC TYPE</th>
-                    <th className="p-4 text-center">ENQUIRY COUNT</th>
-                    <th className="p-4 text-center">SITE VISIT COUNT</th>
-                    <th className="p-4 text-right">CONVERSION RATIO</th>
-                    <th className="p-4 text-right">BOOKING VALUATION NET</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100 font-sans font-semibold text-gray-700">
-                  <tr className="hover:bg-gray-50/50">
-                    <td className="p-4 font-bold text-gray-900">Enquiries Pipeline Stage</td>
-                    <td className="p-4 text-center">{stats.cards.enquiries.total} leads</td>
-                    <td className="p-4 text-center">—</td>
-                    <td className="p-4 text-right text-gray-400">Baseline</td>
-                    <td className="p-4 text-right">—</td>
-                  </tr>
-                  <tr className="hover:bg-gray-50/50">
-                    <td className="p-4 font-bold text-gray-900">Site Visits Pipeline Stage</td>
-                    <td className="p-4 text-center">—</td>
-                    <td className="p-4 text-center">{stats.cards.siteVisits.total} visits</td>
-                    <td className="p-4 text-right">{(stats.insights?.siteVisitConversionRate || 0).toFixed(1)}%</td>
-                    <td className="p-4 text-right">—</td>
-                  </tr>
-                  <tr className="hover:bg-gray-50/50">
-                    <td className="p-4 font-bold text-gray-900">Bookings / site conversions</td>
-                    <td className="p-4 text-center">{stats.cards.conversion.count} leads</td>
-                    <td className="p-4 text-center">—</td>
-                    <td className="p-4 text-right">{(stats.insights?.bookingConversionRate || 0).toFixed(1)}%</td>
-                    <td className="p-4 text-right text-gray-800 font-bold">
-                      <div>Total: ₹{Math.round(stats.cards.conversion.value || 0).toLocaleString()}</div>
-                      <div className="text-emerald-700 text-[10px]">Recv: ₹{Math.round(stats.cards.conversion.received || 0).toLocaleString()}</div>
-                      <div className="text-rose-700 text-[10px]">Pend: ₹{Math.round(stats.cards.conversion.pending || 0).toLocaleString()}</div>
-                    </td>
-                  </tr>
-                  <tr className="hover:bg-gray-50/50">
-                    <td className="p-4 font-bold text-gray-900">Registration / Handovers</td>
-                    <td className="p-4 text-center">{stats.cards.inventory.handoverUnits} units</td>
-                    <td className="p-4 text-center">—</td>
-                    <td className="p-4 text-right">{(stats.insights?.handoverRate || 0).toFixed(1)}%</td>
-                    <td className="p-4 text-right">—</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 🔐 MODAL: CPE Source Drilldown Details */}
-      {activeCpeDrillDown && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm no-print">
-          <div className="bg-white rounded-3xl max-w-xl w-full overflow-hidden shadow-2xl border border-gray-150">
-            <div className="bg-[#0e623a] p-5 text-white flex justify-between items-center">
-              <div>
-                <span className="text-[9px] bg-white/20 text-white font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">Source Drilldown</span>
-                <h3 className="text-sm font-black mt-1 uppercase">Campaign Source: {activeCpeDrillDown.source}</h3>
-              </div>
-              <button 
-                onClick={() => setActiveCpeDrillDown(null)}
-                className="text-white hover:text-gray-200 font-extrabold text-lg"
-              >
-                ✕
-              </button>
-            </div>
-
-            <div className="p-6 space-y-4 max-h-[60vh] overflow-y-auto text-left">
-              <div className="flex justify-between items-center bg-gray-50 p-3 rounded-xl text-xs font-bold text-gray-700">
-                <span>Total Enquiries Cost:</span>
-                <span className="text-[#0e623a] text-sm font-black">₹ {Math.round(activeCpeDrillDown.leadCost).toLocaleString()}</span>
-              </div>
-
-              <div className="space-y-2">
-                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Acquired Enquiries List</span>
-                {activeCpeDrillDown.leads?.length === 0 ? (
-                  <div className="p-6 bg-gray-50 rounded-xl text-center text-xs text-gray-400 italic">
-                    No individual lead entries recorded for this source.
-                  </div>
-                ) : (
-                  <div className="divide-y divide-gray-100 border rounded-2xl overflow-hidden bg-white">
-                    {activeCpeDrillDown.leads.map((lead, idx) => (
-                      <div key={idx} className="p-3.5 flex justify-between items-start hover:bg-gray-50 transition text-xs">
-                        <div className="space-y-0.5 text-left">
-                          <span className="font-extrabold text-gray-800 block">{lead.name}</span>
-                          <span className="text-[10px] text-gray-400 block font-semibold uppercase">{lead.projectName} ({lead.projectType})</span>
-                        </div>
-                        <span className="font-bold text-[#0e623a] bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded shrink-0">
-                          ₹ {lead.leadCost.toLocaleString()}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div className="p-4 bg-gray-50 border-t flex justify-end">
-              <button
-                onClick={() => setActiveCpeDrillDown(null)}
-                className="px-5 py-2.5 bg-gray-200 hover:bg-gray-300 text-gray-700 text-xs font-bold rounded-xl transition cursor-pointer"
-              >
-                Close Drilldown
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Floating Export Speed Dial */}
-      <div className="fixed right-6 bottom-24 z-40 flex flex-col items-end gap-3 no-print">
-        {/* Menu Items */}
-        {exportMenuOpen && (
-          <div className="flex flex-col items-end gap-2 mb-2 animate-fadeIn">
-            {/* Summary of Report Export */}
-            <button
-              onClick={() => {
-                handleExportSummaryReport();
-                setExportMenuOpen(false);
-              }}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-2xl shadow-xl flex items-center gap-2 hover:scale-105 transition cursor-pointer text-[10px] font-bold uppercase tracking-wider border border-indigo-500/50"
-            >
-              <FolderOpen className="w-4 h-4" />
-              <span>Summary of Report</span>
-            </button>
-
-            {/* Enquiry Sheet Export */}
-            <button
-              onClick={() => {
-                handleExportEnquiriesExcel();
-                setExportMenuOpen(false);
-              }}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-2xl shadow-xl flex items-center gap-2 hover:scale-105 transition cursor-pointer text-[10px] font-bold uppercase tracking-wider border border-emerald-500/50"
-            >
-              <FileText className="w-4 h-4" />
-              <span>Enquiry</span>
-            </button>
-
-            {/* Site Visit Sheet Export */}
-            <button
-              onClick={() => {
-                handleExportSiteVisitsExcel();
-                setExportMenuOpen(false);
-              }}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-2xl shadow-xl flex items-center gap-2 hover:scale-105 transition cursor-pointer text-[10px] font-bold uppercase tracking-wider border border-blue-500/50"
-            >
-              <Compass className="w-4 h-4" />
-              <span>Site Visit</span>
-            </button>
-
-            {/* Hot List Sheet Export */}
-            <button
-              onClick={() => {
-                handleExportHotListExcel();
-                setExportMenuOpen(false);
-              }}
-              className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2.5 rounded-2xl shadow-xl flex items-center gap-2 hover:scale-105 transition cursor-pointer text-[10px] font-bold uppercase tracking-wider border border-orange-500/50"
-            >
-              <TrendingUp className="w-4 h-4" />
-              <span>Hot List</span>
-            </button>
-
-            {/* Bookings Sheet Export */}
-            <button
-              onClick={() => {
-                handleExportBookingsExcel();
-                setExportMenuOpen(false);
-              }}
-              className="bg-[#385723] hover:bg-[#2c441c] text-white px-4 py-2.5 rounded-2xl shadow-xl flex items-center gap-2 hover:scale-105 transition cursor-pointer text-[10px] font-bold uppercase tracking-wider border border-emerald-700/50"
-            >
-              <Building className="w-4 h-4" />
-              <span>Booking</span>
-            </button>
-
-            {/* Marketing Performance Report Export */}
-            <button
-              onClick={() => {
-                handleExportMarketingReport();
-                setExportMenuOpen(false);
-              }}
-              className="bg-[#2f5597] hover:bg-[#254378] text-white px-4 py-2.5 rounded-2xl shadow-xl flex items-center gap-2 hover:scale-105 transition cursor-pointer text-[10px] font-bold uppercase tracking-wider border border-blue-600/50"
-            >
-              <Target className="w-4 h-4" />
-              <span>Marketing Performance</span>
-            </button>
-
-            {/* Lead Sources Report Export */}
-            <button
-              onClick={() => {
-                handleExportLeadSourcesExcel();
-                setExportMenuOpen(false);
-              }}
-              className="bg-teal-600 hover:bg-teal-700 text-white px-4 py-2.5 rounded-2xl shadow-xl flex items-center gap-2 hover:scale-105 transition cursor-pointer text-[10px] font-bold uppercase tracking-wider border border-teal-500/50"
-            >
-              <Users className="w-4 h-4" />
-              <span>Lead Sources</span>
-            </button>
-          </div>
-        )}
-
-        {/* Main Floating Toggle Button */}
-        <button
-          onClick={() => {
-            setExportMenuOpen(!exportMenuOpen);
-            setCrdMenuOpen(false);
-          }}
-          className="bg-emerald-700 hover:bg-emerald-800 text-white p-4 rounded-full shadow-2xl hover:scale-105 transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer border border-emerald-600/50"
-          title="Export Reports Menu"
+      {/* Reports Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6">
+        
+        {/* Registration Report */}
+        <div 
+          onClick={handleExportRegistrationReport}
+          className="bg-purple-50 border border-purple-100 rounded-3xl p-6 shadow-sm hover:shadow-md transition cursor-pointer flex flex-col items-center justify-center text-center gap-3 hover:-translate-y-1 duration-200"
         >
-          <FileText className="w-5 h-5 text-white" />
-          <span className="text-[11px] font-extrabold uppercase tracking-wide">
-            {exportMenuOpen ? 'Close Menu' : 'Export Reports'}
-          </span>
-        </button>
-      </div>
-
-      {/* Floating CRD Speed Dial */}
-      <div className="fixed right-56 bottom-24 z-40 flex flex-col items-end gap-3 no-print">
-        {/* CRD Menu Items */}
-        {crdMenuOpen && (
-          <div className="flex flex-col items-end gap-2 mb-2 animate-fadeIn">
-            {/* Registration Report Export */}
-            <button
-              onClick={() => {
-                handleExportRegistrationReport();
-                setCrdMenuOpen(false);
-              }}
-              className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2.5 rounded-2xl shadow-xl flex items-center gap-2 hover:scale-105 transition cursor-pointer text-[10px] font-bold uppercase tracking-wider border border-purple-500/50"
-            >
-              <CheckCircle className="w-4 h-4" />
-              <span>Registration Report</span>
-            </button>
-
-            {/* Key Handover Report Export */}
-            <button
-              onClick={() => {
-                handleExportKeyHandoverReport();
-                setCrdMenuOpen(false);
-              }}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-2xl shadow-xl flex items-center gap-2 hover:scale-105 transition cursor-pointer text-[10px] font-bold uppercase tracking-wider border border-indigo-500/50"
-            >
-              <Key className="w-4 h-4" />
-              <span>Key Handover Report</span>
-            </button>
-
-            {/* Collection Report Export */}
-            <button
-              onClick={() => {
-                handleExportCollectionReport();
-                setCrdMenuOpen(false);
-              }}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-2xl shadow-xl flex items-center gap-2 hover:scale-105 transition cursor-pointer text-[10px] font-bold uppercase tracking-wider border border-emerald-500/50"
-            >
-              <DollarSign className="w-4 h-4" />
-              <span>Collection Report</span>
-            </button>
-
-            {/* Bank Loan Report Export */}
-            <button
-              onClick={() => {
-                handleExportBankLoanReport();
-                setCrdMenuOpen(false);
-              }}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-2xl shadow-xl flex items-center gap-2 hover:scale-105 transition cursor-pointer text-[10px] font-bold uppercase tracking-wider border border-blue-500/50"
-            >
-              <Building className="w-4 h-4" />
-              <span>Bank Loan Report</span>
-            </button>
-
-            {/* Extra Works Report Export */}
-            <button
-              onClick={() => {
-                handleExportExtraWorksReport();
-                setCrdMenuOpen(false);
-              }}
-              className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2.5 rounded-2xl shadow-xl flex items-center gap-2 hover:scale-105 transition cursor-pointer text-[10px] font-bold uppercase tracking-wider border border-amber-500/50"
-            >
-              <FileText className="w-4 h-4" />
-              <span>Extra Works</span>
-            </button>
-
-            {/* Complaints Report Export */}
-            <button
-              onClick={() => {
-                handleExportComplaintsReport();
-                setCrdMenuOpen(false);
-              }}
-              className="bg-rose-600 hover:bg-rose-700 text-white px-4 py-2.5 rounded-2xl shadow-xl flex items-center gap-2 hover:scale-105 transition cursor-pointer text-[10px] font-bold uppercase tracking-wider border border-rose-500/50"
-            >
-              <AlertCircle className="w-4 h-4" />
-              <span>Complaints</span>
-            </button>
+          <div className="p-4 bg-purple-100 text-purple-600 rounded-2xl">
+            <CheckCircle className="w-8 h-8" />
           </div>
-        )}
+          <h3 className="text-sm font-black text-purple-800 uppercase tracking-wide">Registration Report</h3>
+          <p className="text-[10px] text-purple-500 font-semibold">Registered units and values.</p>
+        </div>
 
-        {/* CRD Main Floating Toggle Button */}
-        <button
-          onClick={() => {
-            setCrdMenuOpen(!crdMenuOpen);
-            setExportMenuOpen(false);
-          }}
-          className="bg-purple-700 hover:bg-purple-800 text-white p-4 rounded-full shadow-2xl hover:scale-105 transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer border border-purple-600/50"
-          title="CRD Reports Menu"
+        {/* Key Handover Report */}
+        <div 
+          onClick={handleExportKeyHandoverReport}
+          className="bg-indigo-50 border border-indigo-100 rounded-3xl p-6 shadow-sm hover:shadow-md transition cursor-pointer flex flex-col items-center justify-center text-center gap-3 hover:-translate-y-1 duration-200"
         >
-          <CheckCircle className="w-5 h-5 text-white" />
-          <span className="text-[11px] font-extrabold uppercase tracking-wide">
-            {crdMenuOpen ? 'Close Menu' : 'CRD Reports'}
-          </span>
-        </button>
-      </div>
+          <div className="p-4 bg-indigo-100 text-indigo-600 rounded-2xl">
+            <Key className="w-8 h-8" />
+          </div>
+          <h3 className="text-sm font-black text-indigo-800 uppercase tracking-wide">Key Handover Report</h3>
+          <p className="text-[10px] text-indigo-500 font-semibold">Handed over keys and status.</p>
+        </div>
 
+        {/* Collection Report */}
+        <div 
+          onClick={handleExportCollectionReport}
+          className="bg-emerald-50 border border-emerald-100 rounded-3xl p-6 shadow-sm hover:shadow-md transition cursor-pointer flex flex-col items-center justify-center text-center gap-3 hover:-translate-y-1 duration-200"
+        >
+          <div className="p-4 bg-emerald-100 text-emerald-600 rounded-2xl">
+            <DollarSign className="w-8 h-8" />
+          </div>
+          <h3 className="text-sm font-black text-emerald-800 uppercase tracking-wide">Collection Report</h3>
+          <p className="text-[10px] text-emerald-500 font-semibold">Payment tracking and collections.</p>
+        </div>
+
+        {/* Bank Loan Report */}
+        <div 
+          onClick={() => {
+              if (typeof handleExportBankLoanReport !== 'undefined') handleExportBankLoanReport();
+              else if (typeof handleExportBankLoansExcel !== 'undefined') handleExportBankLoansExcel();
+          }}
+          className="bg-blue-50 border border-blue-100 rounded-3xl p-6 shadow-sm hover:shadow-md transition cursor-pointer flex flex-col items-center justify-center text-center gap-3 hover:-translate-y-1 duration-200"
+        >
+          <div className="p-4 bg-blue-100 text-blue-600 rounded-2xl">
+            <Building className="w-8 h-8" />
+          </div>
+          <h3 className="text-sm font-black text-blue-800 uppercase tracking-wide">Bank Loan Report</h3>
+          <p className="text-[10px] text-blue-500 font-semibold">Bank loans associated with units.</p>
+        </div>
+
+        {/* Extra Works Report */}
+        <div 
+          onClick={handleExportExtraWorksReport}
+          className="bg-amber-50 border border-amber-100 rounded-3xl p-6 shadow-sm hover:shadow-md transition cursor-pointer flex flex-col items-center justify-center text-center gap-3 hover:-translate-y-1 duration-200"
+        >
+          <div className="p-4 bg-amber-100 text-amber-600 rounded-2xl">
+            <FileText className="w-8 h-8" />
+          </div>
+          <h3 className="text-sm font-black text-amber-800 uppercase tracking-wide">Extra Works</h3>
+          <p className="text-[10px] text-amber-500 font-semibold">Extra works requests and value.</p>
+        </div>
+
+        {/* Complaints Report */}
+        <div 
+          onClick={handleExportComplaintsReport}
+          className="bg-rose-50 border border-rose-100 rounded-3xl p-6 shadow-sm hover:shadow-md transition cursor-pointer flex flex-col items-center justify-center text-center gap-3 hover:-translate-y-1 duration-200"
+        >
+          <div className="p-4 bg-rose-100 text-rose-600 rounded-2xl">
+            <AlertCircle className="w-8 h-8" />
+          </div>
+          <h3 className="text-sm font-black text-rose-800 uppercase tracking-wide">Complaints</h3>
+          <p className="text-[10px] text-rose-500 font-semibold">User complaints and statuses.</p>
+        </div>
+
+      </div>
     </div>
   );
 };
