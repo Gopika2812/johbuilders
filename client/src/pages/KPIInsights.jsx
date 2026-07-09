@@ -2831,7 +2831,7 @@ const KPIInsights = () => {
                     <th className="p-4 text-center">ENQUIRY COUNT</th>
                     <th className="p-4 text-center">SITE VISIT COUNT</th>
                     <th className="p-4 text-right">CONVERSION RATIO</th>
-                    <th className="p-4 text-right">BOOKING VALUATION NET</th>
+
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100 font-sans font-semibold text-gray-700">
@@ -2840,32 +2840,28 @@ const KPIInsights = () => {
                     <td className="p-4 text-center">{stats.cards.enquiries.total} leads</td>
                     <td className="p-4 text-center">—</td>
                     <td className="p-4 text-right text-gray-400">Baseline</td>
-                    <td className="p-4 text-right">—</td>
+
                   </tr>
                   <tr className="hover:bg-gray-50/50">
                     <td className="p-4 font-bold text-gray-900">Site Visits Pipeline Stage</td>
                     <td className="p-4 text-center">—</td>
                     <td className="p-4 text-center">{stats.cards.siteVisits.total} visits</td>
                     <td className="p-4 text-right">{(stats.insights?.siteVisitConversionRate || 0).toFixed(1)}%</td>
-                    <td className="p-4 text-right">—</td>
+
                   </tr>
                   <tr className="hover:bg-gray-50/50">
                     <td className="p-4 font-bold text-gray-900">Bookings / site conversions</td>
                     <td className="p-4 text-center">{stats.cards.conversion.count} leads</td>
                     <td className="p-4 text-center">—</td>
                     <td className="p-4 text-right">{(stats.insights?.bookingConversionRate || 0).toFixed(1)}%</td>
-                    <td className="p-4 text-right text-gray-800 font-bold">
-                      <div>Total: ₹{Math.round(stats.cards.conversion.value || 0).toLocaleString()}</div>
-                      <div className="text-emerald-700 text-[10px]">Recv: ₹{Math.round(stats.cards.conversion.received || 0).toLocaleString()}</div>
-                      <div className="text-rose-700 text-[10px]">Pend: ₹{Math.round(stats.cards.conversion.pending || 0).toLocaleString()}</div>
-                    </td>
+
                   </tr>
                   <tr className="hover:bg-gray-50/50">
                     <td className="p-4 font-bold text-gray-900">Registration / Handovers</td>
                     <td className="p-4 text-center">{stats.cards.inventory.handoverUnits} units</td>
                     <td className="p-4 text-center">—</td>
                     <td className="p-4 text-right">{(stats.insights?.handoverRate || 0).toFixed(1)}%</td>
-                    <td className="p-4 text-right">—</td>
+
                   </tr>
                 </tbody>
               </table>
