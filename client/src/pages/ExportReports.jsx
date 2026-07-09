@@ -335,6 +335,7 @@ const ExportReports = () => {
   const [loading, setLoading] = useState(true);
   const handlePreview = (html, filename) => {
     if (returnHtml) return html;
+      if (returnHtml) return html;
       const blob = new Blob([html], { type: 'application/vnd.ms-excel' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
