@@ -1,10 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
+import XLSX from 'xlsx-js-style';
 import { useAuth, API_URL } from '../context/AuthContext';
-import { 
-  TrendingUp, 
-  Calendar, 
-  MapPin, 
-  DollarSign, 
+import { TrendingUp, Calendar, MapPin,   DollarSign, 
   Target,
   User,
   FolderOpen,
@@ -336,6 +333,18 @@ const ExportReports = () => {
 
   const [selectedProject, setSelectedProject] = useState('');
   const [loading, setLoading] = useState(true);
+  const handlePreview = (html, filename) => {
+    if (returnHtml) return html;
+      const blob = new Blob([html], { type: 'application/vnd.ms-excel' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
   const [selectedGroup, setSelectedGroup] = useState(null);
   const [activeCpeDrillDown, setActiveCpeDrillDown] = useState(null);
   const [exportMenuOpen, setExportMenuOpen] = useState(false);
@@ -396,7 +405,7 @@ const ExportReports = () => {
     }
   };
 
-  const handleExportEnquiriesExcel = async () => {
+  const handleExport = async (returnHtml = false) => {
     try {
       setLoading(true);
       const res = await fetch(`${API_URL}/leads`, {
@@ -537,7 +546,7 @@ const ExportReports = () => {
     }
   };
 
-  const handleExportSiteVisitsExcel = async () => {
+  const handleExport = async (returnHtml = false) => {
     try {
       setLoading(true);
       const res = await fetch(`${API_URL}/leads`, {
@@ -678,7 +687,7 @@ const ExportReports = () => {
     }
   };
 
-  const handleExportHotListExcel = async () => {
+  const handleExport = async (returnHtml = false) => {
     try {
       setLoading(true);
       const res = await fetch(`${API_URL}/leads`, {
@@ -820,7 +829,7 @@ const ExportReports = () => {
     }
   };
 
-  const handleExportBookingsExcel = async () => {
+  const handleExport = async (returnHtml = false) => {
     try {
       setLoading(true);
       const res = await fetch(`${API_URL}/leads`, {
@@ -942,7 +951,7 @@ const ExportReports = () => {
     }
   };
 
-  const handleExportSummaryReport = async () => {
+  const handleExport = async (returnHtml = false) => {
     try {
       setLoading(true);
       
@@ -1279,7 +1288,7 @@ const ExportReports = () => {
     }
   };
 
-  const handleExportMarketingReport = async () => {
+  const handleExport = async (returnHtml = false) => {
     try {
       setLoading(true);
       
@@ -1412,7 +1421,7 @@ const ExportReports = () => {
     }
   };
 
-  const handleExportLeadSourcesExcel = async () => {
+  const handleExport = async (returnHtml = false) => {
     try {
       setLoading(true);
       
@@ -1543,7 +1552,7 @@ const ExportReports = () => {
     }
   };
 
-  const handleExportRegistrationReport = async () => {
+  const handleExport = async (returnHtml = false) => {
     try {
       setLoading(true);
       const res = await fetch(`${API_URL}/leads`, {
@@ -1723,7 +1732,7 @@ const ExportReports = () => {
     }
   };
 
-  const handleExportKeyHandoverReport = async () => {
+  const handleExport = async (returnHtml = false) => {
     try {
       setLoading(true);
       const res = await fetch(`${API_URL}/crd-flow`, {
@@ -1897,7 +1906,7 @@ const ExportReports = () => {
     }
   };
 
-  const handleExportCollectionReport = async () => {
+  const handleExport = async (returnHtml = false) => {
     try {
       setLoading(true);
       const res = await fetch(`${API_URL}/crd-flow`, {
@@ -2024,7 +2033,7 @@ const ExportReports = () => {
     }
   };
 
-  const handleExportBankLoanReport = async () => {
+  const handleExport = async (returnHtml = false) => {
     try {
       setLoading(true);
       const res = await fetch(`${API_URL}/crd-flow`, {
@@ -2158,7 +2167,7 @@ const ExportReports = () => {
     }
   };
 
-  const handleExportExtraWorksReport = async () => {
+  const handleExport = async (returnHtml = false) => {
     try {
       setLoading(true);
       const res = await fetch(`${API_URL}/crd-flow`, {
@@ -2289,7 +2298,7 @@ const ExportReports = () => {
     }
   };
 
-  const handleExportComplaintsReport = async () => {
+  const handleExport = async (returnHtml = false) => {
     try {
       setLoading(true);
       const res = await fetch(`${API_URL}/crd-flow`, {
@@ -2401,6 +2410,45 @@ const ExportReports = () => {
     } catch (err) {
       console.error(err);
       alert('Error exporting customer complaints report');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  
+  const handleDownloadAll = async () => {
+    try {
+      setLoading(true);
+      const wb = XLSX.utils.book_new();
+
+      const convertHtmlToSheet = (htmlString, sheetName) => {
+        if (!htmlString) return;
+        const div = document.createElement('div');
+        div.innerHTML = htmlString;
+        const table = div.querySelector('table');
+        if (table) {
+          const ws = XLSX.utils.table_to_sheet(table, { raw: true });
+          XLSX.utils.book_append_sheet(wb, ws, sheetName);
+        }
+      };
+
+      convertHtmlToSheet(await handleExportEnquiriesExcel(true), 'Enquiries');
+      convertHtmlToSheet(await handleExportSiteVisitsExcel(true), 'Site Visits');
+      convertHtmlToSheet(await handleExportHotListExcel(true), 'Hot List');
+      convertHtmlToSheet(await handleExportBookingsExcel(true), 'Bookings');
+      convertHtmlToSheet(await handleExportMarketingReturnsReport(true), 'Marketing Returns');
+      convertHtmlToSheet(await handleExportLeadSourcesReport(true), 'Lead Sources');
+      convertHtmlToSheet(await handleExportRegistrationReport(true), 'Registrations');
+      convertHtmlToSheet(await handleExportKeyHandoverReport(true), 'Handovers');
+      convertHtmlToSheet(await handleExportCollectionReport(true), 'Collections');
+      convertHtmlToSheet(await handleExportBankLoansExcel(true), 'Bank Loans');
+      convertHtmlToSheet(await handleExportExtraWorksReport(true), 'Extra Works');
+      convertHtmlToSheet(await handleExportComplaintsReport(true), 'Complaints');
+
+      XLSX.writeFile(wb, `JB_COMBINED_REPORT_${new Date().getFullYear()}_${new Date().getMonth() + 1}.xlsx`);
+    } catch (err) {
+      console.error(err);
+      alert('Error generating combined report');
     } finally {
       setLoading(false);
     }
