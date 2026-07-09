@@ -35,7 +35,7 @@ export default {
         }
       },
       fontFamily: {
-        sans: ['Poppins', 'sans-serif'],
+        sans: ['Plus Jakarta Sans', 'sans-serif'],
       }
     },
   },

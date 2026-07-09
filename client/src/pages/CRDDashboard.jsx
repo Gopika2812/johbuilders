@@ -207,7 +207,7 @@ const ObservedSwirlPieChart = ({
         {slots.map((slot, index) => {
           const val = slot.item[valueKey] || 0;
           return (
-            <div key={index} className="flex items-center gap-4 bg-slate-50/90 backdrop-blur-sm border border-slate-100/50 rounded-2xl px-6 py-4 hover:bg-slate-100 transition shadow-[0_2px_8px_-3px_rgba(0,0,0,0.05)] w-full">
+            <div key={index} className="flex items-center gap-4 bg-transparent border-none rounded-2xl px-6 py-4 hover:bg-slate-100 transition shadow-[0_2px_8px_-3px_rgba(0,0,0,0.05)] w-full">
               <span className="w-4 h-4 rounded-full shrink-0" style={{ backgroundColor: slot.color }}></span>
               <div className="flex flex-col text-left">
                 <span className="text-base font-black text-gray-500 uppercase tracking-wider">{slot.label}</span>
@@ -287,7 +287,7 @@ const ObservedPieChart = ({
             <div 
               key={index} 
               onClick={() => onSegmentClick && onSegmentClick(item)}
-              className={`flex flex-col items-start bg-slate-50 border rounded-2xl p-4 hover:bg-slate-100 transition shadow-sm cursor-pointer w-full ${isSelected ? 'border-blue-500 bg-blue-50/30' : 'border-slate-100'}`}
+              className={`flex flex-col items-start bg-transparent border border-[#e1f0e8] rounded-2xl p-4 border-none shadow-sm hover:bg-slate-100 transition shadow-sm cursor-pointer w-full ${isSelected ? 'border-blue-500 bg-blue-50/30' : 'border-slate-100'}`}
             >
               <div className="flex items-center gap-2 mb-2 w-full">
                 <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: color }}></span>
@@ -1537,14 +1537,14 @@ const CRDDashboard = () => {
       </div>
 
       {/* Filtration Header Card */}
-      <div className="bg-white/90 backdrop-blur-md border border-gray-150 shadow-md rounded-3xl p-5 w-full sticky top-16 z-20 transition-all duration-300">
+      <div className="bg-transparent border-none rounded-3xl p-5 w-full sticky top-16 z-20 transition-all duration-300">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4 items-end">
           
           {/* User Select */}
           {(user?.role === 'Super Admin' || user?.role === 'Admin') ? (
             <div className="flex flex-col gap-1 w-full">
               <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Filtered User</label>
-              <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 px-3 py-1.5 rounded-xl">
+              <div className="flex items-center gap-2 bg-transparent border-none px-3 py-1.5 rounded-xl">
                 <User className="w-4 h-4 text-gray-455 shrink-0" />
                 <select
                   value={selectedUser}
@@ -1565,7 +1565,7 @@ const CRDDashboard = () => {
           {/* Project Select */}
           <div className="flex flex-col gap-1 w-full">
             <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Filtered Project</label>
-            <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 px-3 py-1.5 rounded-xl">
+            <div className="flex items-center gap-2 bg-transparent border-none px-3 py-1.5 rounded-xl">
               <FolderOpen className="w-4 h-4 text-gray-455 shrink-0" />
               <select
                 value={selectedProject}
@@ -1583,7 +1583,7 @@ const CRDDashboard = () => {
           {/* Project Type Select */}
           <div className="flex flex-col gap-1 w-full">
             <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Filtered Type</label>
-            <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 px-3 py-1.5 rounded-xl">
+            <div className="flex items-center gap-2 bg-transparent border-none px-3 py-1.5 rounded-xl">
               <Layers className="w-4 h-4 text-gray-455 shrink-0" />
               <select
                 value={selectedProjectType}
@@ -1601,7 +1601,7 @@ const CRDDashboard = () => {
           {/* Source Select */}
           <div className="flex flex-col gap-1 w-full">
             <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Filtered Source</label>
-            <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 px-3 py-1.5 rounded-xl">
+            <div className="flex items-center gap-2 bg-transparent border-none px-3 py-1.5 rounded-xl">
               <Target className="w-4 h-4 text-gray-455 shrink-0" />
               <select
                 value={selectedSource}
@@ -1619,7 +1619,7 @@ const CRDDashboard = () => {
           {/* Month Wise */}
           <div className="flex flex-col gap-1 w-full">
             <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Select Month</label>
-            <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 px-3 py-1.5 rounded-xl">
+            <div className="flex items-center gap-2 bg-transparent border-none px-3 py-1.5 rounded-xl">
               <Calendar className="w-4 h-4 text-[#0e623a] shrink-0" />
               <input
                 type="month"
@@ -1633,7 +1633,7 @@ const CRDDashboard = () => {
           {/* Range picker */}
           <div className="flex flex-col gap-1 w-full">
             <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Custom Date Range</label>
-            <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 px-3 py-1.5 rounded-xl">
+            <div className="flex items-center gap-2 bg-transparent border-none px-3 py-1.5 rounded-xl">
               <input
                 type="date"
                 value={fromDate}

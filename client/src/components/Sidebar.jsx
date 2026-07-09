@@ -37,18 +37,12 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
   };
 
   return (
-    <aside className={`w-64 bg-[#0e623a] text-white flex flex-col h-screen fixed left-0 top-0 z-50 border-r border-[#0b4d2d] shadow-lg transition-transform duration-300 transform ${
+    <aside className={`w-64 bg-[#edfbf4] text-[#4b7a69] flex flex-col h-screen fixed left-0 top-0 z-50 border-none shadow-none transition-transform duration-300 transform ${
       sidebarOpen ? 'translate-x-0' : '-translate-x-full'
     }`}>
       {/* Brand Logo Header */}
       <div className="p-6 border-b border-white/10 flex items-center gap-3">
-        <div className="p-2 bg-white/10 rounded-lg border border-white/20">
-          <Building2 className="w-6 h-6 text-white" />
-        </div>
-        <div>
-          <h1 className="font-extrabold text-lg tracking-wider leading-none text-white">BUILDERS</h1>
-          <span className="text-xs text-emerald-200 font-light">Real Estate ERP</span>
-        </div>
+        <h1 className="font-extrabold text-2xl tracking-tight"><span className="text-[#11c278]">Land</span><span className="text-[#1e4a3b]">ERP</span></h1>
       </div>
 
       {/* Navigation Items */}
@@ -58,11 +52,11 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
           to="/"
           className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${
             isActive('/') 
-              ? 'bg-white/10 text-white font-bold border border-white/10 shadow-sm' 
-              : 'text-emerald-100 hover:bg-white/5 hover:text-white'
+              ? 'bg-[#11c278] text-white font-bold shadow-md' 
+              : 'text-[#4b7a69] hover:bg-[#11c278]/10 hover:text-[#11c278]'
           }`}
         >
-          <LayoutDashboard className={`w-5 h-5 ${isActive('/') ? 'text-white' : 'text-emerald-300'}`} />
+          <LayoutDashboard className={`w-5 h-5 ${isActive('/') ? 'text-white' : 'text-[#4b7a69]'}`} />
           <span>Dashboard</span>
         </Link>
 
@@ -71,11 +65,11 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
           to="/kpi-insights"
           className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${
             isActive('/kpi-insights') 
-              ? 'bg-white/10 text-white font-bold border border-white/10 shadow-sm' 
-              : 'text-emerald-100 hover:bg-white/5 hover:text-white'
+              ? 'bg-[#11c278] text-white font-bold shadow-md' 
+              : 'text-[#4b7a69] hover:bg-[#11c278]/10 hover:text-[#11c278]'
           }`}
         >
-          <BarChart3 className={`w-5 h-5 ${isActive('/kpi-insights') ? 'text-white' : 'text-emerald-300'}`} />
+          <BarChart3 className={`w-5 h-5 ${isActive('/kpi-insights') ? 'text-white' : 'text-[#4b7a69]'}`} />
           <span>KPI Insights</span>
         </Link>
 
@@ -85,10 +79,10 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
           className={`flex items-center gap-3 px-4 py-3 rounded-xl transition duration-200 ${
             isActive('/projects') 
               ? 'bg-white/10 text-white font-bold border-l-4 border-white' 
-              : 'text-emerald-100 hover:bg-white/5 hover:text-white'
+              : 'text-[#4b7a69] hover:bg-[#11c278]/10 hover:text-[#11c278]'
           }`}
         >
-          <FolderGit2 className={`w-5 h-5 ${isActive('/projects') ? 'text-white' : 'text-emerald-300'}`} />
+          <FolderGit2 className={`w-5 h-5 ${isActive('/projects') ? 'text-white' : 'text-[#4b7a69]'}`} />
           <span>Projects Directory</span>
         </Link>
 
@@ -96,13 +90,13 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
         <div>
           <button
             onClick={() => setLeadsMenuOpen(!leadsMenuOpen)}
-            className="w-full flex items-center justify-between px-4 py-3 text-emerald-100 hover:bg-white/5 hover:text-white rounded-xl transition duration-200"
+            className="w-full flex items-center justify-between px-4 py-3 text-[#4b7a69] hover:bg-[#11c278]/10 hover:text-[#11c278] rounded-xl transition duration-200"
           >
             <div className="flex items-center gap-3">
-              <UserPlus className="w-5 h-5 text-emerald-300" />
+              <UserPlus className="w-5 h-5 text-[#4b7a69]" />
               <span className="font-semibold">Leads Phase</span>
             </div>
-            <ChevronDown className={`w-4 h-4 text-emerald-300 transition-transform duration-200 ${leadsMenuOpen ? 'rotate-180' : ''}`} />
+            <ChevronDown className={`w-4 h-4 text-[#4b7a69] transition-transform duration-200 ${leadsMenuOpen ? 'rotate-180' : ''}`} />
           </button>
           
           {leadsMenuOpen && (
@@ -111,8 +105,8 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
                 to="/leads"
                 className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs transition ${
                   location.pathname === '/leads' && !location.search
-                    ? 'text-white font-extrabold border-l-2 border-white pl-2'
-                    : 'text-emerald-150 hover:text-white hover:bg-white/5'
+                    ? 'text-[#11c278] font-extrabold pl-2'
+                    : 'text-[#4b7a69] hover:text-[#11c278] hover:bg-[#11c278]/10'
                 }`}
               >
                 <span>Leads Directory</span>
@@ -122,8 +116,8 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
                 to="/quotations"
                 className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs transition ${
                   location.pathname === '/quotations'
-                    ? 'text-white font-extrabold border-l-2 border-white pl-2'
-                    : 'text-emerald-150 hover:text-white hover:bg-white/5'
+                    ? 'text-[#11c278] font-extrabold pl-2'
+                    : 'text-[#4b7a69] hover:text-[#11c278] hover:bg-[#11c278]/10'
                 }`}
               >
                 <span>Quotation Records</span>
@@ -133,8 +127,8 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
                 to="/crd-dashboard"
                 className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs transition ${
                   isActive('/crd-dashboard')
-                    ? 'text-white font-extrabold border-l-2 border-white pl-2'
-                    : 'text-emerald-150 hover:text-white hover:bg-white/5'
+                    ? 'text-[#11c278] font-extrabold pl-2'
+                    : 'text-[#4b7a69] hover:text-[#11c278] hover:bg-[#11c278]/10'
                 }`}
               >
                 <span>CRD Dashboard</span>
@@ -144,8 +138,8 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
                 to="/crd-flow"
                 className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs transition ${
                   isActive('/crd-flow')
-                    ? 'text-white font-extrabold border-l-2 border-white pl-2'
-                    : 'text-emerald-150 hover:text-white hover:bg-white/5'
+                    ? 'text-[#11c278] font-extrabold pl-2'
+                    : 'text-[#4b7a69] hover:text-[#11c278] hover:bg-[#11c278]/10'
                 }`}
               >
                 <span>CRD Flow</span>
@@ -155,8 +149,8 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
                 to="/crd-flow/bank-loan-history"
                 className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs transition ${
                   isActive('/crd-flow/bank-loan-history')
-                    ? 'text-white font-extrabold border-l-2 border-white pl-2'
-                    : 'text-emerald-150 hover:text-white hover:bg-white/5'
+                    ? 'text-[#11c278] font-extrabold pl-2'
+                    : 'text-[#4b7a69] hover:text-[#11c278] hover:bg-[#11c278]/10'
                 }`}
               >
                 <span>Bank Loan History</span>
@@ -171,13 +165,13 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
         <div>
           <button
             onClick={() => setReportsMenuOpen(!reportsMenuOpen)}
-            className="w-full flex items-center justify-between px-4 py-3 text-emerald-100 hover:bg-white/5 hover:text-white rounded-xl transition duration-200"
+            className="w-full flex items-center justify-between px-4 py-3 text-[#4b7a69] hover:bg-[#11c278]/10 hover:text-[#11c278] rounded-xl transition duration-200"
           >
             <div className="flex items-center gap-3">
-              <FileSpreadsheet className="w-5 h-5 text-emerald-300" />
+              <FileSpreadsheet className="w-5 h-5 text-[#4b7a69]" />
               <span className="font-semibold">Reports Master</span>
             </div>
-            <ChevronDown className={`w-4 h-4 text-emerald-300 transition-transform duration-200 ${reportsMenuOpen ? 'rotate-180' : ''}`} />
+            <ChevronDown className={`w-4 h-4 text-[#4b7a69] transition-transform duration-200 ${reportsMenuOpen ? 'rotate-180' : ''}`} />
           </button>
           
           {reportsMenuOpen && (
@@ -186,8 +180,8 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
                 to="/reports/export"
                 className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs transition ${
                   isActive('/reports/export')
-                    ? 'text-white font-extrabold border-l-2 border-white pl-2'
-                    : 'text-emerald-150 hover:text-white hover:bg-white/5'
+                    ? 'text-[#11c278] font-extrabold pl-2'
+                    : 'text-[#4b7a69] hover:text-[#11c278] hover:bg-[#11c278]/10'
                 }`}
               >
                 <span>Export Reports</span>
@@ -196,8 +190,8 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
                 to="/reports/crd"
                 className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs transition ${
                   isActive('/reports/crd')
-                    ? 'text-white font-extrabold border-l-2 border-white pl-2'
-                    : 'text-emerald-150 hover:text-white hover:bg-white/5'
+                    ? 'text-[#11c278] font-extrabold pl-2'
+                    : 'text-[#4b7a69] hover:text-[#11c278] hover:bg-[#11c278]/10'
                 }`}
               >
                 <span>CRD Reports</span>
@@ -214,10 +208,10 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
             className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition duration-200 ${
               isActive('/customers')
                 ? 'bg-white/10 text-white font-bold'
-                : 'text-emerald-100 hover:bg-white/5 hover:text-white'
+                : 'text-[#4b7a69] hover:bg-[#11c278]/10 hover:text-[#11c278]'
             }`}
           >
-            <Users2 className="w-5 h-5 text-emerald-300" />
+            <Users2 className="w-5 h-5 text-[#4b7a69]" />
             <span className="font-semibold">Customers</span>
           </Link>
         </div>
@@ -226,13 +220,13 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
         <div>
           <button
             onClick={() => setEmployeeMenuOpen(!employeeMenuOpen)}
-            className="w-full flex items-center justify-between px-4 py-3 text-emerald-100 hover:bg-white/5 hover:text-white rounded-xl transition duration-200"
+            className="w-full flex items-center justify-between px-4 py-3 text-[#4b7a69] hover:bg-[#11c278]/10 hover:text-[#11c278] rounded-xl transition duration-200"
           >
             <div className="flex items-center gap-3">
-              <Users2 className="w-5 h-5 text-emerald-300" />
+              <Users2 className="w-5 h-5 text-[#4b7a69]" />
               <span className="font-semibold">Employees</span>
             </div>
-            <ChevronDown className={`w-4 h-4 text-emerald-300 transition-transform duration-200 ${employeeMenuOpen ? 'rotate-180' : ''}`} />
+            <ChevronDown className={`w-4 h-4 text-[#4b7a69] transition-transform duration-200 ${employeeMenuOpen ? 'rotate-180' : ''}`} />
           </button>
 
           {employeeMenuOpen && (
@@ -241,11 +235,11 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
                 to="/employees"
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm transition ${
                   isActive('/employees')
-                    ? 'text-white font-extrabold border-l-2 border-white pl-2'
-                    : 'text-emerald-150 hover:text-white hover:bg-white/5'
+                    ? 'text-[#11c278] font-extrabold pl-2'
+                    : 'text-[#4b7a69] hover:text-[#11c278] hover:bg-[#11c278]/10'
                 }`}
               >
-                <Users2 className="w-4 h-4 text-emerald-300" />
+                <Users2 className="w-4 h-4 text-[#4b7a69]" />
                 <span>Approve Access</span>
               </Link>
             </div>
@@ -260,10 +254,10 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
             className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition duration-200 ${
               isActive('/audit-logs')
                 ? 'bg-white/10 text-white font-bold'
-                : 'text-emerald-100 hover:bg-white/5 hover:text-white'
+                : 'text-[#4b7a69] hover:bg-[#11c278]/10 hover:text-[#11c278]'
             }`}
           >
-            <History className="w-5 h-5 text-emerald-300" />
+            <History className="w-5 h-5 text-[#4b7a69]" />
             <span className="font-semibold">Audit Logs</span>
           </Link>
         </div>
@@ -272,13 +266,13 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
         <div>
           <button
             onClick={() => setFinanceMenuOpen(!financeMenuOpen)}
-            className="w-full flex items-center justify-between px-4 py-3 text-emerald-100 hover:bg-white/5 hover:text-white rounded-xl transition duration-200"
+            className="w-full flex items-center justify-between px-4 py-3 text-[#4b7a69] hover:bg-[#11c278]/10 hover:text-[#11c278] rounded-xl transition duration-200"
           >
             <div className="flex items-center gap-3">
-              <Coins className="w-5 h-5 text-emerald-300" />
+              <Coins className="w-5 h-5 text-[#4b7a69]" />
               <span className="font-semibold text-sm">Finance & Accounts</span>
             </div>
-            <ChevronDown className={`w-4 h-4 text-emerald-300 transition-transform duration-200 ${financeMenuOpen ? 'rotate-180' : ''}`} />
+            <ChevronDown className={`w-4 h-4 text-[#4b7a69] transition-transform duration-200 ${financeMenuOpen ? 'rotate-180' : ''}`} />
           </button>
 
           {financeMenuOpen && (
@@ -287,8 +281,8 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
                 to="/finance/budget-planning"
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs transition ${
                   isActive('/finance/budget-planning')
-                    ? 'text-white font-extrabold border-l-2 border-white pl-2'
-                    : 'text-emerald-150 hover:text-white hover:bg-white/5'
+                    ? 'text-[#11c278] font-extrabold pl-2'
+                    : 'text-[#4b7a69] hover:text-[#11c278] hover:bg-[#11c278]/10'
                 }`}
               >
                 <span>Budget Planning</span>
@@ -298,8 +292,8 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
                 to="/finance/lead-target-planning"
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs transition ${
                   isActive('/finance/lead-target-planning')
-                    ? 'text-white font-extrabold border-l-2 border-white pl-2'
-                    : 'text-emerald-150 hover:text-white hover:bg-white/5'
+                    ? 'text-[#11c278] font-extrabold pl-2'
+                    : 'text-[#4b7a69] hover:text-[#11c278] hover:bg-[#11c278]/10'
                 }`}
               >
                 <span>Lead Target Planning</span>
@@ -309,8 +303,8 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
                 to="/finance/summary-planning"
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs transition ${
                   isActive('/finance/summary-planning')
-                    ? 'text-white font-extrabold border-l-2 border-white pl-2'
-                    : 'text-emerald-150 hover:text-white hover:bg-white/5'
+                    ? 'text-[#11c278] font-extrabold pl-2'
+                    : 'text-[#4b7a69] hover:text-[#11c278] hover:bg-[#11c278]/10'
                 }`}
               >
                 <span>Summary Planning</span>
@@ -326,11 +320,11 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
               to="/access-control"
               className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${
                 isActive('/access-control') 
-                  ? 'bg-white/10 text-white font-bold border border-white/10 shadow-sm' 
-                  : 'text-emerald-100 hover:bg-white/5 hover:text-white'
+                  ? 'bg-[#11c278] text-white font-bold shadow-md' 
+                  : 'text-[#4b7a69] hover:bg-[#11c278]/10 hover:text-[#11c278]'
               }`}
             >
-              <ShieldCheck className={`w-5 h-5 ${isActive('/access-control') ? 'text-white' : 'text-emerald-300'}`} />
+              <ShieldCheck className={`w-5 h-5 ${isActive('/access-control') ? 'text-white' : 'text-[#4b7a69]'}`} />
               <span>Access Control</span>
             </Link>
 
@@ -338,11 +332,11 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
               to="/requests"
               className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${
                 isActive('/requests') 
-                  ? 'bg-white/10 text-white font-bold border border-white/10 shadow-sm' 
-                  : 'text-emerald-100 hover:bg-white/5 hover:text-white'
+                  ? 'bg-[#11c278] text-white font-bold shadow-md' 
+                  : 'text-[#4b7a69] hover:bg-[#11c278]/10 hover:text-[#11c278]'
               }`}
             >
-              <ClipboardList className={`w-5 h-5 ${isActive('/requests') ? 'text-white' : 'text-emerald-300'}`} />
+              <ClipboardList className={`w-5 h-5 ${isActive('/requests') ? 'text-white' : 'text-[#4b7a69]'}`} />
               <span>Requests</span>
             </Link>
           </>
@@ -353,11 +347,11 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
           to="/settings"
           className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${
             isActive('/settings') 
-              ? 'bg-white/10 text-white font-bold border border-white/10 shadow-sm' 
-              : 'text-emerald-100 hover:bg-white/5 hover:text-white'
+              ? 'bg-[#11c278] text-white font-bold shadow-md' 
+              : 'text-[#4b7a69] hover:bg-[#11c278]/10 hover:text-[#11c278]'
           }`}
         >
-          <Settings2 className={`w-5 h-5 ${isActive('/settings') ? 'text-white' : 'text-emerald-300'}`} />
+          <Settings2 className={`w-5 h-5 ${isActive('/settings') ? 'text-white' : 'text-[#4b7a69]'}`} />
           <span>Settings</span>
         </Link>
       </nav>
@@ -371,13 +365,13 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
             </div>
             <div className="overflow-hidden">
               <p className="font-semibold text-sm truncate leading-tight text-white">{user?.name}</p>
-              <span className="text-[10px] text-emerald-200 font-light block">{user?.role}</span>
+              <span className="text-[10px] text-[#4b7a69] font-light block">{user?.role}</span>
             </div>
           </div>
 
           <button
             onClick={logout}
-            className="p-2 text-emerald-200 hover:text-white hover:bg-white/10 rounded-lg transition"
+            className="p-2 text-[#4b7a69] hover:text-white hover:bg-white/10 rounded-lg transition"
             title="Logout"
           >
             <LogOut className="w-5 h-5" />

@@ -38,7 +38,7 @@ const Layout = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth >= 768);
 
   return (
-    <div className="min-h-screen bg-gray-50 flex relative">
+    <div className="min-h-screen bg-transparent flex relative">
       {/* Mobile Sidebar backdrop overlay */}
       {sidebarOpen && (
         <div 
