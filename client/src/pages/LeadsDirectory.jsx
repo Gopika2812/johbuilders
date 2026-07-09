@@ -739,7 +739,7 @@ const LeadsDirectory = () => {
     setSelectedLeadForFollow(lead);
     setFollowTargetStatus(targetStatus);
     
-    const hasFollowUp = ['Contacted', 'Follow-Up', 'Site Visit', 'Qualified', 'Negotiation'].includes(targetStatus);
+    const hasFollowUp = ['Follow-Up', 'Site Visit', 'Hot List', 'Negotiation', 'Future Follow-up'].includes(targetStatus);
     setFollowMode(hasFollowUp ? 'FollowUp' : 'Completed');
     
     const now = new Date();
@@ -793,10 +793,11 @@ const LeadsDirectory = () => {
         isClosed: false
       };
     } else {
-      const shouldClose = ['Contacted', 'Site Visit', 'Lost'].includes(followTargetStatus);
+      const isAdvancingToHotList = followTargetStatus === 'Hot List';
+      
       payload = {
-        status: followTargetStatus,
-        isClosed: shouldClose,
+        status: isAdvancingToHotList ? 'Hot List' : 'Lost',
+        isClosed: !isAdvancingToHotList,
         closeRemarks: closeRemarks
       };
     }
@@ -1124,16 +1125,15 @@ const LeadsDirectory = () => {
   // Filter list matching Search & Date & Tab & Advanced Filters
   const getFilteredLeads = () => {
     return leads.filter(lead => {
-      let matchesTab = activeTab === 'All';
-      if (activeTab === 'Qualified') {
-        const wasQualified = lead.status === 'Qualified' || (lead.history && lead.history.some(h => h.status === 'Qualified'));
-        matchesTab = wasQualified && !lead.isClosed;
-      } else if (activeTab === 'Lost') {
+      let matchesTab = true;
+      if (activeTab === 'Lost') {
         matchesTab = lead.status === 'Lost' || (lead.isClosed && lead.status !== 'Won');
-      } else if (activeTab === 'Won') {
-        matchesTab = lead.status === 'Won';
+      } else if (activeTab === 'Hot List') {
+        matchesTab = (lead.status === 'Hot List' || (lead.history && lead.history.some(h => h.status === 'Hot List'))) && !lead.isClosed;
       } else if (activeTab !== 'All') {
         matchesTab = lead.status === activeTab && !lead.isClosed;
+      } else {
+        matchesTab = !lead.isClosed && lead.status !== 'Lost' && lead.status !== 'Cancelled';
       }
       const matchesStatus = !statusFilter || lead.status === statusFilter;
       
@@ -1234,7 +1234,7 @@ const LeadsDirectory = () => {
                 : 'text-gray-500 hover:bg-gray-50 hover:text-gray-800'
             }`}
           >
-            All Leads ({leads.length})
+            All Active ({leads.filter(l => !l.isClosed && l.status !== 'Lost' && l.status !== 'Cancelled').length})
           </button>
           {LEAD_STATUSES.map(st => {
             let count = 0;
@@ -1242,8 +1242,8 @@ const LeadsDirectory = () => {
               count = leads.filter(l => l.status === 'Lost' || (l.isClosed && l.status !== 'Won')).length;
             } else if (st === 'Won') {
               count = leads.filter(l => l.status === 'Won').length;
-            } else if (st === 'Qualified') {
-              count = leads.filter(l => (l.status === 'Qualified' || (l.history && l.history.some(h => h.status === 'Qualified'))) && !l.isClosed).length;
+            } else if (st === 'Hot List') {
+              count = leads.filter(l => (l.status === 'Hot List' || (l.history && l.history.some(h => h.status === 'Hot List'))) && !l.isClosed).length;
             } else {
               count = leads.filter(l => l.status === st && !l.isClosed).length;
             }
@@ -1516,12 +1516,12 @@ const LeadsDirectory = () => {
                           return currentIdx === -1 || idx >= currentIdx;
                         }).map(status => (
                           <option key={status} value={status}>
-                            {status === 'Qualified' ? 'Hot List' : status}
+                            {status}
                           </option>
                         ))}
                       </select>
                       <ChevronDown className={`w-3.5 h-3.5 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none opacity-70 ${STATUS_COLORS[lead.status]?.text || 'text-gray-700'}`} />
-                      {activeTab === 'Qualified' && lead.status !== 'Qualified' && (
+                      {activeTab === 'Hot List' && lead.status !== 'Hot List' && (
                         <div className="text-[10px] text-emerald-700 font-extrabold mt-1 py-0.5 px-2 bg-emerald-50 rounded border border-emerald-100 text-center">
                           Moved to {lead.status}
                         </div>
@@ -2307,17 +2307,17 @@ const LeadsDirectory = () => {
                 <h3 className="text-lg font-bold flex items-center gap-2">
                   <CalendarClock className="w-5 h-5 text-emerald-300" />
                   <span>
-                    {followTargetStatus === 'Qualified'
+                    {followTargetStatus === 'Hot List'
                       ? 'Site Visit Follow-up Options'
-                      : ['Contacted', 'Follow-Up', 'Site Visit'].includes(followTargetStatus)
+                      : ['Follow-Up', 'Site Visit', 'Future Follow-up'].includes(followTargetStatus)
                       ? 'Contacted / Follow-up Actions'
                       : `Transition to ${followTargetStatus}`}
                   </span>
                 </h3>
                 <p className="text-emerald-100 text-xs mt-1">
-                  {followTargetStatus === 'Qualified'
-                    ? 'Choose to schedule another follow-up or advance this lead to Qualified stage'
-                    : ['Contacted', 'Follow-Up', 'Site Visit'].includes(followTargetStatus)
+                  {followTargetStatus === 'Hot List'
+                    ? 'Choose to schedule another follow-up or advance this lead to Hot List stage'
+                    : ['Follow-Up', 'Site Visit', 'Future Follow-up'].includes(followTargetStatus)
                     ? 'Specify followup schedules or mark the stage as completed'
                     : `Enter remarks or notes to record this stage transition`}
                 </p>
@@ -2344,11 +2344,11 @@ const LeadsDirectory = () => {
                       onClick={() => setFollowMode('Completed')}
                       className={`py-3 rounded-xl text-xs font-bold transition ${
                         followMode === 'Completed'
-                          ? (followTargetStatus === 'Qualified' ? 'bg-[#0e623a] text-white shadow' : 'bg-red-600 text-white shadow')
+                          ? (followTargetStatus === 'Hot List' ? 'bg-[#0e623a] text-white shadow' : 'bg-red-600 text-white shadow')
                           : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
                       }`}
                     >
-                      {followTargetStatus === 'Qualified' ? 'Move to Qualified' : 'Completed'}
+                      {followTargetStatus === 'Hot List' ? 'Move to Hot List' : 'Close Lead (Lost)'}
                     </button>
                   </div>
                 )}
@@ -2438,15 +2438,13 @@ const LeadsDirectory = () => {
                       <div className={`text-xs p-3 rounded-xl border ${
                         followTargetStatus === 'Lost'
                           ? 'bg-red-50 text-red-800 border-red-100'
-                          : followTargetStatus === 'Won'
-                          ? 'bg-emerald-50 text-emerald-800 border-emerald-100'
                           : 'bg-blue-50 text-blue-850 border-blue-150'
                       }`}>
                         <strong>Notice:</strong> This action will update the lead stage to <span className="font-bold">{followTargetStatus}</span>.
                       </div>
-                    ) : followTargetStatus === 'Qualified' ? (
+                    ) : followTargetStatus === 'Hot List' ? (
                       <div className="bg-emerald-50 text-emerald-800 text-xs p-3 rounded-xl border border-emerald-100">
-                        <strong>Note:</strong> Advancing this lead will move it to the <span className="font-bold">Qualified</span> stage and store the record in the <span className="font-bold">Hot List</span>.
+                        <strong>Note:</strong> Advancing this lead will move it to the <span className="font-bold">Hot List</span> stage.
                       </div>
                     ) : (
                       <div className="bg-red-50 text-red-800 text-xs p-3 rounded-xl border border-red-100">
@@ -2455,7 +2453,7 @@ const LeadsDirectory = () => {
                     )}
                     <div>
                       <label className="text-xs font-semibold text-gray-600 block mb-1">
-                        {followTargetStatus === 'Qualified'
+                        {followTargetStatus === 'Hot List'
                           ? 'Transition Remarks (Optional)'
                           : !hasFollowUpOptions
                           ? `Remarks / Notes for transitioning to ${followTargetStatus} (Optional)`
@@ -2463,11 +2461,11 @@ const LeadsDirectory = () => {
                       </label>
                       <textarea
                         rows="4"
-                        required={['Won', 'Lost', 'Contacted', 'Follow-Up', 'Site Visit'].includes(followTargetStatus)}
+                        required={['Lost', 'Follow-Up', 'Site Visit', 'Future Follow-up'].includes(followTargetStatus)}
                         value={closeRemarks}
                         onChange={(e) => setCloseRemarks(e.target.value)}
                         placeholder={
-                          followTargetStatus === 'Qualified'
+                          followTargetStatus === 'Hot List'
                             ? "Add any notes about this qualification..."
                             : !hasFollowUpOptions
                             ? `Provide details regarding the transition to ${followTargetStatus}...`
