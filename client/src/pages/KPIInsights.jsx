@@ -2762,11 +2762,7 @@ const KPIInsights = () => {
             <div className="bg-white border border-gray-150 p-5 rounded-3xl shadow-sm hover:shadow-md transition">
               <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Total Bookings Count</span>
               <h3 className="text-2xl font-black text-gray-800 mt-1">{stats.cards.conversion.count} Converted</h3>
-              <div className="mt-2 space-y-0.5 text-[9px] font-bold uppercase">
-                <div className="text-gray-500">Total: ₹{Math.round(stats.cards.conversion.value || 0).toLocaleString()}</div>
-                <div className="text-emerald-700">Received: ₹{Math.round(stats.cards.conversion.received || 0).toLocaleString()}</div>
-                <div className="text-rose-700">Pending: ₹{Math.round(stats.cards.conversion.pending || 0).toLocaleString()}</div>
-              </div>
+              
             </div>
 
 
