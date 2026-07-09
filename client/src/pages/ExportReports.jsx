@@ -406,7 +406,7 @@ const ExportReports = () => {
     }
   };
 
-  const handleExport = async (returnHtml = false) => {
+  const handleExportEnquiriesExcel = async (returnHtml = false) => {
     try {
       setLoading(true);
       const res = await fetch(`${API_URL}/leads`, {
@@ -547,7 +547,7 @@ const ExportReports = () => {
     }
   };
 
-  const handleExport = async (returnHtml = false) => {
+  const handleExportSiteVisitsExcel = async (returnHtml = false) => {
     try {
       setLoading(true);
       const res = await fetch(`${API_URL}/leads`, {
@@ -688,7 +688,7 @@ const ExportReports = () => {
     }
   };
 
-  const handleExport = async (returnHtml = false) => {
+  const handleExportHotListExcel = async (returnHtml = false) => {
     try {
       setLoading(true);
       const res = await fetch(`${API_URL}/leads`, {
@@ -830,7 +830,7 @@ const ExportReports = () => {
     }
   };
 
-  const handleExport = async (returnHtml = false) => {
+  const handleExportBookingsExcel = async (returnHtml = false) => {
     try {
       setLoading(true);
       const res = await fetch(`${API_URL}/leads`, {
@@ -952,7 +952,7 @@ const ExportReports = () => {
     }
   };
 
-  const handleExport = async (returnHtml = false) => {
+  const handleExportSummaryReport = async (returnHtml = false) => {
     try {
       setLoading(true);
       
@@ -1289,7 +1289,7 @@ const ExportReports = () => {
     }
   };
 
-  const handleExport = async (returnHtml = false) => {
+  const handleExportMarketingReturnsReport = async (returnHtml = false) => {
     try {
       setLoading(true);
       
@@ -1422,7 +1422,7 @@ const ExportReports = () => {
     }
   };
 
-  const handleExport = async (returnHtml = false) => {
+  const handleExportLeadSourcesReport = async (returnHtml = false) => {
     try {
       setLoading(true);
       
@@ -1553,7 +1553,7 @@ const ExportReports = () => {
     }
   };
 
-  const handleExport = async (returnHtml = false) => {
+  const handleExportRegistrationReport = async (returnHtml = false) => {
     try {
       setLoading(true);
       const res = await fetch(`${API_URL}/leads`, {
@@ -1733,7 +1733,7 @@ const ExportReports = () => {
     }
   };
 
-  const handleExport = async (returnHtml = false) => {
+  const handleExportKeyHandoverReport = async (returnHtml = false) => {
     try {
       setLoading(true);
       const res = await fetch(`${API_URL}/crd-flow`, {
@@ -1907,7 +1907,7 @@ const ExportReports = () => {
     }
   };
 
-  const handleExport = async (returnHtml = false) => {
+  const handleExportCollectionReport = async (returnHtml = false) => {
     try {
       setLoading(true);
       const res = await fetch(`${API_URL}/crd-flow`, {
@@ -2034,7 +2034,7 @@ const ExportReports = () => {
     }
   };
 
-  const handleExport = async (returnHtml = false) => {
+  const handleExportBankLoansExcel = async (returnHtml = false) => {
     try {
       setLoading(true);
       const res = await fetch(`${API_URL}/crd-flow`, {
@@ -2168,7 +2168,7 @@ const ExportReports = () => {
     }
   };
 
-  const handleExport = async (returnHtml = false) => {
+  const handleExportExtraWorksReport = async (returnHtml = false) => {
     try {
       setLoading(true);
       const res = await fetch(`${API_URL}/crd-flow`, {
@@ -2299,7 +2299,7 @@ const ExportReports = () => {
     }
   };
 
-  const handleExport = async (returnHtml = false) => {
+  const handleExportComplaintsReport = async (returnHtml = false) => {
     try {
       setLoading(true);
       const res = await fetch(`${API_URL}/crd-flow`, {
