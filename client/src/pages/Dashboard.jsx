@@ -107,7 +107,7 @@ const ObservedSwirlPieChart = ({
         {slots.map((slot, index) => {
           const val = slot.item[valueKey] || 0;
           return (
-            <div key={index} className="flex items-center gap-4 bg-slate-50/90 backdrop-blur-sm border border-slate-100/50 rounded-2xl px-6 py-4 hover:bg-slate-100 transition shadow-[0_2px_8px_-3px_rgba(0,0,0,0.05)] w-full">
+            <div key={index} className="flex items-center gap-4 bg-slate-50/90 backdrop-blur-sm border-none rounded-2xl px-6 py-4 hover:bg-slate-100 transition shadow-[0_2px_8px_-3px_rgba(0,0,0,0.05)] w-full">
               <span className="w-4 h-4 rounded-full shrink-0" style={{ backgroundColor: slot.color }}></span>
               <div className="flex flex-col text-left">
                 <span className="text-base font-black text-gray-500 uppercase tracking-wider">{slot.label}</span>
@@ -1587,14 +1587,14 @@ const Dashboard = () => {
       </div>
 
       {/* Filtration Header Card */}
-      <div className="bg-white/90 backdrop-blur-md border border-gray-150 shadow-md rounded-3xl p-5 w-full sticky top-16 z-20 transition-all duration-300">
+      <div className="bg-[#f0fbf4]/90 backdrop-blur-md border-none shadow-md rounded-3xl p-5 w-full sticky top-16 z-20 transition-all duration-300">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4 items-end">
           
           {/* User Select */}
           {(user?.role === 'Super Admin' || user?.role === 'Admin') ? (
             <div className="flex flex-col gap-1 w-full">
               <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Filtered User</label>
-              <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 px-3 py-1.5 rounded-xl">
+              <div className="flex items-center gap-2 bg-gray-50 border-none px-3 py-1.5 rounded-xl">
                 <User className="w-4 h-4 text-gray-455 shrink-0" />
                 <select
                   value={selectedUser}
@@ -1615,7 +1615,7 @@ const Dashboard = () => {
           {/* Project Select */}
           <div className="flex flex-col gap-1 w-full">
             <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Filtered Project</label>
-            <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 px-3 py-1.5 rounded-xl">
+            <div className="flex items-center gap-2 bg-gray-50 border-none px-3 py-1.5 rounded-xl">
               <FolderOpen className="w-4 h-4 text-gray-455 shrink-0" />
               <select
                 value={selectedProject}
@@ -1633,7 +1633,7 @@ const Dashboard = () => {
           {/* Project Type Select */}
           <div className="flex flex-col gap-1 w-full">
             <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Filtered Type</label>
-            <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 px-3 py-1.5 rounded-xl">
+            <div className="flex items-center gap-2 bg-gray-50 border-none px-3 py-1.5 rounded-xl">
               <Layers className="w-4 h-4 text-gray-455 shrink-0" />
               <select
                 value={selectedProjectType}
@@ -1651,7 +1651,7 @@ const Dashboard = () => {
           {/* Source Select */}
           <div className="flex flex-col gap-1 w-full">
             <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Filtered Source</label>
-            <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 px-3 py-1.5 rounded-xl">
+            <div className="flex items-center gap-2 bg-gray-50 border-none px-3 py-1.5 rounded-xl">
               <Target className="w-4 h-4 text-gray-455 shrink-0" />
               <select
                 value={selectedSource}
@@ -1669,7 +1669,7 @@ const Dashboard = () => {
           {/* Month Wise */}
           <div className="flex flex-col gap-1 w-full">
             <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Select Month</label>
-            <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 px-3 py-1.5 rounded-xl">
+            <div className="flex items-center gap-2 bg-gray-50 border-none px-3 py-1.5 rounded-xl">
               <Calendar className="w-4 h-4 text-[#0e623a] shrink-0" />
               <input
                 type="month"
@@ -1683,7 +1683,7 @@ const Dashboard = () => {
           {/* Range picker */}
           <div className="flex flex-col gap-1 w-full">
             <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Custom Date Range</label>
-            <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 px-3 py-1.5 rounded-xl">
+            <div className="flex items-center gap-2 bg-gray-50 border-none px-3 py-1.5 rounded-xl">
               <input
                 type="date"
                 value={fromDate}
@@ -1721,7 +1721,7 @@ const Dashboard = () => {
           ].filter(item => item.count > 0);
 
           return (
-            <div key={projCode} className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm hover:shadow-md transition space-y-4">
+            <div key={projCode} className="bg-[#f0fbf4] border-none rounded-3xl p-6 shadow-sm hover:shadow-md transition space-y-4">
               <div className="flex justify-between items-center border-b border-gray-100 pb-3 text-left">
                 <div>
                   <h3 className="text-sm font-extrabold text-gray-800 uppercase tracking-wide flex items-center gap-2">
@@ -1749,7 +1749,7 @@ const Dashboard = () => {
                             setSelectedInventoryProj({ projCode, stats: pStats, view: slot.label === 'Total' ? '' : slot.label.toLowerCase() });
                             setInventoryModalOpen(true);
                           }}
-                          className="flex flex-col items-start bg-slate-50 border border-slate-100 rounded-2xl p-4 hover:bg-slate-100 transition shadow-sm cursor-pointer w-full">
+                          className="flex flex-col items-start bg-slate-50 border-none rounded-2xl p-4 hover:bg-slate-100 transition shadow-sm cursor-pointer w-full">
                           <div className="flex items-center gap-2 mb-2">
                             <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: slot.color }}></span>
                             <span className="text-[10px] font-black text-gray-500 uppercase tracking-wider">{slot.label}</span>
@@ -1811,7 +1811,7 @@ const Dashboard = () => {
               {/* Card 0: Total Leads / Lost Leads */}
               <div 
                 onClick={handleLeadsCardClick}
-                className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm hover:shadow-md transition cursor-pointer select-none active:scale-[0.99] duration-150 flex flex-col justify-between"
+                className="bg-[#f0fbf4] border-none rounded-3xl p-6 shadow-sm hover:shadow-md transition cursor-pointer select-none active:scale-[0.99] duration-150 flex flex-col justify-between"
               >
                 <div className="flex items-center justify-between w-full pb-2">
                   <div className="flex-1 flex flex-col items-start justify-center border-r-2 border-gray-100 pr-2">
@@ -1831,7 +1831,7 @@ const Dashboard = () => {
 
               {/* Card 1: Total Followup */}
               <div 
-                className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm transition flex flex-col justify-between"
+                className="bg-[#f0fbf4] border-none rounded-3xl p-6 shadow-sm transition flex flex-col justify-between"
               >
                 <div className="flex items-center justify-between">
                   <div>
@@ -1851,7 +1851,7 @@ const Dashboard = () => {
 
               {/* Card 2: Total Site Visits */}
               <div 
-                className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm transition flex flex-col justify-between"
+                className="bg-[#f0fbf4] border-none rounded-3xl p-6 shadow-sm transition flex flex-col justify-between"
               >
                 <div className="flex items-center justify-between">
                   <div>
@@ -1870,7 +1870,7 @@ const Dashboard = () => {
               </div>
 
               {/* Card 3: Total Hot List */}
-              <div className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm hover:shadow-md transition flex flex-col justify-between">
+              <div className="bg-[#f0fbf4] border-none rounded-3xl p-6 shadow-sm hover:shadow-md transition flex flex-col justify-between">
                 <div className="flex items-center justify-between">
                   <div>
                     <span className="text-sm text-black font-extrabold uppercase tracking-wider">Total Hot List</span>
@@ -1887,7 +1887,7 @@ const Dashboard = () => {
               {/* Card 4: Total Booked */}
               <div 
                 onClick={handleBookedCardClick}
-                className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm hover:shadow-md transition cursor-pointer select-none active:scale-[0.99] duration-150 flex flex-col justify-between"
+                className="bg-[#f0fbf4] border-none rounded-3xl p-6 shadow-sm hover:shadow-md transition cursor-pointer select-none active:scale-[0.99] duration-150 flex flex-col justify-between"
               >
                 <div className="flex items-center justify-between">
                   <div>
@@ -1919,7 +1919,7 @@ const Dashboard = () => {
 
           {/* Pending Follow-ups Widget */}
           {pendingFollowUps.length > 0 && (
-            <div className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm mb-8 animate-fadeIn">
+            <div className="bg-[#f0fbf4] border-none rounded-3xl p-6 shadow-sm mb-8 animate-fadeIn">
               <div className="flex items-center gap-2 border-b border-gray-100 pb-3 mb-4">
                 <Clock className="w-5 h-5 text-amber-500" />
                 <h3 className="text-sm font-extrabold text-gray-800 uppercase tracking-wide">
@@ -1959,7 +1959,7 @@ const Dashboard = () => {
           <div className="flex flex-col gap-8">
             
             {/* User turn over Pie Chart */}
-            <div className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm space-y-6">
+            <div className="bg-[#f0fbf4] border-none rounded-3xl p-6 shadow-sm space-y-6">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-gray-100 pb-3 gap-2">
                 <div>
                   <h3 className="text-sm font-extrabold text-gray-800 uppercase tracking-wide">
@@ -1969,7 +1969,7 @@ const Dashboard = () => {
                 </div>
                 <div className="flex items-center gap-2 self-start sm:self-auto">
                   <select
-                    className="px-2.5 py-1 text-[10px] font-bold text-gray-700 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer"
+                    className="px-2.5 py-1 text-[10px] font-bold text-gray-700 bg-gray-50 border-none rounded-xl outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer"
                     value={selectedUserPerfName || ''}
                     onChange={(e) => setSelectedUserPerfName(e.target.value || null)}
                   >
@@ -2013,7 +2013,7 @@ const Dashboard = () => {
                   )}
                 </div>
                 
-                <div className="md:col-span-5 bg-gray-50/50 rounded-2xl p-4 border border-gray-100 space-y-4">
+                <div className="md:col-span-5 bg-gray-50/50 rounded-2xl p-4 border-none space-y-4">
                   <div className="border-b border-gray-200/60 pb-2">
                     <span className="text-[9px] text-gray-400 font-extrabold uppercase tracking-wider block">Currently Showing</span>
                     <h4 className="text-xs font-extrabold text-gray-800 uppercase tracking-wide truncate mt-0.5">
@@ -2071,7 +2071,7 @@ const Dashboard = () => {
             </div>
 
             {/* Source Wise drill down Pie Chart */}
-            <div className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm space-y-6">
+            <div className="bg-[#f0fbf4] border-none rounded-3xl p-6 shadow-sm space-y-6">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-gray-100 pb-3 gap-2">
                 <div>
                   <h3 className="text-sm font-extrabold text-gray-800 uppercase tracking-wide">
@@ -2085,7 +2085,7 @@ const Dashboard = () => {
                 </div>
                 <div className="flex items-center gap-2 self-start sm:self-auto">
                   <select
-                    className="px-2.5 py-1 text-[10px] font-bold text-gray-700 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer max-w-[120px] truncate"
+                    className="px-2.5 py-1 text-[10px] font-bold text-gray-700 bg-gray-50 border-none rounded-xl outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer max-w-[120px] truncate"
                     value={selectedSourceGroup || ''}
                     onChange={(e) => {
                       setSelectedSourceGroup(e.target.value || null);
@@ -2161,7 +2161,7 @@ const Dashboard = () => {
                   )}
                 </div>
                 
-                <div className="md:col-span-5 bg-gray-50/50 rounded-2xl p-4 border border-gray-100 space-y-4">
+                <div className="md:col-span-5 bg-gray-50/50 rounded-2xl p-4 border-none space-y-4">
                   <div className="border-b border-gray-200/60 pb-2">
                     <span className="text-[9px] text-gray-400 font-extrabold uppercase tracking-wider block">Currently Showing</span>
                     <h4 className="text-xs font-extrabold text-gray-800 uppercase tracking-wide truncate mt-0.5">
@@ -2222,7 +2222,7 @@ const Dashboard = () => {
 
 
           {/* Project Code Wise Matrix Panel */}
-          <div className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm space-y-4">
+          <div className="bg-[#f0fbf4] border-none rounded-3xl p-6 shadow-sm space-y-4">
             <h3 className="text-sm font-extrabold text-gray-800 uppercase tracking-wide border-b border-gray-100 pb-3 text-left">
               Project  Summary
             </h3>
@@ -2255,7 +2255,7 @@ const Dashboard = () => {
                               {Object.keys(p.stages || {}).map(stageName => (
                                 <span 
                                   key={stageName}
-                                  className="text-[10px] font-bold px-2.5 py-1 bg-gray-50 border border-gray-200 text-gray-650 rounded-xl"
+                                  className="text-[10px] font-bold px-2.5 py-1 bg-gray-50 border-none text-gray-650 rounded-xl"
                                 >
                                   {stageName}: {p.stages[stageName]}
                                 </span>
@@ -2279,7 +2279,7 @@ const Dashboard = () => {
 
           {/* Project Wise Visual Charts */}
           <div className="flex flex-col gap-8 mt-6">
-            <div className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm space-y-6">
+            <div className="bg-[#f0fbf4] border-none rounded-3xl p-6 shadow-sm space-y-6">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-gray-100 pb-3 gap-2">
                 <div>
                   <h3 className="text-sm font-extrabold text-gray-800 uppercase tracking-wide">
@@ -2323,7 +2323,7 @@ const Dashboard = () => {
                 </div>
 
                 {selectedProjectPerfCode && (
-                  <div className="md:col-span-7 bg-gray-50/50 rounded-2xl p-4 border border-gray-100 space-y-4">
+                  <div className="md:col-span-7 bg-gray-50/50 rounded-2xl p-4 border-none space-y-4">
                     <div className="border-b border-gray-200/60 pb-2">
                       <span className="text-[9px] text-gray-400 font-extrabold uppercase tracking-wider block">Currently Showing Project</span>
                       <h4 className="text-xs font-extrabold text-gray-800 uppercase tracking-wide truncate mt-0.5">
@@ -2394,7 +2394,7 @@ const Dashboard = () => {
       {/* User Selection Modal */}
       {showUserModal && (
         <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm z-[999] flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl shadow-xl w-full max-w-md overflow-hidden border border-gray-100 text-left">
+          <div className="bg-[#f0fbf4] rounded-3xl shadow-xl w-full max-w-md overflow-hidden border-none text-left">
             <div className="p-6 border-b border-gray-150">
               <h3 className="text-lg font-extrabold text-gray-800">Export User Wise Report</h3>
               <p className="text-xs text-gray-500 mt-1">Select one or more sales executives to include in the report</p>
@@ -2471,7 +2471,7 @@ const Dashboard = () => {
       {/* Project Selection Modal */}
       {showProjectModal && (
         <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm z-[999] flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl shadow-xl w-full max-w-md overflow-hidden border border-gray-100 text-left">
+          <div className="bg-[#f0fbf4] rounded-3xl shadow-xl w-full max-w-md overflow-hidden border-none text-left">
             <div className="p-6 border-b border-gray-150">
               <h3 className="text-lg font-extrabold text-gray-800">Export Project Wise Report</h3>
               <p className="text-xs text-gray-550 mt-1">Select one or more projects to include in the report</p>
@@ -2550,7 +2550,7 @@ const Dashboard = () => {
       {/* Source Selection Modal */}
       {showSourceModal && (
         <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm z-[999] flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl shadow-xl w-full max-w-md overflow-hidden border border-gray-100 text-left">
+          <div className="bg-[#f0fbf4] rounded-3xl shadow-xl w-full max-w-md overflow-hidden border-none text-left">
             <div className="p-6 border-b border-gray-150">
               <h3 className="text-lg font-extrabold text-gray-800">Export Source Wise Report</h3>
               <p className="text-xs text-gray-550 mt-1">Select one or more marketing sources to include in the report</p>
@@ -2626,7 +2626,7 @@ const Dashboard = () => {
       {/* Stage User Breakdown Modal Popup */}
       {breakdownModalOpen && (
         <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm z-[999] flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl border border-gray-150 shadow-2xl w-full max-w-md max-h-[80vh] flex flex-col overflow-hidden text-left animate-fadeIn animate-duration-150">
+          <div className="bg-[#f0fbf4] rounded-3xl border-none shadow-2xl w-full max-w-md max-h-[80vh] flex flex-col overflow-hidden text-left animate-fadeIn animate-duration-150">
             {/* Header */}
             <div className="p-6 border-b border-gray-150 flex items-center justify-between bg-gray-50/50">
               <div>
@@ -2693,7 +2693,7 @@ const Dashboard = () => {
       {/* Leads List Modal Popup */}
       {leadsModalOpen && (
         <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm z-[999] flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl border border-gray-150 shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden text-left animate-fadeIn">
+          <div className="bg-[#f0fbf4] rounded-3xl border-none shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden text-left animate-fadeIn">
             {/* Header */}
             <div className="p-6 border-b border-gray-150 flex items-center justify-between bg-gray-50/50">
               <div>
@@ -2768,7 +2768,7 @@ const Dashboard = () => {
       {/* Booked Units Modal Popup */}
       {bookedModalOpen && (
         <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm z-[999] flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl border border-gray-150 shadow-2xl w-full max-w-3xl max-h-[85vh] flex flex-col overflow-hidden text-left animate-fadeIn">
+          <div className="bg-[#f0fbf4] rounded-3xl border-none shadow-2xl w-full max-w-3xl max-h-[85vh] flex flex-col overflow-hidden text-left animate-fadeIn">
             {/* Header */}
             <div className="p-6 border-b border-gray-150 flex items-center justify-between bg-amber-500/10">
               <div>
@@ -2777,7 +2777,7 @@ const Dashboard = () => {
               </div>
               <button 
                 onClick={() => setBookedModalOpen(false)}
-                className="w-8 h-8 rounded-full flex items-center justify-center bg-white text-gray-400 hover:bg-red-50 hover:text-red-500 transition cursor-pointer font-bold border border-gray-150"
+                className="w-8 h-8 rounded-full flex items-center justify-center bg-[#f0fbf4] text-gray-400 hover:bg-red-50 hover:text-red-500 transition cursor-pointer font-bold border-none"
               >
                 ✕
               </button>
@@ -2853,7 +2853,7 @@ const Dashboard = () => {
       {/* Handover Units Modal Popup */}
       {handoverModalOpen && (
         <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm z-[999] flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl border border-gray-150 shadow-2xl w-full max-w-3xl max-h-[85vh] flex flex-col overflow-hidden text-left animate-fadeIn">
+          <div className="bg-[#f0fbf4] rounded-3xl border-none shadow-2xl w-full max-w-3xl max-h-[85vh] flex flex-col overflow-hidden text-left animate-fadeIn">
             {/* Header */}
             <div className="p-6 border-b border-gray-150 flex items-center justify-between bg-rose-500/10">
               <div>
@@ -2862,7 +2862,7 @@ const Dashboard = () => {
               </div>
               <button 
                 onClick={() => setHandoverModalOpen(false)}
-                className="w-8 h-8 rounded-full flex items-center justify-center bg-white text-gray-400 hover:bg-red-50 hover:text-red-500 transition cursor-pointer font-bold border border-gray-150"
+                className="w-8 h-8 rounded-full flex items-center justify-center bg-[#f0fbf4] text-gray-400 hover:bg-red-50 hover:text-red-500 transition cursor-pointer font-bold border-none"
               >
                 ✕
               </button>
@@ -2938,7 +2938,7 @@ const Dashboard = () => {
       {/* Detailed Preview Modal */}
       {showDetailedPreviewModal && (
         <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm z-[999] flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl border border-gray-150 shadow-2xl w-full max-w-4xl max-h-[85vh] flex flex-col overflow-hidden text-left animate-fadeIn">
+          <div className="bg-[#f0fbf4] rounded-3xl border-none shadow-2xl w-full max-w-4xl max-h-[85vh] flex flex-col overflow-hidden text-left animate-fadeIn">
             {/* Header */}
             <div className="p-6 border-b border-gray-150 flex items-center justify-between bg-blue-500/10">
               <div>
@@ -2947,7 +2947,7 @@ const Dashboard = () => {
               </div>
               <button 
                 onClick={() => setShowDetailedPreviewModal(false)}
-                className="w-8 h-8 rounded-full flex items-center justify-center bg-white text-gray-400 hover:bg-red-50 hover:text-red-500 transition cursor-pointer font-bold border border-gray-150"
+                className="w-8 h-8 rounded-full flex items-center justify-center bg-[#f0fbf4] text-gray-400 hover:bg-red-50 hover:text-red-500 transition cursor-pointer font-bold border-none"
               >
                 ✕
               </button>
@@ -3030,7 +3030,7 @@ const Dashboard = () => {
       {/* Source Detailed Preview Modal */}
       {showSourceDetailedPreviewModal && (
         <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm z-[999] flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl border border-gray-150 shadow-2xl w-full max-w-4xl max-h-[85vh] flex flex-col overflow-hidden text-left animate-fadeIn">
+          <div className="bg-[#f0fbf4] rounded-3xl border-none shadow-2xl w-full max-w-4xl max-h-[85vh] flex flex-col overflow-hidden text-left animate-fadeIn">
             {/* Header */}
             <div className="p-6 border-b border-gray-150 flex items-center justify-between bg-blue-500/10">
               <div>
@@ -3039,7 +3039,7 @@ const Dashboard = () => {
               </div>
               <button 
                 onClick={() => setShowSourceDetailedPreviewModal(false)}
-                className="w-8 h-8 rounded-full flex items-center justify-center bg-white text-gray-400 hover:bg-red-50 hover:text-red-500 transition cursor-pointer font-bold border border-gray-150"
+                className="w-8 h-8 rounded-full flex items-center justify-center bg-[#f0fbf4] text-gray-400 hover:bg-red-50 hover:text-red-500 transition cursor-pointer font-bold border-none"
               >
                 ✕
               </button>
@@ -3149,7 +3149,7 @@ const Dashboard = () => {
       {/* Project Inventory Detail Modal */}
       {inventoryModalOpen && selectedInventoryProj && (
         <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm z-[999] flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl border border-gray-150 shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden text-left animate-fadeIn">
+          <div className="bg-[#f0fbf4] rounded-3xl border-none shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden text-left animate-fadeIn">
             {/* Header */}
             <div className="p-6 border-b border-gray-150 flex items-center justify-between bg-[#0e623a] text-white">
               <div>
@@ -3158,7 +3158,7 @@ const Dashboard = () => {
               </div>
               <button 
                 onClick={() => setInventoryModalOpen(false)}
-                className="w-8 h-8 rounded-full flex items-center justify-center bg-white/10 text-white hover:bg-white/20 transition cursor-pointer font-bold border border-white/25"
+                className="w-8 h-8 rounded-full flex items-center justify-center bg-[#f0fbf4]/10 text-white hover:bg-[#f0fbf4]/20 transition cursor-pointer font-bold border border-white/25"
               >
                 ✕
               </button>
@@ -3168,7 +3168,7 @@ const Dashboard = () => {
             <div className="flex-grow p-6 overflow-y-auto scrollbar-thin space-y-6">
               {/* Summary Stats Grid */}
               <div className="grid grid-cols-4 gap-4">
-                <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4 text-center">
+                <div className="bg-slate-50 border-none rounded-2xl p-4 text-center">
                   <span className="text-[10px] text-gray-400 font-extrabold uppercase tracking-wider block">Total Units</span>
                   <span className="text-2xl font-black text-slate-800 block mt-1">{selectedInventoryProj.stats.total || 0}</span>
                 </div>
@@ -3195,7 +3195,7 @@ const Dashboard = () => {
                     <span className="w-2.5 h-2.5 rounded-full bg-slate-500"></span>
                     <span>Total units({selectedInventoryProj.stats.totalUnitsList?.length || 0})</span>
                   </h4>
-                  <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4 min-h-[50px] flex flex-wrap gap-2">
+                  <div className="bg-slate-50 border-none rounded-2xl p-4 min-h-[50px] flex flex-wrap gap-2">
                     {selectedInventoryProj.stats.totalUnitsList?.length > 0 ? (
                       selectedInventoryProj.stats.totalUnitsList.map(uid => (
                         <span key={uid} className="bg-slate-100 text-slate-700 border border-slate-200 text-xs font-bold px-3 py-1 rounded-xl">
@@ -3223,7 +3223,7 @@ const Dashboard = () => {
                             <span className="text-red-700 block mt-1">Stage: <span className="font-bold">{unit.cancelStageName}</span></span>
                             <span className="text-[10px] text-red-600 font-bold block mt-1">{new Date(unit.date).toLocaleDateString()}</span>
                           </div>
-                          <div className="flex-1 bg-white p-2 rounded-lg border border-red-50 text-red-600">
+                          <div className="flex-1 bg-[#f0fbf4] p-2 rounded-lg border border-red-50 text-red-600">
                             <span className="font-bold text-red-400 uppercase text-[10px] block mb-0.5">Narration</span>
                             {unit.cancelNarration}
                           </div>

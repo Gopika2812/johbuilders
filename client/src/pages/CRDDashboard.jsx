@@ -1656,7 +1656,7 @@ const CRDDashboard = () => {
         <div className="mt-8">
           <div className="grid grid-cols-1 gap-6">
             {/* CRD User Wise Performance */}
-            <div className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm space-y-4">
+            <div className="bg-[#f0fbf4] border-none rounded-3xl p-6 shadow-sm space-y-4">
               <h3 className="text-sm font-extrabold text-gray-800 uppercase tracking-wide border-b border-gray-100 pb-3 text-left">
                 CRD User Wise Performance
               </h3>
@@ -1679,7 +1679,7 @@ const CRDDashboard = () => {
             </div>
 
             {/* CRD Stage Wise Performance */}
-            <div className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm space-y-4">
+            <div className="bg-[#f0fbf4] border-none rounded-3xl p-6 shadow-sm space-y-4">
               <h3 className="text-sm font-extrabold text-gray-800 uppercase tracking-wide border-b border-gray-100 pb-3 text-left">
                 CRD Stage Wise Performance
               </h3>
