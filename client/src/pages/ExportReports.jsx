@@ -2624,7 +2624,7 @@ const ExportReports = () => {
         </div>
 
         <div 
-          onClick={handleExportMarketingReport}
+          onClick={handleExportMarketingReturnsReport}
           className="bg-cyan-50 border border-cyan-100 rounded-3xl p-6 shadow-sm hover:shadow-md transition cursor-pointer flex flex-col items-center justify-center text-center gap-3 hover:-translate-y-1 duration-200"
         >
           <div className="p-4 bg-cyan-100 text-cyan-600 rounded-2xl">
@@ -2635,7 +2635,7 @@ const ExportReports = () => {
         </div>
 
         <div 
-          onClick={handleExportLeadSourcesExcel}
+          onClick={handleExportLeadSourcesReport}
           className="bg-teal-50 border border-teal-100 rounded-3xl p-6 shadow-sm hover:shadow-md transition cursor-pointer flex flex-col items-center justify-center text-center gap-3 hover:-translate-y-1 duration-200"
         >
           <div className="p-4 bg-teal-100 text-teal-600 rounded-2xl">
