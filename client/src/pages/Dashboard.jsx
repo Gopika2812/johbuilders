@@ -198,8 +198,9 @@ const ObservedPieChart = ({
               const percent = val / total;
               if (percent === 0) return null;
 
+              const actualPercent = percent === 1 ? 0.9999 : percent;
               const startAngle = 2 * Math.PI * (accumulatedPercent - 0.25);
-              const endAngle = 2 * Math.PI * (accumulatedPercent + percent - 0.25);
+              const endAngle = 2 * Math.PI * (accumulatedPercent + actualPercent - 0.25);
               const midAngle = startAngle + (endAngle - startAngle) / 2;
 
               accumulatedPercent += percent;
@@ -609,6 +610,26 @@ const Dashboard = () => {
       lost: 0
     };
   }, [selectedUserPerfName, userPerformanceData]);
+
+  const [selectedProjectPerfCode, setSelectedProjectPerfCode] = useState(null);
+  const [selectedProjectPerfUser, setSelectedProjectPerfUser] = useState(null);
+
+  const projectUsersData = React.useMemo(() => {
+    if (!selectedProjectPerfCode) return [];
+    const usersData = [];
+    Object.keys(stats.personProjectStages || {}).forEach(key => {
+      const row = stats.personProjectStages[key];
+      if (row.projectName === selectedProjectPerfCode && row.totalLeads > 0) {
+        usersData.push(row);
+      }
+    });
+    return usersData.sort((a, b) => b.totalLeads - a.totalLeads);
+  }, [stats.personProjectStages, selectedProjectPerfCode]);
+
+  const selectedProjectUserData = React.useMemo(() => {
+    if (!selectedProjectPerfCode || !selectedProjectPerfUser) return null;
+    return projectUsersData.find(u => u.personName === selectedProjectPerfUser) || null;
+  }, [projectUsersData, selectedProjectPerfUser, selectedProjectPerfCode]);
 
   const [selectedSourceGroup, setSelectedSourceGroup] = useState(null);
   const [selectedSubSource, setSelectedSubSource] = useState(null);
@@ -1701,7 +1722,7 @@ const Dashboard = () => {
                     {[
                       { label: 'Total', count: pStats.total, color: '#94a3b8', pct: 100 },
                       { label: 'Available', count: pStats.available, color: '#7ebda9', pct: pStats.total > 0 ? (pStats.available/pStats.total)*100 : 0 },
-                      { label: 'Booked', count: pStats.booked + (pStats.handover || 0), color: '#8bc34a', pct: pStats.total > 0 ? ((pStats.booked + (pStats.handover || 0))/pStats.total)*100 : 0 },
+                      { label: 'Booked', count: pStats.booked, color: '#8bc34a', pct: pStats.total > 0 ? (pStats.booked/pStats.total)*100 : 0 },
                     ].map((slot, index) => {
                       return (
                         <div key={index} 
@@ -1715,8 +1736,7 @@ const Dashboard = () => {
                             <span className="text-[10px] font-black text-gray-500 uppercase tracking-wider">{slot.label}</span>
                           </div>
                           <div className="flex flex-col items-start gap-0.5 mt-auto">
-                            <span className="text-gray-900 font-black text-xl leading-none">{slot.count}</span>
-                            <span className="text-gray-500 font-bold text-xs mt-1">Units {slot.label !== 'Total' ? `(${slot.pct.toFixed(1)}%)` : ''}</span>
+                            <span className="text-gray-900 font-black text-3xl leading-none mt-1">{slot.count}</span>
                           </div>
                         </div>
                       );
@@ -1735,8 +1755,7 @@ const Dashboard = () => {
                         <span className="text-[10px] font-black text-red-500 uppercase tracking-wider">Cancelled</span>
                       </div>
                       <div className="flex flex-col items-start gap-0.5 mt-auto">
-                        <span className="text-red-900 font-black text-xl leading-none">{pStats.cancelled || 0}</span>
-                        <span className="text-red-500 font-bold text-xs mt-1">Units</span>
+                        <span className="text-red-900 font-black text-3xl leading-none mt-1">{pStats.cancelled || 0}</span>
                       </div>
                     </div>
                   </div>
@@ -1768,7 +1787,7 @@ const Dashboard = () => {
           {/* Row 1: Total Performance Cards */}
           <div>
             <h4 className="text-sm font-black text-black uppercase tracking-wider mb-3 text-left">Lead Details</h4>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
               
               {/* Card 0: Total Leads / Lost Leads */}
               <div 
@@ -1785,10 +1804,10 @@ const Dashboard = () => {
                     <h3 className="text-3xl font-extrabold text-rose-600 mt-1">{(stats.cards.enquiries?.closed || 0) + (stats.cards.siteVisits?.closed || 0)}</h3>
                   </div>
                 </div>
-                <div className="flex justify-between items-center mt-4 pt-2 border-t border-gray-50 text-[10px] font-bold">
+                {/* <div className="flex justify-between items-center mt-4 pt-2 border-t border-gray-50 text-[10px] font-bold">
                   <span className="text-gray-400 font-semibold uppercase tracking-wider">Overall Leads</span>
                   <span className="text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">Today: {stats.cards.today?.leads || 0}</span>
-                </div>
+                </div> */}
               </div>
 
               {/* Card 1: Total Followup */}
@@ -1803,13 +1822,13 @@ const Dashboard = () => {
                   </div>
 
                 </div>
-                <div className="flex justify-between items-center mt-4 pt-2 border-t border-gray-50 text-[10px] font-bold">
+                {/* <div className="flex justify-between items-center mt-4 pt-2 border-t border-gray-50 text-[10px] font-bold">
                   <span className="text-gray-400 font-semibold uppercase tracking-wider flex items-center gap-1">
                     <span>Breakdown</span>
                     <ArrowRight className="w-3 h-3" />
                   </span>
                   <span className="text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">Today: {stats.cards.today?.enquiries || 0}</span>
-                </div>
+                </div> */}
               </div>
 
               {/* Card 2: Total Site Visits */}
@@ -1824,13 +1843,13 @@ const Dashboard = () => {
                   </div>
 
                 </div>
-                <div className="flex justify-between items-center mt-4 pt-2 border-t border-gray-50 text-[10px] font-bold">
+                {/* <div className="flex justify-between items-center mt-4 pt-2 border-t border-gray-50 text-[10px] font-bold">
                   <span className="text-gray-400 font-semibold uppercase tracking-wider flex items-center gap-1">
                     <span>Breakdown</span>
                     <ArrowRight className="w-3 h-3" />
                   </span>
                   <span className="text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">Today: {stats.cards.today?.siteVisits || 0}</span>
-                </div>
+                </div> */}
               </div>
 
               {/* Card 3: Total Hot List */}
@@ -1842,10 +1861,10 @@ const Dashboard = () => {
                   </div>
 
                 </div>
-                <div className="flex justify-between items-center mt-4 pt-2 border-t border-gray-50 text-[10px] font-bold">
+                {/* <div className="flex justify-between items-center mt-4 pt-2 border-t border-gray-50 text-[10px] font-bold">
                   <span className="text-gray-400 font-semibold uppercase tracking-wider">Qualified Leads</span>
                   <span className="text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">Today: {stats.cards.today?.hotList || 0}</span>
-                </div>
+                </div> */}
               </div>
 
               {/* Card 4: Total Booked */}
@@ -1860,7 +1879,7 @@ const Dashboard = () => {
                   </div>
 
                 </div>
-                <div className="mt-3 pt-2 border-t border-gray-50 space-y-1 text-[10px] font-bold uppercase">
+                {/* <div className="mt-3 pt-2 border-t border-gray-50 space-y-1 text-[10px] font-bold uppercase">
                   <div className="flex justify-between text-gray-500">
                     <span>Total Value:</span>
                     <span className="text-gray-800 font-extrabold">₹{Math.round(stats.cards.booked?.value || 0).toLocaleString()}</span>
@@ -1873,35 +1892,7 @@ const Dashboard = () => {
                     <span>Pending:</span>
                     <span className="text-rose-800 font-extrabold">₹{Math.round(stats.cards.booked?.pending || 0).toLocaleString()}</span>
                   </div>
-                </div>
-              </div>
-
-              {/* Card 5: Total Handover */}
-              <div 
-                onClick={handleHandoverCardClick}
-                className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm hover:shadow-md transition cursor-pointer select-none active:scale-[0.99] duration-150 flex flex-col justify-between"
-              >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <span className="text-sm text-black font-extrabold uppercase tracking-wider">Total Handover</span>
-                    <h3 className="text-3xl font-extrabold text-gray-800 mt-1">{stats.cards.handover?.total || 0}</h3>
-                  </div>
-
-                </div>
-                <div className="mt-3 pt-2 border-t border-gray-50 space-y-1 text-[10px] font-bold uppercase">
-                  <div className="flex justify-between text-gray-500">
-                    <span>Total Value:</span>
-                    <span className="text-gray-800 font-extrabold">₹{Math.round(stats.cards.handover?.value || 0).toLocaleString()}</span>
-                  </div>
-                  <div className="flex justify-between text-emerald-600">
-                    <span>Received:</span>
-                    <span className="text-emerald-800 font-extrabold">₹{Math.round(stats.cards.handover?.received || 0).toLocaleString()}</span>
-                  </div>
-                  <div className="flex justify-between text-rose-600">
-                    <span>Pending:</span>
-                    <span className="text-rose-800 font-extrabold">₹{Math.round(stats.cards.handover?.pending || 0).toLocaleString()}</span>
-                  </div>
-                </div>
+                </div> */}
               </div>
 
             </div>
@@ -1917,7 +1908,7 @@ const Dashboard = () => {
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-gray-100 pb-3 gap-2">
                 <div>
                   <h3 className="text-sm font-extrabold text-gray-800 uppercase tracking-wide">
-                    User Wise Lead Performance
+                    User Wise Lead Details
                   </h3>
                   <p className="text-[10px] text-gray-400 mt-0.5">Click a user slice or legend to filter their details</p>
                 </div>
@@ -1956,7 +1947,7 @@ const Dashboard = () => {
                     <p className="text-gray-400 italic text-xs py-8 text-center">No user performance recorded</p>
                   ) : (
                     renderPieChart(
-                      userPerformanceData,
+                      selectedUserPerfName ? userPerformanceData.filter(u => u.userName === selectedUserPerfName) : userPerformanceData,
                       'totalLeads',
                       'userName',
                       primaryColors,
@@ -1981,8 +1972,8 @@ const Dashboard = () => {
                       { label: 'Enquiries', count: selectedUserPerfData.enquiries, color: 'bg-emerald-600', icon: Users },
                       { label: 'Site Visit', count: selectedUserPerfData.siteVisits, color: 'bg-blue-500', icon: MapPin },
                       { label: 'Hot List', count: selectedUserPerfData.hotList, color: 'bg-amber-500', icon: Target },
-                      { label: 'Booking', count: selectedUserPerfData.booked, color: 'bg-rose-500', icon: DollarSign },
-                      { label: 'Handover', count: selectedUserPerfData.handover, color: 'bg-emerald-700', icon: Building },
+                      { label: 'Booking', count: selectedUserPerfData.booked || 0, color: 'bg-rose-500', icon: DollarSign },
+                      /* { label: 'Handover', count: selectedUserPerfData.handover, color: 'bg-emerald-700', icon: Building }, */
                       { label: 'Lost', count: selectedUserPerfData.lost, color: 'bg-red-500', icon: TrendingDown }
                     ].filter(m => m.label === 'Total Leads' || m.count > 0).map((m, idx) => {
                       const IconComponent = m.icon;
@@ -2029,7 +2020,7 @@ const Dashboard = () => {
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-gray-100 pb-3 gap-2">
                 <div>
                   <h3 className="text-sm font-extrabold text-gray-800 uppercase tracking-wide">
-                    Source Wise Lead Performance
+                    Source Wise Lead Details
                   </h3>
                   <p className="text-[10px] text-gray-400 mt-0.5">
                     {selectedSourceGroup 
@@ -2103,7 +2094,7 @@ const Dashboard = () => {
                       )
                     ) : (
                       renderPieChart(
-                        subSourcesPerformanceData,
+                        selectedSubSource ? subSourcesPerformanceData.filter(s => s.subSourceName === selectedSubSource) : subSourcesPerformanceData,
                         'totalLeads',
                         'subSourceName',
                         primaryColors,
@@ -2129,8 +2120,8 @@ const Dashboard = () => {
                       { label: 'Enquiries', count: selectedSourcePerfData.enquiries, color: 'bg-emerald-600', icon: Users },
                       { label: 'Site Visit', count: selectedSourcePerfData.siteVisits, color: 'bg-blue-500', icon: MapPin },
                       { label: 'Hot List', count: selectedSourcePerfData.hotList, color: 'bg-amber-500', icon: Target },
-                      { label: 'Booking', count: selectedSourcePerfData.booked, color: 'bg-rose-500', icon: DollarSign },
-                      { label: 'Handover', count: selectedSourcePerfData.handover, color: 'bg-emerald-700', icon: Building },
+                      { label: 'Booking', count: selectedSourcePerfData.booked || 0, color: 'bg-rose-500', icon: DollarSign },
+                      /* { label: 'Handover', count: selectedSourcePerfData.handover, color: 'bg-emerald-700', icon: Building }, */
                       { label: 'Lost', count: selectedSourcePerfData.lost, color: 'bg-red-500', icon: TrendingDown }
                     ].filter(m => m.label === 'Total Leads' || m.count > 0).map((m, idx) => {
                       const IconComponent = m.icon;
@@ -2178,7 +2169,7 @@ const Dashboard = () => {
           {/* Project Code Wise Matrix Panel */}
           <div className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm space-y-4">
             <h3 className="text-sm font-extrabold text-gray-800 uppercase tracking-wide border-b border-gray-100 pb-3 text-left">
-              Project Parameters Summary
+              Project  Summary
             </h3>
             
             <div className="overflow-x-auto">
@@ -2232,25 +2223,123 @@ const Dashboard = () => {
           </div>
 
           {/* Project Wise Visual Charts */}
-          <div className="grid grid-cols-1 gap-6">
-            <div className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm space-y-4">
-              <h3 className="text-sm font-extrabold text-gray-800 uppercase tracking-wide border-b border-gray-100 pb-3 text-left">
-                Project Wise Leads Share
-              </h3>
-              <div>
-                {Object.keys(stats.projectStats || {}).length === 0 ? (
-                  <p className="text-gray-400 italic text-xs py-8 text-center">No project metrics logged</p>
-                ) : (
-                  renderPieChart(
-                    Object.keys(stats.projectStats).map(pCode => ({
-                      projectCode: pCode,
-                      count: stats.projectStats[pCode].count || 0
-                    })),
-                    'count',
-                    'projectCode',
-                    primaryColors,
-                    true // isCount = true
-                  )
+          <div className="flex flex-col gap-8 mt-6">
+            <div className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-gray-100 pb-3 gap-2">
+                <div>
+                  <h3 className="text-sm font-extrabold text-gray-800 uppercase tracking-wide">
+                    Project Wise Leads Share
+                  </h3>
+                  <p className="text-[10px] text-gray-400 mt-0.5">Click a project slice to filter user details</p>
+                </div>
+                <div className="flex items-center gap-2 self-start sm:self-auto">
+                  {selectedProjectPerfCode && (
+                    <button 
+                      onClick={() => {
+                        setSelectedProjectPerfCode(null);
+                        setSelectedProjectPerfUser(null);
+                      }}
+                      className="flex items-center gap-1 px-3 py-1 text-[10px] font-bold text-emerald-600 hover:text-emerald-700 bg-emerald-50 hover:bg-emerald-100/80 rounded-xl transition"
+                    >
+                      <span>Back to Projects</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-center min-h-[300px]">
+                <div className={`${selectedProjectPerfCode ? 'md:col-span-5' : 'md:col-span-12'} flex flex-col items-center justify-center transition-all duration-300`}>
+                  {Object.keys(stats.projectStats || {}).length === 0 ? (
+                    <p className="text-gray-400 italic text-xs py-8 text-center">No project metrics logged</p>
+                  ) : (
+                    !selectedProjectPerfCode ? (
+                      renderPieChart(
+                        Object.keys(stats.projectStats).map(pCode => ({
+                          projectCode: pCode,
+                          count: stats.projectStats[pCode].count || 0
+                        })),
+                        'count',
+                        'projectCode',
+                        primaryColors,
+                        true,
+                        (item) => {
+                          setSelectedProjectPerfCode(item.projectCode);
+                          setSelectedProjectPerfUser(null);
+                        },
+                        null
+                      )
+                    ) : (
+                      renderPieChart(
+                        selectedProjectPerfUser ? projectUsersData.filter(u => u.personName === selectedProjectPerfUser) : projectUsersData,
+                        'totalLeads',
+                        'personName',
+                        primaryColors,
+                        true,
+                        (item) => setSelectedProjectPerfUser(item.personName),
+                        selectedProjectPerfUser
+                      )
+                    )
+                  )}
+                </div>
+
+                {selectedProjectPerfCode && (
+                  <div className="md:col-span-7 bg-gray-50/50 rounded-2xl p-4 border border-gray-100 space-y-4">
+                    <div className="border-b border-gray-200/60 pb-2">
+                      <span className="text-[9px] text-gray-400 font-extrabold uppercase tracking-wider block">Currently Showing Project</span>
+                      <h4 className="text-xs font-extrabold text-gray-800 uppercase tracking-wide truncate mt-0.5">
+                        {selectedProjectPerfCode} {selectedProjectPerfUser ? ` - ${selectedProjectPerfUser}` : ' - All Users'}
+                      </h4>
+                    </div>
+
+                    {selectedProjectPerfUser && selectedProjectUserData ? (
+                      <div className="space-y-3">
+                        {[
+                          { label: 'Total Leads', count: selectedProjectUserData.totalLeads, color: 'bg-gray-400', icon: TrendingUp },
+                          { label: 'Enquiries', count: selectedProjectUserData.enquiries, color: 'bg-emerald-600', icon: Users },
+                          { label: 'Site Visit', count: selectedProjectUserData.siteVisits, color: 'bg-blue-500', icon: MapPin },
+                          { label: 'Hot List', count: selectedProjectUserData.hotList, color: 'bg-amber-500', icon: Target },
+                          { label: 'Booking', count: selectedProjectUserData.booked || 0, color: 'bg-rose-500', icon: DollarSign },
+                          { label: 'Lost', count: selectedProjectUserData.lost, color: 'bg-red-500', icon: TrendingDown }
+                        ].filter(m => m.label === 'Total Leads' || m.count > 0).map((m, idx) => {
+                          const IconComponent = m.icon;
+                          const percentageOfTotal = selectedProjectUserData.totalLeads > 0 
+                            ? (m.count / selectedProjectUserData.totalLeads) * 100 
+                            : 0;
+                          return (
+                            <div 
+                              key={idx} 
+                              className="space-y-1 p-1.5 rounded-xl transition duration-150"
+                            >
+                              <div className="flex items-center justify-between text-[11px]">
+                                <div className="flex items-center gap-2">
+                                  <div className="text-gray-700">
+                                    <IconComponent className="w-3.5 h-3.5" />
+                                  </div>
+                                  <span className="font-bold text-gray-750">{m.label}</span>
+                                </div>
+                                <div className="font-extrabold text-gray-800">
+                                  {m.count}
+                                  {m.label !== 'Total Leads' && selectedProjectUserData.totalLeads > 0 && (
+                                    <span className="text-[9px] text-gray-455 font-normal ml-1">({percentageOfTotal.toFixed(0)}%)</span>
+                                  )}
+                                </div>
+                              </div>
+                              <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                                <div 
+                                  className={`h-full ${m.color} rounded-full transition-all duration-500`}
+                                  style={{ width: `${Math.min(100, percentageOfTotal || (m.label === 'Total Leads' && m.count > 0 ? 100 : 0))}%` }}
+                                ></div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-center h-48 text-gray-400 italic text-xs">
+                        Select a user to see stage breakdown
+                      </div>
+                    )}
+                  </div>
                 )}
               </div>
             </div>
@@ -3056,40 +3145,21 @@ const Dashboard = () => {
               {/* Units Lists sections */}
               <div className="space-y-4">
                 
-                {/* Available Section */}
+                {/* Total Units List */}
                 <div className="space-y-2">
-                  <h4 className="text-xs font-bold text-[#004d61] uppercase tracking-wide flex items-center gap-1.5">
-                    <span className="w-2.5 h-2.5 rounded-full bg-[#7ebda9]"></span>
-                    <span>Available Units ({selectedInventoryProj.stats.availableUnitsList?.length || 0})</span>
+                  <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wide flex items-center gap-1.5">
+                    <span className="w-2.5 h-2.5 rounded-full bg-slate-500"></span>
+                    <span>Total units({selectedInventoryProj.stats.totalUnitsList?.length || 0})</span>
                   </h4>
-                  <div className="bg-emerald-50/20 border border-emerald-100/50 rounded-2xl p-4 min-h-[50px] flex flex-wrap gap-2">
-                    {selectedInventoryProj.stats.availableUnitsList?.length > 0 ? (
-                      selectedInventoryProj.stats.availableUnitsList.map(uid => (
-                        <span key={uid} className="bg-emerald-100/80 text-emerald-800 border border-emerald-250 text-xs font-bold px-3 py-1 rounded-xl">
+                  <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4 min-h-[50px] flex flex-wrap gap-2">
+                    {selectedInventoryProj.stats.totalUnitsList?.length > 0 ? (
+                      selectedInventoryProj.stats.totalUnitsList.map(uid => (
+                        <span key={uid} className="bg-slate-100 text-slate-700 border border-slate-200 text-xs font-bold px-3 py-1 rounded-xl">
                           {uid}
                         </span>
                       ))
                     ) : (
-                      <span className="text-gray-400 italic text-xs">No units available</span>
-                    )}
-                  </div>
-                </div>
-
-                {/* Booked Section */}
-                <div className="space-y-2">
-                  <h4 className="text-xs font-bold text-[#558b2f] uppercase tracking-wide flex items-center gap-1.5">
-                    <span className="w-2.5 h-2.5 rounded-full bg-[#8bc34a]"></span>
-                    <span>Booked Units {`(${[...(selectedInventoryProj.stats.bookedUnitsList || []), ...(selectedInventoryProj.stats.handoverUnitsList || [])].length})`}</span>
-                  </h4>
-                  <div className="bg-amber-50/20 border border-amber-100/50 rounded-2xl p-4 min-h-[50px] flex flex-wrap gap-2">
-                    {[...(selectedInventoryProj.stats.bookedUnitsList || []), ...(selectedInventoryProj.stats.handoverUnitsList || [])].length > 0 ? (
-                      [...(selectedInventoryProj.stats.bookedUnitsList || []), ...(selectedInventoryProj.stats.handoverUnitsList || [])].map(uid => (
-                        <span key={uid} className="bg-amber-100/80 text-amber-800 border border-amber-250 text-xs font-bold px-3 py-1 rounded-xl">
-                          {uid}
-                        </span>
-                      ))
-                    ) : (
-                      <span className="text-gray-400 italic text-xs">No units booked</span>
+                      <span className="text-gray-400 italic text-xs">No units registered</span>
                     )}
                   </div>
                 </div>
@@ -3121,21 +3191,40 @@ const Dashboard = () => {
                   </div>
                 </div>
 
-                {/* Total Units List */}
+                {/* Booked Section */}
                 <div className="space-y-2">
-                  <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wide flex items-center gap-1.5">
-                    <span className="w-2.5 h-2.5 rounded-full bg-slate-500"></span>
-                    <span>All Registered Units ({selectedInventoryProj.stats.totalUnitsList?.length || 0})</span>
+                  <h4 className="text-xs font-bold text-[#558b2f] uppercase tracking-wide flex items-center gap-1.5">
+                    <span className="w-2.5 h-2.5 rounded-full bg-[#8bc34a]"></span>
+                    <span>Booked Units {`(${[...(selectedInventoryProj.stats.bookedUnitsList || []), ...(selectedInventoryProj.stats.handoverUnitsList || [])].length})`}</span>
                   </h4>
-                  <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4 min-h-[50px] flex flex-wrap gap-2">
-                    {selectedInventoryProj.stats.totalUnitsList?.length > 0 ? (
-                      selectedInventoryProj.stats.totalUnitsList.map(uid => (
-                        <span key={uid} className="bg-slate-100 text-slate-700 border border-slate-200 text-xs font-bold px-3 py-1 rounded-xl">
+                  <div className="bg-amber-50/20 border border-amber-100/50 rounded-2xl p-4 min-h-[50px] flex flex-wrap gap-2">
+                    {[...(selectedInventoryProj.stats.bookedUnitsList || []), ...(selectedInventoryProj.stats.handoverUnitsList || [])].length > 0 ? (
+                      [...(selectedInventoryProj.stats.bookedUnitsList || []), ...(selectedInventoryProj.stats.handoverUnitsList || [])].map(uid => (
+                        <span key={uid} className="bg-amber-100/80 text-amber-800 border border-amber-250 text-xs font-bold px-3 py-1 rounded-xl">
                           {uid}
                         </span>
                       ))
                     ) : (
-                      <span className="text-gray-400 italic text-xs">No units registered</span>
+                      <span className="text-gray-400 italic text-xs">No units booked</span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Available Section */}
+                <div className="space-y-2">
+                  <h4 className="text-xs font-bold text-[#004d61] uppercase tracking-wide flex items-center gap-1.5">
+                    <span className="w-2.5 h-2.5 rounded-full bg-[#7ebda9]"></span>
+                    <span>Available Units ({selectedInventoryProj.stats.availableUnitsList?.length || 0})</span>
+                  </h4>
+                  <div className="bg-emerald-50/20 border border-emerald-100/50 rounded-2xl p-4 min-h-[50px] flex flex-wrap gap-2">
+                    {selectedInventoryProj.stats.availableUnitsList?.length > 0 ? (
+                      selectedInventoryProj.stats.availableUnitsList.map(uid => (
+                        <span key={uid} className="bg-emerald-100/80 text-emerald-800 border border-emerald-250 text-xs font-bold px-3 py-1 rounded-xl">
+                          {uid}
+                        </span>
+                      ))
+                    ) : (
+                      <span className="text-gray-400 italic text-xs">No units available</span>
                     )}
                   </div>
                 </div>

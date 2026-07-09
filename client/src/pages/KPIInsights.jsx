@@ -120,8 +120,9 @@ const ObservedPieChart = ({ dataArray, valueKey, labelKey, colorPalette, isCount
             if (percent === 0) return null;
 
             const [startX, startY] = getCoordinatesForPercent(accumulatedPercent);
+            const actualPercent = percent === 1 ? 0.9999 : percent;
             const startAngle = 2 * Math.PI * (accumulatedPercent - 0.25);
-            const endAngle = 2 * Math.PI * (accumulatedPercent + percent - 0.25);
+            const endAngle = 2 * Math.PI * (accumulatedPercent + actualPercent - 0.25);
             const midAngle = startAngle + (endAngle - startAngle) / 2;
 
             accumulatedPercent += percent;
@@ -339,6 +340,7 @@ const KPIInsights = () => {
   const [activeCpeDrillDown, setActiveCpeDrillDown] = useState(null);
   const [exportMenuOpen, setExportMenuOpen] = useState(false);
   const [crdMenuOpen, setCrdMenuOpen] = useState(false);
+  const [leadCostAnalysisData, setLeadCostAnalysisData] = useState([]);
 
 
 
@@ -372,7 +374,25 @@ const KPIInsights = () => {
   useEffect(() => {
     setSelectedGroup(null);
     fetchInsightsData();
+    fetchLeadCostAnalysisData();
   }, [fromDate, toDate, selectedUser, selectedProject]);
+
+  const fetchLeadCostAnalysisData = async () => {
+    try {
+      let url = `${API_URL}/dashboard/lead-cost-analysis?fromDate=${fromDate}&toDate=${toDate}`;
+      if (selectedProject) url += `&projectId=${selectedProject}`;
+      
+      const response = await fetch(url, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setLeadCostAnalysisData(data);
+      }
+    } catch (err) {
+      console.error('Error fetching lead cost analysis:', err);
+    }
+  };
 
   const fetchInsightsData = async () => {
     setLoading(true);
@@ -390,6 +410,82 @@ const KPIInsights = () => {
       }
     } catch (err) {
       console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleExportLeadCostAnalysis = async () => {
+    try {
+      if (leadCostAnalysisData.length === 0) {
+        alert('No data to export for Lead Cost Analysis.');
+        return;
+      }
+
+      setLoading(true);
+      const dateForMonth = fromDate ? new Date(fromDate) : new Date();
+      const monthNames = ["JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE", "JULY", "AUGUST", "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER"];
+      const titleText = `DAILY LEAD COST ANALYSIS - ${monthNames[dateForMonth.getMonth()]} ${dateForMonth.getFullYear()}`;
+
+      let html = `
+        <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+        <head>
+          <meta charset="utf-8">
+          ${getExcelStyles("#0f766e", "#ccfbf1", "#115e59", "#99f6e4")}
+        </head>
+        <body>
+          <table>
+            ${getExcelHeader(titleText, "", 7, "#0f766e", logoPath)}
+            <tr class="table-headers">
+              <th>S.No</th>
+              <th>Date</th>
+              <th>Lead Name</th>
+              <th>Project Name</th>
+              <th>Campaign Source</th>
+              <th>Daily Spent (₹)</th>
+              <th>Total Leads Today</th>
+              <th>Cost per Enquiry (₹)</th>
+            </tr>
+      `;
+
+      let totalSpent = 0;
+      leadCostAnalysisData.forEach((row, index) => {
+        totalSpent += row.dailySpent;
+        const rowClass = index % 2 === 1 ? 'class="even-row"' : '';
+        const dStr = new Date(row.exactTime).toLocaleDateString('en-GB').replace(/\//g, '.');
+
+        html += `
+          <tr ${rowClass}>
+            <td>${index + 1}</td>
+            <td>${dStr}</td>
+            <td class="text-left font-bold">${row.leadName}</td>
+            <td>${row.projectName}</td>
+            <td class="text-left">${row.source}</td>
+            <td class="text-right">₹${Math.round(row.dailySpent).toLocaleString()}</td>
+            <td class="text-center">${row.dailyLeads}</td>
+            <td class="text-right font-bold text-[#0e623a]">₹${Math.round(row.costPerEnquiry).toLocaleString()}</td>
+          </tr>
+        `;
+      });
+
+      html += `
+          </table>
+        </body>
+        </html>
+      `;
+
+      const blob = new Blob([html], { type: 'application/vnd.ms-excel' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `JB_DAILY_LEAD_COST_ANALYSIS_${dateForMonth.getFullYear()}_${dateForMonth.getMonth() + 1}.xls`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error(err);
+      alert('Error exporting lead cost analysis');
     } finally {
       setLoading(false);
     }
@@ -2724,117 +2820,7 @@ const KPIInsights = () => {
 
           </div>
 
-          {/* 🟢 COMPARATIVE CHART ROWS */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            
-            {/* Chart 1: Pipeline Conversion Rates */}
-            <div className="bg-white border border-gray-150 rounded-3xl p-6 shadow-sm space-y-4">
-              <h3 className="text-sm font-extrabold text-gray-800 uppercase tracking-wide border-b border-gray-100 pb-3 flex items-center gap-2">
-                <Percent className="w-4 h-4 text-[#0e623a]" />
-                <span>Conversion Stage Efficiency (%)</span>
-              </h3>
-              <ObservedBarChart 
-                dataArray={[
-                  { stage: 'Site Visit', rate: stats.insights?.siteVisitConversionRate || 0 },
-                  { stage: 'Booking', rate: stats.insights?.bookingConversionRate || 0 },
-                  { stage: 'Registration', rate: stats.insights?.handoverRate || 0 }
-                ]}
-                xKey="stage"
-                yKey="rate"
-                barColor="#68809A" // Matte Slate Blue
-                isPercent={true}
-              />
-              <p className="text-[9px] text-gray-400 italic">
-                Site Visit, Booking, and Handover rates.
-              </p>
-            </div>
 
-            {/* Chart 2: Cost Per Enquiry (CPE) by Campaign Source */}
-            <div className="bg-white border border-gray-150 rounded-3xl p-6 shadow-sm space-y-4">
-              <h3 className="text-sm font-extrabold text-gray-800 uppercase tracking-wide border-b border-gray-100 pb-3 flex items-center gap-2">
-                <DollarSign className="w-4 h-4 text-[#0e623a]" />
-                <span>Cost Per Enquiry (CPE) by Source (₹)</span>
-              </h3>
-              <ObservedBarChart 
-                dataArray={Object.keys(stats.sourceStats || {}).map(src => ({
-                  source: src,
-                  cpe: stats.sourceStats[src].cpe || 0
-                })).filter(item => item.cpe > 0)}
-                xKey="source"
-                yKey="cpe"
-                barColor="#DFBA84" // Matte Yellow
-              />
-              <p className="text-[9px] text-gray-400 italic">
-                Average cost spent to acquire a single enquiry from each campaign source type.
-              </p>
-            </div>
-
-            {/* Chart 2.5: Lead Source Cost Distribution Pie */}
-            <div className="bg-white border border-gray-150 rounded-3xl p-6 shadow-sm space-y-4 text-left">
-              <h3 className="text-sm font-extrabold text-gray-800 uppercase tracking-wide border-b border-gray-100 pb-3 flex items-center gap-2">
-                <DollarSign className="w-4 h-4 text-[#0e623a]" />
-                <span>Enquiry Cost Distribution by Source</span>
-              </h3>
-              <div className="flex justify-center py-2">
-                <ObservedPieChart 
-                  dataArray={Object.keys(stats.sourceStats || {}).map(src => ({
-                    source: src,
-                    leadCost: stats.sourceStats[src].leadCost || 0,
-                    leads: stats.sourceStats[src].leads || []
-                  })).filter(item => item.leadCost > 0)}
-                  valueKey="leadCost"
-                  labelKey="source"
-                  colorPalette={['#4A7C59', '#68809A', '#DFBA84', '#C77B82', '#8E7C93', '#7C9390', '#93847C']}
-                  isCount={false}
-                  onSegmentClick={(item) => setActiveCpeDrillDown(item)}
-                />
-              </div>
-              <p className="text-[9px] text-gray-400 italic">
-                Slices show total spent by source. Click any source segment or list item to drill down into lead names, their costs, and project details.
-              </p>
-            </div>
-
-            {/* Chart 3: Enquiries Breakdown Pie */}
-            <div className="bg-white border border-gray-150 rounded-3xl p-6 shadow-sm space-y-4">
-              <h3 className="text-sm font-extrabold text-gray-800 uppercase tracking-wide border-b border-gray-100 pb-3 flex items-center gap-2">
-                <Users className="w-4 h-4 text-[#0e623a]" />
-                <span>Total Enquiries Breakdown</span>
-              </h3>
-              <div className="flex justify-center py-2">
-                <ObservedPieChart 
-                  dataArray={[
-                    { label: 'Follow-Up (Active)', count: stats.cards.enquiries.followup },
-                    { label: 'Contacted Closed (Lost)', count: stats.cards.enquiries.closed }
-                  ]}
-                  valueKey="count"
-                  labelKey="label"
-                  colorPalette={['#4A7C59', '#C77B82']} // Matte Sage, Matte Rose
-                  isCount={true}
-                />
-              </div>
-            </div>
-
-            {/* Chart 4: Site Visits Breakdown Pie */}
-            <div className="bg-white border border-gray-150 rounded-3xl p-6 shadow-sm space-y-4">
-              <h3 className="text-sm font-extrabold text-gray-800 uppercase tracking-wide border-b border-gray-100 pb-3 flex items-center gap-2">
-                <Target className="w-4 h-4 text-[#0e623a]" />
-                <span>Site Visit Engagements</span>
-              </h3>
-              <div className="flex justify-center py-2">
-                <ObservedPieChart 
-                  dataArray={[
-                    { label: 'Visits Conducted', count: (stats.cards.siteVisits.siteVisit || 0) + (stats.cards.siteVisits.followup || 0) },
-                    { label: 'Site Visit Closed', count: stats.cards.siteVisits.closed || 0 }
-                  ]}
-                  valueKey="count"
-                  labelKey="label"
-                  colorPalette={['#68809A', '#DFBA84', '#C77B82']} // Matte Slate, Matte Yellow, Matte Rose
-                  isCount={true}
-                />
-              </div>
-            </div>
-
-          </div>
 
           {/* 🟢 DETAIL METRICS DATAGRID */}
           <div className="bg-white border border-gray-150 rounded-3xl p-6 shadow-sm space-y-4">
@@ -2889,6 +2875,73 @@ const KPIInsights = () => {
               </table>
             </div>
           </div>
+
+          {/* 🟢 DAILY LEAD COST ANALYSIS ELABORATE TABLE */}
+          <div className="bg-white border border-gray-150 rounded-3xl p-6 shadow-sm space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-gray-100 pb-3">
+              <h3 className="text-sm font-extrabold text-gray-800 uppercase tracking-wide flex items-center gap-2">
+                <BarChart3 className="w-5 h-5 text-[#0e623a]" />
+                <span>Daily Lead Cost Analysis Report</span>
+              </h3>
+              <button
+                onClick={handleExportLeadCostAnalysis}
+                className="px-4 py-2 bg-[#0e623a] text-white rounded-xl text-xs font-bold hover:bg-[#0b4d2d] transition flex items-center gap-2 shadow-sm"
+              >
+                <FileText className="w-3.5 h-3.5" />
+                <span>Export Report</span>
+              </button>
+            </div>
+            
+            <p className="text-[10px] text-gray-500 font-semibold mb-2">
+              Automatically calculates Cost per Enquiry by matching leads with your Daily Expense logs from Budget Planning.
+            </p>
+
+            <div className="overflow-x-auto border border-gray-150 rounded-2xl shadow-inner max-h-96 overflow-y-auto">
+              <table className="w-full text-left border-collapse text-xs">
+                <thead className="sticky top-0 bg-gray-50 z-10 shadow-sm">
+                  <tr className="border-b border-gray-150 font-bold text-gray-600 uppercase tracking-wider text-[10px]">
+                    <th className="p-4 w-12 text-center">S.No</th>
+                    <th className="p-4 w-28 text-center">Date</th>
+                    <th className="p-4 w-40">Lead Name</th>
+                    <th className="p-4 w-32">Project</th>
+                    <th className="p-4 w-32">Campaign Source</th>
+                    <th className="p-4 w-32 text-right">Daily Spent (₹)</th>
+                    <th className="p-4 w-28 text-center">Leads Today</th>
+                    <th className="p-4 w-36 text-right">Cost per Enquiry (₹)</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100 font-sans font-semibold text-gray-700">
+                  {leadCostAnalysisData.length === 0 ? (
+                    <tr>
+                      <td colSpan="8" className="p-8 text-center text-gray-400 italic font-medium">
+                        No leads found for the selected filters.
+                      </td>
+                    </tr>
+                  ) : (
+                    leadCostAnalysisData.map((row, index) => (
+                      <tr key={row._id} className="hover:bg-emerald-50/30 transition">
+                        <td className="p-3 text-center text-gray-400">{index + 1}</td>
+                        <td className="p-3 text-center">{new Date(row.exactTime).toLocaleDateString('en-GB').replace(/\//g, '.')}</td>
+                        <td className="p-3 text-gray-900 font-extrabold">{row.leadName}</td>
+                        <td className="p-3">{row.projectName}</td>
+                        <td className="p-3">
+                          <span className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded-md text-[10px] uppercase tracking-wider">
+                            {row.source}
+                          </span>
+                        </td>
+                        <td className="p-3 text-right text-rose-600 font-bold">₹{Math.round(row.dailySpent).toLocaleString()}</td>
+                        <td className="p-3 text-center text-gray-500">{row.dailyLeads}</td>
+                        <td className="p-3 text-right font-black text-[#0e623a] bg-emerald-50/50">
+                          ₹{Math.round(row.costPerEnquiry).toLocaleString()}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
         </div>
       )}
 
@@ -2951,207 +3004,7 @@ const KPIInsights = () => {
         </div>
       )}
 
-      {/* Floating Export Speed Dial */}
-      <div className="fixed right-6 bottom-24 z-40 flex flex-col items-end gap-3 no-print">
-        {/* Menu Items */}
-        {exportMenuOpen && (
-          <div className="flex flex-col items-end gap-2 mb-2 animate-fadeIn">
-            {/* Summary of Report Export */}
-            <button
-              onClick={() => {
-                handleExportSummaryReport();
-                setExportMenuOpen(false);
-              }}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-2xl shadow-xl flex items-center gap-2 hover:scale-105 transition cursor-pointer text-[10px] font-bold uppercase tracking-wider border border-indigo-500/50"
-            >
-              <FolderOpen className="w-4 h-4" />
-              <span>Summary of Report</span>
-            </button>
 
-            {/* Enquiry Sheet Export */}
-            <button
-              onClick={() => {
-                handleExportEnquiriesExcel();
-                setExportMenuOpen(false);
-              }}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-2xl shadow-xl flex items-center gap-2 hover:scale-105 transition cursor-pointer text-[10px] font-bold uppercase tracking-wider border border-emerald-500/50"
-            >
-              <FileText className="w-4 h-4" />
-              <span>Enquiry</span>
-            </button>
-
-            {/* Site Visit Sheet Export */}
-            <button
-              onClick={() => {
-                handleExportSiteVisitsExcel();
-                setExportMenuOpen(false);
-              }}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-2xl shadow-xl flex items-center gap-2 hover:scale-105 transition cursor-pointer text-[10px] font-bold uppercase tracking-wider border border-blue-500/50"
-            >
-              <Compass className="w-4 h-4" />
-              <span>Site Visit</span>
-            </button>
-
-            {/* Hot List Sheet Export */}
-            <button
-              onClick={() => {
-                handleExportHotListExcel();
-                setExportMenuOpen(false);
-              }}
-              className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2.5 rounded-2xl shadow-xl flex items-center gap-2 hover:scale-105 transition cursor-pointer text-[10px] font-bold uppercase tracking-wider border border-orange-500/50"
-            >
-              <TrendingUp className="w-4 h-4" />
-              <span>Hot List</span>
-            </button>
-
-            {/* Bookings Sheet Export */}
-            <button
-              onClick={() => {
-                handleExportBookingsExcel();
-                setExportMenuOpen(false);
-              }}
-              className="bg-[#385723] hover:bg-[#2c441c] text-white px-4 py-2.5 rounded-2xl shadow-xl flex items-center gap-2 hover:scale-105 transition cursor-pointer text-[10px] font-bold uppercase tracking-wider border border-emerald-700/50"
-            >
-              <Building className="w-4 h-4" />
-              <span>Booking</span>
-            </button>
-
-            {/* Marketing Performance Report Export */}
-            <button
-              onClick={() => {
-                handleExportMarketingReport();
-                setExportMenuOpen(false);
-              }}
-              className="bg-[#2f5597] hover:bg-[#254378] text-white px-4 py-2.5 rounded-2xl shadow-xl flex items-center gap-2 hover:scale-105 transition cursor-pointer text-[10px] font-bold uppercase tracking-wider border border-blue-600/50"
-            >
-              <Target className="w-4 h-4" />
-              <span>Marketing Performance</span>
-            </button>
-
-            {/* Lead Sources Report Export */}
-            <button
-              onClick={() => {
-                handleExportLeadSourcesExcel();
-                setExportMenuOpen(false);
-              }}
-              className="bg-teal-600 hover:bg-teal-700 text-white px-4 py-2.5 rounded-2xl shadow-xl flex items-center gap-2 hover:scale-105 transition cursor-pointer text-[10px] font-bold uppercase tracking-wider border border-teal-500/50"
-            >
-              <Users className="w-4 h-4" />
-              <span>Lead Sources</span>
-            </button>
-          </div>
-        )}
-
-        {/* Main Floating Toggle Button */}
-        <button
-          onClick={() => {
-            setExportMenuOpen(!exportMenuOpen);
-            setCrdMenuOpen(false);
-          }}
-          className="bg-emerald-700 hover:bg-emerald-800 text-white p-4 rounded-full shadow-2xl hover:scale-105 transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer border border-emerald-600/50"
-          title="Export Reports Menu"
-        >
-          <FileText className="w-5 h-5 text-white" />
-          <span className="text-[11px] font-extrabold uppercase tracking-wide">
-            {exportMenuOpen ? 'Close Menu' : 'Export Reports'}
-          </span>
-        </button>
-      </div>
-
-      {/* Floating CRD Speed Dial */}
-      <div className="fixed right-56 bottom-24 z-40 flex flex-col items-end gap-3 no-print">
-        {/* CRD Menu Items */}
-        {crdMenuOpen && (
-          <div className="flex flex-col items-end gap-2 mb-2 animate-fadeIn">
-            {/* Registration Report Export */}
-            <button
-              onClick={() => {
-                handleExportRegistrationReport();
-                setCrdMenuOpen(false);
-              }}
-              className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2.5 rounded-2xl shadow-xl flex items-center gap-2 hover:scale-105 transition cursor-pointer text-[10px] font-bold uppercase tracking-wider border border-purple-500/50"
-            >
-              <CheckCircle className="w-4 h-4" />
-              <span>Registration Report</span>
-            </button>
-
-            {/* Key Handover Report Export */}
-            <button
-              onClick={() => {
-                handleExportKeyHandoverReport();
-                setCrdMenuOpen(false);
-              }}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-2xl shadow-xl flex items-center gap-2 hover:scale-105 transition cursor-pointer text-[10px] font-bold uppercase tracking-wider border border-indigo-500/50"
-            >
-              <Key className="w-4 h-4" />
-              <span>Key Handover Report</span>
-            </button>
-
-            {/* Collection Report Export */}
-            <button
-              onClick={() => {
-                handleExportCollectionReport();
-                setCrdMenuOpen(false);
-              }}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-2xl shadow-xl flex items-center gap-2 hover:scale-105 transition cursor-pointer text-[10px] font-bold uppercase tracking-wider border border-emerald-500/50"
-            >
-              <DollarSign className="w-4 h-4" />
-              <span>Collection Report</span>
-            </button>
-
-            {/* Bank Loan Report Export */}
-            <button
-              onClick={() => {
-                handleExportBankLoanReport();
-                setCrdMenuOpen(false);
-              }}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-2xl shadow-xl flex items-center gap-2 hover:scale-105 transition cursor-pointer text-[10px] font-bold uppercase tracking-wider border border-blue-500/50"
-            >
-              <Building className="w-4 h-4" />
-              <span>Bank Loan Report</span>
-            </button>
-
-            {/* Extra Works Report Export */}
-            <button
-              onClick={() => {
-                handleExportExtraWorksReport();
-                setCrdMenuOpen(false);
-              }}
-              className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2.5 rounded-2xl shadow-xl flex items-center gap-2 hover:scale-105 transition cursor-pointer text-[10px] font-bold uppercase tracking-wider border border-amber-500/50"
-            >
-              <FileText className="w-4 h-4" />
-              <span>Extra Works</span>
-            </button>
-
-            {/* Complaints Report Export */}
-            <button
-              onClick={() => {
-                handleExportComplaintsReport();
-                setCrdMenuOpen(false);
-              }}
-              className="bg-rose-600 hover:bg-rose-700 text-white px-4 py-2.5 rounded-2xl shadow-xl flex items-center gap-2 hover:scale-105 transition cursor-pointer text-[10px] font-bold uppercase tracking-wider border border-rose-500/50"
-            >
-              <AlertCircle className="w-4 h-4" />
-              <span>Complaints</span>
-            </button>
-          </div>
-        )}
-
-        {/* CRD Main Floating Toggle Button */}
-        <button
-          onClick={() => {
-            setCrdMenuOpen(!crdMenuOpen);
-            setExportMenuOpen(false);
-          }}
-          className="bg-purple-700 hover:bg-purple-800 text-white p-4 rounded-full shadow-2xl hover:scale-105 transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer border border-purple-600/50"
-          title="CRD Reports Menu"
-        >
-          <CheckCircle className="w-5 h-5 text-white" />
-          <span className="text-[11px] font-extrabold uppercase tracking-wide">
-            {crdMenuOpen ? 'Close Menu' : 'CRD Reports'}
-          </span>
-        </button>
-      </div>
 
     </div>
   );

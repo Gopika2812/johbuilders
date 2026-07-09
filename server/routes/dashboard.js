@@ -346,7 +346,7 @@ router.get('/stats', protect, async (req, res) => {
     Object.keys(sourceStats).forEach(src => {
       const statsObj = sourceStats[src];
       statsObj.leadCost = statsObj.leadCost || 0;
-      statsObj.cpe = statsObj.count > 0 ? (statsObj.leadCost / statsObj.count) : 0;
+      statsObj.cpe = statsObj.count > 0 ? (statsObj.spent / statsObj.count) : 0;
     });
 
     quotations.forEach(q => {
@@ -415,15 +415,7 @@ router.get('/stats', protect, async (req, res) => {
     if (projectId) {
       projectFilter._id = projectId;
     }
-    if (fromDate || toDate) {
-      projectFilter.createdAt = {};
-      if (fromDate) projectFilter.createdAt.$gte = new Date(fromDate);
-      if (toDate) {
-        const end = new Date(toDate);
-        end.setUTCHours(23, 59, 59, 999);
-        projectFilter.createdAt.$lte = end;
-      }
-    }
+    // Project createdAt filter removed so that projects are always visible
     const allProjects = await Project.find(projectFilter);
     let totalProjects = allProjects.length;
     let totalUnits = 0;
@@ -770,7 +762,7 @@ router.get('/stats', protect, async (req, res) => {
     // Calculate custom insights
     const totalMarketingSpend = budgetPlans.reduce((sum, plan) => sum + (plan.allocations?.reduce((s, alloc) => s + (alloc.spent || 0), 0) || 0), 0);
     const totalLeadCost = leads.reduce((sum, lead) => sum + (lead.leadCost || 0), 0);
-    const costPerEnquiry = cumulativeEnquiries > 0 ? (totalLeadCost / cumulativeEnquiries) : 0;
+    const costPerEnquiry = cumulativeEnquiries > 0 ? (totalMarketingSpend / cumulativeEnquiries) : 0;
     
     const siteVisitConversionRate = cumulativeSiteVisits > 0 ? (siteConversionsCount / cumulativeSiteVisits) * 100 : 0;
     const bookingConversionRate = cumulativeEnquiries > 0 ? (siteConversionsCount / cumulativeEnquiries) * 100 : 0;
@@ -1004,6 +996,108 @@ router.get('/stats', protect, async (req, res) => {
       users: allUsers,
       projects: dbProjects.map(dp => ({ _id: dp._id, name: dp.name, code: dp.code, projectType: dp.projectType }))
     });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// @route   GET /api/dashboard/lead-cost-analysis
+// @desc    Get elaborate lead cost analysis cross-referencing daily leads with daily budget expenses
+router.get('/lead-cost-analysis', protect, async (req, res) => {
+  const { fromDate, toDate, source, projectId } = req.query;
+
+  try {
+    let leadQuery = {};
+    if (fromDate || toDate) {
+      const dateFilter = {};
+      if (fromDate) dateFilter.$gte = new Date(fromDate);
+      if (toDate) {
+        const end = new Date(toDate);
+        end.setUTCHours(23, 59, 59, 999);
+        dateFilter.$lte = end;
+      }
+      leadQuery.createdAt = dateFilter;
+    }
+    if (source) leadQuery.leadSource = source;
+    if (projectId) leadQuery.project = projectId;
+
+    const leads = await Lead.find(leadQuery).populate('project', 'name projectType').sort({ createdAt: -1 });
+    const budgetPlans = await BudgetPlan.find({});
+
+    // Build expense map: YYYY-MM-DD -> source -> amount
+    const expenseMap = {};
+    budgetPlans.forEach(plan => {
+      plan.allocations?.forEach(alloc => {
+        if (!alloc.source) return;
+        // Normalize source
+        const formattedSource = alloc.source.split(' ')
+          .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+          .join(' ');
+
+        alloc.expenses?.forEach(exp => {
+          if (!exp.date) return;
+          // Extract local date string (YYYY-MM-DD)
+          const d = new Date(exp.date);
+          const tzOffset = d.getTimezoneOffset() * 60000;
+          const localDateStr = (new Date(d - tzOffset)).toISOString().split('T')[0];
+
+          if (!expenseMap[localDateStr]) expenseMap[localDateStr] = {};
+          if (!expenseMap[localDateStr][formattedSource]) expenseMap[localDateStr][formattedSource] = 0;
+          
+          expenseMap[localDateStr][formattedSource] += (exp.amount || 0);
+        });
+      });
+    });
+
+    // Build daily lead count map: YYYY-MM-DD -> source -> count
+    const leadCountsMap = {};
+    leads.forEach(lead => {
+      const srcRaw = lead.leadSource || 'Direct Visit';
+      const formattedSource = srcRaw.split(' ')
+        .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+        .join(' ');
+      
+      const d = new Date(lead.createdAt);
+      const tzOffset = d.getTimezoneOffset() * 60000;
+      const localDateStr = (new Date(d - tzOffset)).toISOString().split('T')[0];
+
+      if (!leadCountsMap[localDateStr]) leadCountsMap[localDateStr] = {};
+      if (!leadCountsMap[localDateStr][formattedSource]) leadCountsMap[localDateStr][formattedSource] = 0;
+      
+      leadCountsMap[localDateStr][formattedSource] += 1;
+    });
+
+    // Build final elaborate list
+    const analysisList = leads.map(lead => {
+      const srcRaw = lead.leadSource || 'Direct Visit';
+      const formattedSource = srcRaw.split(' ')
+        .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+        .join(' ');
+      
+      const d = new Date(lead.createdAt);
+      const tzOffset = d.getTimezoneOffset() * 60000;
+      const localDateStr = (new Date(d - tzOffset)).toISOString().split('T')[0];
+
+      const dailySpent = (expenseMap[localDateStr] && expenseMap[localDateStr][formattedSource]) ? expenseMap[localDateStr][formattedSource] : 0;
+      const dailyLeads = (leadCountsMap[localDateStr] && leadCountsMap[localDateStr][formattedSource]) ? leadCountsMap[localDateStr][formattedSource] : 1;
+      
+      const costPerEnquiry = dailySpent / dailyLeads;
+
+      return {
+        _id: lead._id,
+        date: localDateStr,
+        exactTime: lead.createdAt,
+        leadName: lead.name,
+        projectName: lead.project?.name || 'N/A',
+        source: formattedSource,
+        dailySpent: dailySpent,
+        dailyLeads: dailyLeads,
+        costPerEnquiry: costPerEnquiry,
+        status: lead.status
+      };
+    });
+
+    res.json(analysisList);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

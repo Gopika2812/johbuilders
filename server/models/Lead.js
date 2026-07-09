@@ -60,14 +60,12 @@ const LeadSchema = new mongoose.Schema({
     enum: [
       'New',
       'Assigned',
-      'Contacted',
       'Follow-Up',
+      'Future Follow-up',
       'Site Visit',
-      'Site Visit Follow-up',
       'Qualified',
       'Negotiation',
       'Booking',
-      'Won',
       'Lost',
       'Cancelled'
     ],

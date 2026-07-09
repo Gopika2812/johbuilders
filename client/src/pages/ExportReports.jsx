@@ -120,8 +120,9 @@ const ObservedPieChart = ({ dataArray, valueKey, labelKey, colorPalette, isCount
             if (percent === 0) return null;
 
             const [startX, startY] = getCoordinatesForPercent(accumulatedPercent);
+            const actualPercent = percent === 1 ? 0.9999 : percent;
             const startAngle = 2 * Math.PI * (accumulatedPercent - 0.25);
-            const endAngle = 2 * Math.PI * (accumulatedPercent + percent - 0.25);
+            const endAngle = 2 * Math.PI * (accumulatedPercent + actualPercent - 0.25);
             const midAngle = startAngle + (endAngle - startAngle) / 2;
 
             accumulatedPercent += percent;

@@ -245,14 +245,12 @@ router.put('/:id', protect, async (req, res) => {
       const LEAD_STATUSES = [
         'New',
         'Assigned',
-        'Contacted',
         'Follow-Up',
+        'Future Follow-up',
         'Site Visit',
-        'Site Visit Follow-up',
         'Qualified',
         'Negotiation',
         'Booking',
-        'Won',
         'Lost'
       ];
       const currentIndex = LEAD_STATUSES.indexOf(lead.status);
@@ -303,22 +301,47 @@ router.put('/:id', protect, async (req, res) => {
             }
           });
           await proj.save();
-        }
-      }
-    }
+          
+          // Auto-create Quotation
+          const Quotation = require('../models/Quotation');
+          let existingQuotation = await Quotation.findOne({ lead: lead._id });
+          if (!existingQuotation) {
+            await Quotation.create({
+              lead: lead._id,
+              project: proj._id,
+              customerName: lead.name,
+              customerPhone: lead.phone,
+              projectType: proj.projectType || 'Plot',
+              selectedUnits: bookingInfo.selectedUnits,
+              totalValue: bookingInfo.totalValue || 0,
+              createdBy: req.user._id
+            });
+          }
 
-    if (status === 'Won') {
-      if (lead.bookingInfo && lead.bookingInfo.selectedUnits && lead.bookingInfo.selectedUnits.length > 0) {
-        const Project = require('../models/Project');
-        const proj = await Project.findById(lead.project);
-        if (proj) {
-          lead.bookingInfo.selectedUnits.forEach(unitId => {
-            const unit = proj.units.find(u => u.unitId === unitId);
-            if (unit) {
-              unit.status = 'Sold Out';
-            }
-          });
-          await proj.save();
+          // Auto-create CRD Flow
+          const CRDFlow = require('../models/CRDFlow');
+          let existingFlow = await CRDFlow.findOne({ lead: lead._id });
+          if (!existingFlow) {
+            await CRDFlow.create({
+              project: proj._id,
+              lead: lead._id,
+              unitId: bookingInfo.selectedUnits.join(','),
+              stages: [
+                {
+                  name: 'Registration',
+                  percentage: 100,
+                  amount: bookingInfo.totalValue || 0,
+                  isCompleted: false,
+                  uploadedPdfs: [],
+                  extraWorks: [],
+                  payments: []
+                }
+              ],
+              totalOriginalValue: bookingInfo.totalValue || 0,
+              totalExtraWorksValue: 0,
+              totalCurrentValue: bookingInfo.totalValue || 0
+            });
+          }
         }
       }
     }
@@ -360,11 +383,8 @@ router.put('/:id', protect, async (req, res) => {
       auditAction = `Lead Stage: ${displayStatus}`;
       auditDescription = `Lead ${lead.name} (${lead.phone}) transitioned from stage ${prevStatus === 'Qualified' ? 'Hot List' : prevStatus} to ${displayStatus}`;
       if (lead.status === 'Booking' && bookingInfo) {
-        auditAction = 'Unit Booked';
-        auditDescription = `Booked unit(s) ${bookingInfo.selectedUnits?.join(', ')} for customer ${lead.name} (${lead.phone})`;
-      } else if (lead.status === 'Won') {
-        auditAction = 'Handover Completed';
-        auditDescription = `Successfully completed key handover (Won) for customer ${lead.name} (${lead.phone})`;
+        auditAction = 'Unit Booked & Automated CRD Flow Generated';
+        auditDescription = `Booked unit(s) ${bookingInfo.selectedUnits?.join(', ')} for customer ${lead.name} (${lead.phone}) with automated CRD and Quotation creation.`;
       }
     } else if (assignmentChanged) {
       auditAction = 'Reassign Lead';

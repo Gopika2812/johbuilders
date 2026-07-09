@@ -61,29 +61,46 @@ const SOURCE_TYPES = [
 const LEAD_STATUSES = [
   'New',
   'Assigned',
-  'Contacted',
   'Follow-Up',
+  'Future Follow-up',
   'Site Visit',
-  'Site Visit Follow-up',
   'Qualified',
   'Negotiation',
   'Booking',
-  'Won',
   'Lost'
 ];
 
 const STATUS_COLORS = {
   'New': { bg: 'bg-blue-50/70', text: 'text-blue-700', border: 'border-blue-200', dot: 'bg-blue-500' },
   'Assigned': { bg: 'bg-purple-50/70', text: 'text-purple-700', border: 'border-purple-200', dot: 'bg-purple-500' },
-  'Contacted': { bg: 'bg-indigo-50/70', text: 'text-indigo-700', border: 'border-indigo-200', dot: 'bg-indigo-500' },
   'Follow-Up': { bg: 'bg-amber-50/70', text: 'text-amber-700', border: 'border-amber-200', dot: 'bg-amber-500' },
+  'Future Follow-up': { bg: 'bg-indigo-50/70', text: 'text-indigo-700', border: 'border-indigo-200', dot: 'bg-indigo-500' },
   'Site Visit': { bg: 'bg-rose-50/70', text: 'text-rose-700', border: 'border-rose-200', dot: 'bg-rose-500' },
-  'Site Visit Follow-up': { bg: 'bg-pink-50/70', text: 'text-pink-700', border: 'border-pink-200', dot: 'bg-pink-500' },
   'Qualified': { bg: 'bg-teal-50/70', text: 'text-teal-700', border: 'border-teal-200', dot: 'bg-teal-500' },
   'Negotiation': { bg: 'bg-orange-50/70', text: 'text-orange-700', border: 'border-orange-200', dot: 'bg-orange-500' },
-  'Booking': { bg: 'bg-yellow-50/70', text: 'text-yellow-700', border: 'border-yellow-300', dot: 'bg-yellow-500' },
-  'Won': { bg: 'bg-emerald-50/70', text: 'text-emerald-700', border: 'border-emerald-200', dot: 'bg-emerald-500' },
+  'Booking': { bg: 'bg-emerald-50/70', text: 'text-emerald-700', border: 'border-emerald-200', dot: 'bg-emerald-500' },
   'Lost': { bg: 'bg-gray-100', text: 'text-gray-750', border: 'border-gray-300', dot: 'bg-gray-500' },
+};
+
+const getAllowedTransitions = (currentStatus) => {
+  switch (currentStatus) {
+    case 'New':
+      return ['New', 'Assigned'];
+    case 'Assigned':
+      return ['Assigned', 'Follow-Up', 'Lost'];
+    case 'Follow-Up':
+      return ['Follow-Up', 'Site Visit', 'Future Follow-up', 'Lost'];
+    case 'Future Follow-up':
+      return ['Future Follow-up', 'Follow-Up', 'Site Visit', 'Lost'];
+    case 'Site Visit':
+      return ['Site Visit', 'Qualified', 'Lost'];
+    case 'Qualified':
+      return ['Qualified', 'Negotiation', 'Lost'];
+    case 'Negotiation':
+      return ['Negotiation', 'Booking', 'Lost'];
+    default:
+      return [currentStatus];
+  }
 };
 
 const getPreviousStatus = (lead) => {
@@ -99,12 +116,6 @@ const getPreviousStatus = (lead) => {
 
 const parsePhoneDetails = (fullPhone) => {
   if (!fullPhone) return { countryCode: '+91', localPhone: '' };
-  const commonCodes = ['+91', '+971', '+44', '+1', '+966', '+965', '+973', '+968', '+974', '+65', '+61'];
-  for (const code of commonCodes) {
-    if (fullPhone.startsWith(code)) {
-      return { countryCode: code, localPhone: fullPhone.slice(code.length) };
-    }
-  }
   if (fullPhone.startsWith('+')) {
     return { countryCode: '+', localPhone: fullPhone.slice(1) };
   }
@@ -164,8 +175,14 @@ const LeadsDirectory = () => {
   // Filtering / Search States
   const [activeTab, setActiveTab] = useState('All'); // 'All' or specific status
   const [searchTerm, setSearchTerm] = useState('');
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
+  const [startDate, setStartDate] = useState(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  });
+  const [endDate, setEndDate] = useState(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  });
   const [assignedFilter, setAssignedFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [campaignFilter, setCampaignFilter] = useState('');
@@ -173,6 +190,15 @@ const LeadsDirectory = () => {
   const [bankLoanFilter, setBankLoanFilter] = useState('');
   const [reopenedFilter, setReopenedFilter] = useState('');
   const [projectFilter, setProjectFilter] = useState('');
+
+  // Pagination States
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+
+  // Reset page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeTab, searchTerm, startDate, endDate, assignedFilter, statusFilter, campaignFilter, locationFilter, bankLoanFilter, reopenedFilter, projectFilter]);
 
   // Sync activeTab with URL search params status
   useEffect(() => {
@@ -245,6 +271,19 @@ const LeadsDirectory = () => {
   const [loanBank, setLoanBank] = useState('');
   const [loanStatusNotes, setLoanStatusNotes] = useState('');
   const [bookingLoading, setBookingLoading] = useState(false);
+  const [bookingFinalValue, setBookingFinalValue] = useState('');
+
+  // Auto-calculate final value when units change
+  useEffect(() => {
+    if (bookingProjectDetails && selectedBookingUnits.length > 0) {
+      const calculatedTotal = bookingProjectDetails.units
+        ?.filter(u => selectedBookingUnits.includes(u.unitId))
+        .reduce((sum, u) => sum + u.price, 0) || 0;
+      setBookingFinalValue(calculatedTotal);
+    } else {
+      setBookingFinalValue('');
+    }
+  }, [selectedBookingUnits, bookingProjectDetails]);
 
   // Follow-Up & Completion Modal States
   const [followModalOpen, setFollowModalOpen] = useState(false);
@@ -689,6 +728,7 @@ const LeadsDirectory = () => {
       status: 'Booking',
       bookingInfo: {
         selectedUnits: selectedBookingUnits,
+        totalValue: Number(bookingFinalValue),
         alternativePhone: bookingAltPhone,
         aadharNumber: bookingAadhar,
         panNumber: bookingPan,
@@ -728,7 +768,7 @@ const LeadsDirectory = () => {
     setSelectedLeadForFollow(lead);
     setFollowTargetStatus(targetStatus);
     
-    const hasFollowUp = ['Contacted', 'Follow-Up', 'Site Visit', 'Qualified', 'Negotiation'].includes(targetStatus);
+    const hasFollowUp = ['Follow-Up', 'Future Follow-up', 'Site Visit', 'Qualified', 'Negotiation'].includes(targetStatus);
     setFollowMode(hasFollowUp ? 'FollowUp' : 'Completed');
     
     const now = new Date();
@@ -766,11 +806,6 @@ const LeadsDirectory = () => {
       }
 
       let finalStatus = followTargetStatus;
-      if (followTargetStatus === 'Site Visit') {
-        finalStatus = siteVisitAction === 'Move' ? 'Site Visit Follow-up' : 'Site Visit';
-      } else if (followTargetStatus === 'Qualified') {
-        finalStatus = 'Site Visit Follow-up';
-      }
 
       payload = {
         status: finalStatus,
@@ -782,7 +817,7 @@ const LeadsDirectory = () => {
         isClosed: false
       };
     } else {
-      const shouldClose = ['Contacted', 'Site Visit', 'Lost'].includes(followTargetStatus);
+      const shouldClose = ['Lost'].includes(followTargetStatus);
       payload = {
         status: followTargetStatus,
         isClosed: shouldClose,
@@ -1160,6 +1195,9 @@ const LeadsDirectory = () => {
   };
 
   const filteredLeadsList = getFilteredLeads();
+  const totalItems = filteredLeadsList.length;
+  const totalPages = Math.ceil(totalItems / itemsPerPage) || 1;
+  const paginatedLeadsList = filteredLeadsList.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   return (
     <div className="space-y-6 w-full max-w-full overflow-hidden">
@@ -1225,9 +1263,7 @@ const LeadsDirectory = () => {
           {LEAD_STATUSES.map(st => {
             let count = 0;
             if (st === 'Lost') {
-              count = leads.filter(l => l.status === 'Lost' || (l.isClosed && l.status !== 'Won')).length;
-            } else if (st === 'Won') {
-              count = leads.filter(l => l.status === 'Won').length;
+              count = leads.filter(l => l.status === 'Lost' || (l.isClosed && l.status !== 'Booking')).length;
             } else if (st === 'Qualified') {
               count = leads.filter(l => (l.status === 'Qualified' || (l.history && l.history.some(h => h.status === 'Qualified'))) && !l.isClosed).length;
             } else {
@@ -1288,17 +1324,16 @@ const LeadsDirectory = () => {
           </div>
         </div>
 
-        <div className="bg-white p-4 border border-gray-150 shadow-sm rounded-3xl grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-4 items-end">
+        <div className="bg-white p-4 border border-gray-150 shadow-sm rounded-3xl grid grid-cols-2 lg:grid-cols-4 gap-4 items-end">
           {/* Assigned Executive */}
           <div className="space-y-1">
-          {/* Assigned Executive */}
           {(user?.role === 'Admin' || user?.role === 'Manager') && (
             <div className="space-y-1">
               <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Assigned Executive</label>
               <select
                 value={assignedFilter}
                 onChange={(e) => setAssignedFilter(e.target.value)}
-                className="w-full max-w-full truncate px-3 py-2 bg-gray-55 border border-gray-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-xs font-bold text-gray-700"
+                className="w-full max-w-full truncate px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-xs font-bold text-gray-700"
               >
                 <option value="">All Executives</option>
                 {employees.map(emp => (
@@ -1353,50 +1388,6 @@ const LeadsDirectory = () => {
               ))}
             </select>
           </div>
-
-          {/* Project Location */}
-          <div className="space-y-1">
-            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Project Location</label>
-            <select
-              value={locationFilter}
-              onChange={(e) => setLocationFilter(e.target.value)}
-              className="w-full max-w-full truncate px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-xs font-bold text-gray-700"
-            >
-              <option value="">All Locations</option>
-              {locations.map(loc => (
-                <option key={loc} value={loc}>{loc}</option>
-              ))}
-            </select>
-          </div>
-
-          {/* Requires Bank Loan */}
-          <div className="space-y-1">
-            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Bank Loan</label>
-            <select
-              value={bankLoanFilter}
-              onChange={(e) => setBankLoanFilter(e.target.value)}
-              className="w-full max-w-full truncate px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-xs font-bold text-gray-700"
-            >
-              <option value="">All</option>
-              <option value="Yes">Requires Loan (Yes)</option>
-              <option value="No">No Loan (No)</option>
-            </select>
-          </div>
-
-          {/* Lead State */}
-          <div className="space-y-1">
-            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Lead State</label>
-            <select
-              value={reopenedFilter}
-              onChange={(e) => setReopenedFilter(e.target.value)}
-              className="w-full max-w-full truncate px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-xs font-bold text-gray-700"
-            >
-              <option value="">All Leads</option>
-              <option value="Open">Active / Open Only</option>
-              <option value="Closed">Closed Only</option>
-              <option value="Reopened">Reopened Only</option>
-            </select>
-          </div>
         </div>
       </div>
 
@@ -1417,7 +1408,7 @@ const LeadsDirectory = () => {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100 text-sm">
-            {filteredLeadsList.map(lead => (
+            {paginatedLeadsList.map(lead => (
               <tr 
                 key={lead._id} 
                 className={`hover:bg-gray-50/50 transition duration-150 ${
@@ -1468,12 +1459,19 @@ const LeadsDirectory = () => {
                   <div className="space-y-0.5">
                     <div className="text-[10px] font-semibold text-gray-700">{lead.leadSource || (lead.leadType === 'Direct Visit' ? 'Direct Visit' : '—')}</div>
                     {lead.leadType === 'Lead' && lead.activeAd?.name && (
-                      <div className="text-[10px] text-gray-500 flex items-center gap-1">
-                        <span>Ad: {lead.activeAd.name}</span>
-                        {lead.activeAd.link && (
-                          <a href={lead.activeAd.link} target="_blank" rel="noopener noreferrer" className="text-[#0e623a] hover:underline">
-                            <ExternalLink className="w-2.5 h-2.5 inline" />
-                          </a>
+                      <div className="text-[10px] text-gray-500 flex flex-col gap-0.5">
+                        <div className="flex items-center gap-1">
+                          <span className="truncate max-w-[120px]">Ad: {lead.activeAd.name}</span>
+                          {lead.activeAd.link && (
+                            <a href={lead.activeAd.link} target="_blank" rel="noopener noreferrer" className="text-[#0e623a] hover:underline shrink-0">
+                              <ExternalLink className="w-2.5 h-2.5 inline" />
+                            </a>
+                          )}
+                        </div>
+                        {lead.leadCost > 0 && (
+                          <span className="text-[9px] font-extrabold text-[#0e623a] bg-[#0e623a]/10 px-1.5 py-0.5 rounded w-fit">
+                            Cost: ₹{lead.leadCost}
+                          </span>
                         )}
                       </div>
                     )}
@@ -1525,25 +1523,23 @@ const LeadsDirectory = () => {
                       </button>
                     </div>
                   ) : (
-                    <div className="relative inline-block text-left">
+                    <div className="relative inline-block text-left group">
                       <select
                         value={lead.status}
                         onChange={(e) => handleStatusChange(lead._id, e.target.value)}
-                        className={`appearance-none cursor-pointer flex items-center justify-between gap-1.5 px-3 py-1.5 rounded-full border text-xs font-bold shadow-sm outline-none ${
+                        className={`appearance-none cursor-pointer flex items-center justify-between gap-1.5 pl-3 pr-7 py-1.5 rounded-full border text-xs font-bold shadow-sm outline-none ${
                           STATUS_COLORS[lead.status]?.bg || 'bg-gray-50/70'
                         } ${STATUS_COLORS[lead.status]?.text || 'text-gray-700'} ${
                           STATUS_COLORS[lead.status]?.border || 'border-gray-200'
                         }`}
                       >
-                        {LEAD_STATUSES.filter((_, idx) => {
-                          const currentIdx = LEAD_STATUSES.indexOf(lead.status);
-                          return currentIdx === -1 || idx >= currentIdx;
-                        }).map(status => (
+                        {getAllowedTransitions(lead.status).map(status => (
                           <option key={status} value={status}>
                             {status === 'Qualified' ? 'Hot List' : status}
                           </option>
                         ))}
                       </select>
+                      <ChevronDown className={`w-3.5 h-3.5 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none opacity-70 ${STATUS_COLORS[lead.status]?.text || 'text-gray-700'}`} />
                       {activeTab === 'Qualified' && lead.status !== 'Qualified' && (
                         <div className="text-[10px] text-emerald-700 font-extrabold mt-1 py-0.5 px-2 bg-emerald-50 rounded border border-emerald-100 text-center">
                           Moved to {lead.status}
@@ -1598,6 +1594,51 @@ const LeadsDirectory = () => {
           </tbody>
         </table>
         </div>
+
+        {/* Pagination Controls */}
+        <div className="flex flex-col sm:flex-row items-center justify-between p-4 border-t border-gray-150 gap-4 bg-gray-50/50 rounded-b-3xl">
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-gray-500 font-bold">Rows per page:</span>
+            <select
+              value={itemsPerPage}
+              onChange={(e) => {
+                setItemsPerPage(Number(e.target.value));
+                setCurrentPage(1);
+              }}
+              className="border border-gray-200 rounded-lg px-2 py-1 text-xs font-bold text-gray-700 focus:outline-none focus:border-[#0e623a] bg-white cursor-pointer"
+            >
+              <option value={10}>10</option>
+              <option value={25}>25</option>
+              <option value={50}>50</option>
+              <option value={100}>100</option>
+            </select>
+          </div>
+          
+          <div className="text-xs text-gray-500 font-bold">
+            Showing {filteredLeadsList.length > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0} to {Math.min(currentPage * itemsPerPage, totalItems)} of {totalItems} entries
+          </div>
+          
+          <div className="flex gap-1.5">
+            <button
+              disabled={currentPage === 1}
+              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+              className="px-3 py-1.5 text-xs font-bold rounded-lg border border-gray-200 text-gray-600 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-white bg-gray-50 transition shadow-sm cursor-pointer"
+            >
+              Prev
+            </button>
+            <div className="flex items-center justify-center px-3 py-1.5 text-xs font-bold rounded-lg border border-gray-200 bg-white text-[#0e623a] shadow-sm">
+              {currentPage} / {totalPages}
+            </div>
+            <button
+              disabled={currentPage === totalPages || totalPages === 0}
+              onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+              className="px-3 py-1.5 text-xs font-bold rounded-lg border border-gray-200 text-gray-600 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-white bg-gray-50 transition shadow-sm cursor-pointer"
+            >
+              Next
+            </button>
+          </div>
+        </div>
+
       </div>
 
       {/* 🔐 MODAL: Create New Lead / Direct Visit Form */}
@@ -1761,7 +1802,7 @@ const LeadsDirectory = () => {
                   </div>
 
                   {/* Ads Sub-dropdown (dynamic based on project) */}
-                  {selectedProjectId && (
+                  {selectedProjectId && leadSource === 'Digital Marketing' && (
                     <div className="bg-[#f0f9f4] p-4 rounded-2xl border border-[#bce2cb]/40 space-y-3">
                       <div className="flex flex-col">
                         <label className="text-xs font-bold text-[#0e623a] uppercase tracking-wider block mb-1.5">Active Ad Campaign</label>
@@ -2034,7 +2075,7 @@ const LeadsDirectory = () => {
                   </div>
 
                   {/* Ads Sub-dropdown (dynamic based on project) */}
-                  {editProjectId && (
+                  {editProjectId && editLeadSource === 'Digital Marketing' && (
                     <div className="bg-amber-50/50 p-4 rounded-2xl border border-amber-200/40 space-y-3 text-left">
                       <div className="flex flex-col">
                         <label className="text-xs font-bold text-amber-800 uppercase tracking-wider block mb-1.5">Active Ad Campaign</label>
@@ -2127,10 +2168,7 @@ const LeadsDirectory = () => {
                   className="w-full px-4 py-3 bg-gray-55 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-600 text-sm cursor-pointer appearance-none"
                   style={{ backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 16px center', backgroundSize: '16px' }}
                 >
-                  {LEAD_STATUSES.filter((_, idx) => {
-                    const currentIdx = LEAD_STATUSES.indexOf(selectedLeadForEdit.status);
-                    return currentIdx === -1 || idx >= currentIdx;
-                  }).map(status => (
+                  {getAllowedTransitions(selectedLeadForEdit.status).map(status => (
                     <option key={status} value={status}>{status}</option>
                   ))}
                 </select>
@@ -2377,38 +2415,6 @@ const LeadsDirectory = () => {
                         className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none text-xs text-gray-700"
                       />
                     </div>
-
-                    {followTargetStatus === 'Site Visit' && (
-                      <div className="bg-[#f0f9f4] p-4 rounded-2xl border border-[#bce2cb]/40 space-y-2">
-                        <label className="text-[11px] font-bold text-[#0e623a] uppercase tracking-wider block">
-                          Select Pipeline Action After Follow-up
-                        </label>
-                        <div className="grid grid-cols-2 gap-3">
-                          <button
-                            type="button"
-                            onClick={() => setSiteVisitAction('Keep')}
-                            className={`py-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 ${
-                              siteVisitAction === 'Keep'
-                                ? 'bg-[#0e623a] text-white shadow-md'
-                                : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
-                            }`}
-                          >
-                            Keep in Site Visit
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setSiteVisitAction('Move')}
-                            className={`py-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 ${
-                              siteVisitAction === 'Move'
-                                ? 'bg-[#0e623a] text-white shadow-md'
-                                : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
-                            }`}
-                          >
-                            Move to Site Visit Follow-up
-                          </button>
-                        </div>
-                      </div>
-                    )}
                   </div>
                 ) : (
                   <div className="space-y-4">
@@ -2698,10 +2704,10 @@ const LeadsDirectory = () => {
 
               {/* Pricing & Quotation breakdown */}
               {selectedBookingUnits.length > 0 && bookingProjectDetails && (
-                <div className="bg-gray-50 p-4 rounded-2xl border border-gray-150 space-y-2">
+                <div className="bg-gray-50 p-4 rounded-2xl border border-gray-150 space-y-3">
                   <h4 className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Quotation Valuation</h4>
-                  <div className="text-xs space-y-1 text-gray-600">
-                    <div className="flex justify-between">
+                  <div className="text-xs space-y-2 text-gray-600">
+                    <div className="flex justify-between items-center">
                       <span>Rate Sq.Ft:</span>
                       <span className="font-semibold text-gray-800">Rs. {bookingProjectDetails.pricePerSqFt}</span>
                     </div>
@@ -2713,13 +2719,23 @@ const LeadsDirectory = () => {
                           .reduce((sum, u) => sum + u.size, 0).toFixed(2)} Sq.Ft
                       </span>
                     </div>
-                    <div className="flex justify-between border-t pt-1.5 text-sm font-bold text-gray-800">
-                      <span>Total Valuation Cost:</span>
+                    <div className="flex justify-between items-center border-t pt-2 text-sm font-bold text-gray-800">
+                      <span>Base Valuation Cost:</span>
                       <span className="text-[#0e623a]">
                         Rs. {bookingProjectDetails.units
                           ?.filter(u => selectedBookingUnits.includes(u.unitId))
                           .reduce((sum, u) => sum + u.price, 0).toLocaleString()}
                       </span>
+                    </div>
+                    <div className="pt-2 border-t border-gray-200">
+                      <label className="text-[10px] font-bold text-gray-600 uppercase tracking-wider block mb-1">Final Negotiated Value (Rs.)</label>
+                      <input
+                        type="number"
+                        required
+                        value={bookingFinalValue}
+                        onChange={(e) => setBookingFinalValue(e.target.value)}
+                        className="w-full px-3 py-2 bg-white border border-[#0e623a]/30 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0e623a]/50 text-sm font-bold text-[#0e623a]"
+                      />
                     </div>
                   </div>
                 </div>
