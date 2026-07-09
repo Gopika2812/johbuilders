@@ -87,6 +87,30 @@ router.get('/today-assigned', protect, async (req, res) => {
   }
 });
 
+// @route   GET /api/leads/due-followups
+// @desc    Get leads that have follow-ups due
+router.get('/due-followups', protect, async (req, res) => {
+  try {
+    let query = {
+      isClosed: false,
+      'followUpInfo.nextFollowUpDate': { $lte: new Date() }
+    };
+
+    if (req.user.role !== 'Admin' && req.user.role !== 'Manager' && req.user.role !== 'Super Admin') {
+      query.assignedTo = req.user._id;
+    }
+
+    const leads = await Lead.find(query)
+      .populate('project', 'name code')
+      .populate('assignedTo', 'name role')
+      .sort({ 'followUpInfo.nextFollowUpDate': -1 });
+
+    res.json(leads);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 // @route   GET /api/leads/phone/:phone
 // @desc    Check for existing lead by phone
 router.get('/phone/:phone', protect, async (req, res) => {

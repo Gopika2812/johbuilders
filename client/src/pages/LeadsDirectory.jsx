@@ -255,7 +255,21 @@ const LeadsDirectory = () => {
   const [loanAmount, setLoanAmount] = useState(0);
   const [loanBank, setLoanBank] = useState('');
   const [loanStatusNotes, setLoanStatusNotes] = useState('');
+  const [customBookingAmount, setCustomBookingAmount] = useState('');
+  const [typedBookingUnits, setTypedBookingUnits] = useState('');
+  const [unitDropdownOpen, setUnitDropdownOpen] = useState(false);
   const [bookingLoading, setBookingLoading] = useState(false);
+
+  useEffect(() => {
+    if (bookingProjectDetails && selectedBookingUnits.length > 0) {
+      const total = bookingProjectDetails.units
+        ?.filter(u => selectedBookingUnits.includes(u.unitId))
+        .reduce((sum, u) => sum + u.price, 0);
+      setCustomBookingAmount(total || '');
+    } else {
+      setCustomBookingAmount('');
+    }
+  }, [selectedBookingUnits, bookingProjectDetails]);
 
   // Follow-Up & Completion Modal States
   const [followModalOpen, setFollowModalOpen] = useState(false);
@@ -663,6 +677,8 @@ const LeadsDirectory = () => {
     setLoanBank('');
     setLoanStatusNotes('');
     setSelectedBookingUnits([]);
+    setTypedBookingUnits('');
+    setCustomBookingAmount('');
 
     try {
       const projId = lead.project?._id || lead.project;
@@ -696,6 +712,29 @@ const LeadsDirectory = () => {
     }
     const bookingAltPhone = bookingAltLocal ? (bookingAltCountryCode === '+' ? `+${bookingAltLocal}` : `${bookingAltCountryCode}${bookingAltLocal}`) : '';
     
+    const selectedUnitsData = bookingProjectDetails.units.filter(u => selectedBookingUnits.includes(u.unitId));
+    const totalArea = selectedUnitsData.reduce((sum, u) => sum + u.size, 0);
+    const totalValue = Number(customBookingAmount) || selectedUnitsData.reduce((sum, u) => sum + u.price, 0);
+
+    const qtnPayload = {
+      lead: selectedLeadForBooking._id,
+      project: bookingProjectDetails._id,
+      customerName: selectedLeadForBooking.name,
+      customerPhone: selectedLeadForBooking.phone,
+      customerAddress: selectedLeadForBooking.address,
+      projectType: bookingProjectDetails.projectType?.[0] || 'Plot',
+      selectedUnits: selectedBookingUnits,
+      pricePerSqFt: bookingProjectDetails.pricePerSqFt,
+      totalArea: totalArea,
+      totalValue: totalValue,
+      alternativePhone: bookingAltPhone,
+      aadharNumber: bookingAadhar,
+      panNumber: bookingPan,
+      bankLoanRequired: bookingHasLoan,
+      loanAmount: Number(loanAmount),
+      preferredBank: loanBank
+    };
+
     const payload = {
       status: 'Booking',
       bookingInfo: {
@@ -713,6 +752,23 @@ const LeadsDirectory = () => {
     };
 
     try {
+      // 1. Create Quotation directly
+      const qRes = await fetch(`${API_URL}/quotations`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(qtnPayload)
+      });
+
+      if (!qRes.ok) {
+        const data = await qRes.json();
+        setError(data.message || 'Failed to generate quotation for booking');
+        return;
+      }
+
+      // 2. Update Lead to Booking
       const res = await fetch(`${API_URL}/leads/${selectedLeadForBooking._id}`, {
         method: 'PUT',
         headers: {
@@ -777,11 +833,6 @@ const LeadsDirectory = () => {
       }
 
       let finalStatus = followTargetStatus;
-      if (followTargetStatus === 'Site Visit') {
-        finalStatus = siteVisitAction === 'Move' ? 'Site Visit Follow-up' : 'Site Visit';
-      } else if (followTargetStatus === 'Qualified') {
-        finalStatus = 'Site Visit Follow-up';
-      }
 
       payload = {
         status: finalStatus,
@@ -798,7 +849,9 @@ const LeadsDirectory = () => {
       payload = {
         status: isAdvancingToHotList ? 'Hot List' : 'Lost',
         isClosed: !isAdvancingToHotList,
-        closeRemarks: closeRemarks
+        closeRemarks: isAdvancingToHotList 
+          ? closeRemarks 
+          : `[Lost at ${selectedLeadForFollow?.status || 'Unknown'} stage] - ${closeRemarks}`
       };
     }
 
@@ -861,28 +914,7 @@ const LeadsDirectory = () => {
     if (!isRevert && newStatus === 'Booking') {
       const lead = leads.find(l => l._id === leadId);
       if (lead) {
-        // Fetch all quotations to verify if one exists for this lead
-        try {
-          const qRes = await fetch(`${API_URL}/quotations`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-          });
-          if (qRes.ok) {
-            const quotations = await qRes.json();
-            const hasQuotation = quotations.some(q => (q.lead?._id || q.lead) === leadId);
-            if (hasQuotation) {
-              initiateBooking(lead);
-            } else {
-              setPendingLeadForBooking(lead);
-              setQtnConfirmOpen(true);
-            }
-          } else {
-            // Fallback if API fails
-            initiateBooking(lead);
-          }
-        } catch (err) {
-          // Fallback if connection fails
-          initiateBooking(lead);
-        }
+        initiateBooking(lead);
         return;
       }
     }
@@ -1132,8 +1164,6 @@ const LeadsDirectory = () => {
         matchesTab = (lead.status === 'Hot List' || (lead.history && lead.history.some(h => h.status === 'Hot List'))) && !lead.isClosed;
       } else if (activeTab !== 'All') {
         matchesTab = lead.status === activeTab && !lead.isClosed;
-      } else {
-        matchesTab = !lead.isClosed && lead.status !== 'Lost' && lead.status !== 'Cancelled';
       }
       const matchesStatus = !statusFilter || lead.status === statusFilter;
       
@@ -1234,7 +1264,7 @@ const LeadsDirectory = () => {
                 : 'text-gray-500 hover:bg-gray-50 hover:text-gray-800'
             }`}
           >
-            All Active ({leads.filter(l => !l.isClosed && l.status !== 'Lost' && l.status !== 'Cancelled').length})
+            All Leads ({leads.length})
           </button>
           {LEAD_STATUSES.map(st => {
             let count = 0;
@@ -1485,20 +1515,39 @@ const LeadsDirectory = () => {
                 <td className="px-3 py-1.5 border-b border-gray-100">
                   {lead.isClosed ? (
                     <div className="flex flex-col gap-1 items-start">
-                      <span className="text-[9px] font-extrabold text-red-700 bg-red-100 border border-red-200 px-2 py-0.5 rounded-full uppercase tracking-wider">
-                        Closed (Completed)
-                      </span>
-                      {lead.closeRemarks && (
-                        <div className="text-[10px] text-gray-400 italic max-w-[150px] truncate" title={lead.closeRemarks}>
-                          "{lead.closeRemarks}"
-                        </div>
-                      )}
+                      {(() => {
+                        const match = lead.closeRemarks?.match(/\[Lost at (.*?) stage\]/);
+                        const lostStage = match ? match[1] : null;
+                        const displayRemarks = match ? lead.closeRemarks.replace(/\[Lost at .*? stage\] - /, '') : lead.closeRemarks;
+                        return (
+                          <>
+                            <span className="text-[9px] font-extrabold text-red-700 bg-red-100 border border-red-200 px-2 py-0.5 rounded-full uppercase tracking-wider">
+                              {lostStage ? `${lostStage} - Completed` : 'Closed (Completed)'}
+                            </span>
+                            {displayRemarks && (
+                              <div className="text-[10px] text-gray-400 italic max-w-[150px] truncate" title={displayRemarks}>
+                                "{displayRemarks}"
+                              </div>
+                            )}
+                          </>
+                        );
+                      })()}
                       <button
                         onClick={() => handleReopenClosedLead(lead)}
                         className="text-[10px] font-bold text-[#0e623a] hover:underline"
                       >
                         Reopen Lead
                       </button>
+                    </div>
+                  ) : activeTab === 'All' ? (
+                    <div className="flex flex-col items-start gap-1">
+                      <span className={`px-3 py-1.5 rounded-full border text-[10px] font-bold shadow-sm inline-block ${
+                        STATUS_COLORS[lead.status]?.bg || 'bg-gray-50/70'
+                      } ${STATUS_COLORS[lead.status]?.text || 'text-gray-700'} ${
+                        STATUS_COLORS[lead.status]?.border || 'border-gray-200'
+                      }`}>
+                        {lead.status}
+                      </span>
                     </div>
                   ) : (
                     <div className="relative inline-block text-left group">
@@ -2337,7 +2386,7 @@ const LeadsDirectory = () => {
                           : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
                       }`}
                     >
-                      Take Follow-up
+                      {['Site Visit', 'Follow-Up', 'Future Follow-up'].includes(followTargetStatus) ? `Schedule ${followTargetStatus}` : 'Take Follow-up'}
                     </button>
                     <button
                       type="button"
@@ -2400,37 +2449,7 @@ const LeadsDirectory = () => {
                       />
                     </div>
 
-                    {followTargetStatus === 'Site Visit' && (
-                      <div className="bg-[#f0f9f4] p-4 rounded-2xl border border-[#bce2cb]/40 space-y-2">
-                        <label className="text-[11px] font-bold text-[#0e623a] uppercase tracking-wider block">
-                          Select Pipeline Action After Follow-up
-                        </label>
-                        <div className="grid grid-cols-2 gap-3">
-                          <button
-                            type="button"
-                            onClick={() => setSiteVisitAction('Keep')}
-                            className={`py-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 ${
-                              siteVisitAction === 'Keep'
-                                ? 'bg-[#0e623a] text-white shadow-md'
-                                : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
-                            }`}
-                          >
-                            Keep in Site Visit
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setSiteVisitAction('Move')}
-                            className={`py-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 ${
-                              siteVisitAction === 'Move'
-                                ? 'bg-[#0e623a] text-white shadow-md'
-                                : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
-                            }`}
-                          >
-                            Move to Site Visit Follow-up
-                          </button>
-                        </div>
-                      </div>
-                    )}
+
                   </div>
                 ) : (
                   <div className="space-y-4">
@@ -2514,206 +2533,69 @@ const LeadsDirectory = () => {
 
             <form onSubmit={handleBookingSubmit} className="p-6 space-y-6 max-h-[80vh] overflow-y-auto">
               
-              {/* Pre-populated Client & Project Details Header Card */}
-              <div className="bg-emerald-50/50 p-4 border border-emerald-100 rounded-2xl grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <h4 className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider">Client Information</h4>
-                  <div className="text-sm font-bold text-gray-800">{selectedLeadForBooking.name}</div>
-                  <div className="text-xs text-gray-600 flex items-center gap-1">
-                    <Phone className="w-3 h-3 text-emerald-600" />
-                    <span>{selectedLeadForBooking.phone}</span>
+              {/* Dropdown Unit Selection */}
+              <div className="space-y-2 relative">
+                <label className="text-xs font-bold text-gray-700 uppercase tracking-wider block">
+                  Select {bookingProjectDetails?.projectType || 'Unit'} Numbers
+                </label>
+                
+                <div className="relative">
+                  <div 
+                    onClick={() => setUnitDropdownOpen(!unitDropdownOpen)}
+                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl cursor-pointer flex justify-between items-center text-sm text-gray-800 focus:outline-none focus:ring-1 focus:ring-[#0e623a]"
+                  >
+                    <span className={selectedBookingUnits.length > 0 ? "font-bold text-[#0e623a]" : "text-gray-400"}>
+                      {selectedBookingUnits.length > 0 
+                        ? selectedBookingUnits.join(', ') 
+                        : 'Select available units...'}
+                    </span>
+                    <ChevronDown className={`w-4 h-4 text-gray-500 transition-transform ${unitDropdownOpen ? 'rotate-180' : ''}`} />
                   </div>
-                  <div className="text-xs text-gray-500">{selectedLeadForBooking.address}</div>
-                </div>
-
-                <div className="space-y-1 border-t sm:border-t-0 sm:border-l border-emerald-100 sm:pl-4">
-                  <h4 className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider">Selected Project</h4>
-                  <div className="text-sm font-bold text-gray-800">{selectedLeadForBooking.project?.name || 'Loading Project...'}</div>
-                  <div className="text-xs text-gray-600 flex items-center gap-1">
-                    <Building className="w-3 h-3 text-emerald-600" />
-                    <span>Code: {selectedLeadForBooking.project?.code}</span>
-                  </div>
-                  {bookingProjectDetails && (
-                    <div className="text-[10px] bg-white border px-2 py-0.5 rounded inline-block text-emerald-700 font-bold mt-1">
-                      {bookingProjectDetails.projectType} Project • Rs. {bookingProjectDetails.pricePerSqFt}/Sq.Ft
+                  
+                  {unitDropdownOpen && (
+                    <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-64 flex flex-col overflow-hidden">
+                      <div className="p-2 border-b border-gray-100 bg-gray-50">
+                        <input
+                          type="text"
+                          placeholder="Search units..."
+                          value={typedBookingUnits}
+                          onChange={(e) => setTypedBookingUnits(e.target.value)}
+                          onClick={(e) => e.stopPropagation()}
+                          className="w-full px-2 py-1.5 text-xs bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#0e623a]"
+                        />
+                      </div>
+                      <div className="overflow-y-auto p-1 max-h-48">
+                        {bookingProjectDetails?.units
+                          ?.filter(u => u.status !== 'Booked' && u.status !== 'Sold Out')
+                          .filter(u => !typedBookingUnits || u.unitId.toLowerCase().includes(typedBookingUnits.toLowerCase()))
+                          .map(u => (
+                            <label key={u.unitId} className="flex items-center gap-2 px-3 py-2 hover:bg-emerald-50 cursor-pointer transition rounded-lg">
+                              <input
+                                type="checkbox"
+                                checked={selectedBookingUnits.includes(u.unitId)}
+                                onChange={(e) => {
+                                  if (e.target.checked) {
+                                    setSelectedBookingUnits([...selectedBookingUnits, u.unitId]);
+                                  } else {
+                                    setSelectedBookingUnits(selectedBookingUnits.filter(id => id !== u.unitId));
+                                  }
+                                }}
+                                className="text-[#0e623a] focus:ring-[#0e623a] rounded cursor-pointer"
+                              />
+                              <span className="text-sm font-semibold text-gray-700">{u.unitId} <span className="text-xs font-normal text-gray-400">({u.size} Sq.Ft)</span></span>
+                            </label>
+                          ))
+                        }
+                        {(!bookingProjectDetails?.units || bookingProjectDetails.units.filter(u => u.status !== 'Booked' && u.status !== 'Sold Out').length === 0) && (
+                          <div className="px-3 py-3 text-xs text-gray-500 text-center">No available units found.</div>
+                        )}
+                        {(bookingProjectDetails?.units && typedBookingUnits && bookingProjectDetails.units.filter(u => u.status !== 'Booked' && u.status !== 'Sold Out' && u.unitId.toLowerCase().includes(typedBookingUnits.toLowerCase())).length === 0) && (
+                          <div className="px-3 py-3 text-xs text-gray-500 text-center">No units match your search.</div>
+                        )}
+                      </div>
                     </div>
                   )}
                 </div>
-              </div>
-
-              {/* Dynamic Interactive Unit Selection */}
-              <div className="space-y-2">
-                <div className="flex justify-between items-center">
-                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block">
-                    Select Available {bookingProjectDetails?.projectType || 'Unit'}(s)
-                  </label>
-                  <span className="text-[10px] bg-gray-100 text-gray-600 font-bold px-2 py-0.5 rounded-full">
-                    {selectedBookingUnits.length} Selected
-                  </span>
-                </div>
-
-                {bookingLoading ? (
-                  <div className="p-8 text-center text-xs text-gray-500">Loading available layout plans and units...</div>
-                ) : bookingProjectDetails ? (
-                  <div className="space-y-6">
-                    {/* Real Layout Plan Map Image if configured */}
-                    {bookingProjectDetails.layoutPlanImage && (
-                      <div className="bg-gray-50 border border-gray-150 p-4 rounded-2xl flex flex-col md:flex-row gap-6 items-center">
-                        <div className="w-full md:w-1/2 rounded-xl overflow-hidden border border-gray-250 bg-white cursor-pointer relative group flex items-center justify-center min-h-[200px]">
-                          <img 
-                            src={bookingProjectDetails.layoutPlanImage} 
-                            alt={`${bookingProjectDetails.name} Layout Plan`} 
-                            className="max-h-[300px] w-auto object-contain transition group-hover:scale-102"
-                            onClick={() => window.open(bookingProjectDetails.layoutPlanImage, '_blank')}
-                          />
-                          <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition duration-200">
-                            <span className="text-xs text-white font-extrabold bg-gray-900/80 px-3 py-1.5 rounded-xl">Click to Expand Layout Plan Map</span>
-                          </div>
-                        </div>
-                        <div className="flex-1 space-y-2 text-xs text-gray-550 leading-relaxed text-left">
-                          <h4 className="font-extrabold text-gray-800 text-sm">Interactive Project Map</h4>
-                          <p>Use the layout map on the left to locate plot positions, roads, and dimensions. Once identified, select the corresponding plot identifiers in the selection panel below.</p>
-                          <div className="flex flex-wrap gap-4 mt-2">
-                            <span className="flex items-center gap-1.5 font-bold"><span className="w-2.5 h-2.5 rounded bg-[#0e623a]"></span>Selected</span>
-                            <span className="flex items-center gap-1.5 font-bold"><span className="w-2.5 h-2.5 rounded bg-yellow-400"></span>Booked / Sold</span>
-                            <span className="flex items-center gap-1.5 font-bold"><span className="w-2.5 h-2.5 rounded bg-[#ebfaf1]"></span>Available</span>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Plots Layout styling - Real representation (grass color, grid boxes) */}
-                    {bookingProjectDetails.projectType === 'Plot' && (
-                      <div className="space-y-2">
-                        <div className="grid grid-cols-4 sm:grid-cols-6 gap-3">
-                          {bookingProjectDetails.units?.map(u => {
-                            const isSelected = selectedBookingUnits.includes(u.unitId);
-                            const isBooked = u.status === 'Booked' || u.status === 'Sold Out';
-                            return (
-                              <button
-                                key={u.unitId}
-                                type="button"
-                                disabled={isBooked}
-                                onClick={() => {
-                                  if (isSelected) {
-                                    setSelectedBookingUnits(selectedBookingUnits.filter(id => id !== u.unitId));
-                                  } else {
-                                    setSelectedBookingUnits([...selectedBookingUnits, u.unitId]);
-                                  }
-                                }}
-                                className={`p-2.5 rounded-xl border flex flex-col items-center justify-center relative transition min-h-[75px] ${
-                                  isBooked
-                                    ? 'bg-yellow-100 border-yellow-300 text-yellow-800 cursor-not-allowed opacity-90'
-                                    : isSelected
-                                    ? 'bg-emerald-800 border-emerald-950 text-white shadow-md font-bold scale-105 ring-2 ring-emerald-300'
-                                    : 'bg-gradient-to-br from-emerald-50 to-green-150 hover:from-emerald-100 hover:to-green-200 border-emerald-250 text-emerald-800 hover:scale-102'
-                                }`}
-                              >
-                                <div className="text-[10px] uppercase font-semibold text-gray-400">Plot</div>
-                                <div className="text-xs font-bold">{u.unitId}</div>
-                                <div className="text-[9px] mt-0.5 opacity-80">{Number(u.size).toFixed(2)} Sq.Ft</div>
-                                {isSelected && (
-                                  <span className="absolute top-1 right-1 bg-white text-emerald-800 rounded-full p-0.5 shadow-sm">
-                                    <Check className="w-2.5 h-2.5" />
-                                  </span>
-                                )}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Flats Layout styling - Grouped by floors */}
-                    {bookingProjectDetails.projectType === 'Flat' && (
-                      <div className="space-y-4">
-                        {Array.from(new Set(bookingProjectDetails.units?.map(u => u.floor || 'G') || [])).sort().map(floor => (
-                          <div key={floor} className="bg-gray-50/50 p-3 rounded-2xl border border-gray-150 space-y-2">
-                            <h5 className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Floor: {floor}</h5>
-                            <div className="grid grid-cols-4 sm:grid-cols-6 gap-3">
-                              {bookingProjectDetails.units?.filter(u => (u.floor || 'G') === floor).map(u => {
-                                const isSelected = selectedBookingUnits.includes(u.unitId);
-                                const isBooked = u.status === 'Booked' || u.status === 'Sold Out';
-                                return (
-                                  <button
-                                    key={u.unitId}
-                                    type="button"
-                                    disabled={isBooked}
-                                    onClick={() => {
-                                      if (isSelected) {
-                                        setSelectedBookingUnits(selectedBookingUnits.filter(id => id !== u.unitId));
-                                      } else {
-                                        setSelectedBookingUnits([...selectedBookingUnits, u.unitId]);
-                                      }
-                                    }}
-                                    className={`p-2.5 rounded-xl border flex flex-col items-center justify-center relative transition ${
-                                      isBooked
-                                        ? 'bg-yellow-100 border-yellow-300 text-yellow-800 cursor-not-allowed opacity-90'
-                                        : isSelected
-                                        ? 'bg-[#0e623a] border-[#0a4d2c] text-white shadow-md font-bold scale-105 ring-2 ring-emerald-300'
-                                        : 'bg-white hover:bg-gray-50 border-gray-200 text-gray-700'
-                                    }`}
-                                  >
-                                    <Building2 className={`w-4 h-4 mb-0.5 ${isSelected ? 'text-white' : 'text-gray-400'}`} />
-                                    <div className="text-xs font-bold">{u.unitId}</div>
-                                    <div className="text-[9px] mt-0.5 opacity-80">{Number(u.size).toFixed(2)} Sq.Ft</div>
-                                    {isSelected && (
-                                      <span className="absolute top-1 right-1 bg-white text-[#0e623a] rounded-full p-0.5">
-                                        <Check className="w-2.5 h-2.5" />
-                                      </span>
-                                    )}
-                                  </button>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
-                    {/* Villas Layout styling - House icons */}
-                    {(bookingProjectDetails.projectType === 'House' || bookingProjectDetails.projectType === 'Villa' || bookingProjectDetails.projectType?.includes?.('House') || bookingProjectDetails.projectType?.includes?.('Villa')) && (
-                      <div className="grid grid-cols-3 sm:grid-cols-4 gap-4">
-                        {bookingProjectDetails.units?.map(u => {
-                          const isSelected = selectedBookingUnits.includes(u.unitId);
-                          const isBooked = u.status === 'Booked' || u.status === 'Sold Out';
-                          return (
-                            <button
-                              key={u.unitId}
-                              type="button"
-                              disabled={isBooked}
-                              onClick={() => {
-                                if (isSelected) {
-                                  setSelectedBookingUnits(selectedBookingUnits.filter(id => id !== u.unitId));
-                                } else {
-                                  setSelectedBookingUnits([...selectedBookingUnits, u.unitId]);
-                                }
-                              }}
-                              className={`p-3.5 rounded-2xl border flex flex-col items-center justify-center relative transition min-h-[90px] ${
-                                isBooked
-                                  ? 'bg-yellow-100 border-yellow-300 text-yellow-800 cursor-not-allowed opacity-90'
-                                  : isSelected
-                                  ? 'bg-[#0e623a] border-[#0a4d2c] text-white shadow-md font-bold scale-105 ring-2 ring-emerald-300'
-                                  : 'bg-white hover:bg-gray-50 border-gray-200 text-gray-700'
-                              }`}
-                            >
-                              <Home className={`w-5 h-5 mb-1.5 ${isSelected ? 'text-white' : 'text-[#0e623a]'}`} />
-                              <div className="text-xs font-bold">{u.unitId}</div>
-                              <div className="text-[10px] text-gray-400 font-semibold">{Number(u.size).toFixed(2)} Sq.Ft</div>
-                              {isSelected && (
-                                <span className="absolute top-1.5 right-1.5 bg-white text-[#0e623a] rounded-full p-0.5">
-                                  <Check className="w-2.5 h-2.5" />
-                                </span>
-                              )}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <div className="p-4 text-center text-xs text-gray-400">Select project to load available plans.</div>
-                )}
               </div>
 
               {/* Pricing & Quotation breakdown */}
@@ -2733,13 +2615,17 @@ const LeadsDirectory = () => {
                           .reduce((sum, u) => sum + u.size, 0).toFixed(2)} Sq.Ft
                       </span>
                     </div>
-                    <div className="flex justify-between border-t pt-1.5 text-sm font-bold text-gray-800">
+                    <div className="flex justify-between border-t pt-1.5 text-sm font-bold text-gray-800 items-center">
                       <span>Total Valuation Cost:</span>
-                      <span className="text-[#0e623a]">
-                        Rs. {bookingProjectDetails.units
-                          ?.filter(u => selectedBookingUnits.includes(u.unitId))
-                          .reduce((sum, u) => sum + u.price, 0).toLocaleString()}
-                      </span>
+                      <div className="flex items-center gap-1">
+                        <span className="text-[#0e623a]">Rs.</span>
+                        <input
+                          type="number"
+                          value={customBookingAmount}
+                          onChange={(e) => setCustomBookingAmount(e.target.value)}
+                          className="w-28 text-right bg-white border border-[#bce2cb] rounded px-2 py-1 text-[#0e623a] focus:outline-none focus:ring-1 focus:ring-[#0e623a]"
+                        />
+                      </div>
                     </div>
                   </div>
                 </div>

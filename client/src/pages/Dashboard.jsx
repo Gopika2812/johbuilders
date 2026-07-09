@@ -18,7 +18,8 @@ import {
   User,
   FolderOpen,
   Layers,
-  Download
+  Download,
+  Clock
 } from 'lucide-react';
 
 const getCoordinatesForPercent = (percent) => {
@@ -393,7 +394,7 @@ const Dashboard = () => {
   const [breakdownModalData, setBreakdownModalData] = useState({ title: '', users: [] });
   const [inventoryModalOpen, setInventoryModalOpen] = useState(false);
   const [selectedInventoryProj, setSelectedInventoryProj] = useState(null); // { projCode, stats }
-  const [cardBreakdownModal, setCardBreakdownModal] = useState({ open: false, type: '' });
+
 
   const handleStageClick = (stageLabel, sourceContext) => {
     if (!stats.cards.leadsList) return;
@@ -423,7 +424,7 @@ const Dashboard = () => {
     } else if (stageLabel === 'Site Visit') {
       filtered = filtered.filter(l => l.status === 'Site Visit' || l.status === 'Site Visit Follow-up');
     } else if (stageLabel === 'Hot List') {
-      filtered = filtered.filter(l => l.status === 'Qualified');
+      filtered = filtered.filter(l => l.status === 'Hot List');
     } else if (stageLabel === 'Booking') {
       filtered = filtered.filter(l => l.status === 'Booking');
     } else if (stageLabel === 'Handover') {
@@ -509,6 +510,7 @@ const Dashboard = () => {
   const [showDetailedPreviewModal, setShowDetailedPreviewModal] = useState(false);
   const [showSourceDetailedPreviewModal, setShowSourceDetailedPreviewModal] = useState(false);
 
+  const [pendingFollowUps, setPendingFollowUps] = useState([]);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
     cards: {
@@ -956,6 +958,7 @@ const Dashboard = () => {
 
   useEffect(() => {
     fetchDashboardStats();
+    fetchPendingFollowUps();
   }, [fromDate, toDate, selectedUser, selectedProject, selectedProjectType, selectedSource]);
 
   const fetchDashboardStats = async () => {
@@ -978,6 +981,20 @@ const Dashboard = () => {
       console.error('Error loading dashboard stats:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchPendingFollowUps = async () => {
+    try {
+      const response = await fetch(`${API_URL}/leads/due-followups`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setPendingFollowUps(data);
+      }
+    } catch (err) {
+      console.error('Error fetching due follow-ups:', err);
     }
   };
 
@@ -1511,14 +1528,16 @@ const Dashboard = () => {
 
   const { budgetData, spentData, networthData } = getSourcesData();
   const primaryColors = [
-    '#0e623a', // Brand Green (Dominant Highlight)
-    '#3b82f6', // Electric Blue (Secondary Highlight)
-    '#94a3b8', // Slate Grey (Muted Accent)
-    '#8b5cf6', // Lavender Purple
-    '#5c8d70', // Sage Green
-    '#f59e0b', // Warm Amber
-    '#b0b3c2', // Medium Silver
-    '#e2e8f0'  // Light Slate
+    '#0e623a', // Brand Green
+    '#1e3a8a', // Dark Blue
+    '#b91c1c', // Dark Red
+    '#c2410c', // Dark Orange
+    '#6d28d9', // Dark Purple
+    '#0f766e', // Dark Teal
+    '#4d7c0f', // Dark Olive
+    '#831843', // Dark Pink
+    '#a16207', // Dark Gold
+    '#374151'  // Dark Slate
   ];
 
   return (
@@ -1812,8 +1831,7 @@ const Dashboard = () => {
 
               {/* Card 1: Total Followup */}
               <div 
-                onClick={() => setCardBreakdownModal({ open: true, type: 'enquiries' })}
-                className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm hover:shadow-md transition cursor-pointer select-none active:scale-[0.99] duration-150 flex flex-col justify-between"
+                className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm transition flex flex-col justify-between"
               >
                 <div className="flex items-center justify-between">
                   <div>
@@ -1833,8 +1851,7 @@ const Dashboard = () => {
 
               {/* Card 2: Total Site Visits */}
               <div 
-                onClick={() => setCardBreakdownModal({ open: true, type: 'siteVisits' })}
-                className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm hover:shadow-md transition cursor-pointer select-none active:scale-[0.99] duration-150 flex flex-col justify-between"
+                className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm transition flex flex-col justify-between"
               >
                 <div className="flex items-center justify-between">
                   <div>
@@ -1862,7 +1879,7 @@ const Dashboard = () => {
 
                 </div>
                 {/* <div className="flex justify-between items-center mt-4 pt-2 border-t border-gray-50 text-[10px] font-bold">
-                  <span className="text-gray-400 font-semibold uppercase tracking-wider">Qualified Leads</span>
+                  <span className="text-gray-400 font-semibold uppercase tracking-wider">Hot List Leads</span>
                   <span className="text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">Today: {stats.cards.today?.hotList || 0}</span>
                 </div> */}
               </div>
@@ -1899,6 +1916,44 @@ const Dashboard = () => {
           </div>
 
 
+
+          {/* Pending Follow-ups Widget */}
+          {pendingFollowUps.length > 0 && (
+            <div className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm mb-8 animate-fadeIn">
+              <div className="flex items-center gap-2 border-b border-gray-100 pb-3 mb-4">
+                <Clock className="w-5 h-5 text-amber-500" />
+                <h3 className="text-sm font-extrabold text-gray-800 uppercase tracking-wide">
+                  Pending Follow-ups ({pendingFollowUps.length})
+                </h3>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {pendingFollowUps.map(lead => (
+                  <div key={lead._id} className="bg-amber-50/50 border border-amber-100 rounded-2xl p-4 hover:shadow-md transition">
+                    <div className="flex justify-between items-start mb-2">
+                      <div>
+                        <h4 className="font-bold text-gray-800">{lead.name}</h4>
+                        <p className="text-[10px] text-gray-500 font-medium">{lead.phone}</p>
+                      </div>
+                      <span className="text-[9px] font-bold px-2 py-0.5 bg-[#0e623a]/10 text-[#0e623a] rounded-full uppercase">
+                        {lead.project?.code || 'No Project'}
+                      </span>
+                    </div>
+                    <div className="text-[10px] text-amber-700 font-semibold mb-3">
+                      Due: {new Date(lead.followUpInfo?.nextFollowUpDate).toLocaleString()}
+                    </div>
+                    <div className="text-right border-t border-amber-100/50 pt-2">
+                      <button
+                        onClick={() => navigate(`/leads?search=${lead.name}`)}
+                        className="text-[10px] font-bold text-blue-600 hover:text-blue-700 uppercase tracking-wider"
+                      >
+                        Take Action →
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* User Wise & Stage Wise Performance Pie Reports */}
           <div className="flex flex-col gap-8">
@@ -2252,32 +2307,17 @@ const Dashboard = () => {
                   {Object.keys(stats.projectStats || {}).length === 0 ? (
                     <p className="text-gray-400 italic text-xs py-8 text-center">No project metrics logged</p>
                   ) : (
-                    !selectedProjectPerfCode ? (
-                      renderPieChart(
-                        Object.keys(stats.projectStats).map(pCode => ({
-                          projectCode: pCode,
-                          count: stats.projectStats[pCode].count || 0
-                        })),
-                        'count',
-                        'projectCode',
-                        primaryColors,
-                        true,
-                        (item) => {
-                          setSelectedProjectPerfCode(item.projectCode);
-                          setSelectedProjectPerfUser(null);
-                        },
-                        null
-                      )
-                    ) : (
-                      renderPieChart(
-                        selectedProjectPerfUser ? projectUsersData.filter(u => u.personName === selectedProjectPerfUser) : projectUsersData,
-                        'totalLeads',
-                        'personName',
-                        primaryColors,
-                        true,
-                        (item) => setSelectedProjectPerfUser(item.personName),
-                        selectedProjectPerfUser
-                      )
+                    renderPieChart(
+                      Object.keys(stats.projectStats).map(pCode => ({
+                        projectCode: pCode,
+                        count: stats.projectStats[pCode].count || 0
+                      })),
+                      'count',
+                      'projectCode',
+                      primaryColors,
+                      true,
+                      (item) => setSelectedProjectPerfCode(item.projectCode),
+                      selectedProjectPerfCode
                     )
                   )}
                 </div>
@@ -2287,23 +2327,27 @@ const Dashboard = () => {
                     <div className="border-b border-gray-200/60 pb-2">
                       <span className="text-[9px] text-gray-400 font-extrabold uppercase tracking-wider block">Currently Showing Project</span>
                       <h4 className="text-xs font-extrabold text-gray-800 uppercase tracking-wide truncate mt-0.5">
-                        {selectedProjectPerfCode} {selectedProjectPerfUser ? ` - ${selectedProjectPerfUser}` : ' - All Users'}
+                        {selectedProjectPerfCode}
                       </h4>
                     </div>
 
-                    {selectedProjectPerfUser && selectedProjectUserData ? (
+                    {stats.projectStats[selectedProjectPerfCode] ? (
                       <div className="space-y-3">
                         {[
-                          { label: 'Total Leads', count: selectedProjectUserData.totalLeads, color: 'bg-gray-400', icon: TrendingUp },
-                          { label: 'Enquiries', count: selectedProjectUserData.enquiries, color: 'bg-emerald-600', icon: Users },
-                          { label: 'Site Visit', count: selectedProjectUserData.siteVisits, color: 'bg-blue-500', icon: MapPin },
-                          { label: 'Hot List', count: selectedProjectUserData.hotList, color: 'bg-amber-500', icon: Target },
-                          { label: 'Booking', count: selectedProjectUserData.booked || 0, color: 'bg-rose-500', icon: DollarSign },
-                          { label: 'Lost', count: selectedProjectUserData.lost, color: 'bg-red-500', icon: TrendingDown }
+                          { label: 'Total Leads', count: stats.projectStats[selectedProjectPerfCode].count, color: 'bg-gray-400', icon: TrendingUp },
+                          ...Object.keys(stats.projectStats[selectedProjectPerfCode].stages || {}).map((stageName, i) => {
+                            const colors = ['bg-emerald-600', 'bg-blue-500', 'bg-amber-500', 'bg-rose-500', 'bg-purple-500', 'bg-teal-500', 'bg-orange-500', 'bg-red-500'];
+                            return {
+                              label: stageName,
+                              count: stats.projectStats[selectedProjectPerfCode].stages[stageName],
+                              color: colors[i % colors.length],
+                              icon: Users
+                            };
+                          })
                         ].filter(m => m.label === 'Total Leads' || m.count > 0).map((m, idx) => {
                           const IconComponent = m.icon;
-                          const percentageOfTotal = selectedProjectUserData.totalLeads > 0 
-                            ? (m.count / selectedProjectUserData.totalLeads) * 100 
+                          const percentageOfTotal = stats.projectStats[selectedProjectPerfCode].count > 0 
+                            ? (m.count / stats.projectStats[selectedProjectPerfCode].count) * 100 
                             : 0;
                           return (
                             <div 
@@ -2319,7 +2363,7 @@ const Dashboard = () => {
                                 </div>
                                 <div className="font-extrabold text-gray-800">
                                   {m.count}
-                                  {m.label !== 'Total Leads' && selectedProjectUserData.totalLeads > 0 && (
+                                  {m.label !== 'Total Leads' && stats.projectStats[selectedProjectPerfCode].count > 0 && (
                                     <span className="text-[9px] text-gray-455 font-normal ml-1">({percentageOfTotal.toFixed(0)}%)</span>
                                   )}
                                 </div>
@@ -2336,7 +2380,7 @@ const Dashboard = () => {
                       </div>
                     ) : (
                       <div className="flex items-center justify-center h-48 text-gray-400 italic text-xs">
-                        Select a user to see stage breakdown
+                        Select a project to see stage breakdown
                       </div>
                     )}
                   </div>
@@ -3245,110 +3289,6 @@ const Dashboard = () => {
         </div>
       )}
 
-      {/* Card Breakdown Modal (Enquiries / Site Visits) */}
-      {cardBreakdownModal.open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
-            {/* Header */}
-            <div className="p-6 pb-4 border-b border-gray-100 bg-gradient-to-r from-[#0e623a]/5 to-blue-50/50">
-              <div className="flex items-center justify-between">
-                <h3 className="text-base font-extrabold text-gray-800 flex items-center gap-2">
-                  {cardBreakdownModal.type === 'enquiries' ? (
-                    <>
-                      <Users className="w-5 h-5 text-[#0e623a]" />
-                      <span>Enquiries Stage Breakdown</span>
-                    </>
-                  ) : (
-                    <>
-                      <MapPin className="w-5 h-5 text-blue-600" />
-                      <span>Site Visit Stage Breakdown</span>
-                    </>
-                  )}
-                </h3>
-                <button
-                  onClick={() => setCardBreakdownModal({ open: false, type: '' })}
-                  className="p-2 hover:bg-gray-100 rounded-xl transition cursor-pointer"
-                >
-                  <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-            </div>
-
-            {/* Body */}
-            <div className="p-6 space-y-3">
-              {cardBreakdownModal.type === 'enquiries' ? (
-                <>
-                  <div className="flex items-center justify-between bg-gray-50 rounded-2xl p-4 border border-gray-100">
-                    <div className="flex items-center gap-3">
-                      <div className="w-3 h-3 rounded-full bg-[#0e623a]"></div>
-                      <span className="text-sm font-bold text-gray-700">Follow-Up (Active)</span>
-                    </div>
-                    <span className="text-xl font-extrabold text-[#0e623a]">{stats.cards.enquiries?.followup || 0}</span>
-                  </div>
-                  <div className="flex items-center justify-between bg-gray-50 rounded-2xl p-4 border border-gray-100">
-                    <div className="flex items-center gap-3">
-                      <div className="w-3 h-3 rounded-full bg-amber-500"></div>
-                      <span className="text-sm font-bold text-gray-700">Contacted</span>
-                    </div>
-                    <span className="text-xl font-extrabold text-amber-600">{stats.cards.enquiries?.contacted || 0}</span>
-                  </div>
-                  <div className="flex items-center justify-between bg-rose-50/50 rounded-2xl p-4 border border-rose-100">
-                    <div className="flex items-center gap-3">
-                      <div className="w-3 h-3 rounded-full bg-rose-500"></div>
-                      <span className="text-sm font-bold text-rose-700">Contacted Closed (Lost)</span>
-                    </div>
-                    <span className="text-xl font-extrabold text-rose-600">{stats.cards.enquiries?.closed || 0}</span>
-                  </div>
-                  <div className="flex items-center justify-between bg-[#0e623a]/5 rounded-2xl p-4 border border-[#0e623a]/10 mt-2">
-                    <span className="text-sm font-extrabold text-gray-800">Total Enquiries</span>
-                    <span className="text-xl font-extrabold text-gray-800">{stats.cards.enquiries?.total || 0}</span>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div className="flex items-center justify-between bg-gray-50 rounded-2xl p-4 border border-gray-100">
-                    <div className="flex items-center gap-3">
-                      <div className="w-3 h-3 rounded-full bg-blue-500"></div>
-                      <span className="text-sm font-bold text-gray-700">Site Visit (Active)</span>
-                    </div>
-                    <span className="text-xl font-extrabold text-blue-600">{(stats.cards.siteVisits?.siteVisit || 0) + (stats.cards.siteVisits?.followup || 0)}</span>
-                  </div>
-                  <div className="flex items-center justify-between bg-gray-50 rounded-2xl p-4 border border-gray-100">
-                    <div className="flex items-center gap-3">
-                      <div className="w-3 h-3 rounded-full bg-purple-500"></div>
-                      <span className="text-sm font-bold text-gray-700">Site Visit Follow-up</span>
-                    </div>
-                    <span className="text-xl font-extrabold text-purple-600">{stats.cards.siteVisits?.followup || 0}</span>
-                  </div>
-                  <div className="flex items-center justify-between bg-rose-50/50 rounded-2xl p-4 border border-rose-100">
-                    <div className="flex items-center gap-3">
-                      <div className="w-3 h-3 rounded-full bg-rose-500"></div>
-                      <span className="text-sm font-bold text-rose-700">Site Visit Closed (Lost)</span>
-                    </div>
-                    <span className="text-xl font-extrabold text-rose-600">{stats.cards.siteVisits?.closed || 0}</span>
-                  </div>
-                  <div className="flex items-center justify-between bg-blue-50/50 rounded-2xl p-4 border border-blue-100 mt-2">
-                    <span className="text-sm font-extrabold text-gray-800">Total Site Visits</span>
-                    <span className="text-xl font-extrabold text-gray-800">{stats.cards.siteVisits?.total || 0}</span>
-                  </div>
-                </>
-              )}
-            </div>
-
-            {/* Footer */}
-            <div className="p-5 border-t border-gray-100 bg-gray-50/30 flex justify-end">
-              <button
-                onClick={() => setCardBreakdownModal({ open: false, type: '' })}
-                className="px-5 py-2.5 bg-[#0e623a] hover:bg-[#0b4d2d] text-white text-xs font-bold rounded-xl transition cursor-pointer"
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

@@ -24,24 +24,40 @@ const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
 
   const fetchNotifications = async () => {
     try {
-      const res = await fetch(`${API_URL}/leads/today-assigned`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setNotifications(data);
+      const [resAssigned, resFollowUps] = await Promise.all([
+        fetch(`${API_URL}/leads/today-assigned`, { headers: { 'Authorization': `Bearer ${token}` } }),
+        fetch(`${API_URL}/leads/due-followups`, { headers: { 'Authorization': `Bearer ${token}` } })
+      ]);
 
-        // Check ignored leads
-        const ignoredIds = JSON.parse(sessionStorage.getItem('ignored_assignments') || '[]');
-        const newLeads = data.filter(lead => !ignoredIds.includes(lead._id));
+      let dataAssigned = [];
+      let dataFollowUps = [];
 
-        if (newLeads.length > 0) {
-          setPopupLeads(newLeads);
-          setShowPopup(true);
+      if (resAssigned.ok) dataAssigned = await resAssigned.json();
+      if (resFollowUps.ok) dataFollowUps = await resFollowUps.json();
+
+      // Combine and deduplicate
+      const combined = [...dataAssigned, ...dataFollowUps];
+      const uniqueIds = new Set();
+      const uniqueData = combined.filter(lead => {
+        if (!uniqueIds.has(lead._id)) {
+          uniqueIds.add(lead._id);
+          return true;
         }
+        return false;
+      });
+
+      setNotifications(uniqueData);
+
+      // Check ignored leads
+      const ignoredIds = JSON.parse(sessionStorage.getItem('ignored_assignments') || '[]');
+      const newLeads = uniqueData.filter(lead => !ignoredIds.includes(lead._id));
+
+      if (newLeads.length > 0) {
+        setPopupLeads(newLeads);
+        setShowPopup(true);
       }
     } catch (err) {
-      console.error('Error fetching today\'s assignments:', err);
+      console.error('Error fetching notifications:', err);
     }
   };
 
@@ -132,7 +148,7 @@ const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
             {showDropdown && (
               <div className="absolute right-0 mt-2.5 w-80 bg-white border border-gray-150 rounded-2xl shadow-xl z-[100] p-4 text-left animate-fadeIn max-h-80 flex flex-col">
                 <div className="flex items-center justify-between border-b border-gray-100 pb-2 mb-2">
-                  <span className="text-xs font-bold text-gray-800 uppercase tracking-wide">Today's Assignments</span>
+                  <span className="text-[10px] font-bold text-gray-800 uppercase tracking-wide">Assignments & Follow-ups</span>
                   <span className="text-[10px] font-extrabold px-2 py-0.5 bg-[#0e623a]/10 text-[#0e623a] rounded-full">
                     {notifications.length} Pending
                   </span>
@@ -155,7 +171,7 @@ const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
                           </span>
                         </div>
                         <div className="text-[10px] text-gray-500 flex justify-between">
-                          <span>Source: {lead.leadSource}</span>
+                          <span>{lead.leadSource ? `Source: ${lead.leadSource}` : `Next Follow-Up: ${new Date(lead.followUpInfo?.nextFollowUpDate).toLocaleString()}`}</span>
                           {(user?.role === 'Admin' || user?.role === 'Manager' || user?.role === 'Super Admin') && (
                             <span className="font-semibold text-gray-650">Executive: {lead.assignedTo?.name || 'Unassigned'}</span>
                           )}
@@ -163,9 +179,9 @@ const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
                       </div>
                     ))
                   ) : (
-                    <div className="py-8 text-center text-gray-400 italic text-xs">
-                      No leads assigned today are pending action.
-                    </div>
+                      <div className="py-8 text-center text-gray-400 italic text-xs">
+                        No assignments or due follow-ups pending action.
+                      </div>
                   )}
                 </div>
               </div>
@@ -196,9 +212,9 @@ const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
               </div>
               <div>
                 <h3 className="text-sm font-extrabold text-gray-800 uppercase tracking-wide">
-                  New Assignments Today
+                  New Alerts & Follow-ups
                 </h3>
-                <p className="text-[10px] text-gray-500">Please review and progress these leads</p>
+                <p className="text-[10px] text-gray-500">Please review and action these leads</p>
               </div>
             </div>
 

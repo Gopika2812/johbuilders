@@ -241,7 +241,7 @@ router.get('/stats', protect, async (req, res) => {
         sourceStats[src].enquiries = (sourceStats[src].enquiries || 0) + 1;
       } else if (status === 'Site Visit' || status === 'Site Visit Follow-up') {
         sourceStats[src].siteVisits = (sourceStats[src].siteVisits || 0) + 1;
-      } else if (status === 'Qualified') {
+      } else if (status === 'Hot List') {
         sourceStats[src].hotList = (sourceStats[src].hotList || 0) + 1;
       } else if (status === 'Booking') {
         sourceStats[src].booked = (sourceStats[src].booked || 0) + 1;
@@ -290,7 +290,7 @@ router.get('/stats', protect, async (req, res) => {
           const s = entry.status;
           if (s === 'Contacted' || s === 'Follow-Up') enteredEnquiry = true;
           if (s === 'Site Visit' || s === 'Site Visit Follow-up') enteredSiteVisit = true;
-          if (s === 'Qualified') enteredHotList = true;
+          if (s === 'Hot List') enteredHotList = true;
           if (s === 'Booking') enteredBooked = true;
           if (s === 'Won') enteredHandover = true;
         }
@@ -300,7 +300,7 @@ router.get('/stats', protect, async (req, res) => {
       if (createdInRange) {
         if (status === 'Contacted' || status === 'Follow-Up') enteredEnquiry = true;
         if (status === 'Site Visit' || status === 'Site Visit Follow-up') enteredSiteVisit = true;
-        if (status === 'Qualified') enteredHotList = true;
+        if (status === 'Hot List') enteredHotList = true;
         if (status === 'Booking') enteredBooked = true;
         if (status === 'Won') enteredHandover = true;
       }
@@ -320,7 +320,7 @@ router.get('/stats', protect, async (req, res) => {
         liveSiteVisits++;
         if (status === 'Site Visit') siteVisitCount++;
         if (status === 'Site Visit Follow-up') siteVisitFollowupCount++;
-      } else if (status === 'Qualified') {
+      } else if (status === 'Hot List') {
         liveHotList++;
         hotListCount++;
       } else if (status === 'Booking') {
@@ -644,7 +644,7 @@ router.get('/stats', protect, async (req, res) => {
         personProjectStages[personProjectKey].enquiries += 1;
       } else if (status === 'Site Visit' || status === 'Site Visit Follow-up') {
         personProjectStages[personProjectKey].siteVisits += 1;
-      } else if (status === 'Qualified') {
+      } else if (status === 'Hot List') {
         personProjectStages[personProjectKey].hotList += 1;
       } else if (status === 'Booking') {
         personProjectStages[personProjectKey].booked += 1;
@@ -666,7 +666,7 @@ router.get('/stats', protect, async (req, res) => {
           projectStages[pCode].enquiries += 1;
         } else if (status === 'Site Visit' || status === 'Site Visit Follow-up') {
           projectStages[pCode].siteVisits += 1;
-        } else if (status === 'Qualified') {
+        } else if (status === 'Hot List') {
           projectStages[pCode].hotList += 1;
         } else if (status === 'Booking') {
           projectStages[pCode].booked += 1;
@@ -855,7 +855,7 @@ router.get('/stats', protect, async (req, res) => {
             hasEnquiryToday = true;
           } else if (status === 'Site Visit' || status === 'Site Visit Follow-up') {
             hasSiteVisitToday = true;
-          } else if (status === 'Qualified') {
+          } else if (status === 'Hot List') {
             hasHotListToday = true;
           } else if (status === 'Booking') {
             hasBookingToday = true;

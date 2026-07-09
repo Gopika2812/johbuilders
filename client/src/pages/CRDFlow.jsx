@@ -14,7 +14,9 @@ import {
   Paperclip,
   Check,
   BookOpen,
-  History
+  History,
+  Clock,
+  Trash
 } from 'lucide-react';
 
 const defaultStagesTemplate = [
@@ -133,7 +135,7 @@ const CRDFlow = () => {
       const quotRes = await fetch(`${API_URL}/quotations`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
-      const usersRes = await fetch(`${API_URL}/users`, {
+      const usersRes = await fetch(`${API_URL}/employees`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       
@@ -645,65 +647,7 @@ const CRDFlow = () => {
           <p className="text-xs text-gray-500 mt-1">Configure, track construction milestones, manage extra works, split payments, and print demand letters.</p>
         </div>
 
-        {activeFlow && (
-          <div className="bg-emerald-50 border border-emerald-200 p-4 rounded-2xl flex flex-col items-end self-end sm:self-center text-right space-y-1">
-            <span className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider">Overall Valuation Summary</span>
-            <div className="text-xs text-gray-650 font-semibold">
-              Total Valuation: <span className="text-gray-900 font-extrabold">Rs. {activeFlow.totalCurrentValue.toLocaleString()}</span>
-            </div>
-            <div className="text-xs text-emerald-700 font-semibold">
-              Received: <span className="text-emerald-900 font-extrabold">Rs. {totalReceived.toLocaleString()}</span>
-            </div>
-            <div className={`text-xs font-semibold ${totalPending > 0 ? 'text-rose-700' : 'text-emerald-700'}`}>
-              Pending: <span className={`${totalPending > 0 ? 'text-rose-900' : 'text-emerald-800'} font-extrabold`}>Rs. {totalPending.toLocaleString()}</span>
-            </div>
-            {activeFlow.totalExtraWorksValue > 0 && (
-              <span className="text-[9px] text-gray-400 mt-1">
-                (Base: Rs. {activeFlow.totalOriginalValue.toLocaleString()} + Extra: Rs. {activeFlow.totalExtraWorksValue.toLocaleString()})
-              </span>
-            )}
 
-            {/* Action Buttons */}
-            <div className="flex items-center gap-2 mt-2 pt-2 border-t border-emerald-100 w-full justify-end">
-              <button 
-                onClick={() => setHistoryModalOpen(true)}
-                className="text-[10px] font-bold bg-white text-gray-600 border border-gray-200 px-2 py-1 rounded hover:bg-gray-50"
-              >
-                View History
-              </button>
-              
-              {activeFlow.status === 'Active' && (
-                <button 
-                  onClick={() => setCancelModalOpen(true)}
-                  className="text-[10px] font-bold bg-red-50 text-red-600 border border-red-200 px-2 py-1 rounded hover:bg-red-100"
-                >
-                  Cancel Plan
-                </button>
-              )}
-              
-              {activeFlow.status === 'Cancel Requested' && (
-                <span className="text-[10px] font-bold bg-amber-50 text-amber-600 border border-amber-200 px-2 py-1 rounded">
-                  Cancellation Requested
-                </span>
-              )}
-              
-              {activeFlow.status === 'Cancelled' && (
-                <button 
-                  onClick={handleReturnPayment}
-                  className="text-[10px] font-bold bg-[#0e623a] text-white border border-[#0b4d2d] px-2 py-1 rounded hover:bg-[#0b4d2d]"
-                >
-                  Return Payment (Rs. {totalReceived.toLocaleString()})
-                </button>
-              )}
-              
-              {activeFlow.status === 'Returned' && (
-                <span className="text-[10px] font-bold bg-gray-100 text-gray-600 border border-gray-300 px-2 py-1 rounded">
-                  Payment Returned & Closed
-                </span>
-              )}
-            </div>
-          </div>
-        )}
       </div>
 
       {error && (
@@ -939,367 +883,143 @@ const CRDFlow = () => {
         </div>
       )}
 
-      {/* Active Stepper view if flow exists */}
+      {/* Simplified Record Table */}
       {activeFlow && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Timeline List of Stages */}
-          <div className="lg:col-span-2 bg-white border border-gray-150 p-6 rounded-3xl shadow-sm space-y-6">
-            <h3 className="text-sm font-black text-gray-800 border-b pb-2 flex items-center gap-2">
-              <CheckCircle className="w-4 h-4 text-[#0e623a]" />
-              <span>Milestone Stages Timeline</span>
-            </h3>
-
-            <div className="space-y-6 relative border-l border-gray-100 ml-4 pl-6">
-              {activeFlow.stages.map((stage, idx) => {
-                const totalDue = getStageTotal(stage);
-                const totalPaid = getStagePaid(stage);
-                const isPaidOff = totalPaid >= totalDue;
-                const paidPercent = totalDue > 0 ? Math.min(100, Math.round((totalPaid / totalDue) * 100)) : 0;
+        <div className="bg-white border border-gray-150 p-6 rounded-3xl shadow-sm overflow-x-auto">
+          <table className="w-full text-xs text-left">
+            <thead className="bg-gray-50 border-b border-gray-100 text-gray-500 font-bold uppercase tracking-wider">
+              <tr>
+                <th className="p-4">Customer Details</th>
+                <th className="p-4">Project & Units</th>
+                <th className="p-4 text-right">Final Quotation Value</th>
+                <th className="p-4 text-center">Quick Actions</th>
+                <th className="p-4 text-right">Lead Setup</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-50">
+              <tr className="hover:bg-gray-50/50 transition">
+                <td className="p-4 align-middle">
+                  <div className="font-bold text-gray-800 text-sm mb-1">{selectedBookingDetails?.name}</div>
+                  <div className="text-gray-500">{selectedBookingDetails?.phone}</div>
+                  <div className="text-gray-500">{selectedBookingDetails?.address || 'No Address Provided'}</div>
+                </td>
                 
-                return (
-                  <div key={idx} className="relative space-y-3">
-                    {/* Stepper Dot Indicator */}
-                    <span className={`absolute -left-[31px] top-1.5 w-4 h-4 rounded-full border-2 ${
-                      stage.isCompleted
-                        ? 'bg-[#0e623a] border-[#0e623a] ring-4 ring-[#f0f9f4]'
-                        : isPaidOff
-                        ? 'bg-yellow-400 border-yellow-400 ring-4 ring-yellow-50'
-                        : 'bg-white border-gray-300 ring-4 ring-gray-50'
-                    } flex items-center justify-center`}>
-                      {stage.isCompleted && <Check className="w-2.5 h-2.5 text-white" />}
-                    </span>
+                <td className="p-4 align-middle">
+                  <div className="font-bold text-gray-800">{activeFlow.project?.name || activeFlow.project?.code}</div>
+                  <div className="text-[10px] text-emerald-700 font-bold bg-emerald-50 inline-block px-2 py-0.5 rounded border border-emerald-100 mt-1">
+                    Units: {activeFlow.unitId}
+                  </div>
+                </td>
+                
+                <td className="p-4 text-right align-middle">
+                  <div className="font-extrabold text-[#0e623a] text-lg">Rs. {activeFlow.totalCurrentValue.toLocaleString()}</div>
+                  <div className="text-emerald-600 font-semibold mt-1">Received: Rs. {totalReceived.toLocaleString()}</div>
+                  <div className="text-rose-600 font-bold">Pending: Rs. {totalPending.toLocaleString()}</div>
+                </td>
+                
+                <td className="p-4 text-center align-middle">
+                  <div className="flex items-center justify-center gap-2">
+                    <button
+                      onClick={() => {
+                        const firstUnpaidStageIdx = activeFlow.stages.findIndex(s => getStageTotal(s) > getStagePaid(s));
+                        const idx = firstUnpaidStageIdx >= 0 ? firstUnpaidStageIdx : 0;
+                        setPaymentStageIdx(idx);
+                        setPaymentAmount(Math.max(0, getStageTotal(activeFlow.stages[idx]) - getStagePaid(activeFlow.stages[idx])).toString());
+                        setPaymentMethod('Bank Transfer');
+                      }}
+                      disabled={totalPending <= 0}
+                      title="Get Payment"
+                      className={`p-2 text-white rounded-xl transition shadow cursor-pointer flex items-center justify-center ${
+                        totalPending > 0 ? 'bg-[#0e623a] hover:bg-[#0b4d2d]' : 'bg-gray-400 cursor-not-allowed'
+                      }`}
+                    >
+                      <DollarSign className="w-5 h-5" />
+                    </button>
 
-                    {/* Stage Header */}
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                      <div>
-                        <h4 className="font-extrabold text-sm text-gray-800 flex items-center gap-1.5">
-                          <span>Stage {idx + 1}: {stage.name}</span>
-                          <span className="text-[10px] bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full font-bold">
-                            {stage.percentage}%
-                          </span>
-                        </h4>
-                        <div className="text-[10px] text-gray-400 mt-0.5">
-                          Base Amount: Rs. {stage.amount.toLocaleString()}
-                        </div>
-                        {/* Stage Progress Bar Indicator */}
-                        <div className="w-48 bg-gray-200 h-1.5 rounded-full overflow-hidden mt-1.5">
-                          <div 
-                            className={`h-full transition-all duration-300 ${isPaidOff ? 'bg-emerald-600' : 'bg-blue-500'}`} 
-                            style={{ width: `${paidPercent}%` }}
-                          ></div>
-                        </div>
-                      </div>
+                    <button
+                      onClick={() => setDemandLetterStageIdx(0)}
+                      title="Print Document"
+                      className="p-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition shadow cursor-pointer flex items-center justify-center"
+                    >
+                      <Printer className="w-5 h-5" />
+                    </button>
+                    <button
+                      onClick={() => setHistoryModalOpen(true)}
+                      title="History"
+                      className="p-2 bg-gray-600 text-white rounded-xl hover:bg-gray-700 transition shadow cursor-pointer flex items-center justify-center"
+                    >
+                      <Clock className="w-5 h-5" />
+                    </button>
+                    
+                    {activeFlow.status === 'Active' && (
+                      <button
+                        onClick={() => setCancelModalOpen(true)}
+                        title="Cancel Lead"
+                        className="p-2 bg-red-600 text-white rounded-xl hover:bg-red-700 transition shadow cursor-pointer flex items-center justify-center"
+                      >
+                        <Trash className="w-5 h-5" />
+                      </button>
+                    )}
+                    {activeFlow.status === 'Cancel Requested' && (
+                      <span className="text-[10px] font-bold bg-amber-50 text-amber-600 border border-amber-200 px-2 py-1 rounded-xl">
+                        Cancel Req.
+                      </span>
+                    )}
+                    {activeFlow.status === 'Cancelled' && (
+                      <button
+                        onClick={handleReturnPayment}
+                        title="Return Payment"
+                        className="p-2 bg-rose-600 text-white rounded-xl hover:bg-rose-700 transition shadow cursor-pointer flex items-center justify-center"
+                      >
+                        <CheckCircle className="w-5 h-5" />
+                      </button>
+                    )}
+                    {activeFlow.status === 'Returned' && (
+                      <span className="text-[10px] font-bold bg-gray-100 text-gray-500 border border-gray-200 px-2 py-1 rounded-xl">
+                        Closed
+                      </span>
+                    )}
+                  </div>
+                </td>
 
-                      {/* Status Badges & Action Buttons */}
-                      <div className="flex items-center gap-2">
-                        {stage.isCompleted ? (
-                          <span className="text-[10px] bg-emerald-50 border border-emerald-250 text-emerald-800 px-2 py-0.5 rounded-full font-bold flex items-center gap-0.5">
-                            <Check className="w-3 h-3" /> Completed
-                          </span>
-                        ) : isPaidOff ? (
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-[10px] bg-emerald-50 border border-emerald-250 text-emerald-800 px-2 py-0.5 rounded-full font-bold">
-                              100% Paid
-                            </span>
-                            <button
-                              onClick={() => setCompleteStageIdx(idx)}
-                              disabled={activeFlow.status === 'Cancelled' || activeFlow.status === 'Returned'}
-                              className="px-3 py-1 bg-[#0e623a] hover:bg-[#0b4d2d] text-white text-[10px] font-bold rounded-lg transition cursor-pointer"
-                            >
-                              Mark Completed
-                            </button>
-                          </div>
-                        ) : (
-                          <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold border ${
-                            paidPercent > 0 ? 'bg-blue-50 border-blue-200 text-blue-800' : 'bg-amber-50 border-amber-200 text-amber-800'
-                          }`}>
-                            {paidPercent}% Paid
-                          </span>
-                        )}
-
+                <td className="p-4 align-middle border-l border-gray-100 bg-gray-50/30">
+                  <div className="flex items-center justify-end gap-6">
+                    <div className="text-left">
+                      <span className="text-[9px] text-gray-400 block font-bold uppercase mb-1">Assigned Executive</span>
+                      <select
+                        value={selectedBookingDetails?.assignedTo?._id || selectedBookingDetails?.assignedTo || ''}
+                        onChange={(e) => handleUpdateAssignedTo(e.target.value)}
+                        className="w-[130px] px-2 py-1.5 bg-white border border-gray-200 rounded-lg text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-[#0e623a]"
+                      >
+                        <option value="">-- Unassigned --</option>
+                        {users.filter(u => u.role === 'Sales Executive' || u.role === 'Manager').map(user => (
+                          <option key={user._id} value={user._id}>{user.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                    
+                    <div className="text-left">
+                      <span className="text-[9px] text-gray-400 block font-bold uppercase mb-1">Bank Loan?</span>
+                      <div className="flex items-center gap-1">
                         <button
-                          onClick={() => setDemandLetterStageIdx(idx)}
-                          title="Generate Demand Letter"
-                          className="p-1 border hover:bg-gray-50 rounded-lg text-gray-500 transition cursor-pointer"
+                          onClick={() => handleToggleBankLoan('Yes')}
+                          className={`px-3 py-1.5 text-[10px] font-bold rounded-lg transition-colors ${selectedBookingDetails?.bankLoan === 'Yes' ? 'bg-[#0e623a] text-white shadow' : 'bg-white text-gray-500 border border-gray-200 hover:bg-gray-100 cursor-pointer'}`}
                         >
-                          <Printer className="w-4 h-4" />
+                          Yes
+                        </button>
+                        <button
+                          onClick={() => handleToggleBankLoan('No')}
+                          className={`px-3 py-1.5 text-[10px] font-bold rounded-lg transition-colors ${selectedBookingDetails?.bankLoan !== 'Yes' ? 'bg-gray-700 text-white shadow' : 'bg-white text-gray-500 border border-gray-200 hover:bg-gray-100 cursor-pointer'}`}
+                        >
+                          No
                         </button>
                       </div>
                     </div>
-
-                    {/* Stage Breakdown & Document list */}
-                    <div className="bg-gray-50 p-4 rounded-2xl border border-gray-150 space-y-3">
-                      {/* Document uploads for stage 2 */}
-                      {idx === 1 && !stage.isCompleted && (
-                        <div className="space-y-4 border-b pb-4 border-gray-200/60 text-left">
-                          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 bg-emerald-50/50 p-3 rounded-2xl border border-emerald-100/60">
-                            <div>
-                              <label className="text-[11px] font-extrabold text-emerald-900 uppercase tracking-wider block flex items-center gap-1.5">
-                                <Paperclip className="w-3.5 h-3.5 text-[#0e623a]" />
-                                <span>Requires 5 Deed / Agreement PDF Registrations</span>
-                              </label>
-                              <p className="text-[10px] text-emerald-800/80 mt-0.5">Documents can be auto-prepared based on project & client details.</p>
-                            </div>
-                            <button
-                              type="button"
-                              onClick={handleAutoPrepareDocs}
-                              className="px-3.5 py-1.5 bg-[#0e623a] text-white hover:bg-[#0b4d2d] rounded-xl text-[10px] font-black tracking-wide flex items-center gap-1 shadow-sm transition-all hover:scale-[1.02] cursor-pointer self-start sm:self-center"
-                            >
-                              <span>✨ Auto-Prepare Documents</span>
-                            </button>
-                          </div>
-
-                          <div className="space-y-2">
-                            {[
-                              'Agreement of Sale',
-                              'Construction Agreement',
-                              'Sale Deed Draft',
-                              'Stamped Property Schedule',
-                              'NOC & Registration Challan'
-                            ].map((title, i) => {
-                              const filename = pdfFiles[i] || '';
-                              const isGenerated = filename.trim() !== '';
-
-                              return (
-                                <div key={i} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 bg-white border border-gray-200 hover:border-emerald-600/30 rounded-2xl transition shadow-xs">
-                                  <div className="flex items-center gap-3 flex-1">
-                                    <div className={`p-2 rounded-xl ${isGenerated ? 'bg-red-50 text-red-600' : 'bg-gray-50 text-gray-400'}`}>
-                                      <FileText className="w-5 h-5" />
-                                    </div>
-                                    <div className="space-y-1 flex-1">
-                                      <div className="flex items-center gap-2">
-                                        <span className="text-[11px] font-bold text-gray-800">{title}</span>
-                                        {isGenerated && (
-                                          <span className="text-[9px] font-black bg-emerald-50 text-emerald-800 border border-emerald-200 px-1.5 py-0.25 rounded-md uppercase tracking-wider">
-                                            Prepared
-                                          </span>
-                                        )}
-                                      </div>
-                                      <input
-                                        type="text"
-                                        placeholder={`e.g. Enter ${title} filename...`}
-                                        value={filename}
-                                        onChange={(e) => {
-                                          const updated = [...pdfFiles];
-                                          updated[i] = e.target.value;
-                                          setPdfFiles(updated);
-                                        }}
-                                        className="w-full px-2.5 py-1 bg-gray-50/50 hover:bg-gray-50 focus:bg-white border border-gray-150 rounded-lg text-xs transition"
-                                      />
-                                    </div>
-                                  </div>
-
-                                  <div className="flex items-center gap-2 self-end sm:self-center">
-                                    {isGenerated && (
-                                      <button
-                                        type="button"
-                                        onClick={() => setPreviewingDoc({
-                                          index: i,
-                                          title: title,
-                                          filename: filename
-                                        })}
-                                        className="px-3 py-1.5 border border-gray-250 hover:border-[#0e623a] text-[#0e623a] hover:bg-emerald-50/30 text-[10px] font-bold rounded-xl transition flex items-center gap-1 cursor-pointer"
-                                      >
-                                        <span>👁️ Preview Draft</span>
-                                      </button>
-                                    )}
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </div>
-
-                          <button
-                            onClick={() => handlePDFSubmit(idx)}
-                            className="w-full py-3 bg-[#0e623a] hover:bg-[#0b4d2d] text-white text-xs font-black tracking-wide rounded-xl transition-all shadow-md cursor-pointer hover:shadow-lg"
-                          >
-                            Submit Documents & Complete Verification
-                          </button>
-                        </div>
-                      )}
-
-                      {/* Display Uploaded Pdfs if completed */}
-                      {stage.uploadedPdfs?.length > 0 && (
-                        <div className="text-[10px] text-gray-600 space-y-1">
-                          <span className="font-bold text-gray-400 uppercase tracking-wider block">Uploaded Documents:</span>
-                          <div className="flex flex-wrap gap-2 pt-1">
-                            {stage.uploadedPdfs.map((file, i) => (
-                              <span key={i} className="inline-flex items-center gap-1 bg-white border px-2 py-0.5 rounded">
-                                <FileText className="w-3 h-3 text-red-500" />
-                                <span>{file}</span>
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Stage Valuation & Payment Stats */}
-                      <div className="flex flex-col sm:flex-row justify-between text-xs gap-2 pt-1">
-                        <div className="space-y-1">
-                          <div className="text-gray-600">
-                            Milestone core value: <span className="font-semibold text-gray-800">Rs. {stage.amount.toLocaleString()}</span>
-                          </div>
-                          {stage.extraWorks?.length > 0 && (
-                            <div className="text-[10px] text-gray-500">
-                              Extra work adjustments: <span className="font-semibold text-gray-700">+ Rs. {stage.extraWorks.reduce((sum, w) => sum + w.amount, 0).toLocaleString()}</span>
-                            </div>
-                          )}
-                          <div className="text-gray-800 font-bold">
-                            Total Milestone Target: <span className="text-[#0e623a]">Rs. {totalDue.toLocaleString()}</span>
-                          </div>
-                        </div>
-
-                        <div className="space-y-1 border-t sm:border-t-0 sm:border-l border-gray-200 sm:pl-4 text-left">
-                          <div className="text-gray-600">
-                            Total Amount: <span className="font-semibold text-gray-800">Rs. {totalDue.toLocaleString()}</span>
-                          </div>
-                          <div className="text-emerald-700">
-                            Received: <span className="font-semibold text-emerald-800">Rs. {totalPaid.toLocaleString()}</span>
-                          </div>
-                          <div className={`font-bold ${isPaidOff ? 'text-emerald-600' : 'text-rose-600'}`}>
-                            Pending: <span>Rs. {Math.max(0, totalDue - totalPaid).toLocaleString()}</span>
-                          </div>
-                          {isPaidOff && (
-                            <span className="text-[10px] bg-emerald-50 border border-emerald-250 text-emerald-800 px-2 py-0.5 rounded-full font-bold inline-block mt-1">
-                              Paid Off
-                            </span>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Extra works list if exists */}
-                      {stage.extraWorks?.length > 0 && (
-                        <div className="border-t border-gray-200/60 pt-2 space-y-1.5">
-                          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Adjusted Extra Works:</span>
-                          {stage.extraWorks.map((work, wIdx) => (
-                            <div key={wIdx} className="flex justify-between items-center text-xs text-gray-650">
-                              <span>• {work.name}</span>
-                              <div className="flex items-center gap-2">
-                                <span className="font-semibold text-gray-800">+ Rs. {work.amount.toLocaleString()}</span>
-                                <button
-                                  onClick={() => handleRevertExtraWork(idx, work._id)}
-                                  className="text-red-650 hover:text-red-800 font-bold text-[10px] hover:underline"
-                                  title="Revert Extra Work"
-                                >
-                                  (Revert)
-                                </button>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-
-                      {/* Payment splits list if exists */}
-                      {stage.payments?.length > 0 && (
-                        <div className="border-t border-gray-200/60 pt-2 space-y-1.5">
-                          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Split Payments Submitted:</span>
-                          {stage.payments.map((p, pIdx) => (
-                            <div key={pIdx} className="flex justify-between items-center text-xs text-gray-600">
-                              <span className="flex items-center gap-1.5">
-                                <Check className="w-3.5 h-3.5 text-emerald-600" />
-                                <span>Paid via {p.method} ({new Date(p.date).toLocaleDateString()})</span>
-                              </span>
-                              <span className="font-semibold text-[#0e623a]">Rs. {p.amount.toLocaleString()}</span>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-
-                      {/* Actions for active unpaid stages */}
-                      {!isPaidOff && (
-                        <div className="flex gap-2 pt-2">
-                          <button
-                            onClick={() => {
-                              setExtraWorkStageIdx(idx);
-                              setExtraWorkName('');
-                              setExtraWorkAmount('');
-                            }}
-                            className="flex items-center gap-1 px-3 py-1.5 border border-gray-200 text-xs font-bold text-gray-600 rounded-lg hover:bg-gray-50 transition cursor-pointer"
-                          >
-                            <Plus className="w-3.5 h-3.5 text-emerald-600" />
-                            <span>Add Extra Work</span>
-                          </button>
-                          <button
-                            onClick={() => {
-                              setPaymentStageIdx(idx);
-                              setPaymentAmount(Math.max(0, totalDue - totalPaid).toString());
-                              setPaymentMethod('Bank Transfer');
-                            }}
-                            className="flex items-center gap-1 px-3 py-1.5 bg-emerald-800 text-white text-xs font-bold rounded-lg hover:bg-emerald-900 transition cursor-pointer"
-                          >
-                            <DollarSign className="w-3.5 h-3.5" />
-                            <span>Submit Split Payment</span>
-                          </button>
-                        </div>
-                      )}
-                    </div>
                   </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Sidebar Audit details & info */}
-          <div className="lg:col-span-1 space-y-6">
-            {/* Booking Details Card */}
-            {selectedBookingDetails && (
-              <div className="bg-white border border-gray-150 p-6 rounded-3xl shadow-sm space-y-4">
-                <h3 className="text-sm font-bold text-gray-700 uppercase tracking-wider border-b pb-2">Customer Booking Details</h3>
-                <div className="space-y-3 text-xs text-gray-600">
-                  <div>
-                    <span className="text-[10px] text-gray-400 block font-bold uppercase">Customer Name</span>
-                    <span className="font-bold text-gray-800">{selectedBookingDetails.name}</span>
-                  </div>
-                  <div>
-                    <span className="text-[10px] text-gray-400 block font-bold uppercase">Contact Number</span>
-                    <span>{selectedBookingDetails.phone}</span>
-                  </div>
-                  <div>
-                    <span className="text-[10px] text-gray-400 block font-bold uppercase">Selected Units</span>
-                    <span className="font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded inline-block mt-0.5">
-                      {activeFlow.unitId}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-[10px] text-gray-400 block font-bold uppercase">Address</span>
-                    <span>{selectedBookingDetails.address}</span>
-                  </div>
-                  <div className="pt-2 border-t mt-2">
-                    <span className="text-[10px] text-gray-400 block font-bold uppercase mb-1">Assigned Executive (Sales)</span>
-                    <select
-                      value={selectedBookingDetails.assignedTo?._id || selectedBookingDetails.assignedTo || ''}
-                      onChange={(e) => handleUpdateAssignedTo(e.target.value)}
-                      className="w-full px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-[#0e623a]"
-                    >
-                      <option value="">-- Unassigned --</option>
-                      {users.filter(u => u.role === 'Executive' || u.role === 'Manager').map(user => (
-                        <option key={user._id} value={user._id}>{user.name} ({user.role})</option>
-                      ))}
-                    </select>
-                    <span className="text-[9px] text-gray-400 mt-1 block">Updating this will immediately transfer the lead</span>
-                  </div>
-                  <div className="pt-2 border-t mt-2">
-                    <span className="text-[10px] text-gray-400 block font-bold uppercase mb-1">Requires Bank Loan?</span>
-                    <div className="flex items-center gap-3">
-                      <button
-                        onClick={() => handleToggleBankLoan(selectedBookingDetails.bankLoan)}
-                        className={`px-3 py-1 text-xs font-bold rounded-lg transition-colors ${selectedBookingDetails.bankLoan === 'Yes' ? 'bg-[#0e623a] text-white shadow' : 'bg-gray-100 text-gray-500 border border-gray-200 hover:bg-gray-200'}`}
-                      >
-                        Yes
-                      </button>
-                      <button
-                        onClick={() => handleToggleBankLoan(selectedBookingDetails.bankLoan)}
-                        className={`px-3 py-1 text-xs font-bold rounded-lg transition-colors ${selectedBookingDetails.bankLoan !== 'Yes' ? 'bg-gray-700 text-white shadow' : 'bg-gray-100 text-gray-500 border border-gray-200 hover:bg-gray-200'}`}
-                      >
-                        No
-                      </button>
-                    </div>
-                    <span className="text-[9px] text-gray-400 mt-1 block">Toggle 'Yes' to show in Bank Loan Ledger</span>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       )}
 
@@ -1312,10 +1032,22 @@ const CRDFlow = () => {
                 <Plus className="w-5 h-5 text-emerald-300" />
                 <span>Add Extra Works Adjustment</span>
               </h3>
-              <p className="text-emerald-100 text-xs mt-1">Specify additional project customization work for stage {extraWorkStageIdx + 1}</p>
+              <p className="text-emerald-100 text-xs mt-1">Specify additional project customization work</p>
             </div>
 
             <form onSubmit={handleAddExtraWork} className="p-6 space-y-4">
+              <div>
+                <label className="text-xs font-semibold text-gray-600 block mb-1">Select Milestone Stage</label>
+                <select
+                  value={extraWorkStageIdx}
+                  onChange={(e) => setExtraWorkStageIdx(Number(e.target.value))}
+                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-250 rounded-xl text-sm font-semibold text-gray-800"
+                >
+                  {activeFlow?.stages.map((stage, idx) => (
+                    <option key={idx} value={idx}>Stage {idx + 1}: {stage.name}</option>
+                  ))}
+                </select>
+              </div>
               <div>
                 <label className="text-xs font-semibold text-gray-600 block mb-1">Extra Work Name / Description</label>
                 <input
@@ -1369,10 +1101,26 @@ const CRDFlow = () => {
                 <CreditCard className="w-5 h-5 text-emerald-300" />
                 <span>Submit Milestone Split Payment</span>
               </h3>
-              <p className="text-emerald-100 text-xs mt-1">Register bank transfers or loan payments to credit stage {paymentStageIdx + 1}</p>
+              <p className="text-emerald-100 text-xs mt-1">Register bank transfers or loan payments</p>
             </div>
 
             <form onSubmit={handleMakePayment} className="p-6 space-y-4">
+              <div>
+                <label className="text-xs font-semibold text-gray-600 block mb-1">Select Milestone Stage to Credit</label>
+                <select
+                  value={paymentStageIdx}
+                  onChange={(e) => {
+                    const newIdx = Number(e.target.value);
+                    setPaymentStageIdx(newIdx);
+                    setPaymentAmount(Math.max(0, getStageTotal(activeFlow.stages[newIdx]) - getStagePaid(activeFlow.stages[newIdx])).toString());
+                  }}
+                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-250 rounded-xl text-sm font-semibold text-gray-800"
+                >
+                  {activeFlow?.stages.map((stage, idx) => (
+                    <option key={idx} value={idx}>Stage {idx + 1}: {stage.name} (Pending: Rs. {Math.max(0, getStageTotal(stage) - getStagePaid(stage)).toLocaleString()})</option>
+                  ))}
+                </select>
+              </div>
               <div className="grid grid-cols-3 gap-2">
                 <button
                   type="button"
