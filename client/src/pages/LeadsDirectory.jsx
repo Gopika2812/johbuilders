@@ -62,11 +62,11 @@ const LEAD_STATUSES = [
   'New',
   'Assigned',
   'Follow-Up',
-  'Future Follow-up',
   'Site Visit',
-  'Qualified',
+  'Hot List',
   'Negotiation',
   'Booking',
+  'Future Follow-up',
   'Lost'
 ];
 
@@ -74,33 +74,12 @@ const STATUS_COLORS = {
   'New': { bg: 'bg-blue-50/70', text: 'text-blue-700', border: 'border-blue-200', dot: 'bg-blue-500' },
   'Assigned': { bg: 'bg-purple-50/70', text: 'text-purple-700', border: 'border-purple-200', dot: 'bg-purple-500' },
   'Follow-Up': { bg: 'bg-amber-50/70', text: 'text-amber-700', border: 'border-amber-200', dot: 'bg-amber-500' },
-  'Future Follow-up': { bg: 'bg-indigo-50/70', text: 'text-indigo-700', border: 'border-indigo-200', dot: 'bg-indigo-500' },
   'Site Visit': { bg: 'bg-rose-50/70', text: 'text-rose-700', border: 'border-rose-200', dot: 'bg-rose-500' },
-  'Qualified': { bg: 'bg-teal-50/70', text: 'text-teal-700', border: 'border-teal-200', dot: 'bg-teal-500' },
+  'Hot List': { bg: 'bg-teal-50/70', text: 'text-teal-700', border: 'border-teal-200', dot: 'bg-teal-500' },
   'Negotiation': { bg: 'bg-orange-50/70', text: 'text-orange-700', border: 'border-orange-200', dot: 'bg-orange-500' },
-  'Booking': { bg: 'bg-emerald-50/70', text: 'text-emerald-700', border: 'border-emerald-200', dot: 'bg-emerald-500' },
+  'Booking': { bg: 'bg-yellow-50/70', text: 'text-yellow-700', border: 'border-yellow-300', dot: 'bg-yellow-500' },
+  'Future Follow-up': { bg: 'bg-indigo-50/70', text: 'text-indigo-700', border: 'border-indigo-200', dot: 'bg-indigo-500' },
   'Lost': { bg: 'bg-gray-100', text: 'text-gray-750', border: 'border-gray-300', dot: 'bg-gray-500' },
-};
-
-const getAllowedTransitions = (currentStatus) => {
-  switch (currentStatus) {
-    case 'New':
-      return ['New', 'Assigned'];
-    case 'Assigned':
-      return ['Assigned', 'Follow-Up', 'Lost'];
-    case 'Follow-Up':
-      return ['Follow-Up', 'Site Visit', 'Future Follow-up', 'Lost'];
-    case 'Future Follow-up':
-      return ['Future Follow-up', 'Follow-Up', 'Site Visit', 'Lost'];
-    case 'Site Visit':
-      return ['Site Visit', 'Qualified', 'Lost'];
-    case 'Qualified':
-      return ['Qualified', 'Negotiation', 'Lost'];
-    case 'Negotiation':
-      return ['Negotiation', 'Booking', 'Lost'];
-    default:
-      return [currentStatus];
-  }
 };
 
 const getPreviousStatus = (lead) => {
@@ -116,6 +95,12 @@ const getPreviousStatus = (lead) => {
 
 const parsePhoneDetails = (fullPhone) => {
   if (!fullPhone) return { countryCode: '+91', localPhone: '' };
+  const commonCodes = ['+91', '+971', '+44', '+1', '+966', '+965', '+973', '+968', '+974', '+65', '+61'];
+  for (const code of commonCodes) {
+    if (fullPhone.startsWith(code)) {
+      return { countryCode: code, localPhone: fullPhone.slice(code.length) };
+    }
+  }
   if (fullPhone.startsWith('+')) {
     return { countryCode: '+', localPhone: fullPhone.slice(1) };
   }
@@ -271,19 +256,6 @@ const LeadsDirectory = () => {
   const [loanBank, setLoanBank] = useState('');
   const [loanStatusNotes, setLoanStatusNotes] = useState('');
   const [bookingLoading, setBookingLoading] = useState(false);
-  const [bookingFinalValue, setBookingFinalValue] = useState('');
-
-  // Auto-calculate final value when units change
-  useEffect(() => {
-    if (bookingProjectDetails && selectedBookingUnits.length > 0) {
-      const calculatedTotal = bookingProjectDetails.units
-        ?.filter(u => selectedBookingUnits.includes(u.unitId))
-        .reduce((sum, u) => sum + u.price, 0) || 0;
-      setBookingFinalValue(calculatedTotal);
-    } else {
-      setBookingFinalValue('');
-    }
-  }, [selectedBookingUnits, bookingProjectDetails]);
 
   // Follow-Up & Completion Modal States
   const [followModalOpen, setFollowModalOpen] = useState(false);
@@ -728,7 +700,6 @@ const LeadsDirectory = () => {
       status: 'Booking',
       bookingInfo: {
         selectedUnits: selectedBookingUnits,
-        totalValue: Number(bookingFinalValue),
         alternativePhone: bookingAltPhone,
         aadharNumber: bookingAadhar,
         panNumber: bookingPan,
@@ -768,7 +739,7 @@ const LeadsDirectory = () => {
     setSelectedLeadForFollow(lead);
     setFollowTargetStatus(targetStatus);
     
-    const hasFollowUp = ['Follow-Up', 'Future Follow-up', 'Site Visit', 'Qualified', 'Negotiation'].includes(targetStatus);
+    const hasFollowUp = ['Contacted', 'Follow-Up', 'Site Visit', 'Qualified', 'Negotiation'].includes(targetStatus);
     setFollowMode(hasFollowUp ? 'FollowUp' : 'Completed');
     
     const now = new Date();
@@ -806,6 +777,11 @@ const LeadsDirectory = () => {
       }
 
       let finalStatus = followTargetStatus;
+      if (followTargetStatus === 'Site Visit') {
+        finalStatus = siteVisitAction === 'Move' ? 'Site Visit Follow-up' : 'Site Visit';
+      } else if (followTargetStatus === 'Qualified') {
+        finalStatus = 'Site Visit Follow-up';
+      }
 
       payload = {
         status: finalStatus,
@@ -817,7 +793,7 @@ const LeadsDirectory = () => {
         isClosed: false
       };
     } else {
-      const shouldClose = ['Lost'].includes(followTargetStatus);
+      const shouldClose = ['Contacted', 'Site Visit', 'Lost'].includes(followTargetStatus);
       payload = {
         status: followTargetStatus,
         isClosed: shouldClose,
@@ -1263,7 +1239,9 @@ const LeadsDirectory = () => {
           {LEAD_STATUSES.map(st => {
             let count = 0;
             if (st === 'Lost') {
-              count = leads.filter(l => l.status === 'Lost' || (l.isClosed && l.status !== 'Booking')).length;
+              count = leads.filter(l => l.status === 'Lost' || (l.isClosed && l.status !== 'Won')).length;
+            } else if (st === 'Won') {
+              count = leads.filter(l => l.status === 'Won').length;
             } else if (st === 'Qualified') {
               count = leads.filter(l => (l.status === 'Qualified' || (l.history && l.history.some(h => h.status === 'Qualified'))) && !l.isClosed).length;
             } else {
@@ -1533,7 +1511,10 @@ const LeadsDirectory = () => {
                           STATUS_COLORS[lead.status]?.border || 'border-gray-200'
                         }`}
                       >
-                        {getAllowedTransitions(lead.status).map(status => (
+                        {LEAD_STATUSES.filter((_, idx) => {
+                          const currentIdx = LEAD_STATUSES.indexOf(lead.status);
+                          return currentIdx === -1 || idx >= currentIdx;
+                        }).map(status => (
                           <option key={status} value={status}>
                             {status === 'Qualified' ? 'Hot List' : status}
                           </option>
@@ -2168,7 +2149,10 @@ const LeadsDirectory = () => {
                   className="w-full px-4 py-3 bg-gray-55 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-600 text-sm cursor-pointer appearance-none"
                   style={{ backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 16px center', backgroundSize: '16px' }}
                 >
-                  {getAllowedTransitions(selectedLeadForEdit.status).map(status => (
+                  {LEAD_STATUSES.filter((_, idx) => {
+                    const currentIdx = LEAD_STATUSES.indexOf(selectedLeadForEdit.status);
+                    return currentIdx === -1 || idx >= currentIdx;
+                  }).map(status => (
                     <option key={status} value={status}>{status}</option>
                   ))}
                 </select>
@@ -2415,6 +2399,38 @@ const LeadsDirectory = () => {
                         className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none text-xs text-gray-700"
                       />
                     </div>
+
+                    {followTargetStatus === 'Site Visit' && (
+                      <div className="bg-[#f0f9f4] p-4 rounded-2xl border border-[#bce2cb]/40 space-y-2">
+                        <label className="text-[11px] font-bold text-[#0e623a] uppercase tracking-wider block">
+                          Select Pipeline Action After Follow-up
+                        </label>
+                        <div className="grid grid-cols-2 gap-3">
+                          <button
+                            type="button"
+                            onClick={() => setSiteVisitAction('Keep')}
+                            className={`py-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 ${
+                              siteVisitAction === 'Keep'
+                                ? 'bg-[#0e623a] text-white shadow-md'
+                                : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
+                            }`}
+                          >
+                            Keep in Site Visit
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setSiteVisitAction('Move')}
+                            className={`py-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 ${
+                              siteVisitAction === 'Move'
+                                ? 'bg-[#0e623a] text-white shadow-md'
+                                : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
+                            }`}
+                          >
+                            Move to Site Visit Follow-up
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <div className="space-y-4">
@@ -2704,10 +2720,10 @@ const LeadsDirectory = () => {
 
               {/* Pricing & Quotation breakdown */}
               {selectedBookingUnits.length > 0 && bookingProjectDetails && (
-                <div className="bg-gray-50 p-4 rounded-2xl border border-gray-150 space-y-3">
+                <div className="bg-gray-50 p-4 rounded-2xl border border-gray-150 space-y-2">
                   <h4 className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Quotation Valuation</h4>
-                  <div className="text-xs space-y-2 text-gray-600">
-                    <div className="flex justify-between items-center">
+                  <div className="text-xs space-y-1 text-gray-600">
+                    <div className="flex justify-between">
                       <span>Rate Sq.Ft:</span>
                       <span className="font-semibold text-gray-800">Rs. {bookingProjectDetails.pricePerSqFt}</span>
                     </div>
@@ -2719,23 +2735,13 @@ const LeadsDirectory = () => {
                           .reduce((sum, u) => sum + u.size, 0).toFixed(2)} Sq.Ft
                       </span>
                     </div>
-                    <div className="flex justify-between items-center border-t pt-2 text-sm font-bold text-gray-800">
-                      <span>Base Valuation Cost:</span>
+                    <div className="flex justify-between border-t pt-1.5 text-sm font-bold text-gray-800">
+                      <span>Total Valuation Cost:</span>
                       <span className="text-[#0e623a]">
                         Rs. {bookingProjectDetails.units
                           ?.filter(u => selectedBookingUnits.includes(u.unitId))
                           .reduce((sum, u) => sum + u.price, 0).toLocaleString()}
                       </span>
-                    </div>
-                    <div className="pt-2 border-t border-gray-200">
-                      <label className="text-[10px] font-bold text-gray-600 uppercase tracking-wider block mb-1">Final Negotiated Value (Rs.)</label>
-                      <input
-                        type="number"
-                        required
-                        value={bookingFinalValue}
-                        onChange={(e) => setBookingFinalValue(e.target.value)}
-                        className="w-full px-3 py-2 bg-white border border-[#0e623a]/30 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0e623a]/50 text-sm font-bold text-[#0e623a]"
-                      />
                     </div>
                   </div>
                 </div>
