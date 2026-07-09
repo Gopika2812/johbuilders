@@ -52,11 +52,8 @@ const getExcelHeader = (titleText, monthTitle, totalColumns, themeColor, logoPat
   const safeCols = Math.max(4, totalColumns);
   const greenTheme = "#0e623a";
   return `
-    <tr style="height: 120px;">
-      <td colspan="3" style="background-color: #0e623a; border: none; text-align: center; vertical-align: middle; height: 120px;">
-        <img src="${logoPath}" height="95" style="height: 95px; width: auto; display: block; margin: 0 auto;" />
-      </td>
-      <td colspan="${safeCols - 3}" class="title-row" style="border:none; vertical-align:middle; text-align:center; font-size: 22pt; font-weight: bold; color: ${greenTheme}; height: 120px;">
+    <tr style="height: 60px;">
+      <td colspan="${safeCols}" class="title-row" style="border:none; vertical-align:middle; text-align:center; font-size: 22pt; font-weight: bold; color: ${greenTheme}; height: 60px;">
         ${titleText}
       </td>
     </tr>
