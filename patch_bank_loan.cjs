@@ -1,196 +1,23 @@
-import React, { useState, useEffect } from 'react';
-import { useAuth, API_URL } from '../context/AuthContext';
-import { 
-  ChevronDown,
-  ChevronUp,
-  Building, 
-  Search, 
-  DollarSign, 
-  CreditCard, 
-  Calendar, 
-  User, 
-  Layers, 
-  BookOpen,
-  ArrowRight,
-  TrendingUp,
-  Landmark
-} from 'lucide-react';
+const fs = require('fs');
 
-const BankLoanHistory = () => {
-  const { token } = useAuth();
-  const [flows, setFlows] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [expandedFlowId, setExpandedFlowId] = useState(null);
+const file = 'client/src/pages/BankLoanHistory.jsx';
+let content = fs.readFileSync(file, 'utf8');
 
-  
-  const updateLoanStatus = async (leadId, newStatus, lead) => {
-    try {
-      const updatedBookingInfo = {
-        ...(lead?.bookingInfo || {}),
-        loanDetails: {
-          ...(lead?.bookingInfo?.loanDetails || {}),
-          loanStatus: newStatus
-        }
-      };
+// Add ChevronDown, ChevronUp to Lucide imports
+content = content.replace(
+  /import \{\s*([\s\S]*?)\s*\} from 'lucide-react';/,
+  (match, p1) => {
+    return `import { \n  ChevronDown, \n  ChevronUp, \n  ${p1}\n} from 'lucide-react';`;
+  }
+);
 
-      const res = await fetch(`${API_URL}/leads/${leadId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ bookingInfo: updatedBookingInfo })
-      });
-      if (res.ok) {
-        fetchCRDFlows();
-      }
-    } catch (err) {
-      console.error('Failed to update loan status', err);
-    }
-  };
+// Rename selectedFlow to expandedFlowId
+content = content.replace(/const \[selectedFlow, setSelectedFlow\] = useState\(null\);/g, 'const [expandedFlowId, setExpandedFlowId] = useState(null);');
 
-  useEffect(() => {
+// Replace the main layout grid and selected flow panel
+const mainRegex = /<div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">[\s\S]*?(?=<\/div>\s*<\/div>\s*\);)/;
 
-    fetchCRDFlows();
-  }, [token]);
-
-  const fetchCRDFlows = async () => {
-    try {
-      setLoading(true);
-      const res = await fetch(`${API_URL}/crd-flow`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setFlows(data);
-      } else {
-        setError('Failed to fetch milestone records');
-      }
-    } catch (err) {
-      setError('Connection error loading bank loan data');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Helper to extract bank loan details for each client
-  const getClientLoanDetails = (flow) => {
-    let bankLoanPaid = 0;
-    let bankLoanPending = 0;
-    const loanPayments = [];
-
-    // Stages with Bank Loan payments
-    flow.stages.forEach((stage, sIdx) => {
-      const stageLoanPayments = (stage.payments || []).filter(p => p.method === 'Bank Loan');
-      stageLoanPayments.forEach(p => {
-        bankLoanPaid += p.amount;
-        loanPayments.push({
-          stageName: stage.name,
-          stageIndex: sIdx + 1,
-          amount: p.amount,
-          date: p.date,
-          bankName: p.details?.preferredBank || p.details?.bankName || 'N/A',
-          accountNumber: p.details?.accountNumber || 'N/A',
-          customerName: p.details?.customerName || flow.lead?.name || 'N/A'
-        });
-      });
-
-      // Calculate total pending amount for this stage
-      const stagePaidTotal = (stage.payments || []).reduce((sum, p) => sum + p.amount, 0);
-      const stagePending = Math.max(0, stage.amount - stagePaidTotal);
-      // Assume remaining pending amounts can be covered by bank loan if customer is flagged for bank loan
-      // or if they have made at least one bank loan payment.
-      const hasBankLoanPayment = stageLoanPayments.length > 0;
-      const isBankLoanCustomer = flow.lead?.bankLoan === 'Yes';
-      if (hasBankLoanPayment || isBankLoanCustomer || flow.stages.some(s => (s.payments || []).some(p => p.method === 'Bank Loan'))) {
-        bankLoanPending += stagePending;
-      }
-    });
-
-    // Extract bank loan info from active flow stage splits
-    const preferredBank = flow.stages.flatMap(s => s.payments || []).find(p => p.method === 'Bank Loan')?.details?.preferredBank || flow.lead?.bookingInfo?.loanDetails?.preferredBank || 'N/A';
-    
-    let loanStatus = flow.lead?.bookingInfo?.loanDetails?.loanStatus || 'Pending';
-    if (bankLoanPaid > 0) loanStatus = 'Disbursed';
-
-    return {
-      bankLoanPaid,
-      bankLoanPending,
-      loanPayments,
-      preferredBank,
-      loanStatus
-    };
-  };
-
-  // Filter flows that have bank loan logs or setup
-  const loanClients = flows.map(flow => {
-    const loanDetails = getClientLoanDetails(flow);
-    return {
-      flow,
-      ...loanDetails
-    };
-  }).filter(c => {
-    // Show clients that have matches name and are strictly marked with Bank Loan: Yes
-    const matchesSearch = c.flow.lead?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      c.flow.project?.name?.toLowerCase().includes(searchQuery.toLowerCase());
-    const isYesType = c.flow.lead?.bankLoan === 'Yes';
-    return matchesSearch && isYesType;
-  });
-
-  // Calculate summary metrics
-  const totalLoanClients = loanClients.length;
-  const totalDisbursed = loanClients.reduce((sum, c) => sum + c.bankLoanPaid, 0);
-  const totalLoanPending = loanClients.reduce((sum, c) => sum + c.bankLoanPending, 0);
-
-  return (
-    <div className="space-y-6 w-full mx-auto px-4 lg:px-8">
-      {/* Header Panel */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white border border-gray-150 p-6 rounded-3xl shadow-sm">
-        <div>
-          <h1 className="text-xl font-bold text-gray-800 flex items-center gap-2">
-            <Landmark className="w-5 h-5 text-[#0e623a]" />
-            <span>Bank Loan History Ledger</span>
-          </h1>
-          <p className="text-xs text-gray-500 mt-1">Track stages disbursement history, payments split through Bank Loans, and pending releases.</p>
-        </div>
-      </div>
-
-      {/* Metrics Row */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white border border-gray-150 p-5 rounded-2xl shadow-sm flex items-center gap-4">
-          <div className="p-3 bg-emerald-50 text-emerald-800 rounded-xl">
-            <User className="w-6 h-6" />
-          </div>
-          <div>
-            <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block">Financed Customers</span>
-            <span className="text-lg font-black text-gray-800">{totalLoanClients}</span>
-          </div>
-        </div>
-
-        <div className="bg-white border border-gray-150 p-5 rounded-2xl shadow-sm flex items-center gap-4">
-          <div className="p-3 bg-[#0e623a]/10 text-[#0e623a] rounded-xl">
-            <TrendingUp className="w-6 h-6" />
-          </div>
-          <div>
-            <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block">Total Disbursed (Loan)</span>
-            <span className="text-lg font-black text-emerald-800">Rs. {totalDisbursed.toLocaleString()}</span>
-          </div>
-        </div>
-
-        <div className="bg-white border border-gray-150 p-5 rounded-2xl shadow-sm flex items-center gap-4">
-          <div className="p-3 bg-amber-50 text-amber-800 rounded-xl">
-            <DollarSign className="w-6 h-6" />
-          </div>
-          <div>
-            <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block">Total Pending Release</span>
-            <span className="text-lg font-black text-amber-800">Rs. {totalLoanPending.toLocaleString()}</span>
-          </div>
-        </div>
-      </div>
-
-      <div className="w-full bg-white border border-gray-150 rounded-3xl shadow-sm p-6 space-y-4 text-left">
+const newMainContent = `<div className="w-full bg-white border border-gray-150 rounded-3xl shadow-sm p-6 space-y-4 text-left">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b pb-4">
             <div>
               <h2 className="text-sm font-bold text-gray-800">Active Bank Loan Accounts</h2>
@@ -222,7 +49,6 @@ const BankLoanHistory = () => {
                     <th className="p-4">Customer</th>
                     <th className="p-4">Project Value</th>
                     <th className="p-4">Financing Bank</th>
-                    <th className="p-4">Status</th>
                     <th className="p-4 text-right">Loan Disbursed</th>
                     <th className="p-4 text-right">Loan Pending</th>
                     <th className="p-4 text-center">Actions</th>
@@ -234,7 +60,7 @@ const BankLoanHistory = () => {
                     return (
                       <React.Fragment key={client.flow._id}>
                         <tr 
-                          className={`hover:bg-gray-50/50 transition cursor-pointer ${isExpanded ? 'bg-emerald-50/20' : ''}`}
+                          className={\`hover:bg-gray-50/50 transition cursor-pointer \${isExpanded ? 'bg-emerald-50/20' : ''}\`}
                           onClick={() => setExpandedFlowId(isExpanded ? null : client.flow._id)}
                         >
                           <td className="p-4">
@@ -246,21 +72,6 @@ const BankLoanHistory = () => {
                           </td>
                           <td className="p-4 text-gray-600 font-bold">
                             {client.preferredBank}
-                          </td>
-                          <td className="p-4" onClick={(e) => e.stopPropagation()}>
-                            <select 
-                              value={client.loanStatus}
-                              onChange={(e) => updateLoanStatus(client.flow.lead._id, e.target.value, client.flow.lead)}
-                              className={`text-[10px] font-bold px-2 py-1 rounded-full uppercase cursor-pointer border-none outline-none appearance-none ${
-                                client.loanStatus === 'Disbursed' ? 'bg-emerald-50 text-emerald-700' :
-                                client.loanStatus === 'Approved' ? 'bg-blue-50 text-blue-700' :
-                                'bg-amber-50 text-amber-700'
-                              }`}
-                            >
-                              <option value="Pending">Pending</option>
-                              <option value="Approved">Approved</option>
-                              <option value="Disbursed">Disbursed</option>
-                            </select>
                           </td>
                           <td className="p-4 text-right text-emerald-800 font-bold">
                             Rs. {client.bankLoanPaid.toLocaleString()}
@@ -285,7 +96,7 @@ const BankLoanHistory = () => {
                         {/* Expandable Dropdown Content */}
                         {isExpanded && (
                           <tr className="bg-white">
-                            <td colSpan="7" className="p-0 border-b border-gray-200">
+                            <td colSpan="6" className="p-0 border-b border-gray-200">
                               <div className="p-6 bg-gray-50/50 rounded-b-lg border-x border-gray-150 mx-2 mb-4 space-y-6">
                                 
                                 <div>
@@ -380,9 +191,12 @@ const BankLoanHistory = () => {
               </table>
             </div>
           )}
-        </div>
-      </div>
-  );
-};
+        </div>`;
 
-export default BankLoanHistory;
+if (mainRegex.test(content)) {
+  content = content.replace(mainRegex, newMainContent);
+  fs.writeFileSync(file, content);
+  console.log('Successfully patched BankLoanHistory.jsx');
+} else {
+  console.log('Failed to match layout in BankLoanHistory.jsx');
+}
