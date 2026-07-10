@@ -49,7 +49,7 @@ const getExcelStyles = (titleBg, monthBg, headerBg, execBg) => {
 
 const getExcelHeader = (titleText, monthTitle, totalColumns, themeColor, logoPath) => {
     const safeCols = Math.max(4, totalColumns);
-    const logoCols = 2;
+    const logoCols = 3;
     const textCols = safeCols - logoCols;
     return `
       <tr style="height: 80px;">
@@ -2009,9 +2009,14 @@ const KPIInsights = () => {
         if (selectedUser && (lead.assignedTo?._id || lead.assignedTo) !== selectedUser) return;
 
         const stages = flow.stages || [];
+        let leadTotalPaidAllTime = 0;
+        const dailyPayments = {};
+
         stages.forEach(stage => {
           const payments = stage.payments || [];
           payments.forEach(pay => {
+            leadTotalPaidAllTime += (pay.amount || 0);
+
             const payDate = new Date(pay.date);
 
             // Apply date filters at payment date level
@@ -2022,13 +2027,29 @@ const KPIInsights = () => {
               if (payDate > end) return;
             }
 
-            paymentsList.push({
-              customerName: lead.name || '',
-              projectCode: flow.project?.code || 'UNASSIGNED',
-              plotNo: flow.unitId || '',
-              date: payDate,
-              amount: pay.amount || 0
-            });
+            const dateStr = payDate.toDateString();
+            if (!dailyPayments[dateStr]) {
+              dailyPayments[dateStr] = {
+                date: payDate,
+                amount: 0
+              };
+            }
+            dailyPayments[dateStr].amount += (pay.amount || 0);
+          });
+        });
+
+        const totalValue = flow.totalCurrentValue || 0;
+        const pendingValue = totalValue - leadTotalPaidAllTime;
+
+        Object.values(dailyPayments).forEach(group => {
+          paymentsList.push({
+            customerName: lead.name || '',
+            projectCode: flow.project?.code || 'UNASSIGNED',
+            plotNo: flow.unitId || '',
+            date: group.date,
+            totalAmount: totalValue,
+            pendingAmount: pendingValue,
+            amount: group.amount
           });
         });
       });
@@ -2056,15 +2077,17 @@ const KPIInsights = () => {
         </head>
         <body>
           <table>
-            ${getExcelHeader(titleText, "", 6, "#7c3aed", logoPath)}
+            ${getExcelHeader(titleText, "", 8, "#7c3aed", logoPath)}
             <!-- Table Headers -->
             <tr class="table-headers">
               <th>S No</th>
-              <th>Customer Name</th>
-              <th>PROJECT</th>
-              <th>PLOT NO</th>
               <th>Date</th>
-              <th>AMOUNT</th>
+              <th>Customer Name</th>
+              <th>Project</th>
+              <th>Unit</th>
+              <th>Total Amount</th>
+              <th>Pending Amount</th>
+              <th>Received Amount</th>
             </tr>
       `;
 
@@ -2077,11 +2100,13 @@ const KPIInsights = () => {
 
         html += `
           <tr ${rowClass}>
-            <td>${index + 1}</td>
+            <td class="text-center">${index + 1}</td>
+            <td class="text-center">${dateStr}</td>
             <td class="text-left bold-label">${pay.customerName}</td>
-            <td>${pay.projectCode}</td>
-            <td>${pay.plotNo}</td>
-            <td>${dateStr}</td>
+            <td class="text-center">${pay.projectCode}</td>
+            <td class="text-center">${pay.plotNo}</td>
+            <td class="text-right">₹ ${pay.totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+            <td class="text-right">₹ ${pay.pendingAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
             <td class="text-right">₹ ${pay.amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
           </tr>
         `;
@@ -2090,7 +2115,7 @@ const KPIInsights = () => {
       // Total Row
       html += `
         <tr class="subtotal-row">
-          <td colspan="5" class="text-right">TOTAL</td>
+          <td colspan="7" class="text-right">TOTAL</td>
           <td class="text-right">₹ ${totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
         </tr>
       `;

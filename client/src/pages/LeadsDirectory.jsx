@@ -1034,24 +1034,22 @@ const LeadsDirectory = () => {
             <col width="100" />
             <col width="180" />
             <col width="140" />
-            <col width="100" />
             <col width="180" />
             <col width="90" />
             <col width="150" />
             <col width="150" />
             <col width="150" />
-            <col width="140" />
             <col width="300" />
 
             <tr style="height: 100px;">
               <td colspan="3" style="background-color: #0e623a; border: none; text-align: center; vertical-align: middle; height: 100px;">
                 <img src="${logoPath}" height="80" style="height: 80px; width: auto; display: block; margin: 0 auto;" />
               </td>
-              <td colspan="9" class="title-row" style="background-color: #0e623a; border: none; vertical-align: middle; text-align: center; font-size: 16pt; font-weight: 800; color: #ffffff; height: 100px; font-family: 'Segoe UI', sans-serif;">
+              <td colspan="7" class="title-row" style="background-color: #0e623a; border: none; vertical-align: middle; text-align: center; font-size: 16pt; font-weight: 800; color: #ffffff; height: 100px; font-family: 'Segoe UI', sans-serif;">
                 LEADS DIRECTORY REPORT
               </td>
             </tr>
-            <tr><td colspan="12" style="border:none; height: 15px;"></td></tr>
+            <tr><td colspan="10" style="border:none; height: 15px;"></td></tr>
             
             <!-- Table Headers -->
             <tr class="table-headers">
@@ -1059,13 +1057,11 @@ const LeadsDirectory = () => {
               <th>Date</th>
               <th>Customer Name</th>
               <th>Contact Number</th>
-              <th>Lead Type</th>
               <th>Source / Campaign</th>
               <th>Project</th>
-              <th>Assigned Person</th>
+              <th>Assigned To</th>
               <th>Assigned By</th>
               <th>Workflow Status</th>
-              <th>Booked Value</th>
               <th>Remarks / Notes</th>
             </tr>
       `;
@@ -1084,29 +1080,12 @@ const LeadsDirectory = () => {
       filteredLeadsList.forEach((lead, index) => {
         const custName = lead.name || '';
         const contactNo = lead.phone || '';
-        const lType = lead.leadType || '';
         const sourceStr = lead.leadSource || (lead.leadType === 'Direct Visit' ? 'Direct Visit' : '');
         const projectStr = lead.project?.code || lead.project?.name || '';
         const execName = lead.assignedTo?.name || 'UNASSIGNED';
         const assignerName = lead.assignedBy?.name || '—';
         const wStatus = lead.status || '';
         
-        // Calculate Booked value from selected units or finalized quotation value
-        let BookedVal = 0;
-        const matchedQtn = quotations.find(q => (q.lead?._id || q.lead) === lead._id);
-        if (matchedQtn) {
-          BookedVal = matchedQtn.totalValue || 0;
-        } else if (lead.BookedInfo?.selectedUnits && lead.project?.units) {
-          lead.BookedInfo.selectedUnits.forEach(unitId => {
-            const unit = lead.project.units.find(u => u.unitId === unitId);
-            if (unit) {
-              BookedVal += unit.price || 0;
-            }
-          });
-        }
-        const BookedValStr = BookedVal > 0 ? `₹ ${BookedVal.toLocaleString()}` : '₹ 0';
-        const BookedValColor = BookedVal > 0 ? 'color: #0e623a; font-weight: bold;' : 'color: #94a3b8;';
-
         const regDate = lead.createdAt ? new Date(lead.createdAt).toLocaleDateString('en-GB').replace(/\//g, '.') : '';
         const remarksStr = [lead.followUpInfo?.remarks, lead.closeRemarks].filter(Boolean).join(' / ') || '';
         const rowClass = index % 2 === 1 ? 'class="even-row"' : '';
@@ -1117,13 +1096,11 @@ const LeadsDirectory = () => {
             <td class="text-center">${regDate}</td>
             <td class="text-left bold-label">${custName}</td>
             <td class="text-center">'${contactNo}</td>
-            <td class="text-center">${lType}</td>
             <td class="text-left">${sourceStr}</td>
             <td class="text-center bold-label">${projectStr}</td>
             <td class="text-left">${execName}</td>
             <td class="text-left">${assignerName}</td>
             <td class="text-center" style="${STATUS_EXCEL_STYLES[wStatus] || ''}">${wStatus}</td>
-            <td class="text-right" style="${BookedValColor}">${BookedValStr}</td>
             <td class="text-left">${remarksStr}</td>
           </tr>
         `;
