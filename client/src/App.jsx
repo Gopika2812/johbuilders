@@ -26,6 +26,8 @@ import CRDFlow from './pages/CRDFlow';
 import CRDFlowDetail from './pages/CRDFlowDetail';
 import CRDDashboard from './pages/CRDDashboard';
 import BankLoanHistory from './pages/BankLoanHistory';
+import CollectionReport from './pages/CollectionReport';
+import OverallReport from './pages/OverallReport';
 import BudgetPlanning from './pages/BudgetPlanning';
 import LeadTargetPlanning from './pages/LeadTargetPlanning';
 import SummaryPlanning from './pages/SummaryPlanning';
@@ -122,6 +124,8 @@ function App() {
             <Route path="/crd-flow" element={<Layout><CRDFlow /></Layout>} />
             <Route path="/crd-flow/:id/details" element={<Layout><CRDFlowDetail /></Layout>} />
             <Route path="/crd-flow/bank-loan-history" element={<Layout><BankLoanHistory /></Layout>} />
+            <Route path="/crd-flow/collection-report" element={<Layout><CollectionReport /></Layout>} />
+            <Route path="/crd-flow/overall-report" element={<Layout><OverallReport /></Layout>} />
             <Route path="/customers" element={<Layout><Customers /></Layout>} />
             
             {/* KPI Insights & Conversions */}

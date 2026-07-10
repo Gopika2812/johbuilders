@@ -26,14 +26,15 @@ const getCoordinatesForPercent = (percent) => {
   return [x, y];
 };
 
-const getExcelStyles = (themeColor, bannerBg, bannerText, bannerBorder) => {
+const getExcelStyles = (titleBg, monthBg, headerBg, execBg) => {
   return `
     <style>
       table { border-collapse: collapse; }
       td, th { border: 1px solid #000000; padding: 6px 8px; font-family: 'Segoe UI', Calibri, sans-serif; font-size: 10pt; color: #000000; }
-      th, .table-headers th { font-weight: bold; background-color: #5B9BD5; color: #000000; border: 1px solid #000000; text-align: center; }
-      .title-row { font-size: 11pt; font-weight: bold; color: #000000; background-color: #5B9BD5; text-align: center; }
-      
+      th, .table-headers th { font-weight: bold; background-color: ${headerBg || '#FCE4D6'}; color: #000000; border: 1px solid #000000; text-align: center; }
+      .title-row { font-size: 11pt; font-weight: bold; color: #000000; background-color: ${titleBg || '#FCE4D6'}; text-align: center; }
+      .month-header { height: 22px; vertical-align: middle; font-size: 10pt; font-weight: bold; background-color: ${monthBg || '#DDEBF7'}; border: 1px solid #000000; text-align: center; text-transform: uppercase; }
+      .exec-banner { background-color: ${execBg || '#DDEBF7'}; font-weight: bold; text-align: left; }
       .bg-header-blue { background-color: #5B9BD5 !important; color: #000000 !important; font-weight: bold; text-align: center; }
       .bg-header-green { background-color: #C6E0B4 !important; color: #000000 !important; font-weight: bold; text-align: center; }
       .bg-gray-row { background-color: #D9D9D9 !important; color: #000000 !important; }
@@ -47,23 +48,27 @@ const getExcelStyles = (themeColor, bannerBg, bannerText, bannerBorder) => {
 };
 
 const getExcelHeader = (titleText, monthTitle, totalColumns, themeColor, logoPath) => {
-  const safeCols = Math.max(4, totalColumns);
-  const greenTheme = "#0e623a";
-  return `
-    <tr style="height: 60px;">
-      <td colspan="${safeCols}" class="title-row" style="border: 2px solid #0e623a; vertical-align:middle; text-align:center; font-size: 22pt; font-weight: bold; color: ${greenTheme}; height: 60px; background-color: #ffffff;">
-         ${titleText}
-      </td>
-    </tr>
-    ${monthTitle ? `
-    <tr>
-      <td colspan="${safeCols}" class="month-header" style="height: 35px; vertical-align: middle;">
-        ${monthTitle}
-      </td>
-    </tr>` : ''}
-    <tr><td colspan="${safeCols}" style="border:none; height: 15px;"></td></tr>
-  `;
-};
+    const safeCols = Math.max(4, totalColumns);
+    const logoCols = 2;
+    const textCols = safeCols - logoCols;
+    return `
+      <tr style="height: 80px;">
+        <td colspan="${logoCols}" class="title-row" style="border: 1px solid #000000; border-right: none; vertical-align:middle; text-align:center; height: 80px;">
+          <img src="${logoPath}" width="200" height="70" style="vertical-align: middle;" />
+        </td>
+        <td colspan="${textCols}" class="title-row" style="border: 1px solid #000000; border-left: none; vertical-align:middle; text-align:left; padding-left: 20px; font-size: 14pt; font-weight: bold; color: #000000; height: 80px;">
+          ${titleText}
+        </td>
+      </tr>
+      ${monthTitle ? `
+      <tr>
+        <td colspan="${safeCols}" class="month-header" style="height: 22px; vertical-align: middle; font-size: 10pt; font-weight: bold; border: 1px solid #000000; text-align: center; text-transform: uppercase;">
+          ${monthTitle}
+        </td>
+      </tr>` : ''}
+      <tr><td colspan="${safeCols}" style="border:none; height: 15px;"></td></tr>
+    `;
+  };
 
 // 🔵 REUSABLE MATTE PIE CHART
 const ObservedPieChart = ({ dataArray, valueKey, labelKey, colorPalette, isCount, onSegmentClick }) => {
@@ -449,7 +454,7 @@ const KPIInsights = () => {
         <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
         <head>
           <meta charset="utf-8">
-          ${getExcelStyles("#16a34a", "#dcfce7", "#166534", "#bbf7d0")}
+          ${getExcelStyles("#FCE4D6", "#DDEBF7", "#FCE4D6", "#DDEBF7")}
         </head>
         <body>
           <table>
@@ -599,7 +604,7 @@ const KPIInsights = () => {
         <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
         <head>
           <meta charset="utf-8">
-          ${getExcelStyles("#2563eb", "#dbeafe", "#1e40af", "#bfdbfe")}
+          ${getExcelStyles("#FF99CC", "#F8CBAD", "#FF99CC", "#00B0F0")}
         </head>
         <body>
           <table>
@@ -706,7 +711,7 @@ const KPIInsights = () => {
       // Apply active dashboard filters
       const filtered = data.filter(lead => {
         // 1. Must be hot list stage (Qualified or Negotiation)
-        const isHotList = lead.status === 'Qualified' || lead.status === 'Negotiation';
+        const isHotList = (lead.status === 'Hot List' || (lead.history && lead.history.some(h => h.status === 'Hot List'))) && !lead.isClosed;
         if (!isHotList) return false;
 
         // 2. Project filter
@@ -749,7 +754,7 @@ const KPIInsights = () => {
         <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
         <head>
           <meta charset="utf-8">
-          ${getExcelStyles("#ea580c", "#ffedd5", "#9a3412", "#fed7aa")}
+          ${getExcelStyles("#9BC2E6", "#F8CBAD", "#E6B8B7", "#9BC2E6")}
         </head>
         <body>
           <table>
@@ -900,7 +905,7 @@ const KPIInsights = () => {
         <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
         <head>
           <meta charset="utf-8">
-          ${getExcelStyles("#15803d", "#dcfce7", "#166534", "#bbf7d0")}
+          ${getExcelStyles("#92D050", "#C6E0B4", "#92D050", "#C6E0B4")}
         </head>
         <body>
           <table>
@@ -1137,9 +1142,9 @@ const KPIInsights = () => {
         <body>
           <table>
             <thead>
-              <tr style="height: 60px;">
-                <td colspan="10" class="bg-header-blue font-bold" style="font-size: 14pt; font-weight: bold; height: 60px; text-align: center; vertical-align: middle;">
-                  <img src="${logoPath}" width="150" height="45" style="vertical-align: middle; margin-right: 15px;" />
+              <tr style="height: 80px;">
+                <td colspan="10" class="bg-header-blue font-bold" style="font-size: 14pt; font-weight: bold; height: 80px; text-align: center; vertical-align: middle;">
+                  <img src="${logoPath}" width="250" height="80" style="vertical-align: middle; margin-right: 15px;" />
                   SALES PARAMETER REPORT
                 </td>
               </tr>
@@ -1257,9 +1262,9 @@ const KPIInsights = () => {
             <tr><td colspan="10" style="border: none; height: 15px;"></td></tr>
 
             <!-- PHASE 3: Marketing Plan Table -->
-            <tr style="height: 60px;">
-              <td colspan="10" class="bg-header-blue font-bold" style="font-size: 14pt; font-weight: bold; height: 60px; text-align: center; vertical-align: middle;">
-                <img src="${logoPath}" width="150" height="45" style="vertical-align: middle; margin-right: 15px;" />
+            <tr style="height: 80px;">
+              <td colspan="10" class="bg-header-blue font-bold" style="font-size: 14pt; font-weight: bold; height: 80px; text-align: center; vertical-align: middle;">
+                <img src="${logoPath}" width="250" height="80" style="vertical-align: middle; margin-right: 15px;" />
                 JB MARKETING PARAMETER REPORT
               </td>
             </tr>
@@ -1355,7 +1360,7 @@ const KPIInsights = () => {
         <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
         <head>
           <meta charset="utf-8">
-          ${getExcelStyles("#1d4ed8", "#dbeafe", "#1e40af", "#bfdbfe")}
+          ${getExcelStyles("#9BC2E6", "#C6E0B4", "#9BC2E6", "#9BC2E6")}
         </head>
         <body>
           <table>
@@ -1530,7 +1535,7 @@ const KPIInsights = () => {
         <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
         <head>
           <meta charset="utf-8">
-          ${getExcelStyles("#0d9488", "#ccfbf1", "#115e59", "#99f6e4")}
+          ${getExcelStyles("#9BC2E6", "#C6E0B4", "#9BC2E6", "#9BC2E6")}
         </head>
         <body>
           <table>
@@ -1736,7 +1741,7 @@ const KPIInsights = () => {
         <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
         <head>
           <meta charset="utf-8">
-          ${getExcelStyles("#7c3aed", "#f3e8ff", "#5b21b6", "#e9d5ff")}
+          ${getExcelStyles("#9BC2E6", "#C6E0B4", "#9BC2E6", "#9BC2E6")}
         </head>
         <body>
           <table>
@@ -1867,7 +1872,7 @@ const KPIInsights = () => {
         <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
         <head>
           <meta charset="utf-8">
-          ${getExcelStyles("#7c3aed", "#f3e8ff", "#5b21b6", "#e9d5ff")}
+          ${getExcelStyles("#9BC2E6", "#C6E0B4", "#9BC2E6", "#9BC2E6")}
         </head>
         <body>
           <table>
@@ -2047,7 +2052,7 @@ const KPIInsights = () => {
         <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
         <head>
           <meta charset="utf-8">
-          ${getExcelStyles("#7c3aed", "#f3e8ff", "#5b21b6", "#e9d5ff")}
+          ${getExcelStyles("#9BC2E6", "#C6E0B4", "#9BC2E6", "#9BC2E6")}
         </head>
         <body>
           <table>
@@ -2184,7 +2189,7 @@ const KPIInsights = () => {
         <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
         <head>
           <meta charset="utf-8">
-          ${getExcelStyles("#7c3aed", "#f3e8ff", "#5b21b6", "#e9d5ff")}
+          ${getExcelStyles("#9BC2E6", "#C6E0B4", "#9BC2E6", "#9BC2E6")}
         </head>
         <body>
           <table>
@@ -2325,7 +2330,7 @@ const KPIInsights = () => {
         <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
         <head>
           <meta charset="utf-8">
-          ${getExcelStyles("#7c3aed", "#f3e8ff", "#5b21b6", "#e9d5ff")}
+          ${getExcelStyles("#9BC2E6", "#C6E0B4", "#9BC2E6", "#9BC2E6")}
         </head>
         <body>
           <table>
@@ -2459,7 +2464,7 @@ const KPIInsights = () => {
         <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
         <head>
           <meta charset="utf-8">
-          ${getExcelStyles("#7c3aed", "#f3e8ff", "#5b21b6", "#e9d5ff")}
+          ${getExcelStyles("#9BC2E6", "#C6E0B4", "#9BC2E6", "#9BC2E6")}
         </head>
         <body>
           <table>

@@ -1,55 +1,57 @@
 const fs = require('fs');
 
-// 1. Update Project.js Model
-let projectModel = fs.readFileSync('server/models/Project.js', 'utf8');
-if (!projectModel.includes('crdFlowSheet')) {
-  // Insert crdFlowSheet schema field after marketingInfo
-  projectModel = projectModel.replace(
-    /marketingInfo: \{[\s\S]*?\},/,
-    `$&
-  crdFlowSheet: {
-    name: { type: String, default: '' },
-    link: { type: String, default: '' },
-    uploadedAt: { type: Date, default: Date.now }
-  },`
-  );
-  fs.writeFileSync('server/models/Project.js', projectModel);
-  console.log('Project.js model updated');
-}
+let content = fs.readFileSync('server/routes/leads.js', 'utf8');
 
-// 2. Update routes/projects.js
-let routes = fs.readFileSync('server/routes/projects.js', 'utf8');
+const injectionCode = `
+          if (proj) {
+            // ---- AUTO INITIALIZE CRD FLOW ----
+            const CRDFlow = require('../models/CRDFlow');
+            let existingFlow = await CRDFlow.findOne({ lead: lead._id });
+            if (!existingFlow) {
+              const Quotation = require('../models/Quotation');
+              const quot = await Quotation.findOne({ lead: lead._id }).sort({ createdAt: -1 });
+              const valuation = quot ? quot.totalValue : 2500000;
+              
+              const defaultStagesTemplate = [
+                { name: 'On Booking', percentage: 5 },
+                { name: 'Agreement (14 days)', percentage: 15 },
+                { name: 'Plinth level', percentage: 15 },
+                { name: 'Ground Floor Roof', percentage: 10 },
+                { name: 'First Floor Roof', percentage: 10 },
+                { name: 'Brickwork (GF)', percentage: 10 },
+                { name: 'Brickwork (FF)', percentage: 10 },
+                { name: 'Plastering', percentage: 10 },
+                { name: 'Flooring', percentage: 10 },
+                { name: 'Handover', percentage: 5 },
+              ];
+              
+              let sumAmount = 0;
+              const stages = defaultStagesTemplate.map((s, idx) => {
+                 let amt = Math.round((s.percentage / 100) * valuation);
+                 if (idx === defaultStagesTemplate.length - 1) amt = valuation - sumAmount;
+                 else sumAmount += amt;
+                 return { name: s.name, percentage: s.percentage, amount: amt, status: 'Pending', pending: amt, paid: 0, isCompleted: false, payments: [] };
+              });
 
-if (!routes.includes('/crd-flow-sheet')) {
-  // Add a new PUT route for crd-flow-sheet
-  const newRoute = `
-// Update CRD Flow Sheet for a project
-router.put('/:id/crd-flow-sheet', protect, checkPermission('projects', 'edit'), async (req, res) => {
-  const { name, link } = req.body;
-  try {
-    const project = await Project.findById(req.params.id);
-    if (!project) {
-      return res.status(404).json({ message: 'Project not found' });
-    }
+              const newFlow = new CRDFlow({
+                lead: lead._id,
+                project: proj._id,
+                unitId: bookingInfo.selectedUnits.join(', '),
+                totalCurrentValue: valuation,
+                stages: stages,
+                status: 'Active'
+              });
+              await newFlow.save();
+            }
+            // ----------------------------------
 
-    project.crdFlowSheet = {
-      name: name || '',
-      link: link || '',
-      uploadedAt: new Date()
-    };
+            bookingInfo.selectedUnits.forEach(unitId => {`;
 
-    await project.save();
-    res.json(project);
-  } catch (error) {
-    res.status(500).json({ message: 'Error updating CRD Flow Sheet', error: error.message });
-  }
-});
-`;
+content = content.replace(
+  `          if (proj) {
+            bookingInfo.selectedUnits.forEach(unitId => {`,
+  injectionCode
+);
 
-  routes = routes.replace(
-    /module.exports = router;/,
-    `${newRoute}\nmodule.exports = router;`
-  );
-  fs.writeFileSync('server/routes/projects.js', routes);
-  console.log('routes/projects.js updated');
-}
+fs.writeFileSync('server/routes/leads.js', content);
+console.log('Backend CRD flow initialization updated.');

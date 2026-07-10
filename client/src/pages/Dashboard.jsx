@@ -112,7 +112,7 @@ const ObservedSwirlPieChart = ({
               <div className="flex flex-col text-left">
                 <span className="text-base font-black text-gray-500 uppercase tracking-wider">{slot.label}</span>
                 <div className="flex items-baseline gap-2 mt-1">
-                  <span className="text-gray-900 font-black text-3xl">{slot.pct.toFixed(1)}%</span>
+                  <span className="grand-heading text-4xl">{slot.pct.toFixed(1)}%</span>
                   <span className="text-gray-500 font-bold text-base">({val} {typeof isCount === 'string' ? isCount : 'Units'})</span>
                 </div>
               </div>
@@ -1562,7 +1562,7 @@ const Dashboard = () => {
           
           <button
             onClick={() => setShowUserModal(true)}
-            className="flex items-center justify-center gap-1.5 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition shadow-sm"
+            className="flex items-center justify-center gap-1.5 px-4 py-2.5 btn-grand rounded-xl font-bold text-xs font-bold rounded-xl transition shadow-sm"
           >
             <Download className="w-4 h-4" />
             <span>Export User Report</span>
@@ -1570,7 +1570,7 @@ const Dashboard = () => {
 
           <button
             onClick={() => setShowProjectModal(true)}
-            className="flex items-center justify-center gap-1.5 px-4 py-2.5 bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold rounded-xl transition shadow-sm"
+            className="flex items-center justify-center gap-1.5 px-4 py-2.5 btn-grand rounded-xl font-bold text-xs font-bold rounded-xl transition shadow-sm"
           >
             <Download className="w-4 h-4" />
             <span>Export Project Report</span>
@@ -1587,7 +1587,7 @@ const Dashboard = () => {
       </div>
 
       {/* Filtration Header Card */}
-      <div className="bg-[#f0fbf4]/90 backdrop-blur-md border-none shadow-md rounded-3xl p-5 w-full sticky top-16 z-20 transition-all duration-300">
+      <div className="glass-card border-none shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-3xl p-5 w-full sticky top-16 z-20 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4 items-end">
           
           {/* User Select */}
@@ -1755,7 +1755,7 @@ const Dashboard = () => {
                             <span className="text-[10px] font-black text-gray-500 uppercase tracking-wider">{slot.label}</span>
                           </div>
                           <div className="flex flex-col items-start gap-0.5 mt-auto">
-                            <span className="text-gray-900 font-black text-3xl leading-none mt-1">{slot.count}</span>
+                            <span className="grand-heading text-4xl leading-none mt-1">{slot.count}</span>
                           </div>
                         </div>
                       );
@@ -1806,85 +1806,36 @@ const Dashboard = () => {
           {/* Row 1: Total Performance Cards */}
           <div>
             <h4 className="text-sm font-black text-black uppercase tracking-wider mb-3 text-left">Lead Details</h4>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
               
-              {/* Card 0: Total Leads / Lost Leads */}
+              {/* Card 1: Total Leads */}
               <div 
                 onClick={handleLeadsCardClick}
                 className="bg-[#f0fbf4] border-none rounded-3xl p-6 shadow-sm hover:shadow-md transition cursor-pointer select-none active:scale-[0.99] duration-150 flex flex-col justify-between"
               >
-                <div className="flex items-center justify-between w-full pb-2">
-                  <div className="flex-1 flex flex-col items-start justify-center border-r-2 border-gray-100 pr-2">
+                <div className="flex items-center justify-between">
+                  <div>
                     <span className="text-sm text-black font-extrabold uppercase tracking-wider">Total Leads</span>
                     <h3 className="text-3xl font-extrabold text-gray-800 mt-1">{stats.cards.totalLeads || 0}</h3>
                   </div>
-                  <div className="flex-1 flex flex-col items-start justify-center pl-4">
-                    <span className="text-sm text-rose-600 font-extrabold uppercase tracking-wider">Lost Leads</span>
-                    <h3 className="text-3xl font-extrabold text-rose-600 mt-1">{(stats.cards.enquiries?.closed || 0) + (stats.cards.siteVisits?.closed || 0)}</h3>
-                  </div>
                 </div>
-                {/* <div className="flex justify-between items-center mt-4 pt-2 border-t border-gray-50 text-[10px] font-bold">
-                  <span className="text-gray-400 font-semibold uppercase tracking-wider">Overall Leads</span>
-                  <span className="text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">Today: {stats.cards.today?.leads || 0}</span>
-                </div> */}
               </div>
 
-              {/* Card 1: Total Followup */}
+              {/* Card 2: Total Followup */}
               <div 
                 className="bg-[#f0fbf4] border-none rounded-3xl p-6 shadow-sm transition flex flex-col justify-between"
               >
                 <div className="flex items-center justify-between">
                   <div>
                     <span className="text-sm text-black font-extrabold uppercase tracking-wider">Total Followup</span>
-                    <h3 className="text-3xl font-extrabold text-gray-800 mt-1">{stats.cards.enquiries?.followup || 0}</h3>
+                    <h3 className="text-3xl font-extrabold text-gray-800 mt-1">
+                      { (stats.cards.enquiries?.contacted || 0) + (stats.cards.enquiries?.followup || 0) + (stats.cards.siteVisits?.total || 0) }
+                    </h3>
                   </div>
-
                 </div>
-                {/* <div className="flex justify-between items-center mt-4 pt-2 border-t border-gray-50 text-[10px] font-bold">
-                  <span className="text-gray-400 font-semibold uppercase tracking-wider flex items-center gap-1">
-                    <span>Breakdown</span>
-                    <ArrowRight className="w-3 h-3" />
-                  </span>
-                  <span className="text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">Today: {stats.cards.today?.enquiries || 0}</span>
-                </div> */}
               </div>
 
-              {/* Card 2: Total Site Visits */}
-              <div 
-                className="bg-[#f0fbf4] border-none rounded-3xl p-6 shadow-sm transition flex flex-col justify-between"
-              >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <span className="text-sm text-black font-extrabold uppercase tracking-wider">Total Site Visits</span>
-                    <h3 className="text-3xl font-extrabold text-gray-800 mt-1">{stats.cards.siteVisits?.total || 0}</h3>
-                  </div>
-
-                </div>
-                {/* <div className="flex justify-between items-center mt-4 pt-2 border-t border-gray-50 text-[10px] font-bold">
-                  <span className="text-gray-400 font-semibold uppercase tracking-wider flex items-center gap-1">
-                    <span>Breakdown</span>
-                    <ArrowRight className="w-3 h-3" />
-                  </span>
-                  <span className="text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">Today: {stats.cards.today?.siteVisits || 0}</span>
-                </div> */}
-              </div>
-
-              {/* Card 3: Total Hot List */}
-              <div className="bg-[#f0fbf4] border-none rounded-3xl p-6 shadow-sm hover:shadow-md transition flex flex-col justify-between">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <span className="text-sm text-black font-extrabold uppercase tracking-wider">Total Hot List</span>
-                    <h3 className="text-3xl font-extrabold text-gray-800 mt-1">{stats.cards.hotList?.total || 0}</h3>
-                  </div>
-
-                </div>
-                {/* <div className="flex justify-between items-center mt-4 pt-2 border-t border-gray-50 text-[10px] font-bold">
-                  <span className="text-gray-400 font-semibold uppercase tracking-wider">Hot List Leads</span>
-                  <span className="text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">Today: {stats.cards.today?.hotList || 0}</span>
-                </div> */}
-              </div>
-
-              {/* Card 4: Total Booked */}
+              {/* Card 3: Total Booked */}
               <div 
                 onClick={handleBookedCardClick}
                 className="bg-[#f0fbf4] border-none rounded-3xl p-6 shadow-sm hover:shadow-md transition cursor-pointer select-none active:scale-[0.99] duration-150 flex flex-col justify-between"
@@ -1894,22 +1845,21 @@ const Dashboard = () => {
                     <span className="text-sm text-black font-extrabold uppercase tracking-wider">Total Booked</span>
                     <h3 className="text-3xl font-extrabold text-gray-800 mt-1">{stats.cards.booked?.total || 0}</h3>
                   </div>
-
                 </div>
-                {/* <div className="mt-3 pt-2 border-t border-gray-50 space-y-1 text-[10px] font-bold uppercase">
-                  <div className="flex justify-between text-gray-500">
-                    <span>Total Value:</span>
-                    <span className="text-gray-800 font-extrabold">₹{Math.round(stats.cards.booked?.value || 0).toLocaleString()}</span>
+              </div>
+
+              {/* Card 4: Lost Leads */}
+              <div 
+                className="bg-[#fcf3f3] border-none rounded-3xl p-6 shadow-sm hover:shadow-md transition cursor-pointer select-none active:scale-[0.99] duration-150 flex flex-col justify-between"
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-sm text-rose-600 font-extrabold uppercase tracking-wider">Lost Leads</span>
+                    <h3 className="text-3xl font-extrabold text-rose-600 mt-1">
+                      {(stats.cards.enquiries?.closed || 0) + (stats.cards.siteVisits?.closed || 0) + (stats.stageStats?.['Lost']?.count || 0)}
+                    </h3>
                   </div>
-                  <div className="flex justify-between text-emerald-600">
-                    <span>Received:</span>
-                    <span className="text-emerald-800 font-extrabold">₹{Math.round(stats.cards.booked?.received || 0).toLocaleString()}</span>
-                  </div>
-                  <div className="flex justify-between text-rose-600">
-                    <span>Pending:</span>
-                    <span className="text-rose-800 font-extrabold">₹{Math.round(stats.cards.booked?.pending || 0).toLocaleString()}</span>
-                  </div>
-                </div> */}
+                </div>
               </div>
 
             </div>

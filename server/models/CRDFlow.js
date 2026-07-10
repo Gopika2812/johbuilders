@@ -63,6 +63,8 @@ const CRDFlowSchema = new mongoose.Schema({
   totalOriginalValue: { type: Number, required: true },
   totalExtraWorksValue: { type: Number, default: 0 },
   totalCurrentValue: { type: Number, required: true },
+  debtorsAmount: { type: Number, default: 0 },
+  targetAmount: { type: Number, default: 0 },
   status: { type: String, enum: ['Active', 'Cancel Requested', 'Cancelled', 'Returned', 'Completed'], default: 'Active' },
   history: [{
     action: { type: String, required: true },
