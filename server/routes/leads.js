@@ -250,7 +250,7 @@ router.post('/', protect, async (req, res) => {
 // @route   PUT /api/leads/:id
 // @desc    Update lead details (status, assignment)
 router.put('/:id', protect, async (req, res) => {
-  const { status, assignedTo, name, phone, leadType, leadCost, address, bankLoan, leadSource, activeAd, projectLocation, project, bookingInfo, followUpInfo, isClosed, closeRemarks, isRevert } = req.body;
+  const { status, assignedTo, name, phone, leadType, leadCost, address, bankLoan, leadSource, activeAd, projectLocation, project, bookingInfo, followUpInfo, isClosed, closeRemarks, isRevert, leadCategory } = req.body;
 
   try {
     const lead = await Lead.findById(req.params.id);
@@ -298,6 +298,7 @@ router.put('/:id', protect, async (req, res) => {
     if (address) lead.address = address;
     if (bankLoan) lead.bankLoan = bankLoan;
     if (project) lead.project = project;
+    if (leadCategory) lead.leadCategory = leadCategory;
 
     if (followUpInfo !== undefined) lead.followUpInfo = followUpInfo;
     if (isClosed !== undefined) {

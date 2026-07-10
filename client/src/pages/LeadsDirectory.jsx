@@ -171,6 +171,7 @@ const LeadsDirectory = () => {
   const [assignedFilter, setAssignedFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [campaignFilter, setCampaignFilter] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('');
   const [locationFilter, setLocationFilter] = useState('');
   const [bankLoanFilter, setBankLoanFilter] = useState('');
   const [reopenedFilter, setReopenedFilter] = useState('');
@@ -183,7 +184,7 @@ const LeadsDirectory = () => {
   // Reset page when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [activeTab, searchTerm, startDate, endDate, assignedFilter, statusFilter, campaignFilter, locationFilter, bankLoanFilter, reopenedFilter, projectFilter]);
+  }, [activeTab, searchTerm, startDate, endDate, assignedFilter, statusFilter, campaignFilter, categoryFilter, locationFilter, bankLoanFilter, reopenedFilter, projectFilter]);
 
   // Sync activeTab with URL search params status
   useEffect(() => {
@@ -278,6 +279,7 @@ const LeadsDirectory = () => {
   const [followMode, setFollowMode] = useState('FollowUp'); // 'FollowUp' | 'Completed'
   const [nextFollowDate, setNextFollowDate] = useState('');
   const [followThrough, setFollowThrough] = useState('Call');
+  const [leadCategory, setLeadCategory] = useState('Cold');
   const [followRemarks, setFollowRemarks] = useState('');
   const [closeRemarks, setCloseRemarks] = useState('');
   const [siteVisitAction, setSiteVisitAction] = useState('Keep'); // 'Keep' | 'Move'
@@ -806,6 +808,7 @@ const LeadsDirectory = () => {
     const minutes = String(now.getMinutes()).padStart(2, '0');
     setNextFollowDate(`${year}-${month}-${day}T${hours}:${minutes}`);
     setFollowThrough('Call');
+    setLeadCategory(lead.leadCategory || 'Cold');
     setFollowRemarks('');
     setCloseRemarks('');
     setSiteVisitAction('Keep');
@@ -841,17 +844,18 @@ const LeadsDirectory = () => {
           contactedThrough: followThrough,
           remarks: followRemarks
         },
-        isClosed: false
+        isClosed: false,
+        leadCategory
       };
     } else {
       const isAdvancingToHotList = followTargetStatus === 'Hot List';
-      
       payload = {
         status: isAdvancingToHotList ? 'Hot List' : 'Lost',
         isClosed: !isAdvancingToHotList,
         closeRemarks: isAdvancingToHotList 
           ? closeRemarks 
-          : `[Lost at ${selectedLeadForFollow?.status || 'Unknown'} stage] - ${closeRemarks}`
+          : `[Lost at ${selectedLeadForFollow?.status || 'Unknown'} stage] - ${closeRemarks}`,
+        leadCategory
       };
     }
 
@@ -1182,6 +1186,7 @@ const LeadsDirectory = () => {
 
       const matchesAssigned = !assignedFilter || lead.assignedTo?._id === assignedFilter;
       const matchesCampaign = !campaignFilter || lead.leadSource === campaignFilter;
+      const matchesCategory = !categoryFilter || lead.leadCategory === categoryFilter;
       const matchesLocation = !locationFilter || lead.projectLocation === locationFilter || lead.project?.location === locationFilter;
       const matchesBankLoan = !bankLoanFilter || lead.bankLoan === bankLoanFilter;
       const matchesProject = !projectFilter || (lead.project?._id || lead.project) === projectFilter;
@@ -1196,7 +1201,7 @@ const LeadsDirectory = () => {
       }
 
       return matchesTab && matchesStatus && matchesSearch && matchesStartDate && matchesEndDate &&
-             matchesAssigned && matchesCampaign && matchesLocation && matchesBankLoan && matchesState && matchesProject;
+             matchesAssigned && matchesCampaign && matchesCategory && matchesLocation && matchesBankLoan && matchesState && matchesProject;
     });
   };
 
@@ -1253,47 +1258,6 @@ const LeadsDirectory = () => {
         </div>
       )}
 
-      {/* Tab Switcher - Leads Phases */}
-      <div className="w-full max-w-full overflow-x-auto bg-white border border-gray-150 p-1.5 rounded-2xl shadow-sm scrollbar-none">
-        <div className="flex gap-1 min-w-max">
-          <button
-            onClick={() => setActiveTab('All')}
-            className={`px-4 py-2 text-xs font-bold rounded-xl transition ${
-              activeTab === 'All'
-                ? 'bg-[#0e623a] text-white shadow-sm'
-                : 'text-gray-500 hover:bg-gray-50 hover:text-gray-800'
-            }`}
-          >
-            All Leads ({leads.length})
-          </button>
-          {LEAD_STATUSES.map(st => {
-            let count = 0;
-            if (st === 'Lost') {
-              count = leads.filter(l => l.status === 'Lost' || (l.isClosed && l.status !== 'Won')).length;
-            } else if (st === 'Won') {
-              count = leads.filter(l => l.status === 'Won').length;
-            } else if (st === 'Hot List') {
-              count = leads.filter(l => (l.status === 'Hot List' || (l.history && l.history.some(h => h.status === 'Hot List'))) && !l.isClosed).length;
-            } else {
-              count = leads.filter(l => l.status === st && !l.isClosed).length;
-            }
-            return (
-              <button
-                key={st}
-                onClick={() => setActiveTab(st)}
-                className={`px-4 py-2 text-xs font-bold rounded-xl transition ${
-                  activeTab === st
-                    ? 'bg-[#0e623a] text-white shadow-sm'
-                    : 'text-gray-500 hover:bg-gray-50 hover:text-gray-800'
-                }`}
-              >
-                {st === 'Qualified' ? 'Hot List' : st} ({count})
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
       {/* Filters & Search Menu */}
       <div className="space-y-2 sticky top-16 z-20 bg-gray-50/90 backdrop-blur-md py-2">
         <div className="bg-white p-4 border border-gray-150 shadow-sm rounded-3xl grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
@@ -1332,7 +1296,7 @@ const LeadsDirectory = () => {
           </div>
         </div>
 
-        <div className="bg-white p-4 border border-gray-150 shadow-sm rounded-3xl grid grid-cols-2 lg:grid-cols-4 gap-4 items-end">
+        <div className="bg-white p-4 border border-gray-150 shadow-sm rounded-3xl grid grid-cols-2 lg:grid-cols-5 gap-4 items-end">
           {/* Assigned Executive */}
           <div className="space-y-1">
           {(user?.role === 'Admin' || user?.role === 'Manager') && (
@@ -1396,6 +1360,62 @@ const LeadsDirectory = () => {
               ))}
             </select>
           </div>
+
+          {/* Lead Category */}
+          <div className="space-y-1">
+            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Lead Category</label>
+            <select
+              value={categoryFilter}
+              onChange={(e) => setCategoryFilter(e.target.value)}
+              className="w-full max-w-full truncate px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-xs font-bold text-gray-700"
+            >
+              <option value="">All Categories</option>
+              <option value="Hot">Hot</option>
+              <option value="Warm">Warm</option>
+              <option value="Cold">Cold</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      {/* Tab Switcher - Leads Phases */}
+      <div className="w-full max-w-full overflow-x-auto bg-white border border-gray-150 p-1.5 rounded-2xl shadow-sm scrollbar-none">
+        <div className="flex gap-1 min-w-max">
+          <button
+            onClick={() => setActiveTab('All')}
+            className={`px-4 py-2 text-xs font-bold rounded-xl transition ${
+              activeTab === 'All'
+                ? 'bg-[#0e623a] text-white shadow-sm'
+                : 'text-gray-500 hover:bg-gray-50 hover:text-gray-800'
+            }`}
+          >
+            All Leads ({leads.length})
+          </button>
+          {LEAD_STATUSES.map(st => {
+            let count = 0;
+            if (st === 'Lost') {
+              count = leads.filter(l => l.status === 'Lost' || (l.isClosed && l.status !== 'Won')).length;
+            } else if (st === 'Won') {
+              count = leads.filter(l => l.status === 'Won').length;
+            } else if (st === 'Hot List') {
+              count = leads.filter(l => (l.status === 'Hot List' || (l.history && l.history.some(h => h.status === 'Hot List'))) && !l.isClosed).length;
+            } else {
+              count = leads.filter(l => l.status === st && !l.isClosed).length;
+            }
+            return (
+              <button
+                key={st}
+                onClick={() => setActiveTab(st)}
+                className={`px-4 py-2 text-xs font-bold rounded-xl transition ${
+                  activeTab === st
+                    ? 'bg-[#0e623a] text-white shadow-sm'
+                    : 'text-gray-500 hover:bg-gray-50 hover:text-gray-800'
+                }`}
+              >
+                {st === 'Qualified' ? 'Hot List' : st} ({count})
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -1405,18 +1425,20 @@ const LeadsDirectory = () => {
           <table className="w-full text-left border-collapse min-w-[900px]">
           <thead>
             <tr className="bg-gray-50 border-b border-gray-150 text-[10px] font-bold text-gray-500 uppercase tracking-wider">
+              <th className="px-3 py-2 w-10 text-center">S.No</th>
               <th className="px-3 py-2">Date</th>
               <th className="px-3 py-2">Customer Name</th>
               <th className="px-3 py-2">Phone Number</th>
               <th className="px-3 py-2">Source Details</th>
               <th className="px-3 py-2">Project</th>
+              <th className="px-3 py-2 text-center">Category</th>
               <th className="px-3 py-2">Assignment</th>
               <th className="px-3 py-2">Lead Status</th>
               <th className="px-3 py-2 text-center">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100 text-sm">
-            {paginatedLeadsList.map(lead => (
+            {paginatedLeadsList.map((lead, index) => (
               <tr 
                 key={lead._id} 
                 className={`hover:bg-gray-50/50 transition duration-150 ${
@@ -1425,6 +1447,13 @@ const LeadsDirectory = () => {
                     : ''
                 }`}
               >
+                {/* S.No */}
+                <td className="px-3 py-1.5 border-b border-gray-100 text-center">
+                  <div className="text-[10px] font-bold text-gray-500">
+                    {(currentPage - 1) * itemsPerPage + index + 1}
+                  </div>
+                </td>
+
                 {/* Date */}
                 <td className="px-3 py-1.5 border-b border-gray-100">
                   <div className="text-[10px] font-semibold text-gray-700 whitespace-nowrap">
@@ -1493,6 +1522,11 @@ const LeadsDirectory = () => {
                   </div>
                 </td>
  
+                {/* Lead Category */}
+                <td className="px-3 py-1.5 border-b border-gray-100 text-center">
+                  <span className={`px-2 py-1 text-[9px] font-bold uppercase rounded-full tracking-wider border shadow-sm ${lead.leadCategory === 'Hot' ? 'bg-red-50 text-red-600 border-red-200' : lead.leadCategory === 'Warm' ? 'bg-orange-50 text-orange-600 border-orange-200' : 'bg-blue-50 text-blue-600 border-blue-200'}`}>{lead.leadCategory || 'Cold'}</span>
+                </td>
+
                 {/* Assignment & Reassign Control */}
                 <td className="px-3 py-1.5 border-b border-gray-100">
                   <div className="text-[9px] space-y-1">
@@ -2403,6 +2437,22 @@ const LeadsDirectory = () => {
                 )}
 
                 {/* Conditional Subforms */}
+                <div className="space-y-4 mb-4">
+                  <div>
+                    <label className="text-xs font-semibold text-gray-600 block mb-1">Lead Category <span className="text-red-500">*</span></label>
+                    <select
+                      value={leadCategory}
+                      onChange={(e) => setLeadCategory(e.target.value)}
+                      className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none text-xs font-semibold text-gray-600"
+                      required
+                    >
+                      <option value="Hot">Hot</option>
+                      <option value="Warm">Warm</option>
+                      <option value="Cold">Cold</option>
+                    </select>
+                  </div>
+                </div>
+
                 {followMode === 'FollowUp' ? (
                   <div className="space-y-4">
                     <div>

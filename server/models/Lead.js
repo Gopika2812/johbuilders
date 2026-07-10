@@ -105,6 +105,11 @@ const LeadSchema = new mongoose.Schema({
     type: Number,
     default: 0
   },
+  leadCategory: {
+    type: String,
+    enum: ['Hot', 'Warm', 'Cold'],
+    default: 'Cold'
+  },
   createdAt: {
     type: Date,
     default: Date.now
