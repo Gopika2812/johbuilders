@@ -17,8 +17,36 @@ import {
   FileText,
   CheckCircle,
   Key,
-  AlertCircle
+  AlertCircle,
+  Filter
 } from 'lucide-react';
+
+const SOURCE_TYPES = [
+  'Paper Ad',
+  'Railway station Hoardings (Rental)',
+  'Local TV',
+  'FM Radio',
+  'Airport Advertisement - Tuticorin',
+  'Hydrogen Balloon',
+  'Notice distribution',
+  'Unipole',
+  'LED board behind park',
+  'Pearl Bliss Tuticorin Project',
+  'Satellite Channel',
+  '99acres',
+  'Housing.com',
+  'Facebook',
+  'Instagram',
+  'Youtube',
+  'Real Estate',
+  'Magicbricks',
+  'Website',
+  'Direct',
+  'Old Customer',
+  'Reference',
+  'Flexboard/Banner',
+  'Stall'
+];
 
 const getCoordinatesForPercent = (percent) => {
   const x = Math.cos(2 * Math.PI * (percent - 0.25));
@@ -335,6 +363,7 @@ const KPIInsights = () => {
   }, [user]);
 
   const [selectedProject, setSelectedProject] = useState('');
+  const [selectedSource, setSelectedSource] = useState('');
   const [loading, setLoading] = useState(true);
   const [selectedGroup, setSelectedGroup] = useState(null);
   const [activeCpeDrillDown, setActiveCpeDrillDown] = useState(null);
@@ -375,12 +404,13 @@ const KPIInsights = () => {
     setSelectedGroup(null);
     fetchInsightsData();
     fetchLeadCostAnalysisData();
-  }, [fromDate, toDate, selectedUser, selectedProject]);
+  }, [fromDate, toDate, selectedUser, selectedProject, selectedSource]);
 
   const fetchLeadCostAnalysisData = async () => {
     try {
       let url = `${API_URL}/dashboard/lead-cost-analysis?fromDate=${fromDate}&toDate=${toDate}`;
       if (selectedProject) url += `&projectId=${selectedProject}`;
+      if (selectedSource) url += `&source=${encodeURIComponent(selectedSource)}`;
       
       const response = await fetch(url, {
         headers: { 'Authorization': `Bearer ${token}` }
@@ -400,6 +430,7 @@ const KPIInsights = () => {
       let url = `${API_URL}/dashboard/stats?fromDate=${fromDate}&toDate=${toDate}`;
       if (selectedUser) url += `&userId=${selectedUser}`;
       if (selectedProject) url += `&projectId=${selectedProject}`;
+      if (selectedSource) url += `&source=${encodeURIComponent(selectedSource)}`;
       
       const response = await fetch(url, {
         headers: { 'Authorization': `Bearer ${token}` }
@@ -2631,14 +2662,19 @@ const KPIInsights = () => {
     setFromDate(firstDay);
     setToDate(lastDay);
   };
+  const filteredSourceStats = Object.entries(stats.sourceStats || {}).reduce((acc, [src, data]) => {
+    if (selectedSource && src.toLowerCase() !== selectedSource.toLowerCase()) return acc;
+    acc[src] = data;
+    return acc;
+  }, {});
 
   const getSourcesData = () => {
     const budgetData = [];
     const spentData = [];
     const networthData = [];
 
-    Object.keys(stats.sourceStats || {}).forEach(src => {
-      const s = stats.sourceStats[src];
+    Object.keys(filteredSourceStats).forEach(src => {
+      const s = filteredSourceStats[src];
       if (s.budget > 0) budgetData.push({ source: src, budget: s.budget });
       if (s.spent > 0) spentData.push({ source: src, spent: s.spent });
       if (s.value > 0) networthData.push({ source: src, networth: s.value });
@@ -2671,9 +2707,7 @@ const KPIInsights = () => {
             <BarChart3 className="w-6 h-6 text-[#0e623a]" />
             <span>KPI Insights & Conversions</span>
           </h1>
-          <p className="text-gray-500 text-xs mt-1">
-            Analyze conversions, pipeline efficiency, marketing spend ratios, and performance metrics
-          </p>
+         
         </div>
 
         {/* Filters Panel */}
@@ -2706,6 +2740,21 @@ const KPIInsights = () => {
               <option value="">All Projects</option>
               {(stats.projects || []).map(p => (
                 <option key={p._id} value={p._id}>{p.code || p.name}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Source Select */}
+          <div className="flex items-center gap-1">
+            <Filter className="w-3.5 h-3.5 text-gray-400" />
+            <select
+              value={selectedSource}
+              onChange={(e) => setSelectedSource(e.target.value)}
+              className="px-2.5 py-1.5 text-xs bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-gray-700 font-bold max-w-[150px]"
+            >
+              <option value="">All Sources</option>
+              {SOURCE_TYPES.map(src => (
+                <option key={src} value={src}>{src}</option>
               ))}
             </select>
           </div>
@@ -2756,14 +2805,14 @@ const KPIInsights = () => {
             <div className="bg-white border border-gray-150 p-5 rounded-3xl shadow-sm hover:shadow-md transition">
               <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Marketing Investment</span>
               <h3 className="text-2xl font-black text-gray-800 mt-1">₹{Math.round(stats.insights?.totalMarketingSpend || 0).toLocaleString()}</h3>
-              <p className="text-[9px] text-[#0e623a] font-bold mt-2">Combined Spent Budget</p>
+              
             </div>
 
             {/* Cost Per Enquiry */}
             <div className="bg-white border border-gray-150 p-5 rounded-3xl shadow-sm hover:shadow-md transition">
-              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Cost Per Enquiry (CPE)</span>
+              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Cost Per converted  Lead</span>
               <h3 className="text-2xl font-black text-[#0e623a] mt-1">₹{Math.round(stats.insights?.costPerEnquiry || 0).toLocaleString()}</h3>
-              <p className="text-[9px] text-gray-550 font-bold mt-2">Lead Cost / Total Enquiries</p>
+        
             </div>
 
             {/* Booking Stage Conversions */}
@@ -2792,17 +2841,15 @@ const KPIInsights = () => {
               </button>
             </div>
             
-            <p className="text-[10px] text-gray-500 font-semibold mb-2">
-              Aggregated Lead Cost Analysis per source.
-            </p>
+            
 
             <div className="space-y-6 pt-2">
-              {Object.keys(stats?.sourceStats || {}).length === 0 ? (
+              {Object.keys(filteredSourceStats).length === 0 ? (
                 <div className="p-8 text-center text-gray-400 italic font-medium border border-dashed rounded-xl">
                   No source stats found for the selected filters.
                 </div>
               ) : (
-                Object.entries(stats.sourceStats)
+                Object.entries(filteredSourceStats)
                   .sort((a, b) => (b[1].count || 0) - (a[1].count || 0))
                   .map(([source, data], index) => {
                   const costPerLead = data.count > 0 ? (data.spent / data.count) : 0;
