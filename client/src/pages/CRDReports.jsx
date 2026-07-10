@@ -27,21 +27,19 @@ const getCoordinatesForPercent = (percent) => {
 };
 
 const getExcelStyles = (themeColor, bannerBg, bannerText, bannerBorder) => {
-  // Enforce company branding green theme colors
-  const greenTheme = "#0e623a";
-  const greenBannerBg = "#e2f0d9";
-  const greenBannerText = "#385723";
-  const greenBannerBorder = "#c5e1a5";
-
   return `
     <style>
       table { border-collapse: collapse; }
-      td, th { border: 1px solid #cbd5e1; padding: 10px 12px; font-family: 'Segoe UI', Calibri, sans-serif; font-size: 10pt; color: #334155; }
-      th, .table-headers th { font-weight: bold; background-color: ${greenTheme}; color: white; border: 1px solid ${greenTheme}; text-align: center; }
-      .title-row { font-size: 22pt; font-weight: bold; color: ${greenTheme}; }
-      .exec-banner, .month-header, .group-banner, .section-banner, .subtotal-row, .bg-header-green, .bg-accent-green, .bg-header-blue, .bg-total-banner { font-size: 11pt; font-weight: bold; background-color: ${greenBannerBg}; color: ${greenBannerText}; padding: 12px; border: 1px solid ${greenBannerBorder}; text-align: center; text-transform: uppercase; letter-spacing: 0.5px; }
-      .even-row { background-color: #f8fafc; }
-      .bold-label, .font-bold { font-weight: bold; color: #0f172a; }
+      td, th { border: 1px solid #000000; padding: 6px 8px; font-family: 'Segoe UI', Calibri, sans-serif; font-size: 10pt; color: #000000; }
+      th, .table-headers th { font-weight: bold; background-color: #5B9BD5; color: #000000; border: 1px solid #000000; text-align: center; }
+      .title-row { font-size: 11pt; font-weight: bold; color: #000000; background-color: #5B9BD5; text-align: center; }
+      
+      .bg-header-blue { background-color: #5B9BD5 !important; color: #000000 !important; font-weight: bold; text-align: center; }
+      .bg-header-green { background-color: #C6E0B4 !important; color: #000000 !important; font-weight: bold; text-align: center; }
+      .bg-gray-row { background-color: #D9D9D9 !important; color: #000000 !important; }
+      .bg-orange-pct { background-color: #F8CBAD !important; color: #000000 !important; font-weight: bold; text-align: center; }
+      
+      .font-bold { font-weight: bold; color: #000000; }
       .text-left { text-align: left; }
       .text-right { text-align: right; }
     </style>
@@ -53,8 +51,8 @@ const getExcelHeader = (titleText, monthTitle, totalColumns, themeColor, logoPat
   const greenTheme = "#0e623a";
   return `
     <tr style="height: 60px;">
-      <td colspan="${safeCols}" class="title-row" style="border:none; vertical-align:middle; text-align:center; font-size: 22pt; font-weight: bold; color: ${greenTheme}; height: 60px;">
-        ${titleText}
+      <td colspan="${safeCols}" class="title-row" style="border: 2px solid #0e623a; vertical-align:middle; text-align:center; font-size: 22pt; font-weight: bold; color: ${greenTheme}; height: 60px; background-color: #ffffff;">
+         ${titleText}
       </td>
     </tr>
     ${monthTitle ? `
@@ -978,7 +976,6 @@ const KPIInsights = () => {
   const handleExportSummaryReport = async () => {
     try {
       setLoading(true);
-      
       const activeMonthStr = fromDate.substring(0, 7);
 
       // Fetch all required data points in parallel for the active month
@@ -1125,28 +1122,36 @@ const KPIInsights = () => {
       });
       const marketingPerformanceText = `${(mTotalPct / marketingRowsList.length).toFixed(2)}%`;
 
+      const projKeys = Object.keys(projectStatsData);
+      const firstProjId = projKeys[0];
+      const firstProj = projectStatsData[firstProjId];
+      const projCode = firstProj ? (firstProj.code || firstProj.name || 'JMD') : 'JMD';
+
       // Build HTML Template
       let html = `
         <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
         <head>
           <meta charset="utf-8">
-          ${getExcelStyles("#4f46e5", "#e0e7ff", "#3730a3", "#c7d2fe")}
+          ${getExcelStyles("#002060", "#d9e1f2", "#002060", "#b4c6e7")}
         </head>
         <body>
           <table>
-            ${getExcelHeader("JohnBuildwell ERP - SUMMARY OF REPORT", `MONTH OF ${monthNames[dateForMonth.getMonth()].toUpperCase()} ${dateForMonth.getFullYear()}`, 10, "#4f46e5", logoPath)}
-            
-            <!-- PHASE 1: Turnover Plan Table -->
             <thead>
-              <tr class="bg-header-green">
-                <th style="width: 50px;">S.No</th>
-                <th style="width: 250px;">TOTAL SALES PROJECTION ${dateForMonth.getFullYear() - 1} - ${dateForMonth.getFullYear().toString().substring(2)}</th>
-                <th style="width: 100px;">TOTAL</th>
-                <th style="width: 80px;">UNIT</th>
-                <th style="width: 100px;">ACHIEVED</th>
-                <th style="width: 100px;">BALANCE</th>
-                <th style="width: 130px;">LAST MONTH ACHIEVED</th>
-                <th colspan="3" style="background-color: #4f46e5; color: white; font-size: 14px; font-weight: bold; vertical-align: middle; text-align: center;">
+              <tr style="height: 60px;">
+                <td colspan="10" class="bg-header-blue font-bold" style="font-size: 14pt; font-weight: bold; height: 60px; text-align: center; vertical-align: middle;">
+                  <img src="${logoPath}" width="150" height="45" style="vertical-align: middle; margin-right: 15px;" />
+                  SALES PARAMETER REPORT
+                </td>
+              </tr>
+              <tr>
+                <th class="bg-header-green" style="width: 50px;">S.No</th>
+                <th class="bg-header-green" style="width: 250px;">TOTAL SALES PROJECTION ${dateForMonth.getFullYear() - 1} - ${dateForMonth.getFullYear().toString().substring(2)}</th>
+                <th class="bg-header-green" style="width: 180px;">TOTAL</th>
+                <th class="bg-header-green" style="width: 80px;">UNIT</th>
+                <th class="bg-header-green" style="width: 100px;">ACHIEVED</th>
+                <th class="bg-header-green" style="width: 100px;">BALANCE</th>
+                <th class="bg-header-green" style="width: 130px;">LAST MONTH ACHIEVED</th>
+                <th colspan="3" rowspan="3" class="bg-header-green font-bold" style="font-size: 11pt; vertical-align: middle; text-align: center;">
                   ${shortMonthHeader}
                 </th>
               </tr>
@@ -1160,18 +1165,15 @@ const KPIInsights = () => {
                 <td class="text-right">${currentAchieved.salesValue.toFixed(2)}</td>
                 <td class="text-right">${Math.max(0, sTarget - currentAchieved.salesValue).toFixed(2)}</td>
                 <td class="text-right">${lastMonthAchieved.salesValue.toFixed(2)}</td>
-                <td colspan="2" class="font-bold" style="background-color: #E2EFDA;">DATE:</td>
-                <td style="background-color: #E2EFDA;">${todayFormatted}</td>
               </tr>
               <tr>
                 <td>2</td>
-                <td class="text-left font-bold">Total Villas to be Sold</td>
+                <td class="text-left font-bold">Total Houses to be Sold</td>
                 <td class="text-right font-bold">${hTarget}</td>
                 <td>Units</td>
                 <td class="text-right">${currentAchieved.villasCount}</td>
                 <td class="text-right">${Math.max(0, hTarget - currentAchieved.villasCount)}</td>
                 <td class="text-right">${lastMonthAchieved.villasCount}</td>
-                <td colspan="3" style="border: none; background-color: #ffffff;"></td>
               </tr>
               <tr>
                 <td>3</td>
@@ -1181,24 +1183,25 @@ const KPIInsights = () => {
                 <td class="text-right">${currentAchieved.plotsCount}</td>
                 <td class="text-right">${Math.max(0, pTarget - currentAchieved.plotsCount)}</td>
                 <td class="text-right">${lastMonthAchieved.plotsCount}</td>
-                <td colspan="3" style="border: none; background-color: #ffffff;"></td>
+                <td colspan="2" class="font-bold bg-header-green" style="font-size: 10pt;">DATE:</td>
+                <td class="bg-header-green" style="font-size: 10pt;">${todayFormatted}</td>
               </tr>
 
               <!-- Spacing row -->
               <tr><td colspan="10" style="border: none; height: 15px;"></td></tr>
 
               <!-- PHASE 2: Project wise Report Headers -->
-              <tr class="bg-header-blue">
-                <th>S.NO.</th>
-                <th>PROJECT</th>
-                <th>DESCRIPTION</th>
-                <th>TARGET</th>
-                <th>ACTUAL</th>
-                <th>% ACHIEVED</th>
-                <th>1st Week Actual</th>
-                <th>2nd Week Actual</th>
-                <th>3rd Week Actual</th>
-                <th>4th Week Actual</th>
+              <tr>
+                <th class="bg-header-blue">S.NO.</th>
+                <th class="bg-header-blue">PROJECT</th>
+                <th class="bg-header-blue">DESCRIPTION</th>
+                <th class="bg-header-blue">TARGET</th>
+                <th class="bg-header-blue">ACTUAL</th>
+                <th class="bg-header-blue">% ACHIEVED</th>
+                <th class="bg-header-blue">1st Week Actual</th>
+                <th class="bg-header-blue">2nd Week Actual</th>
+                <th class="bg-header-blue">3rd Week Actual</th>
+                <th class="bg-header-blue">4th Week Actual</th>
               </tr>
       `;
 
@@ -1207,7 +1210,6 @@ const KPIInsights = () => {
       let pTotalRows = 0;
 
       // Render Phase 2 rows grouped by project
-      const projKeys = Object.keys(projectStatsData);
       projKeys.forEach((projId, index) => {
         const proj = projectStatsData[projId];
         const targets = projectTargetsMap[projId] || { enquiries: 0, hotlist: 0, sitevisits: 0, booked: 0, value: 0 };
@@ -1245,31 +1247,35 @@ const KPIInsights = () => {
 
       html += `
             <!-- Phase 2 Overall Average achieved -->
-            <tr class="bg-total-banner">
-              <td colspan="5" class="text-right">OVERALL AVERAGE ACHIEVED:</td>
-              <td colspan="5" style="background-color: #F8CBAD; color: #C55A11;">${projectPerformanceText}</td>
+            <tr>
+              <td class="bg-gray-row"></td><td class="bg-gray-row"></td><td class="bg-gray-row"></td><td class="bg-gray-row"></td><td class="bg-gray-row"></td>
+              <td class="bg-orange-pct" style="font-size: 10pt; font-weight: bold; border: 1px solid #000000; text-align: center; vertical-align: middle;">${projectPerformanceText}</td>
+              <td class="bg-gray-row"></td><td class="bg-gray-row"></td><td class="bg-gray-row"></td><td class="bg-gray-row"></td>
             </tr>
 
             <!-- Spacing row -->
             <tr><td colspan="10" style="border: none; height: 15px;"></td></tr>
 
             <!-- PHASE 3: Marketing Plan Table -->
-            <tr>
-              <td colspan="10" style="background-color: #2F5597; color: white; font-weight: bold; font-size: 12px; height: 26px;">JB MARKETING PARAMETER REPORT</td>
+            <tr style="height: 60px;">
+              <td colspan="10" class="bg-header-blue font-bold" style="font-size: 14pt; font-weight: bold; height: 60px; text-align: center; vertical-align: middle;">
+                <img src="${logoPath}" width="150" height="45" style="vertical-align: middle; margin-right: 15px;" />
+                JB MARKETING PARAMETER REPORT
+              </td>
+            </tr>
+            <tr style="height: 22px;">
+              <td colspan="10" class="bg-header-green font-bold" style="font-size: 10pt; height: 22px; text-align: center; vertical-align: middle; text-transform: uppercase;">MONTH OF ${monthNames[dateForMonth.getMonth()].toUpperCase()} ${dateForMonth.getFullYear()}</td>
             </tr>
             <tr>
-              <td colspan="10" style="background-color: #BDD7EE; font-weight: bold; font-size: 11px; height: 22px;">MONTH OF ${monthNames[dateForMonth.getMonth()].toUpperCase()} ${dateForMonth.getFullYear()}</td>
-            </tr>
-            <tr class="bg-header-blue font-bold">
-              <th>S.NO.</th>
-              <th colspan="2">DESCRIPTION</th>
-              <th>BUDGET/ TARGET</th>
-              <th>ACTUAL</th>
-              <th>% ACHIEVED</th>
-              <th>1st Week Actual</th>
-              <th>2nd Week Actual</th>
-              <th>3rd Week Actual</th>
-              <th>4th Week Actual</th>
+              <th class="bg-header-blue">S.NO.</th>
+              <th colspan="2" class="bg-header-blue">DESCRIPTION</th>
+              <th class="bg-header-blue">BUDGET/ TARGET</th>
+              <th class="bg-header-blue">ACTUAL</th>
+              <th class="bg-header-blue">% ACHIEVED</th>
+              <th class="bg-header-blue">1st Week Actual</th>
+              <th class="bg-header-blue">2nd Week Actual</th>
+              <th class="bg-header-blue">3rd Week Actual</th>
+              <th class="bg-header-blue">4th Week Actual</th>
             </tr>
       `;
 
@@ -1291,9 +1297,10 @@ const KPIInsights = () => {
       });
 
       html += `
-            <tr class="bg-total-banner">
-              <td colspan="5" class="text-right">OVERALL AVERAGE ACHIEVED:</td>
-              <td colspan="5" style="background-color: #F8CBAD; color: #C55A11;">${marketingPerformanceText}</td>
+            <tr>
+              <td class="bg-gray-row"></td><td class="bg-gray-row"></td><td class="bg-gray-row"></td><td class="bg-gray-row"></td><td class="bg-gray-row"></td>
+              <td class="bg-orange-pct" style="font-size: 10pt; font-weight: bold; border: 1px solid #000000; text-align: center; vertical-align: middle;">${marketingPerformanceText}</td>
+              <td class="bg-gray-row"></td><td class="bg-gray-row"></td><td class="bg-gray-row"></td><td class="bg-gray-row"></td>
             </tr>
           </tbody>
           </table>
