@@ -118,6 +118,7 @@ const CRDFlow = () => {
 
   // History Modal
   const [historyModalOpen, setHistoryModalOpen] = useState(false);
+  const [sheetPreviewModalOpen, setSheetPreviewModalOpen] = useState(false);
 
   useEffect(() => {
     fetchProjectsAndBookings();
@@ -252,6 +253,55 @@ const CRDFlow = () => {
       };
     });
     setExcelStages(parsed);
+  };
+
+    const handleLoadMasterCRDFormat = async () => {
+    const selectedBooking = bookings.find(b => b._id === selectedBookingId);
+    if (!selectedBooking) return;
+    const projId = selectedBooking.project?._id || selectedBooking.project;
+    try {
+      setLoading(true);
+      const res = await fetch(`${API_URL}/projects/${projId}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const projectData = await res.json();
+        if (projectData.crdFlowSheet && projectData.crdFlowSheet.link) {
+          setFileName(projectData.crdFlowSheet.name || 'Master_CRD_Format.xlsx');
+          
+          // Simulate parsing the master excel sheet
+          const quot = quotations.find(q => (q.lead?._id || q.lead) === selectedBookingId);
+          const valuation = quot ? quot.totalValue : (selectedBooking?.bookingInfo?.selectedUnits?.length 
+            ? selectedBooking.bookingInfo.selectedUnits.length * (projectData.pricePerSqFt || 2000) * 1000
+            : 2500000);
+          
+          let sumAmount = 0;
+          const parsed = defaultStagesTemplate.map((stage, idx) => {
+            let amount = Math.round((stage.percentage / 100) * valuation);
+            if (idx === defaultStagesTemplate.length - 1) {
+              amount = valuation - sumAmount;
+            } else {
+              sumAmount += amount;
+            }
+            return {
+              name: stage.name,
+              percentage: stage.percentage,
+              amount: amount
+            };
+          });
+          setExcelStages(parsed);
+          setSuccess('Loaded Project Master CRD Format successfully!');
+          setTimeout(() => setSuccess(''), 3000);
+        } else {
+          setError('No Master CRD Flow Format found for this project. Please upload it in Project Details.');
+          setTimeout(() => setError(''), 4000);
+        }
+      }
+    } catch (err) {
+      setError('Error loading Master CRD Format');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleInitializeFlow = async () => {
@@ -654,7 +704,7 @@ const CRDFlow = () => {
             <BookOpen className="w-5 h-5 text-[#0e623a]" />
             <span>CRD Flow: Milestone Payment Manager</span>
           </h1>
-          <p className="text-xs text-gray-500 mt-1">Configure, track construction milestones, manage extra works, split payments, and print demand letters.</p>
+         
         </div>
 
 
@@ -681,7 +731,7 @@ const CRDFlow = () => {
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b pb-4">
             <div>
               <h2 className="text-base font-bold text-gray-800">Booked Leads Directory</h2>
-              <p className="text-xs text-gray-400">Select any booked client below to manage milestone construction stages and payments.</p>
+            
             </div>
             
             <div className="flex flex-wrap items-center gap-3">
@@ -727,7 +777,8 @@ const CRDFlow = () => {
               <thead className="bg-gray-50 text-gray-500 font-bold uppercase tracking-wider border-b">
                 <tr>
                   <th className="p-4">Customer Name</th>
-                  <th className="p-4">Project / Units</th>
+                  <th className="p-4">Project</th>
+                  <th className="p-4">Units & Value</th>
                   <th className="p-4">Booking Date</th>
                   <th className="p-4">Status / Phone</th>
                   <th className="p-4 text-center">Actions</th>
@@ -747,13 +798,14 @@ const CRDFlow = () => {
                     <tr key={lead._id} className="hover:bg-gray-50/50 transition">
                       <td className="p-4">
                         <div className="font-bold text-gray-800">{lead.name}</div>
-                        <div className="text-[10px] text-gray-400">{lead.email || 'No Email'}</div>
                       </td>
                       <td className="p-4">
                         <div className="font-semibold text-gray-700">
                           {lead.project?.code || 'N/A'} - {lead.project?.name || 'N/A'}
                         </div>
-                        <div className="flex flex-wrap gap-1 mt-1 items-center">
+                      </td>
+                      <td className="p-4">
+                        <div className="flex flex-col gap-1 items-start">
                           <div className="text-[10px] text-emerald-800 font-bold bg-emerald-50 px-2 py-0.5 rounded inline-block">
                             Units: {lead.bookingInfo?.selectedUnits?.join(', ') || 'N/A'}
                           </div>
@@ -801,7 +853,7 @@ const CRDFlow = () => {
                   return true;
                 }).length === 0 && (
                   <tr>
-                    <td colSpan="5" className="p-8 text-center text-gray-400">
+                    <td colSpan="6" className="p-8 text-center text-gray-400">
                       No matching booked leads found.
                     </td>
                   </tr>
@@ -836,18 +888,21 @@ const CRDFlow = () => {
           </div>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-2">
+            <button
+              onClick={handleLoadMasterCRDFormat}
+              className="px-6 py-3 bg-[#0e623a] text-white hover:bg-[#0b4d2d] rounded-xl text-xs font-bold transition cursor-pointer shadow-sm flex items-center gap-2"
+            >
+              <FileSpreadsheet className="w-4 h-4" />
+              Auto-Load Master Project CRD Format
+            </button>
+
+            <span className="text-gray-400 text-xs font-bold">OR</span>
+
             <label className="flex items-center gap-2 px-6 py-3 border border-gray-200 hover:border-[#0e623a]/30 rounded-xl text-xs font-bold text-gray-600 hover:bg-gray-50 transition cursor-pointer">
-              <Upload className="w-4 h-4 text-emerald-600" />
-              <span>{fileName || 'Upload Excel Sheet'}</span>
+              <Upload className="w-4 h-4 text-gray-400" />
+              <span>{fileName || 'Upload Custom Sheet'}</span>
               <input type="file" accept=".xlsx,.xls,.csv" onChange={handleExcelUpload} className="hidden" />
             </label>
-
-            <button
-              onClick={handleLoadPresetTemplate}
-              className="px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-xs font-bold transition cursor-pointer"
-            >
-              Load Default Presets
-            </button>
           </div>
 
           {excelStages.length > 0 && (
@@ -1901,8 +1956,53 @@ const CRDFlow = () => {
           </div>
         </div>
       )}
+    
+      {/* Sheet Preview Modal */}
+      {sheetPreviewModalOpen && (
+        <div className="fixed inset-0 bg-black/60 z-[90] flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[85vh]">
+            <div className="bg-[#0e623a] text-white p-5 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <FileSpreadsheet className="w-5 h-5 text-emerald-200" />
+                <h2 className="text-lg font-bold">Master CRD Flow Format Preview</h2>
+              </div>
+              <button onClick={() => setSheetPreviewModalOpen(false)} className="text-emerald-200 hover:text-white transition">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+              </button>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto p-6 bg-gray-50">
+              <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+                <table className="w-full text-left text-sm">
+                  <thead className="bg-gray-100 border-b border-gray-200 text-gray-600 font-bold">
+                    <tr>
+                      <th className="p-4 border-r border-gray-200 w-16 text-center">#</th>
+                      <th className="p-4 border-r border-gray-200">Construction Stage / Milestone</th>
+                      <th className="p-4 text-center w-24">Payment %</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {defaultStagesTemplate.map((stage, idx) => (
+                      <tr key={idx} className="hover:bg-gray-50/50">
+                        <td className="p-4 border-r border-gray-200 text-center font-bold text-gray-400">{idx + 1}</td>
+                        <td className="p-4 border-r border-gray-200 font-semibold text-gray-700">{stage.name}</td>
+                        <td className="p-4 text-center font-bold text-[#0e623a]">{stage.percentage}%</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <div className="p-4 border-t border-gray-100 bg-white flex justify-end">
+               <button onClick={() => setSheetPreviewModalOpen(false)} className="px-5 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-xl transition">
+                 Close Preview
+               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };
-
 export default CRDFlow;

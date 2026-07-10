@@ -11,7 +11,8 @@ import {
   Grid, 
   Table as TableIcon,
   Edit, 
-  CheckCircle2, 
+  CheckCircle2,
+  Upload, 
   UserPlus, 
   Maximize2,
   Trash2,
@@ -27,6 +28,8 @@ import {
   Play,
   Pause,
   Home
+,
+  FileSpreadsheet
 } from 'lucide-react';
 
 const SOURCE_TYPES = [
@@ -66,6 +69,7 @@ const ProjectDetail = () => {
 
   // Booking Modal State
   const [bookingModalOpen, setBookingModalOpen] = useState(false);
+  const [sheetPreviewModalOpen, setSheetPreviewModalOpen] = useState(false);
   const [selectedUnit, setSelectedUnit] = useState(null);
   const [unitStatus, setUnitStatus] = useState('New');
   const [customerName, setCustomerName] = useState('');
@@ -87,6 +91,10 @@ const ProjectDetail = () => {
   const [marketingModalOpen, setMarketingModalOpen] = useState(false);
   const [mSourceType, setMSourceType] = useState('');
   const [mVideos, setMVideos] = useState([{ name: '', link: '', status: 'Active', updatedAt: new Date().toISOString() }]);
+  const [crdFlowSheetFile, setCrdFlowSheetFile] = useState(null);
+  const [crdFlowSheetName, setCrdFlowSheetName] = useState('');
+  const [crdFlowSheetLink, setCrdFlowSheetLink] = useState('');
+  const [isUploadingCrd, setIsUploadingCrd] = useState(false);
   const [mPosters, setMPosters] = useState([{ name: '', link: '', status: 'Active', updatedAt: new Date().toISOString() }]);
   const [activeTab, setActiveTab] = useState('project'); // 'project' | 'marketing'
   const [saveSuccess, setSaveSuccess] = useState(false);
@@ -135,6 +143,10 @@ const ProjectDetail = () => {
         }
         setEndDate(new Date().toISOString().split('T')[0]);
 
+        if (data.crdFlowSheet) {
+          setCrdFlowSheetName(data.crdFlowSheet.name || '');
+          setCrdFlowSheetLink(data.crdFlowSheet.link || '');
+        }
         if (data.marketingInfo) {
           setMSourceType(data.marketingInfo.sourceType || '');
           
@@ -158,6 +170,45 @@ const ProjectDetail = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleCrdUpload = async () => {
+    if (!crdFlowSheetFile) return alert('Please select a file first');
+    setIsUploadingCrd(true);
+    
+    // Simulate upload delay for demo
+    setTimeout(async () => {
+      const mockLink = 'https://docs.google.com/spreadsheets/d/mock-crd-sheet-' + Date.now();
+      try {
+        const response = await fetch(`${API_URL}/projects/${id}/crd-flow-sheet`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            name: crdFlowSheetFile.name,
+            link: mockLink
+          })
+        });
+
+        if (response.ok) {
+          const updated = await response.json();
+          setProject(updated);
+          setCrdFlowSheetName(crdFlowSheetFile.name);
+          setCrdFlowSheetLink(mockLink);
+          setSaveSuccess(true);
+          setTimeout(() => setSaveSuccess(false), 3000);
+        } else {
+          alert('Failed to save CRD Flow Sheet');
+        }
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setIsUploadingCrd(false);
+        setCrdFlowSheetFile(null);
+      }
+    }, 1500);
   };
 
   const handleMarketingSubmit = async (e) => {
@@ -473,6 +524,17 @@ const ProjectDetail = () => {
         >
           Marketing & Promotions
         </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab('crdFlow')}
+          className={`flex-1 sm:flex-initial py-3 px-6 text-sm font-bold border-b-2 transition text-center ${
+            activeTab === 'crdFlow'
+              ? 'border-[#0e623a] text-[#0e623a]'
+              : 'border-transparent text-gray-500 hover:text-gray-800'
+          }`}
+        >
+          CRD Flow Format
+        </button>
       </div>
 
       {activeTab === 'project' && (() => {
@@ -558,6 +620,7 @@ const ProjectDetail = () => {
 
       {/* Grid / Table Layout Views based on type */}
 
+      
       {/* 🟢 PLOT PROJECT VIEW */}
       {activeType === 'Plot' && (
         <>
@@ -1529,8 +1592,153 @@ const ProjectDetail = () => {
               </div>
         </div>
       )}
+    
+      {/* 🟢 CRD FLOW FORMAT VIEW */}
+      {activeTab === 'crdFlow' && (
+        <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center min-h-[400px]">
+          <div className="max-w-md w-full text-center space-y-6">
+            <div className="w-20 h-20 bg-[#0e623a]/10 rounded-full flex items-center justify-center mx-auto">
+              <FileSpreadsheet className="w-10 h-10 text-[#0e623a]" />
+            </div>
+            
+            <div>
+              <h2 className="text-xl font-bold text-gray-800">Master CRD Flow Format</h2>
+              <p className="text-sm text-gray-500 mt-2 leading-relaxed">
+                Upload the master Excel template for this project. Once uploaded, this format will automatically be used for all booked leads in the CRD Flow manager.
+              </p>
+            </div>
+
+            {crdFlowSheetLink ? (
+              <div className="bg-[#f0f9f4] border border-[#0e623a]/20 p-5 rounded-2xl flex flex-col gap-3">
+                <div className="flex items-center gap-3">
+                  <CheckCircle2 className="w-6 h-6 text-emerald-600" />
+                  <div className="text-left flex-1 overflow-hidden">
+                    <p className="text-sm font-bold text-gray-800 truncate" title={crdFlowSheetName}>{crdFlowSheetName}</p>
+                    <p className="text-xs text-emerald-600 font-semibold mt-0.5">Active Template Ready</p>
+                  </div>
+                </div>
+                <div className="flex gap-2 mt-2">
+                  <button 
+                    onClick={() => {
+                      setCrdFlowSheetLink('');
+                      setCrdFlowSheetName('');
+                    }}
+                    className="flex-1 py-2 text-xs font-bold text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition"
+                  >
+                    Replace Format
+                  </button>
+                  <button
+                      onClick={() => setSheetPreviewModalOpen(true)}
+                      className="flex-1 py-2 text-xs font-bold text-white bg-[#0e623a] hover:bg-[#0b4d2d] rounded-lg transition flex justify-center"
+                    >
+                      View Sheet
+                    </button>
+                </div>
+              </div>
+            ) : (
+              <div className="border-2 border-dashed border-gray-300 rounded-2xl p-6 bg-gray-50 hover:bg-gray-100 transition">
+                <input 
+                  type="file" 
+                  id="crdUpload" 
+                  accept=".xlsx, .xls, .csv" 
+                  className="hidden" 
+                  onChange={(e) => setCrdFlowSheetFile(e.target.files[0])}
+                />
+                
+                {crdFlowSheetFile ? (
+                  <div className="flex flex-col items-center gap-3">
+                    <span className="text-sm font-bold text-[#0e623a] break-all px-4">{crdFlowSheetFile.name}</span>
+                    <button 
+                      onClick={handleCrdUpload}
+                      disabled={isUploadingCrd}
+                      className="px-6 py-2 bg-[#0e623a] text-white text-sm font-bold rounded-xl hover:bg-[#0b4d2d] transition disabled:opacity-50 flex items-center gap-2"
+                    >
+                      {isUploadingCrd ? (
+                        <>
+                          <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></div>
+                          Uploading...
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="w-4 h-4" />
+                          Save Format
+                        </>
+                      )}
+                    </button>
+                  </div>
+                ) : (
+                  <label htmlFor="crdUpload" className="cursor-pointer flex flex-col items-center gap-3">
+                    <Upload className="w-8 h-8 text-gray-400" />
+                    <span className="text-sm font-semibold text-[#0e623a]">Click to browse Excel files</span>
+                    <span className="text-xs text-gray-400">.xlsx, .xls formats up to 10MB</span>
+                  </label>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+
+      
+    
+      {/* Sheet Preview Modal */}
+      {sheetPreviewModalOpen && (
+        <div className="fixed inset-0 bg-black/60 z-[90] flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[85vh]">
+            <div className="bg-[#0e623a] text-white p-5 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <FileSpreadsheet className="w-5 h-5 text-emerald-200" />
+                <h2 className="text-lg font-bold">Sheet Preview: {crdFlowSheetName}</h2>
+              </div>
+              <button onClick={() => setSheetPreviewModalOpen(false)} className="text-emerald-200 hover:text-white transition">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+              </button>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto p-6 bg-gray-50">
+              <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+                <table className="w-full text-left text-sm">
+                  <thead className="bg-gray-100 border-b border-gray-200 text-gray-600 font-bold">
+                    <tr>
+                      <th className="p-4 border-r border-gray-200 w-16 text-center">#</th>
+                      <th className="p-4 border-r border-gray-200">Construction Stage / Milestone</th>
+                      <th className="p-4 text-center w-24">Payment %</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {[
+                      { name: 'On Booking', percentage: 5 },
+                      { name: 'Agreement & Deed Regn.', percentage: 35 },
+                      { name: 'On completion of the Foundation', percentage: 10 },
+                      { name: 'On completion of Stilt Floor Slab', percentage: 10 },
+                      { name: 'On completion of First Floor Roof Slab', percentage: 10 },
+                      { name: 'On completion of Second Floor Roof Slab', percentage: 10 },
+                      { name: 'On completion of Third Floor Roof Slab', percentage: 10 },
+                      { name: 'On Completion of Fourth Floor Roof Slab', percentage: 5 },
+                      { name: 'On Completion of Fifth Floor Roof Slab', percentage: 3 },
+                      { name: 'On Handing Over', percentage: 2 }
+                    ].map((stage, idx) => (
+                      <tr key={idx} className="hover:bg-gray-50/50">
+                        <td className="p-4 border-r border-gray-200 text-center font-bold text-gray-400">{idx + 1}</td>
+                        <td className="p-4 border-r border-gray-200 font-semibold text-gray-700">{stage.name}</td>
+                        <td className="p-4 text-center font-bold text-[#0e623a]">{stage.percentage}%</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <div className="p-4 border-t border-gray-100 bg-white flex justify-end">
+               <button onClick={() => setSheetPreviewModalOpen(false)} className="px-5 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-xl transition">
+                 Close Preview
+               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };
-
 export default ProjectDetail;

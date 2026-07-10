@@ -51,7 +51,7 @@ const Layout = ({ children }) => {
       <Sidebar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
 
       {/* Main Panel Content Frame */}
-      <div className={`flex-1 flex flex-col min-h-screen relative z-10 w-full max-w-full min-w-0 transition-all duration-300 ${sidebarOpen ? 'pl-0 md:pl-64' : 'pl-0'}`}>
+      <div className={`flex-1 flex flex-col min-h-screen relative z-10 w-full max-w-full min-w-0 transition-all duration-300 ${sidebarOpen ? 'pl-0 md:pl-64' : 'pl-0 md:pl-20'}`}>
         {/* Top Navbar */}
         <Navbar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
 

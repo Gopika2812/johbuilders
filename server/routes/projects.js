@@ -487,4 +487,27 @@ router.delete('/:id', protect, async (req, res) => {
   }
 });
 
+
+// Update CRD Flow Sheet for a project
+router.put('/:id/crd-flow-sheet', protect, checkPermission('projects', 'edit'), async (req, res) => {
+  const { name, link } = req.body;
+  try {
+    const project = await Project.findById(req.params.id);
+    if (!project) {
+      return res.status(404).json({ message: 'Project not found' });
+    }
+
+    project.crdFlowSheet = {
+      name: name || '',
+      link: link || '',
+      uploadedAt: new Date()
+    };
+
+    await project.save();
+    res.json(project);
+  } catch (error) {
+    res.status(500).json({ message: 'Error updating CRD Flow Sheet', error: error.message });
+  }
+});
+
 module.exports = router;

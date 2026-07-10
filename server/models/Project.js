@@ -107,6 +107,7 @@ const ProjectSchema = new mongoose.Schema({
       default: ''
     },
     videos: [
+
       {
         name: { type: String, default: '' },
         link: { type: String, default: '' },
@@ -124,6 +125,11 @@ const ProjectSchema = new mongoose.Schema({
         updatedAt: { type: Date, default: Date.now }
       }
     ]
+  },
+  crdFlowSheet: {
+    name: { type: String, default: '' },
+    link: { type: String, default: '' },
+    uploadedAt: { type: Date, default: Date.now }
   },
   createdAt: {
     type: Date,
