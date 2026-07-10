@@ -808,6 +808,11 @@ const CRDFlow = () => {
                   const value = flow ? flow.totalCurrentValue : (quot ? quot.totalValue : null);
                   const isSelected = selectedBookingId === lead._id;
                   
+                  const received = flow 
+                    ? flow.stages.reduce((sum, stage) => sum + (stage.payments?.reduce((pSum, p) => pSum + p.amount, 0) || 0), 0) 
+                    : 0;
+                  const pending = value !== null ? Math.max(0, value - received) : null;
+                  
                   return (
                     <React.Fragment key={lead._id}>
                       <tr 
@@ -841,11 +846,28 @@ const CRDFlow = () => {
                             {lead.bookingInfo?.selectedUnits?.join(', ') || 'N/A'}
                           </div>
                         </td>
-                        <td className="p-4">
+                        <td className="p-4 space-y-1.5 min-w-[140px]">
                           {value !== null ? (
-                            <div className="text-[10px] text-blue-800 font-extrabold bg-blue-50 border border-blue-200 px-2 py-0.5 rounded inline-block">
-                              Rs. {value.toLocaleString()}
-                            </div>
+                            <>
+                              <div className="flex items-center justify-between text-[10px] gap-2">
+                                <span className="text-gray-500 font-bold uppercase tracking-wider">Total</span>
+                                <span className="text-blue-800 font-black bg-blue-50 border border-blue-200 px-1.5 py-0.5 rounded shadow-sm">
+                                  Rs. {value.toLocaleString()}
+                                </span>
+                              </div>
+                              <div className="flex items-center justify-between text-[10px] gap-2">
+                                <span className="text-gray-500 font-bold uppercase tracking-wider">Received</span>
+                                <span className="text-emerald-800 font-black bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded shadow-sm">
+                                  Rs. {received.toLocaleString()}
+                                </span>
+                              </div>
+                              <div className="flex items-center justify-between text-[10px] gap-2">
+                                <span className="text-gray-500 font-bold uppercase tracking-wider">Pending</span>
+                                <span className="text-rose-800 font-black bg-rose-50 border border-rose-200 px-1.5 py-0.5 rounded shadow-sm">
+                                  Rs. {(pending || 0).toLocaleString()}
+                                </span>
+                              </div>
+                            </>
                           ) : (
                             <span className="text-gray-400 text-[10px]">N/A</span>
                           )}
