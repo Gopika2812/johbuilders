@@ -74,8 +74,6 @@ const LeadSchema = new mongoose.Schema({
       'Assigned',
       'Follow-Up',
       'Site Visit',
-      'Hot List',
-      'Negotiation',
       'Booking',
       'Future Follow-up',
       'Lost',

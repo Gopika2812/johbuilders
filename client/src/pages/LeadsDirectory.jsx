@@ -63,8 +63,6 @@ const LEAD_STATUSES = [
   'Assigned',
   'Follow-Up',
   'Site Visit',
-  'Hot List',
-  'Negotiation',
   'Booking',
   'Future Follow-up',
   'Lost'
@@ -75,8 +73,6 @@ const STATUS_COLORS = {
   'Assigned': { bg: 'bg-purple-50/70', text: 'text-purple-700', border: 'border-purple-200', dot: 'bg-purple-500' },
   'Follow-Up': { bg: 'bg-amber-50/70', text: 'text-amber-700', border: 'border-amber-200', dot: 'bg-amber-500' },
   'Site Visit': { bg: 'bg-rose-50/70', text: 'text-rose-700', border: 'border-rose-200', dot: 'bg-rose-500' },
-  'Hot List': { bg: 'bg-teal-50/70', text: 'text-teal-700', border: 'border-teal-200', dot: 'bg-teal-500' },
-  'Negotiation': { bg: 'bg-orange-50/70', text: 'text-orange-700', border: 'border-orange-200', dot: 'bg-orange-500' },
   'Booking': { bg: 'bg-yellow-50/70', text: 'text-yellow-700', border: 'border-yellow-300', dot: 'bg-yellow-500' },
   'Future Follow-up': { bg: 'bg-indigo-50/70', text: 'text-indigo-700', border: 'border-indigo-200', dot: 'bg-indigo-500' },
   'Lost': { bg: 'bg-gray-100', text: 'text-gray-750', border: 'border-gray-300', dot: 'bg-gray-500' },
@@ -208,7 +204,7 @@ const LeadsDirectory = () => {
   const [phoneLocal, setPhoneLocal] = useState('');
   const [createPhoneErr, setCreatePhoneErr] = useState('');
   const [editPhoneErr, setEditPhoneErr] = useState('');
-  const [bookingAltPhoneErr, setBookingAltPhoneErr] = useState('');
+  const [BookedAltPhoneErr, setBookedAltPhoneErr] = useState('');
   const [address, setAddress] = useState('');
   const [profession, setProfession] = useState('');
   const [email, setEmail] = useState('');
@@ -225,7 +221,13 @@ const LeadsDirectory = () => {
   // Direct Visit-specific fields
   const [projectLocation, setProjectLocation] = useState('');
   const [locations, setLocations] = useState([]); // Unique project locations
-  const [directFollowDate, setDirectFollowDate] = useState('');
+  const [directFollowDate, setDirectFollowDate] = useState(() => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  });
   const [directFollowRemarks, setDirectFollowRemarks] = useState('');
   const [leadCost, setLeadCost] = useState('0');
 
@@ -247,34 +249,34 @@ const LeadsDirectory = () => {
   const [editActiveAds, setEditActiveAds] = useState([]);
   const [editStatus, setEditStatus] = useState('New');
 
-  // Booking & Quotation Modal States
-  const [bookingModalOpen, setBookingModalOpen] = useState(false);
-  const [selectedLeadForBooking, setSelectedLeadForBooking] = useState(null);
-  const [bookingProjectDetails, setBookingProjectDetails] = useState(null);
-  const [selectedBookingUnits, setSelectedBookingUnits] = useState([]);
-  const [bookingAltCountryCode, setBookingAltCountryCode] = useState('+91');
-  const [bookingAltLocal, setBookingAltLocal] = useState('');
-  const [bookingAadhar, setBookingAadhar] = useState('');
-  const [bookingPan, setBookingPan] = useState('');
-  const [bookingHasLoan, setBookingHasLoan] = useState('No');
+  // Booked & Quotation Modal States
+  const [BookedModalOpen, setBookedModalOpen] = useState(false);
+  const [selectedLeadForBooked, setSelectedLeadForBooked] = useState(null);
+  const [BookedProjectDetails, setBookedProjectDetails] = useState(null);
+  const [selectedBookedUnits, setSelectedBookedUnits] = useState([]);
+  const [BookedAltCountryCode, setBookedAltCountryCode] = useState('+91');
+  const [BookedAltLocal, setBookedAltLocal] = useState('');
+  const [BookedAadhar, setBookedAadhar] = useState('');
+  const [BookedPan, setBookedPan] = useState('');
+  const [BookedHasLoan, setBookedHasLoan] = useState('No');
   const [loanAmount, setLoanAmount] = useState(0);
   const [loanBank, setLoanBank] = useState('');
   const [loanStatusNotes, setLoanStatusNotes] = useState('');
-  const [customBookingAmount, setCustomBookingAmount] = useState('');
-  const [typedBookingUnits, setTypedBookingUnits] = useState('');
+  const [customBookedAmount, setCustomBookedAmount] = useState('');
+  const [typedBookedUnits, setTypedBookedUnits] = useState('');
   const [unitDropdownOpen, setUnitDropdownOpen] = useState(false);
-  const [bookingLoading, setBookingLoading] = useState(false);
+  const [BookedLoading, setBookedLoading] = useState(false);
 
   useEffect(() => {
-    if (bookingProjectDetails && selectedBookingUnits.length > 0) {
-      const total = bookingProjectDetails.units
-        ?.filter(u => selectedBookingUnits.includes(u.unitId))
+    if (BookedProjectDetails && selectedBookedUnits.length > 0) {
+      const total = BookedProjectDetails.units
+        ?.filter(u => selectedBookedUnits.includes(u.unitId))
         .reduce((sum, u) => sum + u.price, 0);
-      setCustomBookingAmount(total || '');
+      setCustomBookedAmount(total || '');
     } else {
-      setCustomBookingAmount('');
+      setCustomBookedAmount('');
     }
-  }, [selectedBookingUnits, bookingProjectDetails]);
+  }, [selectedBookedUnits, BookedProjectDetails]);
 
   // Follow-Up & Completion Modal States
   const [followModalOpen, setFollowModalOpen] = useState(false);
@@ -300,7 +302,7 @@ const LeadsDirectory = () => {
 
   // Custom Quotation Check Modal State
   const [qtnConfirmOpen, setQtnConfirmOpen] = useState(false);
-  const [pendingLeadForBooking, setPendingLeadForBooking] = useState(null);
+  const [pendingLeadForBooked, setPendingLeadForBooked] = useState(null);
 
   useEffect(() => {
     fetchLeads();
@@ -677,24 +679,24 @@ const LeadsDirectory = () => {
     }
   };
 
-  const initiateBooking = async (lead) => {
-    setSelectedLeadForBooking(lead);
-    setBookingLoading(true);
-    setBookingModalOpen(true);
+  const initiateBooked = async (lead) => {
+    setSelectedLeadForBooked(lead);
+    setBookedLoading(true);
+    setBookedModalOpen(true);
     
     // Prepopulate base fields
-    const parsed = parsePhoneDetails(lead.bookingInfo?.alternativePhone || '');
-    setBookingAltCountryCode(parsed.countryCode);
-    setBookingAltLocal(parsed.localPhone);
-    setBookingAadhar('');
-    setBookingPan('');
-    setBookingHasLoan(lead.bankLoan || 'No');
+    const parsed = parsePhoneDetails(lead.BookedInfo?.alternativePhone || '');
+    setBookedAltCountryCode(parsed.countryCode);
+    setBookedAltLocal(parsed.localPhone);
+    setBookedAadhar('');
+    setBookedPan('');
+    setBookedHasLoan(lead.bankLoan || 'No');
     setLoanAmount(0);
     setLoanBank('');
     setLoanStatusNotes('');
-    setSelectedBookingUnits([]);
-    setTypedBookingUnits('');
-    setCustomBookingAmount('');
+    setSelectedBookedUnits([]);
+    setTypedBookedUnits('');
+    setCustomBookedAmount('');
 
     try {
       const projId = lead.project?._id || lead.project;
@@ -703,62 +705,62 @@ const LeadsDirectory = () => {
       });
       if (res.ok) {
         const data = await res.json();
-        setBookingProjectDetails(data);
+        setBookedProjectDetails(data);
       }
     } catch (err) {
-      setError('Failed to load project details for booking');
+      setError('Failed to load project details for Booked');
     } finally {
-      setBookingLoading(false);
+      setBookedLoading(false);
     }
   };
 
-  const handleBookingSubmit = async (e) => {
+  const handleBookedSubmit = async (e) => {
     e.preventDefault();
-    if (selectedBookingUnits.length === 0) {
-      alert('Please select at least one unit (plot/flat/villa) to confirm booking!');
+    if (selectedBookedUnits.length === 0) {
+      alert('Please select at least one unit (plot/flat/villa) to confirm Booked!');
       return;
     }
 
-    if (bookingAltLocal) {
-      const phoneError = validatePhone(bookingAltCountryCode, bookingAltLocal, 'Alternative Contact');
+    if (BookedAltLocal) {
+      const phoneError = validatePhone(BookedAltCountryCode, BookedAltLocal, 'Alternative Contact');
       if (phoneError) {
         alert(phoneError);
         return;
       }
     }
-    const bookingAltPhone = bookingAltLocal ? (bookingAltCountryCode === '+' ? `+${bookingAltLocal}` : `${bookingAltCountryCode}${bookingAltLocal}`) : '';
+    const BookedAltPhone = BookedAltLocal ? (BookedAltCountryCode === '+' ? `+${BookedAltLocal}` : `${BookedAltCountryCode}${BookedAltLocal}`) : '';
     
-    const selectedUnitsData = bookingProjectDetails.units.filter(u => selectedBookingUnits.includes(u.unitId));
+    const selectedUnitsData = BookedProjectDetails.units.filter(u => selectedBookedUnits.includes(u.unitId));
     const totalArea = selectedUnitsData.reduce((sum, u) => sum + u.size, 0);
-    const totalValue = Number(customBookingAmount) || selectedUnitsData.reduce((sum, u) => sum + u.price, 0);
+    const totalValue = Number(customBookedAmount) || selectedUnitsData.reduce((sum, u) => sum + u.price, 0);
 
     const qtnPayload = {
-      lead: selectedLeadForBooking._id,
-      project: bookingProjectDetails._id,
-      customerName: selectedLeadForBooking.name,
-      customerPhone: selectedLeadForBooking.phone,
-      customerAddress: selectedLeadForBooking.address,
-      projectType: bookingProjectDetails.projectType?.[0] || 'Plot',
-      selectedUnits: selectedBookingUnits,
-      pricePerSqFt: bookingProjectDetails.pricePerSqFt,
+      lead: selectedLeadForBooked._id,
+      project: BookedProjectDetails._id,
+      customerName: selectedLeadForBooked.name,
+      customerPhone: selectedLeadForBooked.phone,
+      customerAddress: selectedLeadForBooked.address,
+      projectType: BookedProjectDetails.projectType?.[0] || 'Plot',
+      selectedUnits: selectedBookedUnits,
+      pricePerSqFt: BookedProjectDetails.pricePerSqFt,
       totalArea: totalArea,
       totalValue: totalValue,
-      alternativePhone: bookingAltPhone,
-      aadharNumber: bookingAadhar,
-      panNumber: bookingPan,
-      bankLoanRequired: bookingHasLoan,
+      alternativePhone: BookedAltPhone,
+      aadharNumber: BookedAadhar,
+      panNumber: BookedPan,
+      bankLoanRequired: BookedHasLoan,
       loanAmount: Number(loanAmount),
       preferredBank: loanBank
     };
 
     const payload = {
       status: 'Booking',
-      bookingInfo: {
-        selectedUnits: selectedBookingUnits,
-        alternativePhone: bookingAltPhone,
-        aadharNumber: bookingAadhar,
-        panNumber: bookingPan,
-        hasLoan: bookingHasLoan,
+      BookedInfo: {
+        selectedUnits: selectedBookedUnits,
+        alternativePhone: BookedAltPhone,
+        aadharNumber: BookedAadhar,
+        panNumber: BookedPan,
+        hasLoan: BookedHasLoan,
         loanDetails: {
           amountRequired: Number(loanAmount),
           preferredBank: loanBank,
@@ -780,12 +782,12 @@ const LeadsDirectory = () => {
 
       if (!qRes.ok) {
         const data = await qRes.json();
-        setError(data.message || 'Failed to generate quotation for booking');
+        setError(data.message || 'Failed to generate quotation for Booked');
         return;
       }
 
-      // 2. Update Lead to Booking
-      const res = await fetch(`${API_URL}/leads/${selectedLeadForBooking._id}`, {
+      // 2. Update Lead to Booked
+      const res = await fetch(`${API_URL}/leads/${selectedLeadForBooked._id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -794,16 +796,16 @@ const LeadsDirectory = () => {
         body: JSON.stringify(payload)
       });
       if (res.ok) {
-        setBookingModalOpen(false);
-        setSuccessMsg('Booking registered successfully & Quotation Generated!');
+        setBookedModalOpen(false);
+        setSuccessMsg('Booked registered successfully & Quotation Generated!');
         fetchLeads();
         setTimeout(() => setSuccessMsg(''), 4000);
       } else {
         const data = await res.json();
-        setError(data.message || 'Failed to complete booking');
+        setError(data.message || 'Failed to complete Booked');
       }
     } catch (err) {
-      setError('Network error saving booking details');
+      setError('Network error saving Booked details');
     }
   };
 
@@ -811,7 +813,7 @@ const LeadsDirectory = () => {
     setSelectedLeadForFollow(lead);
     setFollowTargetStatus(targetStatus);
     
-    const hasFollowUp = ['Follow-Up', 'Site Visit', 'Hot List', 'Negotiation', 'Future Follow-up'].includes(targetStatus);
+    const hasFollowUp = ['Follow-Up', 'Site Visit', 'Future Follow-up'].includes(targetStatus);
     setFollowMode(hasFollowUp ? 'FollowUp' : 'Completed');
     
     const now = new Date();
@@ -864,13 +866,10 @@ const LeadsDirectory = () => {
         leadCategory
       };
     } else {
-      const isAdvancingToHotList = followTargetStatus === 'Hot List';
       payload = {
-        status: isAdvancingToHotList ? 'Hot List' : 'Lost',
-        isClosed: !isAdvancingToHotList,
-        closeRemarks: isAdvancingToHotList 
-          ? closeRemarks 
-          : `[Lost at ${selectedLeadForFollow?.status || 'Unknown'} stage] - ${closeRemarks}`,
+        status: 'Lost',
+        isClosed: true,
+        closeRemarks: `[Lost at ${selectedLeadForFollow?.status || 'Unknown'} stage] - ${closeRemarks}`,
         leadCategory
       };
     }
@@ -889,10 +888,8 @@ const LeadsDirectory = () => {
         setFollowModalOpen(false);
         if (followMode === 'FollowUp') {
           setSuccessMsg(`Follow-up scheduled successfully for ${new Date(nextFollowDate).toLocaleDateString()}!`);
-        } else if (followTargetStatus === 'Qualified') {
-          setSuccessMsg('Lead advanced to Hot List stage successfully!');
         } else {
-          setSuccessMsg(`Deal marked as Completed & Closed under ${followTargetStatus} stage.`);
+          setSuccessMsg('Lead has been closed successfully.');
         }
         fetchLeads();
         setTimeout(() => setSuccessMsg(''), 4000);
@@ -934,7 +931,7 @@ const LeadsDirectory = () => {
     if (!isRevert && newStatus === 'Booking') {
       const lead = leads.find(l => l._id === leadId);
       if (lead) {
-        initiateBooking(lead);
+        initiateBooked(lead);
         return;
       }
     }
@@ -1068,7 +1065,7 @@ const LeadsDirectory = () => {
               <th>Assigned Person</th>
               <th>Assigned By</th>
               <th>Workflow Status</th>
-              <th>Booking Value</th>
+              <th>Booked Value</th>
               <th>Remarks / Notes</th>
             </tr>
       `;
@@ -1080,10 +1077,7 @@ const LeadsDirectory = () => {
         'Follow-Up': 'background-color: #fffbeb; color: #92400e; font-weight: bold;',
         'Site Visit': 'background-color: #fff1f2; color: #9f1239; font-weight: bold;',
         'Site Visit Follow-up': 'background-color: #fdf2f8; color: #9d174d; font-weight: bold;',
-        'Qualified': 'background-color: #f0fdf4; color: #166534; font-weight: bold;',
-        'Negotiation': 'background-color: #fff7ed; color: #9a3412; font-weight: bold;',
         'Booking': 'background-color: #fef9c3; color: #854d0e; font-weight: bold;',
-        'Won': 'background-color: #ecfdf5; color: #065f46; font-weight: bold;',
         'Lost': 'background-color: #f3f4f6; color: #374151; font-weight: bold;'
       };
 
@@ -1097,21 +1091,21 @@ const LeadsDirectory = () => {
         const assignerName = lead.assignedBy?.name || '—';
         const wStatus = lead.status || '';
         
-        // Calculate booking value from selected units or finalized quotation value
-        let bookingVal = 0;
+        // Calculate Booked value from selected units or finalized quotation value
+        let BookedVal = 0;
         const matchedQtn = quotations.find(q => (q.lead?._id || q.lead) === lead._id);
         if (matchedQtn) {
-          bookingVal = matchedQtn.totalValue || 0;
-        } else if (lead.bookingInfo?.selectedUnits && lead.project?.units) {
-          lead.bookingInfo.selectedUnits.forEach(unitId => {
+          BookedVal = matchedQtn.totalValue || 0;
+        } else if (lead.BookedInfo?.selectedUnits && lead.project?.units) {
+          lead.BookedInfo.selectedUnits.forEach(unitId => {
             const unit = lead.project.units.find(u => u.unitId === unitId);
             if (unit) {
-              bookingVal += unit.price || 0;
+              BookedVal += unit.price || 0;
             }
           });
         }
-        const bookingValStr = bookingVal > 0 ? `₹ ${bookingVal.toLocaleString()}` : '₹ 0';
-        const bookingValColor = bookingVal > 0 ? 'color: #0e623a; font-weight: bold;' : 'color: #94a3b8;';
+        const BookedValStr = BookedVal > 0 ? `₹ ${BookedVal.toLocaleString()}` : '₹ 0';
+        const BookedValColor = BookedVal > 0 ? 'color: #0e623a; font-weight: bold;' : 'color: #94a3b8;';
 
         const regDate = lead.createdAt ? new Date(lead.createdAt).toLocaleDateString('en-GB').replace(/\//g, '.') : '';
         const remarksStr = [lead.followUpInfo?.remarks, lead.closeRemarks].filter(Boolean).join(' / ') || '';
@@ -1129,7 +1123,7 @@ const LeadsDirectory = () => {
             <td class="text-left">${execName}</td>
             <td class="text-left">${assignerName}</td>
             <td class="text-center" style="${STATUS_EXCEL_STYLES[wStatus] || ''}">${wStatus}</td>
-            <td class="text-right" style="${bookingValColor}">${bookingValStr}</td>
+            <td class="text-right" style="${BookedValColor}">${BookedValStr}</td>
             <td class="text-left">${remarksStr}</td>
           </tr>
         `;
@@ -1174,7 +1168,11 @@ const LeadsDirectory = () => {
     setProjectLocation('');
     setDuplicateWarning(null);
     setLeadCost('0');
-    setDirectFollowDate('');
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    setDirectFollowDate(`${year}-${month}-${day}`);
     setDirectFollowRemarks('');
   };
 
@@ -1184,8 +1182,6 @@ const LeadsDirectory = () => {
       let matchesTab = true;
       if (activeTab === 'Lost') {
         matchesTab = lead.status === 'Lost' || (lead.isClosed && lead.status !== 'Won');
-      } else if (activeTab === 'Hot List') {
-        matchesTab = (lead.status === 'Hot List' || (lead.history && lead.history.some(h => h.status === 'Hot List'))) && !lead.isClosed;
       } else if (activeTab !== 'All') {
         matchesTab = lead.status === activeTab && !lead.isClosed;
       }
@@ -1415,10 +1411,6 @@ const LeadsDirectory = () => {
             let count = 0;
             if (st === 'Lost') {
               count = leads.filter(l => l.status === 'Lost' || (l.isClosed && l.status !== 'Won')).length;
-            } else if (st === 'Won') {
-              count = leads.filter(l => l.status === 'Won').length;
-            } else if (st === 'Hot List') {
-              count = leads.filter(l => (l.status === 'Hot List' || (l.history && l.history.some(h => h.status === 'Hot List'))) && !l.isClosed).length;
             } else {
               count = leads.filter(l => l.status === st && !l.isClosed).length;
             }
@@ -1432,7 +1424,7 @@ const LeadsDirectory = () => {
                     : 'text-gray-500 hover:bg-gray-50 hover:text-gray-800'
                 }`}
               >
-                {st === 'Qualified' ? 'Hot List' : st} ({count})
+                {st} ({count})
               </button>
             );
           })}
@@ -1463,10 +1455,12 @@ const LeadsDirectory = () => {
             {paginatedLeadsList.map((lead, index) => (
               <tr 
                 key={lead._id} 
-                className={`hover:bg-gray-50/50 transition duration-150 ${
+                className={`transition duration-150 ${
                   lead.isClosed 
-                    ? 'bg-red-50/70 text-gray-500 opacity-90 border-l-4 border-red-500' 
-                    : ''
+                    ? 'bg-red-50/70 text-gray-500 opacity-90 border-l-4 border-red-500 hover:bg-red-100' 
+                    : lead.leadCategory === 'Hot'
+                      ? 'bg-yellow-50 hover:bg-yellow-100 border-l-4 border-yellow-400'
+                      : 'hover:bg-gray-50/50'
                 }`}
               >
                 {/* S.No */}
@@ -1604,21 +1598,13 @@ const LeadsDirectory = () => {
                           STATUS_COLORS[lead.status]?.border || 'border-gray-200'
                         }`}
                       >
-                        {LEAD_STATUSES.filter((_, idx) => {
-                          const currentIdx = LEAD_STATUSES.indexOf(lead.status);
-                          return currentIdx === -1 || idx >= currentIdx;
-                        }).map(status => (
+                        {LEAD_STATUSES.map(status => (
                           <option key={status} value={status}>
                             {status}
                           </option>
                         ))}
                       </select>
                       <ChevronDown className={`w-3.5 h-3.5 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none opacity-70 ${STATUS_COLORS[lead.status]?.text || 'text-gray-700'}`} />
-                      {activeTab === 'Hot List' && lead.status !== 'Hot List' && (
-                        <div className="text-[10px] text-emerald-700 font-extrabold mt-1 py-0.5 px-2 bg-emerald-50 rounded border border-emerald-100 text-center">
-                          Moved to {lead.status}
-                        </div>
-                      )}
                     </div>
                   )}
                 </td>
@@ -2291,10 +2277,7 @@ const LeadsDirectory = () => {
                   className="w-full px-4 py-3 bg-gray-55 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-600 text-sm cursor-pointer appearance-none"
                   style={{ backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 16px center', backgroundSize: '16px' }}
                 >
-                  {LEAD_STATUSES.filter((_, idx) => {
-                    const currentIdx = LEAD_STATUSES.indexOf(selectedLeadForEdit.status);
-                    return currentIdx === -1 || idx >= currentIdx;
-                  }).map(status => (
+                  {LEAD_STATUSES.map(status => (
                     <option key={status} value={status}>{status}</option>
                   ))}
                 </select>
@@ -2387,7 +2370,7 @@ const LeadsDirectory = () => {
       )}
 
       {/* 🔐 MODAL: Custom Quotation Verification Alert */}
-      {qtnConfirmOpen && pendingLeadForBooking && (
+      {qtnConfirmOpen && pendingLeadForBooked && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
           <div className="bg-white rounded-3xl max-w-md w-full overflow-hidden shadow-2xl border border-gray-100 animate-scale-in">
             <div className="bg-[#0e623a] p-6 text-white text-center space-y-2 relative">
@@ -2402,13 +2385,13 @@ const LeadsDirectory = () => {
               <FileText className="w-12 h-12 text-emerald-300 mx-auto" />
               <h3 className="text-base font-extrabold">Quotation Estimation Required</h3>
               <p className="text-emerald-100 text-xs">
-                To proceed with booking, a project quotation estimate must be associated with the customer record.
+                To proceed with Booked, a project quotation estimate must be associated with the customer record.
               </p>
             </div>
 
             <div className="p-6 space-y-4 text-center">
               <p className="text-xs text-gray-500 font-semibold leading-relaxed">
-                Have you already prepared and finalized a quotation estimate for <strong className="text-gray-700">{pendingLeadForBooking.name}</strong>?
+                Have you already prepared and finalized a quotation estimate for <strong className="text-gray-700">{pendingLeadForBooked.name}</strong>?
               </p>
               
               <div className="flex flex-col gap-2 pt-2">
@@ -2416,18 +2399,18 @@ const LeadsDirectory = () => {
                   type="button"
                   onClick={() => {
                     setQtnConfirmOpen(false);
-                    initiateBooking(pendingLeadForBooking);
+                    initiateBooked(pendingLeadForBooked);
                   }}
                   className="w-full py-3 bg-[#0e623a] hover:bg-[#0b4d2d] text-white rounded-xl text-xs font-bold transition shadow-md flex items-center justify-center gap-1.5 cursor-pointer"
                 >
                   <Check className="w-4 h-4" />
-                  <span>Yes, Proceed to Booking Wizard</span>
+                  <span>Yes, Proceed to Booked Wizard</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => {
                     setQtnConfirmOpen(false);
-                    navigate(`/quotations/new?leadId=${pendingLeadForBooking._id}&targetStatus=Booking`);
+                    navigate(`/quotations/new?leadId=${pendingLeadForBooked._id}&targetStatus=Booked`);
                   }}
                   className="w-full py-3 bg-gray-150 hover:bg-gray-200 text-gray-700 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer"
                 >
@@ -2441,7 +2424,7 @@ const LeadsDirectory = () => {
 
       {/* 🔐 MODAL: Follow-Up & Completion Actions */}
       {followModalOpen && selectedLeadForFollow && (() => {
-        const hasFollowUpOptions = ['Contacted', 'Follow-Up', 'Site Visit', 'Qualified', 'Negotiation'].includes(followTargetStatus);
+        const hasFollowUpOptions = ['Follow-Up', 'Site Visit', 'Future Follow-up'].includes(followTargetStatus);
         return (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
             <div className="bg-white rounded-3xl max-w-lg w-full overflow-hidden shadow-2xl border border-gray-100">
@@ -2449,25 +2432,15 @@ const LeadsDirectory = () => {
                 <h3 className="text-lg font-bold flex items-center gap-2">
                   <CalendarClock className="w-5 h-5 text-emerald-300" />
                   <span>
-                    {followTargetStatus === 'Hot List'
-                      ? 'Site Visit Follow-up Options'
-                      : ['Follow-Up', 'Site Visit', 'Future Follow-up'].includes(followTargetStatus)
+                    {['Follow-Up', 'Site Visit', 'Future Follow-up'].includes(followTargetStatus)
                       ? 'Contacted / Follow-up Actions'
                       : `Transition to ${followTargetStatus}`}
                   </span>
                 </h3>
-                <p className="text-emerald-100 text-xs mt-1">
-                  {followTargetStatus === 'Hot List'
-                    ? 'Choose to schedule another follow-up or advance this lead to Hot List stage'
-                    : ['Follow-Up', 'Site Visit', 'Future Follow-up'].includes(followTargetStatus)
-                    ? 'Specify followup schedules or mark the stage as completed'
-                    : `Enter remarks or notes to record this stage transition`}
-                </p>
               </div>
 
               <form onSubmit={handleFollowSubmit} className="p-6 space-y-4">
                 
-                {/* Option Selector Toggle Buttons */}
                 {hasFollowUpOptions && (
                   <div className="grid grid-cols-2 gap-3">
                     <button
@@ -2479,23 +2452,22 @@ const LeadsDirectory = () => {
                           : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
                       }`}
                     >
-                      {['Site Visit', 'Follow-Up', 'Future Follow-up'].includes(followTargetStatus) ? `Schedule ${followTargetStatus}` : 'Take Follow-up'}
+                      Schedule Follow-up
                     </button>
                     <button
                       type="button"
                       onClick={() => setFollowMode('Completed')}
                       className={`py-3 rounded-xl text-xs font-bold transition ${
                         followMode === 'Completed'
-                          ? (followTargetStatus === 'Hot List' ? 'bg-[#0e623a] text-white shadow' : 'bg-red-600 text-white shadow')
+                          ? 'bg-red-600 text-white shadow'
                           : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
                       }`}
                     >
-                      {followTargetStatus === 'Hot List' ? 'Move to Hot List' : 'Close Lead (Lost)'}
+                      Close Lead (Lost)
                     </button>
                   </div>
                 )}
 
-                {/* Conditional Subforms */}
                 <div className="space-y-4 mb-4">
                   <div>
                     <label className="text-xs font-semibold text-gray-600 block mb-1">Lead Category <span className="text-red-500">*</span></label>
@@ -2555,33 +2527,12 @@ const LeadsDirectory = () => {
                         className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none text-xs text-gray-700"
                       />
                     </div>
-
-
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {!hasFollowUpOptions ? (
-                      <div className={`text-xs p-3 rounded-xl border ${
-                        followTargetStatus === 'Lost'
-                          ? 'bg-red-50 text-red-800 border-red-100'
-                          : 'bg-blue-50 text-blue-850 border-blue-150'
-                      }`}>
-                        <strong>Notice:</strong> This action will update the lead stage to <span className="font-bold">{followTargetStatus}</span>.
-                      </div>
-                    ) : followTargetStatus === 'Hot List' ? (
-                      <div className="bg-emerald-50 text-emerald-800 text-xs p-3 rounded-xl border border-emerald-100">
-                        <strong>Note:</strong> Advancing this lead will move it to the <span className="font-bold">Hot List</span> stage.
-                      </div>
-                    ) : (
-                      <div className="bg-red-50 text-red-800 text-xs p-3 rounded-xl border border-red-100">
-                        <strong>Note:</strong> Marking completed will close the deal in <span className="font-bold">{followTargetStatus}</span> stage. It will show in the <span className="font-bold">{followTargetStatus}</span> page with a reddish disabled style.
-                      </div>
-                    )}
                     <div>
                       <label className="text-xs font-semibold text-gray-600 block mb-1">
-                        {followTargetStatus === 'Hot List'
-                          ? 'Transition Remarks (Optional)'
-                          : !hasFollowUpOptions
+                        {!hasFollowUpOptions
                           ? `Remarks / Notes for transitioning to ${followTargetStatus} (Optional)`
                           : 'Closing Remarks'}
                       </label>
@@ -2591,9 +2542,7 @@ const LeadsDirectory = () => {
                         value={closeRemarks}
                         onChange={(e) => setCloseRemarks(e.target.value)}
                         placeholder={
-                          followTargetStatus === 'Hot List'
-                            ? "Add any notes about this qualification..."
-                            : !hasFollowUpOptions
+                          !hasFollowUpOptions
                             ? `Provide details regarding the transition to ${followTargetStatus}...`
                             : "Explain reasons for closing / completion details..."
                         }
@@ -2626,24 +2575,24 @@ const LeadsDirectory = () => {
         </div>
         );
       })()}
-      {/* 🔐 MODAL: Booking & Quotation Creation Wizard */}
-      {bookingModalOpen && selectedLeadForBooking && (
+      {/* 🔐 MODAL: Booked & Quotation Creation Wizard */}
+      {BookedModalOpen && selectedLeadForBooked && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm overflow-y-auto">
           <div className="bg-white rounded-3xl max-w-3xl w-full overflow-hidden shadow-2xl border border-gray-100 my-8">
             <div className="bg-gradient-to-r from-[#0e623a] to-[#0a4d2c] p-6 text-white">
               <h3 className="text-lg font-bold flex items-center gap-2">
                 <FileText className="w-5 h-5 text-emerald-300" />
-                <span>Create Booking & Quotation Request</span>
+                <span>Create Booked & Quotation Request</span>
               </h3>
               <p className="text-emerald-100 text-xs mt-1">Verify details, select available units, and complete quotation requirements</p>
             </div>
 
-            <form onSubmit={handleBookingSubmit} className="p-6 space-y-6 max-h-[80vh] overflow-y-auto">
+            <form onSubmit={handleBookedSubmit} className="p-6 space-y-6 max-h-[80vh] overflow-y-auto">
               
               {/* Dropdown Unit Selection */}
               <div className="space-y-2 relative">
                 <label className="text-xs font-bold text-gray-700 uppercase tracking-wider block">
-                  Select {bookingProjectDetails?.projectType || 'Unit'} Numbers
+                  Select {BookedProjectDetails?.projectType || 'Unit'} Numbers
                 </label>
                 
                 <div className="relative">
@@ -2651,9 +2600,9 @@ const LeadsDirectory = () => {
                     onClick={() => setUnitDropdownOpen(!unitDropdownOpen)}
                     className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl cursor-pointer flex justify-between items-center text-sm text-gray-800 focus:outline-none focus:ring-1 focus:ring-[#0e623a]"
                   >
-                    <span className={selectedBookingUnits.length > 0 ? "font-bold text-[#0e623a]" : "text-gray-400"}>
-                      {selectedBookingUnits.length > 0 
-                        ? selectedBookingUnits.join(', ') 
+                    <span className={selectedBookedUnits.length > 0 ? "font-bold text-[#0e623a]" : "text-gray-400"}>
+                      {selectedBookedUnits.length > 0 
+                        ? selectedBookedUnits.join(', ') 
                         : 'Select available units...'}
                     </span>
                     <ChevronDown className={`w-4 h-4 text-gray-500 transition-transform ${unitDropdownOpen ? 'rotate-180' : ''}`} />
@@ -2665,26 +2614,26 @@ const LeadsDirectory = () => {
                         <input
                           type="text"
                           placeholder="Search units..."
-                          value={typedBookingUnits}
-                          onChange={(e) => setTypedBookingUnits(e.target.value)}
+                          value={typedBookedUnits}
+                          onChange={(e) => setTypedBookedUnits(e.target.value)}
                           onClick={(e) => e.stopPropagation()}
                           className="w-full px-2 py-1.5 text-xs bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#0e623a]"
                         />
                       </div>
                       <div className="overflow-y-auto p-1 max-h-48">
-                        {bookingProjectDetails?.units
+                        {BookedProjectDetails?.units
                           ?.filter(u => u.status !== 'Booked' && u.status !== 'Sold Out')
-                          .filter(u => !typedBookingUnits || u.unitId.toLowerCase().includes(typedBookingUnits.toLowerCase()))
+                          .filter(u => !typedBookedUnits || u.unitId.toLowerCase().includes(typedBookedUnits.toLowerCase()))
                           .map(u => (
                             <label key={u.unitId} className="flex items-center gap-2 px-3 py-2 hover:bg-emerald-50 cursor-pointer transition rounded-lg">
                               <input
                                 type="checkbox"
-                                checked={selectedBookingUnits.includes(u.unitId)}
+                                checked={selectedBookedUnits.includes(u.unitId)}
                                 onChange={(e) => {
                                   if (e.target.checked) {
-                                    setSelectedBookingUnits([...selectedBookingUnits, u.unitId]);
+                                    setSelectedBookedUnits([...selectedBookedUnits, u.unitId]);
                                   } else {
-                                    setSelectedBookingUnits(selectedBookingUnits.filter(id => id !== u.unitId));
+                                    setSelectedBookedUnits(selectedBookedUnits.filter(id => id !== u.unitId));
                                   }
                                 }}
                                 className="text-[#0e623a] focus:ring-[#0e623a] rounded cursor-pointer"
@@ -2693,10 +2642,10 @@ const LeadsDirectory = () => {
                             </label>
                           ))
                         }
-                        {(!bookingProjectDetails?.units || bookingProjectDetails.units.filter(u => u.status !== 'Booked' && u.status !== 'Sold Out').length === 0) && (
+                        {(!BookedProjectDetails?.units || BookedProjectDetails.units.filter(u => u.status !== 'Booked' && u.status !== 'Sold Out').length === 0) && (
                           <div className="px-3 py-3 text-xs text-gray-500 text-center">No available units found.</div>
                         )}
-                        {(bookingProjectDetails?.units && typedBookingUnits && bookingProjectDetails.units.filter(u => u.status !== 'Booked' && u.status !== 'Sold Out' && u.unitId.toLowerCase().includes(typedBookingUnits.toLowerCase())).length === 0) && (
+                        {(BookedProjectDetails?.units && typedBookedUnits && BookedProjectDetails.units.filter(u => u.status !== 'Booked' && u.status !== 'Sold Out' && u.unitId.toLowerCase().includes(typedBookedUnits.toLowerCase())).length === 0) && (
                           <div className="px-3 py-3 text-xs text-gray-500 text-center">No units match your search.</div>
                         )}
                       </div>
@@ -2706,19 +2655,19 @@ const LeadsDirectory = () => {
               </div>
 
               {/* Pricing & Quotation breakdown */}
-              {selectedBookingUnits.length > 0 && bookingProjectDetails && (
+              {selectedBookedUnits.length > 0 && BookedProjectDetails && (
                 <div className="bg-gray-50 p-4 rounded-2xl border border-gray-150 space-y-2">
                   <h4 className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Quotation Valuation</h4>
                   <div className="text-xs space-y-1 text-gray-600">
                     <div className="flex justify-between">
                       <span>Rate Sq.Ft:</span>
-                      <span className="font-semibold text-gray-800">Rs. {bookingProjectDetails.pricePerSqFt}</span>
+                      <span className="font-semibold text-gray-800">Rs. {BookedProjectDetails.pricePerSqFt}</span>
                     </div>
                     <div className="flex justify-between">
                       <span>Total area selected:</span>
                       <span className="font-semibold text-gray-800">
-                        {bookingProjectDetails.units
-                          ?.filter(u => selectedBookingUnits.includes(u.unitId))
+                        {BookedProjectDetails.units
+                          ?.filter(u => selectedBookedUnits.includes(u.unitId))
                           .reduce((sum, u) => sum + u.size, 0).toFixed(2)} Sq.Ft
                       </span>
                     </div>
@@ -2728,8 +2677,8 @@ const LeadsDirectory = () => {
                         <span className="text-[#0e623a]">Rs.</span>
                         <input
                           type="number"
-                          value={customBookingAmount}
-                          onChange={(e) => setCustomBookingAmount(e.target.value)}
+                          value={customBookedAmount}
+                          onChange={(e) => setCustomBookedAmount(e.target.value)}
                           className="w-28 text-right bg-white border border-[#bce2cb] rounded px-2 py-1 text-[#0e623a] focus:outline-none focus:ring-1 focus:ring-[#0e623a]"
                         />
                       </div>
@@ -2740,18 +2689,18 @@ const LeadsDirectory = () => {
 
               {/* Customer Basic Details Forms */}
               <div className="space-y-4">
-                <h4 className="text-xs font-bold text-gray-700 uppercase tracking-wider border-b pb-1.5">Booking Customer Information</h4>
+                <h4 className="text-xs font-bold text-gray-700 uppercase tracking-wider border-b pb-1.5">Booked Customer Information</h4>
                 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div>
                     <label className="text-xs font-semibold text-gray-600 block mb-1">Alternative Contact</label>
-                    <div className={`flex items-center bg-gray-50 border rounded-xl focus-within:ring-1 transition-all overflow-hidden w-full ${bookingAltPhoneErr ? 'border-red-500 focus-within:ring-red-500' : 'border-gray-200 focus-within:ring-[#0e623a] focus-within:border-transparent'}`}>
+                    <div className={`flex items-center bg-gray-50 border rounded-xl focus-within:ring-1 transition-all overflow-hidden w-full ${BookedAltPhoneErr ? 'border-red-500 focus-within:ring-red-500' : 'border-gray-200 focus-within:ring-[#0e623a] focus-within:border-transparent'}`}>
                       <select
-                        value={bookingAltCountryCode}
+                        value={BookedAltCountryCode}
                         onChange={(e) => {
-                          setBookingAltCountryCode(e.target.value);
-                          setBookingAltLocal('');
-                          setBookingAltPhoneErr('');
+                          setBookedAltCountryCode(e.target.value);
+                          setBookedAltLocal('');
+                          setBookedAltPhoneErr('');
                         }}
                         className="bg-transparent pl-3 pr-5 py-2 text-xs font-bold text-gray-700 outline-none cursor-pointer border-r border-gray-200/80 hover:bg-gray-100/50 transition-colors w-20 appearance-none"
                         style={{ backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 4px center', backgroundSize: '10px' }}
@@ -2766,24 +2715,24 @@ const LeadsDirectory = () => {
                       <input
                         type="text"
                         placeholder="Alternative Phone No"
-                        value={bookingAltLocal}
+                        value={BookedAltLocal}
                         onChange={(e) => {
-                          handleLocalPhoneChange(e.target.value, bookingAltCountryCode, setBookingAltLocal);
-                          setBookingAltPhoneErr('');
+                          handleLocalPhoneChange(e.target.value, BookedAltCountryCode, setBookedAltLocal);
+                          setBookedAltPhoneErr('');
                         }}
                         onBlur={() => {
-                          if (bookingAltLocal) {
-                            const err = validatePhone(bookingAltCountryCode, bookingAltLocal, 'Alternative Contact');
-                            setBookingAltPhoneErr(err || '');
+                          if (BookedAltLocal) {
+                            const err = validatePhone(BookedAltCountryCode, BookedAltLocal, 'Alternative Contact');
+                            setBookedAltPhoneErr(err || '');
                           } else {
-                            setBookingAltPhoneErr('');
+                            setBookedAltPhoneErr('');
                           }
                         }}
                         className="flex-grow px-3 py-2 bg-transparent outline-none text-xs text-gray-800"
                       />
                     </div>
-                    {bookingAltPhoneErr && (
-                      <p className="text-[10px] text-red-500 font-bold mt-1">{bookingAltPhoneErr}</p>
+                    {BookedAltPhoneErr && (
+                      <p className="text-[10px] text-red-500 font-bold mt-1">{BookedAltPhoneErr}</p>
                     )}
                   </div>
                   <div>
@@ -2791,8 +2740,8 @@ const LeadsDirectory = () => {
                     <input
                       type="text"
                       placeholder="12 digit aadhar"
-                      value={bookingAadhar}
-                      onChange={(e) => setBookingAadhar(e.target.value.replace(/\D/g, '').slice(0, 12))}
+                      value={BookedAadhar}
+                      onChange={(e) => setBookedAadhar(e.target.value.replace(/\D/g, '').slice(0, 12))}
                       className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-xs"
                     />
                   </div>
@@ -2801,8 +2750,8 @@ const LeadsDirectory = () => {
                     <input
                       type="text"
                       placeholder="PAN Number"
-                      value={bookingPan}
-                      onChange={(e) => setBookingPan(e.target.value)}
+                      value={BookedPan}
+                      onChange={(e) => setBookedPan(e.target.value)}
                       className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-xs"
                     />
                   </div>
@@ -2816,10 +2765,10 @@ const LeadsDirectory = () => {
                       <label className="flex items-center gap-1 text-xs font-semibold text-gray-700 cursor-pointer">
                         <input
                           type="radio"
-                          name="bookingHasLoan"
+                          name="BookedHasLoan"
                           value="Yes"
-                          checked={bookingHasLoan === 'Yes'}
-                          onChange={() => setBookingHasLoan('Yes')}
+                          checked={BookedHasLoan === 'Yes'}
+                          onChange={() => setBookedHasLoan('Yes')}
                           className="text-[#0e623a] focus:ring-[#0e623a]"
                         />
                         <span>Yes</span>
@@ -2827,10 +2776,10 @@ const LeadsDirectory = () => {
                       <label className="flex items-center gap-1 text-xs font-semibold text-gray-700 cursor-pointer">
                         <input
                           type="radio"
-                          name="bookingHasLoan"
+                          name="BookedHasLoan"
                           value="No"
-                          checked={bookingHasLoan === 'No'}
-                          onChange={() => setBookingHasLoan('No')}
+                          checked={BookedHasLoan === 'No'}
+                          onChange={() => setBookedHasLoan('No')}
                           className="text-[#0e623a] focus:ring-[#0e623a]"
                         />
                         <span>No</span>
@@ -2838,7 +2787,7 @@ const LeadsDirectory = () => {
                     </div>
                   </div>
 
-                  {bookingHasLoan === 'Yes' && (
+                  {BookedHasLoan === 'Yes' && (
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2 border-t border-gray-200">
                       <div>
                         <label className="text-[10px] font-semibold text-gray-500 block mb-1">Loan Amount Required (Rs.)</label>
@@ -2880,7 +2829,7 @@ const LeadsDirectory = () => {
               <div className="flex items-center gap-3 pt-4 border-t">
                 <button
                   type="button"
-                  onClick={() => setBookingModalOpen(false)}
+                  onClick={() => setBookedModalOpen(false)}
                   className="flex-1 py-3 border border-gray-200 rounded-xl text-xs font-bold text-gray-500 hover:bg-gray-50 transition"
                 >
                   Cancel
@@ -2890,7 +2839,7 @@ const LeadsDirectory = () => {
                   className="flex-1 py-3 bg-[#0e623a] text-white rounded-xl text-xs font-bold hover:bg-[#0b4d2d] transition shadow-md flex items-center justify-center gap-1.5"
                 >
                   <DollarSign className="w-3.5 h-3.5" />
-                  <span>Confirm Booking & Generate Quotation</span>
+                  <span>Confirm Booked & Generate Quotation</span>
                 </button>
               </div>
             </form>

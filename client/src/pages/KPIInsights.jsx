@@ -836,8 +836,8 @@ const KPIInsights = () => {
 
       // Apply active dashboard filters
       const filtered = data.filter(lead => {
-        // 1. Must be hot list stage (Qualified or Negotiation)
-        const isHotList = (lead.status === 'Hot List' || (lead.history && lead.history.some(h => h.status === 'Hot List'))) && !lead.isClosed;
+        // 1. Must be hot category
+        const isHotList = lead.leadCategory === 'Hot' && !lead.isClosed;
         if (!isHotList) return false;
 
         // 2. Project filter
