@@ -2771,6 +2771,88 @@ const KPIInsights = () => {
 
           </div>
 
+          {/* 🟢 DAILY LEAD COST ANALYSIS ELABORATE TABLE */}
+          <div className="bg-white border border-gray-150 rounded-3xl p-6 shadow-sm space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-gray-100 pb-3">
+              <h3 className="text-sm font-extrabold text-gray-800 uppercase tracking-wide flex items-center gap-2">
+                <BarChart3 className="w-5 h-5 text-[#0e623a]" />
+                <span>Daily Lead Cost Analysis Report</span>
+              </h3>
+              <button
+                onClick={handleExportLeadCostAnalysis}
+                className="px-4 py-2 bg-[#0e623a] text-white rounded-xl text-xs font-bold hover:bg-[#0b4d2d] transition flex items-center gap-2 shadow-sm"
+              >
+                <FileText className="w-3.5 h-3.5" />
+                <span>Export Report</span>
+              </button>
+            </div>
+            
+            <p className="text-[10px] text-gray-500 font-semibold mb-2">
+              Aggregated Lead Cost Analysis per source.
+            </p>
+
+            <div className="space-y-6 pt-2">
+              {Object.keys(stats?.sourceStats || {}).length === 0 ? (
+                <div className="p-8 text-center text-gray-400 italic font-medium border border-dashed rounded-xl">
+                  No source stats found for the selected filters.
+                </div>
+              ) : (
+                Object.entries(stats.sourceStats)
+                  .sort((a, b) => (b[1].count || 0) - (a[1].count || 0))
+                  .map(([source, data], index) => {
+                  const costPerLead = data.count > 0 ? (data.spent / data.count) : 0;
+                  return (
+                    <div key={index} className="bg-white border border-gray-150 rounded-2xl p-6 shadow-sm hover:shadow-md transition">
+                      {/* Row 1: Source, Budget, Spent, Cost per Lead */}
+                      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-5 pb-5 border-b border-gray-100">
+                        <div>
+                          <span className="text-[10px] text-gray-400 font-bold uppercase block">Lead Source</span>
+                          <h4 className="text-xl font-black text-gray-800 uppercase tracking-wider">{source}</h4>
+                        </div>
+                        <div className="text-center sm:text-left">
+                          <span className="text-[10px] text-gray-400 font-bold uppercase block">Budget</span>
+                          <span className="text-xl font-bold text-gray-800">₹{Math.round(data.budget || 0).toLocaleString()}</span>
+                        </div>
+                        <div className="text-center sm:text-left">
+                          <span className="text-[10px] text-gray-400 font-bold uppercase block">Spent</span>
+                          <span className="text-xl font-bold text-rose-600">₹{Math.round(data.spent || 0).toLocaleString()}</span>
+                        </div>
+                        <div className="text-center sm:text-left">
+                          <span className="text-[10px] text-gray-400 font-bold uppercase block">Cost / Lead</span>
+                          <span className="text-xl font-black text-[#0e623a]">₹{Math.round(costPerLead).toLocaleString()}</span>
+                        </div>
+                      </div>
+                      
+                      {/* Row 2: 5 Metric Cards */}
+                      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                        <div className="bg-gray-50 rounded-xl p-4 border border-gray-100 text-center">
+                          <span className="text-[10px] font-extrabold text-gray-500 uppercase block mb-1">Lead Count</span>
+                          <span className="text-2xl font-black text-gray-800">{data.count || 0}</span>
+                        </div>
+                        <div className="bg-gray-50 rounded-xl p-4 border border-gray-100 text-center">
+                          <span className="text-[10px] font-extrabold text-gray-500 uppercase block mb-1">Lost Count</span>
+                          <span className="text-2xl font-black text-red-500">{data.lost || 0}</span>
+                        </div>
+                        <div className="bg-gray-50 rounded-xl p-4 border border-gray-100 text-center">
+                          <span className="text-[10px] font-extrabold text-gray-500 uppercase block mb-1">Followup Count</span>
+                          <span className="text-2xl font-black text-blue-600">{data.enquiries || 0}</span>
+                        </div>
+                        <div className="bg-gray-50 rounded-xl p-4 border border-gray-100 text-center">
+                          <span className="text-[10px] font-extrabold text-gray-500 uppercase block mb-1">Site Visit Count</span>
+                          <span className="text-2xl font-black text-purple-600">{data.siteVisits || 0}</span>
+                        </div>
+                        <div className="bg-gray-50 rounded-xl p-4 border border-gray-100 text-center">
+                          <span className="text-[10px] font-extrabold text-gray-500 uppercase block mb-1">Booked Count</span>
+                          <span className="text-2xl font-black text-[#0e623a]">{data.booked || 0}</span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+
           {/* 🟢 COMPARISON PIE CHARTS */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             
@@ -2867,71 +2949,7 @@ const KPIInsights = () => {
             </div>
           </div>
 
-          {/* 🟢 DAILY LEAD COST ANALYSIS ELABORATE TABLE */}
-          <div className="bg-white border border-gray-150 rounded-3xl p-6 shadow-sm space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-gray-100 pb-3">
-              <h3 className="text-sm font-extrabold text-gray-800 uppercase tracking-wide flex items-center gap-2">
-                <BarChart3 className="w-5 h-5 text-[#0e623a]" />
-                <span>Daily Lead Cost Analysis Report</span>
-              </h3>
-              <button
-                onClick={handleExportLeadCostAnalysis}
-                className="px-4 py-2 bg-[#0e623a] text-white rounded-xl text-xs font-bold hover:bg-[#0b4d2d] transition flex items-center gap-2 shadow-sm"
-              >
-                <FileText className="w-3.5 h-3.5" />
-                <span>Export Report</span>
-              </button>
-            </div>
-            
-            <p className="text-[10px] text-gray-500 font-semibold mb-2">
-              Automatically calculates Cost per Enquiry by matching leads with your Daily Expense logs from Budget Planning.
-            </p>
 
-            <div className="overflow-x-auto border border-gray-150 rounded-2xl shadow-inner max-h-96 overflow-y-auto">
-              <table className="w-full text-left border-collapse text-xs">
-                <thead className="sticky top-0 bg-gray-50 z-10 shadow-sm">
-                  <tr className="border-b border-gray-150 font-bold text-gray-600 uppercase tracking-wider text-[10px]">
-                    <th className="p-4 w-12 text-center">S.No</th>
-                    <th className="p-4 w-28 text-center">Date</th>
-                    <th className="p-4 w-40">Lead Name</th>
-                    <th className="p-4 w-32">Project</th>
-                    <th className="p-4 w-32">Campaign Source</th>
-                    <th className="p-4 w-32 text-right">Daily Spent (₹)</th>
-                    <th className="p-4 w-28 text-center">Leads Today</th>
-                    <th className="p-4 w-36 text-right">Cost per Enquiry (₹)</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100 font-sans font-semibold text-gray-700">
-                  {leadCostAnalysisData.length === 0 ? (
-                    <tr>
-                      <td colSpan="8" className="p-8 text-center text-gray-400 italic font-medium">
-                        No leads found for the selected filters.
-                      </td>
-                    </tr>
-                  ) : (
-                    leadCostAnalysisData.map((row, index) => (
-                      <tr key={row._id} className="hover:bg-emerald-50/30 transition">
-                        <td className="p-3 text-center text-gray-400">{index + 1}</td>
-                        <td className="p-3 text-center">{new Date(row.exactTime).toLocaleDateString('en-GB').replace(/\//g, '.')}</td>
-                        <td className="p-3 text-gray-900 font-extrabold">{row.leadName}</td>
-                        <td className="p-3">{row.projectName}</td>
-                        <td className="p-3">
-                          <span className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded-md text-[10px] uppercase tracking-wider">
-                            {row.source}
-                          </span>
-                        </td>
-                        <td className="p-3 text-right text-rose-600 font-bold">₹{Math.round(row.dailySpent).toLocaleString()}</td>
-                        <td className="p-3 text-center text-gray-500">{row.dailyLeads}</td>
-                        <td className="p-3 text-right font-black text-[#0e623a] bg-emerald-50/50">
-                          ₹{Math.round(row.costPerEnquiry).toLocaleString()}
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
 
         </div>
       )}
