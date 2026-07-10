@@ -203,7 +203,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
                     : 'text-emerald-900 hover:text-emerald-500 hover:bg-[#11c278]/10'
                 }`}
               >
-                <span className={isExpanded ? "block truncate" : "hidden"}>Export Reports</span>
+                <span className={isExpanded ? "block truncate" : "hidden"}>Sales Reports</span>
               </Link>
               <Link
                 to="/reports/crd"

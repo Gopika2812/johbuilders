@@ -820,7 +820,7 @@ const LeadsDirectory = () => {
     const day = String(now.getDate()).padStart(2, '0');
     const hours = String(now.getHours()).padStart(2, '0');
     const minutes = String(now.getMinutes()).padStart(2, '0');
-    setNextFollowDate(`${year}-${month}-${day}T${hours}:${minutes}`);
+    setNextFollowDate(`${year}-${month}-${day}`);
     setFollowThrough('Call');
     setLeadCategory(lead.leadCategory || 'Cold');
     setFollowRemarks('');
@@ -838,14 +838,16 @@ const LeadsDirectory = () => {
 
     if (followMode === 'FollowUp') {
       if (!nextFollowDate) {
-        alert('Please select the next Follow-up date and time!');
+        alert('Please select the next Follow-up date!');
         return;
       }
       
-      const selectedDateTime = new Date(nextFollowDate).getTime();
-      const currentDateTime = new Date().getTime();
-      if (selectedDateTime <= currentDateTime) {
-        alert('Please select a future date and time for the next Follow-up!');
+      const selectedDate = new Date(nextFollowDate);
+      selectedDate.setHours(0, 0, 0, 0);
+      const currentDate = new Date();
+      currentDate.setHours(0, 0, 0, 0);
+      if (selectedDate < currentDate) {
+        alert('Please select a valid future date for the next Follow-up!');
         return;
       }
 
@@ -886,7 +888,7 @@ const LeadsDirectory = () => {
       if (res.ok) {
         setFollowModalOpen(false);
         if (followMode === 'FollowUp') {
-          setSuccessMsg(`Follow-up scheduled successfully for ${new Date(nextFollowDate).toLocaleString()}!`);
+          setSuccessMsg(`Follow-up scheduled successfully for ${new Date(nextFollowDate).toLocaleDateString()}!`);
         } else if (followTargetStatus === 'Qualified') {
           setSuccessMsg('Lead advanced to Hot List stage successfully!');
         } else {
@@ -1980,7 +1982,14 @@ const LeadsDirectory = () => {
                   <div>
                     <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1.5">Next Follow-up Date <span className="text-red-500">*</span></label>
                     <input
-                      type="datetime-local"
+                      type="date"
+                      min={(() => {
+                        const now = new Date();
+                        const year = now.getFullYear();
+                        const month = String(now.getMonth() + 1).padStart(2, '0');
+                        const day = String(now.getDate()).padStart(2, '0');
+                        return `${year}-${month}-${day}`;
+                      })()}
                       required
                       value={directFollowDate}
                       onChange={(e) => setDirectFollowDate(e.target.value)}
@@ -2506,9 +2515,9 @@ const LeadsDirectory = () => {
                 {followMode === 'FollowUp' ? (
                   <div className="space-y-4">
                     <div>
-                      <label className="text-xs font-semibold text-gray-600 block mb-1">Next Follow-up Date & Time</label>
+                      <label className="text-xs font-semibold text-gray-600 block mb-1">Next Follow-up Date</label>
                       <input
-                        type="datetime-local"
+                        type="date"
                         required
                         value={nextFollowDate}
                         min={(() => {
@@ -2516,9 +2525,7 @@ const LeadsDirectory = () => {
                           const year = now.getFullYear();
                           const month = String(now.getMonth() + 1).padStart(2, '0');
                           const day = String(now.getDate()).padStart(2, '0');
-                          const hours = String(now.getHours()).padStart(2, '0');
-                          const minutes = String(now.getMinutes()).padStart(2, '0');
-                          return `${year}-${month}-${day}T${hours}:${minutes}`;
+                          return `${year}-${month}-${day}`;
                         })()}
                         onChange={(e) => setNextFollowDate(e.target.value)}
                         className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none text-xs font-semibold text-gray-600"

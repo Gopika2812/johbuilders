@@ -2983,19 +2983,13 @@ const KPIInsights = () => {
 
                   </tr>
                   <tr className="hover:bg-gray-50/50">
-                    <td className="p-4 font-bold text-gray-900">Bookings / site conversions</td>
+                    <td className="p-4 font-bold text-gray-900">Booked</td>
                     <td className="p-4 text-center">{stats.cards.conversion.count} leads</td>
                     <td className="p-4 text-center">—</td>
                     <td className="p-4 text-right">{(stats.insights?.bookingConversionRate || 0).toFixed(1)}%</td>
 
                   </tr>
-                  <tr className="hover:bg-gray-50/50">
-                    <td className="p-4 font-bold text-gray-900">Registration / Handovers</td>
-                    <td className="p-4 text-center">{stats.cards.inventory.handoverUnits} units</td>
-                    <td className="p-4 text-center">—</td>
-                    <td className="p-4 text-right">{(stats.insights?.handoverRate || 0).toFixed(1)}%</td>
-
-                  </tr>
+                 
                 </tbody>
               </table>
             </div>
