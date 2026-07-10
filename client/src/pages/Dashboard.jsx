@@ -1728,7 +1728,7 @@ const Dashboard = () => {
                     <Building className="w-4 h-4 text-[#0e623a]" />
                     <span>{projCode} Project Inventory</span>
                   </h3>
-                  <p className="text-[10px] text-gray-400 mt-0.5">Project inventory breakdown</p>
+                 
                 </div>
               </div>
               <div className="py-4 px-2">
@@ -1915,7 +1915,6 @@ const Dashboard = () => {
                   <h3 className="text-sm font-extrabold text-gray-800 uppercase tracking-wide">
                     User Wise Lead Details
                   </h3>
-                  <p className="text-[10px] text-gray-400 mt-0.5">Click a user slice or legend to filter their details</p>
                 </div>
                 <div className="flex items-center gap-2 self-start sm:self-auto">
                   <select
@@ -2027,11 +2026,7 @@ const Dashboard = () => {
                   <h3 className="text-sm font-extrabold text-gray-800 uppercase tracking-wide">
                     Source Wise Lead Details
                   </h3>
-                  <p className="text-[10px] text-gray-400 mt-0.5">
-                    {selectedSourceGroup 
-                      ? `Sub-sources for: ${selectedSourceGroup}` 
-                      : 'Click a source group slice to drill down'}
-                  </p>
+                  
                 </div>
                 <div className="flex items-center gap-2 self-start sm:self-auto">
                   <select
@@ -2235,7 +2230,7 @@ const Dashboard = () => {
                   <h3 className="text-sm font-extrabold text-gray-800 uppercase tracking-wide">
                     Project Wise Leads Share
                   </h3>
-                  <p className="text-[10px] text-gray-400 mt-0.5">Click a project slice to filter user details</p>
+                 
                 </div>
                 <div className="flex items-center gap-2 self-start sm:self-auto">
                   {selectedProjectPerfCode && (
