@@ -22,6 +22,18 @@ const LeadSchema = new mongoose.Schema({
     required: true,
     trim: true
   },
+  profession: {
+    type: String,
+    default: ''
+  },
+  email: {
+    type: String,
+    default: ''
+  },
+  location: {
+    type: String,
+    default: ''
+  },
   bankLoan: {
     type: String,
     enum: ['Yes', 'No'],

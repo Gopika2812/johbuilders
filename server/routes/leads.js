@@ -130,7 +130,7 @@ router.get('/phone/:phone', protect, async (req, res) => {
 // @route   POST /api/leads
 // @desc    Create a new lead (or reopen existing if duplicate phone)
 router.post('/', protect, async (req, res) => {
-  const { leadType, name, phone, address, bankLoan, leadSource, activeAd, projectLocation, project, assignedTo, leadCost } = req.body;
+  const { leadType, name, phone, address, profession, email, location, bankLoan, leadSource, activeAd, projectLocation, project, assignedTo, leadCost, followUpInfo } = req.body;
 
   try {
     // 1. Phone number tracking for reopening existing leads
@@ -148,6 +148,9 @@ router.post('/', protect, async (req, res) => {
       // Reopen existing lead
       lead.leadType = leadType;
       lead.name = name;
+      lead.profession = profession || lead.profession;
+      lead.email = email || lead.email;
+      lead.location = location || lead.location;
       lead.address = address;
       lead.bankLoan = bankLoan || 'No';
       lead.project = project;
@@ -168,6 +171,9 @@ router.post('/', protect, async (req, res) => {
         lead.projectLocation = '';
         lead.leadSource = leadSource || 'Direct Visit';
         lead.activeAd = { name: '', link: '' };
+        if (followUpInfo) {
+          lead.followUpInfo = followUpInfo;
+        }
       }
 
       lead.history.push({
@@ -200,6 +206,9 @@ router.post('/', protect, async (req, res) => {
     lead = new Lead({
       leadType,
       name,
+      profession: profession || '',
+      email: email || '',
+      location: location || '',
       phone,
       address,
       bankLoan: bankLoan || 'No',
@@ -216,6 +225,9 @@ router.post('/', protect, async (req, res) => {
     } else {
       lead.projectLocation = '';
       lead.leadSource = leadSource || 'Direct Visit';
+      if (followUpInfo) {
+        lead.followUpInfo = followUpInfo;
+      }
     }
 
     lead.history.push({
@@ -250,7 +262,7 @@ router.post('/', protect, async (req, res) => {
 // @route   PUT /api/leads/:id
 // @desc    Update lead details (status, assignment)
 router.put('/:id', protect, async (req, res) => {
-  const { status, assignedTo, name, phone, leadType, leadCost, address, bankLoan, leadSource, activeAd, projectLocation, project, bookingInfo, followUpInfo, isClosed, closeRemarks, isRevert, leadCategory } = req.body;
+  const { status, assignedTo, name, phone, leadType, leadCost, address, profession, email, location, bankLoan, leadSource, activeAd, projectLocation, project, bookingInfo, followUpInfo, isClosed, closeRemarks, isRevert, leadCategory } = req.body;
 
   try {
     const lead = await Lead.findById(req.params.id);
@@ -296,6 +308,9 @@ router.put('/:id', protect, async (req, res) => {
     if (leadType) lead.leadType = leadType;
     if (leadCost !== undefined) lead.leadCost = Number(leadCost) || 0;
     if (address) lead.address = address;
+    if (profession) lead.profession = profession;
+    if (email) lead.email = email;
+    if (location) lead.location = location;
     if (bankLoan) lead.bankLoan = bankLoan;
     if (project) lead.project = project;
     if (leadCategory) lead.leadCategory = leadCategory;

@@ -210,6 +210,9 @@ const LeadsDirectory = () => {
   const [editPhoneErr, setEditPhoneErr] = useState('');
   const [bookingAltPhoneErr, setBookingAltPhoneErr] = useState('');
   const [address, setAddress] = useState('');
+  const [profession, setProfession] = useState('');
+  const [email, setEmail] = useState('');
+  const [leadLocation, setLeadLocation] = useState('');
   const [selectedProjectId, setSelectedProjectId] = useState('');
   const [assignedToId, setAssignedToId] = useState('');
   
@@ -222,7 +225,8 @@ const LeadsDirectory = () => {
   // Direct Visit-specific fields
   const [projectLocation, setProjectLocation] = useState('');
   const [locations, setLocations] = useState([]); // Unique project locations
-  const [bankLoan, setBankLoan] = useState('No');
+  const [directFollowDate, setDirectFollowDate] = useState('');
+  const [directFollowRemarks, setDirectFollowRemarks] = useState('');
   const [leadCost, setLeadCost] = useState('0');
 
   // Edit Lead Modal State
@@ -596,15 +600,25 @@ const LeadsDirectory = () => {
     const payload = {
       leadType,
       name,
+      profession,
+      email,
+      location: leadLocation,
       phone,
       address,
-      bankLoan,
       project: selectedProjectId,
       assignedTo: (user?.role === 'Admin' || user?.role === 'Manager') ? assignedToId : user?._id,
       leadCost: Number(leadCost) || 0,
       leadSource: leadSource,
       activeAd: leadType === 'Lead' && adObj ? { name: adObj.name, link: adObj.link } : undefined
     };
+
+    if (leadType === 'Direct Visit' && directFollowDate) {
+      payload.followUpInfo = {
+        nextFollowUpDate: new Date(directFollowDate),
+        contactedThrough: 'On Spot',
+        remarks: directFollowRemarks
+      };
+    }
 
     try {
       const res = await fetch(`${API_URL}/leads`, {
@@ -1144,10 +1158,12 @@ const LeadsDirectory = () => {
 
   const resetForm = () => {
     setName('');
+    setProfession('');
+    setEmail('');
+    setLeadLocation('');
     setPhoneCountryCode('+91');
     setPhoneLocal('');
     setAddress('');
-    setBankLoan('No');
     setSelectedProjectId('');
     setAssignedToId('');
     setLeadSource('');
@@ -1156,6 +1172,8 @@ const LeadsDirectory = () => {
     setProjectLocation('');
     setDuplicateWarning(null);
     setLeadCost('0');
+    setDirectFollowDate('');
+    setDirectFollowRemarks('');
   };
 
   // Filter list matching Search & Date & Tab & Advanced Filters
@@ -1432,7 +1450,8 @@ const LeadsDirectory = () => {
               <th className="px-3 py-2">Source Details</th>
               <th className="px-3 py-2">Project</th>
               <th className="px-3 py-2 text-center">Category</th>
-              <th className="px-3 py-2">Assignment</th>
+              <th className="px-3 py-2">Assigned By</th>
+              <th className="px-3 py-2">Assigned To</th>
               <th className="px-3 py-2">Lead Status</th>
               <th className="px-3 py-2 text-center">Actions</th>
             </tr>
@@ -1480,14 +1499,6 @@ const LeadsDirectory = () => {
                       <Phone className="w-3 h-3 text-gray-300" />
                       <span>{lead.phone}</span>
                     </div>
-                    {lead.followUpInfo?.remarks && (
-                      <span 
-                        className="text-[9px] px-1.5 py-0.5 rounded font-bold bg-[#f0f9f4] text-[#0e623a] border border-[#bce2cb] max-w-[180px] truncate block" 
-                        title={lead.followUpInfo.remarks}
-                      >
-                        Notes: {lead.followUpInfo.remarks}
-                      </span>
-                    )}
                   </div>
                 </td>
  
@@ -1527,21 +1538,17 @@ const LeadsDirectory = () => {
                   <span className={`px-2 py-1 text-[9px] font-bold uppercase rounded-full tracking-wider border shadow-sm ${lead.leadCategory === 'Hot' ? 'bg-red-50 text-red-600 border-red-200' : lead.leadCategory === 'Warm' ? 'bg-orange-50 text-orange-600 border-orange-200' : 'bg-blue-50 text-blue-600 border-blue-200'}`}>{lead.leadCategory || 'Cold'}</span>
                 </td>
 
-                {/* Assignment & Reassign Control */}
+                {/* Assigned By */}
                 <td className="px-3 py-1.5 border-b border-gray-100">
-                  <div className="text-[9px] space-y-1">
-                    <div className="flex items-start gap-1">
-                      <span className="text-gray-400 font-bold w-12 shrink-0">By:</span>
-                      <span className="font-semibold text-gray-600">
-                        {lead.assignedBy?.name || 'Admin'}
-                      </span>
-                    </div>
-                    <div className="flex items-start gap-1">
-                      <span className="text-gray-400 font-bold w-12 shrink-0">To:</span>
-                      <span className="font-semibold text-gray-800">
-                        {lead.assignedTo?.name ? `${lead.assignedTo.name} (${lead.assignedTo.role})` : 'Unassigned'}
-                      </span>
-                    </div>
+                  <div className="text-[10px] font-semibold text-gray-600">
+                    {lead.assignedBy?.name || 'Admin'}
+                  </div>
+                </td>
+
+                {/* Assigned To */}
+                <td className="px-3 py-1.5 border-b border-gray-100">
+                  <div className="text-[10px] font-semibold text-gray-800">
+                    {lead.assignedTo?.name || 'Unassigned'}
                   </div>
                 </td>
  
@@ -1759,10 +1766,10 @@ const LeadsDirectory = () => {
                 </div>
               </div>
 
-              {/* Name & Phone */}
+              {/* Name & Profession */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1.5">Lead / Customer Name</label>
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1.5">Lead / Customer Name <span className="text-red-500">*</span></label>
                   <input
                     type="text"
                     required
@@ -1773,7 +1780,21 @@ const LeadsDirectory = () => {
                   />
                 </div>
                 <div>
-                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1.5">Phone Number</label>
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1.5">Profession</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Software Engineer"
+                    value={profession}
+                    onChange={(e) => setProfession(e.target.value)}
+                    className="w-full px-4 py-3 bg-gray-55 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0e623a] text-sm"
+                  />
+                </div>
+              </div>
+
+              {/* Phone & Email */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1.5">Phone Number <span className="text-red-500">*</span></label>
                   <div className={`flex items-center bg-gray-55 border rounded-xl focus-within:ring-2 transition-all overflow-hidden ${createPhoneErr ? 'border-red-500 focus-within:ring-red-500' : 'border-gray-200 focus-within:ring-[#0e623a] focus-within:border-transparent'}`}>
                     <select
                       value={phoneCountryCode}
@@ -1809,6 +1830,16 @@ const LeadsDirectory = () => {
                     <p className="text-[10px] text-red-500 font-bold mt-1">{createPhoneErr}</p>
                   )}
                 </div>
+                <div>
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1.5">Email Address</label>
+                  <input
+                    type="email"
+                    placeholder="e.g. user@example.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="w-full px-4 py-3 bg-gray-55 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0e623a] text-sm"
+                  />
+                </div>
               </div>
 
               {/* Duplicate check warning */}
@@ -1825,17 +1856,29 @@ const LeadsDirectory = () => {
                 </div>
               )}
 
-              {/* Address */}
-              <div>
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1.5">Customer Address</label>
-                <textarea
-                  required
-                  rows="2"
-                  placeholder="Street details, city, pincode..."
-                  value={address}
-                  onChange={(e) => setAddress(e.target.value)}
-                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0e623a] text-sm"
-                />
+              {/* Address & Location */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1.5">Customer Address <span className="text-red-500">*</span></label>
+                  <textarea
+                    required
+                    rows="2"
+                    placeholder="Street details, pincode..."
+                    value={address}
+                    onChange={(e) => setAddress(e.target.value)}
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0e623a] text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1.5">Location (City/Area)</label>
+                  <textarea
+                    rows="2"
+                    placeholder="e.g. Downtown"
+                    value={leadLocation}
+                    onChange={(e) => setLeadLocation(e.target.value)}
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0e623a] text-sm"
+                  />
+                </div>
               </div>
 
               {/* Conditionally rendered details based on Lead Type */}
@@ -1921,34 +1964,31 @@ const LeadsDirectory = () => {
                 </>
               )}
 
-              {/* Bank Loan Selection */}
-              <div className="bg-gray-50 p-4 rounded-2xl border border-gray-150">
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-2">Requires Bank Loan?</label>
-                <div className="flex gap-6">
-                  <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 cursor-pointer">
+              {/* Conditional Direct Visit Fields */}
+              {leadType === 'Direct Visit' && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-gray-50 p-4 rounded-2xl border border-gray-150">
+                  <div>
+                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1.5">Next Follow-up Date <span className="text-red-500">*</span></label>
                     <input
-                      type="radio"
-                      name="bankLoan"
-                      value="Yes"
-                      checked={bankLoan === 'Yes'}
-                      onChange={() => setBankLoan('Yes')}
-                      className="text-[#0e623a] focus:ring-[#0e623a] w-4 h-4"
+                      type="datetime-local"
+                      required
+                      value={directFollowDate}
+                      onChange={(e) => setDirectFollowDate(e.target.value)}
+                      className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0e623a] text-sm text-gray-700"
                     />
-                    <span>Yes</span>
-                  </label>
-                  <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 cursor-pointer">
-                    <input
-                      type="radio"
-                      name="bankLoan"
-                      value="No"
-                      checked={bankLoan === 'No'}
-                      onChange={() => setBankLoan('No')}
-                      className="text-[#0e623a] focus:ring-[#0e623a] w-4 h-4"
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1.5">Notes (Narration)</label>
+                    <textarea
+                      rows="2"
+                      placeholder="Interaction notes..."
+                      value={directFollowRemarks}
+                      onChange={(e) => setDirectFollowRemarks(e.target.value)}
+                      className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0e623a] text-sm"
                     />
-                    <span>No</span>
-                  </label>
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Assigned Executive */}
               {(user?.role === 'Admin' || user?.role === 'Manager') && (
