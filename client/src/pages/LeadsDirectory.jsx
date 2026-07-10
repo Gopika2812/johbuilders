@@ -1453,6 +1453,7 @@ const LeadsDirectory = () => {
               <th className="px-3 py-2">Assigned By</th>
               <th className="px-3 py-2">Assigned To</th>
               <th className="px-3 py-2">Lead Status</th>
+              <th className="px-3 py-2 text-center">Next Followup</th>
               <th className="px-3 py-2 text-center">Actions</th>
             </tr>
           </thead>
@@ -1619,6 +1620,15 @@ const LeadsDirectory = () => {
                     </div>
                   )}
                 </td>
+
+                 {/* Next Followup Date */}
+                 <td className="px-3 py-1.5 border-b border-gray-100 text-center">
+                   <div className="text-[10px] font-semibold text-gray-700">
+                     {lead.followUpInfo?.nextFollowUpDate 
+                       ? new Date(lead.followUpInfo.nextFollowUpDate).toLocaleString('en-GB', { dateStyle: 'short', timeStyle: 'short' }) 
+                       : '—'}
+                   </div>
+                 </td>
 
                  {/* Action Triggers: History, Edit & Delete */}
                  <td className="px-3 py-1.5 border-b border-gray-100 text-center">

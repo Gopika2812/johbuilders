@@ -788,6 +788,8 @@ const CRDFlow = () => {
                 <th className="p-4">Project</th>
                 <th className="p-4">Units</th>
                 <th className="p-4">Final Quotation Value</th>
+                <th className="p-4">Received Value</th>
+                <th className="p-4">Pending Value</th>
                 <th className="p-4">Assigned Person</th>
                 <th className="p-4 text-center">Quick Actions</th>
               </tr>
@@ -846,28 +848,29 @@ const CRDFlow = () => {
                             {lead.bookingInfo?.selectedUnits?.join(', ') || 'N/A'}
                           </div>
                         </td>
-                        <td className="p-4 space-y-1.5 min-w-[140px]">
+                        <td className="p-4">
                           {value !== null ? (
-                            <>
-                              <div className="flex items-center justify-between text-[10px] gap-2">
-                                <span className="text-gray-500 font-bold uppercase tracking-wider">Total</span>
-                                <span className="text-blue-800 font-black bg-blue-50 border border-blue-200 px-1.5 py-0.5 rounded shadow-sm">
-                                  Rs. {value.toLocaleString()}
-                                </span>
-                              </div>
-                              <div className="flex items-center justify-between text-[10px] gap-2">
-                                <span className="text-gray-500 font-bold uppercase tracking-wider">Received</span>
-                                <span className="text-emerald-800 font-black bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded shadow-sm">
-                                  Rs. {received.toLocaleString()}
-                                </span>
-                              </div>
-                              <div className="flex items-center justify-between text-[10px] gap-2">
-                                <span className="text-gray-500 font-bold uppercase tracking-wider">Pending</span>
-                                <span className="text-rose-800 font-black bg-rose-50 border border-rose-200 px-1.5 py-0.5 rounded shadow-sm">
-                                  Rs. {(pending || 0).toLocaleString()}
-                                </span>
-                              </div>
-                            </>
+                            <span className="text-blue-800 font-black bg-blue-50 border border-blue-200 px-2 py-1 rounded shadow-sm text-[10px]">
+                              Rs. {value.toLocaleString()}
+                            </span>
+                          ) : (
+                            <span className="text-gray-400 text-[10px]">N/A</span>
+                          )}
+                        </td>
+                        <td className="p-4">
+                          {value !== null ? (
+                            <span className="text-emerald-800 font-black bg-emerald-50 border border-emerald-200 px-2 py-1 rounded shadow-sm text-[10px]">
+                              Rs. {received.toLocaleString()}
+                            </span>
+                          ) : (
+                            <span className="text-gray-400 text-[10px]">N/A</span>
+                          )}
+                        </td>
+                        <td className="p-4">
+                          {value !== null ? (
+                            <span className="text-rose-800 font-black bg-rose-50 border border-rose-200 px-2 py-1 rounded shadow-sm text-[10px]">
+                              Rs. {(pending || 0).toLocaleString()}
+                            </span>
                           ) : (
                             <span className="text-gray-400 text-[10px]">N/A</span>
                           )}
@@ -996,7 +999,7 @@ const CRDFlow = () => {
                       {/* Expanded Accordion for Stage Details */}
                       {isSelected && (
                         <tr>
-                          <td colSpan="9" className="p-0 border-b-2 border-emerald-500">
+                          <td colSpan="11" className="p-0 border-b-2 border-emerald-500">
                             <div className="bg-gray-50/50 p-6 border-x-4 border-emerald-500 shadow-inner">
                               
                               {/* Auto Initializing Flow State */}
@@ -1154,7 +1157,7 @@ const CRDFlow = () => {
                 return true;
               }).length === 0 && (
                 <tr>
-                  <td colSpan="9" className="p-8 text-center text-gray-400">
+                  <td colSpan="11" className="p-8 text-center text-gray-400">
                     No matching booked leads found.
                   </td>
                 </tr>
