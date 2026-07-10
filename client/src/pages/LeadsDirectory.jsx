@@ -1715,7 +1715,7 @@ const LeadsDirectory = () => {
       {/* 🔐 MODAL: Create New Lead / Direct Visit Form */}
       {createModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="bg-white rounded-3xl max-w-xl w-full overflow-hidden shadow-2xl border border-gray-100">
+          <div className="bg-white rounded-3xl max-w-3xl w-full overflow-hidden shadow-2xl border border-gray-100">
             <div className="bg-[#0e623a] p-6 text-white flex justify-between items-start">
               <div>
                 <h3 className="text-lg font-bold">New Lead Registration</h3>
