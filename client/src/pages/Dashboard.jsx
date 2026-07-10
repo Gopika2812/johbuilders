@@ -1549,7 +1549,6 @@ const Dashboard = () => {
             <BarChart3 className="w-6 h-6 text-[#0e623a]" />
             <span>Dashboard Overview</span>
           </h2>
-          <p className="text-xs text-gray-550 mt-1">Real-time pipelines, employee metrics, sales performance, and marketing conversions</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <button
