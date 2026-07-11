@@ -1953,7 +1953,7 @@ const KPIInsights = () => {
           // Project group banner row
           rowsHtml += `
             <tr>
-              <td colspan="7" class="group-banner">${projCode.toUpperCase()}</td>
+              <td colspan="6" class="group-banner">${projCode.toUpperCase()}</td>
             </tr>
           `;
 
@@ -1991,7 +1991,6 @@ const KPIInsights = () => {
                 <td>${plotNo}</td>
                 <td class="text-left bold-label">${custName}</td>
                 <td>${houseType}</td>
-                <td class="text-left">${commentsStr}</td>
               </tr>
             `;
           });
@@ -2008,7 +2007,7 @@ const KPIInsights = () => {
         </head>
         <body>
           <table>
-            ${getExcelHeader(titleText, monthTitle, 7, "#7c3aed", logoPath)}
+            ${getExcelHeader(titleText, monthTitle, 6, "#7c3aed", logoPath)}
             
             <!-- Table Headers -->
             <tr class="table-headers">
@@ -2018,7 +2017,6 @@ const KPIInsights = () => {
               <th>Plot No</th>
               <th>Customer Name</th>
               <th>Project Type</th>
-              <th>Comments / Action notes</th>
             </tr>
             
             <!-- REGISTERED STAGE LEADS (REGISTRATION THIS MONTH TARGET) -->
@@ -2026,7 +2024,7 @@ const KPIInsights = () => {
 
             <!-- REGISTRATION PENDING HEADER -->
             <tr>
-              <td colspan="7" class="section-banner">REGISTRATION PENDING</td>
+              <td colspan="6" class="section-banner">REGISTRATION PENDING</td>
             </tr>
             <tr class="table-headers">
               <th>S No</th>
@@ -2035,7 +2033,6 @@ const KPIInsights = () => {
               <th>Plot No</th>
               <th>Customer Name</th>
               <th>Project Type</th>
-              <th>Comments / Action notes</th>
             </tr>
 
             <!-- PENDING STAGE LEADS (REGISTRATION PENDING) -->
@@ -2133,85 +2130,54 @@ const KPIInsights = () => {
         </head>
         <body>
           <table>
-            ${getExcelHeader("KEY HANDOVER THIS MONTH TARGET", monthTitle, 6, "#7c3aed", logoPath)}
+            ${getExcelHeader("KEY HANDOVER REPORT", monthTitle, 6, "#7c3aed", logoPath)}
             <tr class="table-headers">
-              <th>S No</th>
+              <th>S.no</th>
               <th>Adv Date</th>
-              <th>Project</th>
-              <th>Plot No</th>
               <th>Customer Name</th>
-              <th>Villa Status</th>
+              <th>Project Type</th>
+              <th>Unit No</th>
+              <th>Status (Key Handover Pending or Completed)</th>
             </tr>
       `;
 
-      // Render Completed Handover rows
-      completedFlows.forEach((flow, index) => {
+      // Render all flows in a single table
+      filtered.forEach((flow, index) => {
         const lead = flow.lead || {};
         const advDate = lead.bookingInfo?.bookingDate 
           ? new Date(lead.bookingInfo.bookingDate).toLocaleDateString('en-GB').replace(/\//g, '.')
           : '';
-        const projCode = flow.project?.code || 'UNASSIGNED';
-        const plotNo = flow.unitId || '';
         const custName = lead.name || '';
-        const rowClass = index % 2 === 1 ? 'class="even-row"' : '';
-        
-        html += `
-          <tr ${rowClass}>
-            <td>${index + 1}</td>
-            <td>${advDate}</td>
-            <td>${projCode}</td>
-            <td>${plotNo}</td>
-            <td class="text-left bold-label">${custName}</td>
-            <td>Completed</td>
-          </tr>
-        `;
-      });
+        const unitNo = flow.unitId || '';
 
-      // Render Key Handover Pending Header
-      html += `
-        <tr>
-          <td colspan="6" class="section-banner">Key Handover Pending</td>
-        </tr>
-        <tr class="table-headers">
-          <th>SI No</th>
-          <th>Adv Date</th>
-          <th>Project code</th>
-          <th>Plot No</th>
-          <th>Name</th>
-          <th>Villa Status</th>
-        </tr>
-      `;
+        // Determine Status
+        const stages = flow.stages || [];
+        const handoverStage = stages.find(s => s.name.toLowerCase().includes('handing over') || s.name.toLowerCase().includes('handover')) || stages[stages.length - 1];
+        const isCompleted = handoverStage && handoverStage.isCompleted;
+        const statusText = isCompleted ? 'Completed' : 'Key Handover Pending';
 
-      // Render Pending Handover rows
-      pendingFlows.forEach((flow, index) => {
-        const lead = flow.lead || {};
-        const advDate = lead.bookingInfo?.bookingDate 
-          ? new Date(lead.bookingInfo.bookingDate).toLocaleDateString('en-GB').replace(/\//g, '.')
-          : '';
-        const projCode = flow.project?.code || 'UNASSIGNED';
-        const plotNo = flow.unitId || '';
-        const custName = lead.name || '';
-        
-        // Property type (House/Villa -> Villa, Flat/Apartment -> Flat, Land/Plot -> Land)
-        const typeRaw = (flow.project?.projectType || '').toLowerCase();
-        let houseStatus = 'Villa';
+        // Determine Project Type
+        const pType = flow.project?.projectType;
+        const typeRaw = (Array.isArray(pType) ? pType.join(', ') : pType || '').toLowerCase();
+        let projectType = 'Villa';
         if (typeRaw.includes('villa') || typeRaw.includes('house') || typeRaw.includes('individual')) {
-          houseStatus = 'Villa';
+          projectType = 'Villa';
         } else if (typeRaw.includes('apartment') || typeRaw.includes('flat')) {
-          houseStatus = 'Flat';
+          projectType = 'Flat';
         } else {
-          houseStatus = 'Land';
+          projectType = 'Land';
         }
-        const rowClass = index % 2 === 1 ? 'class="even-row"' : '';
 
+        const rowClass = index % 2 === 1 ? 'class="even-row"' : '';
+        
         html += `
           <tr ${rowClass}>
             <td>${index + 1}</td>
             <td>${advDate}</td>
-            <td>${projCode}</td>
-            <td>${plotNo}</td>
             <td class="text-left bold-label">${custName}</td>
-            <td>${houseStatus}</td>
+            <td>${projectType}</td>
+            <td>${unitNo}</td>
+            <td>${statusText}</td>
           </tr>
         `;
       });
