@@ -964,32 +964,10 @@ const CRDFlow = () => {
                             <span className="text-black-400 text-[11px]">N/A</span>
                           )}
                         </td>
-                        <td className="p-4" onClick={(e) => e.stopPropagation()}>
-                          <select
-                            value={lead.assignedTo?._id || lead.assignedTo || ''}
-                            onChange={(e) => {
-                              // Re-use logic for assignedTo if needed, or just let them select.
-                              // Right now handleUpdateAssignedTo uses selectedBookingId, so we can temporarily set it or just dispatch an update directly.
-                              fetch(`${API_URL}/leads/${lead._id}`, {
-                                method: 'PUT',
-                                headers: {
-                                  'Content-Type': 'application/json',
-                                  'Authorization': `Bearer ${token}`
-                                },
-                                body: JSON.stringify({ assignedTo: e.target.value })
-                              }).then(res => res.json()).then(data => {
-                                fetchBookings();
-                                setSuccess('Assigned executive updated successfully');
-                                setTimeout(() => setSuccess(''), 3000);
-                              });
-                            }}
-                            className="w-[120px] px-2 py-1.5 bg-white border border-black-200 rounded-lg text-[11px] font-semibold focus:outline-none focus:ring-1 focus:ring-[#0e623a]"
-                          >
-                            <option value="">Unassigned</option>
-                            {users.filter(u => u.role === 'Sales Executive' || u.role === 'Manager').map(user => (
-                              <option key={user._id} value={user._id}>{user.name}</option>
-                            ))}
-                          </select>
+                        <td className="p-4">
+                          <div className="font-semibold text-black-800 text-xs">
+                            {lead.assignedTo?.name || (typeof lead.assignedTo === 'string' ? users.find(u => u._id === lead.assignedTo)?.name : null) || 'Unassigned'}
+                          </div>
                         </td>
                         <td className="p-4 text-center" onClick={(e) => e.stopPropagation()}>
                           <div className="relative inline-block text-left">
