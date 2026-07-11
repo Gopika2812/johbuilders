@@ -1356,7 +1356,7 @@ const LeadsDirectory = () => {
             >
               <option value="">All Statuses</option>
               {LEAD_STATUSES.map(st => (
-                <option key={st} value={st}>{st}</option>
+                <option key={st} value={st}>{st === 'Booking' ? 'Booked' : st}</option>
               ))}
             </select>
           </div>
@@ -1438,7 +1438,7 @@ const LeadsDirectory = () => {
                     : 'text-black-500 hover:bg-black-50 hover:text-black-800'
                 }`}
               >
-                {st} ({count})
+                {st === 'Booking' ? 'Booked' : st} ({count})
               </button>
             );
           })}
@@ -1471,10 +1471,22 @@ const LeadsDirectory = () => {
                 key={lead._id} 
                 className={`transition duration-150 ${
                   lead.isClosed 
-                    ? 'bg-red-50/70 text-black-500 opacity-90 border-l-4 border-red-500 hover:bg-red-100' 
+                    ? 'bg-red-50/80 text-black-600 border-l-4 border-red-500 hover:bg-red-100' 
                     : lead.leadCategory === 'Hot'
-                      ? 'bg-yellow-50 hover:bg-yellow-100 border-l-4 border-yellow-400'
-                      : 'hover:bg-black-50/50'
+                      ? 'bg-yellow-50/85 border-l-4 border-yellow-400 hover:bg-yellow-100/90 text-black-800'
+                      : lead.status === 'New'
+                        ? 'bg-blue-50/70 border-l-4 border-blue-400 hover:bg-blue-100/80 text-black-800'
+                        : lead.status === 'Assigned'
+                          ? 'bg-purple-50/70 border-l-4 border-purple-400 hover:bg-purple-100/80 text-black-800'
+                          : lead.status === 'Follow-Up'
+                            ? 'bg-amber-50/70 border-l-4 border-amber-400 hover:bg-amber-100/80 text-black-800'
+                            : lead.status === 'Site Visit'
+                              ? 'bg-rose-50/70 border-l-4 border-rose-400 hover:bg-rose-100/80 text-black-800'
+                              : lead.status === 'Booking'
+                                ? 'bg-yellow-50/70 border-l-4 border-yellow-400 hover:bg-yellow-100/80 text-black-800'
+                                : lead.status === 'Future Follow-up'
+                                  ? 'bg-indigo-50/70 border-l-4 border-indigo-400 hover:bg-indigo-100/80 text-black-800'
+                                  : 'hover:bg-black-50/50'
                 }`}
               >
                 {/* S.No */}
@@ -1571,12 +1583,19 @@ const LeadsDirectory = () => {
                         const match = lead.closeRemarks?.match(/\[Lost at (.*?) stage\]/);
                         const lostStage = match ? match[1] : null;
                         const displayRemarks = match ? lead.closeRemarks.replace(/\[Lost at .*? stage\] - /, '') : lead.closeRemarks;
+                        const isSiteVisit = lostStage === 'Site Visit';
+                        const isFollowUp = lostStage === 'Follow-Up' || lostStage === 'Assigned';
+                        const isHidden = isSiteVisit || isFollowUp;
                         return (
                           <>
                             <span className="text-[10px] font-extrabold text-red-700 bg-red-100 border border-red-200 px-2 py-0.5 rounded-full uppercase tracking-wider">
-                              {lostStage ? `${lostStage} - Completed` : 'Closed (Completed)'}
+                              {lostStage ? (
+                                isSiteVisit ? 'Site Visit - Closed' :
+                                isFollowUp ? 'Follow-Up - Closed' :
+                                `${lostStage} - Completed`
+                              ) : 'Closed (Completed)'}
                             </span>
-                            {displayRemarks && (
+                            {displayRemarks && !isHidden && (
                               <div className="text-[11px] text-black-400 italic max-w-[150px] truncate" title={displayRemarks}>
                                 "{displayRemarks}"
                               </div>
@@ -1584,14 +1603,21 @@ const LeadsDirectory = () => {
                           </>
                         );
                       })()}
-                      <button
-                        onClick={() => handleReopenClosedLead(lead)}
-                        disabled={reopeningId === lead._id}
-                        className="text-[11px] font-bold text-[#0e623a] hover:underline flex items-center gap-1 disabled:opacity-50"
-                      >
-                        {reopeningId === lead._id && <Loader2 className="w-3 h-3 animate-spin" />}
-                        Reopen Lead
-                      </button>
+                      {(() => {
+                        const match = lead.closeRemarks?.match(/\[Lost at (.*?) stage\]/);
+                        const lostStage = match ? match[1] : null;
+                        if (lostStage === 'Site Visit' || lostStage === 'Follow-Up' || lostStage === 'Assigned') return null; // Don't show reopen option
+                        return (
+                          <button
+                            onClick={() => handleReopenClosedLead(lead)}
+                            disabled={reopeningId === lead._id}
+                            className="text-[11px] font-bold text-[#0e623a] hover:underline flex items-center gap-1 disabled:opacity-50"
+                          >
+                            {reopeningId === lead._id && <Loader2 className="w-3 h-3 animate-spin" />}
+                            Reopen Lead
+                          </button>
+                        );
+                      })()}
                     </div>
                   ) : activeTab === 'All' ? (
                     <div className="flex flex-col items-start gap-1">
@@ -1600,7 +1626,7 @@ const LeadsDirectory = () => {
                       } ${STATUS_COLORS[lead.status]?.text || 'text-black-700'} ${
                         STATUS_COLORS[lead.status]?.border || 'border-black-200'
                       }`}>
-                        {lead.status}
+                        {lead.status === 'Booking' ? 'Booked' : lead.status}
                       </span>
                     </div>
                   ) : (
@@ -1617,7 +1643,7 @@ const LeadsDirectory = () => {
                       >
                         {LEAD_STATUSES.map(status => (
                           <option key={status} value={status}>
-                            {status}
+                            {status === 'Booking' ? 'Booked' : status}
                           </option>
                         ))}
                       </select>

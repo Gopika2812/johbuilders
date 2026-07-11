@@ -2707,16 +2707,16 @@ const KPIInsights = () => {
   const { budgetData, spentData, networthData } = getSourcesData();
 
   const primaryColors = [
-    '#0e623a', // Brand Green
-    '#1e3a8a', // Dark Blue
-    '#b91c1c', // Dark Red
-    '#c2410c', // Dark Orange
-    '#6d28d9', // Dark Purple
-    '#0f766e', // Dark Teal
-    '#4d7c0f', // Dark Olive
-    '#831843', // Dark Pink
-    '#a16207', // Dark Gold
-    '#374151'  // Dark Slate
+    '#FFD23F', // Pastel Yellow
+    '#A4DE3B', // Pastel Lime Green
+    '#E882C7', // Pastel Pink
+    '#8C9ECB', // Pastel Purple-blue
+    '#FF8C61', // Pastel Orange
+    '#62C3A5', // Pastel Teal
+    '#4DD0E1', // Pastel Cyan
+    '#BA68C8', // Pastel Purple
+    '#FFD54F', // Pastel Amber
+    '#81C784'  // Pastel Light Green
   ];
 
   return (

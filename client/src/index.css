@@ -17,9 +17,7 @@
 
 body {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  background: linear-gradient(-45deg, #e3f9eb, #fef4c0, #d1fae5, #fef08a, #cffafe);
-  background-size: 400% 400%;
-  animation: gradientAnimation 20s ease infinite;
+  background: linear-gradient(135deg, #e6f4ea 0%, #d2ebd9 100%);
   color: #2d3748;
   margin: 0;
   padding: 0;
@@ -132,7 +130,7 @@ body::after {
 }
 
 .glass-sidebar {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.8) 0%, rgba(240, 253, 244, 0.6) 100%);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.85) 0%, rgba(248, 250, 252, 0.7) 100%);
   backdrop-filter: blur(30px);
   -webkit-backdrop-filter: blur(30px);
   border-right: 1px solid rgba(255, 255, 255, 0.7);
@@ -162,4 +160,24 @@ body::after {
 .btn-grand:hover {
   box-shadow: 0 8px 25px rgba(16, 185, 129, 0.4), inset 0 1px 0 rgba(255,255,255,0.4);
   transform: translateY(-2px);
+}
+
+/* Highlight all table headers with Brand/Logo Dark Green */
+table thead,
+thead,
+table thead tr,
+thead tr {
+  background-color: #0e623a !important;
+}
+
+table thead th,
+thead th {
+  background-color: #0e623a !important;
+  color: #ffffff !important;
+  font-weight: 700 !important;
+}
+
+/* Ensure table cells inherit row background highlight colors */
+table tbody tr td {
+  background-color: inherit !important;
 }
