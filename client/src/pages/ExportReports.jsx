@@ -325,18 +325,139 @@ const ExportReports = () => {
   const [previewHtml, setPreviewHtml] = useState('');
   const [previewFilename, setPreviewFilename] = useState('');
   const [previewModalOpen, setPreviewModalOpen] = useState(false);
+  const [previewSheets, setPreviewSheets] = useState([]);
+  const [currentSheetIndex, setCurrentSheetIndex] = useState(0);
 
   const handlePreview = (html, filename) => {
     if (window.__isDownloadingAll) {
       window.__capturedHtml = html;
       return;
     }
+    setPreviewSheets([]);
     setPreviewHtml(html);
     setPreviewFilename(filename);
     setPreviewModalOpen(true);
   };
 
   const downloadFromPreview = () => {
+    if (previewSheets && previewSheets.length > 0) {
+      const wb = XLSX.utils.book_new();
+      for (const sheet of previewSheets) {
+          const div = document.createElement('div');
+          div.innerHTML = sheet.html;
+          const table = div.querySelector('table');
+          if (!table) continue;
+          
+          const styleBlock = div.querySelector('style');
+          let titleBg = 'FCE4D6', monthBg = 'DDEBF7', headerBg = 'FCE4D6', execBg = 'DDEBF7';
+          if (styleBlock) {
+             const css = styleBlock.innerHTML;
+             const mTitle = css.match(/\.title-row\s*{[^}]*background-color:\s*#([0-9a-fA-F]+)/);
+             if (mTitle) titleBg = mTitle[1];
+             const mMonth = css.match(/\.month-header\s*{[^}]*background-color:\s*#([0-9a-fA-F]+)/);
+             if (mMonth) monthBg = mMonth[1];
+             const mHeader = css.match(/\.table-headers\s*th\s*{[^}]*background-color:\s*#([0-9a-fA-F]+)/);
+             if (mHeader) headerBg = mHeader[1];
+             const mExec = css.match(/\.exec-banner\s*{[^}]*background-color:\s*#([0-9a-fA-F]+)/);
+             if (mExec) execBg = mExec[1];
+             if (!mExec) {
+                const mGroup = css.match(/\.group-banner\s*{[^}]*background-color:\s*#([0-9a-fA-F]+)/);
+                if (mGroup) execBg = mGroup[1];
+             }
+          }
+
+          const ws = XLSX.utils.table_to_sheet(table, { raw: true });
+          const borderStyle = { style: 'thin', color: { rgb: '000000' } };
+          const border = { top: borderStyle, bottom: borderStyle, left: borderStyle, right: borderStyle };
+          
+          for (let cellRef in ws) {
+            if (cellRef[0] === '!') continue;
+            const cell = ws[cellRef];
+            const coord = XLSX.utils.decode_cell(cellRef);
+            const rowNum = coord.r;
+            
+            cell.s = {
+              border: border,
+              font: { name: 'Calibri', sz: 10, color: { rgb: '000000' } },
+              alignment: { vertical: 'center', horizontal: 'center', wrapText: true }
+            };
+
+            const tr = table.rows[rowNum];
+            if (!tr) continue;
+            const cellClasses = table.rows[rowNum].cells[coord.c]?.className || '';
+            const rowClasses = tr.className || '';
+            const allClass = cellClasses + ' ' + rowClasses;
+
+            if (allClass.includes('title-row') || rowNum === 0) {
+              cell.s.fill = { fgColor: { rgb: titleBg } };
+              cell.s.font.bold = true;
+              cell.s.font.sz = 14;
+              if (coord.c > 1) cell.s.alignment.horizontal = 'left';
+              if (rowNum === 0 && coord.c < 2) {
+                 cell.s.fill = { fgColor: { rgb: '0E623A' } };
+                 cell.s.font.color = { rgb: 'FFFFFF' };
+                 cell.s.font.bold = true;
+                 cell.s.font.sz = 18;
+                 if (coord.c === 0 && (!cell.v || cell.v.trim() === '')) {
+                   cell.v = "JOHN BUILDWELL";
+                   cell.t = "s";
+                 }
+              }
+            }
+            else if (allClass.includes('month-header')) {
+              cell.s.fill = { fgColor: { rgb: monthBg } };
+              cell.s.font.bold = true;
+            }
+            else if (allClass.includes('table-headers')) {
+              cell.s.fill = { fgColor: { rgb: headerBg } };
+              cell.s.font.bold = true;
+            }
+            else if (allClass.includes('exec-banner') || allClass.includes('group-banner')) {
+              cell.s.fill = { fgColor: { rgb: execBg } };
+              cell.s.font.bold = true;
+              cell.s.alignment.horizontal = 'left';
+            }
+            else if (allClass.includes('bg-header-blue')) {
+              cell.s.fill = { fgColor: { rgb: '5B9BD5' } };
+              cell.s.font.bold = true;
+            }
+            else if (allClass.includes('bg-header-green')) {
+              cell.s.fill = { fgColor: { rgb: 'C6E0B4' } };
+              cell.s.font.bold = true;
+            }
+            else if (allClass.includes('bg-black-row')) {
+              cell.s.fill = { fgColor: { rgb: 'D9D9D9' } };
+            }
+            else if (allClass.includes('bg-orange-pct')) {
+               cell.s.fill = { fgColor: { rgb: 'F8CBAD' } };
+               cell.s.font.bold = true;
+            }
+            
+            if (allClass.includes('text-left')) cell.s.alignment.horizontal = 'left';
+            if (allClass.includes('text-right')) cell.s.alignment.horizontal = 'right';
+            if (allClass.includes('font-bold')) cell.s.font.bold = true;
+          }
+
+          const colWidths = [];
+          for (let cellRef in ws) {
+            if (cellRef[0] === '!') continue;
+            const cell = ws[cellRef];
+            const coord = XLSX.utils.decode_cell(cellRef);
+            if (coord.r === 0 || coord.r === 1) continue; 
+            const val = cell.v ? cell.v.toString() : '';
+            const valLen = val.length;
+            const currentWidth = colWidths[coord.c] || 15;
+            colWidths[coord.c] = Math.max(currentWidth, Math.min(valLen + 5, 100)); 
+          }
+          ws['!cols'] = colWidths.map(w => ({ wch: w || 15 }));
+          ws['!rows'] = [{ hpt: 60 }]; 
+          XLSX.utils.book_append_sheet(wb, ws, sheet.name);
+      }
+      XLSX.writeFile(wb, previewFilename);
+      setPreviewModalOpen(false);
+      return;
+    }
+
     const blob = new Blob([previewHtml], { type: 'application/vnd.ms-excel' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -2482,137 +2603,38 @@ const ExportReports = () => {
     }
   };
 
-  
-    const handleDownloadAll = async () => {
+  const handleDownloadAll = async () => {
     try {
       setLoading(true);
       window.__isDownloadingAll = true;
-      const wb = XLSX.utils.book_new();
+      const allSheets = [];
 
       const convertHtmlToSheet = async (exportFunc, sheetName) => {
           window.__capturedHtml = null;
           await exportFunc(); // It triggers handlePreview
           const htmlString = window.__capturedHtml;
           if (!htmlString) return;
-          const div = document.createElement('div');
-          div.innerHTML = htmlString;
-          const table = div.querySelector('table');
-          if (table) {
-            // Parse colors from injected <style> block
-            const styleBlock = div.querySelector('style');
-            let titleBg = 'FCE4D6';
-            let monthBg = 'DDEBF7';
-            let headerBg = 'FCE4D6';
-            let execBg = 'DDEBF7';
-            
-            if (styleBlock) {
-               const css = styleBlock.innerHTML;
-               const mTitle = css.match(/\.title-row\s*{[^}]*background-color:\s*#([0-9a-fA-F]+)/);
-               if (mTitle) titleBg = mTitle[1];
-               const mMonth = css.match(/\.month-header\s*{[^}]*background-color:\s*#([0-9a-fA-F]+)/);
-               if (mMonth) monthBg = mMonth[1];
-               const mHeader = css.match(/\.table-headers\s*th\s*{[^}]*background-color:\s*#([0-9a-fA-F]+)/);
-               if (mHeader) headerBg = mHeader[1];
-               const mExec = css.match(/\.exec-banner\s*{[^}]*background-color:\s*#([0-9a-fA-F]+)/);
-               if (mExec) execBg = mExec[1];
-               if (!mExec) {
-                  const mGroup = css.match(/\.group-banner\s*{[^}]*background-color:\s*#([0-9a-fA-F]+)/);
-                  if (mGroup) execBg = mGroup[1];
-               }
-            }
+          allSheets.push({ name: sheetName, html: htmlString });
+      };
 
-            const ws = XLSX.utils.table_to_sheet(table, { raw: true });
-            
-            // Apply styles to all cells
-            const borderStyle = { style: 'thin', color: { rgb: '000000' } };
-            const border = { top: borderStyle, bottom: borderStyle, left: borderStyle, right: borderStyle };
-            
-            for (let cellRef in ws) {
-              if (cellRef[0] === '!') continue;
-              const cell = ws[cellRef];
-              const coord = XLSX.utils.decode_cell(cellRef);
-              const rowNum = coord.r;
-              
-              cell.s = {
-                border: border,
-                font: { name: 'Calibri', sz: 10, color: { rgb: '000000' } },
-                alignment: { vertical: 'center', horizontal: 'center', wrapText: true }
-              };
-  
-              const tr = table.rows[rowNum];
-              if (!tr) continue;
-              
-              // Get classes for the cell or fallback to row
-              const cellClasses = table.rows[rowNum].cells[coord.c]?.className || '';
-              const rowClasses = tr.className || '';
-              const allClass = cellClasses + ' ' + rowClasses;
-  
-              if (allClass.includes('title-row')) {
-                cell.s.fill = { fgColor: { rgb: titleBg } };
-                cell.s.font.bold = true;
-                cell.s.font.sz = 14;
-                if (coord.c > 1) cell.s.alignment.horizontal = 'left';
-              }
-              else if (allClass.includes('month-header')) {
-                cell.s.fill = { fgColor: { rgb: monthBg } };
-                cell.s.font.bold = true;
-              }
-              else if (allClass.includes('table-headers')) {
-                cell.s.fill = { fgColor: { rgb: headerBg } };
-                cell.s.font.bold = true;
-              }
-              else if (allClass.includes('exec-banner') || allClass.includes('group-banner')) {
-                cell.s.fill = { fgColor: { rgb: execBg } };
-                cell.s.font.bold = true;
-                cell.s.alignment.horizontal = 'left';
-              }
-              else if (allClass.includes('bg-header-blue')) {
-                cell.s.fill = { fgColor: { rgb: '5B9BD5' } };
-                cell.s.font.bold = true;
-                if (allClass.includes('font-bold') && coord.c > 1 && rowNum < 3) cell.s.alignment.horizontal = 'left';
-              }
-              else if (allClass.includes('bg-header-green')) {
-                cell.s.fill = { fgColor: { rgb: 'C6E0B4' } };
-                cell.s.font.bold = true;
-              }
-              else if (allClass.includes('bg-black-row')) {
-                cell.s.fill = { fgColor: { rgb: 'D9D9D9' } };
-              }
-              else if (allClass.includes('bg-orange-pct')) {
-                cell.s.fill = { fgColor: { rgb: 'F8CBAD' } };
-                cell.s.font.bold = true;
-              }
-              else {
-                cell.s.fill = { fgColor: { rgb: 'FFFFFF' } };
-                // Keep left alignment for text-left cells
-                if (allClass.includes('text-left') || (typeof cell.v === 'string' && isNaN(cell.v) && coord.c === 1)) {
-                   cell.s.alignment.horizontal = 'left';
-                }
-              }
-              
-              if (allClass.includes('font-bold')) {
-                 cell.s.font.bold = true;
-              }
-            }
-  
-            ws['!cols'] = Array(20).fill({ wch: 15 });
-            XLSX.utils.book_append_sheet(wb, ws, sheetName);
-          }
-        };
-
+      await convertHtmlToSheet(handleExportSummaryReport, 'Summary');
       await convertHtmlToSheet(handleExportEnquiriesExcel, 'Enquiries');
       await convertHtmlToSheet(handleExportSiteVisitsExcel, 'Site Visits');
       await convertHtmlToSheet(handleExportHotListExcel, 'Hot List');
       await convertHtmlToSheet(handleExportBookingsExcel, 'Bookings');
-      await convertHtmlToSheet(handleExportSummaryReport, 'Summary');
       await convertHtmlToSheet(handleExportMarketingReturnsReport, 'Marketing Returns');
       await convertHtmlToSheet(handleExportLeadSourcesReport, 'Lead Sources');
       
-
-      XLSX.writeFile(wb, `JB_COMBINED_REPORT_${new Date().getFullYear()}_${new Date().getMonth() + 1}.xlsx`);
+      if (allSheets.length > 0) {
+        setPreviewSheets(allSheets);
+        setCurrentSheetIndex(0);
+        setPreviewHtml(allSheets[0].html);
+        setPreviewFilename(`JB_COMBINED_REPORT_${new Date().getFullYear()}_${new Date().getMonth() + 1}.xlsx`);
+        setPreviewModalOpen(true);
+      }
     } catch (err) {
       console.error(err);
-      alert('Error generating combined report');
+      alert('Error previewing combined report');
     } finally {
       window.__isDownloadingAll = false;
       setLoading(false);
@@ -2831,11 +2853,42 @@ const ExportReports = () => {
             <div className="px-6 py-4 border-b flex items-center justify-between bg-gray-50 shrink-0">
               <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
                 <FileText className="w-5 h-5 text-gray-500" />
-                Report Preview
+                {previewSheets.length > 0 ? `${previewSheets[currentSheetIndex].name} - Preview` : 'Report Preview'}
               </h2>
+              
+              {previewSheets.length > 0 && (
+                 <div className="flex items-center gap-4">
+                    <button 
+                      onClick={() => {
+                        const newIdx = Math.max(0, currentSheetIndex - 1);
+                        setCurrentSheetIndex(newIdx);
+                        setPreviewHtml(previewSheets[newIdx].html);
+                      }}
+                      disabled={currentSheetIndex === 0}
+                      className="px-4 py-1.5 rounded-lg font-bold text-gray-600 bg-white border hover:bg-gray-50 transition disabled:opacity-50"
+                    >
+                      &larr; Prev Sheet
+                    </button>
+                    <span className="font-bold text-sm text-gray-600">
+                      {currentSheetIndex + 1} of {previewSheets.length}
+                    </span>
+                    <button 
+                      onClick={() => {
+                        const newIdx = Math.min(previewSheets.length - 1, currentSheetIndex + 1);
+                        setCurrentSheetIndex(newIdx);
+                        setPreviewHtml(previewSheets[newIdx].html);
+                      }}
+                      disabled={currentSheetIndex === previewSheets.length - 1}
+                      className="px-4 py-1.5 rounded-lg font-bold text-gray-600 bg-white border hover:bg-gray-50 transition disabled:opacity-50"
+                    >
+                      Next Sheet &rarr;
+                    </button>
+                 </div>
+              )}
+
               <button 
                 onClick={() => setPreviewModalOpen(false)}
-                className="text-gray-400 hover:text-red-500 transition"
+                className="text-gray-400 hover:text-red-500 transition ml-4"
               >
                 <div className="w-6 h-6 flex items-center justify-center font-bold text-xl leading-none">&times;</div>
               </button>

@@ -100,7 +100,8 @@ const CRDFlow = () => {
 
   // Filters
   const [filterProjectCode, setFilterProjectCode] = useState('');
-  const [filterDate, setFilterDate] = useState(new Date().toISOString().split('T')[0]);
+  const [filterFromDate, setFilterFromDate] = useState('');
+  const [filterToDate, setFilterToDate] = useState('');
   const [actionMenuId, setActionMenuId] = useState(null);
 
   // Dual Mode amounts
@@ -768,20 +769,29 @@ const CRDFlow = () => {
               </select>
             </div>
 
-            {/* Date Filter */}
-            <div>
+            {/* Date Filters */}
+            <div className="flex items-center gap-2">
               <input
                 type="date"
-                value={filterDate}
-                onChange={(e) => setFilterDate(e.target.value)}
+                value={filterFromDate}
+                onChange={(e) => setFilterFromDate(e.target.value)}
                 className="px-3 py-2 bg-black-50 border border-black-250 rounded-xl text-xs font-semibold text-black-700 focus:outline-none focus:ring-1 focus:ring-[#0e623a]"
+                title="From Date"
+              />
+              <span className="text-xs text-black-500 font-bold">to</span>
+              <input
+                type="date"
+                value={filterToDate}
+                onChange={(e) => setFilterToDate(e.target.value)}
+                className="px-3 py-2 bg-black-50 border border-black-250 rounded-xl text-xs font-semibold text-black-700 focus:outline-none focus:ring-1 focus:ring-[#0e623a]"
+                title="To Date"
               />
             </div>
 
             {/* Reset Filters */}
-            {(filterProjectCode || filterDate) && (
+            {(filterProjectCode || filterFromDate || filterToDate) && (
               <button
-                onClick={() => { setFilterProjectCode(''); setFilterDate(''); }}
+                onClick={() => { setFilterProjectCode(''); setFilterFromDate(''); setFilterToDate(''); }}
                 className="text-xs font-bold text-red-600 hover:text-red-800 transition cursor-pointer"
               >
                 Clear Filters
@@ -812,10 +822,9 @@ const CRDFlow = () => {
               {bookings
                 .filter(lead => {
                   if (filterProjectCode && lead.project?.code !== filterProjectCode) return false;
-                  if (filterDate) {
-                    const bookingStr = new Date(lead.bookingInfo?.bookingDate || lead.createdAt).toLocaleDateString('en-CA');
-                    if (bookingStr !== filterDate) return false;
-                  }
+                  const bookingStr = new Date(lead.bookingInfo?.bookingDate || lead.createdAt).toLocaleDateString('en-CA');
+                  if (filterFromDate && bookingStr < filterFromDate) return false;
+                  if (filterToDate && bookingStr > filterToDate) return false;
                   return true;
                 })
                 .map((lead, index) => {
@@ -1164,10 +1173,9 @@ const CRDFlow = () => {
 
               {bookings.filter(lead => {
                 if (filterProjectCode && lead.project?.code !== filterProjectCode) return false;
-                if (filterDate) {
-                  const bookingStr = new Date(lead.bookingInfo?.bookingDate || lead.createdAt).toLocaleDateString('en-CA');
-                  if (bookingStr !== filterDate) return false;
-                }
+                const bookingStr = new Date(lead.bookingInfo?.bookingDate || lead.createdAt).toLocaleDateString('en-CA');
+                if (filterFromDate && bookingStr < filterFromDate) return false;
+                if (filterToDate && bookingStr > filterToDate) return false;
                 return true;
               }).length === 0 && (
                 <tr>
