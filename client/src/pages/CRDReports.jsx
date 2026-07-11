@@ -332,6 +332,175 @@ const KPIInsights = () => {
   const [exportMenuOpen, setExportMenuOpen] = useState(false);
   const [crdMenuOpen, setCrdMenuOpen] = useState(false);
 
+  const [previewHtml, setPreviewHtml] = useState('');
+  const [previewFilename, setPreviewFilename] = useState('');
+  const [previewModalOpen, setPreviewModalOpen] = useState(false);
+  const [previewSheets, setPreviewSheets] = useState([]);
+  const [currentSheetIndex, setCurrentSheetIndex] = useState(0);
+  const [previewOriginalWs, setPreviewOriginalWs] = useState(null);
+
+  const handlePreview = (content, filename, isWorksheet = false) => {
+    let htmlContent = content;
+    if (isWorksheet) {
+        htmlContent = XLSX.utils.sheet_to_html(content, { editable: false });
+        htmlContent = `<div class="p-4 bg-white"><style>table{border-collapse:collapse;width:100%} td,th{border:1px solid #ddd;padding:8px;text-align:left;}</style>${htmlContent}</div>`;
+    }
+
+    if (window.__isDownloadingAll) {
+      window.__capturedHtml = htmlContent;
+      window.__capturedWs = isWorksheet ? content : null;
+      return;
+    }
+    setPreviewSheets([]);
+    setPreviewHtml(htmlContent);
+    setPreviewFilename(filename);
+    setPreviewOriginalWs(isWorksheet ? content : null);
+    setPreviewModalOpen(true);
+  };
+  
+  const downloadFromPreview = () => {
+    if (previewSheets && previewSheets.length > 0) {
+      const wb = XLSX.utils.book_new();
+      for (const sheet of previewSheets) {
+          if (sheet.originalWs) {
+              XLSX.utils.book_append_sheet(wb, sheet.originalWs, sheet.name);
+              continue;
+          }
+          const div = document.createElement('div');
+          div.innerHTML = sheet.html;
+          const table = div.querySelector('table');
+          if (!table) continue;
+          
+          const styleBlock = div.querySelector('style');
+          let titleBg = 'FCE4D6', monthBg = 'DDEBF7', headerBg = 'FCE4D6', execBg = 'DDEBF7';
+          if (styleBlock) {
+             const css = styleBlock.innerHTML;
+             const mTitle = css.match(/\.title-row\s*{[^}]*background-color:\s*#([0-9a-fA-F]+)/);
+             if (mTitle) titleBg = mTitle[1];
+             const mMonth = css.match(/\.month-header\s*{[^}]*background-color:\s*#([0-9a-fA-F]+)/);
+             if (mMonth) monthBg = mMonth[1];
+             const mHeader = css.match(/\.table-headers\s*th\s*{[^}]*background-color:\s*#([0-9a-fA-F]+)/);
+             if (mHeader) headerBg = mHeader[1];
+             const mExec = css.match(/\.exec-banner\s*{[^}]*background-color:\s*#([0-9a-fA-F]+)/);
+             if (mExec) execBg = mExec[1];
+             if (!mExec) {
+                const mGroup = css.match(/\.group-banner\s*{[^}]*background-color:\s*#([0-9a-fA-F]+)/);
+                if (mGroup) execBg = mGroup[1];
+             }
+          }
+
+          const ws = XLSX.utils.table_to_sheet(table, { raw: true });
+          const borderStyle = { style: 'thin', color: { rgb: '000000' } };
+          const border = { top: borderStyle, bottom: borderStyle, left: borderStyle, right: borderStyle };
+          
+          for (let cellRef in ws) {
+            if (cellRef[0] === '!') continue;
+            const cell = ws[cellRef];
+            const coord = XLSX.utils.decode_cell(cellRef);
+            const rowNum = coord.r;
+            
+            cell.s = {
+              border: border,
+              font: { name: 'Calibri', sz: 10, color: { rgb: '000000' } },
+              alignment: { vertical: 'center', horizontal: 'center', wrapText: true }
+            };
+
+            const tr = table.rows[rowNum];
+            if (!tr) continue;
+            const cellClasses = table.rows[rowNum].cells[coord.c]?.className || '';
+            const rowClasses = tr.className || '';
+            const allClass = cellClasses + ' ' + rowClasses;
+
+            if (allClass.includes('title-row') || rowNum === 0) {
+              cell.s.fill = { fgColor: { rgb: titleBg } };
+              cell.s.font.bold = true;
+              cell.s.font.sz = 14;
+              if (coord.c > 1) cell.s.alignment.horizontal = 'left';
+              if (rowNum === 0 && coord.c < 2) {
+                 cell.s.fill = { fgColor: { rgb: '0E623A' } };
+                 cell.s.font.color = { rgb: 'FFFFFF' };
+                 cell.s.font.bold = true;
+                 cell.s.font.sz = 18;
+                 if (coord.c === 0 && (!cell.v || cell.v.trim() === '')) {
+                   cell.v = "JOHN BUILDWELL";
+                   cell.t = "s";
+                 }
+              }
+            }
+            else if (allClass.includes('month-header')) {
+              cell.s.fill = { fgColor: { rgb: monthBg } };
+              cell.s.font.bold = true;
+            }
+            else if (allClass.includes('table-headers')) {
+              cell.s.fill = { fgColor: { rgb: headerBg } };
+              cell.s.font.bold = true;
+            }
+            else if (allClass.includes('exec-banner') || allClass.includes('group-banner')) {
+              cell.s.fill = { fgColor: { rgb: execBg } };
+              cell.s.font.bold = true;
+              cell.s.alignment.horizontal = 'left';
+            }
+            else if (allClass.includes('bg-header-blue')) {
+              cell.s.fill = { fgColor: { rgb: '5B9BD5' } };
+              cell.s.font.bold = true;
+            }
+            else if (allClass.includes('bg-header-green')) {
+              cell.s.fill = { fgColor: { rgb: 'C6E0B4' } };
+              cell.s.font.bold = true;
+            }
+            else if (allClass.includes('bg-black-row')) {
+              cell.s.fill = { fgColor: { rgb: 'D9D9D9' } };
+            }
+            else if (allClass.includes('bg-orange-pct')) {
+               cell.s.fill = { fgColor: { rgb: 'F8CBAD' } };
+               cell.s.font.bold = true;
+            }
+            
+            if (allClass.includes('text-left')) cell.s.alignment.horizontal = 'left';
+            if (allClass.includes('text-right')) cell.s.alignment.horizontal = 'right';
+            if (allClass.includes('font-bold')) cell.s.font.bold = true;
+          }
+
+          const colWidths = [];
+          for (let cellRef in ws) {
+            if (cellRef[0] === '!') continue;
+            const cell = ws[cellRef];
+            const coord = XLSX.utils.decode_cell(cellRef);
+            if (coord.r === 0 || coord.r === 1) continue; 
+            const val = cell.v ? cell.v.toString() : '';
+            const valLen = val.length;
+            const currentWidth = colWidths[coord.c] || 15;
+            colWidths[coord.c] = Math.max(currentWidth, Math.min(valLen + 5, 100)); 
+          }
+          ws['!cols'] = colWidths.map(w => ({ wch: w || 15 }));
+          ws['!rows'] = [{ hpt: 60 }]; 
+          XLSX.utils.book_append_sheet(wb, ws, sheet.name);
+      }
+      XLSX.writeFile(wb, previewFilename);
+      setPreviewModalOpen(false);
+      return;
+    }
+
+    if (previewOriginalWs) {
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, previewOriginalWs, "Report");
+        XLSX.writeFile(wb, previewFilename);
+        setPreviewModalOpen(false);
+        return;
+    }
+
+    const blob = new Blob([previewHtml], { type: 'application/vnd.ms-excel' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = previewFilename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    setPreviewModalOpen(false);
+  };
+
 
 
   const [stats, setStats] = useState({
@@ -518,16 +687,7 @@ const KPIInsights = () => {
       `;
 
       // Trigger download
-      const blob = new Blob([html], { type: 'application/vnd.ms-excel' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      const fileCode = projectTitle ? projectTitle : 'ALL_PROJECTS';
-      a.download = `JB_${fileCode}_ENQUIRY_REPORT_${dateForMonth.getFullYear()}_${dateForMonth.getMonth() + 1}.xls`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      handlePreview(html, `JB_ENQUIRY_REPORT_${dateForMonth.getFullYear()}_${dateForMonth.getMonth() + 1}.xls`);
 
     } catch (err) {
       console.error(err);
@@ -668,16 +828,7 @@ const KPIInsights = () => {
       `;
 
       // Trigger download
-      const blob = new Blob([html], { type: 'application/vnd.ms-excel' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      const fileCode = projectTitle ? projectTitle : 'ALL_PROJECTS';
-      a.download = `JB_${fileCode}_SITE_VISIT_REPORT_${dateForMonth.getFullYear()}_${dateForMonth.getMonth() + 1}.xls`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      handlePreview(html, `JB_SITE_VISIT_REPORT_${dateForMonth.getFullYear()}_${dateForMonth.getMonth() + 1}.xls`);
 
     } catch (err) {
       console.error(err);
@@ -819,16 +970,7 @@ const KPIInsights = () => {
       `;
 
       // Trigger download
-      const blob = new Blob([html], { type: 'application/vnd.ms-excel' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      const fileCode = projectTitle ? projectTitle : 'ALL_PROJECTS';
-      a.download = `JB_${fileCode}_HOT_LIST_REPORT_${dateForMonth.getFullYear()}_${dateForMonth.getMonth() + 1}.xls`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      handlePreview(html, `JB_HOT_LIST_REPORT_${dateForMonth.getFullYear()}_${dateForMonth.getMonth() + 1}.xls`);
 
     } catch (err) {
       console.error(err);
@@ -950,16 +1092,7 @@ const KPIInsights = () => {
       `;
 
       // Trigger download
-      const blob = new Blob([html], { type: 'application/vnd.ms-excel' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      const fileCode = projectTitle ? projectTitle : 'ALL_PROJECTS';
-      a.download = `JB_${fileCode}_UNIT_BOOKING_DETAILS_${dateForMonth.getFullYear()}_${dateForMonth.getMonth() + 1}.xls`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      handlePreview(html, `JB_UNIT_BOOKING_DETAILS_${dateForMonth.getFullYear()}_${dateForMonth.getMonth() + 1}.xls`);
 
     } catch (err) {
       console.error(err);
@@ -1305,15 +1438,7 @@ const KPIInsights = () => {
       `;
 
       // Trigger download
-      const blob = new Blob([html], { type: 'application/vnd.ms-excel' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `JB_SUMMARY_OF_REPORT_${dateForMonth.getFullYear()}_${dateForMonth.getMonth() + 1}.xls`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      handlePreview(html, `JB_SUMMARY_OF_REPORT_${dateForMonth.getFullYear()}_${dateForMonth.getMonth() + 1}.xls`);
 
     } catch (err) {
       console.error(err);
@@ -1446,16 +1571,7 @@ const KPIInsights = () => {
       `;
 
       // Trigger download
-      const blob = new Blob([html], { type: 'application/vnd.ms-excel' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      const fileCode = projectTitle ? projectTitle : 'ALL_PROJECTS';
-      a.download = `JB_${fileCode}_MARKETING_RETURNS_REPORT_${dateForMonth.getFullYear()}_${dateForMonth.getMonth() + 1}.xls`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      handlePreview(html, `JB_MARKETING_RETURNS_REPORT_${dateForMonth.getFullYear()}_${dateForMonth.getMonth() + 1}.xls`);
 
     } catch (err) {
       console.error(err);
@@ -1586,15 +1702,7 @@ const KPIInsights = () => {
       `;
 
       // Trigger download
-      const blob = new Blob([html], { type: 'application/vnd.ms-excel' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `JB_LEAD_SOURCES_REPORT_${dateForMonth.getFullYear()}_${dateForMonth.getMonth() + 1}.xls`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      handlePreview(html, `JB_LEAD_SOURCES_REPORT_${dateForMonth.getFullYear()}_${dateForMonth.getMonth() + 1}.xls`);
 
     } catch (err) {
       console.error(err);
@@ -1734,16 +1842,7 @@ const KPIInsights = () => {
       `;
 
       // Trigger download
-      const blob = new Blob([html], { type: 'application/vnd.ms-excel' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      const fileCode = projectTitle ? projectTitle : 'ALL_PROJECTS';
-      a.download = `JB_${fileCode}_NPA_COLLECTED_REPORT_${targetYear}_${targetMonth + 1}.xls`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      handlePreview(html, `JB_NPA_COLLECTED_REPORT_${targetYear}_${targetMonth + 1}.xls`);
 
     } catch (err) {
       console.error(err);
@@ -1927,16 +2026,7 @@ const KPIInsights = () => {
         return htmlToStyledSheet(html, XLSX);
       }
       // Trigger download
-      const blob = new Blob([html], { type: 'application/vnd.ms-excel' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      const fileCode = projectTitle ? projectTitle : 'ALL_PROJECTS';
-      a.download = `JB_${fileCode}_REGISTRATION_REPORT_${dateForMonth.getFullYear()}_${dateForMonth.getMonth() + 1}.xls`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      handlePreview(html, `JB_REGISTRATION_REPORT_${dateForMonth.getFullYear()}_${dateForMonth.getMonth() + 1}.xls`);
 
     } catch (err) {
       console.error(err);
@@ -2113,16 +2203,7 @@ const KPIInsights = () => {
         return htmlToStyledSheet(html, XLSX);
       }
       // Trigger download
-      const blob = new Blob([html], { type: 'application/vnd.ms-excel' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      const fileCode = projectTitle ? projectTitle : 'ALL_PROJECTS';
-      a.download = `JB_${fileCode}_KEY_HANDOVER_REPORT_${dateForMonth.getFullYear()}_${dateForMonth.getMonth() + 1}.xls`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      handlePreview(html, `JB_KEY_HANDOVER_REPORT_${dateForMonth.getFullYear()}_${dateForMonth.getMonth() + 1}.xls`);
 
     } catch (err) {
       console.error(err);
@@ -2277,15 +2358,7 @@ const KPIInsights = () => {
         return htmlToStyledSheet(html, XLSX);
       }
       // Trigger download
-      const blob = new Blob([html], { type: 'application/vnd.ms-excel' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `JB_COLLECTION_REPORT_${dateForMonth.getFullYear()}_${dateForMonth.getMonth() + 1}.xls`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      handlePreview(html, `JB_COLLECTION_REPORT_${dateForMonth.getFullYear()}_${dateForMonth.getMonth() + 1}.xls`);
 
     } catch (err) {
       console.error(err);
@@ -2422,15 +2495,7 @@ const KPIInsights = () => {
         return htmlToStyledSheet(html, XLSX);
       }
       // Trigger download
-      const blob = new Blob([html], { type: 'application/vnd.ms-excel' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `JB_BANK_LOAN_REPORT_${dateForMonth.getFullYear()}_${dateForMonth.getMonth() + 1}.xls`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      handlePreview(html, `JB_BANK_LOAN_REPORT_${dateForMonth.getFullYear()}_${dateForMonth.getMonth() + 1}.xls`);
 
     } catch (err) {
       console.error(err);
@@ -2564,15 +2629,7 @@ const KPIInsights = () => {
         return htmlToStyledSheet(html, XLSX);
       }
       // Trigger download
-      const blob = new Blob([html], { type: 'application/vnd.ms-excel' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `JB_EXTRA_WORKS_REPORT_${dateForMonth.getFullYear()}_${dateForMonth.getMonth() + 1}.xls`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      handlePreview(html, `JB_EXTRA_WORKS_REPORT_${dateForMonth.getFullYear()}_${dateForMonth.getMonth() + 1}.xls`);
 
     } catch (err) {
       console.error(err);
@@ -2692,15 +2749,7 @@ const KPIInsights = () => {
         return htmlToStyledSheet(html, XLSX);
       }
       // Trigger download
-      const blob = new Blob([html], { type: 'application/vnd.ms-excel' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `JB_COMPLAINTS_REPORT_${dateForMonth.getFullYear()}_${dateForMonth.getMonth() + 1}.xls`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      handlePreview(html, `JB_COMPLAINTS_REPORT_${dateForMonth.getFullYear()}_${dateForMonth.getMonth() + 1}.xls`);
 
     } catch (err) {
       console.error(err);
@@ -2796,9 +2845,7 @@ const KPIInsights = () => {
 
       if (options.returnWorksheet) return ws;
       
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, "NPA Collected Report");
-      XLSX.writeFile(wb, `NPA_Collected_Report_${new Date().toLocaleDateString('en-GB').replace(/\//g, '-')}.xlsx`);
+      handlePreview(ws, COLLECTION_PARAMETER_REPORT__.xlsx, true);
     } catch (err) {
       console.error(err);
       alert('Error exporting NPA Collected Report');
@@ -2888,9 +2935,7 @@ const KPIInsights = () => {
 
       if (options.returnWorksheet) return ws;
 
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, "Parameter Report");
-      XLSX.writeFile(wb, `COLLECTION_PARAMETER_REPORT_${dateForMonth.getFullYear()}_${dateForMonth.getMonth() + 1}.xlsx`);
+      handlePreview(ws, COLLECTION_PARAMETER_REPORT__.xlsx, true);
     } catch (err) {
       console.error(err);
       alert('Error exporting Parameter Report');
@@ -2944,37 +2989,43 @@ const KPIInsights = () => {
   const handleDownloadAllReports = async () => {
     try {
       setLoading(true);
-      const wb = XLSX.utils.book_new();
+      window.__isDownloadingAll = true;
+      const allSheets = [];
+
+      const convertHtmlToSheet = async (exportFunc, sheetName, isWs = false) => {
+          window.__capturedHtml = null;
+          window.__capturedWs = null;
+          await exportFunc(); // It triggers handlePreview
+          
+          if (isWs && window.__capturedWs) {
+              allSheets.push({ name: sheetName, html: window.__capturedHtml, originalWs: window.__capturedWs });
+          } else if (window.__capturedHtml) {
+              allSheets.push({ name: sheetName, html: window.__capturedHtml });
+          }
+      };
+
+      await convertHtmlToSheet(handleExportParameterReport, 'Parameter Report', true);
+      await convertHtmlToSheet(handleExportRegistrationReport, 'Registration Report');
+      await convertHtmlToSheet(handleExportKeyHandoverReport, 'Key Handover Report');
+      await convertHtmlToSheet(handleExportCollectionReport, 'Collection Report');
+      await convertHtmlToSheet(handleExportNPAReport, 'NPA Collected Reports', true);
+      await convertHtmlToSheet(handleExportComplaintsReport, 'Complaints Report');
+      await convertHtmlToSheet(handleExportBankLoanReport, 'Bank Loan Report');
+      await convertHtmlToSheet(handleExportExtraWorksReport, 'Extra Works Report');
       
-      const paramWs = await handleExportParameterReport({ returnWorksheet: true });
-      if (paramWs) XLSX.utils.book_append_sheet(wb, paramWs, "Parameter Report");
-
-      const regWs = await handleExportRegistrationReport({ returnWorksheet: true });
-      if (regWs) XLSX.utils.book_append_sheet(wb, regWs, "Registration Report");
-
-      const keyWs = await handleExportKeyHandoverReport({ returnWorksheet: true });
-      if (keyWs) XLSX.utils.book_append_sheet(wb, keyWs, "Key Handover Report");
-
-      const colWs = await handleExportCollectionReport({ returnWorksheet: true });
-      if (colWs) XLSX.utils.book_append_sheet(wb, colWs, "Collection Report");
-
-      const npaWs = await handleExportNPAReport({ returnWorksheet: true });
-      if (npaWs) XLSX.utils.book_append_sheet(wb, npaWs, "NPA Collected Reports");
-
-      const compWs = await handleExportComplaintsReport({ returnWorksheet: true });
-      if (compWs) XLSX.utils.book_append_sheet(wb, compWs, "Complaints Report");
-
-      const bankWs = await handleExportBankLoanReport({ returnWorksheet: true });
-      if (bankWs) XLSX.utils.book_append_sheet(wb, bankWs, "Bank Loan Report");
-
-      const extWs = await handleExportExtraWorksReport({ returnWorksheet: true });
-      if (extWs) XLSX.utils.book_append_sheet(wb, extWs, "Extra Works Report");
-
-      XLSX.writeFile(wb, `ALL_CRD_REPORTS_${new Date().toLocaleDateString('en-GB').replace(/\//g, '-')}.xlsx`);
+      if (allSheets.length > 0) {
+        setPreviewSheets(allSheets);
+        setCurrentSheetIndex(0);
+        setPreviewHtml(allSheets[0].html);
+        if (allSheets[0].originalWs) setPreviewOriginalWs(allSheets[0].originalWs);
+        setPreviewFilename(`ALL_CRD_REPORTS_${new Date().toLocaleDateString('en-GB').replace(/\\//g, '-')}.xlsx`);
+        setPreviewModalOpen(true);
+      }
     } catch (err) {
       console.error(err);
-      alert('Error generating consolidated reports file');
+      alert('Error previewing consolidated reports file');
     } finally {
+      window.__isDownloadingAll = false;
       setLoading(false);
     }
   };
@@ -3132,6 +3183,88 @@ const KPIInsights = () => {
         {/*  */}
 
       </div>
+
+      {/* Preview Modal */}
+      {previewModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4">
+          <div className="bg-white w-full max-w-6xl h-[90vh] rounded-3xl flex flex-col shadow-2xl overflow-hidden relative">
+            
+            {/* Modal Header */}
+            <div className="px-6 py-4 border-b flex items-center justify-between bg-gray-50 shrink-0">
+              <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+                <FileText className="w-5 h-5 text-gray-500" />
+                {previewSheets.length > 0 ? `${previewSheets[currentSheetIndex].name} - Preview` : 'Report Preview'}
+              </h2>
+              
+              {previewSheets.length > 0 && (
+                 <div className="flex items-center gap-4">
+                    <button 
+                      onClick={() => {
+                        const newIdx = Math.max(0, currentSheetIndex - 1);
+                        setCurrentSheetIndex(newIdx);
+                        setPreviewHtml(previewSheets[newIdx].html);
+                        if (previewSheets[newIdx].originalWs) setPreviewOriginalWs(previewSheets[newIdx].originalWs);
+                      }}
+                      disabled={currentSheetIndex === 0}
+                      className="px-4 py-1.5 rounded-lg font-bold text-gray-600 bg-white border hover:bg-gray-50 transition disabled:opacity-50"
+                    >
+                      &larr; Prev Sheet
+                    </button>
+                    <span className="font-bold text-sm text-gray-600">
+                      {currentSheetIndex + 1} of {previewSheets.length}
+                    </span>
+                    <button 
+                      onClick={() => {
+                        const newIdx = Math.min(previewSheets.length - 1, currentSheetIndex + 1);
+                        setCurrentSheetIndex(newIdx);
+                        setPreviewHtml(previewSheets[newIdx].html);
+                        if (previewSheets[newIdx].originalWs) setPreviewOriginalWs(previewSheets[newIdx].originalWs);
+                      }}
+                      disabled={currentSheetIndex === previewSheets.length - 1}
+                      className="px-4 py-1.5 rounded-lg font-bold text-gray-600 bg-white border hover:bg-gray-50 transition disabled:opacity-50"
+                    >
+                      Next Sheet &rarr;
+                    </button>
+                 </div>
+              )}
+
+              <button 
+                onClick={() => setPreviewModalOpen(false)}
+                className="text-gray-400 hover:text-red-500 transition ml-4"
+              >
+                <div className="w-6 h-6 flex items-center justify-center font-bold text-xl leading-none">&times;</div>
+              </button>
+            </div>
+
+            {/* Modal Body (Scrollable HTML Preview) */}
+            <div className="p-6 overflow-auto flex-1 bg-gray-100">
+              <div 
+                className="bg-white shadow-sm border p-4 inline-block min-w-full"
+                dangerouslySetInnerHTML={{ __html: previewHtml }}
+              />
+            </div>
+
+            {/* Modal Footer */}
+            <div className="px-6 py-4 border-t bg-gray-50 flex items-center justify-end gap-3 shrink-0">
+              <button
+                onClick={() => setPreviewModalOpen(false)}
+                className="px-5 py-2.5 rounded-xl font-bold text-gray-600 bg-white border hover:bg-gray-50 transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={downloadFromPreview}
+                className="px-5 py-2.5 rounded-xl font-bold text-white bg-green-600 hover:bg-green-700 shadow-sm flex items-center gap-2 transition"
+              >
+                <CheckCircle className="w-4 h-4" />
+                Download Excel
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };

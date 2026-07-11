@@ -185,6 +185,68 @@ const CRDFlow = () => {
     setFileName('');
   };
 
+  const autoInitializeFlow = async (leadId) => {
+    const selectedBooking = bookings.find(b => b._id === leadId);
+    if (!selectedBooking) return;
+    const projId = selectedBooking.project?._id || selectedBooking.project;
+    
+    try {
+      // Get the project to see if there is a master CRD format
+      const res = await fetch(`${API_URL}/projects/${projId}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (!res.ok) throw new Error('Failed to fetch project');
+      const projectData = await res.json();
+      
+      const quot = quotations.find(q => (q.lead?._id || q.lead) === leadId);
+      const valuation = quot ? quot.totalValue : (selectedBooking?.bookingInfo?.selectedUnits?.length 
+        ? selectedBooking.bookingInfo.selectedUnits.length * (projectData.pricePerSqFt || 2000) * 1000
+        : 2500000);
+      
+      let sumAmount = 0;
+      const parsedStages = defaultStagesTemplate.map((stage, idx) => {
+        let amount = Math.round((stage.percentage / 100) * valuation);
+        if (idx === defaultStagesTemplate.length - 1) {
+          amount = valuation - sumAmount;
+        } else {
+          sumAmount += amount;
+        }
+        return {
+          name: stage.name,
+          percentage: stage.percentage,
+          amount: amount
+        };
+      });
+      
+      const payload = {
+        leadId: leadId,
+        projectId: projId,
+        unitId: selectedBooking.bookingInfo?.selectedUnits?.join(', ') || 'JMDP1',
+        stages: parsedStages,
+        totalOriginalValue: valuation
+      };
+      
+      const initRes = await fetch(`${API_URL}/crd-flow`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(payload)
+      });
+      
+      if (initRes.ok) {
+        const newFlow = await initRes.json();
+        setActiveFlow(newFlow);
+        setSuccess('Milestone payment workflow initialized successfully!');
+        setTimeout(() => setSuccess(''), 4000);
+      }
+    } catch (err) {
+      console.error(err);
+      setError('Error automatically initializing CRD flow');
+    }
+  };
+
   const handleBookingSelect = async (leadId) => {
     setSelectedBookingId(leadId);
     setActiveFlow(null);
@@ -199,9 +261,13 @@ const CRDFlow = () => {
       });
       if (res.ok) {
         const data = await res.json();
-        if (data) {
+        if (data && data._id) {
           setActiveFlow(data);
+        } else {
+          await autoInitializeFlow(leadId);
         }
+      } else if (res.status === 404) {
+          await autoInitializeFlow(leadId);
       }
     } catch (err) {
       setError('Error loading booking milestone stages');
