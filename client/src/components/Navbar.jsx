@@ -176,7 +176,7 @@ const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
             </button>
 
             {showDropdown && (
-              <div className="absolute right-0 mt-2.5 w-80 bg-white border border-gray-150 rounded-2xl shadow-xl z-[100] p-4 text-left animate-fadeIn max-h-80 flex flex-col">
+              <div className="absolute -right-12 sm:right-0 mt-2.5 w-[300px] sm:w-80 bg-white border border-gray-150 rounded-2xl shadow-xl z-[100] p-4 text-left animate-fadeIn max-h-80 flex flex-col">
                 <div className="flex items-center justify-between border-b border-gray-100 pb-2 mb-2">
                   <span className="text-[11px] font-bold text-gray-800 uppercase tracking-wide">Assignments & Follow-ups</span>
                   <span className="text-[11px] font-extrabold px-2 py-0.5 bg-[#0e623a]/10 text-[#0e623a] rounded-full">
@@ -219,7 +219,7 @@ const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
           </div>
 
           <div className="flex items-center gap-2.5 md:gap-3">
-            <div className="text-right">
+            <div className="text-right hidden sm:block">
               <p className="text-xs md:text-sm font-semibold text-gray-800 leading-none">{user?.name}</p>
               <span className={`text-[10px] md:text-[11px] font-bold px-2 py-0.5 rounded-full border mt-1 inline-block ${getRoleBadgeStyle(user?.role)}`}>
                 {user?.role}
