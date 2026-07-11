@@ -1535,46 +1535,46 @@ const Dashboard = () => {
         <div>
           <h2 className="text-xl md:text-2xl font-extrabold text-black-800 flex items-center gap-2">
             <BarChart3 className="w-6 h-6 text-[#0e623a]" />
-            <span>Dashboard Overview</span>
+            <span>Dashboard</span>
           </h2>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="grid grid-cols-2 lg:flex lg:flex-wrap lg:items-center gap-2 w-full lg:w-auto">
           <button
             onClick={handleExportExcel}
-            className="flex items-center justify-center gap-1.5 px-4 py-2.5 bg-[#0e623a] hover:bg-[#0b4d2d] text-white text-xs font-bold rounded-xl transition shadow-sm"
+            className="flex items-center justify-center gap-1.5 px-3 py-2 lg:px-4 lg:py-2.5 bg-[#0e623a] hover:bg-[#0b4d2d] text-white text-[11px] lg:text-xs font-bold rounded-xl transition shadow-sm w-full lg:w-auto"
           >
-            <Download className="w-4 h-4" />
-            <span> Summary Report</span>
+            <Download className="w-3.5 h-3.5 lg:w-4 lg:h-4" />
+            <span>Summary Report</span>
           </button>
           
           <button
             onClick={() => setShowUserModal(true)}
-            className="flex items-center justify-center gap-1.5 px-4 py-2.5 btn-grand rounded-xl font-bold text-xs font-bold rounded-xl transition shadow-sm"
+            className="flex items-center justify-center gap-1.5 px-3 py-2 lg:px-4 lg:py-2.5 bg-teal-600 hover:bg-teal-700 text-white text-[11px] lg:text-xs font-bold rounded-xl transition shadow-sm w-full lg:w-auto"
           >
-            <Download className="w-4 h-4" />
-            <span> User Report</span>
+            <Download className="w-3.5 h-3.5 lg:w-4 lg:h-4" />
+            <span>User Report</span>
           </button>
 
           <button
             onClick={() => setShowProjectModal(true)}
-            className="flex items-center justify-center gap-1.5 px-4 py-2.5 btn-grand rounded-xl font-bold text-xs font-bold rounded-xl transition shadow-sm"
+            className="flex items-center justify-center gap-1.5 px-3 py-2 lg:px-4 lg:py-2.5 bg-[#0aa083] hover:bg-[#08836b] text-white text-[11px] lg:text-xs font-bold rounded-xl transition shadow-sm w-full lg:w-auto"
           >
-            <Download className="w-4 h-4" />
+            <Download className="w-3.5 h-3.5 lg:w-4 lg:h-4" />
             <span>Project Report</span>
           </button>
 
           <button
             onClick={() => setShowSourceModal(true)}
-            className="flex items-center justify-center gap-1.5 px-4 py-2.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl transition shadow-sm"
+            className="flex items-center justify-center gap-1.5 px-3 py-2 lg:px-4 lg:py-2.5 bg-amber-600 hover:bg-amber-700 text-white text-[11px] lg:text-xs font-bold rounded-xl transition shadow-sm w-full lg:w-auto"
           >
-            <Download className="w-4 h-4" />
+            <Download className="w-3.5 h-3.5 lg:w-4 lg:h-4" />
             <span>Source Report</span>
           </button>
         </div>
       </div>
 
       {/* Filtration Header Card */}
-      <div className="glass-card border-none shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-3xl p-5 w-full sticky top-16 z-20 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
+      <div className="glass-card border-none shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-3xl p-5 w-full relative transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4 items-end">
           
           {/* User Select */}

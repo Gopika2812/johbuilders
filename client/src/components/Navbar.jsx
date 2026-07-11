@@ -17,10 +17,14 @@ const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
   useEffect(() => {
     if (!token) return;
 
-    // Request Notification permission for lock screen alerts
-    if ('Notification' in window && Notification.permission !== 'granted' && Notification.permission !== 'denied') {
-      Notification.requestPermission();
-    }
+    // Request Notification permission on first user interaction
+    const requestPermissionOnInteraction = () => {
+      if ('Notification' in window && Notification.permission === 'default') {
+        Notification.requestPermission();
+      }
+      document.removeEventListener('click', requestPermissionOnInteraction);
+    };
+    document.addEventListener('click', requestPermissionOnInteraction);
 
     fetchNotifications();
     // Poll every 60 seconds

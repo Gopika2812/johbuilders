@@ -1624,7 +1624,7 @@ const LeadsDirectory = () => {
                  <td className="px-3 py-1.5 border-b border-black-100 text-center">
                    <div className="text-[11px] font-semibold text-black-700">
                      {lead.followUpInfo?.nextFollowUpDate 
-                       ? new Date(lead.followUpInfo.nextFollowUpDate).toLocaleString('en-GB', { dateStyle: 'short', timeStyle: 'short' }) 
+                       ? new Date(lead.followUpInfo.nextFollowUpDate).toLocaleString('en-GB', { dateStyle: 'short'}) 
                        : '—'}
                    </div>
                  </td>
