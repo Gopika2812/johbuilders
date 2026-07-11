@@ -957,29 +957,29 @@ const CRDFlow = () => {
                         </td>
                         <td className="p-4">
                           {value !== null ? (
-                            <span className="text-blue-800 font-black bg-blue-50 border border-blue-200 px-2 py-1 rounded shadow-sm text-[11px]">
+                            <div className="text-blue-800 font-black text-sm">
                               Rs. {value.toLocaleString()}
-                            </span>
+                            </div>
                           ) : (
-                            <span className="text-black-400 text-[11px]">N/A</span>
+                            <span className="text-black-400 text-sm">N/A</span>
                           )}
                         </td>
                         <td className="p-4">
                           {value !== null ? (
-                            <span className="text-emerald-800 font-black bg-emerald-50 border border-emerald-200 px-2 py-1 rounded shadow-sm text-[11px]">
+                            <div className="text-emerald-800 font-black text-sm">
                               Rs. {received.toLocaleString()}
-                            </span>
+                            </div>
                           ) : (
-                            <span className="text-black-400 text-[11px]">N/A</span>
+                            <span className="text-black-400 text-sm">N/A</span>
                           )}
                         </td>
                         <td className="p-4">
                           {value !== null ? (
-                            <span className="text-rose-800 font-black bg-rose-50 border border-rose-200 px-2 py-1 rounded shadow-sm text-[11px]">
+                            <div className="text-rose-800 font-black text-sm">
                               Rs. {(pending || 0).toLocaleString()}
-                            </span>
+                            </div>
                           ) : (
-                            <span className="text-black-400 text-[11px]">N/A</span>
+                            <span className="text-black-400 text-sm">N/A</span>
                           )}
                         </td>
                         <td className="p-4">
