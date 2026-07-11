@@ -24,14 +24,25 @@ const BankLoanHistory = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedFlowId, setExpandedFlowId] = useState(null);
 
+  const [amountPromptOpen, setAmountPromptOpen] = useState(false);
+  const [promptLead, setPromptLead] = useState(null);
+  const [promptAmount, setPromptAmount] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
-  const updateLoanStatus = async (leadId, newStatus, lead) => {
+  const updateLoanStatus = async (leadId, newStatus, lead, explicitAmount = null) => {
     try {
+      let disbursedAmount = lead?.bookingInfo?.loanDetails?.disbursedAmount || 0;
+      
+      if (newStatus === 'Approved' && explicitAmount !== null) {
+        disbursedAmount = explicitAmount;
+      }
+
       const updatedBookingInfo = {
         ...(lead?.bookingInfo || {}),
         loanDetails: {
           ...(lead?.bookingInfo?.loanDetails || {}),
-          loanStatus: newStatus
+          loanStatus: newStatus,
+          disbursedAmount
         }
       };
 
@@ -45,10 +56,24 @@ const BankLoanHistory = () => {
       });
       if (res.ok) {
         fetchCRDFlows();
+        setAmountPromptOpen(false);
+        setPromptLead(null);
       }
     } catch (err) {
       console.error('Failed to update loan status', err);
     }
+  };
+
+  const handleAmountSubmit = (e) => {
+    e.preventDefault();
+    if (!promptAmount || isNaN(Number(promptAmount)) || Number(promptAmount) < 0) {
+      alert("Please enter a valid amount.");
+      return;
+    }
+    setIsSubmitting(true);
+    updateLoanStatus(promptLead._id, 'Approved', promptLead, Number(promptAmount)).finally(() => {
+      setIsSubmitting(false);
+    });
   };
 
   useEffect(() => {
@@ -100,7 +125,7 @@ const BankLoanHistory = () => {
 
   // Helper to extract bank loan details for each client
   const getClientLoanDetails = (flow) => {
-    let bankLoanPaid = 0;
+    let bankLoanPaid = flow.lead?.bookingInfo?.loanDetails?.disbursedAmount || 0;
     let bankLoanPending = 0;
     const loanPayments = [];
 
@@ -137,7 +162,7 @@ const BankLoanHistory = () => {
     const accountNumber = flow.stages.flatMap(s => s.payments || []).find(p => p.method === 'Bank Loan')?.details?.accountNumber || flow.lead?.bookingInfo?.loanDetails?.accountNumber || 'N/A';
     
     let loanStatus = flow.lead?.bookingInfo?.loanDetails?.loanStatus || 'Pending';
-    if (bankLoanPaid > 0) loanStatus = 'Disbursed';
+    // Removed automatic override to Disbursed since it was requested to be removed
 
     return {
       bankLoanPaid,
@@ -279,16 +304,23 @@ const BankLoanHistory = () => {
                           <td className="p-4" onClick={(e) => e.stopPropagation()}>
                             <select 
                               value={client.loanStatus}
-                              onChange={(e) => updateLoanStatus(client.flow.lead._id, e.target.value, client.flow.lead)}
+                              onChange={(e) => {
+                                const newStatus = e.target.value;
+                                if (newStatus === 'Approved') {
+                                  setPromptLead(client.flow.lead);
+                                  setPromptAmount('');
+                                  setAmountPromptOpen(true);
+                                } else {
+                                  updateLoanStatus(client.flow.lead._id, newStatus, client.flow.lead);
+                                }
+                              }}
                               className={`text-[11px] font-bold px-2 py-1 rounded-full uppercase cursor-pointer border-none outline-none appearance-none ${
-                                client.loanStatus === 'Disbursed' ? 'bg-emerald-50 text-emerald-700' :
                                 client.loanStatus === 'Approved' ? 'bg-blue-50 text-blue-700' :
                                 'bg-amber-50 text-amber-700'
                               }`}
                             >
                               <option value="Pending">Pending</option>
                               <option value="Approved">Approved</option>
-                              <option value="Disbursed">Disbursed</option>
                             </select>
                           </td>
                           <td className="p-4 text-right text-emerald-800 font-bold">
@@ -410,7 +442,53 @@ const BankLoanHistory = () => {
             </div>
           )}
         </div>
-      </div>
+      
+      {amountPromptOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl max-w-sm w-full overflow-hidden shadow-2xl border border-black-100">
+            <div className="bg-[#0e623a] p-5 text-white">
+              <h3 className="text-sm font-bold flex items-center gap-2">
+                <Landmark className="w-4 h-4 text-emerald-300" />
+                <span>Approve Loan Amount</span>
+              </h3>
+            </div>
+            <form onSubmit={handleAmountSubmit} className="p-5 space-y-4 text-left">
+              <div>
+                <label className="text-xs font-semibold text-black-600 block mb-1">Enter Loan Disbursed Amount (Rs)</label>
+                <input
+                  type="number"
+                  required
+                  autoFocus
+                  placeholder="e.g. 500000"
+                  value={promptAmount}
+                  onChange={(e) => setPromptAmount(e.target.value)}
+                  className="w-full px-4 py-2.5 bg-black-50 border border-black-200 rounded-xl text-sm font-bold text-black-800 focus:outline-none focus:border-[#0e623a]"
+                />
+              </div>
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAmountPromptOpen(false);
+                    setPromptLead(null);
+                  }}
+                  className="flex-1 py-2.5 border border-black-200 rounded-xl text-xs font-bold text-black-500 hover:bg-black-50 transition cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="flex-1 py-2.5 bg-[#0e623a] text-white rounded-xl text-xs font-bold hover:bg-[#0b4d2d] transition shadow-md cursor-pointer disabled:opacity-50"
+                >
+                  {isSubmitting ? 'Saving...' : 'Save Amount'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
   );
 };
 

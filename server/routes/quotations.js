@@ -13,6 +13,7 @@ router.get('/', protect, async (req, res) => {
       .populate('project', 'name code')
       .populate('lead', 'name phone')
       .populate('createdBy', 'name role')
+      .populate('crdPerson', 'name role')
       .sort({ createdAt: -1 });
       
     // Filter out orphaned quotations where lead was deleted
@@ -31,7 +32,8 @@ router.get('/:id', protect, async (req, res) => {
     const quotation = await Quotation.findById(req.params.id)
       .populate('project')
       .populate('lead')
-      .populate('createdBy', 'name role');
+      .populate('createdBy', 'name role')
+      .populate('crdPerson', 'name role');
     if (!quotation) {
       return res.status(404).json({ message: 'Quotation not found' });
     }

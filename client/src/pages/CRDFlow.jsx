@@ -133,6 +133,20 @@ const CRDFlow = () => {
     fetchProjectsAndBookings();
   }, [token]);
 
+  useEffect(() => {
+    if (activeFlow) {
+      setFlows(prev => {
+        const idx = prev.findIndex(f => f._id === activeFlow._id);
+        if (idx !== -1) {
+          const newFlows = [...prev];
+          newFlows[idx] = activeFlow;
+          return newFlows;
+        }
+        return [...prev, activeFlow];
+      });
+    }
+  }, [activeFlow]);
+
   const fetchProjectsAndBookings = async () => {
     try {
       setLoading(true);
@@ -881,6 +895,7 @@ const CRDFlow = () => {
                 <th className="p-4">Received Value</th>
                 <th className="p-4">Pending Value</th>
                 <th className="p-4">Assigned Person</th>
+                <th className="p-4">CRD Person</th>
                 <th className="p-4 text-center">Quick Actions</th>
               </tr>
             </thead>
@@ -894,13 +909,15 @@ const CRDFlow = () => {
                   return true;
                 })
                 .map((lead, index) => {
-                  const flow = flows.find(f => (f.lead?._id || f.lead) === lead._id);
+                  const flow = (activeFlow && (activeFlow.lead?._id || activeFlow.lead) === lead._id) 
+                    ? activeFlow 
+                    : flows.find(f => (f.lead?._id || f.lead) === lead._id);
                   const quot = quotations.find(q => (q.lead?._id || q.lead) === lead._id);
                   const value = flow ? flow.totalCurrentValue : (quot ? quot.totalValue : null);
                   const isSelected = selectedBookingId === lead._id;
                   
                   const received = flow 
-                    ? flow.stages.reduce((sum, stage) => sum + (stage.payments?.reduce((pSum, p) => pSum + p.amount, 0) || 0), 0) 
+                    ? flow.stages.reduce((sum, stage) => sum + (stage.payments?.reduce((pSum, p) => pSum + (Number(p.amount) || 0), 0) || 0), 0) 
                     : 0;
                   const pending = value !== null ? Math.max(0, value - received) : null;
                   
@@ -967,6 +984,11 @@ const CRDFlow = () => {
                         <td className="p-4">
                           <div className="font-semibold text-black-800 text-xs">
                             {lead.assignedTo?.name || (typeof lead.assignedTo === 'string' ? users.find(u => u._id === lead.assignedTo)?.name : null) || 'Unassigned'}
+                          </div>
+                        </td>
+                        <td className="p-4">
+                          <div className="font-semibold text-[#0e623a] text-xs">
+                            {quot?.crdPerson?.name || 'Unassigned'}
                           </div>
                         </td>
                         <td className="p-4 text-center" onClick={(e) => e.stopPropagation()}>

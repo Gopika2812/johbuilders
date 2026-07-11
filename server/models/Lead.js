@@ -91,7 +91,8 @@ const LeadSchema = new mongoose.Schema({
       amountRequired: { type: Number, default: 0 },
       preferredBank: { type: String, default: '' },
       accountNumber: { type: String, default: '' },
-      loanStatus: { type: String, default: '' }
+      loanStatus: { type: String, default: '' },
+      disbursedAmount: { type: Number, default: 0 }
     },
     bookingDate: { type: Date, default: Date.now }
   },

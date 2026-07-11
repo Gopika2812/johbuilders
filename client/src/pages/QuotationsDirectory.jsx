@@ -24,10 +24,49 @@ const QuotationsDirectory = () => {
   const [success, setSuccess] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [deletingId, setDeletingId] = useState(null);
+  const [users, setUsers] = useState([]);
 
   useEffect(() => {
     fetchQuotations();
+    fetchUsers();
   }, [token]);
+
+  const fetchUsers = async () => {
+    try {
+      const res = await fetch(`${API_URL}/employees`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setUsers(data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch users', err);
+    }
+  };
+
+  const updateCrdPerson = async (quotationId, userId) => {
+    try {
+      const res = await fetch(`${API_URL}/quotations/${quotationId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ crdPerson: userId })
+      });
+      if (res.ok) {
+        const updated = await res.json();
+        setQuotations(prev => prev.map(q => q._id === quotationId ? updated : q));
+        setSuccess('CRD Person assigned successfully');
+        setTimeout(() => setSuccess(''), 3000);
+      } else {
+        setError('Failed to assign CRD Person');
+      }
+    } catch (err) {
+      setError('Error assigning CRD Person');
+    }
+  };
 
   const fetchQuotations = async () => {
     try {
@@ -136,6 +175,7 @@ const QuotationsDirectory = () => {
                   <th className="p-4">Total Value</th>
                   <th className="p-4">Prepared By</th>
                   <th className="p-4">Created Date</th>
+                  <th className="p-4">CRD Person</th>
                   <th className="p-4 text-center">Actions</th>
                 </tr>
               </thead>
@@ -192,6 +232,20 @@ const QuotationsDirectory = () => {
                         <Calendar className="w-3.5 h-3.5 text-black-300" />
                         <span>{new Date(q.createdAt).toLocaleDateString()}</span>
                       </div>
+                    </td>
+
+                    {/* CRD Person */}
+                    <td className="p-4">
+                      <select
+                        value={q.crdPerson?._id || q.crdPerson || ''}
+                        onChange={(e) => updateCrdPerson(q._id, e.target.value)}
+                        className="w-full text-[11px] bg-black-50 border border-black-200 rounded-lg px-2 py-1.5 focus:outline-none focus:border-[#0e623a] font-bold text-black-700 cursor-pointer"
+                      >
+                        <option value="">Select Person...</option>
+                        {users.map(u => (
+                          <option key={u._id} value={u._id}>{u.name}</option>
+                        ))}
+                      </select>
                     </td>
 
                     {/* Action buttons */}

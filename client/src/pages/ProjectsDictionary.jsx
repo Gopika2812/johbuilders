@@ -46,8 +46,8 @@ const ProjectsDictionary = () => {
   // Filter states
   const [searchTerm, setSearchTerm] = useState('');
   const [projectType, setProjectType] = useState('All');
-  const [fromDate, setFromDate] = useState(new Date().toISOString().split('T')[0]);
-  const [toDate, setToDate] = useState(new Date().toISOString().split('T')[0]);
+  const [fromDate, setFromDate] = useState('');
+  const [toDate, setToDate] = useState('');
 
   const handleStartEdit = (project) => {
     setEditingProjectId(project._id);
