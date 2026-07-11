@@ -1468,14 +1468,16 @@ const CRDDashboard = () => {
 
   const { budgetData, spentData, networthData } = getSourcesData();
   const primaryColors = [
-    '#0e623a', // Brand Green (Dominant Highlight)
-    '#3b82f6', // Electric Blue (Secondary Highlight)
-    '#94a3b8', // Slate Grey (Muted Accent)
-    '#8b5cf6', // Lavender Purple
-    '#5c8d70', // Sage Green
-    '#f59e0b', // Warm Amber
-    '#b0b3c2', // Medium Silver
-    '#e2e8f0'  // Light Slate
+    '#FFD23F', // Pastel Yellow
+    '#A4DE3B', // Pastel Lime Green
+    '#E882C7', // Pastel Pink
+    '#8C9ECB', // Pastel Purple-blue
+    '#FF8C61', // Pastel Orange
+    '#62C3A5', // Pastel Teal
+    '#4DD0E1', // Pastel Cyan
+    '#BA68C8', // Pastel Purple
+    '#FFD54F', // Pastel Amber
+    '#81C784'  // Pastel Light Green
   ];
 
   return (

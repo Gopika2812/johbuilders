@@ -214,23 +214,9 @@ const ObservedPieChart = ({
               const largeArcFlag = percent > 0.5 ? 1 : 0;
               const color = colorPalette[index % colorPalette.length];
 
-              const isLeft = Math.cos(midAngle) < 0;
-              const textAnchor = isLeft ? "end" : "start";
-              
-              // Points for connecting line
-              const lineStartX = cx + Math.cos(midAngle) * r;
-              const lineStartY = cy + Math.sin(midAngle) * r;
-              const lineMidX = cx + Math.cos(midAngle) * (r + 15);
-              const lineMidY = cy + Math.sin(midAngle) * (r + 15);
-              const lineEndX = lineMidX + (isLeft ? -15 : 15);
-              const lineEndY = lineMidY;
-
-              const labelX = lineEndX + (isLeft ? -8 : 8);
-              const labelY = lineEndY;
-              
-              const displayText = isCount 
-                ? `${val} ${typeof isCount === 'string' ? isCount : 'Leads'}`
-                : `₹${Math.round(val).toLocaleString()}`;
+              const labelRadius = r * 0.62;
+              const tx = cx + Math.cos(midAngle) * labelRadius;
+              const ty = cy + Math.sin(midAngle) * labelRadius;
 
               const isSelected = selectedLabel === item[labelKey];
 
@@ -256,30 +242,18 @@ const ObservedPieChart = ({
                     stroke="#ffffff"
                     strokeWidth="1.5"
                   />
-                  {percent > 0.02 && (
-                    <g>
-                      <polyline
-                        points={`${lineStartX},${lineStartY} ${lineMidX},${lineMidY} ${lineEndX},${lineEndY}`}
-                        fill="none"
-                        stroke={color}
-                        strokeWidth="2"
-                        className="opacity-70"
-                      />
-                      <text
-                        x={labelX}
-                        y={labelY}
-                        textAnchor={textAnchor}
-                        fill="#000000"
-                        style={{ fontFamily: "system-ui, -apple-system, sans-serif" }}
-                      >
-                        <tspan x={labelX} dy="-0.2em" className="font-normal text-[17px] md:text-[21px] uppercase tracking-wide">
-                          {item[labelKey].length > 18 ? item[labelKey].substring(0, 18) + '..' : item[labelKey]}
-                        </tspan>
-                        <tspan x={labelX} dy="1.4em" className="font-extrabold text-[19px] md:text-[25px]">
-                          {displayText}
-                        </tspan>
-                      </text>
-                    </g>
+                  {percent > 0.03 && (
+                    <text
+                      x={tx}
+                      y={ty}
+                      textAnchor="middle"
+                      dominantBaseline="central"
+                      fill="#000000"
+                      className="font-extrabold text-[18px] md:text-[24px]"
+                      style={{ fontFamily: "system-ui, -apple-system, sans-serif" }}
+                    >
+                      {`${(percent * 100).toFixed(1)}%`}
+                    </text>
                   )}
                 </g>
               );
@@ -425,7 +399,7 @@ const Dashboard = () => {
       filtered = filtered.filter(l => l.status === 'Site Visit' || l.status === 'Site Visit Follow-up');
     } else if (stageLabel === 'Hot List') {
       filtered = filtered.filter(l => l.status === 'Hot List');
-    } else if (stageLabel === 'Booking') {
+    } else if (stageLabel === 'Booking' || stageLabel === 'Booked') {
       filtered = filtered.filter(l => l.status === 'Booking');
     } else if (stageLabel === 'Handover') {
       filtered = filtered.filter(l => l.status === 'Won');
@@ -1516,16 +1490,16 @@ const Dashboard = () => {
 
   const { budgetData, spentData, networthData } = getSourcesData();
   const primaryColors = [
-    '#0e623a', // Brand Green
-    '#1e3a8a', // Dark Blue
-    '#b91c1c', // Dark Red
-    '#c2410c', // Dark Orange
-    '#6d28d9', // Dark Purple
-    '#0f766e', // Dark Teal
-    '#4d7c0f', // Dark Olive
-    '#831843', // Dark Pink
-    '#a16207', // Dark Gold
-    '#374151'  // Dark Slate
+    '#FFD23F', // Pastel Yellow
+    '#A4DE3B', // Pastel Lime Green
+    '#E882C7', // Pastel Pink
+    '#8C9ECB', // Pastel Purple-blue
+    '#FF8C61', // Pastel Orange
+    '#62C3A5', // Pastel Teal
+    '#4DD0E1', // Pastel Cyan
+    '#BA68C8', // Pastel Purple
+    '#FFD54F', // Pastel Amber
+    '#81C784'  // Pastel Light Green
   ];
 
   return (
@@ -1928,7 +1902,7 @@ const Dashboard = () => {
                       { label: 'Enquiries', count: selectedUserPerfData.enquiries, color: 'bg-emerald-600', icon: Users },
                       { label: 'Site Visit', count: selectedUserPerfData.siteVisits, color: 'bg-blue-500', icon: MapPin },
                       { label: 'Hot List', count: selectedUserPerfData.hotList, color: 'bg-amber-500', icon: Target },
-                      { label: 'Booking', count: selectedUserPerfData.booked || 0, color: 'bg-rose-500', icon: DollarSign },
+                      { label: 'Booked', count: selectedUserPerfData.booked || 0, color: 'bg-rose-500', icon: DollarSign },
                       /* { label: 'Handover', count: selectedUserPerfData.handover, color: 'bg-emerald-700', icon: Building }, */
                       { label: 'Lost', count: selectedUserPerfData.lost, color: 'bg-red-500', icon: TrendingDown }
                     ].filter(m => m.label === 'Total Leads' || m.count > 0).map((m, idx) => {
@@ -2072,7 +2046,7 @@ const Dashboard = () => {
                       { label: 'Enquiries', count: selectedSourcePerfData.enquiries, color: 'bg-emerald-600', icon: Users },
                       { label: 'Site Visit', count: selectedSourcePerfData.siteVisits, color: 'bg-blue-500', icon: MapPin },
                       { label: 'Hot List', count: selectedSourcePerfData.hotList, color: 'bg-amber-500', icon: Target },
-                      { label: 'Booking', count: selectedSourcePerfData.booked || 0, color: 'bg-rose-500', icon: DollarSign },
+                      { label: 'Booked', count: selectedSourcePerfData.booked || 0, color: 'bg-rose-500', icon: DollarSign },
                       /* { label: 'Handover', count: selectedSourcePerfData.handover, color: 'bg-emerald-700', icon: Building }, */
                       { label: 'Lost', count: selectedSourcePerfData.lost, color: 'bg-red-500', icon: TrendingDown }
                     ].filter(m => m.label === 'Total Leads' || m.count > 0).map((m, idx) => {
@@ -2154,7 +2128,7 @@ const Dashboard = () => {
                                   key={stageName}
                                   className="text-[11px] font-bold px-2.5 py-1 bg-black-50 border-none text-black-650 rounded-xl"
                                 >
-                                  {stageName}: {p.stages[stageName]}
+                                  {stageName === 'Booking' ? 'Booked' : stageName}: {p.stages[stageName]}
                                 </span>
                               ))}
                             </div>
