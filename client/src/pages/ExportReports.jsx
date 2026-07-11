@@ -63,7 +63,7 @@ const getExcelHeader = (titleText, monthTitle, totalColumns, themeColor, logoPat
           ${monthTitle}
         </td>
       </tr>` : ''}
-      <tr><td colspan="${safeCols}" style="border:none; height: 15px;"></td></tr>
+
     `;
   };
 
@@ -322,20 +322,31 @@ const ExportReports = () => {
   const [selectedProject, setSelectedProject] = useState('');
   const [loading, setLoading] = useState(true);
   const fileCode = 'ALL_PROJECTS';
+  const [previewHtml, setPreviewHtml] = useState('');
+  const [previewFilename, setPreviewFilename] = useState('');
+  const [previewModalOpen, setPreviewModalOpen] = useState(false);
+
   const handlePreview = (html, filename) => {
     if (window.__isDownloadingAll) {
       window.__capturedHtml = html;
       return;
     }
-    const blob = new Blob([html], { type: 'application/vnd.ms-excel' });
+    setPreviewHtml(html);
+    setPreviewFilename(filename);
+    setPreviewModalOpen(true);
+  };
+
+  const downloadFromPreview = () => {
+    const blob = new Blob([previewHtml], { type: 'application/vnd.ms-excel' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = filename;
+    a.download = previewFilename;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+    setPreviewModalOpen(false);
   };
   const [selectedGroup, setSelectedGroup] = useState(null);
   const [activeCpeDrillDown, setActiveCpeDrillDown] = useState(null);
@@ -411,8 +422,10 @@ const ExportReports = () => {
 
       // Apply active dashboard filters
       const filtered = data.filter(lead => {
-        // 1. Must be enquiry (Contacted or Follow-Up)
-        const isEnquiry = lead.status === 'Contacted' || lead.status === 'Follow-Up';
+        // 1. Must be enquiry (Contacted or Follow-Up) or closed at this stage
+        const isClosed = lead.status === 'Lost' || lead.status === 'Closed' || lead.isClosed;
+        const hasSiteVisitHistory = lead.history?.some(h => h.status === 'Site Visit' || h.status === 'Site Visit Follow-up');
+        const isEnquiry = lead.status === 'Contacted' || lead.status === 'Follow-Up' || (isClosed && !hasSiteVisitHistory);
         if (!isEnquiry) return false;
 
         // 2. Project filter
@@ -459,7 +472,7 @@ const ExportReports = () => {
         </head>
         <body>
           <table>
-            ${getExcelHeader(titleText, monthTitle, 10, "#16a34a", logoPath)}
+            ${getExcelHeader(titleText, monthTitle, 11, "#16a34a", logoPath)}
       `;
 
       // Group leads by assigned executive to insert executive banner row (as seen in screenshot: "Veni" blue banner stretching across!)
@@ -476,7 +489,7 @@ const ExportReports = () => {
         // Executive banner row
         html += `
           <tr>
-            <td colspan="10" class="exec-banner">${execName.toUpperCase()}</td>
+            <td colspan="11" class="exec-banner">${execName.toUpperCase()}</td>
           </tr>
           <!-- Table Headers -->
           <tr class="table-headers">
@@ -484,6 +497,7 @@ const ExportReports = () => {
             <th>Enquiry date</th>
             <th>Lead Name</th>
             <th>Contact Number</th>
+            <th>Assigned By</th>
             <th>Assigned To</th>
             <th>Enquiry Mode</th>
             <th>Project</th>
@@ -500,9 +514,13 @@ const ExportReports = () => {
           const sourceStr = lead.leadSource || '';
           const projectStr = lead.project?.code || '';
           const placeStr = lead.address ? lead.address.split(',')[0] : '';
-          const statusStr = (lead.status || '').toLowerCase().replace('-', '');
-          const remarksStr = lead.followUpInfo?.remarks || lead.closeRemarks || '';
+          const isLeadClosed = lead.status === 'Lost' || lead.status === 'Closed' || lead.isClosed;
+          const statusStr = isLeadClosed ? 'completed' : (lead.status || '').toLowerCase().replace('-', '');
+          let remarksStr = lead.followUpInfo?.remarks || lead.closeRemarks || '';
+          if (remarksStr.match(/\[Lost at (.*?) stage\]/)) remarksStr = remarksStr.replace(/\[Lost at .*? stage\]( - )?/, '');
           const rowClass = idx % 2 === 1 ? 'class="even-row"' : '';
+          
+          const assignerStr = lead.assignedBy?.name || 'Admin';
 
           html += `
             <tr ${rowClass}>
@@ -510,6 +528,7 @@ const ExportReports = () => {
               <td>${dateStr}</td>
               <td class="text-left bold-label">${lead.name || ''}</td>
               <td>${phoneStr}</td>
+              <td>${assignerStr}</td>
               <td>${execName.toUpperCase()}</td>
               <td>${sourceStr}</td>
               <td>${projectStr}</td>
@@ -552,8 +571,10 @@ const ExportReports = () => {
 
       // Apply active dashboard filters
       const filtered = data.filter(lead => {
-        // 1. Must be site visit stage (Site Visit or Site Visit Follow-up)
-        const isSiteVisit = lead.status === 'Site Visit' || lead.status === 'Site Visit Follow-up';
+        // 1. Must be site visit stage (Site Visit or Site Visit Follow-up) or closed at this stage
+        const isClosed = lead.status === 'Lost' || lead.status === 'Closed' || lead.isClosed;
+        const hasSiteVisitHistory = lead.history?.some(h => h.status === 'Site Visit' || h.status === 'Site Visit Follow-up');
+        const isSiteVisit = lead.status === 'Site Visit' || lead.status === 'Site Visit Follow-up' || (isClosed && hasSiteVisitHistory);
         if (!isSiteVisit) return false;
 
         // 2. Project filter
@@ -641,8 +662,10 @@ const ExportReports = () => {
           const visitedBy = execName;
           
           // Enquiry Status column is completed/followup (or lead.status lowercase)
-          const statusStr = lead.status === 'Site Visit Follow-up' ? 'followup' : 'completed';
-          const remarksStr = lead.followUpInfo?.remarks || lead.closeRemarks || '';
+          const isLeadClosed = lead.status === 'Lost' || lead.status === 'Closed' || lead.isClosed;
+          const statusStr = isLeadClosed ? 'completed' : (lead.status === 'Site Visit Follow-up' ? 'followup' : 'completed');
+          let remarksStr = lead.followUpInfo?.remarks || lead.closeRemarks || '';
+          if (remarksStr.match(/\[Lost at (.*?) stage\]/)) remarksStr = remarksStr.replace(/\[Lost at .*? stage\]( - )?/, '');
           const sourceStr = lead.leadSource || '';
           const rowClass = idx % 2 === 1 ? 'class="even-row"' : '';
 
@@ -787,7 +810,8 @@ const ExportReports = () => {
             ? new Date(lead.followUpInfo.nextFollowUpDate).toLocaleDateString('en-GB').replace(/\//g, '.') 
             : '';
             
-          const remarksStr = lead.followUpInfo?.remarks || lead.closeRemarks || '';
+          let remarksStr = lead.followUpInfo?.remarks || lead.closeRemarks || '';
+          if (remarksStr.match(/\[Lost at (.*?) stage\]/)) remarksStr = remarksStr.replace(/\[Lost at .*? stage\]( - )?/, '');
           const rowClass = idx % 2 === 1 ? 'class="even-row"' : '';
 
           html += `
@@ -2784,6 +2808,55 @@ const ExportReports = () => {
         </div>
 
       </div>
+
+      {/* Preview Modal */}
+      {previewModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4">
+          <div className="bg-white w-full max-w-6xl h-[90vh] rounded-3xl flex flex-col shadow-2xl overflow-hidden relative">
+            
+            {/* Modal Header */}
+            <div className="px-6 py-4 border-b flex items-center justify-between bg-gray-50 shrink-0">
+              <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+                <FileText className="w-5 h-5 text-gray-500" />
+                Report Preview
+              </h2>
+              <button 
+                onClick={() => setPreviewModalOpen(false)}
+                className="text-gray-400 hover:text-red-500 transition"
+              >
+                <div className="w-6 h-6 flex items-center justify-center font-bold text-xl leading-none">&times;</div>
+              </button>
+            </div>
+
+            {/* Modal Body (Scrollable HTML Preview) */}
+            <div className="p-6 overflow-auto flex-1 bg-gray-100">
+              <div 
+                className="bg-white shadow-sm border p-4 inline-block min-w-full"
+                dangerouslySetInnerHTML={{ __html: previewHtml }}
+              />
+            </div>
+
+            {/* Modal Footer */}
+            <div className="px-6 py-4 border-t bg-gray-50 flex items-center justify-end gap-3 shrink-0">
+              <button
+                onClick={() => setPreviewModalOpen(false)}
+                className="px-5 py-2.5 rounded-xl font-bold text-gray-600 bg-white border hover:bg-gray-50 transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={downloadFromPreview}
+                className="px-5 py-2.5 rounded-xl font-bold text-white bg-green-600 hover:bg-green-700 shadow-sm flex items-center gap-2 transition"
+              >
+                <Download className="w-4 h-4" />
+                Download Excel
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };

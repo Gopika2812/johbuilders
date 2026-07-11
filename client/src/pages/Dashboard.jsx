@@ -1816,7 +1816,7 @@ const Dashboard = () => {
                   <div>
                     <span className="text-sm text-black font-extrabold uppercase tracking-wider">Total Followup</span>
                     <h3 className="text-3xl font-extrabold text-black-800 mt-1">
-                      { (stats.cards.enquiries?.contacted || 0) + (stats.cards.enquiries?.followup || 0) + (stats.cards.siteVisits?.total || 0) }
+                      { (stats.cards.enquiries?.contacted || 0) + (stats.cards.enquiries?.followup || 0) + (stats.cards.siteVisits?.live || 0) }
                     </h3>
                   </div>
                 </div>
@@ -3100,17 +3100,17 @@ const Dashboard = () => {
             <div className="flex-grow p-6 overflow-y-auto scrollbar-thin space-y-6">
               {/* Summary Stats Grid */}
               <div className="grid grid-cols-4 gap-4">
-                <div className="bg-slate-50 border-none rounded-2xl p-4 text-center">
-                  <span className="text-[11px] text-black-400 font-extrabold uppercase tracking-wider block">Total Units</span>
-                  <span className="text-2xl font-black text-slate-800 block mt-1">{selectedInventoryProj.stats.total || 0}</span>
+                <div className="bg-blue-50 border border-blue-100 rounded-2xl p-4 text-center">
+                  <span className="text-[11px] text-blue-700 font-extrabold uppercase tracking-wider block">Total Units</span>
+                  <span className="text-2xl font-black text-blue-900 block mt-1">{selectedInventoryProj.stats.total || 0}</span>
                 </div>
-                <div className="bg-[#7ebda9]/10 border border-[#7ebda9]/30 rounded-2xl p-4 text-center">
-                  <span className="text-[11px] text-[#5b9683] font-extrabold uppercase tracking-wider block">Available</span>
-                  <span className="text-2xl font-black text-[#004d61] block mt-1">{selectedInventoryProj.stats.available || 0}</span>
+                <div className="bg-green-50 border border-green-100 rounded-2xl p-4 text-center">
+                  <span className="text-[11px] text-green-700 font-extrabold uppercase tracking-wider block">Available</span>
+                  <span className="text-2xl font-black text-green-900 block mt-1">{selectedInventoryProj.stats.available || 0}</span>
                 </div>
-                <div className="bg-[#8bc34a]/10 border border-[#8bc34a]/30 rounded-2xl p-4 text-center">
-                  <span className="text-[11px] text-[#71a632] font-extrabold uppercase tracking-wider block">Booked</span>
-                  <span className="text-2xl font-black text-[#558b2f] block mt-1">{(selectedInventoryProj.stats.booked || 0) + (selectedInventoryProj.stats.handover || 0)}</span>
+                <div className="bg-yellow-50 border border-yellow-100 rounded-2xl p-4 text-center">
+                  <span className="text-[11px] text-yellow-700 font-extrabold uppercase tracking-wider block">Booked</span>
+                  <span className="text-2xl font-black text-yellow-900 block mt-1">{(selectedInventoryProj.stats.booked || 0) + (selectedInventoryProj.stats.handover || 0)}</span>
                 </div>
                 <div className="bg-red-50 border border-red-100 rounded-2xl p-4 text-center">
                   <span className="text-[11px] text-red-700 font-extrabold uppercase tracking-wider block">Cancelled</span>
@@ -3125,82 +3125,28 @@ const Dashboard = () => {
                 <div className="space-y-2">
                   <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wide flex items-center gap-1.5">
                     <span className="w-2.5 h-2.5 rounded-full bg-slate-500"></span>
-                    <span>Total units({selectedInventoryProj.stats.totalUnitsList?.length || 0})</span>
+                    <span>Total units ({selectedInventoryProj.stats.totalUnitsList?.length || 0})</span>
                   </h4>
-                  <div className="bg-slate-50 border-none rounded-2xl p-4 min-h-[50px] flex flex-wrap gap-2">
+                  <div className="bg-slate-50 border-none rounded-2xl p-4 min-h-[50px] grid grid-cols-[repeat(auto-fill,minmax(75px,1fr))] gap-3">
                     {selectedInventoryProj.stats.totalUnitsList?.length > 0 ? (
-                      selectedInventoryProj.stats.totalUnitsList.map(uid => (
-                        <span key={uid} className="bg-slate-100 text-slate-700 border border-slate-200 text-xs font-bold px-3 py-1 rounded-xl">
-                          {uid}
-                        </span>
-                      ))
+                      selectedInventoryProj.stats.totalUnitsList.map(uid => {
+                        const isAvailable = selectedInventoryProj.stats.availableUnitsList?.includes(uid);
+                        const isBooked = selectedInventoryProj.stats.bookedUnitsList?.includes(uid) || selectedInventoryProj.stats.handoverUnitsList?.includes(uid);
+                        const isCancelled = selectedInventoryProj.stats.cancelledUnitsList?.some(u => u.unitId === uid);
+                        
+                        let bgClass = "bg-blue-100 text-blue-800 border-blue-200"; // Fallback / Total
+                        if (isAvailable) bgClass = "bg-green-100 text-green-800 border-green-200";
+                        if (isBooked) bgClass = "bg-yellow-100 text-yellow-800 border-yellow-300";
+                        if (isCancelled) bgClass = "bg-red-100 text-red-800 border-red-200";
+
+                        return (
+                          <span key={uid} className={`border text-xs font-bold px-1 py-2 rounded-xl flex items-center justify-center text-center ${bgClass}`}>
+                            {uid}
+                          </span>
+                        );
+                      })
                     ) : (
                       <span className="text-black-400 italic text-xs">No units registered</span>
-                    )}
-                  </div>
-                </div>
-
-                {/* Cancelled Section */}
-                <div className="space-y-2">
-                  <h4 className="text-xs font-bold text-red-800 uppercase tracking-wide flex items-center gap-1.5">
-                    <span className="w-2.5 h-2.5 rounded-full bg-red-400"></span>
-                    <span>Cancelled Units ({selectedInventoryProj.stats.cancelledUnitsList?.length || 0})</span>
-                  </h4>
-                  <div className="bg-red-50/20 border border-red-100/50 rounded-2xl p-4 min-h-[50px] flex flex-col gap-2">
-                    {selectedInventoryProj.stats.cancelledUnitsList?.length > 0 ? (
-                      selectedInventoryProj.stats.cancelledUnitsList.map((unit, idx) => (
-                        <div key={idx} className="bg-red-50 border border-red-100 p-3 rounded-xl flex flex-col md:flex-row justify-between gap-3 text-xs">
-                          <div className="min-w-[150px]">
-                            <span className="font-bold text-red-900 text-sm block">Unit {unit.unitId}</span>
-                            <span className="text-red-700 block mt-1">Stage: <span className="font-bold">{unit.cancelStageName}</span></span>
-                            <span className="text-[11px] text-red-600 font-bold block mt-1">{new Date(unit.date).toLocaleDateString()}</span>
-                          </div>
-                          <div className="flex-1 bg-[#f0fbf4] p-2 rounded-lg border border-red-50 text-red-600">
-                            <span className="font-bold text-red-400 uppercase text-[11px] block mb-0.5">Narration</span>
-                            {unit.cancelNarration}
-                          </div>
-                        </div>
-                      ))
-                    ) : (
-                      <span className="text-black-400 italic text-xs">No cancelled units</span>
-                    )}
-                  </div>
-                </div>
-
-                {/* Booked Section */}
-                <div className="space-y-2">
-                  <h4 className="text-xs font-bold text-[#558b2f] uppercase tracking-wide flex items-center gap-1.5">
-                    <span className="w-2.5 h-2.5 rounded-full bg-[#8bc34a]"></span>
-                    <span>Booked Units {`(${[...(selectedInventoryProj.stats.bookedUnitsList || []), ...(selectedInventoryProj.stats.handoverUnitsList || [])].length})`}</span>
-                  </h4>
-                  <div className="bg-amber-50/20 border border-amber-100/50 rounded-2xl p-4 min-h-[50px] flex flex-wrap gap-2">
-                    {[...(selectedInventoryProj.stats.bookedUnitsList || []), ...(selectedInventoryProj.stats.handoverUnitsList || [])].length > 0 ? (
-                      [...(selectedInventoryProj.stats.bookedUnitsList || []), ...(selectedInventoryProj.stats.handoverUnitsList || [])].map(uid => (
-                        <span key={uid} className="bg-amber-100/80 text-amber-800 border border-amber-250 text-xs font-bold px-3 py-1 rounded-xl">
-                          {uid}
-                        </span>
-                      ))
-                    ) : (
-                      <span className="text-black-400 italic text-xs">No units booked</span>
-                    )}
-                  </div>
-                </div>
-
-                {/* Available Section */}
-                <div className="space-y-2">
-                  <h4 className="text-xs font-bold text-[#004d61] uppercase tracking-wide flex items-center gap-1.5">
-                    <span className="w-2.5 h-2.5 rounded-full bg-[#7ebda9]"></span>
-                    <span>Available Units ({selectedInventoryProj.stats.availableUnitsList?.length || 0})</span>
-                  </h4>
-                  <div className="bg-emerald-50/20 border border-emerald-100/50 rounded-2xl p-4 min-h-[50px] flex flex-wrap gap-2">
-                    {selectedInventoryProj.stats.availableUnitsList?.length > 0 ? (
-                      selectedInventoryProj.stats.availableUnitsList.map(uid => (
-                        <span key={uid} className="bg-emerald-100/80 text-emerald-800 border border-emerald-250 text-xs font-bold px-3 py-1 rounded-xl">
-                          {uid}
-                        </span>
-                      ))
-                    ) : (
-                      <span className="text-black-400 italic text-xs">No units available</span>
                     )}
                   </div>
                 </div>
