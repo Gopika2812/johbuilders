@@ -114,7 +114,7 @@ const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
 
   const getPageTitle = () => {
     const path = location.pathname;
-    if (path === '/') return 'Dashboard Overview';
+    if (path === '/') return 'Dashboard';
     if (path === '/projects/register') return 'Register New Project';
     if (path === '/projects') return 'Projects Dictionary';
     if (path.startsWith('/projects/')) return 'Project Details & Inventory';
