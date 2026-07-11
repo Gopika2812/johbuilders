@@ -2820,6 +2820,7 @@ const KPIInsights = () => {
       
       const filteredFlows = data.filter(flow => {
         if (selectedProject && (flow.project?._id || flow.project) !== selectedProject) return false;
+        if (selectedUser && (flow.lead?.assignedTo?._id || flow.lead?.assignedTo) !== selectedUser) return false;
         return true;
       });
 
@@ -2828,46 +2829,67 @@ const KPIInsights = () => {
         return;
       }
 
-      const exportData = filteredFlows.map((flow, index) => {
+      const dateForMonth = fromDate ? new Date(fromDate) : new Date();
+      const monthNames = ["JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE", "JULY", "AUGUST", "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER"];
+      const titleText = `OVERALL COLLECTED REPORT - ${monthNames[dateForMonth.getMonth()]} ${dateForMonth.getFullYear()}`;
+
+      let html = `
+        <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+        <head>
+          <meta charset="utf-8">
+          ${getExcelStyles("#9BC2E6", "#C6E0B4", "#9BC2E6", "#9BC2E6")}
+        </head>
+        <body>
+          <table>
+            ${getExcelHeader(titleText, "", 11, "#7c3aed", logoPath)}
+            <tr class="table-headers">
+              <th>S.No</th>
+              <th>Lead Name</th>
+              <th>Project Type</th>
+              <th>Unit No</th>
+              <th>Total Amount</th>
+              <th>Debtors Amount</th>
+              <th>Target Amount</th>
+              <th>Week 1</th>
+              <th>Week 2</th>
+              <th>Week 3</th>
+              <th>Week 4</th>
+            </tr>
+      `;
+
+      filteredFlows.forEach((flow, index) => {
         const weeks = getWeeklyCollections(flow);
-        return {
-          'S.No': index + 1,
-          'Lead Name': flow.lead?.name || 'N/A',
-          'Project Type': Array.isArray(flow.project?.projectType) ? flow.project.projectType.join(', ') : (flow.project?.projectType || 'N/A'),
-          'Unit No': flow.unitId || 'N/A',
-          'Total Amount': flow.totalCurrentValue || 0,
-          'Debtors Amount': flow.debtorsAmount || 0,
-          'Target Amount': flow.targetAmount || 0,
-          'Week 1': weeks.w1,
-          'Week 2': weeks.w2,
-          'Week 3': weeks.w3,
-          'Week 4': weeks.w4
-        };
+        const rowClass = index % 2 === 1 ? 'class="even-row"' : '';
+        const projectType = Array.isArray(flow.project?.projectType) ? flow.project.projectType.join(', ') : (flow.project?.projectType || 'N/A');
+        
+        html += `
+          <tr ${rowClass}>
+            <td>${index + 1}</td>
+            <td class="text-left bold-label">${flow.lead?.name || 'N/A'}</td>
+            <td>${projectType}</td>
+            <td>${flow.unitId || 'N/A'}</td>
+            <td class="text-right font-bold">₹ ${(flow.totalCurrentValue || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+            <td class="text-right" style="color: #e11d48; font-weight: bold;">₹ ${(flow.debtorsAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+            <td class="text-right" style="color: #0e623a; font-weight: bold;">₹ ${(flow.targetAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+            <td class="text-right">₹ ${weeks.w1.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+            <td class="text-right">₹ ${weeks.w2.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+            <td class="text-right">₹ ${weeks.w3.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+            <td class="text-right">₹ ${weeks.w4.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+          </tr>
+        `;
       });
 
-      const ws = XLSX.utils.json_to_sheet(exportData);
-      
-      const colWidths = [
-        { wch: 5 }, { wch: 25 }, { wch: 15 }, { wch: 15 }, 
-        { wch: 15 }, { wch: 15 }, { wch: 15 }, 
-        { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 12 }
-      ];
-      ws['!cols'] = colWidths;
+      html += `
+          </table>
+        </body>
+        </html>
+      `;
 
-      const headerRange = XLSX.utils.decode_range(ws['!ref']);
-      for (let C = headerRange.s.c; C <= headerRange.e.c; C++) {
-        const address = XLSX.utils.encode_cell({ r: 0, c: C });
-        if (!ws[address]) continue;
-        ws[address].s = {
-          font: { bold: true, color: { rgb: "FFFFFF" } },
-          fill: { fgColor: { rgb: "0E623A" } },
-          alignment: { horizontal: "center", vertical: "center" }
-        };
+      if (options.returnWorksheet) {
+        return htmlToStyledSheet(html, XLSX);
       }
-
-      if (options.returnWorksheet) return ws;
       
-      handlePreview(ws, COLLECTION_PARAMETER_REPORT__.xlsx, true);
+      handlePreview(html, `JB_OVERALL_COLLECTED_REPORT_${dateForMonth.getFullYear()}_${dateForMonth.getMonth() + 1}.xls`);
     } catch (err) {
       console.error(err);
       alert('Error exporting NPA Collected Report');
