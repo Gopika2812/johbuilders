@@ -1977,7 +1977,10 @@ const KPIInsights = () => {
               houseType = 'Flat';
             }
 
-            const commentsStr = lead.closeRemarks || '';
+            const lastFlowNote = (flow.history && flow.history.length > 0) 
+              ? flow.history[flow.history.length - 1].notes || flow.history[flow.history.length - 1].action 
+              : '';
+            const commentsStr = lastFlowNote || lead.closeRemarks || '';
             const rowClass = idx % 2 === 1 ? 'class="even-row"' : '';
 
             rowsHtml += `
