@@ -1968,7 +1968,8 @@ const KPIInsights = () => {
             const custName = lead.name || '';
             
             // Mapping projectType to Plots/Villa/Flat
-            const typeRaw = (flow.project?.projectType || '').toLowerCase();
+            const pType = flow.project?.projectType;
+            const typeRaw = (Array.isArray(pType) ? pType.join(', ') : pType || '').toLowerCase();
             let houseType = 'Plots';
             if (typeRaw.includes('villa') || typeRaw.includes('house') || typeRaw.includes('individual')) {
               houseType = 'Villa';

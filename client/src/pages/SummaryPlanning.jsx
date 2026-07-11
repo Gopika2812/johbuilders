@@ -13,7 +13,10 @@ const SummaryPlanning = () => {
   const { token } = useAuth();
   
   // Date and filter states
-  const [selectedMonth, setSelectedMonth] = useState('2026-06'); // Format: YYYY-MM
+  const [selectedMonth, setSelectedMonth] = useState(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  }); // Format: YYYY-MM
   const [loading, setLoading] = useState(true);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [activePhase, setActivePhase] = useState('phase1'); // 'phase1' | 'phase2' | 'phase3'
