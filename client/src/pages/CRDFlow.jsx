@@ -24,7 +24,8 @@ import {
   ChevronUp,
   Layers,
   ChevronRight,
-  Loader2
+  Loader2,
+  X
 } from 'lucide-react';
 
 const defaultStagesTemplate = [
@@ -1189,7 +1190,16 @@ const CRDFlow = () => {
                                                     <span className="font-bold">{ew.name}</span>
                                                   </td>
                                                   <td className="p-2 text-right text-[11px] font-semibold text-black-700">Rs. {ew.amount.toLocaleString()}</td>
-                                                  <td colSpan="4"></td>
+                                                  <td colSpan="3"></td>
+                                                  <td className="p-2 text-center">
+                                                    <button
+                                                      onClick={() => handleRevertExtraWork(idx, ew._id || ew.id)}
+                                                      className="p-1 hover:bg-red-55 text-red-500 rounded transition cursor-pointer"
+                                                      title="Delete Extra Work"
+                                                    >
+                                                      <Trash className="w-3.5 h-3.5" />
+                                                    </button>
+                                                  </td>
                                                 </tr>
                                               ))}
                                               {/* Payments breakdown if any */}
@@ -1258,7 +1268,14 @@ const CRDFlow = () => {
       {extraWorkStageIdx !== null && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
           <div className="bg-white rounded-3xl max-w-md w-full overflow-hidden shadow-2xl border border-black-100">
-            <div className="bg-[#0e623a] p-6 text-white">
+            <div className="bg-[#0e623a] p-6 text-white relative">
+              <button 
+                type="button" 
+                onClick={() => setExtraWorkStageIdx(null)}
+                className="absolute top-4 right-4 text-emerald-100 hover:text-white transition cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
               <h3 className="text-base font-bold flex items-center gap-2">
                 <Plus className="w-5 h-5 text-emerald-300" />
                 <span>Add Extra Works Adjustment</span>
@@ -1332,8 +1349,15 @@ const CRDFlow = () => {
       {/* Payment Split Modal Dialog */}
       {paymentStageIdx !== null && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="bg-white rounded-3xl max-w-4xl w-full overflow-hidden shadow-2xl border border-black-100">
-            <div className="bg-[#0e623a] p-6 text-white">
+          <div className="bg-white rounded-3xl max-w-4xl w-full max-h-[90vh] flex flex-col overflow-hidden shadow-2xl border border-black-100">
+            <div className="bg-[#0e623a] p-6 text-white relative shrink-0">
+              <button 
+                type="button" 
+                onClick={() => setPaymentStageIdx(null)}
+                className="absolute top-4 right-4 text-emerald-100 hover:text-white transition cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
               <h3 className="text-base font-bold flex items-center gap-2">
                 <CreditCard className="w-5 h-5 text-emerald-300" />
                 <span>Submit Milestone Split Payment</span>
@@ -1341,169 +1365,171 @@ const CRDFlow = () => {
               <p className="text-emerald-100 text-xs mt-1">Register bank transfers or loan payments</p>
             </div>
 
-            <form onSubmit={handleMakePayment} className="p-6 space-y-4">
-              <div>
-                <label className="text-xs font-semibold text-black-600 block mb-1">Select Milestone Stage to Credit</label>
-                <select
-                  value={paymentStageIdx}
-                  onChange={(e) => {
-                    const newIdx = Number(e.target.value);
-                    setPaymentStageIdx(newIdx);
-                    
-                    const thisStagePending = Math.max(0, getStageTotal(activeFlow.stages[newIdx]) - getStagePaid(activeFlow.stages[newIdx]));
-                    const arrears = getPendingPreviousStages(newIdx).reduce((sum, s) => sum + s.pending, 0);
-                    setPaymentAmount((thisStagePending + arrears).toString());
-                  }}
-                  className="w-full px-4 py-2.5 bg-black-50 border border-black-250 rounded-xl text-sm font-semibold text-black-800"
-                >
-                  {activeFlow?.stages.map((stage, idx) => {
-                    const thisStagePending = Math.max(0, getStageTotal(stage) - getStagePaid(stage));
-                    const arrears = getPendingPreviousStages(idx).reduce((sum, s) => sum + s.pending, 0);
-                    if (thisStagePending <= 0 && arrears <= 0) return null;
-                    const arrearsText = arrears > 0 ? ` + Arrears: Rs. ${arrears.toLocaleString()}` : '';
-                    return (
-                      <option key={idx} value={idx}>Stage {idx + 1}: {stage.name} (Pending: Rs. {thisStagePending.toLocaleString()}{arrearsText})</option>
-                    );
-                  })}
-                </select>
-                {paymentStageIdx !== null && paymentStageIdx < (activeFlow?.stages?.length || 0) - 1 && (
-                  <div className="flex justify-end mt-2">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const newIdx = paymentStageIdx + 1;
-                        setPaymentStageIdx(newIdx);
-                        const thisStagePending = Math.max(0, getStageTotal(activeFlow.stages[newIdx]) - getStagePaid(activeFlow.stages[newIdx]));
-                        const arrears = getPendingPreviousStages(newIdx).reduce((sum, s) => sum + s.pending, 0);
-                        setPaymentAmount((thisStagePending + arrears).toString());
-                      }}
-                      className="text-[11px] text-purple-600 font-bold hover:text-purple-800 flex items-center gap-1 transition cursor-pointer bg-purple-50 px-2 py-1 rounded"
-                    >
-                     
-                    </button>
+            <form onSubmit={handleMakePayment} className="flex flex-col flex-1 overflow-hidden">
+              <div className="flex-1 overflow-y-auto p-6 space-y-4">
+                <div>
+                  <label className="text-xs font-semibold text-black-600 block mb-1">Select Milestone Stage to Credit</label>
+                  <select
+                    value={paymentStageIdx}
+                    onChange={(e) => {
+                      const newIdx = Number(e.target.value);
+                      setPaymentStageIdx(newIdx);
+                      
+                      const thisStagePending = Math.max(0, getStageTotal(activeFlow.stages[newIdx]) - getStagePaid(activeFlow.stages[newIdx]));
+                      const arrears = getPendingPreviousStages(newIdx).reduce((sum, s) => sum + s.pending, 0);
+                      setPaymentAmount((thisStagePending + arrears).toString());
+                    }}
+                    className="w-full px-4 py-2.5 bg-black-50 border border-black-250 rounded-xl text-sm font-semibold text-black-800"
+                  >
+                    {activeFlow?.stages.map((stage, idx) => {
+                      const thisStagePending = Math.max(0, getStageTotal(stage) - getStagePaid(stage));
+                      const arrears = getPendingPreviousStages(idx).reduce((sum, s) => sum + s.pending, 0);
+                      if (thisStagePending <= 0 && arrears <= 0) return null;
+                      const arrearsText = arrears > 0 ? ` + Arrears: Rs. ${arrears.toLocaleString()}` : '';
+                      return (
+                        <option key={idx} value={idx}>Stage {idx + 1}: {stage.name} (Pending: Rs. {thisStagePending.toLocaleString()}{arrearsText})</option>
+                      );
+                    })}
+                  </select>
+                  {paymentStageIdx !== null && paymentStageIdx < (activeFlow?.stages?.length || 0) - 1 && (
+                    <div className="flex justify-end mt-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const newIdx = paymentStageIdx + 1;
+                          setPaymentStageIdx(newIdx);
+                          const thisStagePending = Math.max(0, getStageTotal(activeFlow.stages[newIdx]) - getStagePaid(activeFlow.stages[newIdx]));
+                          const arrears = getPendingPreviousStages(newIdx).reduce((sum, s) => sum + s.pending, 0);
+                          setPaymentAmount((thisStagePending + arrears).toString());
+                        }}
+                        className="text-[11px] text-purple-600 font-bold hover:text-purple-800 flex items-center gap-1 transition cursor-pointer bg-purple-50 px-2 py-1 rounded"
+                      >
+                       
+                      </button>
+                    </div>
+                  )}
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setPaymentMethod('Bank Transfer')}
+                    className={`py-2.5 rounded-xl text-[11px] font-bold transition cursor-pointer text-center ${
+                      paymentMethod === 'Bank Transfer'
+                        ? 'bg-[#0e623a] text-white shadow'
+                        : 'bg-black-100 text-black-500 hover:bg-black-200'
+                    }`}
+                  >
+                    Bank Transfer
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPaymentMethod('Bank Loan')}
+                    className={`py-2.5 rounded-xl text-[11px] font-bold transition cursor-pointer text-center ${
+                      paymentMethod === 'Bank Loan'
+                        ? 'bg-[#0e623a] text-white shadow'
+                        : 'bg-black-100 text-black-500 hover:bg-black-200'
+                    }`}
+                  >
+                    Bank Loan
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPaymentMethod('Dual Mode')}
+                    className={`py-2.5 rounded-xl text-[11px] font-bold transition cursor-pointer text-center ${
+                      paymentMethod === 'Dual Mode'
+                        ? 'bg-[#0e623a] text-white shadow'
+                        : 'bg-black-100 text-black-500 hover:bg-black-200'
+                    }`}
+                  >
+                    Dual Mode
+                  </button>
+                </div>
+
+                {paymentMethod !== 'Dual Mode' ? (
+                  <div>
+                    <label className="text-xs font-semibold text-black-600 block mb-1">Paid Amount (Rs)</label>
+                    <input
+                      type="number"
+                      required
+                      placeholder="e.g. 150000"
+                      value={paymentAmount}
+                      onChange={(e) => setPaymentAmount(e.target.value)}
+                      className="w-full px-4 py-2.5 bg-black-50 border border-black-250 rounded-xl text-sm font-bold text-black-800"
+                    />
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-xs font-bold text-black-770 block mb-1">Bank Transfer Amt (Rs)</label>
+                      <input
+                        type="number"
+                        required
+                        placeholder="e.g. 200000"
+                        value={dualTransferAmount}
+                        onChange={(e) => setDualTransferAmount(e.target.value)}
+                        className="w-full px-3 py-2 bg-black-50 border rounded-xl text-xs font-bold text-black-800"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-bold text-[#0e623a] block mb-1">Bank Loan Amt (Rs)</label>
+                      <input
+                        type="number"
+                        required
+                        placeholder="e.g. 300000"
+                        value={dualLoanAmount}
+                        onChange={(e) => setDualLoanAmount(e.target.value)}
+                        className="w-full px-3 py-2 bg-[#0e623a]/5 border border-[#0e623a]/20 rounded-xl text-xs font-bold text-[#0e623a]"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {paymentStageIdx === 1 && (
+                  <div className="pt-2 border-t mt-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <label className="text-xs font-semibold text-black-600">Agreement Documents (Required)</label>
+                      <button
+                        type="button"
+                        onClick={handleAutoPrepareDocs}
+                        className="text-[10px] font-bold text-[#0e623a] bg-emerald-50 px-2 py-1 rounded hover:bg-emerald-100 transition"
+                      >
+                        Auto-Prepare 5 PDFs
+                      </button>
+                    </div>
+                    <div className="space-y-3">
+                      {[
+                        'Agreement of Sale',
+                        'Construction Agreement',
+                        'Deed of Sale Draft',
+                        'Stamped Property Schedule',
+                        'Registration Challan'
+                      ].map((docName, i) => (
+                        <div key={i} className="flex flex-col gap-1.5 p-2 bg-black-50/50 border border-black-100 rounded-xl">
+                          <div className="text-[11px] text-black-700 font-bold flex items-center justify-between">
+                            <div className="flex items-center gap-1.5">
+                              <div className={`w-1.5 h-1.5 rounded-full ${pdfFiles[i] ? 'bg-emerald-500 shadow-sm' : 'bg-black-300'}`}></div>
+                              {docName}
+                            </div>
+                            {pdfFiles[i] && (
+                              <span className="text-[10px] text-emerald-600 font-bold bg-emerald-50 px-1.5 py-0.5 rounded truncate max-w-[120px]">
+                                {pdfFiles[i]}
+                              </span>
+                            )}
+                          </div>
+                          <input
+                            type="file"
+                            accept=".pdf"
+                            onChange={(e) => handleSingleFileUpload(e, i)}
+                            className="w-full text-[10px] text-black-500 file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-[10px] file:font-bold file:bg-white file:text-black-700 file:shadow-sm hover:file:bg-black-50 cursor-pointer"
+                          />
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>
-              <div className="grid grid-cols-3 gap-2">
-                <button
-                  type="button"
-                  onClick={() => setPaymentMethod('Bank Transfer')}
-                  className={`py-2.5 rounded-xl text-[11px] font-bold transition cursor-pointer text-center ${
-                    paymentMethod === 'Bank Transfer'
-                      ? 'bg-[#0e623a] text-white shadow'
-                      : 'bg-black-100 text-black-500 hover:bg-black-200'
-                  }`}
-                >
-                  Bank Transfer
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setPaymentMethod('Bank Loan')}
-                  className={`py-2.5 rounded-xl text-[11px] font-bold transition cursor-pointer text-center ${
-                    paymentMethod === 'Bank Loan'
-                      ? 'bg-[#0e623a] text-white shadow'
-                      : 'bg-black-100 text-black-500 hover:bg-black-200'
-                  }`}
-                >
-                  Bank Loan
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setPaymentMethod('Dual Mode')}
-                  className={`py-2.5 rounded-xl text-[11px] font-bold transition cursor-pointer text-center ${
-                    paymentMethod === 'Dual Mode'
-                      ? 'bg-[#0e623a] text-white shadow'
-                      : 'bg-black-100 text-black-500 hover:bg-black-200'
-                  }`}
-                >
-                  Dual Mode
-                </button>
-              </div>
 
-              {paymentMethod !== 'Dual Mode' ? (
-                <div>
-                  <label className="text-xs font-semibold text-black-600 block mb-1">Paid Amount (Rs)</label>
-                  <input
-                    type="number"
-                    required
-                    placeholder="e.g. 150000"
-                    value={paymentAmount}
-                    onChange={(e) => setPaymentAmount(e.target.value)}
-                    className="w-full px-4 py-2.5 bg-black-50 border border-black-250 rounded-xl text-sm font-bold text-black-800"
-                  />
-                </div>
-              ) : (
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-xs font-bold text-black-700 block mb-1">Bank Transfer Amt (Rs)</label>
-                    <input
-                      type="number"
-                      required
-                      placeholder="e.g. 200000"
-                      value={dualTransferAmount}
-                      onChange={(e) => setDualTransferAmount(e.target.value)}
-                      className="w-full px-3 py-2 bg-black-50 border rounded-xl text-xs font-bold text-black-800"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs font-bold text-[#0e623a] block mb-1">Bank Loan Amt (Rs)</label>
-                    <input
-                      type="number"
-                      required
-                      placeholder="e.g. 300000"
-                      value={dualLoanAmount}
-                      onChange={(e) => setDualLoanAmount(e.target.value)}
-                      className="w-full px-3 py-2 bg-[#0e623a]/5 border border-[#0e623a]/20 rounded-xl text-xs font-bold text-[#0e623a]"
-                    />
-                  </div>
-                </div>
-              )}
-
-              {paymentStageIdx === 1 && (
-                <div className="pt-2 border-t mt-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <label className="text-xs font-semibold text-black-600">Agreement Documents (Required)</label>
-                    <button
-                      type="button"
-                      onClick={handleAutoPrepareDocs}
-                      className="text-[10px] font-bold text-[#0e623a] bg-emerald-50 px-2 py-1 rounded hover:bg-emerald-100 transition"
-                    >
-                      Auto-Prepare 5 PDFs
-                    </button>
-                  </div>
-                  <div className="space-y-3">
-                    {[
-                      'Agreement of Sale',
-                      'Construction Agreement',
-                      'Deed of Sale Draft',
-                      'Stamped Property Schedule',
-                      'Registration Challan'
-                    ].map((docName, i) => (
-                      <div key={i} className="flex flex-col gap-1.5 p-2 bg-black-50/50 border border-black-100 rounded-xl">
-                        <div className="text-[11px] text-black-700 font-bold flex items-center justify-between">
-                          <div className="flex items-center gap-1.5">
-                            <div className={`w-1.5 h-1.5 rounded-full ${pdfFiles[i] ? 'bg-emerald-500 shadow-sm' : 'bg-black-300'}`}></div>
-                            {docName}
-                          </div>
-                          {pdfFiles[i] && (
-                            <span className="text-[10px] text-emerald-600 font-bold bg-emerald-50 px-1.5 py-0.5 rounded truncate max-w-[120px]">
-                              {pdfFiles[i]}
-                            </span>
-                          )}
-                        </div>
-                        <input
-                          type="file"
-                          accept=".pdf"
-                          onChange={(e) => handleSingleFileUpload(e, i)}
-                          className="w-full text-[10px] text-black-500 file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-[10px] file:font-bold file:bg-white file:text-black-700 file:shadow-sm hover:file:bg-black-50 cursor-pointer"
-                        />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              <div className="flex gap-3 pt-4 border-t mt-4">
+              <div className="flex gap-3 p-6 border-t bg-black-50/10 shrink-0">
                 <button
                   type="button"
                   onClick={() => setPaymentStageIdx(null)}
@@ -2009,7 +2035,14 @@ const CRDFlow = () => {
       {/* Complete Stage Modal */}
       {completeStageIdx !== null && (
         <div className="fixed inset-0 bg-black/60 z-[90] flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 relative">
+            <button 
+              type="button" 
+              onClick={() => { setCompleteStageIdx(null); setCompletionNotes(''); }}
+              className="absolute top-4 right-4 text-black-400 hover:text-black-600 transition cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
             <h2 className="text-xl font-bold text-black-800 mb-4">Complete Stage</h2>
             <p className="text-sm text-black-600 mb-4">Please provide conversation notes or narration for this stage completion.</p>
             <textarea
@@ -2041,7 +2074,14 @@ const CRDFlow = () => {
       {/* Cancel Request Modal */}
       {cancelModalOpen && (
         <div className="fixed inset-0 bg-black/60 z-[90] flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 border border-red-100">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 border border-red-100 relative">
+            <button 
+              type="button" 
+              onClick={() => { setCancelModalOpen(false); setCancelNarration(''); }}
+              className="absolute top-4 right-4 text-black-400 hover:text-black-600 transition cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
             <h2 className="text-xl font-bold text-red-700 mb-4 flex items-center gap-2">
               <AlertCircle className="w-5 h-5" /> Cancel CRD Plan
             </h2>
@@ -2075,7 +2115,14 @@ const CRDFlow = () => {
       {/* History Modal */}
       {historyModalOpen && (
         <div className="fixed inset-0 bg-black/60 z-[90] flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl p-6 max-h-[80vh] flex flex-col">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl p-6 max-h-[80vh] flex flex-col relative">
+            <button 
+              type="button" 
+              onClick={() => setHistoryModalOpen(false)}
+              className="absolute top-4 right-4 text-black-400 hover:text-black-600 transition cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
             <h2 className="text-xl font-bold text-black-800 mb-4 flex items-center gap-2">
               <History className="w-5 h-5 text-[#0e623a]" /> CRD Flow History
             </h2>

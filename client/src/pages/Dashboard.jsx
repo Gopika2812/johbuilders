@@ -183,7 +183,7 @@ const ObservedPieChart = ({
         }
       `}</style>
 
-      <div className="relative flex-1 w-full min-w-[300px] max-w-[550px] shrink-0">
+      <div className="relative flex-1 w-full min-w-[300px] max-w-[620px] shrink-0">
         <svg 
           className={`w-full h-auto drop-shadow-sm opacity-0 ${isVisible ? 'animate-wheel-in' : ''}`} 
           viewBox="0 0 700 500"
@@ -192,7 +192,7 @@ const ObservedPieChart = ({
             let accumulatedPercent = 0;
             const cx = 350;
             const cy = 250;
-            const r = 140;
+            const r = 175;
 
             return dataArray.map((item, index) => {
               const val = item[valueKey] || 0;
@@ -290,7 +290,7 @@ const ObservedPieChart = ({
 
       {hoveredItem && (
         <div 
-          className="absolute z-50 pointer-events-none bg-black-900/95 backdrop-blur-md text-white text-[12px] px-3.5 py-2.5 rounded-2xl shadow-xl border border-black-800 flex flex-col gap-1 pointer-events-none transition-all duration-75"
+          className="absolute z-50 pointer-events-none bg-white/95 backdrop-blur-md text-black-800 text-[12px] px-3.5 py-2.5 rounded-2xl shadow-xl border border-[#c5a059]/40 flex flex-col gap-1 pointer-events-none transition-all duration-75"
           style={{ 
             left: `${mousePos.x + 15}px`, 
             top: `${mousePos.y + 15}px`,
@@ -301,10 +301,10 @@ const ObservedPieChart = ({
             {hoveredItem[labelKey]}
           </span>
           <div className="flex items-center gap-2 font-sans font-black">
-            <span className="text-[#10b981] font-black text-sm">
+            <span className="text-[#0a4c2c] font-black text-sm">
               {((hoveredItem[valueKey] / total) * 100).toFixed(1)}%
             </span>
-            <span className="text-black-300 font-extrabold text-[11px]">
+            <span className="text-black-550 font-extrabold text-[11px]">
               ({isCount ? `${hoveredItem[valueKey]} ${typeof isCount === 'string' ? isCount : 'Leads'}` : `₹${Math.round(hoveredItem[valueKey]).toLocaleString()}`})
             </span>
           </div>
@@ -1649,14 +1649,14 @@ const Dashboard = () => {
                 type="date"
                 value={fromDate}
                 onChange={(e) => setFromDate(e.target.value)}
-                className="w-1/2 bg-transparent text-xs text-black-700 font-bold focus:outline-none focus:ring-0 border-0 p-0 text-center"
+                className="w-1/2 min-w-[125px] bg-transparent text-xs text-black-700 font-bold focus:outline-none focus:ring-0 border-0 p-0 text-center"
               />
               <span className="text-[11px] text-black-400 font-bold">to</span>
               <input
                 type="date"
                 value={toDate}
                 onChange={(e) => setToDate(e.target.value)}
-                className="w-1/2 bg-transparent text-xs text-black-700 font-bold focus:outline-none focus:ring-0 border-0 p-0 text-center"
+                className="w-1/2 min-w-[125px] bg-transparent text-xs text-black-700 font-bold focus:outline-none focus:ring-0 border-0 p-0 text-center"
               />
             </div>
           </div>
@@ -3030,7 +3030,7 @@ const Dashboard = () => {
       {/* Project Inventory Detail Modal */}
       {inventoryModalOpen && selectedInventoryProj && (
         <div className="fixed inset-0 bg-black-900/60 backdrop-blur-sm z-[999] flex items-center justify-center p-4">
-          <div className="bg-[#f0fbf4] rounded-3xl border-none shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden text-left animate-fadeIn">
+          <div className="bg-[#f0fbf4] rounded-3xl border-none shadow-2xl w-full max-w-4xl max-h-[85vh] flex flex-col overflow-hidden text-left animate-fadeIn">
             {/* Header */}
             <div className="p-6 border-b border-black-150 flex items-center justify-between bg-[#0e623a] text-white">
               <div>
