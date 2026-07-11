@@ -161,13 +161,13 @@ const LeadTargetPlanning = () => {
   return (
     <div className="max-w-7xl mx-auto space-y-6 text-left animate-fadeIn">
       {/* Top Header Panel */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-white p-6 border border-gray-100 shadow-sm rounded-3xl">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-white p-6 border border-black-100 shadow-sm rounded-3xl">
         <div>
-          <h2 className="text-xl font-extrabold text-gray-800 flex items-center gap-2">
+          <h2 className="text-xl font-extrabold text-black-800 flex items-center gap-2">
             <Target className="w-6 h-6 text-[#0e623a]" />
             <span>Lead Target Planning</span>
           </h2>
-          <p className="text-xs text-gray-500 mt-1">Define target leads and compare against achieved bookings count for the selected period</p>
+          {/* <p className="text-xs text-black-500 mt-1">Define target leads and compare against achieved bookings count for the selected period</p> */}
         </div>
 
         <div className="flex items-center gap-3">
@@ -187,13 +187,13 @@ const LeadTargetPlanning = () => {
       </div>
 
       {/* Main Target Sheet */}
-      <div className="bg-white border border-gray-100 rounded-3xl shadow-sm p-6 space-y-6">
+      <div className="bg-white border border-black-100 rounded-3xl shadow-sm p-6 space-y-6">
         
         {/* Controls Toolbar */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-gray-100 pb-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-black-100 pb-4">
           {/* Search bar */}
           <div className="relative w-full sm:max-w-xs">
-            <span className="absolute left-3 top-3 text-gray-400">
+            <span className="absolute left-3 top-3 text-black-400">
               <Search className="w-4 h-4" />
             </span>
             <input
@@ -201,35 +201,35 @@ const LeadTargetPlanning = () => {
               placeholder="Search lead source type..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 text-xs bg-gray-50 border border-gray-250 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-gray-700"
+              className="w-full pl-9 pr-4 py-2 text-xs bg-black-50 border border-black-250 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-black-700"
             />
           </div>
 
           {/* Month selector */}
           <div className="relative w-full sm:max-w-xs flex items-center gap-2 justify-end">
-            <span className="text-xs font-bold text-gray-455 uppercase tracking-wider flex items-center gap-1">
-              <Calendar className="w-3.5 h-3.5 text-gray-400" />
+            <span className="text-xs font-bold text-black-455 uppercase tracking-wider flex items-center gap-1">
+              <Calendar className="w-3.5 h-3.5 text-black-400" />
               <span>Month:</span>
             </span>
             <input
               type="month"
               value={selectedMonth}
               onChange={(e) => setSelectedMonth(e.target.value)}
-              className="px-3 py-1.5 text-xs bg-gray-50 border border-gray-250 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-gray-700 font-bold"
+              className="px-3 py-1.5 text-xs bg-black-50 border border-black-250 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-black-700 font-bold"
             />
           </div>
         </div>
 
         {/* Table View */}
         {loading ? (
-          <div className="py-20 text-center text-gray-500 italic">
+          <div className="py-20 text-center text-black-500 italic">
             Loading target planning sheet...
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse text-xs">
               <thead>
-                <tr className="bg-gray-50 border-b border-gray-150 font-bold text-gray-500 uppercase tracking-wider text-[10px]">
+                <tr className="bg-black-50 border-b border-black-150 font-bold text-black-500 uppercase tracking-wider text-[11px]">
                   <th className="p-4 w-16">S.NO.</th>
                   <th className="p-4">LEAD SOURCE</th>
                   <th className="p-4 w-44 text-right">TARGET</th>
@@ -237,10 +237,10 @@ const LeadTargetPlanning = () => {
                   <th className="p-4 w-52 text-right">SITE VISIT CONVERSIONS</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100 font-sans">
+              <tbody className="divide-y divide-black-100 font-sans">
                 {leadGroups.length === 0 ? (
                   <tr>
-                    <td colSpan="5" className="p-12 text-center text-gray-400 italic">
+                    <td colSpan="5" className="p-12 text-center text-black-400 italic">
                       No lead groups configured. Configure lead source groups in Settings first.
                     </td>
                   </tr>
@@ -259,7 +259,7 @@ const LeadTargetPlanning = () => {
                         {/* Parent Group Row */}
                         <tr 
                           onClick={() => toggleGroupCollapse(group.name)}
-                          className="bg-gray-50/70 border-y border-gray-150 font-bold text-gray-800 cursor-pointer hover:bg-gray-100/80 transition select-none"
+                          className="bg-black-50/70 border-y border-black-150 font-bold text-black-800 cursor-pointer hover:bg-black-100/80 transition select-none"
                           title="Click to collapse/expand lead sources"
                         >
                           <td className="p-4 text-center">
@@ -271,14 +271,14 @@ const LeadTargetPlanning = () => {
                           </td>
                           <td className="p-4 uppercase tracking-wider text-xs font-extrabold flex items-center gap-2">
                             <span>{group.name}</span>
-                            <span className="text-[9px] text-gray-400 font-normal">
+                            {/* <span className="text-[10px] text-black-400 font-normal">
                               ({collapsedGroups.includes(group.name) ? 'click to expand' : 'click to collapse'})
-                            </span>
+                            </span> */}
                           </td>
                           <td className="p-4 text-right font-extrabold text-[#0e623a] text-sm">
                             {totalTarget.toLocaleString()}
                           </td>
-                          <td className="p-4 text-right font-bold text-gray-800 text-sm">
+                          <td className="p-4 text-right font-bold text-black-800 text-sm">
                             {totalActual.toLocaleString()}
                           </td>
                           <td className="p-4 text-right font-extrabold text-emerald-700 text-sm">
@@ -294,10 +294,10 @@ const LeadTargetPlanning = () => {
 
                           return (
                             <tr key={src} className="hover:bg-emerald-50/5 transition align-middle">
-                              <td className="p-4 text-center text-gray-400 font-semibold">
+                              <td className="p-4 text-center text-black-400 font-semibold">
                                 {index + 1}
                               </td>
-                              <td className="p-4 font-semibold text-gray-700 pl-8 uppercase">
+                              <td className="p-4 font-semibold text-black-700 pl-8 uppercase">
                                 ↳ {src}
                               </td>
                               <td className="p-4 text-right">
@@ -306,21 +306,21 @@ const LeadTargetPlanning = () => {
                                   placeholder="0"
                                   value={targetVal || ''}
                                   onChange={(e) => handleUpdateTarget(src, e.target.value)}
-                                  className="px-3 py-1.5 bg-gray-50 border border-gray-255 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-xs font-bold text-right w-36 mx-auto inline-block"
+                                  className="px-3 py-1.5 bg-black-50 border border-black-255 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-xs font-bold text-right w-36 mx-auto inline-block"
                                 />
                               </td>
-                              <td className="p-4 text-right font-bold text-gray-700">
+                              <td className="p-4 text-right font-bold text-black-700">
                                 {actualVal > 0 ? (
-                                  <span className="text-gray-800 font-bold">{actualVal}</span>
+                                  <span className="text-black-800 font-bold">{actualVal}</span>
                                 ) : (
-                                  <span className="text-gray-400">0</span>
+                                  <span className="text-black-400">0</span>
                                 )}
                               </td>
                               <td className="p-4 text-right font-extrabold text-emerald-600">
                                 {convVal > 0 ? (
                                   <span className="text-emerald-700 font-extrabold">{convVal}</span>
                                 ) : (
-                                  <span className="text-gray-400">0</span>
+                                  <span className="text-black-400">0</span>
                                 )}
                               </td>
                             </tr>

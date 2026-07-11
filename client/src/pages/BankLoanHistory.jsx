@@ -147,54 +147,54 @@ const BankLoanHistory = () => {
   return (
     <div className="space-y-6 w-full mx-auto px-4 lg:px-8">
       {/* Header Panel */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white border border-gray-150 p-6 rounded-3xl shadow-sm">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white border border-black-150 p-6 rounded-3xl shadow-sm">
         <div>
-          <h1 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+          <h1 className="text-xl font-bold text-black-800 flex items-center gap-2">
             <Landmark className="w-5 h-5 text-[#0e623a]" />
             <span>Bank Loan History Ledger</span>
           </h1>
-          <p className="text-xs text-gray-500 mt-1">Track stages disbursement history, payments split through Bank Loans, and pending releases.</p>
+          {/* <p className="text-xs text-black-500 mt-1">Track stages disbursement history, payments split through Bank Loans, and pending releases.</p> */}
         </div>
       </div>
 
       {/* Metrics Row */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white border border-gray-150 p-5 rounded-2xl shadow-sm flex items-center gap-4">
+        <div className="bg-white border border-black-150 p-5 rounded-2xl shadow-sm flex items-center gap-4">
           <div className="p-3 bg-emerald-50 text-emerald-800 rounded-xl">
             <User className="w-6 h-6" />
           </div>
           <div>
-            <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block">Financed Customers</span>
-            <span className="text-lg font-black text-gray-800">{totalLoanClients}</span>
+            <span className="text-[11px] text-black-400 font-bold uppercase tracking-wider block">Financed Customers</span>
+            <span className="text-lg font-black text-black-800">{totalLoanClients}</span>
           </div>
         </div>
 
-        <div className="bg-white border border-gray-150 p-5 rounded-2xl shadow-sm flex items-center gap-4">
+        <div className="bg-white border border-black-150 p-5 rounded-2xl shadow-sm flex items-center gap-4">
           <div className="p-3 bg-[#0e623a]/10 text-[#0e623a] rounded-xl">
             <TrendingUp className="w-6 h-6" />
           </div>
           <div>
-            <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block">Total Disbursed (Loan)</span>
+            <span className="text-[11px] text-black-400 font-bold uppercase tracking-wider block">Total Disbursed (Loan)</span>
             <span className="text-lg font-black text-emerald-800">Rs. {totalDisbursed.toLocaleString()}</span>
           </div>
         </div>
 
-        <div className="bg-white border border-gray-150 p-5 rounded-2xl shadow-sm flex items-center gap-4">
+        <div className="bg-white border border-black-150 p-5 rounded-2xl shadow-sm flex items-center gap-4">
           <div className="p-3 bg-amber-50 text-amber-800 rounded-xl">
             <DollarSign className="w-6 h-6" />
           </div>
           <div>
-            <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block">Total Pending Release</span>
+            <span className="text-[11px] text-black-400 font-bold uppercase tracking-wider block">Total Pending Release</span>
             <span className="text-lg font-black text-amber-800">Rs. {totalLoanPending.toLocaleString()}</span>
           </div>
         </div>
       </div>
 
-      <div className="w-full bg-white border border-gray-150 rounded-3xl shadow-sm p-6 space-y-4 text-left">
+      <div className="w-full bg-white border border-black-150 rounded-3xl shadow-sm p-6 space-y-4 text-left">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b pb-4">
             <div>
-              <h2 className="text-sm font-bold text-gray-800">Active Bank Loan Accounts</h2>
-              <p className="text-[11px] text-gray-400">List of bookings being financed via registered commercial banks.</p>
+              <h2 className="text-sm font-bold text-black-800">Active Bank Loan Accounts</h2>
+              {/* <p className="text-[12px] text-black-400">List of bookings being financed via registered commercial banks.</p> */}
             </div>
             
             {/* Search filter input */}
@@ -204,20 +204,20 @@ const BankLoanHistory = () => {
                 placeholder="Search customer/project..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-8 pr-3 py-1.5 bg-gray-50 border border-gray-250 rounded-xl text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-[#0e623a] w-48"
+                className="pl-8 pr-3 py-1.5 bg-black-50 border border-black-250 rounded-xl text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-[#0e623a] w-48"
               />
-              <Search className="w-3.5 h-3.5 text-gray-400 absolute left-2.5 top-2.5" />
+              <Search className="w-3.5 h-3.5 text-black-400 absolute left-2.5 top-2.5" />
             </div>
           </div>
 
           {loading ? (
-            <div className="p-8 text-center text-gray-400 text-xs font-bold animate-pulse">Loading loan ledger logs...</div>
+            <div className="p-8 text-center text-black-400 text-xs font-bold animate-pulse">Loading loan ledger logs...</div>
           ) : loanClients.length === 0 ? (
-            <div className="p-8 text-center text-gray-400 text-xs">No active bank loan payment logs found.</div>
+            <div className="p-8 text-center text-black-400 text-xs">No active bank loan payment logs found.</div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-xs text-left">
-                <thead className="bg-gray-50 text-gray-500 font-bold uppercase tracking-wider border-b">
+                <thead className="bg-black-50 text-black-500 font-bold uppercase tracking-wider border-b">
                   <tr>
                     <th className="p-4">Customer</th>
                     <th className="p-4">Project Value</th>
@@ -228,30 +228,30 @@ const BankLoanHistory = () => {
                     <th className="p-4 text-center">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-50">
+                <tbody className="divide-y divide-black-50">
                   {loanClients.map((client) => {
                     const isExpanded = expandedFlowId === client.flow._id;
                     return (
                       <React.Fragment key={client.flow._id}>
                         <tr 
-                          className={`hover:bg-gray-50/50 transition cursor-pointer ${isExpanded ? 'bg-emerald-50/20' : ''}`}
+                          className={`hover:bg-black-50/50 transition cursor-pointer ${isExpanded ? 'bg-emerald-50/20' : ''}`}
                           onClick={() => setExpandedFlowId(isExpanded ? null : client.flow._id)}
                         >
                           <td className="p-4">
-                            <div className="font-bold text-gray-800">{client.flow.lead?.name}</div>
-                            <div className="text-[10px] text-gray-450 mt-0.5">{client.flow.project?.code} - Unit {client.flow.unitId}</div>
+                            <div className="font-bold text-black-800">{client.flow.lead?.name}</div>
+                            <div className="text-[11px] text-black-450 mt-0.5">{client.flow.project?.code} - Unit {client.flow.unitId}</div>
                           </td>
-                          <td className="p-4 font-semibold text-gray-700">
+                          <td className="p-4 font-semibold text-black-700">
                             Rs. {client.flow.totalCurrentValue.toLocaleString()}
                           </td>
-                          <td className="p-4 text-gray-600 font-bold">
+                          <td className="p-4 text-black-600 font-bold">
                             {client.preferredBank}
                           </td>
                           <td className="p-4" onClick={(e) => e.stopPropagation()}>
                             <select 
                               value={client.loanStatus}
                               onChange={(e) => updateLoanStatus(client.flow.lead._id, e.target.value, client.flow.lead)}
-                              className={`text-[10px] font-bold px-2 py-1 rounded-full uppercase cursor-pointer border-none outline-none appearance-none ${
+                              className={`text-[11px] font-bold px-2 py-1 rounded-full uppercase cursor-pointer border-none outline-none appearance-none ${
                                 client.loanStatus === 'Disbursed' ? 'bg-emerald-50 text-emerald-700' :
                                 client.loanStatus === 'Approved' ? 'bg-blue-50 text-blue-700' :
                                 'bg-amber-50 text-amber-700'
@@ -270,7 +270,7 @@ const BankLoanHistory = () => {
                           </td>
                           <td className="p-4 text-center">
                             <button
-                              className="p-1 px-2.5 bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 text-[#0e623a] rounded-lg font-bold text-[10px] transition inline-flex items-center gap-1"
+                              className="p-1 px-2.5 bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 text-[#0e623a] rounded-lg font-bold text-[11px] transition inline-flex items-center gap-1"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 setExpandedFlowId(isExpanded ? null : client.flow._id);
@@ -285,8 +285,8 @@ const BankLoanHistory = () => {
                         {/* Expandable Dropdown Content */}
                         {isExpanded && (
                           <tr className="bg-white">
-                            <td colSpan="7" className="p-0 border-b border-gray-200">
-                              <div className="p-6 bg-gray-50/50 rounded-b-lg border-x border-gray-150 mx-2 mb-4 space-y-6">
+                            <td colSpan="7" className="p-0 border-b border-black-200">
+                              <div className="p-6 bg-black-50/50 rounded-b-lg border-x border-black-150 mx-2 mb-4 space-y-6">
                                 
                                 <div>
                                   <h3 className="text-sm font-extrabold text-[#0e623a] mb-3 flex items-center gap-2">
@@ -294,11 +294,11 @@ const BankLoanHistory = () => {
                                     Disbursement History (Bank Loan)
                                   </h3>
                                   {client.loanPayments.length === 0 ? (
-                                    <div className="p-4 bg-white border border-gray-200 rounded-xl text-center text-gray-400 text-[11px]">
+                                    <div className="p-4 bg-white border border-black-200 rounded-xl text-center text-black-400 text-[12px]">
                                       No loan disbursements submitted yet.
                                     </div>
                                   ) : (
-                                    <div className="overflow-hidden border border-gray-200 rounded-xl bg-white shadow-sm">
+                                    <div className="overflow-hidden border border-black-200 rounded-xl bg-white shadow-sm">
                                       <table className="w-full text-xs text-left">
                                         <thead className="bg-[#f0fbf4] text-[#0e623a] font-bold tracking-wide border-b border-emerald-100">
                                           <tr>
@@ -309,13 +309,13 @@ const BankLoanHistory = () => {
                                             <th className="px-4 py-2 text-right">Amount Disbursed</th>
                                           </tr>
                                         </thead>
-                                        <tbody className="divide-y divide-gray-100">
+                                        <tbody className="divide-y divide-black-100">
                                           {client.loanPayments.map((p, idx) => (
-                                            <tr key={idx} className="hover:bg-gray-50/50">
-                                              <td className="px-4 py-2 font-bold text-gray-700">{p.stageName} <span className="text-[9px] text-gray-400 ml-1">(Stage {p.stageIndex})</span></td>
-                                              <td className="px-4 py-2 text-gray-500">{new Date(p.date).toLocaleString('en-GB')}</td>
-                                              <td className="px-4 py-2 text-gray-600">{p.bankName}</td>
-                                              <td className="px-4 py-2 text-gray-600">{p.accountNumber}</td>
+                                            <tr key={idx} className="hover:bg-black-50/50">
+                                              <td className="px-4 py-2 font-bold text-black-700">{p.stageName} <span className="text-[10px] text-black-400 ml-1">(Stage {p.stageIndex})</span></td>
+                                              <td className="px-4 py-2 text-black-500">{new Date(p.date).toLocaleString('en-GB')}</td>
+                                              <td className="px-4 py-2 text-black-600">{p.bankName}</td>
+                                              <td className="px-4 py-2 text-black-600">{p.accountNumber}</td>
                                               <td className="px-4 py-2 text-right font-extrabold text-emerald-700">Rs. {p.amount.toLocaleString()}</td>
                                             </tr>
                                           ))}
@@ -326,13 +326,13 @@ const BankLoanHistory = () => {
                                 </div>
 
                                 <div>
-                                  <h3 className="text-sm font-extrabold text-gray-800 mb-3 flex items-center gap-2">
-                                    <Layers className="w-4 h-4 text-gray-600" />
+                                  <h3 className="text-sm font-extrabold text-black-800 mb-3 flex items-center gap-2">
+                                    <Layers className="w-4 h-4 text-black-600" />
                                     Stages Split Overview
                                   </h3>
-                                  <div className="overflow-hidden border border-gray-200 rounded-xl bg-white shadow-sm">
+                                  <div className="overflow-hidden border border-black-200 rounded-xl bg-white shadow-sm">
                                     <table className="w-full text-xs text-left">
-                                      <thead className="bg-gray-50 text-gray-600 font-bold tracking-wide border-b border-gray-200">
+                                      <thead className="bg-black-50 text-black-600 font-bold tracking-wide border-b border-black-200">
                                         <tr>
                                           <th className="px-4 py-2">Stage Name</th>
                                           <th className="px-4 py-2 text-right">Target Amount</th>
@@ -341,24 +341,24 @@ const BankLoanHistory = () => {
                                           <th className="px-4 py-2 text-center">Status</th>
                                         </tr>
                                       </thead>
-                                      <tbody className="divide-y divide-gray-100">
+                                      <tbody className="divide-y divide-black-100">
                                         {client.flow.stages.map((stage, idx) => {
                                           const stagePaid = (stage.payments || []).reduce((sum, p) => sum + p.amount, 0);
                                           const stagePending = Math.max(0, stage.amount - stagePaid);
                                           const isCompleted = stage.isCompleted;
                                           return (
-                                            <tr key={idx} className="hover:bg-gray-50/50">
-                                              <td className="px-4 py-2 font-bold text-gray-700">{stage.name} <span className="text-[10px] text-gray-400 font-normal">({stage.percentage}%)</span></td>
-                                              <td className="px-4 py-2 text-right text-gray-600 font-medium">Rs. {stage.amount.toLocaleString()}</td>
+                                            <tr key={idx} className="hover:bg-black-50/50">
+                                              <td className="px-4 py-2 font-bold text-black-700">{stage.name} <span className="text-[11px] text-black-400 font-normal">({stage.percentage}%)</span></td>
+                                              <td className="px-4 py-2 text-right text-black-600 font-medium">Rs. {stage.amount.toLocaleString()}</td>
                                               <td className="px-4 py-2 text-right text-emerald-700 font-medium">Rs. {stagePaid.toLocaleString()}</td>
                                               <td className="px-4 py-2 text-right text-amber-700 font-bold">Rs. {stagePending.toLocaleString()}</td>
                                               <td className="px-4 py-2 text-center">
                                                 {isCompleted ? (
-                                                  <span className="text-[10px] bg-emerald-50 border border-emerald-100 text-emerald-700 font-bold px-2 py-0.5 rounded-full">Completed</span>
+                                                  <span className="text-[11px] bg-emerald-50 border border-emerald-100 text-emerald-700 font-bold px-2 py-0.5 rounded-full">Completed</span>
                                                 ) : stagePending > 0 ? (
-                                                  <span className="text-[10px] bg-amber-50 border border-amber-100 text-amber-700 font-bold px-2 py-0.5 rounded-full">Pending</span>
+                                                  <span className="text-[11px] bg-amber-50 border border-amber-100 text-amber-700 font-bold px-2 py-0.5 rounded-full">Pending</span>
                                                 ) : (
-                                                  <span className="text-[10px] text-gray-400 font-bold">No Balance</span>
+                                                  <span className="text-[11px] text-black-400 font-bold">No Balance</span>
                                                 )}
                                               </td>
                                             </tr>

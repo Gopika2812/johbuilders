@@ -36,6 +36,17 @@ export default {
       },
       fontFamily: {
         sans: ['Plus Jakarta Sans', 'sans-serif'],
+      },
+      fontSize: {
+        'xs': ['0.8125rem', { lineHeight: '1.125rem' }], // 13px (was 12)
+        'sm': ['0.9375rem', { lineHeight: '1.375rem' }], // 15px (was 14)
+        'base': ['1.0625rem', { lineHeight: '1.625rem' }], // 17px (was 16)
+        'lg': ['1.1875rem', { lineHeight: '1.875rem' }], // 19px (was 18)
+        'xl': ['1.3125rem', { lineHeight: '1.875rem' }], // 21px (was 20)
+        '2xl': ['1.625rem', { lineHeight: '2.125rem' }], // 26px (was 24)
+        '3xl': ['2rem', { lineHeight: '2.375rem' }], // 32px (was 30)
+        '4xl': ['2.375rem', { lineHeight: '2.625rem' }], // 38px (was 36)
+        '5xl': ['3.125rem', { lineHeight: '1' }], // 50px (was 48)
       }
     },
   },

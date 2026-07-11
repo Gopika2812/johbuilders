@@ -18,7 +18,8 @@ import {
   Edit,
   CheckCircle2,
   Trash2,
-  Plus
+  Plus,
+  Loader2
 } from 'lucide-react';
 
 const ProjectsDictionary = () => {
@@ -32,6 +33,8 @@ const ProjectsDictionary = () => {
 
   // Inline Editing States
   const [editingProjectId, setEditingProjectId] = useState(null);
+  const [isSavingId, setIsSavingId] = useState(null);
+  const [isDeletingId, setIsDeletingId] = useState(null);
   const [editForm, setEditForm] = useState({
     name: '',
     location: '',
@@ -43,8 +46,8 @@ const ProjectsDictionary = () => {
   // Filter states
   const [searchTerm, setSearchTerm] = useState('');
   const [projectType, setProjectType] = useState('All');
-  const [fromDate, setFromDate] = useState('');
-  const [toDate, setToDate] = useState('');
+  const [fromDate, setFromDate] = useState(new Date().toISOString().split('T')[0]);
+  const [toDate, setToDate] = useState(new Date().toISOString().split('T')[0]);
 
   const handleStartEdit = (project) => {
     setEditingProjectId(project._id);
@@ -69,6 +72,7 @@ const ProjectsDictionary = () => {
   };
 
   const handleSaveEdit = async (id) => {
+    setIsSavingId(id);
     try {
       const response = await fetch(`${API_URL}/projects/${id}`, {
         method: 'PUT',
@@ -96,6 +100,8 @@ const ProjectsDictionary = () => {
     } catch (err) {
       console.error(err);
       alert('Connection error saving project');
+    } finally {
+      setIsSavingId(null);
     }
   };
 
@@ -104,6 +110,7 @@ const ProjectsDictionary = () => {
       return;
     }
 
+    setIsDeletingId(id);
     try {
       const response = await fetch(`${API_URL}/projects/${id}`, {
         method: 'DELETE',
@@ -121,6 +128,8 @@ const ProjectsDictionary = () => {
     } catch (err) {
       console.error(err);
       alert('Connection error deleting project');
+    } finally {
+      setIsDeletingId(null);
     }
   };
 
@@ -166,7 +175,7 @@ const ProjectsDictionary = () => {
       case 'Villa':
         return 'bg-amber-50 text-amber-700 border-amber-200';
       default:
-        return 'bg-gray-50 text-gray-700 border-gray-200';
+        return 'bg-black-50 text-black-700 border-black-200';
     }
   };
 
@@ -237,11 +246,11 @@ const ProjectsDictionary = () => {
       )}
 
       {/* Modern Filter Panel */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-4">
+      <div className="bg-white rounded-2xl border border-black-100 shadow-sm p-5 space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-2">
             <SlidersHorizontal className="w-5 h-5 text-[#0e623a]" />
-            <h4 className="font-semibold text-gray-800">Filter Projects</h4>
+            <h4 className="font-semibold text-black-800">Filter Projects</h4>
           </div>
           {hasActiveFilters && (
             <button
@@ -257,13 +266,13 @@ const ProjectsDictionary = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Search Term */}
           <div className="relative">
-            <Search className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
+            <Search className="absolute left-3 top-3 w-4 h-4 text-black-400" />
             <input
               type="text"
               placeholder="Search by name, code, city..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-[#0e623a] focus:ring-1 focus:ring-[#0e623a] transition"
+              className="w-full pl-9 pr-4 py-2 text-sm bg-black-50 border border-black-200 rounded-xl focus:outline-none focus:border-[#0e623a] focus:ring-1 focus:ring-[#0e623a] transition"
             />
           </div>
 
@@ -272,7 +281,7 @@ const ProjectsDictionary = () => {
             <select
               value={projectType}
               onChange={(e) => setProjectType(e.target.value)}
-              className="w-full px-3 py-2 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-[#0e623a] focus:ring-1 focus:ring-[#0e623a] transition"
+              className="w-full px-3 py-2 text-sm bg-black-50 border border-black-200 rounded-xl focus:outline-none focus:border-[#0e623a] focus:ring-1 focus:ring-[#0e623a] transition"
             >
               <option value="All">All Project Types</option>
               <option value="Plot">Plot Projects</option>
@@ -283,23 +292,23 @@ const ProjectsDictionary = () => {
 
           {/* From Date */}
           <div className="relative">
-            <span className="absolute left-3 top-3 text-[10px] font-bold text-gray-400 uppercase pointer-events-none">From</span>
+            <span className="absolute left-3 top-3 text-[11px] font-bold text-black-400 uppercase pointer-events-none">From</span>
             <input
               type="date"
               value={fromDate}
               onChange={(e) => setFromDate(e.target.value)}
-              className="w-full pl-12 pr-3 py-2 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-[#0e623a] focus:ring-1 focus:ring-[#0e623a] transition text-gray-700"
+              className="w-full pl-12 pr-3 py-2 text-sm bg-black-50 border border-black-200 rounded-xl focus:outline-none focus:border-[#0e623a] focus:ring-1 focus:ring-[#0e623a] transition text-black-700"
             />
           </div>
 
           {/* To Date */}
           <div className="relative">
-            <span className="absolute left-3 top-3 text-[10px] font-bold text-gray-400 uppercase pointer-events-none">To</span>
+            <span className="absolute left-3 top-3 text-[11px] font-bold text-black-400 uppercase pointer-events-none">To</span>
             <input
               type="date"
               value={toDate}
               onChange={(e) => setToDate(e.target.value)}
-              className="w-full pl-8 pr-3 py-2 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-[#0e623a] focus:ring-1 focus:ring-[#0e623a] transition text-gray-700"
+              className="w-full pl-8 pr-3 py-2 text-sm bg-black-50 border border-black-200 rounded-xl focus:outline-none focus:border-[#0e623a] focus:ring-1 focus:ring-[#0e623a] transition text-black-700"
             />
           </div>
         </div>
@@ -307,9 +316,9 @@ const ProjectsDictionary = () => {
 
       {/* View Switcher and Details Header */}
       {filteredProjects.length > 0 && (
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white p-4 border border-gray-100 shadow-sm rounded-2xl text-left">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white p-4 border border-black-100 shadow-sm rounded-2xl text-left">
           <div className="flex items-center gap-3">
-            <span className="text-sm font-bold text-gray-800">Registered Projects List ({filteredProjects.length})</span>
+            <span className="text-sm font-bold text-black-800">Registered Projects List ({filteredProjects.length})</span>
             <Link
               to="/projects/register"
               className="px-3 py-1.5 bg-[#0e623a] text-white rounded-xl text-xs font-bold hover:bg-[#0b4d2d] transition flex items-center gap-1 shrink-0 shadow-sm"
@@ -319,12 +328,12 @@ const ProjectsDictionary = () => {
             </Link>
           </div>
 
-          <div className="flex bg-gray-150 p-1 rounded-xl">
+          <div className="flex bg-black-150 p-1 rounded-xl">
             <button
               type="button"
               onClick={() => setViewMode('table')}
               className={`p-2 rounded-lg flex items-center gap-1.5 text-xs font-semibold transition ${
-                viewMode === 'table' ? 'bg-white text-gray-800 shadow-sm font-bold' : 'text-gray-550 hover:text-gray-800'
+                viewMode === 'table' ? 'bg-white text-black-800 shadow-sm font-bold' : 'text-black-550 hover:text-black-800'
               }`}
             >
               <TableIcon className="w-4 h-4" />
@@ -334,7 +343,7 @@ const ProjectsDictionary = () => {
               type="button"
               onClick={() => setViewMode('card')}
               className={`p-2 rounded-lg flex items-center gap-1.5 text-xs font-semibold transition ${
-                viewMode === 'card' ? 'bg-white text-gray-800 shadow-sm font-bold' : 'text-gray-550 hover:text-gray-800'
+                viewMode === 'card' ? 'bg-white text-black-800 shadow-sm font-bold' : 'text-black-550 hover:text-black-800'
               }`}
             >
               <Grid className="w-4 h-4" />
@@ -346,12 +355,12 @@ const ProjectsDictionary = () => {
 
       {/* Projects Grid */}
       {filteredProjects.length === 0 ? (
-        <div className="bg-white rounded-3xl p-12 text-center border border-gray-100 max-w-xl mx-auto space-y-4 shadow-sm">
+        <div className="bg-white rounded-3xl p-12 text-center border border-black-100 max-w-xl mx-auto space-y-4 shadow-sm">
           <div className="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto">
             <Building className="w-8 h-8 text-[#0e623a]" />
           </div>
-          <h3 className="text-xl font-bold text-gray-800">No Projects Found</h3>
-          <p className="text-gray-500 text-sm">
+          <h3 className="text-xl font-bold text-black-800">No Projects Found</h3>
+          <p className="text-black-500 text-sm">
             Try adjusting your search criteria or clear the filters to view all projects.
           </p>
           {hasActiveFilters ? (
@@ -372,11 +381,11 @@ const ProjectsDictionary = () => {
         </div>
       ) : viewMode === 'table' ? (
         /* TABLE VIEW (INITIAL VIEW & EDITABLE ROW OPTION) */
-        <div className="bg-white border border-gray-150 shadow-sm rounded-3xl overflow-hidden text-left animate-fadeIn">
+        <div className="bg-white border border-black-150 shadow-sm rounded-3xl overflow-hidden text-left animate-fadeIn">
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse text-xs">
               <thead>
-                <tr className="bg-gray-50 border-b border-gray-150 text-[10px] font-bold text-gray-500 uppercase tracking-wider">
+                <tr className="bg-black-50 border-b border-black-150 text-[11px] font-bold text-black-500 uppercase tracking-wider">
                   <th className="p-4">Project Name</th>
                   <th className="p-4 w-28">Code</th>
                   <th className="p-4 w-32">Type</th>
@@ -389,7 +398,7 @@ const ProjectsDictionary = () => {
                   <th className="p-4 w-44 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100 font-sans">
+              <tbody className="divide-y divide-black-100 font-sans">
                 {filteredProjects.map((project) => {
                   const isEditing = editingProjectId === project._id;
                   return (
@@ -400,7 +409,7 @@ const ProjectsDictionary = () => {
                             type="text"
                             value={editForm.name}
                             onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
-                            className="px-2.5 py-1.5 bg-gray-50 border border-gray-250 rounded focus:ring-1 focus:ring-[#0e623a] focus:outline-none w-full font-bold text-xs"
+                            className="px-2.5 py-1.5 bg-black-50 border border-black-250 rounded focus:ring-1 focus:ring-[#0e623a] focus:outline-none w-full font-bold text-xs"
                           />
                         ) : (
                           <Link to={`/projects/${project._id}`} className="font-extrabold text-[#0e623a] hover:underline text-sm block">
@@ -408,9 +417,9 @@ const ProjectsDictionary = () => {
                           </Link>
                         )}
                       </td>
-                      <td className="p-4 font-mono font-bold text-gray-650">{project.code}</td>
+                      <td className="p-4 font-mono font-bold text-black-650">{project.code}</td>
                       <td className="p-4">
-                        <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border ${getTypeBadgeStyle(project.projectType)}`}>
+                        <span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full border ${getTypeBadgeStyle(project.projectType)}`}>
                           {displayProjectType(project.projectType)}
                         </span>
                       </td>
@@ -436,7 +445,7 @@ const ProjectsDictionary = () => {
                             <button
                               type="button"
                               onClick={() => document.getElementById(`edit-file-${project._id}`).click()}
-                              className="px-2 py-1 bg-[#0e623a]/10 hover:bg-[#0e623a]/20 text-[#0e623a] text-[10px] font-bold rounded-lg border border-[#bce2cb]"
+                              className="px-2 py-1 bg-[#0e623a]/10 hover:bg-[#0e623a]/20 text-[#0e623a] text-[11px] font-bold rounded-lg border border-[#bce2cb]"
                             >
                               Upload File
                             </button>
@@ -457,7 +466,7 @@ const ProjectsDictionary = () => {
                               onClick={() => window.open(project.layoutPlanImage, '_blank')}
                             />
                           ) : (
-                            <span className="text-gray-400 italic text-[10px]">No Layout</span>
+                            <span className="text-black-400 italic text-[11px]">No Layout</span>
                           )
                         )}
                       </td>
@@ -467,37 +476,37 @@ const ProjectsDictionary = () => {
                             type="text"
                             value={editForm.location}
                             onChange={(e) => setEditForm({ ...editForm, location: e.target.value })}
-                            className="px-2.5 py-1.5 bg-gray-50 border border-gray-250 rounded focus:ring-1 focus:ring-[#0e623a] focus:outline-none w-full text-xs"
+                            className="px-2.5 py-1.5 bg-black-50 border border-black-250 rounded focus:ring-1 focus:ring-[#0e623a] focus:outline-none w-full text-xs"
                           />
                         ) : (
-                          <span className="text-gray-650 font-semibold">{project.location}</span>
+                          <span className="text-black-650 font-semibold">{project.location}</span>
                         )}
                       </td>
-                      <td className="p-4 font-semibold text-gray-700">
+                      <td className="p-4 font-semibold text-black-700">
                         {isEditing ? (
                           <input
                             type="number"
                             value={editForm.totalLandArea}
                             onChange={(e) => setEditForm({ ...editForm, totalLandArea: e.target.value })}
-                            className="px-2.5 py-1.5 bg-gray-50 border border-gray-250 rounded focus:ring-1 focus:ring-[#0e623a] focus:outline-none w-full text-xs font-semibold"
+                            className="px-2.5 py-1.5 bg-black-50 border border-black-250 rounded focus:ring-1 focus:ring-[#0e623a] focus:outline-none w-full text-xs font-semibold"
                           />
                         ) : (
                           <span>{project.totalLandArea?.toLocaleString()} sq.ft</span>
                         )}
                       </td>
-                      <td className="p-4 font-semibold text-gray-700">
+                      <td className="p-4 font-semibold text-black-700">
                         {isEditing ? (
                           <input
                             type="number"
                             value={editForm.pricePerSqFt}
                             onChange={(e) => setEditForm({ ...editForm, pricePerSqFt: e.target.value })}
-                            className="px-2.5 py-1.5 bg-gray-50 border border-gray-250 rounded focus:ring-1 focus:ring-[#0e623a] focus:outline-none w-full text-xs font-semibold"
+                            className="px-2.5 py-1.5 bg-black-50 border border-black-250 rounded focus:ring-1 focus:ring-[#0e623a] focus:outline-none w-full text-xs font-semibold"
                           />
                         ) : (
                           <span>${project.pricePerSqFt} / sq.ft</span>
                         )}
                       </td>
-                      <td className="p-4 text-center font-bold text-gray-600">{project.units?.length || 0}</td>
+                      <td className="p-4 text-center font-bold text-black-600">{project.units?.length || 0}</td>
                       <td className="p-4 text-right font-extrabold text-[#0e623a]">${project.totalValuation?.toLocaleString()}</td>
                       <td className="p-4 text-right">
                         <div className="flex items-center justify-end gap-2">
@@ -505,13 +514,14 @@ const ProjectsDictionary = () => {
                             <>
                               <button
                                 onClick={() => handleSaveEdit(project._id)}
-                                className="px-3 py-1.5 bg-[#0e623a] text-white text-xs font-bold rounded-lg hover:bg-[#0b4d2d] transition"
+                                disabled={isSavingId === project._id}
+                                className="px-3 py-1.5 bg-[#0e623a] text-white text-xs font-bold rounded-lg hover:bg-[#0b4d2d] transition flex items-center gap-1 disabled:opacity-50"
                               >
-                                Save
+                                {isSavingId === project._id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 'Save'}
                               </button>
                               <button
                                 onClick={handleCancelEdit}
-                                className="px-3 py-1.5 bg-gray-100 text-gray-700 text-xs font-bold rounded-lg hover:bg-gray-200 transition"
+                                className="px-3 py-1.5 bg-black-100 text-black-700 text-xs font-bold rounded-lg hover:bg-black-200 transition"
                               >
                                 Cancel
                               </button>
@@ -520,7 +530,7 @@ const ProjectsDictionary = () => {
                             <>
                               <button
                                 onClick={() => handleStartEdit(project)}
-                                className="p-1.5 text-gray-555 hover:text-[#0e623a] hover:bg-gray-55 rounded-lg transition"
+                                className="p-1.5 text-black-555 hover:text-[#0e623a] hover:bg-black-55 rounded-lg transition"
                                 title="Edit Project details inline"
                               >
                                 <Edit className="w-4 h-4" />
@@ -528,14 +538,15 @@ const ProjectsDictionary = () => {
                               <button
                                 type="button"
                                 onClick={() => handleDeleteProject(project._id, project.name)}
-                                className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition"
+                                disabled={isDeletingId === project._id}
+                                className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition disabled:opacity-50 flex items-center justify-center"
                                 title="Delete Project permanently"
                               >
-                                <Trash2 className="w-4 h-4" />
+                                {isDeletingId === project._id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
                               </button>
                               <Link
                                 to={`/projects/${project._id}`}
-                                className="px-3 py-1.5 border border-gray-255 rounded-lg text-xs font-bold text-[#0e623a] hover:bg-[#0e623a]/5 transition"
+                                className="px-3 py-1.5 border border-black-255 rounded-lg text-xs font-bold text-[#0e623a] hover:bg-[#0e623a]/5 transition"
                               >
                                 Manage
                               </Link>
@@ -556,27 +567,27 @@ const ProjectsDictionary = () => {
           {filteredProjects.map((project) => (
             <div
               key={project._id}
-              className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 flex flex-col justify-between"
+              className="bg-white rounded-2xl border border-black-100 overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 flex flex-col justify-between"
             >
               {/* Header Info */}
-              <div className="p-5 border-b border-gray-100 space-y-3">
+              <div className="p-5 border-b border-black-100 space-y-3">
                 <div className="flex items-center justify-between">
                   <span className={`text-xs font-bold px-2.5 py-0.5 rounded-full border ${getTypeBadgeStyle(project.projectType)}`}>
                     {displayProjectType(project.projectType)}
                   </span>
-                  <span className="text-[11px] font-mono font-bold text-[#0e623a] bg-[#0e623a]/5 px-2 py-0.5 rounded">
+                  <span className="text-[12px] font-mono font-bold text-[#0e623a] bg-[#0e623a]/5 px-2 py-0.5 rounded">
                     {project.code}
                   </span>
                 </div>
                 <div className="text-left">
-                  <h3 className="text-base font-bold text-gray-800 tracking-tight leading-snug">{project.name}</h3>
-                  <div className="flex items-center gap-1 text-gray-400 text-xs mt-1">
-                    <MapPin className="w-3.5 h-3.5 shrink-0 text-gray-400" />
-                    <span className="truncate text-gray-600">{project.location}</span>
+                  <h3 className="text-base font-bold text-black-800 tracking-tight leading-snug">{project.name}</h3>
+                  <div className="flex items-center gap-1 text-black-400 text-xs mt-1">
+                    <MapPin className="w-3.5 h-3.5 shrink-0 text-black-400" />
+                    <span className="truncate text-black-600">{project.location}</span>
                   </div>
                   {project.createdAt && (
-                    <div className="flex items-center gap-1 text-gray-400 text-[10px] mt-1.5">
-                      <Calendar className="w-3 h-3 text-gray-400" />
+                    <div className="flex items-center gap-1 text-black-400 text-[11px] mt-1.5">
+                      <Calendar className="w-3 h-3 text-black-400" />
                       <span>Registered: {new Date(project.createdAt).toLocaleDateString()}</span>
                     </div>
                   )}
@@ -584,38 +595,38 @@ const ProjectsDictionary = () => {
               </div>
 
               {/* Specs & Metrics */}
-              <div className="p-5 bg-gray-50/50 space-y-4 text-left">
+              <div className="p-5 bg-black-50/50 space-y-4 text-left">
                 <div className="grid grid-cols-2 gap-4">
                   {/* Land Area */}
                   <div className="space-y-1">
-                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Land Area</span>
-                    <div className="flex items-center gap-1.5 text-xs font-semibold text-gray-750">
-                      <Ruler className="w-3.5 h-3.5 text-gray-400" />
+                    <span className="text-[11px] font-bold text-black-400 uppercase tracking-wider block">Land Area</span>
+                    <div className="flex items-center gap-1.5 text-xs font-semibold text-black-750">
+                      <Ruler className="w-3.5 h-3.5 text-black-400" />
                       <span>{project.totalLandArea.toLocaleString()} sq.ft</span>
                     </div>
                   </div>
 
                   {/* Units Count */}
                   <div className="space-y-1">
-                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Total Units</span>
-                    <div className="flex items-center gap-1.5 text-xs font-semibold text-gray-750">
-                      <Layers className="w-3.5 h-3.5 text-gray-400" />
+                    <span className="text-[11px] font-bold text-black-400 uppercase tracking-wider block">Total Units</span>
+                    <div className="flex items-center gap-1.5 text-xs font-semibold text-black-750">
+                      <Layers className="w-3.5 h-3.5 text-black-400" />
                       <span>{project.units?.length || 0} Units</span>
                     </div>
                   </div>
 
                   {/* Price per SqFt */}
                   <div className="space-y-1">
-                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Price per sq.ft</span>
-                    <div className="flex items-center gap-1.5 text-xs font-semibold text-gray-750">
-                      <DollarSign className="w-3.5 h-3.5 text-gray-400" />
+                    <span className="text-[11px] font-bold text-black-400 uppercase tracking-wider block">Price per sq.ft</span>
+                    <div className="flex items-center gap-1.5 text-xs font-semibold text-black-750">
+                      <DollarSign className="w-3.5 h-3.5 text-black-400" />
                       <span>${project.pricePerSqFt} / sq.ft</span>
                     </div>
                   </div>
 
                   {/* Valuation */}
                   <div className="space-y-1">
-                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Valuation</span>
+                    <span className="text-[11px] font-bold text-black-400 uppercase tracking-wider block">Valuation</span>
                     <div className="flex items-center gap-1.5 text-xs font-bold text-[#0e623a]">
                       <DollarSign className="w-3.5 h-3.5 text-[#0e623a]/60" />
                       <span>${project.totalValuation?.toLocaleString()}</span>
@@ -625,12 +636,12 @@ const ProjectsDictionary = () => {
               </div>
 
               {/* Action Button */}
-              <div className="p-4 border-t border-gray-100 flex items-center justify-between">
+              <div className="p-4 border-t border-black-100 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <button
                     type="button"
                     onClick={() => handleStartEdit(project)}
-                    className="flex items-center gap-1 text-xs font-semibold text-gray-500 hover:text-[#0e623a]"
+                    className="flex items-center gap-1 text-xs font-semibold text-black-500 hover:text-[#0e623a]"
                   >
                     <Edit className="w-3.5 h-3.5" />
                     <span>Edit</span>
@@ -638,10 +649,11 @@ const ProjectsDictionary = () => {
                   <button
                     type="button"
                     onClick={() => handleDeleteProject(project._id, project.name)}
-                    className="flex items-center gap-1 text-xs font-semibold text-red-500 hover:text-red-700"
+                    disabled={isDeletingId === project._id}
+                    className="flex items-center gap-1 text-xs font-semibold text-red-500 hover:text-red-700 disabled:opacity-50"
                   >
-                    <Trash2 className="w-3.5 h-3.5" />
-                    <span>Delete</span>
+                    {isDeletingId === project._id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                    <span>{isDeletingId === project._id ? 'Deleting...' : 'Delete'}</span>
                   </button>
                 </div>
                 <Link

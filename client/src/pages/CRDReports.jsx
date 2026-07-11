@@ -1,5 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth, API_URL } from '../context/AuthContext';
+import * as XLSX from 'xlsx-js-style';
+import { htmlToStyledSheet } from '../utils/htmlToSheet';
 import { 
   TrendingUp, 
   Calendar, 
@@ -37,7 +40,7 @@ const getExcelStyles = (titleBg, monthBg, headerBg, execBg) => {
       .exec-banner { background-color: ${execBg || '#DDEBF7'}; font-weight: bold; text-align: left; }
       .bg-header-blue { background-color: #5B9BD5 !important; color: #000000 !important; font-weight: bold; text-align: center; }
       .bg-header-green { background-color: #C6E0B4 !important; color: #000000 !important; font-weight: bold; text-align: center; }
-      .bg-gray-row { background-color: #D9D9D9 !important; color: #000000 !important; }
+      .bg-black-row { background-color: #D9D9D9 !important; color: #000000 !important; }
       .bg-orange-pct { background-color: #F8CBAD !important; color: #000000 !important; font-weight: bold; text-align: center; }
       
       .font-bold { font-weight: bold; color: #000000; }
@@ -96,7 +99,7 @@ const ObservedPieChart = ({ dataArray, valueKey, labelKey, colorPalette, isCount
   const total = dataArray.reduce((sum, item) => sum + (item[valueKey] || 0), 0);
   if (total === 0) {
     return (
-      <div className="flex items-center justify-center h-48 text-gray-400 italic text-xs">
+      <div className="flex items-center justify-center h-48 text-black-400 italic text-xs">
         No data logged
       </div>
     );
@@ -167,7 +170,7 @@ const ObservedPieChart = ({ dataArray, valueKey, labelKey, colorPalette, isCount
                   onMouseLeave={() => setHoveredItem(null)}
                 />
                 {percent > 0.05 && (
-                  <g className="pointer-events-none select-none text-[8px] font-bold text-white">
+                  <g className="pointer-events-none select-none text-[9px] font-bold text-white">
                     <text x={labelX} y={labelY - 1} textAnchor="middle" fill="white" style={{ textShadow: '1px 1px 1px rgba(0,0,0,0.8)' }}>
                       {labelText.length > 7 ? labelText.slice(0, 6) + '..' : labelText}
                     </text>
@@ -183,16 +186,16 @@ const ObservedPieChart = ({ dataArray, valueKey, labelKey, colorPalette, isCount
 
         {hoveredItem && (
           <div 
-            className="absolute bg-gray-950/95 text-white text-[10px] font-bold px-2 py-1 rounded-xl shadow-lg border border-gray-800 pointer-events-none z-50 transition-all duration-75 whitespace-nowrap"
+            className="absolute bg-black-950/95 text-white text-[11px] font-bold px-2 py-1 rounded-xl shadow-lg border border-black-800 pointer-events-none z-50 transition-all duration-75 whitespace-nowrap"
             style={{ 
               left: `${mousePos.x}px`, 
               top: `${mousePos.y}px`
             }}
           >
-            <div className="text-[9px] text-gray-400 font-extrabold uppercase">{hoveredItem[labelKey]}</div>
+            <div className="text-[10px] text-black-400 font-extrabold uppercase">{hoveredItem[labelKey]}</div>
             <div className="text-white mt-0.5">
               {((hoveredItem[valueKey] / total) * 100).toFixed(1)}% 
-              <span className="text-gray-300 ml-1">
+              <span className="text-black-300 ml-1">
                 ({isCount ? hoveredItem[valueKey] : '₹' + Math.round(hoveredItem[valueKey]).toLocaleString()})
               </span>
             </div>
@@ -200,7 +203,7 @@ const ObservedPieChart = ({ dataArray, valueKey, labelKey, colorPalette, isCount
         )}
       </div>
 
-      <div className="space-y-1.5 text-left flex-1 max-h-36 overflow-y-auto pr-2 w-full border-t border-gray-100 pt-3">
+      <div className="space-y-1.5 text-left flex-1 max-h-36 overflow-y-auto pr-2 w-full border-t border-black-100 pt-3">
         {dataArray.map((item, index) => {
           const val = item[valueKey] || 0;
           const percentage = (val / total) * 100;
@@ -208,15 +211,15 @@ const ObservedPieChart = ({ dataArray, valueKey, labelKey, colorPalette, isCount
           return (
             <div 
               key={index} 
-              className={`flex items-center justify-between text-[10px] gap-2 border-b border-gray-50 pb-0.5 ${onSegmentClick ? 'cursor-pointer hover:bg-gray-50/50 px-1.5 py-0.5 rounded transition' : ''}`}
+              className={`flex items-center justify-between text-[11px] gap-2 border-b border-black-50 pb-0.5 ${onSegmentClick ? 'cursor-pointer hover:bg-black-50/50 px-1.5 py-0.5 rounded transition' : ''}`}
               onClick={() => onSegmentClick && onSegmentClick(item)}
             >
               <div className="flex items-center gap-1.5 min-w-0">
                 <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: color }}></span>
-                <span className="font-bold text-gray-700 truncate uppercase" title={item[labelKey]}>{item[labelKey]}</span>
+                <span className="font-bold text-black-700 truncate uppercase" title={item[labelKey]}>{item[labelKey]}</span>
               </div>
-              <div className="text-right text-gray-500 font-bold shrink-0">
-                <span className="text-gray-800 font-extrabold mr-1">{percentage.toFixed(1)}%</span>
+              <div className="text-right text-black-500 font-bold shrink-0">
+                <span className="text-black-800 font-extrabold mr-1">{percentage.toFixed(1)}%</span>
                 <span>({isCount ? `${val}` : `₹${Math.round(val).toLocaleString()}`})</span>
               </div>
             </div>
@@ -269,7 +272,7 @@ const ObservedBarChart = ({ dataArray, xKey, yKey, barColor, isPercent = false }
           opacity: 0.95;
         }
       `}</style>
-      <div className="h-48 w-full flex items-end gap-3 pt-4 border-b border-l border-gray-150 px-2 relative">
+      <div className="h-48 w-full flex items-end gap-3 pt-4 border-b border-l border-black-150 px-2 relative">
         {dataArray.map((item, index) => {
           const val = item[yKey] || 0;
           const heightPercent = (val / maxValue) * 85; // cap at 85% height to leave room for labels
@@ -277,7 +280,7 @@ const ObservedBarChart = ({ dataArray, xKey, yKey, barColor, isPercent = false }
           return (
             <div key={index} className="flex-1 flex flex-col items-center group relative h-full justify-end">
               {/* Tooltip value */}
-              <div className="absolute bottom-full mb-1 bg-gray-900 text-white text-[9px] font-bold px-2 py-0.5 rounded opacity-0 group-hover:opacity-100 transition duration-200 z-20 pointer-events-none whitespace-nowrap">
+              <div className="absolute bottom-full mb-1 bg-black-900 text-white text-[10px] font-bold px-2 py-0.5 rounded opacity-0 group-hover:opacity-100 transition duration-200 z-20 pointer-events-none whitespace-nowrap">
                 {isPercent ? `${val.toFixed(1)}%` : val.toLocaleString()}
               </div>
 
@@ -292,7 +295,7 @@ const ObservedBarChart = ({ dataArray, xKey, yKey, barColor, isPercent = false }
               ></div>
 
               {/* Label */}
-              <div className="text-[9px] font-bold text-gray-550 truncate max-w-full text-center mt-1 uppercase w-full">
+              <div className="text-[10px] font-bold text-black-550 truncate max-w-full text-center mt-1 uppercase w-full">
                 {item[xKey]}
               </div>
             </div>
@@ -308,20 +311,8 @@ const KPIInsights = () => {
   const logoPath = window.location.origin + "/jb_logo.jpg";
   
   // Date filters - default to current month
-  const [fromDate, setFromDate] = useState(() => {
-    const d = new Date();
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    return `${year}-${month}-01`;
-  });
-  const [toDate, setToDate] = useState(() => {
-    const d = new Date();
-    const lastDayVal = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(lastDayVal).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  });
+  const [fromDate, setFromDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [toDate, setToDate] = useState(() => new Date().toISOString().split('T')[0]);
 
   const [selectedUser, setSelectedUser] = useState(() => {
     const isPrivileged = user?.role === 'Super Admin' || user?.role === 'Admin';
@@ -1253,9 +1244,9 @@ const KPIInsights = () => {
       html += `
             <!-- Phase 2 Overall Average achieved -->
             <tr>
-              <td class="bg-gray-row"></td><td class="bg-gray-row"></td><td class="bg-gray-row"></td><td class="bg-gray-row"></td><td class="bg-gray-row"></td>
+              <td class="bg-black-row"></td><td class="bg-black-row"></td><td class="bg-black-row"></td><td class="bg-black-row"></td><td class="bg-black-row"></td>
               <td class="bg-orange-pct" style="font-size: 10pt; font-weight: bold; border: 1px solid #000000; text-align: center; vertical-align: middle;">${projectPerformanceText}</td>
-              <td class="bg-gray-row"></td><td class="bg-gray-row"></td><td class="bg-gray-row"></td><td class="bg-gray-row"></td>
+              <td class="bg-black-row"></td><td class="bg-black-row"></td><td class="bg-black-row"></td><td class="bg-black-row"></td>
             </tr>
 
             <!-- Spacing row -->
@@ -1303,9 +1294,9 @@ const KPIInsights = () => {
 
       html += `
             <tr>
-              <td class="bg-gray-row"></td><td class="bg-gray-row"></td><td class="bg-gray-row"></td><td class="bg-gray-row"></td><td class="bg-gray-row"></td>
+              <td class="bg-black-row"></td><td class="bg-black-row"></td><td class="bg-black-row"></td><td class="bg-black-row"></td><td class="bg-black-row"></td>
               <td class="bg-orange-pct" style="font-size: 10pt; font-weight: bold; border: 1px solid #000000; text-align: center; vertical-align: middle;">${marketingPerformanceText}</td>
-              <td class="bg-gray-row"></td><td class="bg-gray-row"></td><td class="bg-gray-row"></td><td class="bg-gray-row"></td>
+              <td class="bg-black-row"></td><td class="bg-black-row"></td><td class="bg-black-row"></td><td class="bg-black-row"></td>
             </tr>
           </tbody>
           </table>
@@ -1613,7 +1604,157 @@ const KPIInsights = () => {
     }
   };
 
-  const handleExportRegistrationReport = async () => {
+  const handleExportNPACollectedReport = async () => {
+    try {
+      setLoading(true);
+      const res = await fetch(`${API_URL}/crd-flow`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (!res.ok) {
+        alert('Failed to load NPA Collected Report details for export');
+        return;
+      }
+      const data = await res.json();
+
+      // Apply active dashboard filters
+      const filtered = data.filter(flow => {
+        // Project filter
+        if (selectedProject && (flow.project?._id || flow.project) !== selectedProject) return false;
+
+        // User/Executive filter
+        if (selectedUser && (flow.lead?.assignedTo?._id || flow.lead?.assignedTo) !== selectedUser) return false;
+
+        return true;
+      });
+
+      if (filtered.length === 0) {
+        alert('No NPA Collected records found for the selected filters.');
+        return;
+      }
+
+      const dateForMonth = fromDate ? new Date(fromDate) : new Date();
+      const targetMonth = dateForMonth.getMonth();
+      const targetYear = dateForMonth.getFullYear();
+
+      const getWeeklyCollections = (flow) => {
+        let w1 = 0, w2 = 0, w3 = 0, w4 = 0;
+        if (flow.stages) {
+          flow.stages.forEach(stage => {
+            if (stage.payments) {
+              stage.payments.forEach(p => {
+                const pDate = new Date(p.date);
+                if (pDate.getMonth() === targetMonth && pDate.getFullYear() === targetYear) {
+                  const day = pDate.getDate();
+                  const amt = Number(p.amount) || 0;
+                  if (day >= 1 && day <= 7) w1 += amt;
+                  else if (day >= 8 && day <= 14) w2 += amt;
+                  else if (day >= 15 && day <= 21) w3 += amt;
+                  else w4 += amt;
+                }
+              });
+            }
+          });
+        }
+        return { w1, w2, w3, w4 };
+      };
+
+      const projectTitle = selectedProject 
+        ? (stats.projects.find(p => p._id === selectedProject)?.code || 'PROJECT')
+        : '';
+      const titleText = projectTitle 
+        ? `JB - ${projectTitle.toUpperCase()} NPA COLLECTED REPORT`
+        : `JB - NPA COLLECTED REPORT`;
+        
+      const monthNames = ["JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE", "JULY", "AUGUST", "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER"];
+      const monthTitle = `MONTH OF ${monthNames[targetMonth]} - ${targetYear}`;
+
+      // Build HTML
+      let html = `
+        <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+        <head>
+          <meta charset="utf-8">
+          ${getExcelStyles("#0E623A", "#D1FAE5", "#0E623A", "#0E623A")}
+        </head>
+        <body>
+          <table>
+            <col width="60" />
+            <col width="250" />
+            <col width="150" />
+            <col width="150" />
+            <col width="150" />
+            <col width="150" />
+            <col width="150" />
+            <col width="120" />
+            <col width="120" />
+            <col width="120" />
+            <col width="120" />
+            ${getExcelHeader(titleText, monthTitle, 11, "#0E623A", logoPath)}
+            <!-- Table Headers -->
+            <tr class="table-headers">
+              <th>S.NO.</th>
+              <th>LEAD NAME</th>
+              <th>PROJECT TYPE</th>
+              <th>UNIT NO</th>
+              <th>TOTAL AMOUNT</th>
+              <th>DEBTORS AMOUNT</th>
+              <th>TARGET AMOUNT</th>
+              <th>WEEK 1</th>
+              <th>WEEK 2</th>
+              <th>WEEK 3</th>
+              <th>WEEK 4</th>
+            </tr>
+      `;
+
+      filtered.forEach((flow, index) => {
+        const weeks = getWeeklyCollections(flow);
+        const rowClass = index % 2 === 1 ? 'class="even-row"' : '';
+        const projType = Array.isArray(flow.project?.projectType) ? flow.project.projectType.join(', ') : (flow.project?.projectType || 'N/A');
+
+        html += `
+          <tr ${rowClass}>
+            <td>${index + 1}</td>
+            <td class="text-left bold-label">${flow.lead?.name || 'N/A'}</td>
+            <td>${projType}</td>
+            <td>${flow.unitId || 'N/A'}</td>
+            <td class="text-right">${(flow.totalCurrentValue || 0).toLocaleString()}</td>
+            <td class="text-right">${(flow.debtorsAmount || 0).toLocaleString()}</td>
+            <td class="text-right">${(flow.targetAmount || 0).toLocaleString()}</td>
+            <td class="text-right">${weeks.w1.toLocaleString()}</td>
+            <td class="text-right">${weeks.w2.toLocaleString()}</td>
+            <td class="text-right">${weeks.w3.toLocaleString()}</td>
+            <td class="text-right">${weeks.w4.toLocaleString()}</td>
+          </tr>
+        `;
+      });
+
+      html += `
+          </table>
+        </body>
+        </html>
+      `;
+
+      // Trigger download
+      const blob = new Blob([html], { type: 'application/vnd.ms-excel' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const fileCode = projectTitle ? projectTitle : 'ALL_PROJECTS';
+      a.download = `JB_${fileCode}_NPA_COLLECTED_REPORT_${targetYear}_${targetMonth + 1}.xls`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+    } catch (err) {
+      console.error(err);
+      alert('Error exporting NPA Collected Report');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleExportRegistrationReport = async (options = {}) => {
+
     try {
       setLoading(true);
       const res = await fetch(`${API_URL}/leads`, {
@@ -1782,6 +1923,9 @@ const KPIInsights = () => {
         </html>
       `;
 
+      if (options.returnWorksheet) {
+        return htmlToStyledSheet(html, XLSX);
+      }
       // Trigger download
       const blob = new Blob([html], { type: 'application/vnd.ms-excel' });
       const url = URL.createObjectURL(blob);
@@ -1802,7 +1946,7 @@ const KPIInsights = () => {
     }
   };
 
-  const handleExportKeyHandoverReport = async () => {
+  const handleExportKeyHandoverReport = async (options = {}) => {
     try {
       setLoading(true);
       const res = await fetch(`${API_URL}/crd-flow`, {
@@ -1965,6 +2109,9 @@ const KPIInsights = () => {
         </html>
       `;
 
+      if (options.returnWorksheet) {
+        return htmlToStyledSheet(html, XLSX);
+      }
       // Trigger download
       const blob = new Blob([html], { type: 'application/vnd.ms-excel' });
       const url = URL.createObjectURL(blob);
@@ -1985,7 +2132,7 @@ const KPIInsights = () => {
     }
   };
 
-  const handleExportCollectionReport = async () => {
+  const handleExportCollectionReport = async (options = {}) => {
     try {
       setLoading(true);
       const res = await fetch(`${API_URL}/crd-flow`, {
@@ -2126,6 +2273,9 @@ const KPIInsights = () => {
         </html>
       `;
 
+      if (options.returnWorksheet) {
+        return htmlToStyledSheet(html, XLSX);
+      }
       // Trigger download
       const blob = new Blob([html], { type: 'application/vnd.ms-excel' });
       const url = URL.createObjectURL(blob);
@@ -2145,7 +2295,7 @@ const KPIInsights = () => {
     }
   };
 
-  const handleExportBankLoanReport = async () => {
+  const handleExportBankLoanReport = async (options = {}) => {
     try {
       setLoading(true);
       const res = await fetch(`${API_URL}/crd-flow`, {
@@ -2268,6 +2418,9 @@ const KPIInsights = () => {
         </html>
       `;
 
+      if (options.returnWorksheet) {
+        return htmlToStyledSheet(html, XLSX);
+      }
       // Trigger download
       const blob = new Blob([html], { type: 'application/vnd.ms-excel' });
       const url = URL.createObjectURL(blob);
@@ -2287,7 +2440,7 @@ const KPIInsights = () => {
     }
   };
 
-  const handleExportExtraWorksReport = async () => {
+  const handleExportExtraWorksReport = async (options = {}) => {
     try {
       setLoading(true);
       const res = await fetch(`${API_URL}/crd-flow`, {
@@ -2407,6 +2560,9 @@ const KPIInsights = () => {
         </html>
       `;
 
+      if (options.returnWorksheet) {
+        return htmlToStyledSheet(html, XLSX);
+      }
       // Trigger download
       const blob = new Blob([html], { type: 'application/vnd.ms-excel' });
       const url = URL.createObjectURL(blob);
@@ -2426,7 +2582,7 @@ const KPIInsights = () => {
     }
   };
 
-  const handleExportComplaintsReport = async () => {
+  const handleExportComplaintsReport = async (options = {}) => {
     try {
       setLoading(true);
       const res = await fetch(`${API_URL}/crd-flow`, {
@@ -2532,6 +2688,9 @@ const KPIInsights = () => {
         </html>
       `;
 
+      if (options.returnWorksheet) {
+        return htmlToStyledSheet(html, XLSX);
+      }
       // Trigger download
       const blob = new Blob([html], { type: 'application/vnd.ms-excel' });
       const url = URL.createObjectURL(blob);
@@ -2546,6 +2705,195 @@ const KPIInsights = () => {
     } catch (err) {
       console.error(err);
       alert('Error exporting customer complaints report');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getWeeklyCollections = (flow) => {
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+    
+    let w1 = 0, w2 = 0, w3 = 0, w4 = 0;
+    
+    if (flow.stages) {
+      flow.stages.forEach(stage => {
+        if (stage.payments) {
+          stage.payments.forEach(p => {
+            const pDate = new Date(p.date);
+            if (pDate.getMonth() === currentMonth && pDate.getFullYear() === currentYear) {
+              const day = pDate.getDate();
+              const amt = Number(p.amount) || 0;
+              if (day >= 1 && day <= 7) w1 += amt;
+              else if (day >= 8 && day <= 14) w2 += amt;
+              else if (day >= 15 && day <= 21) w3 += amt;
+              else w4 += amt;
+            }
+          });
+        }
+      });
+    }
+    
+    return { w1, w2, w3, w4 };
+  };
+
+  const handleExportNPAReport = async (options = {}) => {
+    try {
+      setLoading(true);
+      const res = await fetch(`${API_URL}/crd-flow`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (!res.ok) throw new Error('Failed to fetch CRD Flows');
+      const data = await res.json();
+      
+      const filteredFlows = data.filter(flow => {
+        if (selectedProject && (flow.project?._id || flow.project) !== selectedProject) return false;
+        return true;
+      });
+
+      if (filteredFlows.length === 0) {
+        alert('No records found for the selected filters.');
+        return;
+      }
+
+      const exportData = filteredFlows.map((flow, index) => {
+        const weeks = getWeeklyCollections(flow);
+        return {
+          'S.No': index + 1,
+          'Lead Name': flow.lead?.name || 'N/A',
+          'Project Type': Array.isArray(flow.project?.projectType) ? flow.project.projectType.join(', ') : (flow.project?.projectType || 'N/A'),
+          'Unit No': flow.unitId || 'N/A',
+          'Total Amount': flow.totalCurrentValue || 0,
+          'Debtors Amount': flow.debtorsAmount || 0,
+          'Target Amount': flow.targetAmount || 0,
+          'Week 1': weeks.w1,
+          'Week 2': weeks.w2,
+          'Week 3': weeks.w3,
+          'Week 4': weeks.w4
+        };
+      });
+
+      const ws = XLSX.utils.json_to_sheet(exportData);
+      
+      const colWidths = [
+        { wch: 5 }, { wch: 25 }, { wch: 15 }, { wch: 15 }, 
+        { wch: 15 }, { wch: 15 }, { wch: 15 }, 
+        { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 12 }
+      ];
+      ws['!cols'] = colWidths;
+
+      const headerRange = XLSX.utils.decode_range(ws['!ref']);
+      for (let C = headerRange.s.c; C <= headerRange.e.c; C++) {
+        const address = XLSX.utils.encode_cell({ r: 0, c: C });
+        if (!ws[address]) continue;
+        ws[address].s = {
+          font: { bold: true, color: { rgb: "FFFFFF" } },
+          fill: { fgColor: { rgb: "0E623A" } },
+          alignment: { horizontal: "center", vertical: "center" }
+        };
+      }
+
+      if (options.returnWorksheet) return ws;
+      
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "NPA Collected Report");
+      XLSX.writeFile(wb, `NPA_Collected_Report_${new Date().toLocaleDateString('en-GB').replace(/\//g, '-')}.xlsx`);
+    } catch (err) {
+      console.error(err);
+      alert('Error exporting NPA Collected Report');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleExportParameterReport = (options = {}) => {
+    try {
+      setLoading(true);
+
+      const dateForMonth = fromDate ? new Date(fromDate) : new Date();
+      const monthNames = ["JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE", "JULY", "AUGUST", "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER"];
+      const monthYearTitle = `COLLECTION PARAMETER REPORT ${monthNames[dateForMonth.getMonth()]} - ${dateForMonth.getFullYear()}`;
+
+      const ws = XLSX.utils.aoa_to_sheet([]);
+
+      const data = [
+        [monthYearTitle, "", "", "", "", "", "", "", "", "", "", ""],
+        ["", "", "", "", "", "", "", "Week 1", "Week 2", "Week 3", "Week 4", "Week 5"],
+        ["S NO", "COLLECTIONS", "TOTAL", "Unit", "TARGET", "ACTUAL", "%", "ACTUAL", "ACTUAL", "ACTUAL", "ACTUAL", "ACTUAL"],
+        [1, "No.of Registrations ( 45 days)", 30, "Nos", 13, 0, "0%", 0, "", "", "", ""],
+        [2, "No.of Key Handover", 16, "Nos", 6, 0, "0%", 0, "", "", "", ""],
+        [3, "Total Debtors", 15.14, "Cr", 5.53, 0.90, "16%", 0.90, "", "", "", ""],
+        [4, "Collection Amount (<60 Days)", 8.36, "Cr", 1.03, 0.61, "59%", 0.61, "", "", "", ""],
+        [5, "NPA Value (>60 Days)", 6.78, "Cr", 4.5, 0.29, "6%", 0.29, "", "", "", ""],
+        [6, "Bank Loans (15 Days)", 8, "Nos", 5, 0, "0%", 0, "", "", "", ""],
+        [7, "Critical Customers Issues fixed", 5, "Nos", 0, 0, "#DIV/0!", 0, "", "", "", ""],
+        [8, "Customer Compliants (15 Days)", 12, "Nos", 6, 0, "0%", 0, 0, "", "", ""],
+        [9, "Additional Work Approvals (15 days)", 12, "Nos", 8, 6, "75%", 3, 3, "", "", ""],
+        [10, "To Do tasks", 24, "Nos", 18, 9, "50%", 3, 6, "", "", ""],
+        ["", "", "", "", "", "", "", "", "", "", "", ""],
+        ["", "Over all Percentage", "", "", "", "", "#DIV/0!", "", "", "", "", ""]
+      ];
+
+      XLSX.utils.sheet_add_aoa(ws, data, { origin: "A1" });
+
+      ws['!merges'] = [
+        { s: { r: 0, c: 0 }, e: { r: 0, c: 11 } }
+      ];
+
+      ws['!cols'] = [
+        { wch: 8 },  { wch: 35 }, { wch: 10 }, { wch: 8 },  
+        { wch: 10 }, { wch: 10 }, { wch: 8 },  { wch: 10 }, 
+        { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 10 }
+      ];
+
+      const headerBorder = {
+        top: { style: 'thin', color: { rgb: "000000" } },
+        bottom: { style: 'thin', color: { rgb: "000000" } },
+        left: { style: 'thin', color: { rgb: "000000" } },
+        right: { style: 'thin', color: { rgb: "000000" } }
+      };
+
+      for (let R = 0; R < data.length; R++) {
+        for (let C = 0; C < 12; C++) {
+          const address = XLSX.utils.encode_cell({ r: R, c: C });
+          if (!ws[address]) ws[address] = { v: '', t: 's' };
+          
+          let cellStyle = {
+            border: headerBorder,
+            alignment: { horizontal: "center", vertical: "center" },
+            font: { name: "Arial", sz: 10, color: { rgb: "000000" } }
+          };
+
+          if (R === 0) {
+            cellStyle.fill = { fgColor: { rgb: "FFFF00" } };
+            cellStyle.font = { name: "Arial", sz: 12, bold: true, color: { rgb: "FF0000" } };
+          } else if (R === 1) {
+            if (C >= 7) {
+              cellStyle.fill = { fgColor: { rgb: "92D050" } };
+              cellStyle.font = { name: "Arial", sz: 10, bold: true, color: { rgb: "FF0000" } };
+            } else {
+              cellStyle.fill = { fgColor: { rgb: "92D050" } };
+            }
+          } else if (R === 2) {
+            cellStyle.fill = { fgColor: { rgb: "A64040" } };
+            cellStyle.font = { name: "Arial", sz: 10, bold: true, color: { rgb: "FFFFFF" } };
+          } else {
+            if (C === 1 && R !== 14) cellStyle.alignment.horizontal = "left";
+          }
+          
+          ws[address].s = cellStyle;
+        }
+      }
+
+      if (options.returnWorksheet) return ws;
+
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Parameter Report");
+      XLSX.writeFile(wb, `COLLECTION_PARAMETER_REPORT_${dateForMonth.getFullYear()}_${dateForMonth.getMonth() + 1}.xlsx`);
+    } catch (err) {
+      console.error(err);
+      alert('Error exporting Parameter Report');
     } finally {
       setLoading(false);
     }
@@ -2592,38 +2940,76 @@ const KPIInsights = () => {
     '#F4B2A8'  // Matte Soft Peach
   ];
 
+  const handleDownloadAllReports = async () => {
+    try {
+      setLoading(true);
+      const wb = XLSX.utils.book_new();
+      
+      const paramWs = await handleExportParameterReport({ returnWorksheet: true });
+      if (paramWs) XLSX.utils.book_append_sheet(wb, paramWs, "Parameter Report");
+
+      const regWs = await handleExportRegistrationReport({ returnWorksheet: true });
+      if (regWs) XLSX.utils.book_append_sheet(wb, regWs, "Registration Report");
+
+      const keyWs = await handleExportKeyHandoverReport({ returnWorksheet: true });
+      if (keyWs) XLSX.utils.book_append_sheet(wb, keyWs, "Key Handover Report");
+
+      const colWs = await handleExportCollectionReport({ returnWorksheet: true });
+      if (colWs) XLSX.utils.book_append_sheet(wb, colWs, "Collection Report");
+
+      const npaWs = await handleExportNPAReport({ returnWorksheet: true });
+      if (npaWs) XLSX.utils.book_append_sheet(wb, npaWs, "NPA Collected Reports");
+
+      const compWs = await handleExportComplaintsReport({ returnWorksheet: true });
+      if (compWs) XLSX.utils.book_append_sheet(wb, compWs, "Complaints Report");
+
+      const bankWs = await handleExportBankLoanReport({ returnWorksheet: true });
+      if (bankWs) XLSX.utils.book_append_sheet(wb, bankWs, "Bank Loan Report");
+
+      const extWs = await handleExportExtraWorksReport({ returnWorksheet: true });
+      if (extWs) XLSX.utils.book_append_sheet(wb, extWs, "Extra Works Report");
+
+      XLSX.writeFile(wb, `ALL_CRD_REPORTS_${new Date().toLocaleDateString('en-GB').replace(/\//g, '-')}.xlsx`);
+    } catch (err) {
+      console.error(err);
+      alert('Error generating consolidated reports file');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-8 w-full mx-auto text-left animate-fadeIn">
       {/* Page Header */}
-      <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-6 border-b border-gray-200 pb-5">
+      <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-6 border-b border-black-200 pb-5">
         <div>
-          <h1 className="text-2xl font-black text-gray-800 flex items-center gap-2">
+          <h1 className="text-2xl font-black text-black-800 flex items-center gap-2">
             <CheckCircle className="w-6 h-6 text-[#0e623a]" />
             <span>CRD Reports</span>
           </h1>
-          <p className="text-gray-500 text-xs mt-1">
+          {/* <p className="text-black-500 text-xs mt-1">
             Download specific CRD reports directly.
-          </p>
+          </p> */}
         </div>
 
         {/* Filters Panel */}
-        <div className="flex flex-wrap items-center gap-4 bg-white p-3 rounded-2xl border border-gray-150 shadow-xs">
+        <div className="flex flex-wrap items-center gap-4 bg-white p-3 rounded-2xl border border-black-150 shadow-xs">
           {/* Month Picker */}
           <div className="flex items-center gap-2 px-2">
             <Calendar className="w-3.5 h-3.5 text-[#0e623a]" />
-            <span className="text-xs font-bold text-gray-700">Range:</span>
+            <span className="text-xs font-bold text-black-700">Range:</span>
             <input
               type="date"
               value={fromDate}
               onChange={(e) => setFromDate(e.target.value)}
-              className="text-xs font-bold text-gray-700 bg-transparent border-b border-gray-300 focus:outline-none focus:border-[#0e623a] px-1"
+              className="text-xs font-bold text-black-700 bg-transparent border-b border-black-300 focus:outline-none focus:border-[#0e623a] px-1"
             />
-            <span className="text-xs font-bold text-gray-500">to</span>
+            <span className="text-xs font-bold text-black-500">to</span>
             <input
               type="date"
               value={toDate}
               onChange={(e) => setToDate(e.target.value)}
-              className="text-xs font-bold text-gray-700 bg-transparent border-b border-gray-300 focus:outline-none focus:border-[#0e623a] px-1"
+              className="text-xs font-bold text-black-700 bg-transparent border-b border-black-300 focus:outline-none focus:border-[#0e623a] px-1"
             />
           </div>
         </div>
@@ -2631,6 +3017,29 @@ const KPIInsights = () => {
 
       {/* Reports Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6">
+
+        {/* Download All Reports */}
+        <div 
+          onClick={handleDownloadAllReports}
+          className="bg-emerald-50 border border-emerald-100 rounded-3xl p-6 shadow-sm hover:shadow-md transition cursor-pointer flex flex-col items-center justify-center text-center gap-3 hover:-translate-y-1 duration-200"
+        >
+          <div className="p-4 bg-emerald-100 text-[#0e623a] rounded-2xl">
+            <FolderOpen className="w-8 h-8" />
+          </div>
+          <h3 className="text-sm font-black text-[#0e623a] uppercase tracking-wide">Download All Reports</h3>
+        </div>
+
+        {/* Parameter Report */}
+        <div 
+          onClick={handleExportParameterReport}
+          className="bg-orange-50 border border-orange-100 rounded-3xl p-6 shadow-sm hover:shadow-md transition cursor-pointer flex flex-col items-center justify-center text-center gap-3 hover:-translate-y-1 duration-200"
+        >
+          <div className="p-4 bg-orange-100 text-orange-600 rounded-2xl">
+            <TrendingUp className="w-8 h-8" />
+          </div>
+          <h3 className="text-sm font-black text-orange-800 uppercase tracking-wide">Parameter Report</h3>
+          {/* <p className="text-[11px] text-orange-500 font-semibold">Collection parameters, KPIs and task metrics.</p> */}
+        </div>
         
         {/* Registration Report */}
         <div 
@@ -2641,7 +3050,7 @@ const KPIInsights = () => {
             <CheckCircle className="w-8 h-8" />
           </div>
           <h3 className="text-sm font-black text-purple-800 uppercase tracking-wide">Registration Report</h3>
-          <p className="text-[10px] text-purple-500 font-semibold">Registered units and values.</p>
+          {/* <p className="text-[11px] text-purple-500 font-semibold">Registered units and values.</p> */}
         </div>
 
         {/* Key Handover Report */}
@@ -2653,7 +3062,7 @@ const KPIInsights = () => {
             <Key className="w-8 h-8" />
           </div>
           <h3 className="text-sm font-black text-indigo-800 uppercase tracking-wide">Key Handover Report</h3>
-          <p className="text-[10px] text-indigo-500 font-semibold">Handed over keys and status.</p>
+          {/* <p className="text-[11px] text-indigo-500 font-semibold">Handed over keys and status.</p> */}
         </div>
 
         {/* Collection Report */}
@@ -2665,7 +3074,7 @@ const KPIInsights = () => {
             <DollarSign className="w-8 h-8" />
           </div>
           <h3 className="text-sm font-black text-emerald-800 uppercase tracking-wide">Collection Report</h3>
-          <p className="text-[10px] text-emerald-500 font-semibold">Payment tracking and collections.</p>
+          {/* <p className="text-[11px] text-emerald-500 font-semibold">Payment tracking and collections.</p> */}
         </div>
 
         {/* Bank Loan Report */}
@@ -2680,7 +3089,7 @@ const KPIInsights = () => {
             <Building className="w-8 h-8" />
           </div>
           <h3 className="text-sm font-black text-blue-800 uppercase tracking-wide">Bank Loan Report</h3>
-          <p className="text-[10px] text-blue-500 font-semibold">Bank loans associated with units.</p>
+          {/* <p className="text-[11px] text-blue-500 font-semibold">Bank loans associated with units.</p> */}
         </div>
 
         {/* Extra Works Report */}
@@ -2692,7 +3101,7 @@ const KPIInsights = () => {
             <FileText className="w-8 h-8" />
           </div>
           <h3 className="text-sm font-black text-amber-800 uppercase tracking-wide">Extra Works</h3>
-          <p className="text-[10px] text-amber-500 font-semibold">Extra works requests and value.</p>
+          {/* <p className="text-[11px] text-amber-500 font-semibold">Extra works requests and value.</p> */}
         </div>
 
         {/* Complaints Report */}
@@ -2704,8 +3113,22 @@ const KPIInsights = () => {
             <AlertCircle className="w-8 h-8" />
           </div>
           <h3 className="text-sm font-black text-rose-800 uppercase tracking-wide">Complaints</h3>
-          <p className="text-[10px] text-rose-500 font-semibold">User complaints and statuses.</p>
+          <p className="text-[11px] text-rose-500 font-semibold">User complaints and statuses.</p>
         </div>
+
+        {/* NPA Collected Report */}
+        <div 
+          onClick={handleExportNPAReport}
+          className="bg-sky-50 border border-sky-100 rounded-3xl p-6 shadow-sm hover:shadow-md transition cursor-pointer flex flex-col items-center justify-center text-center gap-3 hover:-translate-y-1 duration-200"
+        >
+          <div className="p-4 bg-sky-100 text-sky-600 rounded-2xl">
+            <BarChart3 className="w-8 h-8" />
+          </div>
+          <h3 className="text-sm font-black text-sky-800 uppercase tracking-wide">NPA Collected Reports</h3>
+          {/* <p className="text-[11px] text-sky-500 font-semibold">Track targets, debtors, and weekly collections.</p> */}
+        </div>
+
+        {/*  */}
 
       </div>
     </div>

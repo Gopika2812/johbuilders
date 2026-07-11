@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth, API_URL } from '../context/AuthContext';
-import { ArrowLeft, Plus, X } from 'lucide-react';
+import { ArrowLeft, Plus, X, Loader2 } from 'lucide-react';
 
 
 const CRDFlowDetail = () => {
@@ -10,6 +10,7 @@ const CRDFlowDetail = () => {
   const { token } = useAuth();
   const [flow, setFlow] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
 
   const [extraWorkModalOpen, setExtraWorkModalOpen] = useState(false);
@@ -42,6 +43,7 @@ const CRDFlowDetail = () => {
     e.preventDefault();
     if (!extraWorkName || !extraWorkAmount) return;
 
+    setIsSubmitting(true);
     try {
       const res = await fetch(`${API_URL}/crd-flow/${id}/stage/${selectedStageIdx}/extra-work`, {
         method: 'PUT',
@@ -65,6 +67,8 @@ const CRDFlowDetail = () => {
       }
     } catch (err) {
       alert('Error adding extra work');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -147,7 +151,7 @@ const CRDFlowDetail = () => {
                       }}
                       disabled={isDone}
                       title={isDone ? "Cannot add extra work to a completed/fully paid stage" : "Add Extra Work"}
-                      className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-[10px] font-bold transition shadow-sm ${
+                      className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-[11px] font-bold transition shadow-sm ${
                         isDone 
                           ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
                           : 'bg-purple-50 text-purple-700 hover:bg-purple-100 cursor-pointer border border-purple-200'
@@ -208,9 +212,10 @@ const CRDFlowDetail = () => {
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 py-2.5 bg-[#0e623a] text-white rounded-xl text-xs font-bold hover:bg-[#0b4d2d]"
+                  disabled={isSubmitting}
+                  className="flex-1 py-2.5 bg-[#0e623a] text-white rounded-xl text-xs font-bold hover:bg-[#0b4d2d] disabled:opacity-50 flex items-center justify-center gap-2"
                 >
-                  Add Amount
+                  {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Add Amount'}
                 </button>
               </div>
             </form>

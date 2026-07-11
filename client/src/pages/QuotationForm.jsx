@@ -10,7 +10,8 @@ import {
   User, 
   Phone, 
   Check, 
-  AlertCircle 
+  AlertCircle,
+  Loader2
 } from 'lucide-react';
 
 const parsePhoneDetails = (fullPhone) => {
@@ -76,6 +77,7 @@ const QuotationForm = () => {
 
   // General States
   const [loading, setLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [projectDetails, setProjectDetails] = useState(null);
 
@@ -270,6 +272,7 @@ const QuotationForm = () => {
     }
     const alternativePhone = alternativeLocalPhone ? (alternativeCountryCode === '+' ? `+${alternativeLocalPhone}` : `${alternativeCountryCode}${alternativeLocalPhone}`) : '';
 
+    setIsSubmitting(true);
     const payload = {
       lead: leadId,
       project: projectId,
@@ -337,6 +340,8 @@ const QuotationForm = () => {
       }
     } catch (err) {
       setError('Connection error saving quotation');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -398,7 +403,7 @@ const QuotationForm = () => {
             
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1.5">Client / Customer Name</label>
+                <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block mb-1.5">Client / Customer Name</label>
                 <input
                   type="text"
                   required
@@ -408,7 +413,7 @@ const QuotationForm = () => {
                 />
               </div>
               <div>
-                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1.5">Phone Number</label>
+                <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block mb-1.5">Phone Number</label>
                 <div className={`flex items-center bg-gray-55 border rounded-xl focus-within:ring-2 transition-all overflow-hidden ${customerPhoneErr ? 'border-red-500 focus-within:ring-red-500' : 'border-gray-250 focus-within:ring-[#0e623a] focus-within:border-transparent'}`}>
                   <select
                     value={customerCountryCode}
@@ -444,13 +449,13 @@ const QuotationForm = () => {
                   />
                 </div>
                 {customerPhoneErr && (
-                  <p className="text-[10px] text-red-500 font-bold mt-1">{customerPhoneErr}</p>
+                  <p className="text-[11px] text-red-500 font-bold mt-1">{customerPhoneErr}</p>
                 )}
               </div>
             </div>
 
             <div>
-              <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1.5">Address</label>
+              <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block mb-1.5">Address</label>
               <textarea
                 rows="2"
                 value={customerAddress}
@@ -471,15 +476,15 @@ const QuotationForm = () => {
             {projectDetails ? (
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
                 <div className="bg-gray-50 p-3 rounded-2xl border border-gray-100">
-                  <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider block">Project Name</span>
+                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Project Name</span>
                   <span className="font-bold text-gray-800 mt-1 block">{projectDetails.name}</span>
                 </div>
                 <div className="bg-gray-50 p-3 rounded-2xl border border-gray-100">
-                  <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider block">Project Code</span>
+                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Project Code</span>
                   <span className="font-bold text-gray-800 mt-1 block">{projectDetails.code}</span>
                 </div>
                 <div className="bg-gray-50 p-3 rounded-2xl border border-gray-100">
-                  <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider block">Base Rate Sq.Ft</span>
+                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Base Rate Sq.Ft</span>
                   <span className="font-bold text-emerald-700 mt-1 block">Rs. {projectDetails.pricePerSqFt}</span>
                 </div>
               </div>
@@ -495,7 +500,7 @@ const QuotationForm = () => {
                 <Building2 className="w-4 h-4 text-[#0e623a]" />
                 <span>Select Available {projectType}(s)</span>
               </h3>
-              <span className="text-[10px] bg-emerald-50 text-[#0e623a] border border-[#bce2cb] font-bold px-2 py-0.5 rounded-full">
+              <span className="text-[11px] bg-emerald-50 text-[#0e623a] border border-[#bce2cb] font-bold px-2 py-0.5 rounded-full">
                 {selectedUnits.length} Selected
               </span>
             </div>
@@ -596,9 +601,9 @@ const QuotationForm = () => {
                                 : 'bg-gradient-to-br from-emerald-50 to-green-150 hover:from-emerald-100 hover:to-green-200 border-emerald-250 text-emerald-800 hover:scale-102'
                             }`}
                           >
-                            <div className="text-[9px] uppercase font-semibold text-gray-400">Plot</div>
+                            <div className="text-[10px] uppercase font-semibold text-gray-400">Plot</div>
                             <div className="text-xs font-bold">{u.unitId}</div>
-                            <div className="text-[9px] mt-0.5 opacity-80">{Number(u.size).toFixed(2)} Sq.Ft</div>
+                            <div className="text-[10px] mt-0.5 opacity-80">{Number(u.size).toFixed(2)} Sq.Ft</div>
                             {isSelected && (
                               <span className="absolute top-1 right-1 bg-white text-emerald-800 rounded-full p-0.5 shadow-sm">
                                 <Check className="w-2.5 h-2.5 font-bold" />
@@ -615,7 +620,7 @@ const QuotationForm = () => {
                     <div className="space-y-4">
                       {Array.from(new Set(getFilteredUnits('Flat').map(u => u.floor || 'G') || [])).sort().map(floor => (
                         <div key={floor} className="bg-gray-50/50 p-3 rounded-2xl border border-gray-150 space-y-2">
-                          <h5 className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Floor: {floor}</h5>
+                          <h5 className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Floor: {floor}</h5>
                           <div className="grid grid-cols-4 sm:grid-cols-6 gap-3">
                             {getFilteredUnits('Flat').filter(u => (u.floor || 'G') === floor).map(u => {
                               const isSelected = selectedUnits.includes(u.unitId);
@@ -636,7 +641,7 @@ const QuotationForm = () => {
                                 >
                                   <Building2 className={`w-4 h-4 mb-0.5 ${isSelected ? 'text-white' : 'text-gray-400'}`} />
                                   <div className="text-xs font-bold">{u.unitId}</div>
-                                  <div className="text-[9px] mt-0.5 opacity-80">{Number(u.size).toFixed(2)} Sq.Ft</div>
+                                  <div className="text-[10px] mt-0.5 opacity-80">{Number(u.size).toFixed(2)} Sq.Ft</div>
                                   {isSelected && (
                                     <span className="absolute top-1 right-1 bg-white text-[#0e623a] rounded-full p-0.5">
                                       <Check className="w-2.5 h-2.5" />
@@ -674,12 +679,12 @@ const QuotationForm = () => {
                             type="button"
                             disabled={isSold || isBooked}
                             onClick={() => toggleUnitSelection(u.unitId)}
-                            className={`w-[90px] h-[90px] flex flex-col items-center justify-center rounded-2xl text-[13px] font-black tracking-wide border transition-all duration-200 active:scale-95 cursor-pointer gap-1 ${bgClass}`}
+                            className={`w-[90px] h-[90px] flex flex-col items-center justify-center rounded-2xl text-[14px] font-black tracking-wide border transition-all duration-200 active:scale-95 cursor-pointer gap-1 ${bgClass}`}
                           >
                             <Home className="w-5 h-5 opacity-90" />
                             <span className="leading-none">{u.unitId}</span>
                             {isBooked ? (
-                              <span className="text-[8px] font-extrabold uppercase bg-black/20 px-1 rounded truncate max-w-[80px] text-center" title={u.customerName}>
+                              <span className="text-[9px] font-extrabold uppercase bg-black/20 px-1 rounded truncate max-w-[80px] text-center" title={u.customerName}>
                                 {u.customerName || 'Booked'}
                               </span>
                             ) : isSold ? (
@@ -706,7 +711,7 @@ const QuotationForm = () => {
             
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
-                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1.5">Total Area (Sq.Ft)</label>
+                <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block mb-1.5">Total Area (Sq.Ft)</label>
                 <input
                   type="number"
                   disabled
@@ -715,7 +720,7 @@ const QuotationForm = () => {
                 />
               </div>
               <div>
-                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1.5">Rate Per Sq.Ft (Rs)</label>
+                <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block mb-1.5">Rate Per Sq.Ft (Rs)</label>
                 <input
                   type="number"
                   value={pricePerSqFt}
@@ -725,7 +730,7 @@ const QuotationForm = () => {
                 />
               </div>
               <div>
-                <label className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider block mb-1.5">Total Valuation / Quote Value (Rs)</label>
+                <label className="text-[11px] font-bold text-emerald-800 uppercase tracking-wider block mb-1.5">Total Valuation / Quote Value (Rs)</label>
                 <input
                   type="number"
                   required
@@ -734,7 +739,7 @@ const QuotationForm = () => {
                   onBlur={() => setTotalValue(prev => prev ? Number(Number(prev).toFixed(2)) : 0)}
                   className="w-full px-4 py-2.5 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0e623a] text-xs font-bold"
                 />
-                <span className="text-[9px] text-gray-400 mt-1 block">
+                <span className="text-[10px] text-gray-400 mt-1 block">
                   * This field is fully editable. You can adjust the total valuation value manually.
                 </span>
               </div>
@@ -747,7 +752,7 @@ const QuotationForm = () => {
             
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
-                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1.5">Alternative Contact No</label>
+                <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block mb-1.5">Alternative Contact No</label>
                 <div className={`flex items-center bg-gray-55 border rounded-xl focus-within:ring-2 transition-all overflow-hidden ${alternativePhoneErr ? 'border-red-500 focus-within:ring-red-500' : 'border-gray-250 focus-within:ring-[#0e623a] focus-within:border-transparent'}`}>
                   <select
                     value={alternativeCountryCode}
@@ -786,11 +791,11 @@ const QuotationForm = () => {
                   />
                 </div>
                 {alternativePhoneErr && (
-                  <p className="text-[10px] text-red-500 font-bold mt-1">{alternativePhoneErr}</p>
+                  <p className="text-[11px] text-red-500 font-bold mt-1">{alternativePhoneErr}</p>
                 )}
               </div>
               <div>
-                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1.5">Aadhar Number</label>
+                <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block mb-1.5">Aadhar Number</label>
                 <input
                   type="text"
                   value={aadharNumber}
@@ -799,7 +804,7 @@ const QuotationForm = () => {
                 />
               </div>
               <div>
-                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1.5">PAN Card Number</label>
+                <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block mb-1.5">PAN Card Number</label>
                 <input
                   type="text"
                   value={panNumber}
@@ -810,7 +815,7 @@ const QuotationForm = () => {
             </div>
 
             <div className="bg-gray-50 p-4 rounded-2xl border border-gray-150 space-y-3">
-              <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">Requires Bank Loan?</label>
+              <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block mb-1">Requires Bank Loan?</label>
               <div className="flex gap-6">
                 <label className="flex items-center gap-2 text-xs font-bold text-gray-700 cursor-pointer">
                   <input
@@ -839,7 +844,7 @@ const QuotationForm = () => {
               {bankLoanRequired === 'Yes' && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
                   <div>
-                    <label className="text-[9px] font-bold text-gray-500 uppercase tracking-wider block mb-1">Loan Amount Requested (Rs)</label>
+                    <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block mb-1">Loan Amount Requested (Rs)</label>
                     <input
                       type="number"
                       value={loanAmount}
@@ -848,7 +853,7 @@ const QuotationForm = () => {
                     />
                   </div>
                   <div>
-                    <label className="text-[9px] font-bold text-gray-500 uppercase tracking-wider block mb-1">Preferred Bank</label>
+                    <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block mb-1">Preferred Bank</label>
                     <input
                       type="text"
                       value={preferredBank}
@@ -872,9 +877,14 @@ const QuotationForm = () => {
             </button>
             <button
               type="submit"
-              className="flex-1 py-3 bg-[#0e623a] text-white rounded-xl text-xs font-bold hover:bg-[#0b4d2d] transition shadow-md cursor-pointer"
+              disabled={isSubmitting}
+              className="flex-1 py-3 bg-[#0e623a] text-white rounded-xl text-xs font-bold hover:bg-[#0b4d2d] transition shadow-md cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2"
             >
-              {isEdit ? 'Save Quotation Changes' : 'Confirm & Save Quotation'}
+              {isSubmitting ? (
+                <><Loader2 className="w-4 h-4 animate-spin" /> Processing...</>
+              ) : (
+                isEdit ? 'Save Quotation Changes' : 'Confirm & Save Quotation'
+              )}
             </button>
           </div>
 

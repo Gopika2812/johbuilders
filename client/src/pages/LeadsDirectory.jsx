@@ -28,7 +28,8 @@ import {
   X,
   MoreVertical,
   Edit2,
-  Trash2
+  Trash2,
+  Loader2
 } from 'lucide-react';
 
 const SOURCE_TYPES = [
@@ -75,7 +76,7 @@ const STATUS_COLORS = {
   'Site Visit': { bg: 'bg-rose-50/70', text: 'text-rose-700', border: 'border-rose-200', dot: 'bg-rose-500' },
   'Booking': { bg: 'bg-yellow-50/70', text: 'text-yellow-700', border: 'border-yellow-300', dot: 'bg-yellow-500' },
   'Future Follow-up': { bg: 'bg-indigo-50/70', text: 'text-indigo-700', border: 'border-indigo-200', dot: 'bg-indigo-500' },
-  'Lost': { bg: 'bg-gray-100', text: 'text-gray-750', border: 'border-gray-300', dot: 'bg-gray-500' },
+  'Lost': { bg: 'bg-black-100', text: 'text-black-750', border: 'border-black-300', dot: 'bg-black-500' },
 };
 
 const getPreviousStatus = (lead) => {
@@ -152,6 +153,11 @@ const LeadsDirectory = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
+
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [deletingId, setDeletingId] = useState(null);
+  const [reopeningId, setReopeningId] = useState(null);
+  const [statusChangingId, setStatusChangingId] = useState(null);
 
   // Filtering / Search States
   const [activeTab, setActiveTab] = useState('All'); // 'All' or specific status
@@ -430,6 +436,7 @@ const LeadsDirectory = () => {
     const adObj = editAdId ? editActiveAds.find(a => a.id === editAdId) : null;
     const isStatusChanged = editStatus !== selectedLeadForEdit.status;
 
+    setIsSubmitting(true);
     const payload = {
       leadType: editLeadType,
       name: editName,
@@ -469,6 +476,8 @@ const LeadsDirectory = () => {
       }
     } catch (err) {
       setError('Error updating lead');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -478,6 +487,7 @@ const LeadsDirectory = () => {
     }
     setError('');
     setSuccessMsg('');
+    setDeletingId(leadId);
     try {
       const res = await fetch(`${API_URL}/leads/${leadId}`, {
         method: 'DELETE',
@@ -495,6 +505,8 @@ const LeadsDirectory = () => {
       }
     } catch (err) {
       setError('Connection error deleting lead record');
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -599,6 +611,7 @@ const LeadsDirectory = () => {
 
     const adObj = selectedAdId ? activeAds.find(a => a.id === selectedAdId) : null;
 
+    setIsSubmitting(true);
     const payload = {
       leadType,
       name,
@@ -644,6 +657,8 @@ const LeadsDirectory = () => {
       }
     } catch (err) {
       setError('Connection error saving lead record');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -651,6 +666,7 @@ const LeadsDirectory = () => {
     if (!duplicateWarning) return;
     setError('');
     setSuccessMsg('');
+    setIsSubmitting(true);
     try {
       const res = await fetch(`${API_URL}/requests`, {
         method: 'POST',
@@ -676,6 +692,8 @@ const LeadsDirectory = () => {
       }
     } catch (err) {
       setError('Connection error submitting request');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -769,6 +787,7 @@ const LeadsDirectory = () => {
       }
     };
 
+    setIsSubmitting(true);
     try {
       // 1. Create Quotation directly
       const qRes = await fetch(`${API_URL}/quotations`, {
@@ -806,6 +825,8 @@ const LeadsDirectory = () => {
       }
     } catch (err) {
       setError('Network error saving Booked details');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -874,6 +895,7 @@ const LeadsDirectory = () => {
       };
     }
 
+    setIsSubmitting(true);
     try {
       const res = await fetch(`${API_URL}/leads/${selectedLeadForFollow._id}`, {
         method: 'PUT',
@@ -899,10 +921,13 @@ const LeadsDirectory = () => {
       }
     } catch (err) {
       setError('Connection error updating lead record');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const handleReopenClosedLead = async (lead) => {
+    setReopeningId(lead._id);
     try {
       const res = await fetch(`${API_URL}/leads/${lead._id}`, {
         method: 'PUT',
@@ -924,6 +949,8 @@ const LeadsDirectory = () => {
       }
     } catch (err) {
       setError('Failed to reopen lead');
+    } finally {
+      setReopeningId(null);
     }
   };
 
@@ -942,6 +969,8 @@ const LeadsDirectory = () => {
         return;
       }
     }
+    
+    setStatusChangingId(leadId);
     try {
       const res = await fetch(`${API_URL}/leads/${leadId}`, {
         method: 'PUT',
@@ -977,7 +1006,9 @@ const LeadsDirectory = () => {
         setTimeout(() => setSuccessMsg(''), 3000);
       }
     } catch (err) {
-      setError('Failed to reassign lead');
+      setError('Failed to change status');
+    } finally {
+      setStatusChangingId(null);
     }
   };
 
@@ -1208,17 +1239,17 @@ const LeadsDirectory = () => {
       {/* Title Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
+          <h1 className="text-2xl font-bold text-black-800 flex items-center gap-2">
             <Users className="w-6 h-6 text-[#0e623a]" />
             <span>Leads Directory</span>
           </h1>
-          <p className="text-gray-500 text-xs mt-1">Store and track lead details, campaigns, allocations, and pipeline status</p>
+          {/* <p className="text-black-500 text-xs mt-1">Store and track lead details, campaigns, allocations, and pipeline status</p> */}
         </div>
 
         <div className="flex flex-col sm:flex-row items-center gap-2 w-full sm:w-auto">
           <button
             onClick={handleExportExcel}
-            className="flex items-center justify-center gap-1.5 px-5 py-3 bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 text-xs font-bold rounded-2xl transition shadow-sm w-full sm:w-auto cursor-pointer"
+            className="flex items-center justify-center gap-1.5 px-5 py-3 bg-white border border-black-200 text-black-700 hover:bg-black-50 text-xs font-bold rounded-2xl transition shadow-sm w-full sm:w-auto cursor-pointer"
           >
             <FileSpreadsheet className="w-4 h-4 text-emerald-700" />
             <span>Export Excel</span>
@@ -1252,12 +1283,12 @@ const LeadsDirectory = () => {
       )}
 
       {/* Filters & Search Menu */}
-      <div className="space-y-2 sticky top-16 z-20 bg-gray-50/90 backdrop-blur-md py-2">
-        <div className="bg-white p-4 border border-gray-150 shadow-sm rounded-3xl grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+      <div className="space-y-2 sticky top-16 z-20 bg-black-50/90 backdrop-blur-md py-2">
+        <div className="bg-white p-4 border border-black-150 shadow-sm rounded-3xl grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
           <div className="md:col-span-2 space-y-1">
-            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Search Lead Name / Phone / Project Code</label>
+            <label className="text-[11px] font-bold text-black-400 uppercase tracking-wider block">Search Lead Name / Phone / Project Code</label>
             <div className="relative">
-              <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-gray-400">
+              <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-black-400">
                 <Search className="w-4 h-4" />
               </span>
               <input
@@ -1265,40 +1296,40 @@ const LeadsDirectory = () => {
                 placeholder="Search leads..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-3 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-sm"
+                className="w-full pl-10 pr-3 py-2 bg-black-50 border border-black-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-sm"
               />
             </div>
           </div>
           <div className="space-y-1">
-            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Start Date</label>
+            <label className="text-[11px] font-bold text-black-400 uppercase tracking-wider block">Start Date</label>
             <input
               type="date"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
-              className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-sm font-semibold text-gray-600"
+              className="w-full px-3 py-2 bg-black-50 border border-black-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-sm font-semibold text-black-600"
             />
           </div>
           <div className="space-y-1">
-            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">End Date</label>
+            <label className="text-[11px] font-bold text-black-400 uppercase tracking-wider block">End Date</label>
             <input
               type="date"
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
-              className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-sm font-semibold text-gray-600"
+              className="w-full px-3 py-2 bg-black-50 border border-black-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-sm font-semibold text-black-600"
             />
           </div>
         </div>
 
-        <div className="bg-white p-4 border border-gray-150 shadow-sm rounded-3xl grid grid-cols-2 lg:grid-cols-5 gap-4 items-end">
+        <div className="bg-white p-4 border border-black-150 shadow-sm rounded-3xl grid grid-cols-2 lg:grid-cols-5 gap-4 items-end">
           {/* Assigned Executive */}
           <div className="space-y-1">
           {(user?.role === 'Admin' || user?.role === 'Manager') && (
             <div className="space-y-1">
-              <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Assigned Executive</label>
+              <label className="text-[11px] font-bold text-black-400 uppercase tracking-wider block">Assigned Executive</label>
               <select
                 value={assignedFilter}
                 onChange={(e) => setAssignedFilter(e.target.value)}
-                className="w-full max-w-full truncate px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-xs font-bold text-gray-700"
+                className="w-full max-w-full truncate px-3 py-2 bg-black-50 border border-black-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-xs font-bold text-black-700"
               >
                 <option value="">All Executives</option>
                 {employees.map(emp => (
@@ -1311,11 +1342,11 @@ const LeadsDirectory = () => {
 
           {/* Workflow Status */}
           <div className="space-y-1">
-            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Workflow Status</label>
+            <label className="text-[11px] font-bold text-black-400 uppercase tracking-wider block">Workflow Status</label>
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="w-full max-w-full truncate px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-xs font-bold text-gray-700"
+              className="w-full max-w-full truncate px-3 py-2 bg-black-50 border border-black-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-xs font-bold text-black-700"
             >
               <option value="">All Statuses</option>
               {LEAD_STATUSES.map(st => (
@@ -1326,11 +1357,11 @@ const LeadsDirectory = () => {
 
           {/* Project Select */}
           <div className="space-y-1">
-            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Project</label>
+            <label className="text-[11px] font-bold text-black-400 uppercase tracking-wider block">Project</label>
             <select
               value={projectFilter}
               onChange={(e) => setProjectFilter(e.target.value)}
-              className="w-full max-w-full truncate px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-xs font-bold text-gray-700"
+              className="w-full max-w-full truncate px-3 py-2 bg-black-50 border border-black-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-xs font-bold text-black-700"
             >
               <option value="">All Projects</option>
               {projects.map(p => (
@@ -1341,11 +1372,11 @@ const LeadsDirectory = () => {
 
           {/* Campaign / Source */}
           <div className="space-y-1">
-            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Campaign / Source</label>
+            <label className="text-[11px] font-bold text-black-400 uppercase tracking-wider block">Campaign / Source</label>
             <select
               value={campaignFilter}
               onChange={(e) => setCampaignFilter(e.target.value)}
-              className="w-full max-w-full truncate px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-xs font-bold text-gray-700"
+              className="w-full max-w-full truncate px-3 py-2 bg-black-50 border border-black-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-xs font-bold text-black-700"
             >
               <option value="">All Campaigns</option>
               {SOURCE_TYPES.map(src => (
@@ -1356,11 +1387,11 @@ const LeadsDirectory = () => {
 
           {/* Lead Category */}
           <div className="space-y-1">
-            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Lead Category</label>
+            <label className="text-[11px] font-bold text-black-400 uppercase tracking-wider block">Lead Category</label>
             <select
               value={categoryFilter}
               onChange={(e) => setCategoryFilter(e.target.value)}
-              className="w-full max-w-full truncate px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-xs font-bold text-gray-700"
+              className="w-full max-w-full truncate px-3 py-2 bg-black-50 border border-black-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-xs font-bold text-black-700"
             >
               <option value="">All Categories</option>
               <option value="Hot">Hot</option>
@@ -1372,14 +1403,14 @@ const LeadsDirectory = () => {
       </div>
 
       {/* Tab Switcher - Leads Phases */}
-      <div className="w-full max-w-full overflow-x-auto bg-white border border-gray-150 p-1.5 rounded-2xl shadow-sm scrollbar-none">
+      <div className="w-full max-w-full overflow-x-auto bg-white border border-black-150 p-1.5 rounded-2xl shadow-sm scrollbar-none">
         <div className="flex gap-1 min-w-max">
           <button
             onClick={() => setActiveTab('All')}
             className={`px-4 py-2 text-xs font-bold rounded-xl transition ${
               activeTab === 'All'
                 ? 'bg-[#0e623a] text-white shadow-sm'
-                : 'text-gray-500 hover:bg-gray-50 hover:text-gray-800'
+                : 'text-black-500 hover:bg-black-50 hover:text-black-800'
             }`}
           >
             All Leads ({leads.length})
@@ -1398,7 +1429,7 @@ const LeadsDirectory = () => {
                 className={`px-4 py-2 text-xs font-bold rounded-xl transition ${
                   activeTab === st
                     ? 'bg-[#0e623a] text-white shadow-sm'
-                    : 'text-gray-500 hover:bg-gray-50 hover:text-gray-800'
+                    : 'text-black-500 hover:bg-black-50 hover:text-black-800'
                 }`}
               >
                 {st} ({count})
@@ -1409,11 +1440,11 @@ const LeadsDirectory = () => {
       </div>
 
       {/* Leads Main Table */}
-      <div className="bg-white border border-gray-150 shadow-sm rounded-3xl overflow-visible">
+      <div className="bg-white border border-black-150 shadow-sm rounded-3xl overflow-visible">
         <div className="overflow-x-auto w-full min-h-[350px]">
           <table className="w-full text-left border-collapse min-w-[900px]">
           <thead>
-            <tr className="bg-gray-50 border-b border-gray-150 text-[10px] font-bold text-gray-500 uppercase tracking-wider">
+            <tr className="bg-black-50 border-b border-black-150 text-[11px] font-bold text-black-500 uppercase tracking-wider">
               <th className="px-3 py-2 w-10 text-center">S.No</th>
               <th className="px-3 py-2">Date</th>
               <th className="px-3 py-2">Customer Name</th>
@@ -1428,38 +1459,38 @@ const LeadsDirectory = () => {
               <th className="px-3 py-2 text-center">Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-100 text-sm">
+          <tbody className="divide-y divide-black-100 text-sm">
             {paginatedLeadsList.map((lead, index) => (
               <tr 
                 key={lead._id} 
                 className={`transition duration-150 ${
                   lead.isClosed 
-                    ? 'bg-red-50/70 text-gray-500 opacity-90 border-l-4 border-red-500 hover:bg-red-100' 
+                    ? 'bg-red-50/70 text-black-500 opacity-90 border-l-4 border-red-500 hover:bg-red-100' 
                     : lead.leadCategory === 'Hot'
                       ? 'bg-yellow-50 hover:bg-yellow-100 border-l-4 border-yellow-400'
-                      : 'hover:bg-gray-50/50'
+                      : 'hover:bg-black-50/50'
                 }`}
               >
                 {/* S.No */}
-                <td className="px-3 py-1.5 border-b border-gray-100 text-center">
-                  <div className="text-[10px] font-bold text-gray-500">
+                <td className="px-3 py-1.5 border-b border-black-100 text-center">
+                  <div className="text-[11px] font-bold text-black-500">
                     {(currentPage - 1) * itemsPerPage + index + 1}
                   </div>
                 </td>
 
                 {/* Date */}
-                <td className="px-3 py-1.5 border-b border-gray-100">
-                  <div className="text-[10px] font-semibold text-gray-700 whitespace-nowrap">
+                <td className="px-3 py-1.5 border-b border-black-100">
+                  <div className="text-[11px] font-semibold text-black-700 whitespace-nowrap">
                     {lead.createdAt ? new Date(lead.createdAt).toLocaleDateString('en-GB') : '—'}
                   </div>
                 </td>
 
                 {/* Customer */}
-                <td className="px-3 py-1.5 border-b border-gray-100">
+                <td className="px-3 py-1.5 border-b border-black-100">
                   <div className="flex items-center gap-2">
-                    <span className="font-bold text-gray-800 text-xs">{lead.name}</span>
+                    <span className="font-bold text-black-800 text-xs">{lead.name}</span>
                     {(lead.isReopened === true || (lead.history && lead.history.some(h => h.note && h.note.toLowerCase().includes('reopened')))) && (
-                      <span className="bg-amber-100 text-amber-800 border border-amber-250 text-[9px] font-extrabold px-1.5 py-0.5 rounded-full uppercase tracking-wider shrink-0 shadow-sm animate-pulse">
+                      <span className="bg-amber-100 text-amber-800 border border-amber-250 text-[10px] font-extrabold px-1.5 py-0.5 rounded-full uppercase tracking-wider shrink-0 shadow-sm animate-pulse">
                         Reopened
                       </span>
                     )}
@@ -1467,21 +1498,21 @@ const LeadsDirectory = () => {
                 </td>
 
                 {/* Phone Number */}
-                <td className="px-3 py-1.5 border-b border-gray-100">
-                  <div className="flex flex-col gap-1 text-[10px] text-gray-500">
+                <td className="px-3 py-1.5 border-b border-black-100">
+                  <div className="flex flex-col gap-1 text-[11px] text-black-500">
                     <div className="flex items-center gap-1 font-semibold">
-                      <Phone className="w-3 h-3 text-gray-300" />
+                      <Phone className="w-3 h-3 text-black-300" />
                       <span>{lead.phone}</span>
                     </div>
                   </div>
                 </td>
  
                 {/* Source Details */}
-                <td className="px-3 py-1.5 border-b border-gray-100">
+                <td className="px-3 py-1.5 border-b border-black-100">
                   <div className="space-y-0.5">
-                    <div className="text-[10px] font-semibold text-gray-700">{lead.leadSource || (lead.leadType === 'Direct Visit' ? 'Direct Visit' : '—')}</div>
+                    <div className="text-[11px] font-semibold text-black-700">{lead.leadSource || (lead.leadType === 'Direct Visit' ? 'Direct Visit' : '—')}</div>
                     {lead.leadType === 'Lead' && lead.activeAd?.name && (
-                      <div className="text-[10px] text-gray-500 flex flex-col gap-0.5">
+                      <div className="text-[11px] text-black-500 flex flex-col gap-0.5">
                         <div className="flex items-center gap-1">
                           <span className="truncate max-w-[120px]">Ad: {lead.activeAd.name}</span>
                           {lead.activeAd.link && (
@@ -1491,7 +1522,7 @@ const LeadsDirectory = () => {
                           )}
                         </div>
                         {lead.leadCost > 0 && (
-                          <span className="text-[9px] font-extrabold text-[#0e623a] bg-[#0e623a]/10 px-1.5 py-0.5 rounded w-fit">
+                          <span className="text-[10px] font-extrabold text-[#0e623a] bg-[#0e623a]/10 px-1.5 py-0.5 rounded w-fit">
                             Cost: ₹{lead.leadCost}
                           </span>
                         )}
@@ -1501,33 +1532,33 @@ const LeadsDirectory = () => {
                 </td>
  
                 {/* Project */}
-                <td className="px-3 py-1.5 border-b border-gray-100">
-                  <div className="text-[10px] font-semibold text-gray-700">
+                <td className="px-3 py-1.5 border-b border-black-100">
+                  <div className="text-[11px] font-semibold text-black-700">
                     {projects.find(p => p._id === (lead.project?._id || lead.project))?.code || '—'}
                   </div>
                 </td>
  
                 {/* Lead Category */}
-                <td className="px-3 py-1.5 border-b border-gray-100 text-center">
-                  <span className={`px-2 py-1 text-[9px] font-bold uppercase rounded-full tracking-wider border shadow-sm ${lead.leadCategory === 'Hot' ? 'bg-red-50 text-red-600 border-red-200' : lead.leadCategory === 'Warm' ? 'bg-orange-50 text-orange-600 border-orange-200' : 'bg-blue-50 text-blue-600 border-blue-200'}`}>{lead.leadCategory || 'Cold'}</span>
+                <td className="px-3 py-1.5 border-b border-black-100 text-center">
+                  <span className={`px-2 py-1 text-[10px] font-bold uppercase rounded-full tracking-wider border shadow-sm ${lead.leadCategory === 'Hot' ? 'bg-red-50 text-red-600 border-red-200' : lead.leadCategory === 'Warm' ? 'bg-orange-50 text-orange-600 border-orange-200' : 'bg-blue-50 text-blue-600 border-blue-200'}`}>{lead.leadCategory || 'Cold'}</span>
                 </td>
 
                 {/* Assigned By */}
-                <td className="px-3 py-1.5 border-b border-gray-100">
-                  <div className="text-[10px] font-semibold text-gray-600">
+                <td className="px-3 py-1.5 border-b border-black-100">
+                  <div className="text-[11px] font-semibold text-black-600">
                     {lead.assignedBy?.name || 'Admin'}
                   </div>
                 </td>
 
                 {/* Assigned To */}
-                <td className="px-3 py-1.5 border-b border-gray-100">
-                  <div className="text-[10px] font-semibold text-gray-800">
+                <td className="px-3 py-1.5 border-b border-black-100">
+                  <div className="text-[11px] font-semibold text-black-800">
                     {lead.assignedTo?.name || 'Unassigned'}
                   </div>
                 </td>
  
                 {/* Workflow Status Dropdown */}
-                <td className="px-3 py-1.5 border-b border-gray-100">
+                <td className="px-3 py-1.5 border-b border-black-100">
                   {lead.isClosed ? (
                     <div className="flex flex-col gap-1 items-start">
                       {(() => {
@@ -1536,11 +1567,11 @@ const LeadsDirectory = () => {
                         const displayRemarks = match ? lead.closeRemarks.replace(/\[Lost at .*? stage\] - /, '') : lead.closeRemarks;
                         return (
                           <>
-                            <span className="text-[9px] font-extrabold text-red-700 bg-red-100 border border-red-200 px-2 py-0.5 rounded-full uppercase tracking-wider">
+                            <span className="text-[10px] font-extrabold text-red-700 bg-red-100 border border-red-200 px-2 py-0.5 rounded-full uppercase tracking-wider">
                               {lostStage ? `${lostStage} - Completed` : 'Closed (Completed)'}
                             </span>
                             {displayRemarks && (
-                              <div className="text-[10px] text-gray-400 italic max-w-[150px] truncate" title={displayRemarks}>
+                              <div className="text-[11px] text-black-400 italic max-w-[150px] truncate" title={displayRemarks}>
                                 "{displayRemarks}"
                               </div>
                             )}
@@ -1549,17 +1580,19 @@ const LeadsDirectory = () => {
                       })()}
                       <button
                         onClick={() => handleReopenClosedLead(lead)}
-                        className="text-[10px] font-bold text-[#0e623a] hover:underline"
+                        disabled={reopeningId === lead._id}
+                        className="text-[11px] font-bold text-[#0e623a] hover:underline flex items-center gap-1 disabled:opacity-50"
                       >
+                        {reopeningId === lead._id && <Loader2 className="w-3 h-3 animate-spin" />}
                         Reopen Lead
                       </button>
                     </div>
                   ) : activeTab === 'All' ? (
                     <div className="flex flex-col items-start gap-1">
-                      <span className={`px-3 py-1.5 rounded-full border text-[10px] font-bold shadow-sm inline-block ${
-                        STATUS_COLORS[lead.status]?.bg || 'bg-gray-50/70'
-                      } ${STATUS_COLORS[lead.status]?.text || 'text-gray-700'} ${
-                        STATUS_COLORS[lead.status]?.border || 'border-gray-200'
+                      <span className={`px-3 py-1.5 rounded-full border text-[11px] font-bold shadow-sm inline-block ${
+                        STATUS_COLORS[lead.status]?.bg || 'bg-black-50/70'
+                      } ${STATUS_COLORS[lead.status]?.text || 'text-black-700'} ${
+                        STATUS_COLORS[lead.status]?.border || 'border-black-200'
                       }`}>
                         {lead.status}
                       </span>
@@ -1569,10 +1602,11 @@ const LeadsDirectory = () => {
                       <select
                         value={lead.status}
                         onChange={(e) => handleStatusChange(lead._id, e.target.value)}
-                        className={`appearance-none cursor-pointer flex items-center justify-between gap-1.5 pl-3 pr-7 py-1.5 rounded-full border text-xs font-bold shadow-sm outline-none ${
-                          STATUS_COLORS[lead.status]?.bg || 'bg-gray-50/70'
-                        } ${STATUS_COLORS[lead.status]?.text || 'text-gray-700'} ${
-                          STATUS_COLORS[lead.status]?.border || 'border-gray-200'
+                        disabled={statusChangingId === lead._id}
+                        className={`appearance-none cursor-pointer flex items-center justify-between gap-1.5 pl-3 pr-7 py-1.5 rounded-full border text-xs font-bold shadow-sm outline-none disabled:opacity-50 ${
+                          STATUS_COLORS[lead.status]?.bg || 'bg-black-50/70'
+                        } ${STATUS_COLORS[lead.status]?.text || 'text-black-700'} ${
+                          STATUS_COLORS[lead.status]?.border || 'border-black-200'
                         }`}
                       >
                         {LEAD_STATUSES.map(status => (
@@ -1581,14 +1615,14 @@ const LeadsDirectory = () => {
                           </option>
                         ))}
                       </select>
-                      <ChevronDown className={`w-3.5 h-3.5 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none opacity-70 ${STATUS_COLORS[lead.status]?.text || 'text-gray-700'}`} />
+                      <ChevronDown className={`w-3.5 h-3.5 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none opacity-70 ${STATUS_COLORS[lead.status]?.text || 'text-black-700'}`} />
                     </div>
                   )}
                 </td>
 
                  {/* Next Followup Date */}
-                 <td className="px-3 py-1.5 border-b border-gray-100 text-center">
-                   <div className="text-[10px] font-semibold text-gray-700">
+                 <td className="px-3 py-1.5 border-b border-black-100 text-center">
+                   <div className="text-[11px] font-semibold text-black-700">
                      {lead.followUpInfo?.nextFollowUpDate 
                        ? new Date(lead.followUpInfo.nextFollowUpDate).toLocaleString('en-GB', { dateStyle: 'short', timeStyle: 'short' }) 
                        : '—'}
@@ -1596,33 +1630,35 @@ const LeadsDirectory = () => {
                  </td>
 
                  {/* Action Triggers: History, Edit & Delete */}
-                 <td className="px-3 py-1.5 border-b border-gray-100 text-center">
+                 <td className="px-3 py-1.5 border-b border-black-100 text-center">
                    <div className="relative group inline-block text-left">
-                     <button className="p-1.5 text-gray-500 hover:bg-gray-100 rounded-full transition">
+                     <button className="p-1.5 text-black-500 hover:bg-black-100 rounded-full transition">
                        <MoreVertical className="w-4 h-4" />
                      </button>
-                     <div className="absolute right-6 top-0 mt-0 w-32 bg-white border border-gray-150 rounded-xl shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10 py-1">
+                     <div className="absolute right-6 top-0 mt-0 w-32 bg-white border border-black-150 rounded-xl shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10 py-1">
                        <button
                          onClick={() => {
                            setSelectedLeadForHistory(lead);
                            setHistoryModalOpen(true);
                          }}
-                         className="w-full text-left px-4 py-2 text-[10px] font-bold text-gray-600 hover:bg-gray-50 flex items-center gap-2"
+                         className="w-full text-left px-4 py-2 text-[11px] font-bold text-black-600 hover:bg-black-50 flex items-center gap-2"
                        >
                          <History className="w-3.5 h-3.5" /> History
                        </button>
                        <button
                          onClick={() => handleOpenEditModal(lead)}
-                         className="w-full text-left px-4 py-2 text-[10px] font-bold text-amber-600 hover:bg-amber-50 flex items-center gap-2"
+                         className="w-full text-left px-4 py-2 text-[11px] font-bold text-amber-600 hover:bg-amber-50 flex items-center gap-2"
                        >
                          <Edit2 className="w-3.5 h-3.5" /> Edit
                        </button>
                        {(user?.role === 'Admin' || user?.role === 'Manager') && (
                          <button
                            onClick={() => handleDeleteLead(lead._id, lead.name)}
-                           className="w-full text-left px-4 py-2 text-[10px] font-bold text-red-600 hover:bg-red-50 flex items-center gap-2"
+                           disabled={deletingId === lead._id}
+                           className="w-full text-left px-4 py-2 text-[11px] font-bold text-red-600 hover:bg-red-50 flex items-center gap-2 disabled:opacity-50"
                          >
-                           <Trash2 className="w-3.5 h-3.5" /> Delete
+                           {deletingId === lead._id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                           Delete
                          </button>
                        )}
                      </div>
@@ -1632,7 +1668,7 @@ const LeadsDirectory = () => {
             ))}
             {filteredLeadsList.length === 0 && (
               <tr>
-                <td colSpan="8" className="p-8 text-center text-gray-400 text-xs">
+                <td colSpan="8" className="p-8 text-center text-black-400 text-xs">
                   No lead records found matching selected filters.
                 </td>
               </tr>
@@ -1642,16 +1678,16 @@ const LeadsDirectory = () => {
         </div>
 
         {/* Pagination Controls */}
-        <div className="flex flex-col sm:flex-row items-center justify-between p-4 border-t border-gray-150 gap-4 bg-gray-50/50 rounded-b-3xl">
+        <div className="flex flex-col sm:flex-row items-center justify-between p-4 border-t border-black-150 gap-4 bg-black-50/50 rounded-b-3xl">
           <div className="flex items-center gap-2">
-            <span className="text-xs text-gray-500 font-bold">Rows per page:</span>
+            <span className="text-xs text-black-500 font-bold">Rows per page:</span>
             <select
               value={itemsPerPage}
               onChange={(e) => {
                 setItemsPerPage(Number(e.target.value));
                 setCurrentPage(1);
               }}
-              className="border border-gray-200 rounded-lg px-2 py-1 text-xs font-bold text-gray-700 focus:outline-none focus:border-[#0e623a] bg-white cursor-pointer"
+              className="border border-black-200 rounded-lg px-2 py-1 text-xs font-bold text-black-700 focus:outline-none focus:border-[#0e623a] bg-white cursor-pointer"
             >
               <option value={10}>10</option>
               <option value={25}>25</option>
@@ -1660,7 +1696,7 @@ const LeadsDirectory = () => {
             </select>
           </div>
           
-          <div className="text-xs text-gray-500 font-bold">
+          <div className="text-xs text-black-500 font-bold">
             Showing {filteredLeadsList.length > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0} to {Math.min(currentPage * itemsPerPage, totalItems)} of {totalItems} entries
           </div>
           
@@ -1668,17 +1704,17 @@ const LeadsDirectory = () => {
             <button
               disabled={currentPage === 1}
               onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-              className="px-3 py-1.5 text-xs font-bold rounded-lg border border-gray-200 text-gray-600 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-white bg-gray-50 transition shadow-sm cursor-pointer"
+              className="px-3 py-1.5 text-xs font-bold rounded-lg border border-black-200 text-black-600 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-white bg-black-50 transition shadow-sm cursor-pointer"
             >
               Prev
             </button>
-            <div className="flex items-center justify-center px-3 py-1.5 text-xs font-bold rounded-lg border border-gray-200 bg-white text-[#0e623a] shadow-sm">
+            <div className="flex items-center justify-center px-3 py-1.5 text-xs font-bold rounded-lg border border-black-200 bg-white text-[#0e623a] shadow-sm">
               {currentPage} / {totalPages}
             </div>
             <button
               disabled={currentPage === totalPages || totalPages === 0}
               onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-              className="px-3 py-1.5 text-xs font-bold rounded-lg border border-gray-200 text-gray-600 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-white bg-gray-50 transition shadow-sm cursor-pointer"
+              className="px-3 py-1.5 text-xs font-bold rounded-lg border border-black-200 text-black-600 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-white bg-black-50 transition shadow-sm cursor-pointer"
             >
               Next
             </button>
@@ -1690,11 +1726,11 @@ const LeadsDirectory = () => {
       {/* 🔐 MODAL: Create New Lead / Direct Visit Form */}
       {createModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="bg-white rounded-3xl max-w-3xl w-full overflow-hidden shadow-2xl border border-gray-100">
+          <div className="bg-white rounded-3xl max-w-3xl w-full overflow-hidden shadow-2xl border border-black-100">
             <div className="bg-[#0e623a] p-6 text-white flex justify-between items-start">
               <div>
                 <h3 className="text-lg font-bold">New Lead Registration</h3>
-                <p className="text-emerald-100 text-xs mt-1">Configure user inquiries, campaigns, and direct site visits</p>
+               
               </div>
               <button 
                 onClick={() => setCreateModalOpen(false)}
@@ -1707,10 +1743,10 @@ const LeadsDirectory = () => {
 
             <form onSubmit={handleCreateLead} className="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
               {/* Lead Type Radio Group */}
-              <div className="bg-gray-50 p-4 rounded-2xl border border-gray-150">
-                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-2">Lead Record Category</label>
+              <div className="bg-black-50 p-4 rounded-2xl border border-black-150">
+                <label className="text-[11px] font-bold text-black-400 uppercase tracking-wider block mb-2">Lead Record Category</label>
                 <div className="flex gap-6">
-                  <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 cursor-pointer">
+                  <label className="flex items-center gap-2 text-sm font-semibold text-black-700 cursor-pointer">
                     <input
                       type="radio"
                       name="leadType"
@@ -1724,7 +1760,7 @@ const LeadsDirectory = () => {
                     />
                     <span>Lead (Campaigns & Referrals)</span>
                   </label>
-                  <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 cursor-pointer">
+                  <label className="flex items-center gap-2 text-sm font-semibold text-black-700 cursor-pointer">
                     <input
                       type="radio"
                       name="leadType"
@@ -1744,24 +1780,24 @@ const LeadsDirectory = () => {
               {/* Name & Profession */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1.5">Lead / Customer Name <span className="text-red-500">*</span></label>
+                  <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Lead / Customer Name <span className="text-red-500">*</span></label>
                   <input
                     type="text"
                     required
                     placeholder="e.g. David Brown"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    className="w-full px-4 py-3 bg-gray-55 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0e623a] text-sm"
+                    className="w-full px-4 py-3 bg-black-55 border border-black-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0e623a] text-sm"
                   />
                 </div>
                 <div>
-                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1.5">Profession</label>
+                  <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Profession</label>
                   <input
                     type="text"
                     placeholder="e.g. Software Engineer"
                     value={profession}
                     onChange={(e) => setProfession(e.target.value)}
-                    className="w-full px-4 py-3 bg-gray-55 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0e623a] text-sm"
+                    className="w-full px-4 py-3 bg-black-55 border border-black-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0e623a] text-sm"
                   />
                 </div>
               </div>
@@ -1769,8 +1805,8 @@ const LeadsDirectory = () => {
               {/* Phone & Email */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1.5">Phone Number <span className="text-red-500">*</span></label>
-                  <div className={`flex items-center bg-gray-55 border rounded-xl focus-within:ring-2 transition-all overflow-hidden ${createPhoneErr ? 'border-red-500 focus-within:ring-red-500' : 'border-gray-200 focus-within:ring-[#0e623a] focus-within:border-transparent'}`}>
+                  <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Phone Number <span className="text-red-500">*</span></label>
+                  <div className={`flex items-center bg-black-55 border rounded-xl focus-within:ring-2 transition-all overflow-hidden ${createPhoneErr ? 'border-red-500 focus-within:ring-red-500' : 'border-black-200 focus-within:ring-[#0e623a] focus-within:border-transparent'}`}>
                     <select
                       value={phoneCountryCode}
                       onChange={(e) => {
@@ -1778,7 +1814,7 @@ const LeadsDirectory = () => {
                         setPhoneLocal('');
                         setCreatePhoneErr('');
                       }}
-                      className="bg-transparent pl-4 pr-6 py-3 text-sm font-bold text-gray-700 outline-none cursor-pointer border-r border-gray-200/80 hover:bg-gray-100/50 transition-colors w-24 appearance-none"
+                      className="bg-transparent pl-4 pr-6 py-3 text-sm font-bold text-black-700 outline-none cursor-pointer border-r border-black-200/80 hover:bg-black-100/50 transition-colors w-24 appearance-none"
                       style={{ backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 6px center', backgroundSize: '12px' }}
                     >
                       <option value="+91">🇮🇳 +91</option>
@@ -1798,21 +1834,21 @@ const LeadsDirectory = () => {
                         setCreatePhoneErr('');
                       }}
                       onBlur={handlePhoneBlur}
-                      className="flex-grow px-4 py-3 bg-transparent outline-none text-sm text-gray-800"
+                      className="flex-grow px-4 py-3 bg-transparent outline-none text-sm text-black-800"
                     />
                   </div>
                   {createPhoneErr && (
-                    <p className="text-[10px] text-red-500 font-bold mt-1">{createPhoneErr}</p>
+                    <p className="text-[11px] text-red-500 font-bold mt-1">{createPhoneErr}</p>
                   )}
                 </div>
                 <div>
-                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1.5">Email Address</label>
+                  <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Email Address</label>
                   <input
                     type="email"
                     placeholder="e.g. user@example.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full px-4 py-3 bg-gray-55 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0e623a] text-sm"
+                    className="w-full px-4 py-3 bg-black-55 border border-black-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0e623a] text-sm"
                   />
                 </div>
               </div>
@@ -1834,24 +1870,24 @@ const LeadsDirectory = () => {
               {/* Address & Location */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1.5">Customer Address <span className="text-red-500">*</span></label>
+                  <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Customer Address <span className="text-red-500">*</span></label>
                   <textarea
                     required
                     rows="2"
                     placeholder="Street details, pincode..."
                     value={address}
                     onChange={(e) => setAddress(e.target.value)}
-                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0e623a] text-sm"
+                    className="w-full px-4 py-3 bg-black-50 border border-black-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0e623a] text-sm"
                   />
                 </div>
                 <div>
-                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1.5">Location (City/Area)</label>
+                  <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Location (City/Area)</label>
                   <textarea
                     rows="2"
                     placeholder="e.g. Downtown"
                     value={leadLocation}
                     onChange={(e) => setLeadLocation(e.target.value)}
-                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0e623a] text-sm"
+                    className="w-full px-4 py-3 bg-black-50 border border-black-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0e623a] text-sm"
                   />
                 </div>
               </div>
@@ -1862,7 +1898,7 @@ const LeadsDirectory = () => {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {/* Lead Source */}
                     <div className="flex flex-col">
-                      <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1.5">Lead Source</label>
+                      <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Lead Source</label>
                       <SearchableSelect
                         options={SOURCE_TYPES}
                         value={leadSource}
@@ -1873,7 +1909,7 @@ const LeadsDirectory = () => {
 
                     {/* Project Code selection */}
                     <div className="flex flex-col">
-                      <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1.5">Project Code</label>
+                      <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Project Code</label>
                       <SearchableSelect
                         options={projects.map(p => ({ value: p._id, label: `${p.code} - ${p.name} (${p.projectType})` }))}
                         value={selectedProjectId}
@@ -1894,7 +1930,7 @@ const LeadsDirectory = () => {
                           onChange={setSelectedAdId}
                           placeholder="Select Active Campaign Ad"
                         />
-                        <span className="text-[10px] text-gray-400 mt-1 block">
+                        <span className="text-[11px] text-black-400 mt-1 block">
                           * Displays only active reels/posters for the selected project code.
                         </span>
                       </div>
@@ -1916,7 +1952,7 @@ const LeadsDirectory = () => {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {/* Lead Source */}
                     <div className="flex flex-col">
-                      <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1.5">Lead Source</label>
+                      <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Lead Source</label>
                       <SearchableSelect
                         options={SOURCE_TYPES}
                         value={leadSource}
@@ -1927,7 +1963,7 @@ const LeadsDirectory = () => {
 
                     {/* Project Code selection */}
                     <div className="flex flex-col">
-                      <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1.5">Project Code</label>
+                      <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Project Code</label>
                       <SearchableSelect
                         options={projects.map(p => ({ value: p._id, label: `${p.code} - ${p.name} (${p.projectType})` }))}
                         value={selectedProjectId}
@@ -1941,9 +1977,9 @@ const LeadsDirectory = () => {
 
               {/* Conditional Direct Visit Fields */}
               {leadType === 'Direct Visit' && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-gray-50 p-4 rounded-2xl border border-gray-150">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-black-50 p-4 rounded-2xl border border-black-150">
                   <div>
-                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1.5">Next Follow-up Date <span className="text-red-500">*</span></label>
+                    <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Next Follow-up Date <span className="text-red-500">*</span></label>
                     <input
                       type="date"
                       min={(() => {
@@ -1956,17 +1992,17 @@ const LeadsDirectory = () => {
                       required
                       value={directFollowDate}
                       onChange={(e) => setDirectFollowDate(e.target.value)}
-                      className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0e623a] text-sm text-gray-700"
+                      className="w-full px-4 py-3 bg-white border border-black-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0e623a] text-sm text-black-700"
                     />
                   </div>
                   <div>
-                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1.5">Notes (Narration)</label>
+                    <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Notes (Narration)</label>
                     <textarea
                       rows="2"
                       placeholder="Interaction notes..."
                       value={directFollowRemarks}
                       onChange={(e) => setDirectFollowRemarks(e.target.value)}
-                      className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0e623a] text-sm"
+                      className="w-full px-4 py-3 bg-white border border-black-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0e623a] text-sm"
                     />
                   </div>
                 </div>
@@ -1975,7 +2011,7 @@ const LeadsDirectory = () => {
               {/* Assigned Executive */}
               {(user?.role === 'Admin' || user?.role === 'Manager') && (
                 <div className="flex flex-col">
-                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1.5">Assigned Executive / Member</label>
+                  <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Assigned Executive / Member</label>
                   <SearchableSelect
                     options={employees.map(emp => ({ value: emp._id, label: `${emp.name} (${emp.role})` }))}
                     value={assignedToId}
@@ -1990,7 +2026,7 @@ const LeadsDirectory = () => {
                 <button
                   type="button"
                   onClick={() => setCreateModalOpen(false)}
-                  className="flex-1 py-3 border border-gray-200 rounded-xl text-xs font-bold text-gray-500 hover:bg-gray-50 transition"
+                  className="flex-1 py-3 border border-black-200 rounded-xl text-xs font-bold text-black-500 hover:bg-black-50 transition"
                 >
                   Cancel
                 </button>
@@ -1998,17 +2034,19 @@ const LeadsDirectory = () => {
                   <button
                     type="button"
                     onClick={handleRequestReregistration}
-                    className="flex-1 py-3 bg-red-600 text-white rounded-xl text-xs font-bold hover:bg-red-700 transition shadow-md flex items-center justify-center gap-2"
+                    disabled={isSubmitting}
+                    className="flex-1 py-3 bg-red-600 text-white rounded-xl text-xs font-bold hover:bg-red-700 transition shadow-md flex items-center justify-center gap-2 disabled:opacity-50"
                   >
-                    <AlertCircle className="w-4 h-4" />
-                    Request Admin Permission
+                    {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <AlertCircle className="w-4 h-4" />}
+                    {isSubmitting ? 'Requesting...' : 'Request Admin Permission'}
                   </button>
                 ) : (
                   <button
                     type="submit"
-                    className="flex-1 py-3 bg-[#0e623a] text-white rounded-xl text-xs font-bold hover:bg-[#0b4d2d] transition shadow-md"
+                    disabled={isSubmitting}
+                    className="flex-1 py-3 bg-[#0e623a] text-white rounded-xl text-xs font-bold hover:bg-[#0b4d2d] transition shadow-md disabled:opacity-50 flex items-center justify-center gap-2"
                   >
-                    Save Lead Record
+                    {isSubmitting ? <><Loader2 className="w-4 h-4 animate-spin" /> Processing...</> : 'Save Lead Record'}
                   </button>
                 )}
               </div>
@@ -2020,7 +2058,7 @@ const LeadsDirectory = () => {
       {/* 🔐 MODAL: Edit Lead Record */}
       {editModalOpen && selectedLeadForEdit && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="bg-white rounded-3xl max-w-xl w-full overflow-hidden shadow-2xl border border-gray-100">
+          <div className="bg-white rounded-3xl max-w-xl w-full overflow-hidden shadow-2xl border border-black-100">
             <div className="bg-amber-600 p-6 text-white flex justify-between items-start">
               <div>
                 <h3 className="text-lg font-bold">Edit Lead Information</h3>
@@ -2037,10 +2075,10 @@ const LeadsDirectory = () => {
 
             <form onSubmit={handleUpdateLead} className="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
               {/* Lead Type Radio Group */}
-              <div className="bg-gray-50 p-4 rounded-2xl border border-gray-150">
-                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-2">Lead Record Category</label>
+              <div className="bg-black-50 p-4 rounded-2xl border border-black-150">
+                <label className="text-[11px] font-bold text-black-400 uppercase tracking-wider block mb-2">Lead Record Category</label>
                 <div className="flex gap-6">
-                  <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 cursor-pointer">
+                  <label className="flex items-center gap-2 text-sm font-semibold text-black-700 cursor-pointer">
                     <input
                       type="radio"
                       name="editLeadType"
@@ -2051,7 +2089,7 @@ const LeadsDirectory = () => {
                     />
                     <span>Lead (Campaigns & Referrals)</span>
                   </label>
-                  <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 cursor-pointer">
+                  <label className="flex items-center gap-2 text-sm font-semibold text-black-700 cursor-pointer">
                     <input
                       type="radio"
                       name="editLeadType"
@@ -2068,19 +2106,19 @@ const LeadsDirectory = () => {
               {/* Name & Phone */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-left">
                 <div>
-                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1.5">Lead / Customer Name</label>
+                  <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Lead / Customer Name</label>
                   <input
                     type="text"
                     required
                     placeholder="e.g. David Brown"
                     value={editName}
                     onChange={(e) => setEditName(e.target.value)}
-                    className="w-full px-4 py-3 bg-gray-55 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-600 text-sm"
+                    className="w-full px-4 py-3 bg-black-55 border border-black-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-600 text-sm"
                   />
                 </div>
                 <div>
-                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1.5">Phone Number</label>
-                  <div className={`flex items-center bg-gray-55 border rounded-xl focus-within:ring-2 transition-all overflow-hidden ${editPhoneErr ? 'border-red-500 focus-within:ring-red-500' : 'border-gray-200 focus-within:ring-amber-600 focus-within:border-transparent'}`}>
+                  <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Phone Number</label>
+                  <div className={`flex items-center bg-black-55 border rounded-xl focus-within:ring-2 transition-all overflow-hidden ${editPhoneErr ? 'border-red-500 focus-within:ring-red-500' : 'border-black-200 focus-within:ring-amber-600 focus-within:border-transparent'}`}>
                     <select
                       value={editPhoneCountryCode}
                       onChange={(e) => {
@@ -2088,7 +2126,7 @@ const LeadsDirectory = () => {
                         setEditPhoneLocal('');
                         setEditPhoneErr('');
                       }}
-                      className="bg-transparent pl-4 pr-6 py-3 text-sm font-bold text-gray-700 outline-none cursor-pointer border-r border-gray-200/80 hover:bg-gray-100/50 transition-colors w-24 appearance-none"
+                      className="bg-transparent pl-4 pr-6 py-3 text-sm font-bold text-black-700 outline-none cursor-pointer border-r border-black-200/80 hover:bg-black-100/50 transition-colors w-24 appearance-none"
                       style={{ backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 6px center', backgroundSize: '12px' }}
                     >
                       <option value="+91">🇮🇳 +91</option>
@@ -2115,21 +2153,21 @@ const LeadsDirectory = () => {
                     />
                   </div>
                   {editPhoneErr && (
-                    <p className="text-[10px] text-red-500 font-bold mt-1">{editPhoneErr}</p>
+                    <p className="text-[11px] text-red-500 font-bold mt-1">{editPhoneErr}</p>
                   )}
                 </div>
               </div>
 
               {/* Address */}
               <div className="text-left">
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1.5">Customer Address</label>
+                <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Customer Address</label>
                 <textarea
                   required
                   rows="2"
                   placeholder="Street details, city, pincode..."
                   value={editAddress}
                   onChange={(e) => setEditAddress(e.target.value)}
-                  className="w-full px-4 py-3 bg-gray-55 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-600 text-sm"
+                  className="w-full px-4 py-3 bg-black-55 border border-black-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-600 text-sm"
                 />
               </div>
 
@@ -2139,7 +2177,7 @@ const LeadsDirectory = () => {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-left">
                     {/* Lead Source */}
                     <div className="flex flex-col">
-                      <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1.5">Lead Source</label>
+                      <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Lead Source</label>
                       <SearchableSelect
                         options={SOURCE_TYPES}
                         value={editLeadSource}
@@ -2150,7 +2188,7 @@ const LeadsDirectory = () => {
 
                     {/* Project Code selection */}
                     <div className="flex flex-col">
-                      <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1.5">Project Code</label>
+                      <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Project Code</label>
                       <SearchableSelect
                         options={projects.map(p => ({ value: p._id, label: `${p.code} - ${p.name} (${p.projectType})` }))}
                         value={editProjectId}
@@ -2180,7 +2218,7 @@ const LeadsDirectory = () => {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-left">
                     {/* Lead Source */}
                     <div className="flex flex-col">
-                      <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1.5">Lead Source</label>
+                      <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Lead Source</label>
                       <SearchableSelect
                         options={SOURCE_TYPES}
                         value={editLeadSource}
@@ -2191,7 +2229,7 @@ const LeadsDirectory = () => {
 
                     {/* Project Code selection */}
                     <div className="flex flex-col">
-                      <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1.5">Project Code</label>
+                      <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Project Code</label>
                       <SearchableSelect
                         options={projects.map(p => ({ value: p._id, label: `${p.code} - ${p.name} (${p.projectType})` }))}
                         value={editProjectId}
@@ -2204,10 +2242,10 @@ const LeadsDirectory = () => {
               )}
 
               {/* Bank Loan Selection */}
-              <div className="bg-gray-50 p-4 rounded-2xl border border-gray-150 text-left">
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-2">Requires Bank Loan?</label>
+              <div className="bg-black-50 p-4 rounded-2xl border border-black-150 text-left">
+                <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-2">Requires Bank Loan?</label>
                 <div className="flex gap-6">
-                  <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 cursor-pointer">
+                  <label className="flex items-center gap-2 text-sm font-semibold text-black-700 cursor-pointer">
                     <input
                       type="radio"
                       name="editBankLoan"
@@ -2218,7 +2256,7 @@ const LeadsDirectory = () => {
                     />
                     <span>Yes</span>
                   </label>
-                  <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 cursor-pointer">
+                  <label className="flex items-center gap-2 text-sm font-semibold text-black-700 cursor-pointer">
                     <input
                       type="radio"
                       name="editBankLoan"
@@ -2235,7 +2273,7 @@ const LeadsDirectory = () => {
               {/* Assigned Executive */}
               {(user?.role === 'Admin' || user?.role === 'Manager') && (
                 <div className="flex flex-col text-left">
-                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1.5">Assigned Executive / Member</label>
+                  <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Assigned Executive / Member</label>
                   <SearchableSelect
                     options={employees.map(emp => ({ value: emp._id, label: `${emp.name} (${emp.role})` }))}
                     value={editAssignedToId}
@@ -2247,11 +2285,11 @@ const LeadsDirectory = () => {
 
               {/* Workflow Status */}
               <div className="flex flex-col text-left">
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-1.5">Workflow Status</label>
+                <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Workflow Status</label>
                 <select
                   value={editStatus}
                   onChange={(e) => setEditStatus(e.target.value)}
-                  className="w-full px-4 py-3 bg-gray-55 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-600 text-sm cursor-pointer appearance-none"
+                  className="w-full px-4 py-3 bg-black-55 border border-black-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-600 text-sm cursor-pointer appearance-none"
                   style={{ backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 16px center', backgroundSize: '16px' }}
                 >
                   {LEAD_STATUSES.map(status => (
@@ -2265,15 +2303,16 @@ const LeadsDirectory = () => {
                 <button
                   type="button"
                   onClick={() => setEditModalOpen(false)}
-                  className="flex-1 py-3 border border-gray-200 rounded-xl text-xs font-bold text-gray-500 hover:bg-gray-50 transition cursor-pointer"
+                  className="flex-1 py-3 border border-black-200 rounded-xl text-xs font-bold text-black-500 hover:bg-black-50 transition cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 py-3 bg-amber-600 text-white rounded-xl text-xs font-bold hover:bg-amber-700 transition shadow-md cursor-pointer"
+                  disabled={isSubmitting}
+                  className="flex-1 py-3 bg-amber-600 text-white rounded-xl text-xs font-bold hover:bg-amber-700 transition shadow-md cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
                 >
-                  Update Lead Record
+                  {isSubmitting ? <><Loader2 className="w-4 h-4 animate-spin" /> Updating...</> : 'Update Lead Record'}
                 </button>
               </div>
             </form>
@@ -2284,7 +2323,7 @@ const LeadsDirectory = () => {
       {/* 🔐 MODAL: View History Logs */}
       {historyModalOpen && selectedLeadForHistory && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="bg-white rounded-3xl max-w-lg w-full overflow-hidden shadow-2xl border border-gray-100">
+          <div className="bg-white rounded-3xl max-w-lg w-full overflow-hidden shadow-2xl border border-black-100">
             <div className="bg-[#0e623a] p-6 text-white flex items-center justify-between">
               <div>
                 <h3 className="text-lg font-bold">Lead Audit & Transition Logs</h3>
@@ -2301,28 +2340,28 @@ const LeadsDirectory = () => {
 
             <div className="p-6 space-y-4 max-h-[50vh] overflow-y-auto">
               {selectedLeadForHistory.history?.length > 0 ? (
-                <div className="relative border-l border-gray-200 ml-3 space-y-6">
+                <div className="relative border-l border-black-200 ml-3 space-y-6">
                   {selectedLeadForHistory.history.map((hist, idx) => (
                     <div key={idx} className="relative pl-6">
                       {/* Timeline dot */}
                       <span className="absolute -left-[5px] top-1.5 w-2.5 h-2.5 rounded-full bg-[#0e623a] border-2 border-white ring-4 ring-[#f0f9f4]"></span>
                       
-                      <div className="text-xs text-gray-400">
+                      <div className="text-xs text-black-400">
                         {hist.timestamp ? new Date(hist.timestamp).toLocaleString() : 'Date unavailable'}
                       </div>
-                      <div className="text-sm font-semibold text-gray-800 mt-0.5">
+                      <div className="text-sm font-semibold text-black-800 mt-0.5">
                         Status transitioned to: <span className="text-[#0e623a] font-bold">{hist.status}</span>
                       </div>
                       {hist.assignedTo && (
-                        <div className="text-xs text-gray-500 mt-0.5">
+                        <div className="text-xs text-black-500 mt-0.5">
                           Assigned Executive: {hist.assignedTo.name} ({hist.assignedTo.role})
                         </div>
                       )}
-                      <div className="text-xs text-gray-400 mt-1 italic">
+                      <div className="text-xs text-black-400 mt-1 italic">
                         Action performed by: {hist.updatedBy?.name || 'System'} ({hist.updatedBy?.role || 'User'})
                       </div>
                       {hist.note && (
-                        <div className="mt-2 text-xs bg-gray-50 border p-2 rounded-lg text-gray-600">
+                        <div className="mt-2 text-xs bg-black-50 border p-2 rounded-lg text-black-600">
                           {hist.note}
                         </div>
                       )}
@@ -2330,14 +2369,14 @@ const LeadsDirectory = () => {
                   ))}
                 </div>
               ) : (
-                <p className="text-xs text-gray-400 text-center py-4">No audit logs available for this lead.</p>
+                <p className="text-xs text-black-400 text-center py-4">No audit logs available for this lead.</p>
               )}
             </div>
 
-            <div className="p-6 border-t bg-gray-50 flex justify-end">
+            <div className="p-6 border-t bg-black-50 flex justify-end">
               <button
                 onClick={() => setHistoryModalOpen(false)}
-                className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold rounded-xl text-xs transition"
+                className="px-4 py-2 bg-black-200 hover:bg-black-300 text-black-700 font-bold rounded-xl text-xs transition"
               >
                 Close Logs
               </button>
@@ -2349,7 +2388,7 @@ const LeadsDirectory = () => {
       {/* 🔐 MODAL: Custom Quotation Verification Alert */}
       {qtnConfirmOpen && pendingLeadForBooked && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
-          <div className="bg-white rounded-3xl max-w-md w-full overflow-hidden shadow-2xl border border-gray-100 animate-scale-in">
+          <div className="bg-white rounded-3xl max-w-md w-full overflow-hidden shadow-2xl border border-black-100 animate-scale-in">
             <div className="bg-[#0e623a] p-6 text-white text-center space-y-2 relative">
               <button
                 type="button"
@@ -2367,8 +2406,8 @@ const LeadsDirectory = () => {
             </div>
 
             <div className="p-6 space-y-4 text-center">
-              <p className="text-xs text-gray-500 font-semibold leading-relaxed">
-                Have you already prepared and finalized a quotation estimate for <strong className="text-gray-700">{pendingLeadForBooked.name}</strong>?
+              <p className="text-xs text-black-500 font-semibold leading-relaxed">
+                Have you already prepared and finalized a quotation estimate for <strong className="text-black-700">{pendingLeadForBooked.name}</strong>?
               </p>
               
               <div className="flex flex-col gap-2 pt-2">
@@ -2389,7 +2428,7 @@ const LeadsDirectory = () => {
                     setQtnConfirmOpen(false);
                     navigate(`/quotations/new?leadId=${pendingLeadForBooked._id}&targetStatus=Booked`);
                   }}
-                  className="w-full py-3 bg-gray-150 hover:bg-gray-200 text-gray-700 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer"
+                  className="w-full py-3 bg-black-150 hover:bg-black-200 text-black-700 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer"
                 >
                   <span>No, Redirect to Create Quotation</span>
                 </button>
@@ -2404,7 +2443,7 @@ const LeadsDirectory = () => {
         const hasFollowUpOptions = ['Follow-Up', 'Site Visit', 'Future Follow-up'].includes(followTargetStatus);
         return (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-            <div className="bg-white rounded-3xl max-w-lg w-full overflow-hidden shadow-2xl border border-gray-100">
+            <div className="bg-white rounded-3xl max-w-lg w-full overflow-hidden shadow-2xl border border-black-100">
               <div className="bg-[#0e623a] p-6 text-white">
                 <h3 className="text-lg font-bold flex items-center gap-2">
                   <CalendarClock className="w-5 h-5 text-emerald-300" />
@@ -2426,7 +2465,7 @@ const LeadsDirectory = () => {
                       className={`py-3 rounded-xl text-xs font-bold transition ${
                         followMode === 'FollowUp'
                           ? 'bg-[#0e623a] text-white shadow'
-                          : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                          : 'bg-black-100 text-black-500 hover:bg-black-200'
                       }`}
                     >
                       Schedule Follow-up
@@ -2437,7 +2476,7 @@ const LeadsDirectory = () => {
                       className={`py-3 rounded-xl text-xs font-bold transition ${
                         followMode === 'Completed'
                           ? 'bg-red-600 text-white shadow'
-                          : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                          : 'bg-black-100 text-black-500 hover:bg-black-200'
                       }`}
                     >
                       Close Lead (Lost)
@@ -2447,11 +2486,11 @@ const LeadsDirectory = () => {
 
                 <div className="space-y-4 mb-4">
                   <div>
-                    <label className="text-xs font-semibold text-gray-600 block mb-1">Lead Category <span className="text-red-500">*</span></label>
+                    <label className="text-xs font-semibold text-black-600 block mb-1">Lead Category <span className="text-red-500">*</span></label>
                     <select
                       value={leadCategory}
                       onChange={(e) => setLeadCategory(e.target.value)}
-                      className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none text-xs font-semibold text-gray-600"
+                      className="w-full px-3 py-2 bg-black-50 border border-black-200 rounded-xl focus:outline-none text-xs font-semibold text-black-600"
                       required
                     >
                       <option value="Hot">Hot</option>
@@ -2464,7 +2503,7 @@ const LeadsDirectory = () => {
                 {followMode === 'FollowUp' ? (
                   <div className="space-y-4">
                     <div>
-                      <label className="text-xs font-semibold text-gray-600 block mb-1">Next Follow-up Date</label>
+                      <label className="text-xs font-semibold text-black-600 block mb-1">Next Follow-up Date</label>
                       <input
                         type="date"
                         required
@@ -2477,16 +2516,16 @@ const LeadsDirectory = () => {
                           return `${year}-${month}-${day}`;
                         })()}
                         onChange={(e) => setNextFollowDate(e.target.value)}
-                        className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none text-xs font-semibold text-gray-600"
+                        className="w-full px-3 py-2 bg-black-50 border border-black-200 rounded-xl focus:outline-none text-xs font-semibold text-black-600"
                       />
                     </div>
 
                     <div>
-                      <label className="text-xs font-semibold text-gray-600 block mb-1">Contacted Through</label>
+                      <label className="text-xs font-semibold text-black-600 block mb-1">Contacted Through</label>
                       <select
                         value={followThrough}
                         onChange={(e) => setFollowThrough(e.target.value)}
-                        className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none text-xs font-semibold text-gray-700"
+                        className="w-full px-3 py-2 bg-black-50 border border-black-200 rounded-xl focus:outline-none text-xs font-semibold text-black-700"
                       >
                         <option value="Call">Call</option>
                         <option value="WhatsApp">WhatsApp</option>
@@ -2495,20 +2534,20 @@ const LeadsDirectory = () => {
                     </div>
 
                     <div>
-                      <label className="text-xs font-semibold text-gray-600 block mb-1">Follow-up Remarks</label>
+                      <label className="text-xs font-semibold text-black-600 block mb-1">Follow-up Remarks</label>
                       <textarea
                         rows="3"
                         value={followRemarks}
                         onChange={(e) => setFollowRemarks(e.target.value)}
                         placeholder="Add follow-up notes or next steps..."
-                        className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none text-xs text-gray-700"
+                        className="w-full px-3 py-2 bg-black-50 border border-black-200 rounded-xl focus:outline-none text-xs text-black-700"
                       />
                     </div>
                   </div>
                 ) : (
                   <div className="space-y-4">
                     <div>
-                      <label className="text-xs font-semibold text-gray-600 block mb-1">
+                      <label className="text-xs font-semibold text-black-600 block mb-1">
                         {!hasFollowUpOptions
                           ? `Remarks / Notes for transitioning to ${followTargetStatus} (Optional)`
                           : 'Closing Remarks'}
@@ -2523,7 +2562,7 @@ const LeadsDirectory = () => {
                             ? `Provide details regarding the transition to ${followTargetStatus}...`
                             : "Explain reasons for closing / completion details..."
                         }
-                        className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none text-xs text-gray-700"
+                        className="w-full px-3 py-2 bg-black-50 border border-black-200 rounded-xl focus:outline-none text-xs text-black-700"
                       />
                     </div>
                   </div>
@@ -2534,17 +2573,18 @@ const LeadsDirectory = () => {
                 <button
                   type="button"
                   onClick={() => setFollowModalOpen(false)}
-                  className="flex-1 py-2.5 border border-gray-200 rounded-xl text-xs font-bold text-gray-500 hover:bg-gray-50 transition"
+                  className="flex-1 py-2.5 border border-black-200 rounded-xl text-xs font-bold text-black-500 hover:bg-black-50 transition"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className={`flex-1 py-2.5 text-white rounded-xl text-xs font-bold transition shadow ${
+                  disabled={isSubmitting}
+                  className={`flex-1 py-2.5 text-white rounded-xl text-xs font-bold transition shadow flex items-center justify-center gap-2 disabled:opacity-50 ${
                     followMode === 'FollowUp' ? 'bg-[#0e623a] hover:bg-[#0b4d2d]' : 'bg-red-600 hover:bg-red-700'
                   }`}
                 >
-                  Save Action
+                  {isSubmitting ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving...</> : 'Save Action'}
                 </button>
               </div>
             </form>
@@ -2555,7 +2595,7 @@ const LeadsDirectory = () => {
       {/* 🔐 MODAL: Booked & Quotation Creation Wizard */}
       {BookedModalOpen && selectedLeadForBooked && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm overflow-y-auto">
-          <div className="bg-white rounded-3xl max-w-3xl w-full overflow-hidden shadow-2xl border border-gray-100 my-8">
+          <div className="bg-white rounded-3xl max-w-3xl w-full overflow-hidden shadow-2xl border border-black-100 my-8">
             <div className="bg-gradient-to-r from-[#0e623a] to-[#0a4d2c] p-6 text-white">
               <h3 className="text-lg font-bold flex items-center gap-2">
                 <FileText className="w-5 h-5 text-emerald-300" />
@@ -2568,33 +2608,33 @@ const LeadsDirectory = () => {
               
               {/* Dropdown Unit Selection */}
               <div className="space-y-2 relative">
-                <label className="text-xs font-bold text-gray-700 uppercase tracking-wider block">
+                <label className="text-xs font-bold text-black-700 uppercase tracking-wider block">
                   Select {BookedProjectDetails?.projectType || 'Unit'} Numbers
                 </label>
                 
                 <div className="relative">
                   <div 
                     onClick={() => setUnitDropdownOpen(!unitDropdownOpen)}
-                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl cursor-pointer flex justify-between items-center text-sm text-gray-800 focus:outline-none focus:ring-1 focus:ring-[#0e623a]"
+                    className="w-full px-3 py-2 bg-black-50 border border-black-200 rounded-xl cursor-pointer flex justify-between items-center text-sm text-black-800 focus:outline-none focus:ring-1 focus:ring-[#0e623a]"
                   >
-                    <span className={selectedBookedUnits.length > 0 ? "font-bold text-[#0e623a]" : "text-gray-400"}>
+                    <span className={selectedBookedUnits.length > 0 ? "font-bold text-[#0e623a]" : "text-black-400"}>
                       {selectedBookedUnits.length > 0 
                         ? selectedBookedUnits.join(', ') 
                         : 'Select available units...'}
                     </span>
-                    <ChevronDown className={`w-4 h-4 text-gray-500 transition-transform ${unitDropdownOpen ? 'rotate-180' : ''}`} />
+                    <ChevronDown className={`w-4 h-4 text-black-500 transition-transform ${unitDropdownOpen ? 'rotate-180' : ''}`} />
                   </div>
                   
                   {unitDropdownOpen && (
-                    <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-64 flex flex-col overflow-hidden">
-                      <div className="p-2 border-b border-gray-100 bg-gray-50">
+                    <div className="absolute z-10 w-full mt-1 bg-white border border-black-200 rounded-xl shadow-lg max-h-64 flex flex-col overflow-hidden">
+                      <div className="p-2 border-b border-black-100 bg-black-50">
                         <input
                           type="text"
                           placeholder="Search units..."
                           value={typedBookedUnits}
                           onChange={(e) => setTypedBookedUnits(e.target.value)}
                           onClick={(e) => e.stopPropagation()}
-                          className="w-full px-2 py-1.5 text-xs bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#0e623a]"
+                          className="w-full px-2 py-1.5 text-xs bg-white border border-black-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#0e623a]"
                         />
                       </div>
                       <div className="overflow-y-auto p-1 max-h-48">
@@ -2615,15 +2655,15 @@ const LeadsDirectory = () => {
                                 }}
                                 className="text-[#0e623a] focus:ring-[#0e623a] rounded cursor-pointer"
                               />
-                              <span className="text-sm font-semibold text-gray-700">{u.unitId} <span className="text-xs font-normal text-gray-400">({u.size} Sq.Ft)</span></span>
+                              <span className="text-sm font-semibold text-black-700">{u.unitId} <span className="text-xs font-normal text-black-400">({u.size} Sq.Ft)</span></span>
                             </label>
                           ))
                         }
                         {(!BookedProjectDetails?.units || BookedProjectDetails.units.filter(u => u.status !== 'Booked' && u.status !== 'Sold Out').length === 0) && (
-                          <div className="px-3 py-3 text-xs text-gray-500 text-center">No available units found.</div>
+                          <div className="px-3 py-3 text-xs text-black-500 text-center">No available units found.</div>
                         )}
                         {(BookedProjectDetails?.units && typedBookedUnits && BookedProjectDetails.units.filter(u => u.status !== 'Booked' && u.status !== 'Sold Out' && u.unitId.toLowerCase().includes(typedBookedUnits.toLowerCase())).length === 0) && (
-                          <div className="px-3 py-3 text-xs text-gray-500 text-center">No units match your search.</div>
+                          <div className="px-3 py-3 text-xs text-black-500 text-center">No units match your search.</div>
                         )}
                       </div>
                     </div>
@@ -2633,22 +2673,22 @@ const LeadsDirectory = () => {
 
               {/* Pricing & Quotation breakdown */}
               {selectedBookedUnits.length > 0 && BookedProjectDetails && (
-                <div className="bg-gray-50 p-4 rounded-2xl border border-gray-150 space-y-2">
-                  <h4 className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Quotation Valuation</h4>
-                  <div className="text-xs space-y-1 text-gray-600">
+                <div className="bg-black-50 p-4 rounded-2xl border border-black-150 space-y-2">
+                  <h4 className="text-[11px] font-bold text-black-500 uppercase tracking-wider">Quotation Valuation</h4>
+                  <div className="text-xs space-y-1 text-black-600">
                     <div className="flex justify-between">
                       <span>Rate Sq.Ft:</span>
-                      <span className="font-semibold text-gray-800">Rs. {BookedProjectDetails.pricePerSqFt}</span>
+                      <span className="font-semibold text-black-800">Rs. {BookedProjectDetails.pricePerSqFt}</span>
                     </div>
                     <div className="flex justify-between">
                       <span>Total area selected:</span>
-                      <span className="font-semibold text-gray-800">
+                      <span className="font-semibold text-black-800">
                         {BookedProjectDetails.units
                           ?.filter(u => selectedBookedUnits.includes(u.unitId))
                           .reduce((sum, u) => sum + u.size, 0).toFixed(2)} Sq.Ft
                       </span>
                     </div>
-                    <div className="flex justify-between border-t pt-1.5 text-sm font-bold text-gray-800 items-center">
+                    <div className="flex justify-between border-t pt-1.5 text-sm font-bold text-black-800 items-center">
                       <span>Total Valuation Cost:</span>
                       <div className="flex items-center gap-1">
                         <span className="text-[#0e623a]">Rs.</span>
@@ -2666,12 +2706,12 @@ const LeadsDirectory = () => {
 
               {/* Customer Basic Details Forms */}
               <div className="space-y-4">
-                <h4 className="text-xs font-bold text-gray-700 uppercase tracking-wider border-b pb-1.5">Booked Customer Information</h4>
+                <h4 className="text-xs font-bold text-black-700 uppercase tracking-wider border-b pb-1.5">Booked Customer Information</h4>
                 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div>
-                    <label className="text-xs font-semibold text-gray-600 block mb-1">Alternative Contact</label>
-                    <div className={`flex items-center bg-gray-50 border rounded-xl focus-within:ring-1 transition-all overflow-hidden w-full ${BookedAltPhoneErr ? 'border-red-500 focus-within:ring-red-500' : 'border-gray-200 focus-within:ring-[#0e623a] focus-within:border-transparent'}`}>
+                    <label className="text-xs font-semibold text-black-600 block mb-1">Alternative Contact</label>
+                    <div className={`flex items-center bg-black-50 border rounded-xl focus-within:ring-1 transition-all overflow-hidden w-full ${BookedAltPhoneErr ? 'border-red-500 focus-within:ring-red-500' : 'border-black-200 focus-within:ring-[#0e623a] focus-within:border-transparent'}`}>
                       <select
                         value={BookedAltCountryCode}
                         onChange={(e) => {
@@ -2679,7 +2719,7 @@ const LeadsDirectory = () => {
                           setBookedAltLocal('');
                           setBookedAltPhoneErr('');
                         }}
-                        className="bg-transparent pl-3 pr-5 py-2 text-xs font-bold text-gray-700 outline-none cursor-pointer border-r border-gray-200/80 hover:bg-gray-100/50 transition-colors w-20 appearance-none"
+                        className="bg-transparent pl-3 pr-5 py-2 text-xs font-bold text-black-700 outline-none cursor-pointer border-r border-black-200/80 hover:bg-black-100/50 transition-colors w-20 appearance-none"
                         style={{ backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 4px center', backgroundSize: '10px' }}
                       >
                         <option value="+91">+91</option>
@@ -2705,41 +2745,41 @@ const LeadsDirectory = () => {
                             setBookedAltPhoneErr('');
                           }
                         }}
-                        className="flex-grow px-3 py-2 bg-transparent outline-none text-xs text-gray-800"
+                        className="flex-grow px-3 py-2 bg-transparent outline-none text-xs text-black-800"
                       />
                     </div>
                     {BookedAltPhoneErr && (
-                      <p className="text-[10px] text-red-500 font-bold mt-1">{BookedAltPhoneErr}</p>
+                      <p className="text-[11px] text-red-500 font-bold mt-1">{BookedAltPhoneErr}</p>
                     )}
                   </div>
                   <div>
-                    <label className="text-xs font-semibold text-gray-600 block mb-1">Aadhar Card Number</label>
+                    <label className="text-xs font-semibold text-black-600 block mb-1">Aadhar Card Number</label>
                     <input
                       type="text"
                       placeholder="12 digit aadhar"
                       value={BookedAadhar}
                       onChange={(e) => setBookedAadhar(e.target.value.replace(/\D/g, '').slice(0, 12))}
-                      className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-xs"
+                      className="w-full px-3 py-2 bg-black-50 border border-black-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-xs"
                     />
                   </div>
                   <div>
-                    <label className="text-xs font-semibold text-gray-600 block mb-1">PAN Number</label>
+                    <label className="text-xs font-semibold text-black-600 block mb-1">PAN Number</label>
                     <input
                       type="text"
                       placeholder="PAN Number"
                       value={BookedPan}
                       onChange={(e) => setBookedPan(e.target.value)}
-                      className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-xs"
+                      className="w-full px-3 py-2 bg-black-50 border border-black-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-xs"
                     />
                   </div>
                 </div>
 
                 {/* Bank Loan Details Sub-Form */}
-                <div className="bg-gray-50 p-4 rounded-2xl border border-gray-150 space-y-4">
+                <div className="bg-black-50 p-4 rounded-2xl border border-black-150 space-y-4">
                   <div className="flex items-center justify-between">
-                    <label className="text-xs font-bold text-gray-600 uppercase tracking-wider block">Requires Bank Loan Financing?</label>
+                    <label className="text-xs font-bold text-black-600 uppercase tracking-wider block">Requires Bank Loan Financing?</label>
                     <div className="flex gap-4">
-                      <label className="flex items-center gap-1 text-xs font-semibold text-gray-700 cursor-pointer">
+                      <label className="flex items-center gap-1 text-xs font-semibold text-black-700 cursor-pointer">
                         <input
                           type="radio"
                           name="BookedHasLoan"
@@ -2750,7 +2790,7 @@ const LeadsDirectory = () => {
                         />
                         <span>Yes</span>
                       </label>
-                      <label className="flex items-center gap-1 text-xs font-semibold text-gray-700 cursor-pointer">
+                      <label className="flex items-center gap-1 text-xs font-semibold text-black-700 cursor-pointer">
                         <input
                           type="radio"
                           name="BookedHasLoan"
@@ -2765,36 +2805,36 @@ const LeadsDirectory = () => {
                   </div>
 
                   {BookedHasLoan === 'Yes' && (
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2 border-t border-gray-200">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2 border-t border-black-200">
                       <div>
-                        <label className="text-[10px] font-semibold text-gray-500 block mb-1">Loan Amount Required (Rs.)</label>
+                        <label className="text-[11px] font-semibold text-black-500 block mb-1">Loan Amount Required (Rs.)</label>
                         <input
                           type="number"
                           placeholder="e.g. 1500000"
                           value={loanAmount}
                           onChange={(e) => setLoanAmount(e.target.value)}
                           onBlur={() => setLoanAmount(prev => prev ? Number(Number(prev).toFixed(2)) : 0)}
-                          className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-xs"
+                          className="w-full px-3 py-2 bg-white border border-black-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-xs"
                         />
                       </div>
                       <div>
-                        <label className="text-[10px] font-semibold text-gray-500 block mb-1">Preferred Bank name</label>
+                        <label className="text-[11px] font-semibold text-black-500 block mb-1">Preferred Bank name</label>
                         <input
                           type="text"
                           placeholder="e.g. SBI, HDFC"
                           value={loanBank}
                           onChange={(e) => setLoanBank(e.target.value)}
-                          className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-xs"
+                          className="w-full px-3 py-2 bg-white border border-black-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-xs"
                         />
                       </div>
                       <div>
-                        <label className="text-[10px] font-semibold text-gray-500 block mb-1">Loan Notes / Status</label>
+                        <label className="text-[11px] font-semibold text-black-500 block mb-1">Loan Notes / Status</label>
                         <input
                           type="text"
                           placeholder="e.g. Approved / Processed"
                           value={loanStatusNotes}
                           onChange={(e) => setLoanStatusNotes(e.target.value)}
-                          className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-xs"
+                          className="w-full px-3 py-2 bg-white border border-black-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-xs"
                         />
                       </div>
                     </div>
@@ -2807,16 +2847,20 @@ const LeadsDirectory = () => {
                 <button
                   type="button"
                   onClick={() => setBookedModalOpen(false)}
-                  className="flex-1 py-3 border border-gray-200 rounded-xl text-xs font-bold text-gray-500 hover:bg-gray-50 transition"
+                  className="flex-1 py-3 border border-black-200 rounded-xl text-xs font-bold text-black-500 hover:bg-black-50 transition"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 py-3 bg-[#0e623a] text-white rounded-xl text-xs font-bold hover:bg-[#0b4d2d] transition shadow-md flex items-center justify-center gap-1.5"
+                  disabled={isSubmitting}
+                  className="flex-1 py-3 bg-[#0e623a] text-white rounded-xl text-xs font-bold hover:bg-[#0b4d2d] transition shadow-md flex items-center justify-center gap-1.5 disabled:opacity-50"
                 >
-                  <DollarSign className="w-3.5 h-3.5" />
-                  <span>Confirm Booked & Generate Quotation</span>
+                  {isSubmitting ? (
+                    <><Loader2 className="w-3.5 h-3.5 animate-spin" /> <span>Processing...</span></>
+                  ) : (
+                    <><DollarSign className="w-3.5 h-3.5" /> <span>Confirm Booked & Generate Quotation</span></>
+                  )}
                 </button>
               </div>
             </form>

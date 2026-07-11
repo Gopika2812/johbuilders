@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Building2, Lock, Mail, User, Eye, EyeOff } from 'lucide-react';
+import { Building2, Lock, Mail, User, Eye, EyeOff, Loader2 } from 'lucide-react';
 
 const Register = () => {
   const [name, setName] = useState('');
@@ -107,9 +107,9 @@ const Register = () => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-4 bg-[#0e623a] hover:bg-[#0b4d2d] text-white font-bold rounded-xl shadow-lg hover:shadow-xl transition-all duration-150 disabled:opacity-50 mt-2"
+            className="w-full py-4 bg-[#0e623a] hover:bg-[#0b4d2d] text-white font-bold rounded-xl shadow-lg hover:shadow-xl transition-all duration-150 disabled:opacity-50 mt-2 flex items-center justify-center gap-2"
           >
-            {loading ? 'Creating Account...' : 'Register'}
+            {loading ? <><Loader2 className="w-5 h-5 animate-spin" /> Creating Account...</> : 'Register'}
           </button>
         </form>
 

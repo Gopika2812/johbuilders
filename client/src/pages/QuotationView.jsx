@@ -131,7 +131,7 @@ const QuotationView = () => {
             <div>
               <h1 className="text-2xl font-black text-[#0e623a] tracking-tight">JOHN BUILDWELL CONSTRUCTIONS</h1>
               <p className="text-xs text-gray-400 mt-1">Premium Builders & Real Estate Developers</p>
-              <div className="text-[10px] text-gray-500 mt-2 space-y-0.5">
+              <div className="text-[11px] text-gray-500 mt-2 space-y-0.5">
                 <div>Corporate Office: Bypass Road, Vannarpettai</div>
                 <div>Tirunelveli, Tamil Nadu - 627003</div>
                 <div>Contact: +91 94432 83634 | info@johnbuildwell.com</div>
@@ -223,26 +223,26 @@ const QuotationView = () => {
           {/* Customer ID & Bank Loan Info */}
           {(quotation.alternativePhone || quotation.aadharNumber || quotation.panNumber || quotation.bankLoanRequired === 'Yes') && (
             <div className="bg-gray-50 p-5 rounded-2xl border border-gray-100 space-y-3">
-              <h3 className="text-[10px] font-bold text-[#0e623a] uppercase tracking-wider flex items-center gap-1.5">
+              <h3 className="text-[11px] font-bold text-[#0e623a] uppercase tracking-wider flex items-center gap-1.5">
                 <CreditCard className="w-4 h-4 text-[#0e623a]/75" />
                 <span>Financial details & Credentials</span>
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
                 {quotation.alternativePhone && (
                   <div>
-                    <span className="text-[9px] text-gray-400 font-bold uppercase tracking-wider block">Alt Phone</span>
+                    <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block">Alt Phone</span>
                     <span className="font-semibold text-gray-700">{quotation.alternativePhone}</span>
                   </div>
                 )}
                 {quotation.aadharNumber && (
                   <div>
-                    <span className="text-[9px] text-gray-400 font-bold uppercase tracking-wider block">Aadhar Card</span>
+                    <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block">Aadhar Card</span>
                     <span className="font-semibold text-gray-700">{quotation.aadharNumber}</span>
                   </div>
                 )}
                 {quotation.panNumber && (
                   <div>
-                    <span className="text-[9px] text-gray-400 font-bold uppercase tracking-wider block">PAN Card</span>
+                    <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block">PAN Card</span>
                     <span className="font-semibold text-gray-700">{quotation.panNumber}</span>
                   </div>
                 )}
@@ -251,12 +251,12 @@ const QuotationView = () => {
               {quotation.bankLoanRequired === 'Yes' && (
                 <div className="border-t pt-3 mt-1 grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
                   <div>
-                    <span className="text-[9px] text-gray-400 font-bold uppercase tracking-wider block">Required Bank Loan</span>
+                    <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block">Required Bank Loan</span>
                     <span className="font-semibold text-gray-700">Yes</span>
                   </div>
                   {quotation.loanAmount > 0 && (
                     <div>
-                      <span className="text-[9px] text-gray-400 font-bold uppercase tracking-wider block">Loan amount / preferred bank</span>
+                      <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block">Loan amount / preferred bank</span>
                       <span className="font-semibold text-gray-700">{formatCurrency(quotation.loanAmount)} ({quotation.preferredBank || 'Any Bank'})</span>
                     </div>
                   )}
@@ -269,14 +269,14 @@ const QuotationView = () => {
           <div className="pt-12 grid grid-cols-2 gap-8 text-xs border-t">
             <div>
               <h4 className="font-bold text-[#0e623a]">Terms & Conditions:</h4>
-              <ul className="list-disc pl-4 mt-2 space-y-1 text-gray-400 text-[10px]">
+              <ul className="list-disc pl-4 mt-2 space-y-1 text-gray-400 text-[11px]">
                 <li>This is an estimate quotation copy valid for 30 days from date of issue.</li>
                 <li>Final pricing depends on plot dimensions at physical site registration.</li>
                 <li>Installment schedules must follow project payment milestone policies.</li>
               </ul>
             </div>
             <div className="text-right flex flex-col justify-end items-end space-y-12">
-              <div className="text-[10px] text-gray-400">Authorized Signature, John Buildwell ERP</div>
+              <div className="text-[11px] text-gray-400">Authorized Signature, John Buildwell ERP</div>
               <div className="border-t border-gray-300 w-48 pt-1 text-xs text-gray-700 font-bold">John Buildwell Developers</div>
             </div>
           </div>

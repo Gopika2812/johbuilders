@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Building2, Lock, Mail, Eye, EyeOff } from 'lucide-react';
+import { Building2, Lock, User, Eye, EyeOff, Loader2 } from 'lucide-react';
 
 const Login = () => {
-  const [email, setEmail] = useState('');
+  const [name, setName] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -15,10 +15,10 @@ const Login = () => {
     e.preventDefault();
     setError('');
     try {
-      await login(email, password);
+      await login(name, password);
       navigate('/');
     } catch (err) {
-      setError(err.message || 'Invalid email or password');
+      setError(err.message || 'Invalid name or password');
     }
   };
 
@@ -45,17 +45,17 @@ const Login = () => {
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-            <label className="text-xs font-bold text-gray-500 uppercase block mb-2 tracking-wider">Email Address</label>
+            <label className="text-xs font-bold text-gray-500 uppercase block mb-2 tracking-wider">Full Name</label>
             <div className="relative">
               <span className="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-400">
-                <Mail className="w-5 h-5" />
+                <User className="w-5 h-5" />
               </span>
               <input
-                type="email"
+                type="text"
                 required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="name@company.com"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="John Doe"
                 className="w-full pl-11 pr-4 py-3.5 bg-gray-50 border border-gray-200 rounded-xl text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#0e623a] focus:border-transparent transition"
               />
             </div>
@@ -88,9 +88,9 @@ const Login = () => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-4 bg-[#0e623a] hover:bg-[#0b4d2d] text-white font-bold rounded-xl shadow-lg hover:shadow-xl transition-all duration-150 disabled:opacity-50"
+            className="w-full py-4 bg-[#0e623a] hover:bg-[#0b4d2d] text-white font-bold rounded-xl shadow-lg hover:shadow-xl transition-all duration-150 disabled:opacity-50 flex items-center justify-center gap-2"
           >
-            {loading ? 'Signing in...' : 'Sign In'}
+            {loading ? <><Loader2 className="w-5 h-5 animate-spin" /> Signing in...</> : 'Sign In'}
           </button>
         </form>
 

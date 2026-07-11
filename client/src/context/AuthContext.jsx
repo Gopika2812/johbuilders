@@ -42,7 +42,7 @@ export const AuthProvider = ({ children }) => {
     fetchUser();
   }, [token]);
 
-  const login = async (email, password) => {
+  const login = async (name, password) => {
     setLoading(true);
     try {
       const response = await fetch(`${API_URL}/auth/login`, {
@@ -50,7 +50,7 @@ export const AuthProvider = ({ children }) => {
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ email, password })
+        body: JSON.stringify({ name, password })
       });
 
       const data = await response.json();

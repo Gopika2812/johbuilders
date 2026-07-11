@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ClipboardList, CheckCircle, XCircle } from 'lucide-react';
+import { ClipboardList, CheckCircle, XCircle, Loader2 } from 'lucide-react';
 import { useAuth, API_URL } from '../context/AuthContext';
 
 const Requests = () => {
@@ -7,6 +7,8 @@ const Requests = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const { user, token } = useAuth();
+  const [approvingId, setApprovingId] = useState(null);
+  const [rejectingId, setRejectingId] = useState(null);
 
   const fetchRequests = async () => {
     try {
@@ -34,6 +36,7 @@ const Requests = () => {
   }, []);
 
   const handleApprove = async (id) => {
+    setApprovingId(id);
     try {
       const res = await fetch(`${API_URL}/requests/${id}/approve`, {
         method: 'PUT',
@@ -48,10 +51,13 @@ const Requests = () => {
     } catch (err) {
       console.error(err);
       alert('Failed to approve request');
+    } finally {
+      setApprovingId(null);
     }
   };
 
   const handleReject = async (id) => {
+    setRejectingId(id);
     try {
       const res = await fetch(`${API_URL}/requests/${id}/reject`, {
         method: 'PUT',
@@ -66,6 +72,8 @@ const Requests = () => {
     } catch (err) {
       console.error(err);
       alert('Failed to reject request');
+    } finally {
+      setRejectingId(null);
     }
   };
 
@@ -73,11 +81,11 @@ const Requests = () => {
     <div className="max-w-6xl mx-auto p-4 md:p-6">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
+          <h1 className="text-2xl font-bold text-black-800 flex items-center gap-2">
             <ClipboardList className="w-6 h-6 text-emerald-600" />
             Pending Requests
           </h1>
-          <p className="text-gray-500 text-sm mt-1">Manage cancellation and other approval requests.</p>
+          {/* <p className="text-black-500 text-sm mt-1">Manage cancellation and other approval requests.</p> */}
         </div>
       </div>
 
@@ -90,38 +98,38 @@ const Requests = () => {
       {loading ? (
         <div className="text-center py-10">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600 mx-auto"></div>
-          <p className="mt-4 text-gray-500">Loading requests...</p>
+          <p className="mt-4 text-black-500">Loading requests...</p>
         </div>
       ) : requests.length === 0 ? (
-        <div className="bg-white p-8 rounded-xl shadow-sm text-center border border-gray-200">
-          <p className="text-gray-500">No pending requests at this time.</p>
+        <div className="bg-white p-8 rounded-xl shadow-sm text-center border border-black-200">
+          <p className="text-black-500">No pending requests at this time.</p>
         </div>
       ) : (
         <div className="grid gap-6">
           {requests.map((request) => (
-            <div key={request._id} className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 flex flex-col md:flex-row justify-between gap-4">
+            <div key={request._id} className="bg-white p-6 rounded-xl shadow-sm border border-black-200 flex flex-col md:flex-row justify-between gap-4">
               <div>
                 <div className="flex items-center gap-3 mb-2">
                   <span className={`px-3 py-1 text-xs font-semibold rounded-full uppercase tracking-wider ${request.type === 'LEAD_REREGISTRATION' ? 'bg-amber-100 text-amber-800' : 'bg-yellow-100 text-yellow-800'}`}>
                     {request.type === 'CRD_CANCELLATION' ? 'CRD Cancellation' : request.type === 'LEAD_REREGISTRATION' ? 'Lead Re-registration' : request.type}
                   </span>
-                  <span className="text-sm text-gray-400">
+                  <span className="text-sm text-black-400">
                     {new Date(request.createdAt).toLocaleString()}
                   </span>
                 </div>
                 
-                <h3 className="text-lg font-bold text-gray-800 mb-1">
+                <h3 className="text-lg font-bold text-black-800 mb-1">
                   Requested by: {request.requestedBy?.name || 'Unknown User'}
                 </h3>
                 
-                <div className="bg-gray-50 p-4 rounded-lg mt-3 border border-gray-100">
-                  <h4 className="text-sm font-semibold text-gray-700 mb-1">Narration / Reason:</h4>
-                  <p className="text-gray-600 text-sm">{request.narration}</p>
+                <div className="bg-black-50 p-4 rounded-lg mt-3 border border-black-100">
+                  <h4 className="text-sm font-semibold text-black-700 mb-1">Narration / Reason:</h4>
+                  <p className="text-black-600 text-sm">{request.narration}</p>
                 </div>
                 
                 {request.type === 'CRD_CANCELLATION' && request.referenceId && (
-                  <div className="mt-3 text-sm text-gray-500">
-                    <span className="font-semibold text-gray-700">Reference Flow ID:</span> {request.referenceId._id}
+                  <div className="mt-3 text-sm text-black-500">
+                    <span className="font-semibold text-black-700">Reference Flow ID:</span> {request.referenceId._id}
                   </div>
                 )}
               </div>
@@ -129,16 +137,18 @@ const Requests = () => {
               <div className="flex flex-row md:flex-col gap-3 justify-center min-w-[140px]">
                 <button
                   onClick={() => handleApprove(request._id)}
-                  className="flex-1 flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+                  disabled={approvingId === request._id || rejectingId === request._id}
+                  className="flex-1 flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-50"
                 >
-                  <CheckCircle className="w-4 h-4" />
+                  {approvingId === request._id ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
                   Approve
                 </button>
                 <button
                   onClick={() => handleReject(request._id)}
-                  className="flex-1 flex items-center justify-center gap-2 bg-red-100 hover:bg-red-200 text-red-700 px-4 py-2 rounded-lg font-medium transition-colors"
+                  disabled={rejectingId === request._id || approvingId === request._id}
+                  className="flex-1 flex items-center justify-center gap-2 bg-red-100 hover:bg-red-200 text-red-700 px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-50"
                 >
-                  <XCircle className="w-4 h-4" />
+                  {rejectingId === request._id ? <Loader2 className="w-4 h-4 animate-spin" /> : <XCircle className="w-4 h-4" />}
                   Reject
                 </button>
               </div>

@@ -174,7 +174,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
                     : 'text-emerald-900 hover:text-emerald-500 hover:bg-[#11c278]/10'
                 }`}
               >
-                <span className={isExpanded ? "block truncate" : "hidden"}>Overall Report</span>
+                <span className={isExpanded ? "block truncate" : "hidden"}>Overall Collection Report</span>
               </Link>
             </div>
           )}
@@ -226,12 +226,12 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
             onClick={handleNavClick}
             className={`w-full flex items-center gap-3 py-3 ${isExpanded ? "justify-start px-4" : "justify-center px-0"} rounded-xl transition duration-200 ${
               isActive('/customers')
-                ? 'bg-white/10 text-white font-bold'
+                ? 'bg-[#11c278] text-white font-bold shadow-md'
                 : 'text-emerald-900 hover:bg-[#11c278]/10 hover:text-emerald-500'
             }`}
           >
-            <Users2 className="w-5 h-5 text-emerald-900" />
-            <span className={`font-semibold ${isExpanded ? "block" : "hidden"}`}>Customers</span>
+            <Users2 className={`w-5 h-5 ${isActive('/customers') ? 'text-white' : 'text-emerald-900'}`} />
+            <span className={`font-semibold whitespace-nowrap ${isExpanded ? "block" : "hidden"}`}>Customers</span>
           </Link>
         </div>
 
@@ -272,11 +272,11 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
             onClick={handleNavClick}
             className={`w-full flex items-center gap-3 py-3 ${isExpanded ? "justify-start px-4" : "justify-center px-0"} rounded-xl transition duration-200 ${
               isActive('/audit-logs')
-                ? 'bg-white/10 text-white font-bold'
+                ? 'bg-[#11c278] text-white font-bold shadow-md'
                 : 'text-emerald-900 hover:bg-[#11c278]/10 hover:text-emerald-500'
             }`}
           >
-            <History className="w-5 h-5 text-emerald-900" />
+            <History className={`w-5 h-5 ${isActive('/audit-logs') ? 'text-white' : 'text-emerald-900'}`} />
             <span className={`font-semibold ${isExpanded ? "block" : "hidden"}`}>Audit Logs</span>
           </Link>
         </div>
@@ -289,7 +289,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
           >
             <div className="flex items-center gap-3">
               <Coins className="w-5 h-5 text-emerald-900" />
-              <span className={`font-semibold text-sm ${isExpanded ? "block" : "hidden"}`}>Finance & Accounts</span>
+              <span className={`font-semibold text-sm whitespace-nowrap ${isExpanded ? "block" : "hidden"}`}>Finance & Accounts</span>
             </div>
             {isExpanded && <ChevronDown className={`w-4 h-4 text-emerald-900 transition-transform duration-200 ${financeMenuOpen ? 'rotate-180' : ''}`} />}
           </button>
@@ -384,7 +384,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
             </div>
             <div className="overflow-hidden">
               <p className="font-semibold text-sm truncate leading-tight text-white">{user?.name}</p>
-              <span className="text-[10px] text-emerald-900 font-light block">{user?.role}</span>
+              <span className="text-[11px] text-emerald-900 font-light block">{user?.role}</span>
             </div>
           </div>
 

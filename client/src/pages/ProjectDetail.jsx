@@ -27,7 +27,8 @@ import {
   Trash,
   Play,
   Pause,
-  Home
+  Home,
+  Loader2
 ,
   FileSpreadsheet
 } from 'lucide-react';
@@ -100,10 +101,14 @@ const ProjectDetail = () => {
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [selectedInventoryType, setSelectedInventoryType] = useState('');
 
+  const [marketingSubmitting, setMarketingSubmitting] = useState(false);
+  const [bookingSubmitting, setBookingSubmitting] = useState(false);
+  const [resizeSubmitting, setResizeSubmitting] = useState(false);
+
   // Marketing Search and Date Filter States
   const [marketingSearch, setMarketingSearch] = useState('');
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
+  const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
+  const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]);
 
   const generateTempId = () => 'temp_' + Math.random().toString(36).substr(2, 9) + Date.now();
 
@@ -213,6 +218,7 @@ const ProjectDetail = () => {
 
   const handleMarketingSubmit = async (e) => {
     e.preventDefault();
+    setMarketingSubmitting(true);
     try {
       const response = await fetch(`${API_URL}/projects/${id}/marketing`, {
         method: 'PUT',
@@ -239,6 +245,8 @@ const ProjectDetail = () => {
       }
     } catch (err) {
       console.error(err);
+    } finally {
+      setMarketingSubmitting(false);
     }
   };
 
@@ -305,6 +313,7 @@ const ProjectDetail = () => {
   // Booking details submit handler
   const handleBookingSubmit = async (e) => {
     e.preventDefault();
+    setBookingSubmitting(true);
     try {
       const response = await fetch(`${API_URL}/projects/${id}/unit-status`, {
         method: 'PUT',
@@ -331,12 +340,15 @@ const ProjectDetail = () => {
       }
     } catch (err) {
       console.error(err);
+    } finally {
+      setBookingSubmitting(false);
     }
   };
 
   // Resize Plots Engine submit handler
   const handleResizeSubmit = async (e) => {
     e.preventDefault();
+    setResizeSubmitting(true);
     try {
       const response = await fetch(`${API_URL}/projects/${id}/resize-plot`, {
         method: 'PUT',
@@ -362,6 +374,8 @@ const ProjectDetail = () => {
       }
     } catch (err) {
       console.error(err);
+    } finally {
+      setResizeSubmitting(false);
     }
   };
 
@@ -376,7 +390,7 @@ const ProjectDetail = () => {
       case 'Sold Out':
         return 'bg-red-50 text-red-700 border-red-200';
       default:
-        return 'bg-gray-50 text-gray-700 border-gray-200';
+        return 'bg-black-50 text-black-700 border-black-200';
     }
   };
 
@@ -420,7 +434,7 @@ const ProjectDetail = () => {
       {/* Back to Dictionary Header */}
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
         <div className="flex items-center gap-3">
-          <Link to="/projects" className="p-2 bg-white rounded-xl border border-gray-200 text-gray-500 hover:text-[#0e623a] transition">
+          <Link to="/projects" className="p-2 bg-white rounded-xl border border-black-200 text-black-500 hover:text-[#0e623a] transition">
             <ChevronLeft className="w-5 h-5" />
           </Link>
           <div>
@@ -428,29 +442,29 @@ const ProjectDetail = () => {
               <span className="text-xs font-mono font-bold text-[#0e623a] bg-[#0e623a]/5 px-2 py-0.5 rounded">
                 Prefix: {project.code}
               </span>
-              <span className="text-xs font-bold text-gray-400">
+              <span className="text-xs font-bold text-black-400">
                 • {project.projectType} Inventory
               </span>
             </div>
-            <h1 className="text-xl font-bold text-gray-800">{project.name}</h1>
+            <h1 className="text-xl font-bold text-black-800">{project.name}</h1>
           </div>
         </div>
 
         {/* Pricing Engine Configurator & Value Panel */}
-        <div className="bg-white border border-gray-200 p-3 px-5 rounded-2xl shadow-sm flex flex-wrap items-center gap-6">
+        <div className="bg-white border border-black-200 p-3 px-5 rounded-2xl shadow-sm flex flex-wrap items-center gap-6">
           <div className="space-y-0.5 text-left">
-            <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider block">Price Per Sq.Ft</span>
+            <span className="text-[10px] font-bold text-black-400 uppercase tracking-wider block">Price Per Sq.Ft</span>
             {priceEditing ? (
               <div className="flex items-center gap-1.5">
                 <input
                   type="number"
                   value={basePriceInput}
                   onChange={(e) => setBasePriceInput(e.target.value)}
-                  className="w-20 px-2 py-1 bg-gray-50 border border-gray-300 rounded text-xs focus:outline-none"
+                  className="w-20 px-2 py-1 bg-black-50 border border-black-300 rounded text-xs focus:outline-none"
                 />
                 <button
                   onClick={handleUpdateBasePrice}
-                  className="px-2 py-0.5 bg-[#0e623a] text-white text-[10px] font-semibold rounded hover:bg-[#0b4d2d]"
+                  className="px-2 py-0.5 bg-[#0e623a] text-white text-[11px] font-semibold rounded hover:bg-[#0b4d2d]"
                 >
                   Save
                 </button>
@@ -459,7 +473,7 @@ const ProjectDetail = () => {
                     setBasePriceInput(project.pricePerSqFt.toString());
                     setPriceEditing(false);
                   }}
-                  className="px-2 py-0.5 bg-gray-100 text-gray-600 text-[10px] font-semibold rounded hover:bg-gray-200"
+                  className="px-2 py-0.5 bg-black-100 text-black-600 text-[11px] font-semibold rounded hover:bg-black-200"
                 >
                   ✕
                 </button>
@@ -470,7 +484,7 @@ const ProjectDetail = () => {
                 {(user.role === 'Admin' || user.role === 'Manager') && (
                   <button
                     onClick={() => setPriceEditing(true)}
-                    className="p-0.5 hover:bg-gray-100 rounded text-gray-400 hover:text-[#0e623a]"
+                    className="p-0.5 hover:bg-black-100 rounded text-black-400 hover:text-[#0e623a]"
                   >
                     <Edit className="w-3 h-3" />
                   </button>
@@ -479,36 +493,36 @@ const ProjectDetail = () => {
             )}
           </div>
           
-          <div className="border-l border-gray-200 h-8 hidden sm:block"></div>
+          <div className="border-l border-black-200 h-8 hidden sm:block"></div>
           
           <div className="space-y-0.5 text-left">
-            <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider block">Total Value</span>
-            <span className="text-sm font-black text-gray-800">Rs. {totalValue.toLocaleString()}</span>
+            <span className="text-[10px] font-bold text-black-400 uppercase tracking-wider block">Total Value</span>
+            <span className="text-sm font-black text-black-800">Rs. {totalValue.toLocaleString()}</span>
           </div>
 
-          <div className="border-l border-gray-200 h-8 hidden sm:block"></div>
+          <div className="border-l border-black-200 h-8 hidden sm:block"></div>
 
           <div className="space-y-0.5 text-left">
-            <span className="text-[9px] font-bold text-emerald-650 uppercase tracking-wider block">Achieved Value</span>
+            <span className="text-[10px] font-bold text-emerald-650 uppercase tracking-wider block">Achieved Value</span>
             <span className="text-sm font-black text-emerald-700">Rs. {achievedValue.toLocaleString()}</span>
           </div>
 
-          <div className="border-l border-gray-200 h-8 hidden sm:block"></div>
+          <div className="border-l border-black-200 h-8 hidden sm:block"></div>
 
           <div className="space-y-0.5 text-left">
-            <span className="text-[9px] font-bold text-red-650 uppercase tracking-wider block">Pending Value</span>
+            <span className="text-[10px] font-bold text-red-650 uppercase tracking-wider block">Pending Value</span>
             <span className="text-sm font-black text-red-650">Rs. {pendingValue.toLocaleString()}</span>
           </div>
         </div>
       </div>      {/* Tab Switcher Navigation */}
-      <div className="flex border-b border-gray-200 bg-white p-1 rounded-t-2xl">
+      <div className="flex border-b border-black-200 bg-white p-1 rounded-t-2xl">
         <button
           type="button"
           onClick={() => setActiveTab('project')}
           className={`flex-1 sm:flex-initial py-3 px-6 text-sm font-bold border-b-2 transition text-center ${
             activeTab === 'project'
               ? 'border-[#0e623a] text-[#0e623a]'
-              : 'border-transparent text-gray-500 hover:text-gray-800'
+              : 'border-transparent text-black-500 hover:text-black-800'
           }`}
         >
           Project Details & Inventory
@@ -519,7 +533,7 @@ const ProjectDetail = () => {
           className={`flex-1 sm:flex-initial py-3 px-6 text-sm font-bold border-b-2 transition text-center ${
             activeTab === 'marketing'
               ? 'border-[#0e623a] text-[#0e623a]'
-              : 'border-transparent text-gray-500 hover:text-gray-800'
+              : 'border-transparent text-black-500 hover:text-black-800'
           }`}
         >
           Marketing & Promotions
@@ -530,7 +544,7 @@ const ProjectDetail = () => {
           className={`flex-1 sm:flex-initial py-3 px-6 text-sm font-bold border-b-2 transition text-center ${
             activeTab === 'crdFlow'
               ? 'border-[#0e623a] text-[#0e623a]'
-              : 'border-transparent text-gray-500 hover:text-gray-800'
+              : 'border-transparent text-black-500 hover:text-black-800'
           }`}
         >
           CRD Flow Format
@@ -558,15 +572,15 @@ const ProjectDetail = () => {
           <>
 
       {/* Grid vs Table View Controller */}
-      <div className="bg-white p-4 border border-gray-100 shadow-sm rounded-2xl flex items-center justify-between">
-        <div className="flex items-center gap-4 text-sm text-gray-500">
+      <div className="bg-white p-4 border border-black-100 shadow-sm rounded-2xl flex items-center justify-between">
+        <div className="flex items-center gap-4 text-sm text-black-500">
           <div className="flex items-center gap-1">
-            <MapPin className="w-4 h-4 text-gray-400" />
+            <MapPin className="w-4 h-4 text-black-400" />
             <span>{project.location}</span>
           </div>
           <span>•</span>
           <div className="flex items-center gap-1">
-            <Ruler className="w-4 h-4 text-gray-400" />
+            <Ruler className="w-4 h-4 text-black-400" />
             <span>{project.totalLandArea.toLocaleString()} sq.ft</span>
           </div>
           {projectTypesArray.includes('Plot') && (
@@ -577,11 +591,11 @@ const ProjectDetail = () => {
           )}
         </div>
 
-        <div className="flex bg-gray-100 p-1 rounded-xl">
+        <div className="flex bg-black-100 p-1 rounded-xl">
           <button
             onClick={() => setViewMode('grid')}
             className={`p-2 rounded-lg flex items-center gap-1.5 text-xs font-semibold transition ${
-              viewMode === 'grid' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-800'
+              viewMode === 'grid' ? 'bg-white text-black-800 shadow-sm' : 'text-black-500 hover:text-black-800'
             }`}
           >
             <Grid className="w-4 h-4" />
@@ -590,7 +604,7 @@ const ProjectDetail = () => {
           <button
             onClick={() => setViewMode('table')}
             className={`p-2 rounded-lg flex items-center gap-1.5 text-xs font-semibold transition ${
-              viewMode === 'table' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-800'
+              viewMode === 'table' ? 'bg-white text-black-800 shadow-sm' : 'text-black-500 hover:text-black-800'
             }`}
           >
             <TableIcon className="w-4 h-4" />
@@ -601,7 +615,7 @@ const ProjectDetail = () => {
 
       {/* Sub-tabs for Hybrid Projects */}
       {projectTypesArray.length > 1 && (
-        <div className="flex bg-white border border-gray-150 p-1.5 rounded-2xl gap-1.5 w-fit shadow-xs">
+        <div className="flex bg-white border border-black-150 p-1.5 rounded-2xl gap-1.5 w-fit shadow-xs">
           {projectTypesArray.map(type => (
             <button
               key={type}
@@ -609,7 +623,7 @@ const ProjectDetail = () => {
               className={`px-4 py-2 text-xs font-bold rounded-xl transition ${
                 (selectedInventoryType || projectTypesArray[0]) === type
                   ? 'bg-[#0e623a] text-white shadow-sm'
-                  : 'text-gray-500 hover:text-gray-800'
+                  : 'text-black-500 hover:text-black-800'
               }`}
             >
               {type === 'Plot' ? 'Plots Composition' : type === 'House' ? 'Houses Composition' : 'Flats Composition'}
@@ -627,8 +641,8 @@ const ProjectDetail = () => {
           {viewMode === 'grid' ? (
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
               {/* Map/Layout Placeholder Graphic */}
-              <div className="bg-white border border-gray-200 p-6 rounded-3xl lg:col-span-1 space-y-4 shadow-sm h-fit">
-                <h3 className="text-sm font-bold text-gray-700">Project Layout Map</h3>
+              <div className="bg-white border border-black-200 p-6 rounded-3xl lg:col-span-1 space-y-4 shadow-sm h-fit">
+                <h3 className="text-sm font-bold text-black-700">Project Layout Map</h3>
                 {project.layoutPlanImage ? (
                   <div className="w-full bg-[#f0f9f4] rounded-2xl overflow-hidden border border-[#0e623a]/10 cursor-pointer relative group flex items-center justify-center min-h-[220px]">
                     <img 
@@ -638,19 +652,19 @@ const ProjectDetail = () => {
                       onClick={() => window.open(project.layoutPlanImage, '_blank')}
                     />
                     <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition duration-200">
-                      <span className="text-[10px] text-white font-extrabold uppercase bg-gray-900/80 px-2.5 py-1 rounded-xl">View Layout Map</span>
+                      <span className="text-[11px] text-white font-extrabold uppercase bg-black-900/80 px-2.5 py-1 rounded-xl">View Layout Map</span>
                     </div>
                   </div>
                 ) : (
                   <div className="w-full bg-[#f0f9f4] rounded-2xl flex flex-col items-center justify-center p-6 border border-[#0e623a]/10 min-h-[220px]">
                     <Building className="w-12 h-12 text-[#0e623a]/30 mb-2" />
                     <span className="text-xs font-semibold text-[#0e623a]">{project.code} Master Plan</span>
-                    <span className="text-[10px] text-gray-400 mt-1">Grid units generate auto-proportions</span>
+                    <span className="text-[11px] text-black-400 mt-1">Grid units generate auto-proportions</span>
                     <div className="grid grid-cols-5 gap-1 w-full mt-4">
                       {displayedUnits.map((unit, idx) => (
                         <div
                           key={idx}
-                          className={`h-4 rounded-sm border text-[8px] flex items-center justify-center font-bold ${
+                          className={`h-4 rounded-sm border text-[9px] flex items-center justify-center font-bold ${
                             unit.status === 'New' ? 'bg-emerald-100 border-emerald-300 text-emerald-800' :
                             unit.status === 'Booked' ? 'bg-yellow-100 border-yellow-300 text-yellow-800' :
                             unit.status === 'Under Construction' ? 'bg-purple-100 border-purple-300 text-purple-800' :
@@ -664,7 +678,7 @@ const ProjectDetail = () => {
                     </div>
                   </div>
                 )}
-                <div className="text-[10px] text-gray-500 leading-relaxed bg-gray-50 p-3 rounded-lg border">
+                <div className="text-[11px] text-black-500 leading-relaxed bg-black-50 p-3 rounded-lg border">
                   <strong>Color Legend:</strong>
                   <div className="flex flex-wrap gap-2 mt-1.5">
                     <span className="flex items-center gap-1"><span className="w-2 h-2 rounded bg-emerald-500"></span>New</span>
@@ -678,37 +692,37 @@ const ProjectDetail = () => {
               {/* Grid cards */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:col-span-3">
                 {displayedUnits.map((unit) => (
-                  <div key={unit.unitId} className="bg-white border border-gray-100 shadow-sm rounded-3xl p-6 hover:shadow-md transition space-y-4">
+                  <div key={unit.unitId} className="bg-white border border-black-100 shadow-sm rounded-3xl p-6 hover:shadow-md transition space-y-4">
                     <div className="flex items-center justify-between">
                       <div>
-                        <h4 className="font-extrabold text-gray-800">{unit.unitId}</h4>
-                        <div className="flex items-center gap-1 text-[10px] text-gray-400 mt-0.5">
+                        <h4 className="font-extrabold text-black-800">{unit.unitId}</h4>
+                        <div className="flex items-center gap-1 text-[11px] text-black-400 mt-0.5">
                           {unit.isLocked ? (
                             <span className="flex items-center gap-0.5 text-amber-600 font-bold"><Lock className="w-3 h-3" /> Locked Size</span>
                           ) : (
-                            <span className="flex items-center gap-0.5"><Unlock className="w-3 h-3 text-gray-300" /> Dynamic</span>
+                            <span className="flex items-center gap-0.5"><Unlock className="w-3 h-3 text-black-300" /> Dynamic</span>
                           )}
                         </div>
                       </div>
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${getStatusBadge(unit.status)}`}>
+                      <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full border ${getStatusBadge(unit.status)}`}>
                         {unit.status}
                       </span>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4 py-2 border-y border-gray-50">
+                    <div className="grid grid-cols-2 gap-4 py-2 border-y border-black-50">
                       <div>
-                        <span className="text-[10px] text-gray-400 uppercase tracking-wider block">Plot Size</span>
-                        <span className="text-sm font-bold text-gray-700">{Math.round(unit.size).toLocaleString()} sq.ft</span>
+                        <span className="text-[11px] text-black-400 uppercase tracking-wider block">Plot Size</span>
+                        <span className="text-sm font-bold text-black-700">{Math.round(unit.size).toLocaleString()} sq.ft</span>
                       </div>
                       <div>
-                        <span className="text-[10px] text-gray-400 uppercase tracking-wider block">Value</span>
+                        <span className="text-[11px] text-black-400 uppercase tracking-wider block">Value</span>
                         <span className="text-sm font-bold text-[#0e623a]">${Math.round(unit.price).toLocaleString()}</span>
                       </div>
                     </div>
 
                     {unit.status === 'Booked' && unit.customerName && (
-                      <div className="text-[11px] text-amber-700 font-bold bg-amber-50 border border-amber-200 p-3 rounded-2xl flex flex-col gap-0.5">
-                        <span className="text-[9px] text-amber-500 uppercase tracking-wide">Customer Details</span>
+                      <div className="text-[12px] text-amber-700 font-bold bg-amber-50 border border-amber-200 p-3 rounded-2xl flex flex-col gap-0.5">
+                        <span className="text-[10px] text-amber-500 uppercase tracking-wide">Customer Details</span>
                         <span>Name: {unit.customerName}</span>
                         {unit.customerPhone && <span>Phone: {unit.customerPhone}</span>}
                       </div>
@@ -724,7 +738,7 @@ const ProjectDetail = () => {
                           setLeadName(unit.leadName || '');
                           setBookingModalOpen(true);
                         }}
-                        className="flex-1 py-2 text-center border border-gray-200 hover:border-[#0e623a]/20 hover:bg-[#0e623a]/5 rounded-xl text-xs font-bold text-gray-700 hover:text-[#0e623a] transition"
+                        className="flex-1 py-2 text-center border border-black-200 hover:border-[#0e623a]/20 hover:bg-[#0e623a]/5 rounded-xl text-xs font-bold text-black-700 hover:text-[#0e623a] transition"
                       >
                         Booking Details
                       </button>
@@ -738,7 +752,7 @@ const ProjectDetail = () => {
                             setResizeModalOpen(true);
                           }}
                           title="Resize Plot (Trigger Redistribution Engine)"
-                          className="px-3 py-2 bg-gray-50 hover:bg-[#0e623a] border border-gray-200 hover:border-[#0e623a] rounded-xl text-gray-600 hover:text-white transition"
+                          className="px-3 py-2 bg-black-50 hover:bg-[#0e623a] border border-black-200 hover:border-[#0e623a] rounded-xl text-black-600 hover:text-white transition"
                         >
                           <Maximize2 className="w-4 h-4" />
                         </button>
@@ -749,10 +763,10 @@ const ProjectDetail = () => {
               </div>
             </div>
           ) : (
-            <div className="bg-white border border-gray-100 shadow-sm rounded-3xl overflow-hidden">
+            <div className="bg-white border border-black-100 shadow-sm rounded-3xl overflow-hidden">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="bg-gray-50 border-b border-gray-100 text-xs font-bold text-gray-500 uppercase tracking-wider">
+                  <tr className="bg-black-50 border-b border-black-100 text-xs font-bold text-black-500 uppercase tracking-wider">
                     <th className="p-5">Plot ID</th>
                     <th className="p-5">Size (sq.ft)</th>
                     <th className="p-5">Price</th>
@@ -762,24 +776,24 @@ const ProjectDetail = () => {
                     <th className="p-5 text-right">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-50 text-sm">
+                <tbody className="divide-y divide-black-50 text-sm">
                   {displayedUnits.map((unit) => (
-                    <tr key={unit.unitId} className="hover:bg-gray-50/50">
-                      <td className="p-5 font-bold text-gray-800">
+                    <tr key={unit.unitId} className="hover:bg-black-50/50">
+                      <td className="p-5 font-bold text-black-800">
                         <div className="flex items-center gap-1.5">
                           <span>{unit.unitId}</span>
                           {unit.isLocked && <Lock className="w-3.5 h-3.5 text-amber-500" title="Locked Size" />}
                         </div>
                       </td>
-                      <td className="p-5 text-gray-600">{Math.round(unit.size).toLocaleString()} sq.ft</td>
+                      <td className="p-5 text-black-600">{Math.round(unit.size).toLocaleString()} sq.ft</td>
                       <td className="p-5 font-bold text-[#0e623a]">${Math.round(unit.price).toLocaleString()}</td>
                       <td className="p-5">
-                        <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border ${getStatusBadge(unit.status)}`}>
+                        <span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full border ${getStatusBadge(unit.status)}`}>
                           {unit.status}
                         </span>
                       </td>
-                      <td className="p-5 text-gray-600">{unit.customerName || '—'}</td>
-                      <td className="p-5 text-gray-600">{unit.leadName || '—'}</td>
+                      <td className="p-5 text-black-600">{unit.customerName || '—'}</td>
+                      <td className="p-5 text-black-600">{unit.leadName || '—'}</td>
                       <td className="p-5 text-right">
                         <div className="flex items-center justify-end gap-2">
                           <button
@@ -791,7 +805,7 @@ const ProjectDetail = () => {
                               setLeadName(unit.leadName || '');
                               setBookingModalOpen(true);
                             }}
-                            className="px-3 py-1.5 border border-gray-200 rounded-lg text-xs font-bold text-gray-600 hover:text-[#0e623a] hover:bg-[#0e623a]/5 transition"
+                            className="px-3 py-1.5 border border-black-200 rounded-lg text-xs font-bold text-black-600 hover:text-[#0e623a] hover:bg-[#0e623a]/5 transition"
                           >
                             Edit Status
                           </button>
@@ -803,7 +817,7 @@ const ProjectDetail = () => {
                                 setUpdatedPriceSqFt('');
                                 setResizeModalOpen(true);
                               }}
-                              className="p-1.5 bg-gray-50 hover:bg-[#0e623a] text-gray-600 hover:text-white rounded-lg transition"
+                              className="p-1.5 bg-black-50 hover:bg-[#0e623a] text-black-600 hover:text-white rounded-lg transition"
                               title="Resize Engine"
                             >
                               <Maximize2 className="w-3.5 h-3.5" />
@@ -831,7 +845,7 @@ const ProjectDetail = () => {
                   .sort((a, b) => b.localeCompare(a, undefined, { numeric: true, sensitivity: 'base' }))
                   .map(floor => (
                     <div key={floor} className="space-y-4 bg-white/50 backdrop-blur-md p-8 rounded-3xl border-2 border-[#0e623a]/10 shadow-[0_8px_30px_rgb(0,0,0,0.02)] flex flex-col items-center w-full">
-                      <h3 className="text-sm font-black text-gray-700 flex items-center justify-center gap-2 border-b border-gray-100 pb-2 w-full">
+                      <h3 className="text-sm font-black text-black-700 flex items-center justify-center gap-2 border-b border-black-100 pb-2 w-full">
                         <Building className="w-4 h-4 text-[#0e623a]" />
                         <span>{floor}</span>
                       </h3>
@@ -863,7 +877,7 @@ const ProjectDetail = () => {
                                 setBookingModalOpen(true);
                               }}
                               title={`Unit ${unit.unitId} - ${unit.status} (${unit.size} sq.ft) - ${unit.unitType} ${unit.customerName ? '- Customer: ' + unit.customerName : ''}`}
-                              className={`w-[75px] h-[75px] flex flex-col items-center justify-center rounded-xl text-[12px] font-black tracking-wide border transition-all duration-200 hover:-translate-y-1 hover:scale-110 active:scale-95 cursor-pointer gap-1 ${bgClass}`}
+                              className={`w-[75px] h-[75px] flex flex-col items-center justify-center rounded-xl text-[13px] font-black tracking-wide border transition-all duration-200 hover:-translate-y-1 hover:scale-110 active:scale-95 cursor-pointer gap-1 ${bgClass}`}
                             >
                               <Building className="w-4 h-4 opacity-90" />
                               <span className="leading-none">{unit.unitId}</span>
@@ -872,7 +886,7 @@ const ProjectDetail = () => {
                                   {unit.customerName || 'Booked'}
                                 </span>
                               ) : (
-                                <span className="text-[10px] font-bold opacity-85">{unit.unitType || 'Flat'}</span>
+                                <span className="text-[11px] font-bold opacity-85">{unit.unitType || 'Flat'}</span>
                               )}
                             </button>
                           );
@@ -883,10 +897,10 @@ const ProjectDetail = () => {
               </div>
             </div>
           ) : (
-            <div className="bg-white border border-gray-100 shadow-sm rounded-3xl overflow-hidden">
+            <div className="bg-white border border-black-100 shadow-sm rounded-3xl overflow-hidden">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="bg-gray-50 border-b border-gray-100 text-xs font-bold text-gray-500 uppercase tracking-wider">
+                  <tr className="bg-black-50 border-b border-black-100 text-xs font-bold text-black-500 uppercase tracking-wider">
                     <th className="p-5">Flat No</th>
                     <th className="p-5">Floor</th>
                     <th className="p-5">Size (sq.ft)</th>
@@ -896,19 +910,19 @@ const ProjectDetail = () => {
                     <th className="p-5 text-right">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-50 text-sm">
+                <tbody className="divide-y divide-black-50 text-sm">
                   {displayedUnits.map((unit) => (
-                    <tr key={unit.unitId} className="hover:bg-gray-50/50">
-                      <td className="p-5 font-bold text-gray-800">{unit.unitId}</td>
-                      <td className="p-5 text-gray-600">{unit.floor}</td>
-                      <td className="p-5 text-gray-600">{Math.round(unit.size).toLocaleString()} sq.ft</td>
+                    <tr key={unit.unitId} className="hover:bg-black-50/50">
+                      <td className="p-5 font-bold text-black-800">{unit.unitId}</td>
+                      <td className="p-5 text-black-600">{unit.floor}</td>
+                      <td className="p-5 text-black-600">{Math.round(unit.size).toLocaleString()} sq.ft</td>
                       <td className="p-5 font-bold text-[#0e623a]">${Math.round(unit.price).toLocaleString()}</td>
                       <td className="p-5">
-                        <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border ${getStatusBadge(unit.status)}`}>
+                        <span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full border ${getStatusBadge(unit.status)}`}>
                           {unit.status}
                         </span>
                       </td>
-                      <td className="p-5 text-gray-600">{unit.customerName || '—'}</td>
+                      <td className="p-5 text-black-600">{unit.customerName || '—'}</td>
                       <td className="p-5 text-right">
                         <button
                           onClick={() => {
@@ -919,7 +933,7 @@ const ProjectDetail = () => {
                             setLeadName(unit.leadName || '');
                             setBookingModalOpen(true);
                           }}
-                          className="px-3 py-1.5 border border-gray-200 rounded-lg text-xs font-bold text-gray-600 hover:text-[#0e623a] hover:bg-[#0e623a]/5 transition"
+                          className="px-3 py-1.5 border border-black-200 rounded-lg text-xs font-bold text-black-600 hover:text-[#0e623a] hover:bg-[#0e623a]/5 transition"
                         >
                           Booking Details
                         </button>
@@ -942,7 +956,7 @@ const ProjectDetail = () => {
                 {/* Group by Floor / Section */}
                 {Array.from(new Set(displayedUnits.map(u => u.floor || 'Houses'))).sort().map(floor => (
                   <div key={floor} className="space-y-4 bg-white/50 backdrop-blur-md p-8 rounded-3xl border-2 border-[#0e623a]/10 shadow-[0_8px_30px_rgb(0,0,0,0.02)] flex flex-col items-center w-full">
-                    <h3 className="text-sm font-black text-gray-700 flex items-center justify-center gap-2 border-b border-gray-100 pb-2 w-full">
+                    <h3 className="text-sm font-black text-black-700 flex items-center justify-center gap-2 border-b border-black-100 pb-2 w-full">
                       <Home className="w-4 h-4 text-[#0e623a]" />
                       <span>{floor}</span>
                     </h3>
@@ -974,12 +988,12 @@ const ProjectDetail = () => {
                               setBookingModalOpen(true);
                             }}
                             title={`Unit ${unit.unitId} - ${unit.status} (${unit.size} sq.ft) - ${unit.unitType} ${unit.customerName ? '- Customer: ' + unit.customerName : ''}`}
-                            className={`w-[90px] h-[90px] flex flex-col items-center justify-center rounded-2xl text-[15px] font-black tracking-wide border transition-all duration-200 hover:-translate-y-1.5 hover:scale-110 active:scale-95 cursor-pointer gap-1 ${bgClass}`}
+                            className={`w-[90px] h-[90px] flex flex-col items-center justify-center rounded-2xl text-[16px] font-black tracking-wide border transition-all duration-200 hover:-translate-y-1.5 hover:scale-110 active:scale-95 cursor-pointer gap-1 ${bgClass}`}
                           >
                             <Home className="w-6 h-6 opacity-90" />
                             <span className="leading-none">{unit.unitId}</span>
                             {isBooked ? (
-                              <span className="text-[9px] font-extrabold uppercase bg-black/20 px-1 py-0.5 rounded truncate max-w-[80px] text-center" title={unit.customerName}>
+                              <span className="text-[10px] font-extrabold uppercase bg-black/20 px-1 py-0.5 rounded truncate max-w-[80px] text-center" title={unit.customerName}>
                                 {unit.customerName || 'Booked'}
                               </span>
                             ) : (
@@ -994,10 +1008,10 @@ const ProjectDetail = () => {
               </div>
             </div>
           ) : (
-            <div className="bg-white border border-gray-100 shadow-sm rounded-3xl overflow-hidden">
+            <div className="bg-white border border-black-100 shadow-sm rounded-3xl overflow-hidden">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="bg-gray-50 border-b border-gray-100 text-xs font-bold text-gray-500 uppercase tracking-wider">
+                  <tr className="bg-black-50 border-b border-black-100 text-xs font-bold text-black-500 uppercase tracking-wider">
                     <th className="p-5">House ID</th>
                     <th className="p-5">Size (sq.ft)</th>
                     <th className="p-5">Price</th>
@@ -1006,18 +1020,18 @@ const ProjectDetail = () => {
                     <th className="p-5 text-right">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-50 text-sm">
+                <tbody className="divide-y divide-black-50 text-sm">
                   {displayedUnits.map((unit) => (
-                    <tr key={unit.unitId} className="hover:bg-gray-50/50">
-                      <td className="p-5 font-bold text-gray-800">{unit.unitId}</td>
-                      <td className="p-5 text-gray-600">{Math.round(unit.size).toLocaleString()} sq.ft</td>
+                    <tr key={unit.unitId} className="hover:bg-black-50/50">
+                      <td className="p-5 font-bold text-black-800">{unit.unitId}</td>
+                      <td className="p-5 text-black-600">{Math.round(unit.size).toLocaleString()} sq.ft</td>
                       <td className="p-5 font-bold text-[#0e623a]">${Math.round(unit.price).toLocaleString()}</td>
                       <td className="p-5">
-                        <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border ${getStatusBadge(unit.status)}`}>
+                        <span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full border ${getStatusBadge(unit.status)}`}>
                           {unit.status}
                         </span>
                       </td>
-                      <td className="p-5 text-gray-600">{unit.customerName || '—'}</td>
+                      <td className="p-5 text-black-600">{unit.customerName || '—'}</td>
                       <td className="p-5 text-right">
                         <button
                           onClick={() => {
@@ -1028,7 +1042,7 @@ const ProjectDetail = () => {
                             setLeadName(unit.leadName || '');
                             setBookingModalOpen(true);
                           }}
-                          className="px-3 py-1.5 border border-gray-200 rounded-lg text-xs font-bold text-gray-600 hover:text-[#0e623a]/10 hover:bg-[#0e623a]/5 transition"
+                          className="px-3 py-1.5 border border-black-200 rounded-lg text-xs font-bold text-black-600 hover:text-[#0e623a]/10 hover:bg-[#0e623a]/5 transition"
                         >
                           Booking Details
                         </button>
@@ -1070,11 +1084,11 @@ const ProjectDetail = () => {
         const filteredPosters = getFilteredList(mPosters);
 
         return (
-          <div className="bg-white p-6 border border-gray-150 shadow-sm rounded-3xl space-y-6">
+          <div className="bg-white p-6 border border-black-150 shadow-sm rounded-3xl space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b pb-4 gap-4">
               <div>
-                <h3 className="text-lg font-bold text-gray-800">Marketing & Campaign Settings</h3>
-                <p className="text-xs text-gray-500 mt-1">Configure sources, tracking links, and active/paused statuses.</p>
+                <h3 className="text-lg font-bold text-black-800">Marketing & Campaign Settings</h3>
+                <p className="text-xs text-black-500 mt-1">Configure sources, tracking links, and active/paused statuses.</p>
               </div>
               {saveSuccess && (
                 <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs px-4 py-2 rounded-xl flex items-center gap-1.5 animate-pulse shrink-0 self-start sm:self-center">
@@ -1085,33 +1099,33 @@ const ProjectDetail = () => {
             </div>
 
             {/* Campaign Metrics & Filters Bar */}
-            <div className="bg-gray-50 p-4 rounded-2xl border border-gray-150 grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+            <div className="bg-black-50 p-4 rounded-2xl border border-black-150 grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
               <div className="md:col-span-2 space-y-1">
-                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Search campaigns</label>
+                <label className="text-[11px] font-bold text-black-400 uppercase tracking-wider block">Search campaigns</label>
                 <input
                   type="text"
                   placeholder="Search by campaign name or link URL..."
                   value={marketingSearch}
                   onChange={(e) => setMarketingSearch(e.target.value)}
-                  className="w-full px-3 py-2 bg-white border border-gray-250 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-sm"
+                  className="w-full px-3 py-2 bg-white border border-black-250 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-sm"
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Start Date</label>
+                <label className="text-[11px] font-bold text-black-400 uppercase tracking-wider block">Start Date</label>
                 <input
                   type="date"
                   value={startDate}
                   onChange={(e) => setStartDate(e.target.value)}
-                  className="w-full px-3 py-2 bg-white border border-gray-255 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-sm font-semibold text-gray-700"
+                  className="w-full px-3 py-2 bg-white border border-black-255 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-sm font-semibold text-black-700"
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">End Date</label>
+                <label className="text-[11px] font-bold text-black-400 uppercase tracking-wider block">End Date</label>
                 <input
                   type="date"
                   value={endDate}
                   onChange={(e) => setEndDate(e.target.value)}
-                  className="w-full px-3 py-2 bg-white border border-gray-255 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-sm font-semibold text-gray-700"
+                  className="w-full px-3 py-2 bg-white border border-black-255 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-sm font-semibold text-black-700"
                 />
               </div>
             </div>
@@ -1119,7 +1133,7 @@ const ProjectDetail = () => {
             <form onSubmit={handleMarketingSubmit} className="space-y-6">
               {/* Source Campaign Selection */}
               <div className="max-w-md">
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-2">Promotional Source / Ad Campaign</label>
+                <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-2">Promotional Source / Ad Campaign</label>
                 <SearchableSelect
                   options={SOURCE_TYPES}
                   value={mSourceType}
@@ -1131,7 +1145,7 @@ const ProjectDetail = () => {
               {/* Video Ads Table */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <h4 className="text-sm font-bold text-gray-700 uppercase tracking-wider flex items-center gap-2">
+                  <h4 className="text-sm font-bold text-black-700 uppercase tracking-wider flex items-center gap-2">
                     <Video className="w-4 h-4 text-[#0e623a]" />
                     <span>Video Ads & Reels ({filteredVideos.length})</span>
                   </h4>
@@ -1144,10 +1158,10 @@ const ProjectDetail = () => {
                   </button>
                 </div>
 
-                <div className="border border-gray-150 rounded-xl overflow-hidden bg-white shadow-sm">
+                <div className="border border-black-150 rounded-xl overflow-hidden bg-white shadow-sm">
                   <table className="w-full text-left border-collapse text-sm">
                     <thead>
-                      <tr className="bg-gray-50 border-b border-gray-150 font-bold text-gray-500 text-xs">
+                      <tr className="bg-black-50 border-b border-black-150 font-bold text-black-500 text-xs">
                         <th className="p-4">Video Name</th>
                         <th className="p-4">Video Link / URL</th>
                         <th className="p-4 w-32">Cost per Enquiry (₹)</th>
@@ -1156,9 +1170,9 @@ const ProjectDetail = () => {
                         <th className="p-4 w-16 text-center">Action</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-100">
+                    <tbody className="divide-y divide-black-100">
                       {filteredVideos.map((vid) => (
-                        <tr key={vid._id} className={`hover:bg-gray-55/30 transition-colors ${vid.status === 'Paused' ? 'bg-gray-50/50' : ''}`}>
+                        <tr key={vid._id} className={`hover:bg-black-55/30 transition-colors ${vid.status === 'Paused' ? 'bg-black-50/50' : ''}`}>
                           <td className="p-3">
                             <input
                               type="text"
@@ -1167,9 +1181,9 @@ const ProjectDetail = () => {
                               onChange={(e) => {
                                 setMVideos(mVideos.map(v => v._id === vid._id ? { ...v, name: e.target.value } : v));
                               }}
-                              className="w-full px-3 py-2 bg-white border border-gray-250 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#0e623a] transition text-sm font-medium"
+                              className="w-full px-3 py-2 bg-white border border-black-250 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#0e623a] transition text-sm font-medium"
                             />
-                            <span className="text-[10px] text-gray-400 mt-1 block">
+                            <span className="text-[11px] text-black-400 mt-1 block">
                               Updated: {vid.updatedAt ? new Date(vid.updatedAt).toLocaleDateString() : 'Just now'}
                             </span>
                           </td>
@@ -1181,7 +1195,7 @@ const ProjectDetail = () => {
                               onChange={(e) => {
                                 setMVideos(mVideos.map(v => v._id === vid._id ? { ...v, link: e.target.value } : v));
                               }}
-                              className="w-full px-3 py-2 bg-white border border-gray-250 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#0e623a] transition text-sm"
+                              className="w-full px-3 py-2 bg-white border border-black-250 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#0e623a] transition text-sm"
                             />
                           </td>
                           <td className="p-3">
@@ -1192,7 +1206,7 @@ const ProjectDetail = () => {
                               onChange={(e) => {
                                 setMVideos(mVideos.map(v => v._id === vid._id ? { ...v, cost: Number(e.target.value) || 0 } : v));
                               }}
-                              className="w-full px-3 py-2 bg-white border border-gray-250 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#0e623a] transition text-sm"
+                              className="w-full px-3 py-2 bg-white border border-black-250 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#0e623a] transition text-sm"
                             />
                           </td>
                           <td className="p-3">
@@ -1223,7 +1237,7 @@ const ProjectDetail = () => {
                                 <span>Open URL</span>
                               </a>
                             ) : (
-                              <span className="text-gray-400 text-xs">—</span>
+                              <span className="text-black-400 text-xs">—</span>
                             )}
                           </td>
                           <td className="p-3 text-center">
@@ -1239,7 +1253,7 @@ const ProjectDetail = () => {
                       ))}
                       {filteredVideos.length === 0 && (
                         <tr>
-                          <td colSpan="5" className="p-6 text-center text-gray-400 text-xs">
+                          <td colSpan="5" className="p-6 text-center text-black-400 text-xs">
                             No matching video campaigns found.
                           </td>
                         </tr>
@@ -1252,7 +1266,7 @@ const ProjectDetail = () => {
               {/* Poster Ads Table */}
               <div className="space-y-3 pt-2">
                 <div className="flex items-center justify-between">
-                  <h4 className="text-sm font-bold text-gray-700 uppercase tracking-wider flex items-center gap-2">
+                  <h4 className="text-sm font-bold text-black-700 uppercase tracking-wider flex items-center gap-2">
                     <ImageIcon className="w-4 h-4 text-[#0e623a]" />
                     <span>Poster & Banner Campaigns ({filteredPosters.length})</span>
                   </h4>
@@ -1265,10 +1279,10 @@ const ProjectDetail = () => {
                   </button>
                 </div>
 
-                <div className="border border-gray-150 rounded-xl overflow-hidden bg-white shadow-sm">
+                <div className="border border-black-150 rounded-xl overflow-hidden bg-white shadow-sm">
                   <table className="w-full text-left border-collapse text-sm">
                     <thead>
-                      <tr className="bg-gray-50 border-b border-gray-150 font-bold text-gray-500 text-xs">
+                      <tr className="bg-black-50 border-b border-black-150 font-bold text-black-500 text-xs">
                         <th className="p-4">Poster Name</th>
                         <th className="p-4">Poster Link / URL</th>
                         <th className="p-4 w-32">Cost per Enquiry (₹)</th>
@@ -1277,9 +1291,9 @@ const ProjectDetail = () => {
                         <th className="p-4 w-16 text-center">Action</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-100">
+                    <tbody className="divide-y divide-black-100">
                       {filteredPosters.map((pos) => (
-                        <tr key={pos._id} className={`hover:bg-gray-55/30 transition-colors ${pos.status === 'Paused' ? 'bg-gray-50/50' : ''}`}>
+                        <tr key={pos._id} className={`hover:bg-black-55/30 transition-colors ${pos.status === 'Paused' ? 'bg-black-50/50' : ''}`}>
                           <td className="p-3">
                             <input
                               type="text"
@@ -1288,9 +1302,9 @@ const ProjectDetail = () => {
                               onChange={(e) => {
                                 setMPosters(mPosters.map(p => p._id === pos._id ? { ...p, name: e.target.value } : p));
                               }}
-                              className="w-full px-3 py-2 bg-white border border-gray-250 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#0e623a] transition text-sm font-medium"
+                              className="w-full px-3 py-2 bg-white border border-black-250 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#0e623a] transition text-sm font-medium"
                             />
-                            <span className="text-[10px] text-gray-400 mt-1 block">
+                            <span className="text-[11px] text-black-400 mt-1 block">
                               Updated: {pos.updatedAt ? new Date(pos.updatedAt).toLocaleDateString() : 'Just now'}
                             </span>
                           </td>
@@ -1302,7 +1316,7 @@ const ProjectDetail = () => {
                               onChange={(e) => {
                                 setMPosters(mPosters.map(p => p._id === pos._id ? { ...p, link: e.target.value } : p));
                               }}
-                              className="w-full px-3 py-2 bg-white border border-gray-255 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#0e623a] transition text-sm"
+                              className="w-full px-3 py-2 bg-white border border-black-255 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#0e623a] transition text-sm"
                             />
                           </td>
                           <td className="p-3">
@@ -1313,7 +1327,7 @@ const ProjectDetail = () => {
                               onChange={(e) => {
                                 setMPosters(mPosters.map(p => p._id === pos._id ? { ...p, cost: Number(e.target.value) || 0 } : p));
                               }}
-                              className="w-full px-3 py-2 bg-white border border-gray-250 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#0e623a] transition text-sm"
+                              className="w-full px-3 py-2 bg-white border border-black-250 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#0e623a] transition text-sm"
                             />
                           </td>
                           <td className="p-3">
@@ -1344,7 +1358,7 @@ const ProjectDetail = () => {
                                 <span>Open URL</span>
                               </a>
                             ) : (
-                              <span className="text-gray-400 text-xs">—</span>
+                              <span className="text-black-400 text-xs">—</span>
                             )}
                           </td>
                           <td className="p-3 text-center">
@@ -1360,7 +1374,7 @@ const ProjectDetail = () => {
                       ))}
                       {filteredPosters.length === 0 && (
                         <tr>
-                          <td colSpan="5" className="p-6 text-center text-gray-400 text-xs">
+                          <td colSpan="5" className="p-6 text-center text-black-400 text-xs">
                             No matching poster campaigns found.
                           </td>
                         </tr>
@@ -1374,9 +1388,10 @@ const ProjectDetail = () => {
               <div className="flex justify-end pt-4 border-t">
                 <button
                   type="submit"
-                  className="px-6 py-3 bg-[#0e623a] text-white rounded-xl text-sm font-bold hover:bg-[#0b4d2d] transition shadow-md flex items-center gap-2"
+                  disabled={marketingSubmitting}
+                  className="px-6 py-3 bg-[#0e623a] text-white rounded-xl text-sm font-bold hover:bg-[#0b4d2d] transition shadow-md flex items-center gap-2 disabled:opacity-50"
                 >
-                  <span>Save Marketing Settings</span>
+                  {marketingSubmitting ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving...</> : <span>Save Marketing Settings</span>}
                 </button>
               </div>
             </form>
@@ -1387,7 +1402,7 @@ const ProjectDetail = () => {
       {/* 🔐 MODAL: Booking Status / Customer Approval Details */}
       {bookingModalOpen && selectedUnit && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="bg-white rounded-3xl max-w-md w-full overflow-hidden shadow-2xl border border-gray-100">
+          <div className="bg-white rounded-3xl max-w-md w-full overflow-hidden shadow-2xl border border-black-100">
             <div className="bg-[#0e623a] p-6 text-white">
               <h3 className="text-lg font-bold">Booking Details: {selectedUnit.unitId}</h3>
               <p className="text-red-100 text-xs mt-1">Configure customer records and workflow states</p>
@@ -1395,44 +1410,44 @@ const ProjectDetail = () => {
 
             <form onSubmit={handleBookingSubmit} className="p-6 space-y-4">
               {/* Unit Specifications Details Box */}
-              <div className="p-4 bg-gray-50 rounded-2xl border border-gray-150 space-y-2 text-xs text-left">
-                <div className="flex justify-between border-b border-gray-200/60 pb-1.5">
-                  <span className="text-gray-400 font-bold uppercase tracking-wider">Floor Number</span>
-                  <span className="font-extrabold text-gray-800">{selectedUnit.floor || 'Floor 1'}</span>
+              <div className="p-4 bg-black-50 rounded-2xl border border-black-150 space-y-2 text-xs text-left">
+                <div className="flex justify-between border-b border-black-200/60 pb-1.5">
+                  <span className="text-black-400 font-bold uppercase tracking-wider">Floor Number</span>
+                  <span className="font-extrabold text-black-800">{selectedUnit.floor || 'Floor 1'}</span>
                 </div>
-                <div className="flex justify-between border-b border-gray-200/60 pb-1.5">
-                  <span className="text-gray-400 font-bold uppercase tracking-wider">Unit No</span>
-                  <span className="font-extrabold text-gray-800">{selectedUnit.unitId}</span>
+                <div className="flex justify-between border-b border-black-200/60 pb-1.5">
+                  <span className="text-black-400 font-bold uppercase tracking-wider">Unit No</span>
+                  <span className="font-extrabold text-black-800">{selectedUnit.unitId}</span>
                 </div>
-                <div className="flex justify-between border-b border-gray-200/60 pb-1.5">
-                  <span className="text-gray-400 font-bold uppercase tracking-wider">Unit Type</span>
-                  <span className="font-extrabold text-gray-800">{selectedUnit.unitType || 'Flat'}</span>
+                <div className="flex justify-between border-b border-black-200/60 pb-1.5">
+                  <span className="text-black-400 font-bold uppercase tracking-wider">Unit Type</span>
+                  <span className="font-extrabold text-black-800">{selectedUnit.unitType || 'Flat'}</span>
                 </div>
-                <div className="flex justify-between border-b border-gray-200/60 pb-1.5">
-                  <span className="text-gray-400 font-bold uppercase tracking-wider">Rate per UOM</span>
+                <div className="flex justify-between border-b border-black-200/60 pb-1.5">
+                  <span className="text-black-400 font-bold uppercase tracking-wider">Rate per UOM</span>
                   <span className="font-extrabold text-[#0e623a]">Rs. {(selectedUnit.ratePerUom || project.pricePerSqFt || 0).toLocaleString()}</span>
                 </div>
-                <div className="flex justify-between border-b border-gray-200/60 pb-1.5">
-                  <span className="text-gray-400 font-bold uppercase tracking-wider">Sold Rate per UOM</span>
+                <div className="flex justify-between border-b border-black-200/60 pb-1.5">
+                  <span className="text-black-400 font-bold uppercase tracking-wider">Sold Rate per UOM</span>
                   <span className="font-extrabold text-red-650">Rs. {(selectedUnit.soldRatePerUom || 0).toLocaleString()}</span>
                 </div>
-                <div className="flex justify-between border-b border-gray-200/60 pb-1.5">
-                  <span className="text-gray-400 font-bold uppercase tracking-wider">Total Unit Amount</span>
+                <div className="flex justify-between border-b border-black-200/60 pb-1.5">
+                  <span className="text-black-400 font-bold uppercase tracking-wider">Total Unit Amount</span>
                   <span className="font-extrabold text-emerald-700">Rs. {Math.round(selectedUnit.price || 0).toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-400 font-bold uppercase tracking-wider">Sold Consideration</span>
+                  <span className="text-black-400 font-bold uppercase tracking-wider">Sold Consideration</span>
                   <span className="font-extrabold text-red-700">Rs. {(selectedUnit.soldConsideration || 0).toLocaleString()}</span>
                 </div>
               </div>
 
               {/* Unit Status */}
               <div>
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-2 text-left">Workflow Status</label>
+                <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-2 text-left">Workflow Status</label>
                 <select
                   value={unitStatus}
                   onChange={(e) => setUnitStatus(e.target.value)}
-                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0e623a]"
+                  className="w-full px-4 py-3 bg-black-50 border border-black-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0e623a]"
                 >
                   <option value="New">New / Available</option>
                   <option value="Booked">Booked</option>
@@ -1440,7 +1455,7 @@ const ProjectDetail = () => {
                   <option value="Sold Out">Sold Out</option>
                 </select>
                 {user.role === 'Site Engineer' && (
-                  <span className="text-[10px] text-red-500 mt-1 block">
+                  <span className="text-[11px] text-red-500 mt-1 block">
                     * Site Engineers cannot change status to Booked or Sold Out.
                   </span>
                 )}
@@ -1448,36 +1463,36 @@ const ProjectDetail = () => {
 
               {/* Customer Details */}
               <div>
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-2 text-left">Customer Name</label>
+                <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-2 text-left">Customer Name</label>
                 <input
                   type="text"
                   placeholder="e.g. Robert Miller"
                   value={customerName}
                   onChange={(e) => setCustomerName(e.target.value)}
-                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0e623a]"
+                  className="w-full px-4 py-3 bg-black-50 border border-black-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0e623a]"
                 />
               </div>
 
               <div>
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-2 text-left">Customer Phone</label>
+                <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-2 text-left">Customer Phone</label>
                 <input
                   type="text"
                   placeholder="e.g. +1 555-0199"
                   value={customerPhone}
                   onChange={(e) => setCustomerPhone(e.target.value)}
-                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0e623a]"
+                  className="w-full px-4 py-3 bg-black-50 border border-black-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0e623a]"
                 />
               </div>
 
               {project.projectType === 'Plot' && (
                 <div>
-                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-2 text-left">Lead / Marketing Channel</label>
+                  <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-2 text-left">Lead / Marketing Channel</label>
                   <input
                     type="text"
                     placeholder="e.g. Digital Ad, Broker Referral"
                     value={leadName}
                     onChange={(e) => setLeadName(e.target.value)}
-                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0e623a]"
+                    className="w-full px-4 py-3 bg-black-50 border border-black-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0e623a]"
                   />
                 </div>
               )}
@@ -1487,15 +1502,16 @@ const ProjectDetail = () => {
                 <button
                   type="button"
                   onClick={() => setBookingModalOpen(false)}
-                  className="flex-1 py-3 border border-gray-200 rounded-xl text-xs font-bold text-gray-500 hover:bg-gray-50 transition"
+                  className="flex-1 py-3 border border-black-200 rounded-xl text-xs font-bold text-black-500 hover:bg-black-50 transition"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 py-3 bg-[#0e623a] text-white rounded-xl text-xs font-bold hover:bg-[#0b4d2d] transition"
+                  disabled={bookingSubmitting}
+                  className="flex-1 py-3 bg-[#0e623a] text-white rounded-xl text-xs font-bold hover:bg-[#0b4d2d] transition disabled:opacity-50 flex justify-center items-center gap-2"
                 >
-                  Save Changes
+                  {bookingSubmitting ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving...</> : 'Save Changes'}
                 </button>
               </div>
             </form>
@@ -1506,7 +1522,7 @@ const ProjectDetail = () => {
       {/* 🧠 MODAL: Dynamic Plot Resizing Engine */}
       {resizeModalOpen && resizePlot && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="bg-white rounded-3xl max-w-md w-full overflow-hidden shadow-2xl border border-gray-100">
+          <div className="bg-white rounded-3xl max-w-md w-full overflow-hidden shadow-2xl border border-black-100">
             <div className="bg-[#0e623a] p-6 text-white">
               <h3 className="text-lg font-bold">Dynamic Resizing Engine</h3>
               <p className="text-red-100 text-xs mt-1">Recalculate land allocations dynamically</p>
@@ -1514,13 +1530,13 @@ const ProjectDetail = () => {
 
             <form onSubmit={handleResizeSubmit} className="p-6 space-y-4">
               <div className="bg-amber-50 border border-amber-200 p-4 rounded-xl space-y-1.5">
-                <span className="text-[10px] font-bold text-amber-800 uppercase tracking-wider block">Real-Time Land Equation</span>
+                <span className="text-[11px] font-bold text-amber-800 uppercase tracking-wider block">Real-Time Land Equation</span>
                 <p className="text-xs text-amber-700 leading-normal">
                   Remaining Land will be updated as:
                   <br />
                   <code className="bg-white/60 px-1 rounded font-mono">Remaining = Total Land - Sum(Locked Plots)</code>
                 </p>
-                <div className="text-[10px] text-amber-800 mt-2 font-medium">
+                <div className="text-[11px] text-amber-800 mt-2 font-medium">
                   • Total Land: {project.totalLandArea.toLocaleString()} sq.ft
                   <br />
                   • Already Locked Plots: {lockedPlotsCount} plots ({lockedPlotsSize.toLocaleString()} sq.ft)
@@ -1529,7 +1545,7 @@ const ProjectDetail = () => {
 
               {/* Target Plot Size */}
               <div>
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-2">
+                <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-2">
                   Target Plot Size (sq.ft) for <span className="text-[#0e623a]">{resizePlot.unitId}</span>
                 </label>
                 <input
@@ -1537,20 +1553,20 @@ const ProjectDetail = () => {
                   required
                   value={newSize}
                   onChange={(e) => setNewSize(e.target.value)}
-                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0e623a]"
+                  className="w-full px-4 py-3 bg-black-50 border border-black-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0e623a]"
                 />
-                <span className="text-[10px] text-gray-400 mt-1 block">
+                <span className="text-[11px] text-black-400 mt-1 block">
                   * Submitting will LOCK this plot size and exclude it from future auto-splits.
                 </span>
               </div>
 
               {/* Redistribution Mode */}
               <div>
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-2">Redistribution Mode for Unlocked Plots</label>
+                <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-2">Redistribution Mode for Unlocked Plots</label>
                 <select
                   value={redistributionMode}
                   onChange={(e) => setRedistributionMode(e.target.value)}
-                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0e623a]"
+                  className="w-full px-4 py-3 bg-black-50 border border-black-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0e623a]"
                 >
                   <option value="equal">Equal Split Remaining Land</option>
                   <option value="value-based">Proportionate (Value-Based) Split</option>
@@ -1560,7 +1576,7 @@ const ProjectDetail = () => {
 
               {/* Price update */}
               <div>
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-2">
+                <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-2">
                   Update Price Per Sq.Ft (Optional)
                 </label>
                 <input
@@ -1568,7 +1584,7 @@ const ProjectDetail = () => {
                   placeholder={`Current: $${project.pricePerSqFt}`}
                   value={updatedPriceSqFt}
                   onChange={(e) => setUpdatedPriceSqFt(e.target.value)}
-                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0e623a]"
+                  className="w-full px-4 py-3 bg-black-50 border border-black-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0e623a]"
                 />
               </div>
 
@@ -1577,15 +1593,16 @@ const ProjectDetail = () => {
                 <button
                   type="button"
                   onClick={() => setResizeModalOpen(false)}
-                  className="flex-1 py-3 border border-gray-200 rounded-xl text-xs font-bold text-gray-500 hover:bg-gray-50 transition"
+                  className="flex-1 py-3 border border-black-200 rounded-xl text-xs font-bold text-black-500 hover:bg-black-50 transition"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 py-3 bg-[#0e623a] text-white rounded-xl text-xs font-bold hover:bg-[#0b4d2d] transition"
+                  disabled={resizeSubmitting}
+                  className="flex-1 py-3 bg-[#0e623a] text-white rounded-xl text-xs font-bold hover:bg-[#0b4d2d] transition disabled:opacity-50 flex justify-center items-center gap-2"
                 >
-                  Recalculate Land
+                  {resizeSubmitting ? <><Loader2 className="w-4 h-4 animate-spin" /> Recalculating...</> : 'Recalculate Land'}
                 </button>
               </div>
             </form>
@@ -1595,15 +1612,15 @@ const ProjectDetail = () => {
     
       {/* 🟢 CRD FLOW FORMAT VIEW */}
       {activeTab === 'crdFlow' && (
-        <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center min-h-[400px]">
+        <div className="bg-white p-8 rounded-2xl shadow-sm border border-black-100 flex flex-col items-center justify-center min-h-[400px]">
           <div className="max-w-md w-full text-center space-y-6">
             <div className="w-20 h-20 bg-[#0e623a]/10 rounded-full flex items-center justify-center mx-auto">
               <FileSpreadsheet className="w-10 h-10 text-[#0e623a]" />
             </div>
             
             <div>
-              <h2 className="text-xl font-bold text-gray-800">Master CRD Flow Format</h2>
-              <p className="text-sm text-gray-500 mt-2 leading-relaxed">
+              <h2 className="text-xl font-bold text-black-800">Master CRD Flow Format</h2>
+              <p className="text-sm text-black-500 mt-2 leading-relaxed">
                 Upload the master Excel template for this project. Once uploaded, this format will automatically be used for all booked leads in the CRD Flow manager.
               </p>
             </div>
@@ -1613,7 +1630,7 @@ const ProjectDetail = () => {
                 <div className="flex items-center gap-3">
                   <CheckCircle2 className="w-6 h-6 text-emerald-600" />
                   <div className="text-left flex-1 overflow-hidden">
-                    <p className="text-sm font-bold text-gray-800 truncate" title={crdFlowSheetName}>{crdFlowSheetName}</p>
+                    <p className="text-sm font-bold text-black-800 truncate" title={crdFlowSheetName}>{crdFlowSheetName}</p>
                     <p className="text-xs text-emerald-600 font-semibold mt-0.5">Active Template Ready</p>
                   </div>
                 </div>
@@ -1636,7 +1653,7 @@ const ProjectDetail = () => {
                 </div>
               </div>
             ) : (
-              <div className="border-2 border-dashed border-gray-300 rounded-2xl p-6 bg-gray-50 hover:bg-gray-100 transition">
+              <div className="border-2 border-dashed border-black-300 rounded-2xl p-6 bg-black-50 hover:bg-black-100 transition">
                 <input 
                   type="file" 
                   id="crdUpload" 
@@ -1668,9 +1685,9 @@ const ProjectDetail = () => {
                   </div>
                 ) : (
                   <label htmlFor="crdUpload" className="cursor-pointer flex flex-col items-center gap-3">
-                    <Upload className="w-8 h-8 text-gray-400" />
+                    <Upload className="w-8 h-8 text-black-400" />
                     <span className="text-sm font-semibold text-[#0e623a]">Click to browse Excel files</span>
-                    <span className="text-xs text-gray-400">.xlsx, .xls formats up to 10MB</span>
+                    <span className="text-xs text-black-400">.xlsx, .xls formats up to 10MB</span>
                   </label>
                 )}
               </div>
@@ -1696,17 +1713,17 @@ const ProjectDetail = () => {
               </button>
             </div>
             
-            <div className="flex-1 overflow-y-auto p-6 bg-gray-50">
-              <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+            <div className="flex-1 overflow-y-auto p-6 bg-black-50">
+              <div className="bg-white border border-black-200 rounded-xl overflow-hidden shadow-sm">
                 <table className="w-full text-left text-sm">
-                  <thead className="bg-gray-100 border-b border-gray-200 text-gray-600 font-bold">
+                  <thead className="bg-black-100 border-b border-black-200 text-black-600 font-bold">
                     <tr>
-                      <th className="p-4 border-r border-gray-200 w-16 text-center">#</th>
-                      <th className="p-4 border-r border-gray-200">Construction Stage / Milestone</th>
+                      <th className="p-4 border-r border-black-200 w-16 text-center">#</th>
+                      <th className="p-4 border-r border-black-200">Construction Stage / Milestone</th>
                       <th className="p-4 text-center w-24">Payment %</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-100">
+                  <tbody className="divide-y divide-black-100">
                     {[
                       { name: 'On Booking', percentage: 5 },
                       { name: 'Agreement & Deed Regn.', percentage: 35 },
@@ -1719,9 +1736,9 @@ const ProjectDetail = () => {
                       { name: 'On Completion of Fifth Floor Roof Slab', percentage: 3 },
                       { name: 'On Handing Over', percentage: 2 }
                     ].map((stage, idx) => (
-                      <tr key={idx} className="hover:bg-gray-50/50">
-                        <td className="p-4 border-r border-gray-200 text-center font-bold text-gray-400">{idx + 1}</td>
-                        <td className="p-4 border-r border-gray-200 font-semibold text-gray-700">{stage.name}</td>
+                      <tr key={idx} className="hover:bg-black-50/50">
+                        <td className="p-4 border-r border-black-200 text-center font-bold text-black-400">{idx + 1}</td>
+                        <td className="p-4 border-r border-black-200 font-semibold text-black-700">{stage.name}</td>
                         <td className="p-4 text-center font-bold text-[#0e623a]">{stage.percentage}%</td>
                       </tr>
                     ))}
@@ -1729,8 +1746,8 @@ const ProjectDetail = () => {
                 </table>
               </div>
             </div>
-            <div className="p-4 border-t border-gray-100 bg-white flex justify-end">
-               <button onClick={() => setSheetPreviewModalOpen(false)} className="px-5 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-xl transition">
+            <div className="p-4 border-t border-black-100 bg-white flex justify-end">
+               <button onClick={() => setSheetPreviewModalOpen(false)} className="px-5 py-2 bg-black-100 hover:bg-black-200 text-black-700 font-bold rounded-xl transition">
                  Close Preview
                </button>
             </div>

@@ -57,7 +57,7 @@ const ObservedSwirlPieChart = ({
   const total = dataArray.reduce((sum, item) => sum + (item[valueKey] || 0), 0);
   if (total === 0) {
     return (
-      <div className="flex items-center justify-center h-48 text-gray-400 italic text-xs">
+      <div className="flex items-center justify-center h-48 text-black-400 italic text-xs">
         No data available
       </div>
     );
@@ -110,10 +110,10 @@ const ObservedSwirlPieChart = ({
             <div key={index} className="flex items-center gap-4 bg-slate-50/90 backdrop-blur-sm border-none rounded-2xl px-6 py-4 hover:bg-slate-100 transition shadow-[0_2px_8px_-3px_rgba(0,0,0,0.05)] w-full">
               <span className="w-4 h-4 rounded-full shrink-0" style={{ backgroundColor: slot.color }}></span>
               <div className="flex flex-col text-left">
-                <span className="text-base font-black text-gray-500 uppercase tracking-wider">{slot.label}</span>
+                <span className="text-base font-black text-black-500 uppercase tracking-wider">{slot.label}</span>
                 <div className="flex items-baseline gap-2 mt-1">
                   <span className="grand-heading text-4xl">{slot.pct.toFixed(1)}%</span>
-                  <span className="text-gray-500 font-bold text-base">({val} {typeof isCount === 'string' ? isCount : 'Units'})</span>
+                  <span className="text-black-500 font-bold text-base">({val} {typeof isCount === 'string' ? isCount : 'Units'})</span>
                 </div>
               </div>
             </div>
@@ -157,7 +157,7 @@ const ObservedPieChart = ({
   const total = dataArray.reduce((sum, item) => sum + (item[valueKey] || 0), 0);
   if (total === 0) {
     return (
-      <div className="flex items-center justify-center h-48 text-gray-400 italic text-xs">
+      <div className="flex items-center justify-center h-48 text-black-400 italic text-xs">
         No data available
       </div>
     );
@@ -272,10 +272,10 @@ const ObservedPieChart = ({
                         fill="#000000"
                         style={{ fontFamily: "system-ui, -apple-system, sans-serif" }}
                       >
-                        <tspan x={labelX} dy="-0.2em" className="font-normal text-[16px] md:text-[20px] uppercase tracking-wide">
+                        <tspan x={labelX} dy="-0.2em" className="font-normal text-[17px] md:text-[21px] uppercase tracking-wide">
                           {item[labelKey].length > 18 ? item[labelKey].substring(0, 18) + '..' : item[labelKey]}
                         </tspan>
-                        <tspan x={labelX} dy="1.4em" className="font-extrabold text-[18px] md:text-[24px]">
+                        <tspan x={labelX} dy="1.4em" className="font-extrabold text-[19px] md:text-[25px]">
                           {displayText}
                         </tspan>
                       </text>
@@ -303,11 +303,11 @@ const ObservedPieChart = ({
             >
               <div className="flex items-center gap-2">
                 <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: color }}></span>
-                <span className="font-bold text-gray-650 truncate max-w-[140px]">{item[labelKey]}</span>
+                <span className="font-bold text-black-650 truncate max-w-[140px]">{item[labelKey]}</span>
               </div>
               <div className="flex items-baseline gap-1.5 ml-2 shrink-0">
-                <span className="text-gray-900 font-extrabold">{percentage.toFixed(1)}%</span>
-                <span className="text-black font-extrabold text-[10px]">({isCount ? `${val} ${typeof isCount === 'string' ? isCount : 'Leads'}` : `₹${Math.round(val).toLocaleString()}`})</span>
+                <span className="text-black-900 font-extrabold">{percentage.toFixed(1)}%</span>
+                <span className="text-black font-extrabold text-[11px]">({isCount ? `${val} ${typeof isCount === 'string' ? isCount : 'Leads'}` : `₹${Math.round(val).toLocaleString()}`})</span>
               </div>
             </div>
           );
@@ -316,21 +316,21 @@ const ObservedPieChart = ({
 
       {hoveredItem && (
         <div 
-          className="absolute z-50 pointer-events-none bg-gray-900/95 backdrop-blur-md text-white text-[11px] px-3.5 py-2.5 rounded-2xl shadow-xl border border-gray-800 flex flex-col gap-1 pointer-events-none transition-all duration-75"
+          className="absolute z-50 pointer-events-none bg-black-900/95 backdrop-blur-md text-white text-[12px] px-3.5 py-2.5 rounded-2xl shadow-xl border border-black-800 flex flex-col gap-1 pointer-events-none transition-all duration-75"
           style={{ 
             left: `${mousePos.x + 15}px`, 
             top: `${mousePos.y + 15}px`,
             fontFamily: "'Segoe UI', system-ui, sans-serif"
           }}
         >
-          <span className="font-extrabold text-[9px] uppercase tracking-wider text-gray-400">
+          <span className="font-extrabold text-[10px] uppercase tracking-wider text-black-400">
             {hoveredItem[labelKey]}
           </span>
           <div className="flex items-center gap-2 font-sans font-black">
             <span className="text-[#10b981] font-black text-sm">
               {((hoveredItem[valueKey] / total) * 100).toFixed(1)}%
             </span>
-            <span className="text-gray-300 font-extrabold text-[10px]">
+            <span className="text-black-300 font-extrabold text-[11px]">
               ({isCount ? `${hoveredItem[valueKey]} ${typeof isCount === 'string' ? isCount : 'Leads'}` : `₹${Math.round(hoveredItem[valueKey]).toLocaleString()}`})
             </span>
           </div>
@@ -468,20 +468,8 @@ const Dashboard = () => {
     const month = String(d.getMonth() + 1).padStart(2, '0');
     return `${year}-${month}`;
   });
-  const [fromDate, setFromDate] = useState(() => {
-    const d = new Date();
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    return `${year}-${month}-01`;
-  });
-  const [toDate, setToDate] = useState(() => {
-    const d = new Date();
-    const lastDayVal = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(lastDayVal).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  });
+  const [fromDate, setFromDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [toDate, setToDate] = useState(() => new Date().toISOString().split('T')[0]);
 
   // User and Project filters
   const [selectedUser, setSelectedUser] = useState(() => {
@@ -1545,7 +1533,7 @@ const Dashboard = () => {
       {/* Title Header Bar */}
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <div>
-          <h2 className="text-xl md:text-2xl font-extrabold text-gray-800 flex items-center gap-2">
+          <h2 className="text-xl md:text-2xl font-extrabold text-black-800 flex items-center gap-2">
             <BarChart3 className="w-6 h-6 text-[#0e623a]" />
             <span>Dashboard Overview</span>
           </h2>
@@ -1556,7 +1544,7 @@ const Dashboard = () => {
             className="flex items-center justify-center gap-1.5 px-4 py-2.5 bg-[#0e623a] hover:bg-[#0b4d2d] text-white text-xs font-bold rounded-xl transition shadow-sm"
           >
             <Download className="w-4 h-4" />
-            <span>Export Overall Report</span>
+            <span> Summary Report</span>
           </button>
           
           <button
@@ -1564,7 +1552,7 @@ const Dashboard = () => {
             className="flex items-center justify-center gap-1.5 px-4 py-2.5 btn-grand rounded-xl font-bold text-xs font-bold rounded-xl transition shadow-sm"
           >
             <Download className="w-4 h-4" />
-            <span>Export User Report</span>
+            <span> User Report</span>
           </button>
 
           <button
@@ -1572,7 +1560,7 @@ const Dashboard = () => {
             className="flex items-center justify-center gap-1.5 px-4 py-2.5 btn-grand rounded-xl font-bold text-xs font-bold rounded-xl transition shadow-sm"
           >
             <Download className="w-4 h-4" />
-            <span>Export Project Report</span>
+            <span>Project Report</span>
           </button>
 
           <button
@@ -1580,7 +1568,7 @@ const Dashboard = () => {
             className="flex items-center justify-center gap-1.5 px-4 py-2.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl transition shadow-sm"
           >
             <Download className="w-4 h-4" />
-            <span>Export Source Report</span>
+            <span>Source Report</span>
           </button>
         </div>
       </div>
@@ -1592,13 +1580,13 @@ const Dashboard = () => {
           {/* User Select */}
           {(user?.role === 'Super Admin' || user?.role === 'Admin') ? (
             <div className="flex flex-col gap-1 w-full">
-              <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Filtered User</label>
-              <div className="flex items-center gap-2 bg-gray-50 border-none px-3 py-1.5 rounded-xl">
-                <User className="w-4 h-4 text-gray-455 shrink-0" />
+              <label className="text-[11px] font-bold text-black-800 uppercase tracking-wider">Filtered User</label>
+              <div className="flex items-center gap-2 bg-black-50 border-none px-3 py-1.5 rounded-xl">
+                <User className="w-4 h-4 text-black-455 shrink-0" />
                 <select
                   value={selectedUser}
                   onChange={(e) => setSelectedUser(e.target.value)}
-                  className="w-full bg-transparent text-xs text-gray-700 font-bold focus:outline-none focus:ring-0 border-0 p-0"
+                  className="w-full bg-transparent text-xs text-black-700 font-bold focus:outline-none focus:ring-0 border-0 p-0"
                 >
                   <option value="">All Users</option>
                   {(stats.users || []).map(u => (
@@ -1613,13 +1601,13 @@ const Dashboard = () => {
 
           {/* Project Select */}
           <div className="flex flex-col gap-1 w-full">
-            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Filtered Project</label>
-            <div className="flex items-center gap-2 bg-gray-50 border-none px-3 py-1.5 rounded-xl">
-              <FolderOpen className="w-4 h-4 text-gray-455 shrink-0" />
+            <label className="text-[11px] font-bold text-black-400 uppercase tracking-wider">Filtered Project</label>
+            <div className="flex items-center gap-2 bg-black-50 border-none px-3 py-1.5 rounded-xl">
+              <FolderOpen className="w-4 h-4 text-black-455 shrink-0" />
               <select
                 value={selectedProject}
                 onChange={(e) => setSelectedProject(e.target.value)}
-                className="w-full bg-transparent text-xs text-gray-700 font-bold focus:outline-none focus:ring-0 border-0 p-0"
+                className="w-full bg-transparent text-xs text-black-700 font-bold focus:outline-none focus:ring-0 border-0 p-0"
               >
                 <option value="">All Projects</option>
                 {(stats.projects || []).map(p => (
@@ -1631,13 +1619,13 @@ const Dashboard = () => {
 
           {/* Project Type Select */}
           <div className="flex flex-col gap-1 w-full">
-            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Filtered Type</label>
-            <div className="flex items-center gap-2 bg-gray-50 border-none px-3 py-1.5 rounded-xl">
-              <Layers className="w-4 h-4 text-gray-455 shrink-0" />
+            <label className="text-[11px] font-bold text-black-400 uppercase tracking-wider">Filtered Type</label>
+            <div className="flex items-center gap-2 bg-black-50 border-none px-3 py-1.5 rounded-xl">
+              <Layers className="w-4 h-4 text-black-455 shrink-0" />
               <select
                 value={selectedProjectType}
                 onChange={(e) => setSelectedProjectType(e.target.value)}
-                className="w-full bg-transparent text-xs text-gray-700 font-bold focus:outline-none focus:ring-0 border-0 p-0"
+                className="w-full bg-transparent text-xs text-black-700 font-bold focus:outline-none focus:ring-0 border-0 p-0"
               >
                 <option value="">All Types</option>
                 <option value="Plot">Plot</option>
@@ -1649,13 +1637,13 @@ const Dashboard = () => {
 
           {/* Source Select */}
           <div className="flex flex-col gap-1 w-full">
-            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Filtered Source</label>
-            <div className="flex items-center gap-2 bg-gray-50 border-none px-3 py-1.5 rounded-xl">
-              <Target className="w-4 h-4 text-gray-455 shrink-0" />
+            <label className="text-[11px] font-bold text-black-400 uppercase tracking-wider">Filtered Source</label>
+            <div className="flex items-center gap-2 bg-black-50 border-none px-3 py-1.5 rounded-xl">
+              <Target className="w-4 h-4 text-black-455 shrink-0" />
               <select
                 value={selectedSource}
                 onChange={(e) => setSelectedSource(e.target.value)}
-                className="w-full bg-transparent text-xs text-gray-700 font-bold focus:outline-none focus:ring-0 border-0 p-0"
+                className="w-full bg-transparent text-xs text-black-700 font-bold focus:outline-none focus:ring-0 border-0 p-0"
               >
                 <option value="">All Sources</option>
                 {Object.keys(stats.sourceStats || {}).map(src => (
@@ -1666,35 +1654,35 @@ const Dashboard = () => {
           </div>
 
           {/* Month Wise */}
-          <div className="flex flex-col gap-1 w-full">
-            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Select Month</label>
-            <div className="flex items-center gap-2 bg-gray-50 border-none px-3 py-1.5 rounded-xl">
+          {/* <div className="flex flex-col gap-1 w-full">
+            <label className="text-[11px] font-bold text-black-400 uppercase tracking-wider">Select Month</label>
+            <div className="flex items-center gap-2 bg-black-50 border-none px-3 py-1.5 rounded-xl">
               <Calendar className="w-4 h-4 text-[#0e623a] shrink-0" />
               <input
                 type="month"
                 value={selectedMonth}
                 onChange={(e) => handleMonthChange(e.target.value)}
-                className="w-full bg-transparent text-xs text-gray-700 font-bold focus:outline-none focus:ring-0 border-0 p-0"
+                className="w-full bg-transparent text-xs text-black-700 font-bold focus:outline-none focus:ring-0 border-0 p-0"
               />
             </div>
-          </div>
+          </div> */}
 
           {/* Range picker */}
           <div className="flex flex-col gap-1 w-full">
-            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Custom Date Range</label>
-            <div className="flex items-center gap-2 bg-gray-50 border-none px-3 py-1.5 rounded-xl">
+            <label className="text-[11px] font-bold text-black-400 uppercase tracking-wider">Custom Date Range</label>
+            <div className="flex items-center gap-2 bg-black-50 border-none px-3 py-1.5 rounded-xl">
               <input
                 type="date"
                 value={fromDate}
                 onChange={(e) => setFromDate(e.target.value)}
-                className="w-1/2 bg-transparent text-xs text-gray-700 font-bold focus:outline-none focus:ring-0 border-0 p-0 text-center"
+                className="w-1/2 bg-transparent text-xs text-black-700 font-bold focus:outline-none focus:ring-0 border-0 p-0 text-center"
               />
-              <span className="text-[10px] text-gray-400 font-bold">to</span>
+              <span className="text-[11px] text-black-400 font-bold">to</span>
               <input
                 type="date"
                 value={toDate}
                 onChange={(e) => setToDate(e.target.value)}
-                className="w-1/2 bg-transparent text-xs text-gray-700 font-bold focus:outline-none focus:ring-0 border-0 p-0 text-center"
+                className="w-1/2 bg-transparent text-xs text-black-700 font-bold focus:outline-none focus:ring-0 border-0 p-0 text-center"
               />
             </div>
           </div>
@@ -1721,9 +1709,9 @@ const Dashboard = () => {
 
           return (
             <div key={projCode} className="bg-[#f0fbf4] border-none rounded-3xl p-6 shadow-sm hover:shadow-md transition space-y-4">
-              <div className="flex justify-between items-center border-b border-gray-100 pb-3 text-left">
+              <div className="flex justify-between items-center border-b border-black-100 pb-3 text-left">
                 <div>
-                  <h3 className="text-sm font-extrabold text-gray-800 uppercase tracking-wide flex items-center gap-2">
+                  <h3 className="text-sm font-extrabold text-black-800 uppercase tracking-wide flex items-center gap-2">
                     <Building className="w-4 h-4 text-[#0e623a]" />
                     <span>{projCode} Project Inventory</span>
                   </h3>
@@ -1732,7 +1720,7 @@ const Dashboard = () => {
               </div>
               <div className="py-4 px-2">
                 {chartData.length === 0 && (pStats.cancelled || 0) === 0 ? (
-                  <div className="h-24 flex items-center justify-center text-gray-400 italic text-xs">
+                  <div className="h-24 flex items-center justify-center text-black-400 italic text-xs">
                     No units registered
                   </div>
                 ) : (
@@ -1751,7 +1739,7 @@ const Dashboard = () => {
                           className="flex flex-col items-start bg-slate-50 border-none rounded-2xl p-4 hover:bg-slate-100 transition shadow-sm cursor-pointer w-full">
                           <div className="flex items-center gap-2 mb-2">
                             <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: slot.color }}></span>
-                            <span className="text-[10px] font-black text-gray-500 uppercase tracking-wider">{slot.label}</span>
+                            <span className="text-[11px] font-black text-black-500 uppercase tracking-wider">{slot.label}</span>
                           </div>
                           <div className="flex flex-col items-start gap-0.5 mt-auto">
                             <span className="grand-heading text-4xl leading-none mt-1">{slot.count}</span>
@@ -1770,7 +1758,7 @@ const Dashboard = () => {
                     >
                       <div className="flex items-center gap-2 mb-2">
                         <span className="w-3 h-3 rounded-full shrink-0 bg-red-500"></span>
-                        <span className="text-[10px] font-black text-red-500 uppercase tracking-wider">Cancelled</span>
+                        <span className="text-[11px] font-black text-red-500 uppercase tracking-wider">Cancelled</span>
                       </div>
                       <div className="flex flex-col items-start gap-0.5 mt-auto">
                         <span className="text-red-900 font-black text-3xl leading-none mt-1">{pStats.cancelled || 0}</span>
@@ -1780,13 +1768,13 @@ const Dashboard = () => {
                 )}
               </div>
 
-              <div className="pt-2 text-center border-t border-gray-50">
+              <div className="pt-2 text-center border-t border-black-50">
                 <button
                   onClick={() => {
                     setSelectedInventoryProj({ projCode, stats: pStats });
                     setInventoryModalOpen(true);
                   }}
-                  className="text-[11px] font-bold text-[#0e623a] hover:underline"
+                  className="text-[12px] font-bold text-[#0e623a] hover:underline"
                 >
                   View Detailed Units Breakdown
                 </button>
@@ -1797,7 +1785,7 @@ const Dashboard = () => {
       </div>
 
       {loading ? (
-        <div className="py-24 text-center text-gray-400 italic">
+        <div className="py-24 text-center text-black-400 italic">
           Fetching dynamic interactive dashboard metrics...
         </div>
       ) : (
@@ -1815,7 +1803,7 @@ const Dashboard = () => {
                 <div className="flex items-center justify-between">
                   <div>
                     <span className="text-sm text-black font-extrabold uppercase tracking-wider">Total Leads</span>
-                    <h3 className="text-3xl font-extrabold text-gray-800 mt-1">{stats.cards.totalLeads || 0}</h3>
+                    <h3 className="text-3xl font-extrabold text-black-800 mt-1">{stats.cards.totalLeads || 0}</h3>
                   </div>
                 </div>
               </div>
@@ -1827,7 +1815,7 @@ const Dashboard = () => {
                 <div className="flex items-center justify-between">
                   <div>
                     <span className="text-sm text-black font-extrabold uppercase tracking-wider">Total Followup</span>
-                    <h3 className="text-3xl font-extrabold text-gray-800 mt-1">
+                    <h3 className="text-3xl font-extrabold text-black-800 mt-1">
                       { (stats.cards.enquiries?.contacted || 0) + (stats.cards.enquiries?.followup || 0) + (stats.cards.siteVisits?.total || 0) }
                     </h3>
                   </div>
@@ -1842,7 +1830,7 @@ const Dashboard = () => {
                 <div className="flex items-center justify-between">
                   <div>
                     <span className="text-sm text-black font-extrabold uppercase tracking-wider">Total Booked</span>
-                    <h3 className="text-3xl font-extrabold text-gray-800 mt-1">{stats.cards.booked?.total || 0}</h3>
+                    <h3 className="text-3xl font-extrabold text-black-800 mt-1">{stats.cards.booked?.total || 0}</h3>
                   </div>
                 </div>
               </div>
@@ -1869,9 +1857,9 @@ const Dashboard = () => {
           {/* Pending Follow-ups Widget */}
           {pendingFollowUps.length > 0 && (
             <div className="bg-[#f0fbf4] border-none rounded-3xl p-6 shadow-sm mb-8 animate-fadeIn">
-              <div className="flex items-center gap-2 border-b border-gray-100 pb-3 mb-4">
+              <div className="flex items-center gap-2 border-b border-black-100 pb-3 mb-4">
                 <Clock className="w-5 h-5 text-amber-500" />
-                <h3 className="text-sm font-extrabold text-gray-800 uppercase tracking-wide">
+                <h3 className="text-sm font-extrabold text-black-800 uppercase tracking-wide">
                   Pending Follow-ups ({pendingFollowUps.length})
                 </h3>
               </div>
@@ -1880,20 +1868,20 @@ const Dashboard = () => {
                   <div key={lead._id} className="bg-amber-50/50 border border-amber-100 rounded-2xl p-4 hover:shadow-md transition">
                     <div className="flex justify-between items-start mb-2">
                       <div>
-                        <h4 className="font-bold text-gray-800">{lead.name}</h4>
-                        <p className="text-[10px] text-gray-500 font-medium">{lead.phone}</p>
+                        <h4 className="font-bold text-black-800">{lead.name}</h4>
+                        <p className="text-[11px] text-black-500 font-medium">{lead.phone}</p>
                       </div>
-                      <span className="text-[9px] font-bold px-2 py-0.5 bg-[#0e623a]/10 text-[#0e623a] rounded-full uppercase">
+                      <span className="text-[10px] font-bold px-2 py-0.5 bg-[#0e623a]/10 text-[#0e623a] rounded-full uppercase">
                         {lead.project?.code || 'No Project'}
                       </span>
                     </div>
-                    <div className="text-[10px] text-amber-700 font-semibold mb-3">
+                    <div className="text-[11px] text-amber-700 font-semibold mb-3">
                       Due: {new Date(lead.followUpInfo?.nextFollowUpDate).toLocaleString()}
                     </div>
                     <div className="text-right border-t border-amber-100/50 pt-2">
                       <button
                         onClick={() => navigate(`/leads?search=${lead.name}`)}
-                        className="text-[10px] font-bold text-blue-600 hover:text-blue-700 uppercase tracking-wider"
+                        className="text-[11px] font-bold text-blue-600 hover:text-blue-700 uppercase tracking-wider"
                       >
                         Take Action →
                       </button>
@@ -1909,15 +1897,15 @@ const Dashboard = () => {
             
             {/* User turn over Pie Chart */}
             <div className="bg-[#f0fbf4] border-none rounded-3xl p-6 shadow-sm space-y-6">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-gray-100 pb-3 gap-2">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-black-100 pb-3 gap-2">
                 <div>
-                  <h3 className="text-sm font-extrabold text-gray-800 uppercase tracking-wide">
+                  <h3 className="text-sm font-extrabold text-black-800 uppercase tracking-wide">
                     User Wise Lead Details
                   </h3>
                 </div>
                 <div className="flex items-center gap-2 self-start sm:self-auto">
                   <select
-                    className="px-2.5 py-1 text-[10px] font-bold text-gray-700 bg-gray-50 border-none rounded-xl outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer"
+                    className="px-2.5 py-1 text-[11px] font-bold text-black-700 bg-black-50 border-none rounded-xl outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer"
                     value={selectedUserPerfName || ''}
                     onChange={(e) => setSelectedUserPerfName(e.target.value || null)}
                   >
@@ -1928,7 +1916,7 @@ const Dashboard = () => {
                   </select>
                   <button
                     onClick={() => setShowDetailedPreviewModal(true)}
-                    className="flex items-center gap-1 px-2.5 py-1 text-[10px] font-bold text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100/80 rounded-xl transition"
+                    className="flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100/80 rounded-xl transition"
                   >
                     <FileText className="w-3.5 h-3.5" />
                     <span>Preview & Export</span>
@@ -1936,7 +1924,7 @@ const Dashboard = () => {
                   {selectedUserPerfName && (
                     <button 
                       onClick={() => setSelectedUserPerfName(null)}
-                      className="px-2.5 py-1 text-[10px] font-bold text-emerald-600 hover:text-emerald-700 bg-emerald-50 hover:bg-emerald-100/80 rounded-xl transition"
+                      className="px-2.5 py-1 text-[11px] font-bold text-emerald-600 hover:text-emerald-700 bg-emerald-50 hover:bg-emerald-100/80 rounded-xl transition"
                     >
                       Clear Filter
                     </button>
@@ -1947,7 +1935,7 @@ const Dashboard = () => {
               <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
                 <div className="md:col-span-7">
                   {userPerformanceData.length === 0 ? (
-                    <p className="text-gray-400 italic text-xs py-8 text-center">No user performance recorded</p>
+                    <p className="text-black-400 italic text-xs py-8 text-center">No user performance recorded</p>
                   ) : (
                     renderPieChart(
                       selectedUserPerfName ? userPerformanceData.filter(u => u.userName === selectedUserPerfName) : userPerformanceData,
@@ -1961,17 +1949,17 @@ const Dashboard = () => {
                   )}
                 </div>
                 
-                <div className="md:col-span-5 bg-gray-50/50 rounded-2xl p-4 border-none space-y-4">
-                  <div className="border-b border-gray-200/60 pb-2">
-                    <span className="text-[9px] text-gray-400 font-extrabold uppercase tracking-wider block">Currently Showing</span>
-                    <h4 className="text-xs font-extrabold text-gray-800 uppercase tracking-wide truncate mt-0.5">
+                <div className="md:col-span-5 bg-black-50/50 rounded-2xl p-4 border-none space-y-4">
+                  <div className="border-b border-black-200/60 pb-2">
+                    <span className="text-[10px] text-black-400 font-extrabold uppercase tracking-wider block">Currently Showing</span>
+                    <h4 className="text-xs font-extrabold text-black-800 uppercase tracking-wide truncate mt-0.5">
                       {selectedUserPerfData.userName}
                     </h4>
                   </div>
                   
                   <div className="space-y-3">
                     {[
-                      { label: 'Total Leads', count: selectedUserPerfData.totalLeads, color: 'bg-gray-400', icon: TrendingUp },
+                      { label: 'Total Leads', count: selectedUserPerfData.totalLeads, color: 'bg-black-400', icon: TrendingUp },
                       { label: 'Enquiries', count: selectedUserPerfData.enquiries, color: 'bg-emerald-600', icon: Users },
                       { label: 'Site Visit', count: selectedUserPerfData.siteVisits, color: 'bg-blue-500', icon: MapPin },
                       { label: 'Hot List', count: selectedUserPerfData.hotList, color: 'bg-amber-500', icon: Target },
@@ -1986,25 +1974,25 @@ const Dashboard = () => {
                       return (
                         <div 
                           key={idx} 
-                          className="space-y-1 cursor-pointer hover:bg-gray-100 p-1.5 rounded-xl transition duration-150"
+                          className="space-y-1 cursor-pointer hover:bg-black-100 p-1.5 rounded-xl transition duration-150"
                           onClick={() => handleStageClick(m.label, 'user')}
                           title={`Click to see User breakdown for ${m.label}`}
                         >
-                          <div className="flex items-center justify-between text-[11px]">
+                          <div className="flex items-center justify-between text-[12px]">
                             <div className="flex items-center gap-2">
-                              <div className="text-gray-700">
+                              <div className="text-black-700">
                                 <IconComponent className="w-3.5 h-3.5" />
                               </div>
-                              <span className="font-bold text-gray-750">{m.label}</span>
+                              <span className="font-bold text-black-750">{m.label}</span>
                             </div>
-                            <div className="font-extrabold text-gray-800">
+                            <div className="font-extrabold text-black-800">
                               {m.count}
                               {m.label !== 'Total Leads' && selectedUserPerfData.totalLeads > 0 && (
-                                <span className="text-[9px] text-gray-450 font-normal ml-1">({percentageOfTotal.toFixed(0)}%)</span>
+                                <span className="text-[10px] text-black-450 font-normal ml-1">({percentageOfTotal.toFixed(0)}%)</span>
                               )}
                             </div>
                           </div>
-                          <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                          <div className="w-full h-1.5 bg-black-100 rounded-full overflow-hidden">
                             <div 
                               className={`h-full ${m.color} rounded-full transition-all duration-500`}
                               style={{ width: `${Math.min(100, percentageOfTotal || (m.label === 'Total Leads' && m.count > 0 ? 100 : 0))}%` }}
@@ -2020,16 +2008,16 @@ const Dashboard = () => {
 
             {/* Source Wise drill down Pie Chart */}
             <div className="bg-[#f0fbf4] border-none rounded-3xl p-6 shadow-sm space-y-6">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-gray-100 pb-3 gap-2">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-black-100 pb-3 gap-2">
                 <div>
-                  <h3 className="text-sm font-extrabold text-gray-800 uppercase tracking-wide">
+                  <h3 className="text-sm font-extrabold text-black-800 uppercase tracking-wide">
                     Source Wise Lead Details
                   </h3>
                   
                 </div>
                 <div className="flex items-center gap-2 self-start sm:self-auto">
                   <select
-                    className="px-2.5 py-1 text-[10px] font-bold text-gray-700 bg-gray-50 border-none rounded-xl outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer max-w-[120px] truncate"
+                    className="px-2.5 py-1 text-[11px] font-bold text-black-700 bg-black-50 border-none rounded-xl outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer max-w-[120px] truncate"
                     value={selectedSourceGroup || ''}
                     onChange={(e) => {
                       setSelectedSourceGroup(e.target.value || null);
@@ -2043,7 +2031,7 @@ const Dashboard = () => {
                   </select>
                   <button
                     onClick={() => setShowSourceDetailedPreviewModal(true)}
-                    className="flex items-center gap-1 px-2.5 py-1 text-[10px] font-bold text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100/80 rounded-xl transition"
+                    className="flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100/80 rounded-xl transition"
                   >
                     <FileText className="w-3.5 h-3.5" />
                     <span>Preview & Export</span>
@@ -2057,7 +2045,7 @@ const Dashboard = () => {
                           setSelectedSourceGroup(null);
                         }
                       }}
-                      className="px-2.5 py-1 text-[10px] font-bold text-[#0e623a] bg-emerald-50 hover:bg-emerald-100 transition rounded-xl"
+                      className="px-2.5 py-1 text-[11px] font-bold text-[#0e623a] bg-emerald-50 hover:bg-emerald-100 transition rounded-xl"
                     >
                       ← {selectedSubSource ? 'Back to Group' : 'Back to Groups'}
                     </button>
@@ -2068,7 +2056,7 @@ const Dashboard = () => {
                         setSelectedSourceGroup(null);
                         setSelectedSubSource(null);
                       }}
-                      className="px-2.5 py-1 text-[10px] font-bold text-gray-655 bg-gray-100 hover:bg-gray-150 transition rounded-xl"
+                      className="px-2.5 py-1 text-[11px] font-bold text-black-655 bg-black-100 hover:bg-black-150 transition rounded-xl"
                     >
                       Reset All
                     </button>
@@ -2079,7 +2067,7 @@ const Dashboard = () => {
               <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
                 <div className="md:col-span-7">
                   {sourceGroupsPerformanceData.length === 0 ? (
-                    <p className="text-gray-400 italic text-xs py-8 text-center">No source performance recorded</p>
+                    <p className="text-black-400 italic text-xs py-8 text-center">No source performance recorded</p>
                   ) : (
                     !selectedSourceGroup ? (
                       renderPieChart(
@@ -2105,17 +2093,17 @@ const Dashboard = () => {
                   )}
                 </div>
                 
-                <div className="md:col-span-5 bg-gray-50/50 rounded-2xl p-4 border-none space-y-4">
-                  <div className="border-b border-gray-200/60 pb-2">
-                    <span className="text-[9px] text-gray-400 font-extrabold uppercase tracking-wider block">Currently Showing</span>
-                    <h4 className="text-xs font-extrabold text-gray-800 uppercase tracking-wide truncate mt-0.5">
+                <div className="md:col-span-5 bg-black-50/50 rounded-2xl p-4 border-none space-y-4">
+                  <div className="border-b border-black-200/60 pb-2">
+                    <span className="text-[10px] text-black-400 font-extrabold uppercase tracking-wider block">Currently Showing</span>
+                    <h4 className="text-xs font-extrabold text-black-800 uppercase tracking-wide truncate mt-0.5">
                       {selectedSourcePerfData.displayName}
                     </h4>
                   </div>
                   
                   <div className="space-y-3">
                     {[
-                      { label: 'Total Leads', count: selectedSourcePerfData.totalLeads, color: 'bg-gray-400', icon: TrendingUp },
+                      { label: 'Total Leads', count: selectedSourcePerfData.totalLeads, color: 'bg-black-400', icon: TrendingUp },
                       { label: 'Enquiries', count: selectedSourcePerfData.enquiries, color: 'bg-emerald-600', icon: Users },
                       { label: 'Site Visit', count: selectedSourcePerfData.siteVisits, color: 'bg-blue-500', icon: MapPin },
                       { label: 'Hot List', count: selectedSourcePerfData.hotList, color: 'bg-amber-500', icon: Target },
@@ -2130,25 +2118,25 @@ const Dashboard = () => {
                       return (
                         <div 
                           key={idx} 
-                          className="space-y-1 cursor-pointer hover:bg-gray-100 p-1.5 rounded-xl transition duration-150"
+                          className="space-y-1 cursor-pointer hover:bg-black-100 p-1.5 rounded-xl transition duration-150"
                           onClick={() => handleStageClick(m.label, 'source')}
                           title={`Click to see User breakdown for ${m.label}`}
                         >
-                          <div className="flex items-center justify-between text-[11px]">
+                          <div className="flex items-center justify-between text-[12px]">
                             <div className="flex items-center gap-2">
-                              <div className="text-gray-700">
+                              <div className="text-black-700">
                                 <IconComponent className="w-3.5 h-3.5" />
                               </div>
-                              <span className="font-bold text-gray-750">{m.label}</span>
+                              <span className="font-bold text-black-750">{m.label}</span>
                             </div>
-                            <div className="font-extrabold text-gray-800">
+                            <div className="font-extrabold text-black-800">
                               {m.count}
                               {m.label !== 'Total Leads' && selectedSourcePerfData.totalLeads > 0 && (
-                                <span className="text-[9px] text-gray-455 font-normal ml-1">({percentageOfTotal.toFixed(0)}%)</span>
+                                <span className="text-[10px] text-black-455 font-normal ml-1">({percentageOfTotal.toFixed(0)}%)</span>
                               )}
                             </div>
                           </div>
-                          <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                          <div className="w-full h-1.5 bg-black-100 rounded-full overflow-hidden">
                             <div 
                               className={`h-full ${m.color} rounded-full transition-all duration-500`}
                               style={{ width: `${Math.min(100, percentageOfTotal || (m.label === 'Total Leads' && m.count > 0 ? 100 : 0))}%` }}
@@ -2167,14 +2155,14 @@ const Dashboard = () => {
 
           {/* Project Code Wise Matrix Panel */}
           <div className="bg-[#f0fbf4] border-none rounded-3xl p-6 shadow-sm space-y-4">
-            <h3 className="text-sm font-extrabold text-gray-800 uppercase tracking-wide border-b border-gray-100 pb-3 text-left">
+            <h3 className="text-sm font-extrabold text-black-800 uppercase tracking-wide border-b border-black-100 pb-3 text-left">
               Project  Summary
             </h3>
             
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse text-xs">
                 <thead>
-                  <tr className="bg-gray-50 border-b border-gray-150 font-bold text-gray-500 uppercase tracking-wider text-[10px]">
+                  <tr className="bg-black-50 border-b border-black-150 font-bold text-black-500 uppercase tracking-wider text-[11px]">
                     <th className="p-4 w-12 text-center">S.NO.</th>
                     <th className="p-4 w-32">PROJECT CODE</th>
                     <th className="p-4">PIPELINE STAGE SPLITS</th>
@@ -2182,24 +2170,24 @@ const Dashboard = () => {
                     <th className="p-4 w-32 text-right">TOTAL LEADS</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100 font-sans text-xs">
+                <tbody className="divide-y divide-black-100 font-sans text-xs">
                   {Object.keys(stats.projectStats || {}).length === 0 ? (
                     <tr>
-                      <td colSpan="5" className="p-12 text-center text-gray-400 italic">No project statistics logged for this period</td>
+                      <td colSpan="5" className="p-12 text-center text-black-400 italic">No project statistics logged for this period</td>
                     </tr>
                   ) : (
                     Object.keys(stats.projectStats).map((pCode, index) => {
                       const p = stats.projectStats[pCode];
                       return (
-                        <tr key={pCode} className="hover:bg-gray-50/50 transition">
-                          <td className="p-4 text-center font-bold text-gray-400">{index + 1}</td>
-                          <td className="p-4 font-extrabold text-gray-800 uppercase">{pCode}</td>
+                        <tr key={pCode} className="hover:bg-black-50/50 transition">
+                          <td className="p-4 text-center font-bold text-black-400">{index + 1}</td>
+                          <td className="p-4 font-extrabold text-black-800 uppercase">{pCode}</td>
                           <td className="p-4">
                             <div className="flex flex-wrap gap-2">
                               {Object.keys(p.stages || {}).map(stageName => (
                                 <span 
                                   key={stageName}
-                                  className="text-[10px] font-bold px-2.5 py-1 bg-gray-50 border-none text-gray-650 rounded-xl"
+                                  className="text-[11px] font-bold px-2.5 py-1 bg-black-50 border-none text-black-650 rounded-xl"
                                 >
                                   {stageName}: {p.stages[stageName]}
                                 </span>
@@ -2209,7 +2197,7 @@ const Dashboard = () => {
                           <td className="p-4 text-right font-extrabold text-[#0e623a] text-sm">
                             ₹{Math.round(p.value || 0).toLocaleString()}
                           </td>
-                          <td className="p-4 text-right font-bold text-gray-700">
+                          <td className="p-4 text-right font-bold text-black-700">
                             {p.count}
                           </td>
                         </tr>
@@ -2224,9 +2212,9 @@ const Dashboard = () => {
           {/* Project Wise Visual Charts */}
           <div className="flex flex-col gap-8 mt-6">
             <div className="bg-[#f0fbf4] border-none rounded-3xl p-6 shadow-sm space-y-6">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-gray-100 pb-3 gap-2">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-black-100 pb-3 gap-2">
                 <div>
-                  <h3 className="text-sm font-extrabold text-gray-800 uppercase tracking-wide">
+                  <h3 className="text-sm font-extrabold text-black-800 uppercase tracking-wide">
                     Project Wise Leads Share
                   </h3>
                  
@@ -2238,7 +2226,7 @@ const Dashboard = () => {
                         setSelectedProjectPerfCode(null);
                         setSelectedProjectPerfUser(null);
                       }}
-                      className="flex items-center gap-1 px-3 py-1 text-[10px] font-bold text-emerald-600 hover:text-emerald-700 bg-emerald-50 hover:bg-emerald-100/80 rounded-xl transition"
+                      className="flex items-center gap-1 px-3 py-1 text-[11px] font-bold text-emerald-600 hover:text-emerald-700 bg-emerald-50 hover:bg-emerald-100/80 rounded-xl transition"
                     >
                       <span>Back to Projects</span>
                     </button>
@@ -2249,7 +2237,7 @@ const Dashboard = () => {
               <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-center min-h-[300px]">
                 <div className={`${selectedProjectPerfCode ? 'md:col-span-5' : 'md:col-span-12'} flex flex-col items-center justify-center transition-all duration-300`}>
                   {Object.keys(stats.projectStats || {}).length === 0 ? (
-                    <p className="text-gray-400 italic text-xs py-8 text-center">No project metrics logged</p>
+                    <p className="text-black-400 italic text-xs py-8 text-center">No project metrics logged</p>
                   ) : (
                     renderPieChart(
                       Object.keys(stats.projectStats).map(pCode => ({
@@ -2267,10 +2255,10 @@ const Dashboard = () => {
                 </div>
 
                 {selectedProjectPerfCode && (
-                  <div className="md:col-span-7 bg-gray-50/50 rounded-2xl p-4 border-none space-y-4">
-                    <div className="border-b border-gray-200/60 pb-2">
-                      <span className="text-[9px] text-gray-400 font-extrabold uppercase tracking-wider block">Currently Showing Project</span>
-                      <h4 className="text-xs font-extrabold text-gray-800 uppercase tracking-wide truncate mt-0.5">
+                  <div className="md:col-span-7 bg-black-50/50 rounded-2xl p-4 border-none space-y-4">
+                    <div className="border-b border-black-200/60 pb-2">
+                      <span className="text-[10px] text-black-400 font-extrabold uppercase tracking-wider block">Currently Showing Project</span>
+                      <h4 className="text-xs font-extrabold text-black-800 uppercase tracking-wide truncate mt-0.5">
                         {selectedProjectPerfCode}
                       </h4>
                     </div>
@@ -2278,7 +2266,7 @@ const Dashboard = () => {
                     {stats.projectStats[selectedProjectPerfCode] ? (
                       <div className="space-y-3">
                         {[
-                          { label: 'Total Leads', count: stats.projectStats[selectedProjectPerfCode].count, color: 'bg-gray-400', icon: TrendingUp },
+                          { label: 'Total Leads', count: stats.projectStats[selectedProjectPerfCode].count, color: 'bg-black-400', icon: TrendingUp },
                           ...Object.keys(stats.projectStats[selectedProjectPerfCode].stages || {}).map((stageName, i) => {
                             const colors = ['bg-emerald-600', 'bg-blue-500', 'bg-amber-500', 'bg-rose-500', 'bg-purple-500', 'bg-teal-500', 'bg-orange-500', 'bg-red-500'];
                             return {
@@ -2298,21 +2286,21 @@ const Dashboard = () => {
                               key={idx} 
                               className="space-y-1 p-1.5 rounded-xl transition duration-150"
                             >
-                              <div className="flex items-center justify-between text-[11px]">
+                              <div className="flex items-center justify-between text-[12px]">
                                 <div className="flex items-center gap-2">
-                                  <div className="text-gray-700">
+                                  <div className="text-black-700">
                                     <IconComponent className="w-3.5 h-3.5" />
                                   </div>
-                                  <span className="font-bold text-gray-750">{m.label}</span>
+                                  <span className="font-bold text-black-750">{m.label}</span>
                                 </div>
-                                <div className="font-extrabold text-gray-800">
+                                <div className="font-extrabold text-black-800">
                                   {m.count}
                                   {m.label !== 'Total Leads' && stats.projectStats[selectedProjectPerfCode].count > 0 && (
-                                    <span className="text-[9px] text-gray-455 font-normal ml-1">({percentageOfTotal.toFixed(0)}%)</span>
+                                    <span className="text-[10px] text-black-455 font-normal ml-1">({percentageOfTotal.toFixed(0)}%)</span>
                                   )}
                                 </div>
                               </div>
-                              <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                              <div className="w-full h-1.5 bg-black-100 rounded-full overflow-hidden">
                                 <div 
                                   className={`h-full ${m.color} rounded-full transition-all duration-500`}
                                   style={{ width: `${Math.min(100, percentageOfTotal || (m.label === 'Total Leads' && m.count > 0 ? 100 : 0))}%` }}
@@ -2323,7 +2311,7 @@ const Dashboard = () => {
                         })}
                       </div>
                     ) : (
-                      <div className="flex items-center justify-center h-48 text-gray-400 italic text-xs">
+                      <div className="flex items-center justify-center h-48 text-black-400 italic text-xs">
                         Select a project to see stage breakdown
                       </div>
                     )}
@@ -2337,15 +2325,15 @@ const Dashboard = () => {
 
       {/* User Selection Modal */}
       {showUserModal && (
-        <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm z-[999] flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black-900/60 backdrop-blur-sm z-[999] flex items-center justify-center p-4">
           <div className="bg-[#f0fbf4] rounded-3xl shadow-xl w-full max-w-md overflow-hidden border-none text-left">
-            <div className="p-6 border-b border-gray-150">
-              <h3 className="text-lg font-extrabold text-gray-800">Export User Wise Report</h3>
-              <p className="text-xs text-gray-500 mt-1">Select one or more sales executives to include in the report</p>
+            <div className="p-6 border-b border-black-150">
+              <h3 className="text-lg font-extrabold text-black-800">Export User Wise Report</h3>
+              <p className="text-xs text-black-500 mt-1">Select one or more sales executives to include in the report</p>
             </div>
             
             <div className="p-6 max-h-60 overflow-y-auto space-y-2">
-              <label className="flex items-center gap-2.5 p-2 hover:bg-gray-50 rounded-xl cursor-pointer transition">
+              <label className="flex items-center gap-2.5 p-2 hover:bg-black-50 rounded-xl cursor-pointer transition">
                 <input
                   type="checkbox"
                   checked={selectedUsersList.length === (stats.users || []).length}
@@ -2361,10 +2349,10 @@ const Dashboard = () => {
                 <span className="text-xs font-bold text-[#0e623a]">Select All Users</span>
               </label>
               
-              <div className="h-px bg-gray-100 my-2"></div>
+              <div className="h-px bg-black-100 my-2"></div>
               
               {(stats.users || []).map(user => (
-                <label key={user._id} className="flex items-center gap-2.5 p-2 hover:bg-gray-50 rounded-xl cursor-pointer transition">
+                <label key={user._id} className="flex items-center gap-2.5 p-2 hover:bg-black-50 rounded-xl cursor-pointer transition">
                   <input
                     type="checkbox"
                     checked={selectedUsersList.includes(user.name)}
@@ -2377,19 +2365,19 @@ const Dashboard = () => {
                     }}
                     className="rounded text-[#0e623a] focus:ring-[#0e623a] w-4 h-4"
                   />
-                  <span className="text-xs text-gray-700 font-bold">{user.name}</span>
-                  <span className="text-[10px] bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full ml-auto uppercase tracking-wider font-extrabold">{user.role}</span>
+                  <span className="text-xs text-black-700 font-bold">{user.name}</span>
+                  <span className="text-[11px] bg-black-100 text-black-500 px-2 py-0.5 rounded-full ml-auto uppercase tracking-wider font-extrabold">{user.role}</span>
                 </label>
               ))}
             </div>
             
-            <div className="p-6 bg-gray-50 border-t border-gray-150 flex items-center justify-end gap-2">
+            <div className="p-6 bg-black-50 border-t border-black-150 flex items-center justify-end gap-2">
               <button
                 onClick={() => {
                   setShowUserModal(false);
                   setSelectedUsersList([]);
                 }}
-                className="px-4 py-2 text-xs font-bold text-gray-500 hover:text-gray-750 transition"
+                className="px-4 py-2 text-xs font-bold text-black-500 hover:text-black-750 transition"
               >
                 Cancel
               </button>
@@ -2414,15 +2402,15 @@ const Dashboard = () => {
 
       {/* Project Selection Modal */}
       {showProjectModal && (
-        <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm z-[999] flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black-900/60 backdrop-blur-sm z-[999] flex items-center justify-center p-4">
           <div className="bg-[#f0fbf4] rounded-3xl shadow-xl w-full max-w-md overflow-hidden border-none text-left">
-            <div className="p-6 border-b border-gray-150">
-              <h3 className="text-lg font-extrabold text-gray-800">Export Project Wise Report</h3>
-              <p className="text-xs text-gray-550 mt-1">Select one or more projects to include in the report</p>
+            <div className="p-6 border-b border-black-150">
+              <h3 className="text-lg font-extrabold text-black-800">Export Project Wise Report</h3>
+              <p className="text-xs text-black-550 mt-1">Select one or more projects to include in the report</p>
             </div>
             
             <div className="p-6 max-h-60 overflow-y-auto space-y-2">
-              <label className="flex items-center gap-2.5 p-2 hover:bg-gray-50 rounded-xl cursor-pointer transition">
+              <label className="flex items-center gap-2.5 p-2 hover:bg-black-50 rounded-xl cursor-pointer transition">
                 <input
                   type="checkbox"
                   checked={selectedProjectsList.length === (stats.projects || []).length}
@@ -2438,12 +2426,12 @@ const Dashboard = () => {
                 <span className="text-xs font-bold text-[#0e623a]">Select All Projects</span>
               </label>
               
-              <div className="h-px bg-gray-100 my-2"></div>
+              <div className="h-px bg-black-100 my-2"></div>
               
               {(stats.projects || []).map(proj => {
                 const name = proj.code || proj.name;
                 return (
-                  <label key={proj._id} className="flex items-center gap-2.5 p-2 hover:bg-gray-50 rounded-xl cursor-pointer transition">
+                  <label key={proj._id} className="flex items-center gap-2.5 p-2 hover:bg-black-50 rounded-xl cursor-pointer transition">
                     <input
                       type="checkbox"
                       checked={selectedProjectsList.includes(name)}
@@ -2456,19 +2444,19 @@ const Dashboard = () => {
                       }}
                       className="rounded text-[#0e623a] focus:ring-[#0e623a] w-4 h-4"
                     />
-                    <span className="text-xs text-gray-700 font-bold">{name}</span>
+                    <span className="text-xs text-black-700 font-bold">{name}</span>
                   </label>
                 );
               })}
             </div>
             
-            <div className="p-6 bg-gray-50 border-t border-gray-150 flex items-center justify-end gap-2">
+            <div className="p-6 bg-black-50 border-t border-black-150 flex items-center justify-end gap-2">
               <button
                 onClick={() => {
                   setShowProjectModal(false);
                   setSelectedProjectsList([]);
                 }}
-                className="px-4 py-2 text-xs font-bold text-gray-500 hover:text-gray-750 transition"
+                className="px-4 py-2 text-xs font-bold text-black-500 hover:text-black-750 transition"
               >
                 Cancel
               </button>
@@ -2493,15 +2481,15 @@ const Dashboard = () => {
 
       {/* Source Selection Modal */}
       {showSourceModal && (
-        <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm z-[999] flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black-900/60 backdrop-blur-sm z-[999] flex items-center justify-center p-4">
           <div className="bg-[#f0fbf4] rounded-3xl shadow-xl w-full max-w-md overflow-hidden border-none text-left">
-            <div className="p-6 border-b border-gray-150">
-              <h3 className="text-lg font-extrabold text-gray-800">Export Source Wise Report</h3>
-              <p className="text-xs text-gray-550 mt-1">Select one or more marketing sources to include in the report</p>
+            <div className="p-6 border-b border-black-150">
+              <h3 className="text-lg font-extrabold text-black-800">Export Source Wise Report</h3>
+              <p className="text-xs text-black-550 mt-1">Select one or more marketing sources to include in the report</p>
             </div>
             
             <div className="p-6 max-h-60 overflow-y-auto space-y-2">
-              <label className="flex items-center gap-2.5 p-2 hover:bg-gray-50 rounded-xl cursor-pointer transition">
+              <label className="flex items-center gap-2.5 p-2 hover:bg-black-50 rounded-xl cursor-pointer transition">
                 <input
                   type="checkbox"
                   checked={selectedSourcesList.length === Object.keys(stats.sourceStats || {}).length}
@@ -2517,10 +2505,10 @@ const Dashboard = () => {
                 <span className="text-xs font-bold text-[#0e623a]">Select All Sources</span>
               </label>
               
-              <div className="h-px bg-gray-100 my-2"></div>
+              <div className="h-px bg-black-100 my-2"></div>
               
               {Object.keys(stats.sourceStats || {}).map(src => (
-                <label key={src} className="flex items-center gap-2.5 p-2 hover:bg-gray-50 rounded-xl cursor-pointer transition">
+                <label key={src} className="flex items-center gap-2.5 p-2 hover:bg-black-50 rounded-xl cursor-pointer transition">
                   <input
                     type="checkbox"
                     checked={selectedSourcesList.includes(src)}
@@ -2533,18 +2521,18 @@ const Dashboard = () => {
                     }}
                     className="rounded text-[#0e623a] focus:ring-[#0e623a] w-4 h-4"
                   />
-                  <span className="text-xs text-gray-700 font-bold">{src}</span>
+                  <span className="text-xs text-black-700 font-bold">{src}</span>
                 </label>
               ))}
             </div>
             
-            <div className="p-6 bg-gray-50 border-t border-gray-150 flex items-center justify-end gap-2">
+            <div className="p-6 bg-black-50 border-t border-black-150 flex items-center justify-end gap-2">
               <button
                 onClick={() => {
                   setShowSourceModal(false);
                   setSelectedSourcesList([]);
                 }}
-                className="px-4 py-2 text-xs font-bold text-gray-500 hover:text-gray-750 transition"
+                className="px-4 py-2 text-xs font-bold text-black-500 hover:text-black-750 transition"
               >
                 Cancel
               </button>
@@ -2569,17 +2557,17 @@ const Dashboard = () => {
 
       {/* Stage User Breakdown Modal Popup */}
       {breakdownModalOpen && (
-        <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm z-[999] flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black-900/60 backdrop-blur-sm z-[999] flex items-center justify-center p-4">
           <div className="bg-[#f0fbf4] rounded-3xl border-none shadow-2xl w-full max-w-md max-h-[80vh] flex flex-col overflow-hidden text-left animate-fadeIn animate-duration-150">
             {/* Header */}
-            <div className="p-6 border-b border-gray-150 flex items-center justify-between bg-gray-50/50">
+            <div className="p-6 border-b border-black-150 flex items-center justify-between bg-black-50/50">
               <div>
-                <h3 className="text-sm font-extrabold text-gray-800 uppercase tracking-wide">{breakdownModalData.title}</h3>
-                <p className="text-[10px] text-gray-500 mt-0.5">Assigned executives, lead sources, project types and counts</p>
+                <h3 className="text-sm font-extrabold text-black-800 uppercase tracking-wide">{breakdownModalData.title}</h3>
+                <p className="text-[11px] text-black-500 mt-0.5">Assigned executives, lead sources, project types and counts</p>
               </div>
               <button 
                 onClick={() => setBreakdownModalOpen(false)}
-                className="w-8 h-8 rounded-full flex items-center justify-center bg-gray-100 text-gray-400 hover:bg-red-50 hover:text-red-500 transition cursor-pointer font-bold text-sm animate-scaleUp"
+                className="w-8 h-8 rounded-full flex items-center justify-center bg-black-100 text-black-400 hover:bg-red-50 hover:text-red-500 transition cursor-pointer font-bold text-sm animate-scaleUp"
               >
                 ✕
               </button>
@@ -2590,22 +2578,22 @@ const Dashboard = () => {
               {breakdownModalData.comboData && breakdownModalData.comboData.length > 0 ? (
                 <div className="overflow-x-auto">
                   <table className="w-full text-left border-collapse text-xs">
-                    <thead className="bg-gray-50/80 sticky top-0 z-10 backdrop-blur-sm">
-                      <tr className="border-b border-gray-150 text-[10px] font-bold text-gray-500 uppercase tracking-wider">
+                    <thead className="bg-black-50/80 sticky top-0 z-10 backdrop-blur-sm">
+                      <tr className="border-b border-black-150 text-[11px] font-bold text-black-500 uppercase tracking-wider">
                         <th className="p-4 whitespace-nowrap">User</th>
                         <th className="p-4 whitespace-nowrap">Source</th>
                         <th className="p-4 whitespace-nowrap">Project Type</th>
                         <th className="p-4 whitespace-nowrap text-right">Leads Count</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-100 font-semibold text-gray-700">
+                    <tbody className="divide-y divide-black-100 font-semibold text-black-700">
                       {breakdownModalData.comboData.map((row, idx) => (
-                        <tr key={idx} className="hover:bg-gray-50/50 transition">
-                          <td className="p-4 text-gray-850 font-bold">{row.user}</td>
+                        <tr key={idx} className="hover:bg-black-50/50 transition">
+                          <td className="p-4 text-black-850 font-bold">{row.user}</td>
                           <td className="p-4 text-[#0e623a]">{row.source}</td>
-                          <td className="p-4 text-gray-500 truncate max-w-[150px]" title={row.type}>{row.type}</td>
+                          <td className="p-4 text-black-500 truncate max-w-[150px]" title={row.type}>{row.type}</td>
                           <td className="p-4 text-right">
-                            <span className="bg-gray-100 text-gray-800 px-2.5 py-1 rounded-xl font-extrabold text-[10px]">
+                            <span className="bg-black-100 text-black-800 px-2.5 py-1 rounded-xl font-extrabold text-[11px]">
                               {row.count}
                             </span>
                           </td>
@@ -2615,17 +2603,17 @@ const Dashboard = () => {
                   </table>
                 </div>
               ) : (
-                <div className="py-12 text-center text-gray-450 italic text-xs">
+                <div className="py-12 text-center text-black-450 italic text-xs">
                   No active leads for this stage matching configuration.
                 </div>
               )}
             </div>
 
             {/* Footer */}
-            <div className="p-5 border-t border-gray-150 bg-gray-50/30 flex justify-end">
+            <div className="p-5 border-t border-black-150 bg-black-50/30 flex justify-end">
               <button
                 onClick={() => setBreakdownModalOpen(false)}
-                className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-705 text-xs font-bold rounded-xl transition shadow-sm"
+                className="px-4 py-2 bg-black-200 hover:bg-black-300 text-black-705 text-xs font-bold rounded-xl transition shadow-sm"
               >
                 Close
               </button>
@@ -2636,17 +2624,17 @@ const Dashboard = () => {
 
       {/* Leads List Modal Popup */}
       {leadsModalOpen && (
-        <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm z-[999] flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black-900/60 backdrop-blur-sm z-[999] flex items-center justify-center p-4">
           <div className="bg-[#f0fbf4] rounded-3xl border-none shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden text-left animate-fadeIn">
             {/* Header */}
-            <div className="p-6 border-b border-gray-150 flex items-center justify-between bg-gray-50/50">
+            <div className="p-6 border-b border-black-150 flex items-center justify-between bg-black-50/50">
               <div>
-                <h3 className="text-base font-extrabold text-gray-800">Filtered Leads Directory</h3>
-                <p className="text-[10px] text-gray-500 mt-0.5">Showing leads corresponding to current active filters</p>
+                <h3 className="text-base font-extrabold text-black-800">Filtered Leads Directory</h3>
+                <p className="text-[11px] text-black-500 mt-0.5">Showing leads corresponding to current active filters</p>
               </div>
               <button 
                 onClick={() => setLeadsModalOpen(false)}
-                className="w-8 h-8 rounded-full flex items-center justify-center bg-gray-100 text-gray-400 hover:bg-red-50 hover:text-red-500 transition cursor-pointer font-bold"
+                className="w-8 h-8 rounded-full flex items-center justify-center bg-black-100 text-black-400 hover:bg-red-50 hover:text-red-500 transition cursor-pointer font-bold"
               >
                 ✕
               </button>
@@ -2658,25 +2646,25 @@ const Dashboard = () => {
                 <div className="overflow-x-auto">
                   <table className="w-full text-left border-collapse">
                     <thead>
-                      <tr className="border-b border-gray-100 text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                      <tr className="border-b border-black-100 text-[11px] font-bold text-black-400 uppercase tracking-wider">
                         <th className="pb-3">Lead Name</th>
                         <th className="pb-3">Lead Source</th>
                         <th className="pb-3">Project Details</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-50 text-xs font-semibold text-gray-700">
+                    <tbody className="divide-y divide-black-50 text-xs font-semibold text-black-700">
                       {stats.cards.leadsList.map((lead, idx) => (
-                        <tr key={lead._id || idx} className="hover:bg-gray-50/50 transition">
-                          <td className="py-3.5 font-bold text-gray-850">{lead.name}</td>
+                        <tr key={lead._id || idx} className="hover:bg-black-50/50 transition">
+                          <td className="py-3.5 font-bold text-black-850">{lead.name}</td>
                           <td className="py-3.5">
-                            <span className="bg-gray-100 text-gray-600 px-2.5 py-0.5 rounded-full text-[10px] font-bold">
+                            <span className="bg-black-100 text-black-600 px-2.5 py-0.5 rounded-full text-[11px] font-bold">
                               {lead.leadSource}
                             </span>
                           </td>
                           <td className="py-3.5">
                             <div className="flex flex-col gap-0.5">
-                              <span className="font-bold text-gray-800">{lead.projectName}</span>
-                              <span className="text-[10px] text-gray-450 font-bold uppercase tracking-wide">
+                              <span className="font-bold text-black-800">{lead.projectName}</span>
+                              <span className="text-[11px] text-black-450 font-bold uppercase tracking-wide">
                                 Type: {Array.isArray(lead.projectType) ? lead.projectType.join(', ') : lead.projectType}
                               </span>
                             </div>
@@ -2687,14 +2675,14 @@ const Dashboard = () => {
                   </table>
                 </div>
               ) : (
-                <div className="py-12 text-center text-gray-450 italic text-xs">
+                <div className="py-12 text-center text-black-450 italic text-xs">
                   No leads available for this filtered configuration.
                 </div>
               )}
             </div>
             
             {/* Footer */}
-            <div className="p-5 border-t border-gray-150 bg-gray-50/30 flex justify-end">
+            <div className="p-5 border-t border-black-150 bg-black-50/30 flex justify-end">
               <button
                 onClick={() => {
                   setLeadsModalOpen(false);
@@ -2711,17 +2699,17 @@ const Dashboard = () => {
 
       {/* Booked Units Modal Popup */}
       {bookedModalOpen && (
-        <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm z-[999] flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black-900/60 backdrop-blur-sm z-[999] flex items-center justify-center p-4">
           <div className="bg-[#f0fbf4] rounded-3xl border-none shadow-2xl w-full max-w-3xl max-h-[85vh] flex flex-col overflow-hidden text-left animate-fadeIn">
             {/* Header */}
-            <div className="p-6 border-b border-gray-150 flex items-center justify-between bg-amber-500/10">
+            <div className="p-6 border-b border-black-150 flex items-center justify-between bg-amber-500/10">
               <div>
                 <h3 className="text-base font-extrabold text-amber-800">Booked Units Directory</h3>
-                <p className="text-[10px] text-amber-700 mt-0.5">Showing registered unit bookings and customer information</p>
+                <p className="text-[11px] text-amber-700 mt-0.5">Showing registered unit bookings and customer information</p>
               </div>
               <button 
                 onClick={() => setBookedModalOpen(false)}
-                className="w-8 h-8 rounded-full flex items-center justify-center bg-[#f0fbf4] text-gray-400 hover:bg-red-50 hover:text-red-500 transition cursor-pointer font-bold border-none"
+                className="w-8 h-8 rounded-full flex items-center justify-center bg-[#f0fbf4] text-black-400 hover:bg-red-50 hover:text-red-500 transition cursor-pointer font-bold border-none"
               >
                 ✕
               </button>
@@ -2733,34 +2721,34 @@ const Dashboard = () => {
                 <div className="overflow-x-auto">
                   <table className="w-full text-left border-collapse">
                     <thead>
-                      <tr className="border-b border-gray-100 text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                      <tr className="border-b border-black-100 text-[11px] font-bold text-black-400 uppercase tracking-wider">
                         <th className="pb-3">Customer Details</th>
                         <th className="pb-3">Project / Unit</th>
                         <th className="pb-3">Unit Specifications</th>
                         <th className="pb-3 text-right">Booking Value</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-50 text-xs font-semibold text-gray-700">
+                    <tbody className="divide-y divide-black-50 text-xs font-semibold text-black-700">
                       {stats.cards.inventory.bookedUnitsList.map((unit, idx) => (
-                        <tr key={idx} className="hover:bg-gray-50/50 transition">
+                        <tr key={idx} className="hover:bg-black-50/50 transition">
                           <td className="py-3.5">
                             <div className="flex flex-col gap-0.5">
-                              <span className="font-bold text-gray-850">{unit.customerName}</span>
-                              <span className="text-[10px] text-gray-500 font-bold">{unit.customerPhone}</span>
+                              <span className="font-bold text-black-850">{unit.customerName}</span>
+                              <span className="text-[11px] text-black-500 font-bold">{unit.customerPhone}</span>
                             </div>
                           </td>
                           <td className="py-3.5">
                             <div className="flex flex-col gap-0.5">
-                              <span className="font-bold text-gray-800">{unit.projectName}</span>
-                              <span className="text-[10px] text-gray-450 font-bold uppercase tracking-wide">
+                              <span className="font-bold text-black-800">{unit.projectName}</span>
+                              <span className="text-[11px] text-black-450 font-bold uppercase tracking-wide">
                                 Unit: {unit.unitId}
                               </span>
                             </div>
                           </td>
                           <td className="py-3.5">
                             <div className="flex flex-col gap-0.5">
-                              <span className="font-bold text-gray-755">{unit.unitType}</span>
-                              <span className="text-[10px] text-gray-450 font-semibold">{unit.size.toLocaleString()} Sq.Ft</span>
+                              <span className="font-bold text-black-755">{unit.unitType}</span>
+                              <span className="text-[11px] text-black-450 font-semibold">{unit.size.toLocaleString()} Sq.Ft</span>
                             </div>
                           </td>
                           <td className="py-3.5 text-right font-extrabold text-[#0e623a] text-sm">
@@ -2772,14 +2760,14 @@ const Dashboard = () => {
                   </table>
                 </div>
               ) : (
-                <div className="py-12 text-center text-gray-450 italic text-xs">
+                <div className="py-12 text-center text-black-450 italic text-xs">
                   No active unit bookings recorded.
                 </div>
               )}
             </div>
             
             {/* Footer */}
-            <div className="p-5 border-t border-gray-150 bg-gray-50/30 flex justify-end">
+            <div className="p-5 border-t border-black-150 bg-black-50/30 flex justify-end">
               <button
                 onClick={() => {
                   setBookedModalOpen(false);
@@ -2796,17 +2784,17 @@ const Dashboard = () => {
 
       {/* Handover Units Modal Popup */}
       {handoverModalOpen && (
-        <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm z-[999] flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black-900/60 backdrop-blur-sm z-[999] flex items-center justify-center p-4">
           <div className="bg-[#f0fbf4] rounded-3xl border-none shadow-2xl w-full max-w-3xl max-h-[85vh] flex flex-col overflow-hidden text-left animate-fadeIn">
             {/* Header */}
-            <div className="p-6 border-b border-gray-150 flex items-center justify-between bg-rose-500/10">
+            <div className="p-6 border-b border-black-150 flex items-center justify-between bg-rose-500/10">
               <div>
                 <h3 className="text-base font-extrabold text-rose-800">Handover Units Directory</h3>
-                <p className="text-[10px] text-rose-700 mt-0.5">Showing completed handovers and client information</p>
+                <p className="text-[11px] text-rose-700 mt-0.5">Showing completed handovers and client information</p>
               </div>
               <button 
                 onClick={() => setHandoverModalOpen(false)}
-                className="w-8 h-8 rounded-full flex items-center justify-center bg-[#f0fbf4] text-gray-400 hover:bg-red-50 hover:text-red-500 transition cursor-pointer font-bold border-none"
+                className="w-8 h-8 rounded-full flex items-center justify-center bg-[#f0fbf4] text-black-400 hover:bg-red-50 hover:text-red-500 transition cursor-pointer font-bold border-none"
               >
                 ✕
               </button>
@@ -2818,34 +2806,34 @@ const Dashboard = () => {
                 <div className="overflow-x-auto">
                   <table className="w-full text-left border-collapse">
                     <thead>
-                      <tr className="border-b border-gray-100 text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                      <tr className="border-b border-black-100 text-[11px] font-bold text-black-400 uppercase tracking-wider">
                         <th className="pb-3">Customer Details</th>
                         <th className="pb-3">Project / Unit</th>
                         <th className="pb-3">Unit Specifications</th>
                         <th className="pb-3 text-right">Value (Consideration)</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-50 text-xs font-semibold text-gray-700">
+                    <tbody className="divide-y divide-black-50 text-xs font-semibold text-black-700">
                       {stats.cards.inventory.handoverUnitsList.map((unit, idx) => (
-                        <tr key={idx} className="hover:bg-gray-50/50 transition">
+                        <tr key={idx} className="hover:bg-black-50/50 transition">
                           <td className="py-3.5">
                             <div className="flex flex-col gap-0.5">
-                              <span className="font-bold text-gray-850">{unit.customerName}</span>
-                              <span className="text-[10px] text-gray-500 font-bold">{unit.customerPhone}</span>
+                              <span className="font-bold text-black-850">{unit.customerName}</span>
+                              <span className="text-[11px] text-black-500 font-bold">{unit.customerPhone}</span>
                             </div>
                           </td>
                           <td className="py-3.5">
                             <div className="flex flex-col gap-0.5">
-                              <span className="font-bold text-gray-800">{unit.projectName}</span>
-                              <span className="text-[10px] text-gray-450 font-bold uppercase tracking-wide">
+                              <span className="font-bold text-black-800">{unit.projectName}</span>
+                              <span className="text-[11px] text-black-450 font-bold uppercase tracking-wide">
                                 Unit: {unit.unitId}
                               </span>
                             </div>
                           </td>
                           <td className="py-3.5">
                             <div className="flex flex-col gap-0.5">
-                              <span className="font-bold text-gray-755">{unit.unitType}</span>
-                              <span className="text-[10px] text-gray-450 font-semibold">{unit.size.toLocaleString()} Sq.Ft</span>
+                              <span className="font-bold text-black-755">{unit.unitType}</span>
+                              <span className="text-[11px] text-black-450 font-semibold">{unit.size.toLocaleString()} Sq.Ft</span>
                             </div>
                           </td>
                           <td className="py-3.5 text-right font-extrabold text-[#0e623a] text-sm">
@@ -2857,14 +2845,14 @@ const Dashboard = () => {
                   </table>
                 </div>
               ) : (
-                <div className="py-12 text-center text-gray-450 italic text-xs">
+                <div className="py-12 text-center text-black-450 italic text-xs">
                   No completed handovers recorded.
                 </div>
               )}
             </div>
             
             {/* Footer */}
-            <div className="p-5 border-t border-gray-150 bg-gray-50/30 flex justify-end">
+            <div className="p-5 border-t border-black-150 bg-black-50/30 flex justify-end">
               <button
                 onClick={() => {
                   setHandoverModalOpen(false);
@@ -2881,17 +2869,17 @@ const Dashboard = () => {
 
       {/* Detailed Preview Modal */}
       {showDetailedPreviewModal && (
-        <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm z-[999] flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black-900/60 backdrop-blur-sm z-[999] flex items-center justify-center p-4">
           <div className="bg-[#f0fbf4] rounded-3xl border-none shadow-2xl w-full max-w-4xl max-h-[85vh] flex flex-col overflow-hidden text-left animate-fadeIn">
             {/* Header */}
-            <div className="p-6 border-b border-gray-150 flex items-center justify-between bg-blue-500/10">
+            <div className="p-6 border-b border-black-150 flex items-center justify-between bg-blue-500/10">
               <div>
                 <h3 className="text-base font-extrabold text-blue-800">Detailed Performance Report Preview</h3>
-                <p className="text-[10px] text-blue-700 mt-0.5">Review the overall stage splits for all sales executives before downloading</p>
+                <p className="text-[11px] text-blue-700 mt-0.5">Review the overall stage splits for all sales executives before downloading</p>
               </div>
               <button 
                 onClick={() => setShowDetailedPreviewModal(false)}
-                className="w-8 h-8 rounded-full flex items-center justify-center bg-[#f0fbf4] text-gray-400 hover:bg-red-50 hover:text-red-500 transition cursor-pointer font-bold border-none"
+                className="w-8 h-8 rounded-full flex items-center justify-center bg-[#f0fbf4] text-black-400 hover:bg-red-50 hover:text-red-500 transition cursor-pointer font-bold border-none"
               >
                 ✕
               </button>
@@ -2902,7 +2890,7 @@ const Dashboard = () => {
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse">
                   <thead>
-                    <tr className="border-b border-gray-100 text-[10px] font-bold text-gray-400 uppercase tracking-wider bg-gray-50/50">
+                    <tr className="border-b border-black-100 text-[11px] font-bold text-black-400 uppercase tracking-wider bg-black-50/50">
                       <th className="p-3 w-10 text-center">S.No</th>
                       <th className="p-3">User Name</th>
                       <th className="p-3 text-center">Total Leads</th>
@@ -2914,12 +2902,12 @@ const Dashboard = () => {
                       <th className="p-3 text-center text-red-500">Lost</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-50 text-xs font-semibold text-gray-700">
+                  <tbody className="divide-y divide-black-50 text-xs font-semibold text-black-700">
                     {userPerformanceData.map((row, idx) => (
-                      <tr key={idx} className="hover:bg-gray-50/50 transition">
-                        <td className="p-3 text-center font-bold text-gray-450">{idx + 1}</td>
-                        <td className="p-3 font-extrabold text-gray-850 uppercase">{row.userName}</td>
-                        <td className="p-3 text-center font-bold text-gray-700">{row.totalLeads}</td>
+                      <tr key={idx} className="hover:bg-black-50/50 transition">
+                        <td className="p-3 text-center font-bold text-black-450">{idx + 1}</td>
+                        <td className="p-3 font-extrabold text-black-850 uppercase">{row.userName}</td>
+                        <td className="p-3 text-center font-bold text-black-700">{row.totalLeads}</td>
                         <td className="p-3 text-center text-emerald-700">{row.enquiries}</td>
                         <td className="p-3 text-center text-blue-700">{row.siteVisits}</td>
                         <td className="p-3 text-center text-amber-700">{row.hotList}</td>
@@ -2931,7 +2919,7 @@ const Dashboard = () => {
                     
                     {/* Totals Row */}
                     {userPerformanceData.length > 0 && (
-                      <tr className="bg-emerald-50/20 font-bold text-gray-850 border-t border-gray-200">
+                      <tr className="bg-emerald-50/20 font-bold text-black-850 border-t border-black-200">
                         <td className="p-3 text-center"></td>
                         <td className="p-3 uppercase">Total Sum</td>
                         <td className="p-3 text-center">{selectedUserPerfData.userName === 'All Users Combined' ? selectedUserPerfData.totalLeads : userPerformanceData.reduce((sum, u) => sum + u.totalLeads, 0)}</td>
@@ -2949,10 +2937,10 @@ const Dashboard = () => {
             </div>
 
             {/* Footer */}
-            <div className="p-5 border-t border-gray-150 bg-gray-50/30 flex justify-end gap-2">
+            <div className="p-5 border-t border-black-150 bg-black-50/30 flex justify-end gap-2">
               <button
                 onClick={() => setShowDetailedPreviewModal(false)}
-                className="px-4 py-2 text-xs font-bold text-gray-500 hover:text-gray-750 transition"
+                className="px-4 py-2 text-xs font-bold text-black-500 hover:text-black-750 transition"
               >
                 Close
               </button>
@@ -2973,17 +2961,17 @@ const Dashboard = () => {
 
       {/* Source Detailed Preview Modal */}
       {showSourceDetailedPreviewModal && (
-        <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm z-[999] flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black-900/60 backdrop-blur-sm z-[999] flex items-center justify-center p-4">
           <div className="bg-[#f0fbf4] rounded-3xl border-none shadow-2xl w-full max-w-4xl max-h-[85vh] flex flex-col overflow-hidden text-left animate-fadeIn">
             {/* Header */}
-            <div className="p-6 border-b border-gray-150 flex items-center justify-between bg-blue-500/10">
+            <div className="p-6 border-b border-black-150 flex items-center justify-between bg-blue-500/10">
               <div>
                 <h3 className="text-base font-extrabold text-blue-800">Source Detailed Performance Report Preview</h3>
-                <p className="text-[10px] text-blue-700 mt-0.5">Review the overall stage splits for all marketing sources before downloading</p>
+                <p className="text-[11px] text-blue-700 mt-0.5">Review the overall stage splits for all marketing sources before downloading</p>
               </div>
               <button 
                 onClick={() => setShowSourceDetailedPreviewModal(false)}
-                className="w-8 h-8 rounded-full flex items-center justify-center bg-[#f0fbf4] text-gray-400 hover:bg-red-50 hover:text-red-500 transition cursor-pointer font-bold border-none"
+                className="w-8 h-8 rounded-full flex items-center justify-center bg-[#f0fbf4] text-black-400 hover:bg-red-50 hover:text-red-500 transition cursor-pointer font-bold border-none"
               >
                 ✕
               </button>
@@ -2994,7 +2982,7 @@ const Dashboard = () => {
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse">
                   <thead>
-                    <tr className="border-b border-gray-100 text-[10px] font-bold text-gray-400 uppercase tracking-wider bg-gray-50/50">
+                    <tr className="border-b border-black-100 text-[11px] font-bold text-black-400 uppercase tracking-wider bg-black-50/50">
                       <th className="p-3 w-10 text-center">S.No</th>
                       <th className="p-3">Group Name</th>
                       <th className="p-3">Source Name</th>
@@ -3007,7 +2995,7 @@ const Dashboard = () => {
                       <th className="p-3 text-center text-red-500">Lost</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-50 text-xs font-semibold text-gray-700">
+                  <tbody className="divide-y divide-black-50 text-xs font-semibold text-black-700">
                     {(() => {
                       const rows = [];
                       Object.keys(stats.groupStats || {}).forEach(groupName => {
@@ -3032,11 +3020,11 @@ const Dashboard = () => {
                       return (
                         <>
                           {rows.map((row, idx) => (
-                            <tr key={idx} className="hover:bg-gray-50/50 transition">
-                              <td className="p-3 text-center font-bold text-gray-455">{idx + 1}</td>
-                              <td className="p-3 font-bold text-gray-700 uppercase">{row.groupName}</td>
-                              <td className="p-3 font-extrabold text-gray-850 uppercase">{row.sourceName}</td>
-                              <td className="p-3 text-center font-bold text-gray-700">{row.totalLeads}</td>
+                            <tr key={idx} className="hover:bg-black-50/50 transition">
+                              <td className="p-3 text-center font-bold text-black-455">{idx + 1}</td>
+                              <td className="p-3 font-bold text-black-700 uppercase">{row.groupName}</td>
+                              <td className="p-3 font-extrabold text-black-850 uppercase">{row.sourceName}</td>
+                              <td className="p-3 text-center font-bold text-black-700">{row.totalLeads}</td>
                               <td className="p-3 text-center text-emerald-700">{row.enquiries}</td>
                               <td className="p-3 text-center text-blue-700">{row.siteVisits}</td>
                               <td className="p-3 text-center text-amber-700">{row.hotList}</td>
@@ -3048,7 +3036,7 @@ const Dashboard = () => {
                           
                           {/* Totals Row */}
                           {rows.length > 0 && (
-                            <tr className="bg-emerald-50/20 font-bold text-gray-855 border-t border-gray-200">
+                            <tr className="bg-emerald-50/20 font-bold text-black-855 border-t border-black-200">
                               <td className="p-3 text-center" colSpan="3">Total Sum</td>
                               <td className="p-3 text-center">{rows.reduce((sum, r) => sum + r.totalLeads, 0)}</td>
                               <td className="p-3 text-center">{rows.reduce((sum, r) => sum + r.enquiries, 0)}</td>
@@ -3068,10 +3056,10 @@ const Dashboard = () => {
             </div>
 
             {/* Footer */}
-            <div className="p-5 border-t border-gray-150 bg-gray-50/30 flex justify-end gap-2">
+            <div className="p-5 border-t border-black-150 bg-black-50/30 flex justify-end gap-2">
               <button
                 onClick={() => setShowSourceDetailedPreviewModal(false)}
-                className="px-4 py-2 text-xs font-bold text-gray-500 hover:text-gray-750 transition"
+                className="px-4 py-2 text-xs font-bold text-black-500 hover:text-black-750 transition"
               >
                 Close
               </button>
@@ -3092,13 +3080,13 @@ const Dashboard = () => {
 
       {/* Project Inventory Detail Modal */}
       {inventoryModalOpen && selectedInventoryProj && (
-        <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm z-[999] flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black-900/60 backdrop-blur-sm z-[999] flex items-center justify-center p-4">
           <div className="bg-[#f0fbf4] rounded-3xl border-none shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden text-left animate-fadeIn">
             {/* Header */}
-            <div className="p-6 border-b border-gray-150 flex items-center justify-between bg-[#0e623a] text-white">
+            <div className="p-6 border-b border-black-150 flex items-center justify-between bg-[#0e623a] text-white">
               <div>
                 <h3 className="text-base font-extrabold">{selectedInventoryProj.projCode} Project Inventory Details</h3>
-                <p className="text-[10px] text-emerald-100 mt-0.5">Detailed breakdown of registered units and stages</p>
+                <p className="text-[11px] text-emerald-100 mt-0.5">Detailed breakdown of registered units and stages</p>
               </div>
               <button 
                 onClick={() => setInventoryModalOpen(false)}
@@ -3113,19 +3101,19 @@ const Dashboard = () => {
               {/* Summary Stats Grid */}
               <div className="grid grid-cols-4 gap-4">
                 <div className="bg-slate-50 border-none rounded-2xl p-4 text-center">
-                  <span className="text-[10px] text-gray-400 font-extrabold uppercase tracking-wider block">Total Units</span>
+                  <span className="text-[11px] text-black-400 font-extrabold uppercase tracking-wider block">Total Units</span>
                   <span className="text-2xl font-black text-slate-800 block mt-1">{selectedInventoryProj.stats.total || 0}</span>
                 </div>
                 <div className="bg-[#7ebda9]/10 border border-[#7ebda9]/30 rounded-2xl p-4 text-center">
-                  <span className="text-[10px] text-[#5b9683] font-extrabold uppercase tracking-wider block">Available</span>
+                  <span className="text-[11px] text-[#5b9683] font-extrabold uppercase tracking-wider block">Available</span>
                   <span className="text-2xl font-black text-[#004d61] block mt-1">{selectedInventoryProj.stats.available || 0}</span>
                 </div>
                 <div className="bg-[#8bc34a]/10 border border-[#8bc34a]/30 rounded-2xl p-4 text-center">
-                  <span className="text-[10px] text-[#71a632] font-extrabold uppercase tracking-wider block">Booked</span>
+                  <span className="text-[11px] text-[#71a632] font-extrabold uppercase tracking-wider block">Booked</span>
                   <span className="text-2xl font-black text-[#558b2f] block mt-1">{(selectedInventoryProj.stats.booked || 0) + (selectedInventoryProj.stats.handover || 0)}</span>
                 </div>
                 <div className="bg-red-50 border border-red-100 rounded-2xl p-4 text-center">
-                  <span className="text-[10px] text-red-700 font-extrabold uppercase tracking-wider block">Cancelled</span>
+                  <span className="text-[11px] text-red-700 font-extrabold uppercase tracking-wider block">Cancelled</span>
                   <span className="text-2xl font-black text-red-900 block mt-1">{selectedInventoryProj.stats.cancelled || 0}</span>
                 </div>
               </div>
@@ -3147,7 +3135,7 @@ const Dashboard = () => {
                         </span>
                       ))
                     ) : (
-                      <span className="text-gray-400 italic text-xs">No units registered</span>
+                      <span className="text-black-400 italic text-xs">No units registered</span>
                     )}
                   </div>
                 </div>
@@ -3165,16 +3153,16 @@ const Dashboard = () => {
                           <div className="min-w-[150px]">
                             <span className="font-bold text-red-900 text-sm block">Unit {unit.unitId}</span>
                             <span className="text-red-700 block mt-1">Stage: <span className="font-bold">{unit.cancelStageName}</span></span>
-                            <span className="text-[10px] text-red-600 font-bold block mt-1">{new Date(unit.date).toLocaleDateString()}</span>
+                            <span className="text-[11px] text-red-600 font-bold block mt-1">{new Date(unit.date).toLocaleDateString()}</span>
                           </div>
                           <div className="flex-1 bg-[#f0fbf4] p-2 rounded-lg border border-red-50 text-red-600">
-                            <span className="font-bold text-red-400 uppercase text-[10px] block mb-0.5">Narration</span>
+                            <span className="font-bold text-red-400 uppercase text-[11px] block mb-0.5">Narration</span>
                             {unit.cancelNarration}
                           </div>
                         </div>
                       ))
                     ) : (
-                      <span className="text-gray-400 italic text-xs">No cancelled units</span>
+                      <span className="text-black-400 italic text-xs">No cancelled units</span>
                     )}
                   </div>
                 </div>
@@ -3193,7 +3181,7 @@ const Dashboard = () => {
                         </span>
                       ))
                     ) : (
-                      <span className="text-gray-400 italic text-xs">No units booked</span>
+                      <span className="text-black-400 italic text-xs">No units booked</span>
                     )}
                   </div>
                 </div>
@@ -3212,7 +3200,7 @@ const Dashboard = () => {
                         </span>
                       ))
                     ) : (
-                      <span className="text-gray-400 italic text-xs">No units available</span>
+                      <span className="text-black-400 italic text-xs">No units available</span>
                     )}
                   </div>
                 </div>
@@ -3221,10 +3209,10 @@ const Dashboard = () => {
             </div>
 
             {/* Footer */}
-            <div className="p-5 border-t border-gray-150 bg-gray-50/30 flex justify-end">
+            <div className="p-5 border-t border-black-150 bg-black-50/30 flex justify-end">
               <button
                 onClick={() => setInventoryModalOpen(false)}
-                className="px-5 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 hover:text-gray-900 text-xs font-bold rounded-xl transition"
+                className="px-5 py-2.5 bg-black-100 hover:bg-black-200 text-black-700 hover:text-black-900 text-xs font-bold rounded-xl transition"
               >
                 Close Details
               </button>

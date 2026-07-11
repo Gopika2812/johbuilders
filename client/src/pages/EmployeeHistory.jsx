@@ -93,10 +93,10 @@ const EmployeeHistory = () => {
                   <div className="space-y-1">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="font-semibold text-gray-800 text-sm">{log.userName}</span>
-                      <span className="text-[10px] bg-gray-100 text-gray-500 px-2 py-0.5 rounded border font-medium">
+                      <span className="text-[11px] bg-gray-100 text-gray-500 px-2 py-0.5 rounded border font-medium">
                         {log.userRole}
                       </span>
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded border uppercase ${getActionBadgeColor(log.action)}`}>
+                      <span className={`text-[11px] font-bold px-2 py-0.5 rounded border uppercase ${getActionBadgeColor(log.action)}`}>
                         {log.action}
                       </span>
                     </div>

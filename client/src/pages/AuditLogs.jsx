@@ -12,8 +12,8 @@ const AuditLogs = () => {
   // Filter States
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedAction, setSelectedAction] = useState('');
-  const [fromDate, setFromDate] = useState('');
-  const [toDate, setToDate] = useState('');
+  const [fromDate, setFromDate] = useState(new Date().toISOString().split('T')[0]);
+  const [toDate, setToDate] = useState(new Date().toISOString().split('T')[0]);
   
   // Pagination State
   const [page, setPage] = useState(1);
@@ -109,44 +109,44 @@ const AuditLogs = () => {
           <History className="w-5 h-5 text-emerald-300" />
           <span>System Audit Logs & Operations Tracking</span>
         </h3>
-        <p className="text-emerald-100 text-xs mt-1 max-w-xl relative z-10 leading-relaxed">
+        {/* <p className="text-emerald-100 text-xs mt-1 max-w-xl relative z-10 leading-relaxed">
           Monitor administrative operations, lead stage updates, and quotation parameter modifications. Clicking on modified rows displays previous values and edited values.
-        </p>
+        </p> */}
         <div className="absolute right-0 bottom-0 top-0 opacity-10 flex items-center pr-8 pointer-events-none select-none">
           <History className="w-32 h-32" />
         </div>
       </div>
 
       {/* Filters Form Container */}
-      <div className="bg-white border border-gray-150 p-5 rounded-3xl shadow-sm space-y-4">
+      <div className="bg-white border border-black-150 p-5 rounded-3xl shadow-sm space-y-4">
         <form onSubmit={handleSearchSubmit} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 items-end">
           {/* Keyword Search */}
           <div className="flex flex-col gap-1 w-full">
-            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Search Logs</label>
-            <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 px-3 py-2 rounded-xl">
-              <Search className="w-4 h-4 text-gray-400 shrink-0" />
+            <label className="text-[11px] font-bold text-black-400 uppercase tracking-wider">Search Logs</label>
+            <div className="flex items-center gap-2 bg-black-50 border border-black-200 px-3 py-2 rounded-xl">
+              <Search className="w-4 h-4 text-black-400 shrink-0" />
               <input
                 type="text"
                 placeholder="Search user, notes..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full bg-transparent text-xs text-gray-700 font-bold focus:outline-none border-none p-0"
+                className="w-full bg-transparent text-xs text-black-700 font-bold focus:outline-none border-none p-0"
               />
             </div>
           </div>
 
           {/* Action dropdown */}
           <div className="flex flex-col gap-1 w-full">
-            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Filter Action</label>
-            <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 px-3 py-2 rounded-xl">
-              <Filter className="w-4 h-4 text-gray-400 shrink-0" />
+            <label className="text-[11px] font-bold text-black-400 uppercase tracking-wider">Filter Action</label>
+            <div className="flex items-center gap-2 bg-black-50 border border-black-200 px-3 py-2 rounded-xl">
+              <Filter className="w-4 h-4 text-black-400 shrink-0" />
               <select
                 value={selectedAction}
                 onChange={(e) => {
                   setSelectedAction(e.target.value);
                   setPage(1);
                 }}
-                className="w-full bg-transparent text-xs text-gray-700 font-bold focus:outline-none border-none p-0 cursor-pointer"
+                className="w-full bg-transparent text-xs text-black-700 font-bold focus:outline-none border-none p-0 cursor-pointer"
               >
                 <option value="">All Actions</option>
                 {uniqueActions.map(act => (
@@ -158,9 +158,9 @@ const AuditLogs = () => {
 
           {/* Date From */}
           <div className="flex flex-col gap-1 w-full">
-            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">From Date</label>
-            <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 px-3 py-2 rounded-xl">
-              <Calendar className="w-4 h-4 text-gray-450 shrink-0" />
+            <label className="text-[11px] font-bold text-black-400 uppercase tracking-wider">From Date</label>
+            <div className="flex items-center gap-2 bg-black-50 border border-black-200 px-3 py-2 rounded-xl">
+              <Calendar className="w-4 h-4 text-black-450 shrink-0" />
               <input
                 type="date"
                 value={fromDate}
@@ -168,16 +168,16 @@ const AuditLogs = () => {
                   setFromDate(e.target.value);
                   setPage(1);
                 }}
-                className="w-full bg-transparent text-xs text-gray-700 font-bold focus:outline-none border-none p-0"
+                className="w-full bg-transparent text-xs text-black-700 font-bold focus:outline-none border-none p-0"
               />
             </div>
           </div>
 
           {/* Date To */}
           <div className="flex flex-col gap-1 w-full">
-            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">To Date</label>
-            <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 px-3 py-2 rounded-xl">
-              <Calendar className="w-4 h-4 text-gray-450 shrink-0" />
+            <label className="text-[11px] font-bold text-black-400 uppercase tracking-wider">To Date</label>
+            <div className="flex items-center gap-2 bg-black-50 border border-black-200 px-3 py-2 rounded-xl">
+              <Calendar className="w-4 h-4 text-black-450 shrink-0" />
               <input
                 type="date"
                 value={toDate}
@@ -185,7 +185,7 @@ const AuditLogs = () => {
                   setToDate(e.target.value);
                   setPage(1);
                 }}
-                className="w-full bg-transparent text-xs text-gray-700 font-bold focus:outline-none border-none p-0"
+                className="w-full bg-transparent text-xs text-black-700 font-bold focus:outline-none border-none p-0"
               />
             </div>
           </div>
@@ -202,7 +202,7 @@ const AuditLogs = () => {
               type="button"
               onClick={handleResetFilters}
               title="Reset Filters"
-              className="p-2 bg-gray-100 hover:bg-gray-200 text-gray-500 rounded-xl transition cursor-pointer"
+              className="p-2 bg-black-100 hover:bg-black-200 text-black-500 rounded-xl transition cursor-pointer"
             >
               <RefreshCw className="w-4 h-4" />
             </button>
@@ -211,17 +211,17 @@ const AuditLogs = () => {
       </div>
 
       {/* Audit Logs List Frame */}
-      <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="bg-white rounded-3xl shadow-sm border border-black-100 overflow-hidden">
         {loading ? (
           <div className="flex h-64 items-center justify-center">
             <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#0e623a]"></div>
           </div>
         ) : logs.length === 0 ? (
-          <div className="p-12 text-center text-gray-400 italic text-xs">
+          <div className="p-12 text-center text-black-400 italic text-xs">
             No audit logs found matching the selected filters.
           </div>
         ) : (
-          <div className="divide-y divide-gray-100">
+          <div className="divide-y divide-black-100">
             {logs.map((log) => {
               const hasDiff = log.metadata?.changedFields && log.metadata.changedFields.length > 0;
               const isExpanded = expandedLogId === log._id;
@@ -229,7 +229,7 @@ const AuditLogs = () => {
               return (
                 <div 
                   key={log._id} 
-                  className={`p-5 transition-all duration-150 ${hasDiff ? 'cursor-pointer hover:bg-gray-50/50' : 'hover:bg-gray-50/30'}`}
+                  className={`p-5 transition-all duration-150 ${hasDiff ? 'cursor-pointer hover:bg-black-50/50' : 'hover:bg-black-50/30'}`}
                   onClick={() => {
                     if (hasDiff) {
                       setExpandedLogId(isExpanded ? null : log._id);
@@ -245,26 +245,26 @@ const AuditLogs = () => {
 
                       <div className="space-y-1 text-left">
                         <div className="flex flex-wrap items-center gap-2">
-                          <span className="font-extrabold text-gray-800 text-xs">{log.userName}</span>
-                          <span className="text-[9px] bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded border border-gray-200 font-extrabold uppercase tracking-wide">
+                          <span className="font-extrabold text-black-800 text-xs">{log.userName}</span>
+                          <span className="text-[10px] bg-black-100 text-black-500 px-1.5 py-0.5 rounded border border-black-200 font-extrabold uppercase tracking-wide">
                             {log.userRole}
                           </span>
-                          <span className={`text-[9px] font-black px-1.5 py-0.5 rounded border uppercase ${getActionBadgeColor(log.action)}`}>
+                          <span className={`text-[10px] font-black px-1.5 py-0.5 rounded border uppercase ${getActionBadgeColor(log.action)}`}>
                             {log.action}
                           </span>
                           {hasDiff && (
-                            <span className="text-[9px] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200 animate-pulse">
+                            <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200 animate-pulse">
                               Click to view edits
                             </span>
                           )}
                         </div>
-                        <p className="text-gray-600 text-xs font-medium leading-relaxed max-w-2xl">{log.description}</p>
+                        <p className="text-black-600 text-xs font-medium leading-relaxed max-w-2xl">{log.description}</p>
                       </div>
                     </div>
 
                     {/* Date / Timestamp */}
-                    <div className="flex items-center gap-1 text-[10px] text-gray-400 font-bold shrink-0 md:text-right pl-13 md:pl-0">
-                      <Calendar className="w-3 h-3 text-gray-400" />
+                    <div className="flex items-center gap-1 text-[11px] text-black-400 font-bold shrink-0 md:text-right pl-13 md:pl-0">
+                      <Calendar className="w-3 h-3 text-black-400" />
                       <span>
                         {new Date(log.createdAt).toLocaleString(undefined, {
                           month: 'short',
@@ -279,7 +279,7 @@ const AuditLogs = () => {
 
                   {/* Diff Visualizer Dropdown Box */}
                   {hasDiff && isExpanded && (
-                    <div className="mt-4 ml-13 bg-gray-50 border border-gray-150 rounded-2xl p-4 space-y-3 text-left animate-fadeIn">
+                    <div className="mt-4 ml-13 bg-black-50 border border-black-150 rounded-2xl p-4 space-y-3 text-left animate-fadeIn">
                       <div className="flex items-center gap-1.5 text-[#0e623a] font-bold text-xs border-b pb-2">
                         <Layers className="w-4 h-4" />
                         <span>Modified Parameter Diffs (Before vs. After)</span>
@@ -287,16 +287,16 @@ const AuditLogs = () => {
                       <div className="overflow-x-auto">
                         <table className="w-full text-left text-xs border-collapse">
                           <thead>
-                            <tr className="text-[10px] font-bold text-gray-400 uppercase tracking-wider border-b border-gray-200">
+                            <tr className="text-[11px] font-bold text-black-400 uppercase tracking-wider border-b border-black-200">
                               <th className="pb-2 w-1/3">Field Name</th>
                               <th className="pb-2 w-1/3 text-red-650">Previous Value</th>
                               <th className="pb-2 w-1/3 text-emerald-700">Edited Value</th>
                             </tr>
                           </thead>
-                          <tbody className="divide-y divide-gray-100 font-sans text-xs">
+                          <tbody className="divide-y divide-black-100 font-sans text-xs">
                             {log.metadata.changedFields.map((f, fIdx) => (
-                              <tr key={fIdx} className="hover:bg-gray-100/40 transition">
-                                <td className="py-2.5 font-extrabold text-gray-600">
+                              <tr key={fIdx} className="hover:bg-black-100/40 transition">
+                                <td className="py-2.5 font-extrabold text-black-600">
                                   {formatFieldName(f.field)}
                                 </td>
                                 <td className="py-2.5 text-red-600 font-semibold line-through decoration-red-300">
@@ -320,22 +320,22 @@ const AuditLogs = () => {
 
         {/* Paginated Footer */}
         {totalPages > 1 && (
-          <div className="p-4 border-t bg-gray-50 flex items-center justify-between">
-            <span className="text-[10px] text-gray-500 font-bold uppercase">
+          <div className="p-4 border-t bg-black-50 flex items-center justify-between">
+            <span className="text-[11px] text-black-500 font-bold uppercase">
               Total {totalLogs} Logs • Page {page} of {totalPages}
             </span>
             <div className="flex items-center gap-2">
               <button
                 disabled={page === 1}
                 onClick={() => setPage(p => Math.max(1, p - 1))}
-                className="p-1.5 bg-white border rounded-lg hover:bg-gray-50 text-gray-500 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                className="p-1.5 bg-white border rounded-lg hover:bg-black-50 text-black-500 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
               >
                 <ChevronLeft className="w-4 h-4" />
               </button>
               <button
                 disabled={page === totalPages}
                 onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                className="p-1.5 bg-white border rounded-lg hover:bg-gray-50 text-gray-500 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                className="p-1.5 bg-white border rounded-lg hover:bg-black-50 text-black-500 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
               >
                 <ChevronRight className="w-4 h-4" />
               </button>

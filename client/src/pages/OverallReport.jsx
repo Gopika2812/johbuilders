@@ -132,8 +132,8 @@ const OverallReport = () => {
     }
 
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Overall Report");
-    XLSX.writeFile(wb, `Overall_Report_${new Date().toLocaleDateString('en-GB').replace(/\//g, '-')}.xlsx`);
+    XLSX.utils.book_append_sheet(wb, ws, "NPA Collected Report");
+    XLSX.writeFile(wb, `NPA_Collected_Report_${new Date().toLocaleDateString('en-GB').replace(/\//g, '-')}.xlsx`);
   };
 
   const filteredFlows = flows.filter(flow => {
@@ -146,25 +146,25 @@ const OverallReport = () => {
 
   return (
     <div className="p-8 max-w-[95%] mx-auto min-h-screen font-sans">
-      <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-150 mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="bg-white rounded-3xl p-6 shadow-sm border border-black-150 mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-3 text-[#0e623a]">
           <div className="p-3 bg-emerald-50 rounded-2xl">
             <BarChart2 className="w-6 h-6" />
           </div>
           <div>
-            <h1 className="text-xl font-black tracking-tight">Overall Report</h1>
+            <h1 className="text-xl font-black tracking-tight">Overall Collected Report</h1>
             <p className="text-xs text-emerald-700/70 font-semibold mt-1">Track targets, debtors, and weekly collections</p>
           </div>
         </div>
         <div className="flex items-center gap-3">
           <div className="relative">
-            <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <Search className="w-4 h-4 text-black-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               placeholder="Search lead or project..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 pr-4 py-2.5 bg-gray-50 border border-gray-250 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 w-64"
+              className="pl-9 pr-4 py-2.5 bg-black-50 border border-black-250 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 w-64"
             />
           </div>
           <button
@@ -177,9 +177,9 @@ const OverallReport = () => {
         </div>
       </div>
 
-      <div className="bg-white rounded-3xl shadow-sm border border-gray-150 overflow-hidden">
+      <div className="bg-white rounded-3xl shadow-sm border border-black-150 overflow-hidden">
         {loading ? (
-          <div className="p-12 text-center text-gray-500">
+          <div className="p-12 text-center text-black-500">
             <div className="animate-spin h-8 w-8 border-b-2 border-[#0e623a] rounded-full mx-auto mb-4"></div>
             Loading report...
           </div>
@@ -187,8 +187,8 @@ const OverallReport = () => {
           <div className="p-12 text-center text-red-500">{error}</div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-[10px] text-left">
-              <thead className="bg-gray-50 border-b border-gray-100 text-gray-500 font-bold uppercase tracking-wider">
+            <table className="w-full text-[11px] text-left">
+              <thead className="bg-black-50 border-b border-black-100 text-black-500 font-bold uppercase tracking-wider">
                 <tr>
                   <th className="p-3 w-12 text-center">S.No</th>
                   <th className="p-3">Lead Name</th>
@@ -204,10 +204,10 @@ const OverallReport = () => {
                   <th className="p-3 text-center">Action</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-50">
+              <tbody className="divide-y divide-black-50">
                 {filteredFlows.length === 0 ? (
                   <tr>
-                    <td colSpan="12" className="p-8 text-center text-gray-500 text-sm">No records found.</td>
+                    <td colSpan="12" className="p-8 text-center text-black-500 text-sm">No records found.</td>
                   </tr>
                 ) : (
                   filteredFlows.map((flow, idx) => {
@@ -215,12 +215,12 @@ const OverallReport = () => {
                     const isEditing = editingId === flow._id;
 
                     return (
-                      <tr key={flow._id} className="hover:bg-gray-50/50 transition">
-                        <td className="p-3 text-center text-gray-400 font-semibold">{idx + 1}</td>
-                        <td className="p-3 font-bold text-gray-800">{flow.lead?.name || 'N/A'}</td>
-                        <td className="p-3 text-gray-600 font-medium">{Array.isArray(flow.project?.projectType) ? flow.project.projectType.join(', ') : (flow.project?.projectType || 'N/A')}</td>
+                      <tr key={flow._id} className="hover:bg-black-50/50 transition">
+                        <td className="p-3 text-center text-black-400 font-semibold">{idx + 1}</td>
+                        <td className="p-3 font-bold text-black-800">{flow.lead?.name || 'N/A'}</td>
+                        <td className="p-3 text-black-600 font-medium">{Array.isArray(flow.project?.projectType) ? flow.project.projectType.join(', ') : (flow.project?.projectType || 'N/A')}</td>
                         <td className="p-3 text-center font-semibold text-indigo-600 bg-indigo-50/50 rounded">{flow.unitId || 'N/A'}</td>
-                        <td className="p-3 text-right font-black text-gray-800">Rs. {(flow.totalCurrentValue || 0).toLocaleString()}</td>
+                        <td className="p-3 text-right font-black text-black-800">Rs. {(flow.totalCurrentValue || 0).toLocaleString()}</td>
                         
                         <td className="p-3 text-right">
                           {isEditing ? (
@@ -255,9 +255,9 @@ const OverallReport = () => {
                         
                         <td className="p-3 text-center">
                           {isEditing ? (
-                            <button onClick={() => handleSaveEdit(flow._id)} className="px-3 py-1 bg-emerald-600 text-white rounded shadow-sm text-[10px] font-bold hover:bg-emerald-700">Save</button>
+                            <button onClick={() => handleSaveEdit(flow._id)} className="px-3 py-1 bg-emerald-600 text-white rounded shadow-sm text-[11px] font-bold hover:bg-emerald-700">Save</button>
                           ) : (
-                            <button onClick={() => handleEditClick(flow)} className="px-3 py-1 bg-gray-100 text-gray-600 rounded text-[10px] font-bold hover:bg-gray-200">Edit</button>
+                            <button onClick={() => handleEditClick(flow)} className="px-3 py-1 bg-black-100 text-black-600 rounded text-[11px] font-bold hover:bg-black-200">Edit</button>
                           )}
                         </td>
                       </tr>

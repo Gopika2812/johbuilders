@@ -34,7 +34,7 @@ const getExcelStyles = (titleBg, monthBg, headerBg, execBg) => {
       .exec-banner { background-color: ${execBg || '#DDEBF7'}; font-weight: bold; text-align: left; }
       .bg-header-blue { background-color: #5B9BD5 !important; color: #000000 !important; font-weight: bold; text-align: center; }
       .bg-header-green { background-color: #C6E0B4 !important; color: #000000 !important; font-weight: bold; text-align: center; }
-      .bg-gray-row { background-color: #D9D9D9 !important; color: #000000 !important; }
+      .bg-black-row { background-color: #D9D9D9 !important; color: #000000 !important; }
       .bg-orange-pct { background-color: #F8CBAD !important; color: #000000 !important; font-weight: bold; text-align: center; }
       
       .font-bold { font-weight: bold; color: #000000; }
@@ -93,7 +93,7 @@ const ObservedPieChart = ({ dataArray, valueKey, labelKey, colorPalette, isCount
   const total = dataArray.reduce((sum, item) => sum + (item[valueKey] || 0), 0);
   if (total === 0) {
     return (
-      <div className="flex items-center justify-center h-48 text-gray-400 italic text-xs">
+      <div className="flex items-center justify-center h-48 text-black-400 italic text-xs">
         No data logged
       </div>
     );
@@ -164,7 +164,7 @@ const ObservedPieChart = ({ dataArray, valueKey, labelKey, colorPalette, isCount
                   onMouseLeave={() => setHoveredItem(null)}
                 />
                 {percent > 0.05 && (
-                  <g className="pointer-events-none select-none text-[8px] font-bold text-white">
+                  <g className="pointer-events-none select-none text-[9px] font-bold text-white">
                     <text x={labelX} y={labelY - 1} textAnchor="middle" fill="white" style={{ textShadow: '1px 1px 1px rgba(0,0,0,0.8)' }}>
                       {labelText.length > 7 ? labelText.slice(0, 6) + '..' : labelText}
                     </text>
@@ -180,16 +180,16 @@ const ObservedPieChart = ({ dataArray, valueKey, labelKey, colorPalette, isCount
 
         {hoveredItem && (
           <div 
-            className="absolute bg-gray-950/95 text-white text-[10px] font-bold px-2 py-1 rounded-xl shadow-lg border border-gray-800 pointer-events-none z-50 transition-all duration-75 whitespace-nowrap"
+            className="absolute bg-black-950/95 text-white text-[11px] font-bold px-2 py-1 rounded-xl shadow-lg border border-black-800 pointer-events-none z-50 transition-all duration-75 whitespace-nowrap"
             style={{ 
               left: `${mousePos.x}px`, 
               top: `${mousePos.y}px`
             }}
           >
-            <div className="text-[9px] text-gray-400 font-extrabold uppercase">{hoveredItem[labelKey]}</div>
+            <div className="text-[10px] text-black-400 font-extrabold uppercase">{hoveredItem[labelKey]}</div>
             <div className="text-white mt-0.5">
               {((hoveredItem[valueKey] / total) * 100).toFixed(1)}% 
-              <span className="text-gray-300 ml-1">
+              <span className="text-black-300 ml-1">
                 ({isCount ? hoveredItem[valueKey] : '₹' + Math.round(hoveredItem[valueKey]).toLocaleString()})
               </span>
             </div>
@@ -197,7 +197,7 @@ const ObservedPieChart = ({ dataArray, valueKey, labelKey, colorPalette, isCount
         )}
       </div>
 
-      <div className="space-y-1.5 text-left flex-1 max-h-36 overflow-y-auto pr-2 w-full border-t border-gray-100 pt-3">
+      <div className="space-y-1.5 text-left flex-1 max-h-36 overflow-y-auto pr-2 w-full border-t border-black-100 pt-3">
         {dataArray.map((item, index) => {
           const val = item[valueKey] || 0;
           const percentage = (val / total) * 100;
@@ -205,15 +205,15 @@ const ObservedPieChart = ({ dataArray, valueKey, labelKey, colorPalette, isCount
           return (
             <div 
               key={index} 
-              className={`flex items-center justify-between text-[10px] gap-2 border-b border-gray-50 pb-0.5 ${onSegmentClick ? 'cursor-pointer hover:bg-gray-50/50 px-1.5 py-0.5 rounded transition' : ''}`}
+              className={`flex items-center justify-between text-[11px] gap-2 border-b border-black-50 pb-0.5 ${onSegmentClick ? 'cursor-pointer hover:bg-black-50/50 px-1.5 py-0.5 rounded transition' : ''}`}
               onClick={() => onSegmentClick && onSegmentClick(item)}
             >
               <div className="flex items-center gap-1.5 min-w-0">
                 <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: color }}></span>
-                <span className="font-bold text-gray-700 truncate uppercase" title={item[labelKey]}>{item[labelKey]}</span>
+                <span className="font-bold text-black-700 truncate uppercase" title={item[labelKey]}>{item[labelKey]}</span>
               </div>
-              <div className="text-right text-gray-500 font-bold shrink-0">
-                <span className="text-gray-800 font-extrabold mr-1">{percentage.toFixed(1)}%</span>
+              <div className="text-right text-black-500 font-bold shrink-0">
+                <span className="text-black-800 font-extrabold mr-1">{percentage.toFixed(1)}%</span>
                 <span>({isCount ? `${val}` : `₹${Math.round(val).toLocaleString()}`})</span>
               </div>
             </div>
@@ -266,7 +266,7 @@ const ObservedBarChart = ({ dataArray, xKey, yKey, barColor, isPercent = false }
           opacity: 0.95;
         }
       `}</style>
-      <div className="h-48 w-full flex items-end gap-3 pt-4 border-b border-l border-gray-150 px-2 relative">
+      <div className="h-48 w-full flex items-end gap-3 pt-4 border-b border-l border-black-150 px-2 relative">
         {dataArray.map((item, index) => {
           const val = item[yKey] || 0;
           const heightPercent = (val / maxValue) * 85; // cap at 85% height to leave room for labels
@@ -274,7 +274,7 @@ const ObservedBarChart = ({ dataArray, xKey, yKey, barColor, isPercent = false }
           return (
             <div key={index} className="flex-1 flex flex-col items-center group relative h-full justify-end">
               {/* Tooltip value */}
-              <div className="absolute bottom-full mb-1 bg-gray-900 text-white text-[9px] font-bold px-2 py-0.5 rounded opacity-0 group-hover:opacity-100 transition duration-200 z-20 pointer-events-none whitespace-nowrap">
+              <div className="absolute bottom-full mb-1 bg-black-900 text-white text-[10px] font-bold px-2 py-0.5 rounded opacity-0 group-hover:opacity-100 transition duration-200 z-20 pointer-events-none whitespace-nowrap">
                 {isPercent ? `${val.toFixed(1)}%` : val.toLocaleString()}
               </div>
 
@@ -289,7 +289,7 @@ const ObservedBarChart = ({ dataArray, xKey, yKey, barColor, isPercent = false }
               ></div>
 
               {/* Label */}
-              <div className="text-[9px] font-bold text-gray-550 truncate max-w-full text-center mt-1 uppercase w-full">
+              <div className="text-[10px] font-bold text-black-550 truncate max-w-full text-center mt-1 uppercase w-full">
                 {item[xKey]}
               </div>
             </div>
@@ -305,20 +305,8 @@ const ExportReports = () => {
   const logoPath = window.location.origin + "/jb_logo.jpg";
   
   // Date filters - default to current month
-  const [fromDate, setFromDate] = useState(() => {
-    const d = new Date();
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    return `${year}-${month}-01`;
-  });
-  const [toDate, setToDate] = useState(() => {
-    const d = new Date();
-    const lastDayVal = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(lastDayVal).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  });
+  const [fromDate, setFromDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [toDate, setToDate] = useState(() => new Date().toISOString().split('T')[0]);
 
   const [selectedUser, setSelectedUser] = useState(() => {
     const isPrivileged = user?.role === 'Super Admin' || user?.role === 'Admin';
@@ -1231,10 +1219,10 @@ const ExportReports = () => {
 
       html += `
             <!-- Phase 2 Overall Average achieved -->
-            <tr class="bg-gray-row">
-              <td class="bg-gray-row"></td><td class="bg-gray-row"></td><td class="bg-gray-row"></td><td class="bg-gray-row"></td><td class="bg-gray-row"></td>
+            <tr class="bg-black-row">
+              <td class="bg-black-row"></td><td class="bg-black-row"></td><td class="bg-black-row"></td><td class="bg-black-row"></td><td class="bg-black-row"></td>
               <td class="bg-orange-pct" style="font-size: 10pt; font-weight: bold; border: 1px solid #000000; text-align: center; vertical-align: middle;">${projectPerformanceText}</td>
-              <td class="bg-gray-row"></td><td class="bg-gray-row"></td><td class="bg-gray-row"></td><td class="bg-gray-row"></td>
+              <td class="bg-black-row"></td><td class="bg-black-row"></td><td class="bg-black-row"></td><td class="bg-black-row"></td>
             </tr>
 
             <!-- Spacing row -->
@@ -1283,10 +1271,10 @@ const ExportReports = () => {
       });
 
       html += `
-            <tr class="bg-gray-row">
-              <td class="bg-gray-row"></td><td class="bg-gray-row"></td><td class="bg-gray-row"></td><td class="bg-gray-row"></td><td class="bg-gray-row"></td>
+            <tr class="bg-black-row">
+              <td class="bg-black-row"></td><td class="bg-black-row"></td><td class="bg-black-row"></td><td class="bg-black-row"></td><td class="bg-black-row"></td>
               <td class="bg-orange-pct" style="font-size: 10pt; font-weight: bold; border: 1px solid #000000; text-align: center; vertical-align: middle;">${marketingPerformanceText}</td>
-              <td class="bg-gray-row"></td><td class="bg-gray-row"></td><td class="bg-gray-row"></td><td class="bg-gray-row"></td>
+              <td class="bg-black-row"></td><td class="bg-black-row"></td><td class="bg-black-row"></td><td class="bg-black-row"></td>
             </tr>
           </tbody>
           </table>
@@ -2550,7 +2538,7 @@ const ExportReports = () => {
                 cell.s.fill = { fgColor: { rgb: 'C6E0B4' } };
                 cell.s.font.bold = true;
               }
-              else if (allClass.includes('bg-gray-row')) {
+              else if (allClass.includes('bg-black-row')) {
                 cell.s.fill = { fgColor: { rgb: 'D9D9D9' } };
               }
               else if (allClass.includes('bg-orange-pct')) {
@@ -2637,7 +2625,7 @@ const ExportReports = () => {
   return (
     <div className="max-w-7xl mx-auto space-y-6 animate-fadeIn">
       {/* Header & Global Filters */}
-      <div className="bg-white border border-gray-150 rounded-3xl p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6 relative overflow-hidden">
+      <div className="bg-white border border-black-150 rounded-3xl p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6 relative overflow-hidden">
         <div className="absolute right-0 top-0 w-64 h-full bg-gradient-to-l from-[#0e623a]/5 to-transparent pointer-events-none"></div>
         
         <div className="flex items-center gap-4 relative z-10">
@@ -2645,20 +2633,20 @@ const ExportReports = () => {
             <FolderOpen className="w-6 h-6" />
           </div>
           <div>
-            <h1 className="text-2xl font-black text-gray-800 tracking-tight">Export Reports</h1>
-            <p className="text-xs text-gray-400 font-medium mt-1">Download operational and performance reports.</p>
+            <h1 className="text-2xl font-black text-black-800 tracking-tight">Sales Reports</h1>
+            {/* <p className="text-xs text-black-500 mt-1">Download operational and performance reports.</p> */}
           </div>
         </div>
 
         <div className="flex flex-wrap items-center gap-3 relative z-10">
           {/* User Filter */}
           {(user?.role === 'Admin' || user?.role === 'Super Admin') && (
-            <div className="flex items-center bg-gray-50 border border-gray-200 rounded-xl px-3 py-2">
-              <User className="w-4 h-4 text-gray-400 mr-2" />
+            <div className="flex items-center bg-black-50 border border-black-200 rounded-xl px-3 py-2">
+              <User className="w-4 h-4 text-black-400 mr-2" />
               <select
                 value={selectedUser}
                 onChange={(e) => setSelectedUser(e.target.value)}
-                className="bg-transparent text-xs font-bold text-gray-700 focus:outline-none cursor-pointer"
+                className="bg-transparent text-xs font-bold text-black-700 focus:outline-none cursor-pointer"
               >
                 <option value="">All Users</option>
                 {(stats.users || []).map(u => (
@@ -2669,12 +2657,12 @@ const ExportReports = () => {
           )}
 
           {/* Project Filter */}
-          <div className="flex items-center bg-gray-50 border border-gray-200 rounded-xl px-3 py-2">
-            <FolderOpen className="w-4 h-4 text-gray-400 mr-2" />
+          <div className="flex items-center bg-black-50 border border-black-200 rounded-xl px-3 py-2">
+            <FolderOpen className="w-4 h-4 text-black-400 mr-2" />
             <select
               value={selectedProject}
               onChange={(e) => setSelectedProject(e.target.value)}
-              className="bg-transparent text-xs font-bold text-gray-700 focus:outline-none cursor-pointer"
+              className="bg-transparent text-xs font-bold text-black-700 focus:outline-none cursor-pointer"
             >
               <option value="">All Projects</option>
               {(stats.projects || []).map(p => (
@@ -2684,21 +2672,21 @@ const ExportReports = () => {
           </div>
 
           {/* Date Range Filter */}
-          <div className="flex items-center bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 gap-2">
-            <Calendar className="w-4 h-4 text-gray-400" />
-            <span className="text-xs font-bold text-gray-500">Range:</span>
+          <div className="flex items-center bg-black-50 border border-black-200 rounded-xl px-3 py-2 gap-2">
+            <Calendar className="w-4 h-4 text-black-400" />
+            <span className="text-xs font-bold text-black-500">Range:</span>
             <input
               type="date"
               value={fromDate}
               onChange={(e) => setFromDate(e.target.value)}
-              className="bg-transparent text-xs font-bold text-gray-700 focus:outline-none cursor-pointer"
+              className="bg-transparent text-xs font-bold text-black-700 focus:outline-none cursor-pointer"
             />
-            <span className="text-xs font-bold text-gray-400">to</span>
+            <span className="text-xs font-bold text-black-400">to</span>
             <input
               type="date"
               value={toDate}
               onChange={(e) => setToDate(e.target.value)}
-              className="bg-transparent text-xs font-bold text-gray-700 focus:outline-none cursor-pointer"
+              className="bg-transparent text-xs font-bold text-black-700 focus:outline-none cursor-pointer"
             />
           </div>
         </div>
@@ -2714,7 +2702,7 @@ const ExportReports = () => {
               <Download className="w-8 h-8" />
             </div>
             <h3 className="text-sm font-black text-emerald-800 uppercase tracking-wide">Download All Reports</h3>
-            <p className="text-[10px] text-emerald-600 font-semibold">Generate a single master workbook with all reports as separate tabs.</p>
+            {/* <p className="text-[11px] text-emerald-600 font-semibold">Generate a single master workbook with all reports as separate tabs.</p> */}
           </div>
 
         
@@ -2726,7 +2714,7 @@ const ExportReports = () => {
             <FolderOpen className="w-8 h-8" />
           </div>
           <h3 className="text-sm font-black text-indigo-800 uppercase tracking-wide">Summary of Report</h3>
-          <p className="text-[10px] text-indigo-500 font-semibold">Complete overview of all leads, statuses, and values.</p>
+          {/* <p className="text-[11px] text-indigo-500 font-semibold">Complete overview of all leads, statuses, and values.</p> */}
         </div>
 
         <div 
@@ -2737,7 +2725,7 @@ const ExportReports = () => {
             <FileText className="w-8 h-8" />
           </div>
           <h3 className="text-sm font-black text-emerald-800 uppercase tracking-wide">Enquiry Sheet</h3>
-          <p className="text-[10px] text-emerald-500 font-semibold">Active and followed-up enquiries.</p>
+          {/* <p className="text-[11px] text-emerald-500 font-semibold">Active and followed-up enquiries.</p> */}
         </div>
 
         <div 
@@ -2748,7 +2736,7 @@ const ExportReports = () => {
             <Compass className="w-8 h-8" />
           </div>
           <h3 className="text-sm font-black text-blue-800 uppercase tracking-wide">Site Visit Sheet</h3>
-          <p className="text-[10px] text-blue-500 font-semibold">Leads that progressed to site visits.</p>
+          {/* <p className="text-[11px] text-blue-500 font-semibold">Leads that progressed to site visits.</p> */}
         </div>
 
         <div 
@@ -2759,7 +2747,7 @@ const ExportReports = () => {
             <TrendingUp className="w-8 h-8" />
           </div>
           <h3 className="text-sm font-black text-orange-800 uppercase tracking-wide">Hot List Sheet</h3>
-          <p className="text-[10px] text-orange-500 font-semibold">Highly qualified, potential closing leads.</p>
+          {/* <p className="text-[11px] text-orange-500 font-semibold">Highly qualified, potential closing leads.</p> */}
         </div>
 
         <div 
@@ -2770,7 +2758,7 @@ const ExportReports = () => {
             <Building className="w-8 h-8" />
           </div>
           <h3 className="text-sm font-black text-green-800 uppercase tracking-wide">Booking Sheet</h3>
-          <p className="text-[10px] text-green-500 font-semibold">Successfully closed bookings and amounts.</p>
+          {/* <p className="text-[11px] text-green-500 font-semibold">Successfully closed bookings and amounts.</p> */}
         </div>
 
         <div 
@@ -2781,7 +2769,7 @@ const ExportReports = () => {
             <Target className="w-8 h-8" />
           </div>
           <h3 className="text-sm font-black text-cyan-800 uppercase tracking-wide">Marketing Performance</h3>
-          <p className="text-[10px] text-cyan-500 font-semibold">Conversion rates, CPE, and source performance.</p>
+          {/* <p className="text-[11px] text-cyan-500 font-semibold">Conversion rates, CPE, and source performance.</p> */}
         </div>
 
         <div 
@@ -2792,7 +2780,7 @@ const ExportReports = () => {
             <Users className="w-8 h-8" />
           </div>
           <h3 className="text-sm font-black text-teal-800 uppercase tracking-wide">Lead Sources</h3>
-          <p className="text-[10px] text-teal-500 font-semibold">Detailed breakdown of lead origins and counts.</p>
+          {/* <p className="text-[11px] text-teal-500 font-semibold">Detailed breakdown of lead origins and counts.</p> */}
         </div>
 
       </div>

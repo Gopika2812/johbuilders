@@ -65,7 +65,7 @@ const getExcelStyles = (titleBg, monthBg, headerBg, execBg) => {
       .exec-banner { background-color: ${execBg || '#DDEBF7'}; font-weight: bold; text-align: left; }
       .bg-header-blue { background-color: #5B9BD5 !important; color: #000000 !important; font-weight: bold; text-align: center; }
       .bg-header-green { background-color: #C6E0B4 !important; color: #000000 !important; font-weight: bold; text-align: center; }
-      .bg-gray-row { background-color: #D9D9D9 !important; color: #000000 !important; }
+      .bg-black-row { background-color: #D9D9D9 !important; color: #000000 !important; }
       .bg-orange-pct { background-color: #F8CBAD !important; color: #000000 !important; font-weight: bold; text-align: center; }
       
       .font-bold { font-weight: bold; color: #000000; }
@@ -124,7 +124,7 @@ const ObservedPieChart = ({ dataArray, valueKey, labelKey, colorPalette, isCount
   const total = dataArray.reduce((sum, item) => sum + (item[valueKey] || 0), 0);
   if (total === 0) {
     return (
-      <div className="flex items-center justify-center h-48 text-gray-400 italic text-xs">
+      <div className="flex items-center justify-center h-48 text-black-400 italic text-xs">
         No data logged
       </div>
     );
@@ -195,7 +195,7 @@ const ObservedPieChart = ({ dataArray, valueKey, labelKey, colorPalette, isCount
                   onMouseLeave={() => setHoveredItem(null)}
                 />
                 {percent > 0.05 && (
-                  <g className="pointer-events-none select-none text-[8px] font-bold text-white">
+                  <g className="pointer-events-none select-none text-[9px] font-bold text-white">
                     <text x={labelX} y={labelY - 1} textAnchor="middle" fill="white" style={{ textShadow: '1px 1px 1px rgba(0,0,0,0.8)' }}>
                       {labelText.length > 7 ? labelText.slice(0, 6) + '..' : labelText}
                     </text>
@@ -211,16 +211,16 @@ const ObservedPieChart = ({ dataArray, valueKey, labelKey, colorPalette, isCount
 
         {hoveredItem && (
           <div 
-            className="absolute bg-gray-950/95 text-white text-[10px] font-bold px-2 py-1 rounded-xl shadow-lg border border-gray-800 pointer-events-none z-50 transition-all duration-75 whitespace-nowrap"
+            className="absolute bg-black-950/95 text-white text-[11px] font-bold px-2 py-1 rounded-xl shadow-lg border border-black-800 pointer-events-none z-50 transition-all duration-75 whitespace-nowrap"
             style={{ 
               left: `${mousePos.x}px`, 
               top: `${mousePos.y}px`
             }}
           >
-            <div className="text-[9px] text-gray-400 font-extrabold uppercase">{hoveredItem[labelKey]}</div>
+            <div className="text-[10px] text-black-400 font-extrabold uppercase">{hoveredItem[labelKey]}</div>
             <div className="text-white mt-0.5">
               {((hoveredItem[valueKey] / total) * 100).toFixed(1)}% 
-              <span className="text-gray-300 ml-1">
+              <span className="text-black-300 ml-1">
                 ({isCount ? hoveredItem[valueKey] : '₹' + Math.round(hoveredItem[valueKey]).toLocaleString()})
               </span>
             </div>
@@ -228,7 +228,7 @@ const ObservedPieChart = ({ dataArray, valueKey, labelKey, colorPalette, isCount
         )}
       </div>
 
-      <div className="space-y-1.5 text-left flex-1 max-h-36 overflow-y-auto pr-2 w-full border-t border-gray-100 pt-3">
+      <div className="space-y-1.5 text-left flex-1 max-h-36 overflow-y-auto pr-2 w-full border-t border-black-100 pt-3">
         {dataArray.map((item, index) => {
           const val = item[valueKey] || 0;
           const percentage = (val / total) * 100;
@@ -236,15 +236,15 @@ const ObservedPieChart = ({ dataArray, valueKey, labelKey, colorPalette, isCount
           return (
             <div 
               key={index} 
-              className={`flex items-center justify-between text-[10px] gap-2 border-b border-gray-50 pb-0.5 ${onSegmentClick ? 'cursor-pointer hover:bg-gray-50/50 px-1.5 py-0.5 rounded transition' : ''}`}
+              className={`flex items-center justify-between text-[11px] gap-2 border-b border-black-50 pb-0.5 ${onSegmentClick ? 'cursor-pointer hover:bg-black-50/50 px-1.5 py-0.5 rounded transition' : ''}`}
               onClick={() => onSegmentClick && onSegmentClick(item)}
             >
               <div className="flex items-center gap-1.5 min-w-0">
                 <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: color }}></span>
-                <span className="font-bold text-gray-700 truncate uppercase" title={item[labelKey]}>{item[labelKey]}</span>
+                <span className="font-bold text-black-700 truncate uppercase" title={item[labelKey]}>{item[labelKey]}</span>
               </div>
-              <div className="text-right text-gray-500 font-bold shrink-0">
-                <span className="text-gray-800 font-extrabold mr-1">{percentage.toFixed(1)}%</span>
+              <div className="text-right text-black-500 font-bold shrink-0">
+                <span className="text-black-800 font-extrabold mr-1">{percentage.toFixed(1)}%</span>
                 <span>({isCount ? `${val}` : `₹${Math.round(val).toLocaleString()}`})</span>
               </div>
             </div>
@@ -297,7 +297,7 @@ const ObservedBarChart = ({ dataArray, xKey, yKey, barColor, isPercent = false }
           opacity: 0.95;
         }
       `}</style>
-      <div className="h-48 w-full flex items-end gap-3 pt-4 border-b border-l border-gray-150 px-2 relative">
+      <div className="h-48 w-full flex items-end gap-3 pt-4 border-b border-l border-black-150 px-2 relative">
         {dataArray.map((item, index) => {
           const val = item[yKey] || 0;
           const heightPercent = (val / maxValue) * 85; // cap at 85% height to leave room for labels
@@ -305,7 +305,7 @@ const ObservedBarChart = ({ dataArray, xKey, yKey, barColor, isPercent = false }
           return (
             <div key={index} className="flex-1 flex flex-col items-center group relative h-full justify-end">
               {/* Tooltip value */}
-              <div className="absolute bottom-full mb-1 bg-gray-900 text-white text-[9px] font-bold px-2 py-0.5 rounded opacity-0 group-hover:opacity-100 transition duration-200 z-20 pointer-events-none whitespace-nowrap">
+              <div className="absolute bottom-full mb-1 bg-black-900 text-white text-[10px] font-bold px-2 py-0.5 rounded opacity-0 group-hover:opacity-100 transition duration-200 z-20 pointer-events-none whitespace-nowrap">
                 {isPercent ? `${val.toFixed(1)}%` : val.toLocaleString()}
               </div>
 
@@ -320,7 +320,7 @@ const ObservedBarChart = ({ dataArray, xKey, yKey, barColor, isPercent = false }
               ></div>
 
               {/* Label */}
-              <div className="text-[9px] font-bold text-gray-550 truncate max-w-full text-center mt-1 uppercase w-full">
+              <div className="text-[10px] font-bold text-black-550 truncate max-w-full text-center mt-1 uppercase w-full">
                 {item[xKey]}
               </div>
             </div>
@@ -336,20 +336,8 @@ const KPIInsights = () => {
   const logoPath = window.location.origin + "/jb_logo.jpg";
   
   // Date filters - default to current month
-  const [fromDate, setFromDate] = useState(() => {
-    const d = new Date();
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    return `${year}-${month}-01`;
-  });
-  const [toDate, setToDate] = useState(() => {
-    const d = new Date();
-    const lastDayVal = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(lastDayVal).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  });
+  const [fromDate, setFromDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [toDate, setToDate] = useState(() => new Date().toISOString().split('T')[0]);
 
   const [selectedUser, setSelectedUser] = useState(() => {
     const isPrivileged = user?.role === 'Super Admin' || user?.role === 'Admin';
@@ -1378,9 +1366,9 @@ const KPIInsights = () => {
       html += `
             <!-- Phase 2 Overall Average achieved -->
             <tr>
-              <td class="bg-gray-row"></td><td class="bg-gray-row"></td><td class="bg-gray-row"></td><td class="bg-gray-row"></td><td class="bg-gray-row"></td>
+              <td class="bg-black-row"></td><td class="bg-black-row"></td><td class="bg-black-row"></td><td class="bg-black-row"></td><td class="bg-black-row"></td>
               <td class="bg-orange-pct" style="font-size: 10pt; font-weight: bold; border: 1px solid #000000; text-align: center; vertical-align: middle;">${projectPerformanceText}</td>
-              <td class="bg-gray-row"></td><td class="bg-gray-row"></td><td class="bg-gray-row"></td><td class="bg-gray-row"></td>
+              <td class="bg-black-row"></td><td class="bg-black-row"></td><td class="bg-black-row"></td><td class="bg-black-row"></td>
             </tr>
 
             <!-- Spacing row -->
@@ -1428,9 +1416,9 @@ const KPIInsights = () => {
 
       html += `
             <tr>
-              <td class="bg-gray-row"></td><td class="bg-gray-row"></td><td class="bg-gray-row"></td><td class="bg-gray-row"></td><td class="bg-gray-row"></td>
+              <td class="bg-black-row"></td><td class="bg-black-row"></td><td class="bg-black-row"></td><td class="bg-black-row"></td><td class="bg-black-row"></td>
               <td class="bg-orange-pct" style="font-size: 10pt; font-weight: bold; border: 1px solid #000000; text-align: center; vertical-align: middle;">${marketingPerformanceText}</td>
-              <td class="bg-gray-row"></td><td class="bg-gray-row"></td><td class="bg-gray-row"></td><td class="bg-gray-row"></td>
+              <td class="bg-black-row"></td><td class="bg-black-row"></td><td class="bg-black-row"></td><td class="bg-black-row"></td>
             </tr>
           </tbody>
           </table>
@@ -2734,9 +2722,9 @@ const KPIInsights = () => {
   return (
     <div className="space-y-8 w-full mx-auto text-left animate-fadeIn">
       {/* Page Header */}
-      <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-6 border-b border-gray-200 pb-5">
+      <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-6 border-b border-black-200 pb-5">
         <div>
-          <h1 className="text-2xl font-black text-gray-800 flex items-center gap-2">
+          <h1 className="text-2xl font-black text-black-800 flex items-center gap-2">
             <BarChart3 className="w-6 h-6 text-[#0e623a]" />
             <span>KPI Insights & Conversions</span>
           </h1>
@@ -2744,15 +2732,15 @@ const KPIInsights = () => {
         </div>
 
         {/* Filters Panel */}
-        <div className="flex flex-wrap items-center gap-4 bg-white p-3 rounded-2xl border border-gray-150 shadow-xs">
+        <div className="flex flex-wrap items-center gap-4 bg-white p-3 rounded-2xl border border-black-150 shadow-xs">
           {/* User Select */}
           {(user?.role === 'Super Admin' || user?.role === 'Admin') && (
             <div className="flex items-center gap-1">
-              <User className="w-3.5 h-3.5 text-gray-400" />
+              <User className="w-3.5 h-3.5 text-black-400" />
               <select
                 value={selectedUser}
                 onChange={(e) => setSelectedUser(e.target.value)}
-                className="px-2.5 py-1.5 text-xs bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-gray-700 font-bold"
+                className="px-2.5 py-1.5 text-xs bg-black-50 border border-black-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-black-700 font-bold"
               >
                 <option value="">All Users</option>
                 {(stats.users || []).map(u => (
@@ -2764,11 +2752,11 @@ const KPIInsights = () => {
 
           {/* Project Select */}
           <div className="flex items-center gap-1">
-            <FolderOpen className="w-3.5 h-3.5 text-gray-400" />
+            <FolderOpen className="w-3.5 h-3.5 text-black-400" />
             <select
               value={selectedProject}
               onChange={(e) => setSelectedProject(e.target.value)}
-              className="px-2.5 py-1.5 text-xs bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-gray-700 font-bold"
+              className="px-2.5 py-1.5 text-xs bg-black-50 border border-black-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-black-700 font-bold"
             >
               <option value="">All Projects</option>
               {(stats.projects || []).map(p => (
@@ -2779,11 +2767,11 @@ const KPIInsights = () => {
 
           {/* Source Select */}
           <div className="flex items-center gap-1">
-            <Filter className="w-3.5 h-3.5 text-gray-400" />
+            <Filter className="w-3.5 h-3.5 text-black-400" />
             <select
               value={selectedSource}
               onChange={(e) => setSelectedSource(e.target.value)}
-              className="px-2.5 py-1.5 text-xs bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-gray-700 font-bold max-w-[150px]"
+              className="px-2.5 py-1.5 text-xs bg-black-50 border border-black-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-black-700 font-bold max-w-[150px]"
             >
               <option value="">All Sources</option>
               {SOURCE_TYPES.map(src => (
@@ -2792,41 +2780,33 @@ const KPIInsights = () => {
             </select>
           </div>
 
-          <div className="border-l border-gray-200 h-5"></div>
+          <div className="border-l border-black-200 h-5"></div>
 
-          {/* Month Picker */}
-          <div className="flex items-center gap-1 text-xs text-gray-550 font-bold">
-            <Calendar className="w-3.5 h-3.5 text-[#0e623a]" />
-            <span>Month:</span>
-          </div>
-          <input
-            type="month"
-            onChange={(e) => handleMonthChange(e.target.value)}
-            className="px-2 py-1.5 text-xs bg-gray-50 border border-gray-200 rounded-lg focus:outline-none text-gray-700 font-bold"
-          />
+          
+         
 
           {/* Date Picker */}
-          <div className="flex items-center gap-1 text-xs text-gray-500 font-bold">
+          <div className="flex items-center gap-1 text-xs text-black-500 font-bold">
             <span>Range:</span>
           </div>
           <input
             type="date"
             value={fromDate}
             onChange={(e) => setFromDate(e.target.value)}
-            className="px-2 py-1.5 text-xs bg-gray-50 border border-gray-200 rounded-lg focus:outline-none text-gray-700 font-bold"
+            className="px-2 py-1.5 text-xs bg-black-50 border border-black-200 rounded-lg focus:outline-none text-black-700 font-bold"
           />
-          <span className="text-xs text-gray-400 font-bold">to</span>
+          <span className="text-xs text-black-400 font-bold">to</span>
           <input
             type="date"
             value={toDate}
             onChange={(e) => setToDate(e.target.value)}
-            className="px-2 py-1.5 text-xs bg-gray-50 border border-gray-200 rounded-lg focus:outline-none text-gray-700 font-bold"
+            className="px-2 py-1.5 text-xs bg-black-50 border border-black-200 rounded-lg focus:outline-none text-black-700 font-bold"
           />
         </div>
       </div>
 
       {loading ? (
-        <div className="py-24 text-center text-gray-400 italic">
+        <div className="py-24 text-center text-black-400 italic">
           Fetching conversion matrices and chart metrics...
         </div>
       ) : (
@@ -2835,23 +2815,23 @@ const KPIInsights = () => {
           {/* 🟢 TOP ANALYTICAL SUMMARY CARD GRID */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {/* Enquiry Spend KPI */}
-            <div className="bg-white border border-gray-150 p-5 rounded-3xl shadow-sm hover:shadow-md transition">
-              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Marketing Investment</span>
-              <h3 className="text-2xl font-black text-gray-800 mt-1">₹{Math.round(stats.insights?.totalMarketingSpend || 0).toLocaleString()}</h3>
+            <div className="bg-white border border-black-150 p-5 rounded-3xl shadow-sm hover:shadow-md transition">
+              <span className="text-[11px] font-bold text-black-400 uppercase tracking-wider block">Marketing Investment</span>
+              <h3 className="text-2xl font-black text-black-800 mt-1">₹{Math.round(stats.insights?.totalMarketingSpend || 0).toLocaleString()}</h3>
               
             </div>
 
             {/* Cost Per Enquiry */}
-            <div className="bg-white border border-gray-150 p-5 rounded-3xl shadow-sm hover:shadow-md transition">
-              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Cost Per converted  Lead</span>
+            <div className="bg-white border border-black-150 p-5 rounded-3xl shadow-sm hover:shadow-md transition">
+              <span className="text-[11px] font-bold text-black-400 uppercase tracking-wider block">Cost Per converted  Lead</span>
               <h3 className="text-2xl font-black text-[#0e623a] mt-1">₹{Math.round(stats.insights?.costPerEnquiry || 0).toLocaleString()}</h3>
         
             </div>
 
             {/* Booking Stage Conversions */}
-            <div className="bg-white border border-gray-150 p-5 rounded-3xl shadow-sm hover:shadow-md transition">
-              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Total Bookings Count</span>
-              <h3 className="text-2xl font-black text-gray-800 mt-1">{stats.cards.conversion.count} Converted</h3>
+            <div className="bg-white border border-black-150 p-5 rounded-3xl shadow-sm hover:shadow-md transition">
+              <span className="text-[11px] font-bold text-black-400 uppercase tracking-wider block">Total Bookings Count</span>
+              <h3 className="text-2xl font-black text-black-800 mt-1">{stats.cards.conversion.count} Converted</h3>
               
             </div>
 
@@ -2859,9 +2839,9 @@ const KPIInsights = () => {
           </div>
 
           {/* 🟢 DAILY LEAD COST ANALYSIS ELABORATE TABLE */}
-          <div className="bg-white border border-gray-150 rounded-3xl p-6 shadow-sm space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-gray-100 pb-3">
-              <h3 className="text-sm font-extrabold text-gray-800 uppercase tracking-wide flex items-center gap-2">
+          <div className="bg-white border border-black-150 rounded-3xl p-6 shadow-sm space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-black-100 pb-3">
+              <h3 className="text-sm font-extrabold text-black-800 uppercase tracking-wide flex items-center gap-2">
                 <BarChart3 className="w-5 h-5 text-[#0e623a]" />
                 <span>Daily Lead Cost Analysis Report</span>
               </h3>
@@ -2878,7 +2858,7 @@ const KPIInsights = () => {
 
             <div className="space-y-6 pt-2">
               {Object.keys(filteredSourceStats).length === 0 ? (
-                <div className="p-8 text-center text-gray-400 italic font-medium border border-dashed rounded-xl">
+                <div className="p-8 text-center text-black-400 italic font-medium border border-dashed rounded-xl">
                   No source stats found for the selected filters.
                 </div>
               ) : (
@@ -2887,47 +2867,47 @@ const KPIInsights = () => {
                   .map(([source, data], index) => {
                   const costPerLead = data.count > 0 ? (data.spent / data.count) : 0;
                   return (
-                    <div key={index} className="bg-white border border-gray-150 rounded-2xl p-6 shadow-sm hover:shadow-md transition">
+                    <div key={index} className="bg-white border border-black-150 rounded-2xl p-6 shadow-sm hover:shadow-md transition">
                       {/* Row 1: Source, Budget, Spent, Cost per Lead */}
-                      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-5 pb-5 border-b border-gray-100">
+                      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-5 pb-5 border-b border-black-100">
                         <div>
-                          <span className="text-[10px] text-gray-400 font-bold uppercase block">Lead Source</span>
-                          <h4 className="text-xl font-black text-gray-800 uppercase tracking-wider">{source}</h4>
+                          <span className="text-[11px] text-black-400 font-bold uppercase block">Lead Source</span>
+                          <h4 className="text-xl font-black text-black-800 uppercase tracking-wider">{source}</h4>
                         </div>
                         <div className="text-center sm:text-left">
-                          <span className="text-[10px] text-gray-400 font-bold uppercase block">Budget</span>
-                          <span className="text-xl font-bold text-gray-800">₹{Math.round(data.budget || 0).toLocaleString()}</span>
+                          <span className="text-[11px] text-black-400 font-bold uppercase block">Budget</span>
+                          <span className="text-xl font-bold text-black-800">₹{Math.round(data.budget || 0).toLocaleString()}</span>
                         </div>
                         <div className="text-center sm:text-left">
-                          <span className="text-[10px] text-gray-400 font-bold uppercase block">Spent</span>
+                          <span className="text-[11px] text-black-400 font-bold uppercase block">Spent</span>
                           <span className="text-xl font-bold text-rose-600">₹{Math.round(data.spent || 0).toLocaleString()}</span>
                         </div>
                         <div className="text-center sm:text-left">
-                          <span className="text-[10px] text-gray-400 font-bold uppercase block">Cost / Lead</span>
+                          <span className="text-[11px] text-black-400 font-bold uppercase block">Cost / Lead</span>
                           <span className="text-xl font-black text-[#0e623a]">₹{Math.round(costPerLead).toLocaleString()}</span>
                         </div>
                       </div>
                       
                       {/* Row 2: 5 Metric Cards */}
                       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                        <div className="bg-gray-50 rounded-xl p-4 border border-gray-100 text-center">
-                          <span className="text-[10px] font-extrabold text-gray-500 uppercase block mb-1">Lead Count</span>
-                          <span className="text-2xl font-black text-gray-800">{data.count || 0}</span>
+                        <div className="bg-black-50 rounded-xl p-4 border border-black-100 text-center">
+                          <span className="text-[11px] font-extrabold text-black-500 uppercase block mb-1">Lead Count</span>
+                          <span className="text-2xl font-black text-black-800">{data.count || 0}</span>
                         </div>
-                        <div className="bg-gray-50 rounded-xl p-4 border border-gray-100 text-center">
-                          <span className="text-[10px] font-extrabold text-gray-500 uppercase block mb-1">Lost Count</span>
+                        <div className="bg-black-50 rounded-xl p-4 border border-black-100 text-center">
+                          <span className="text-[11px] font-extrabold text-black-500 uppercase block mb-1">Lost Count</span>
                           <span className="text-2xl font-black text-red-500">{data.lost || 0}</span>
                         </div>
-                        <div className="bg-gray-50 rounded-xl p-4 border border-gray-100 text-center">
-                          <span className="text-[10px] font-extrabold text-gray-500 uppercase block mb-1">Followup Count</span>
+                        <div className="bg-black-50 rounded-xl p-4 border border-black-100 text-center">
+                          <span className="text-[11px] font-extrabold text-black-500 uppercase block mb-1">Followup Count</span>
                           <span className="text-2xl font-black text-blue-600">{data.enquiries || 0}</span>
                         </div>
-                        <div className="bg-gray-50 rounded-xl p-4 border border-gray-100 text-center">
-                          <span className="text-[10px] font-extrabold text-gray-500 uppercase block mb-1">Site Visit Count</span>
+                        <div className="bg-black-50 rounded-xl p-4 border border-black-100 text-center">
+                          <span className="text-[11px] font-extrabold text-black-500 uppercase block mb-1">Site Visit Count</span>
                           <span className="text-2xl font-black text-purple-600">{data.siteVisits || 0}</span>
                         </div>
-                        <div className="bg-gray-50 rounded-xl p-4 border border-gray-100 text-center">
-                          <span className="text-[10px] font-extrabold text-gray-500 uppercase block mb-1">Booked Count</span>
+                        <div className="bg-black-50 rounded-xl p-4 border border-black-100 text-center">
+                          <span className="text-[11px] font-extrabold text-black-500 uppercase block mb-1">Booked Count</span>
                           <span className="text-2xl font-black text-[#0e623a]">{data.booked || 0}</span>
                         </div>
                       </div>
@@ -2942,8 +2922,8 @@ const KPIInsights = () => {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             
             {/* Chart 1: Budget Allocation Sources */}
-            <div className="bg-white border border-gray-150 rounded-3xl p-6 shadow-sm space-y-4 text-center">
-              <h3 className="text-sm font-extrabold text-gray-800 uppercase tracking-wide text-left">
+            <div className="bg-white border border-black-150 rounded-3xl p-6 shadow-sm space-y-4 text-center">
+              <h3 className="text-sm font-extrabold text-black-800 uppercase tracking-wide text-left">
                 Budget Allocation Sources
               </h3>
               <ObservedPieChart 
@@ -2955,8 +2935,8 @@ const KPIInsights = () => {
             </div>
 
             {/* Chart 2: Spent Marketing Sources */}
-            <div className="bg-white border border-gray-150 rounded-3xl p-6 shadow-sm space-y-4 text-center">
-              <h3 className="text-sm font-extrabold text-gray-800 uppercase tracking-wide text-left">
+            <div className="bg-white border border-black-150 rounded-3xl p-6 shadow-sm space-y-4 text-center">
+              <h3 className="text-sm font-extrabold text-black-800 uppercase tracking-wide text-left">
                 Spent Marketing Sources
               </h3>
               <ObservedPieChart 
@@ -2968,8 +2948,8 @@ const KPIInsights = () => {
             </div>
 
             {/* Chart 3: Incoming Networth Value */}
-            <div className="bg-white border border-gray-150 rounded-3xl p-6 shadow-sm space-y-4 text-center">
-              <h3 className="text-sm font-extrabold text-gray-800 uppercase tracking-wide text-left">
+            <div className="bg-white border border-black-150 rounded-3xl p-6 shadow-sm space-y-4 text-center">
+              <h3 className="text-sm font-extrabold text-black-800 uppercase tracking-wide text-left">
                 Incoming Networth Value
               </h3>
               <ObservedPieChart 
@@ -2985,14 +2965,14 @@ const KPIInsights = () => {
 
 
           {/* 🟢 DETAIL METRICS DATAGRID */}
-          <div className="bg-white border border-gray-150 rounded-3xl p-6 shadow-sm space-y-4">
-            <h3 className="text-sm font-extrabold text-gray-800 uppercase tracking-wide border-b border-gray-100 pb-3">
+          <div className="bg-white border border-black-150 rounded-3xl p-6 shadow-sm space-y-4">
+            <h3 className="text-sm font-extrabold text-black-800 uppercase tracking-wide border-b border-black-100 pb-3">
               KPI Conversions Detailed Metrics DataGrid
             </h3>
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse text-xs">
                 <thead>
-                  <tr className="bg-gray-50 border-b border-gray-150 font-bold text-gray-500 uppercase tracking-wider text-[10px]">
+                  <tr className="bg-black-50 border-b border-black-150 font-bold text-black-500 uppercase tracking-wider text-[11px]">
                     <th className="p-4">METRIC TYPE</th>
                     <th className="p-4 text-center">ENQUIRY COUNT</th>
                     <th className="p-4 text-center">SITE VISIT COUNT</th>
@@ -3000,23 +2980,23 @@ const KPIInsights = () => {
 
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100 font-sans font-semibold text-gray-700">
-                  <tr className="hover:bg-gray-50/50">
-                    <td className="p-4 font-bold text-gray-900">Enquiries Pipeline Stage</td>
+                <tbody className="divide-y divide-black-100 font-sans font-semibold text-black-700">
+                  <tr className="hover:bg-black-50/50">
+                    <td className="p-4 font-bold text-black-900">Enquiries Pipeline Stage</td>
                     <td className="p-4 text-center">{stats.cards.enquiries.total} leads</td>
                     <td className="p-4 text-center">—</td>
-                    <td className="p-4 text-right text-gray-400">Baseline</td>
+                    <td className="p-4 text-right text-black-400">Baseline</td>
 
                   </tr>
-                  <tr className="hover:bg-gray-50/50">
-                    <td className="p-4 font-bold text-gray-900">Site Visits Pipeline Stage</td>
+                  <tr className="hover:bg-black-50/50">
+                    <td className="p-4 font-bold text-black-900">Site Visits Pipeline Stage</td>
                     <td className="p-4 text-center">—</td>
                     <td className="p-4 text-center">{stats.cards.siteVisits.total} visits</td>
                     <td className="p-4 text-right">{(stats.insights?.siteVisitConversionRate || 0).toFixed(1)}%</td>
 
                   </tr>
-                  <tr className="hover:bg-gray-50/50">
-                    <td className="p-4 font-bold text-gray-900">Booked</td>
+                  <tr className="hover:bg-black-50/50">
+                    <td className="p-4 font-bold text-black-900">Booked</td>
                     <td className="p-4 text-center">{stats.cards.conversion.count} leads</td>
                     <td className="p-4 text-center">—</td>
                     <td className="p-4 text-right">{(stats.insights?.bookingConversionRate || 0).toFixed(1)}%</td>
@@ -3036,39 +3016,39 @@ const KPIInsights = () => {
       {/* 🔐 MODAL: CPE Source Drilldown Details */}
       {activeCpeDrillDown && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm no-print">
-          <div className="bg-white rounded-3xl max-w-xl w-full overflow-hidden shadow-2xl border border-gray-150">
+          <div className="bg-white rounded-3xl max-w-xl w-full overflow-hidden shadow-2xl border border-black-150">
             <div className="bg-[#0e623a] p-5 text-white flex justify-between items-center">
               <div>
-                <span className="text-[9px] bg-white/20 text-white font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">Source Drilldown</span>
+                <span className="text-[10px] bg-white/20 text-white font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">Source Drilldown</span>
                 <h3 className="text-sm font-black mt-1 uppercase">Campaign Source: {activeCpeDrillDown.source}</h3>
               </div>
               <button 
                 onClick={() => setActiveCpeDrillDown(null)}
-                className="text-white hover:text-gray-200 font-extrabold text-lg"
+                className="text-white hover:text-black-200 font-extrabold text-lg"
               >
                 ✕
               </button>
             </div>
 
             <div className="p-6 space-y-4 max-h-[60vh] overflow-y-auto text-left">
-              <div className="flex justify-between items-center bg-gray-50 p-3 rounded-xl text-xs font-bold text-gray-700">
+              <div className="flex justify-between items-center bg-black-50 p-3 rounded-xl text-xs font-bold text-black-700">
                 <span>Total Enquiries Cost:</span>
                 <span className="text-[#0e623a] text-sm font-black">₹ {Math.round(activeCpeDrillDown.leadCost).toLocaleString()}</span>
               </div>
 
               <div className="space-y-2">
-                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Acquired Enquiries List</span>
+                <span className="text-[11px] font-bold text-black-400 uppercase tracking-wider block">Acquired Enquiries List</span>
                 {activeCpeDrillDown.leads?.length === 0 ? (
-                  <div className="p-6 bg-gray-50 rounded-xl text-center text-xs text-gray-400 italic">
+                  <div className="p-6 bg-black-50 rounded-xl text-center text-xs text-black-400 italic">
                     No individual lead entries recorded for this source.
                   </div>
                 ) : (
-                  <div className="divide-y divide-gray-100 border rounded-2xl overflow-hidden bg-white">
+                  <div className="divide-y divide-black-100 border rounded-2xl overflow-hidden bg-white">
                     {activeCpeDrillDown.leads.map((lead, idx) => (
-                      <div key={idx} className="p-3.5 flex justify-between items-start hover:bg-gray-50 transition text-xs">
+                      <div key={idx} className="p-3.5 flex justify-between items-start hover:bg-black-50 transition text-xs">
                         <div className="space-y-0.5 text-left">
-                          <span className="font-extrabold text-gray-800 block">{lead.name}</span>
-                          <span className="text-[10px] text-gray-400 block font-semibold uppercase">{lead.projectName} ({lead.projectType})</span>
+                          <span className="font-extrabold text-black-800 block">{lead.name}</span>
+                          <span className="text-[11px] text-black-400 block font-semibold uppercase">{lead.projectName} ({lead.projectType})</span>
                         </div>
                         <span className="font-bold text-[#0e623a] bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded shrink-0">
                           ₹ {lead.leadCost.toLocaleString()}
@@ -3080,10 +3060,10 @@ const KPIInsights = () => {
               </div>
             </div>
 
-            <div className="p-4 bg-gray-50 border-t flex justify-end">
+            <div className="p-4 bg-black-50 border-t flex justify-end">
               <button
                 onClick={() => setActiveCpeDrillDown(null)}
-                className="px-5 py-2.5 bg-gray-200 hover:bg-gray-300 text-gray-700 text-xs font-bold rounded-xl transition cursor-pointer"
+                className="px-5 py-2.5 bg-black-200 hover:bg-black-300 text-black-700 text-xs font-bold rounded-xl transition cursor-pointer"
               >
                 Close Drilldown
               </button>

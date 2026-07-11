@@ -170,7 +170,7 @@ const ObservedSwirlPieChart = ({
                       y="-16"
                       textAnchor="middle"
                       fill="#1e293b"
-                      className="font-black text-[14px] uppercase tracking-wider"
+                      className="font-black text-[15px] uppercase tracking-wider"
                       style={{ fontFamily: "'Poppins', sans-serif" }}
                     >
                       {slot.label}
@@ -180,7 +180,7 @@ const ObservedSwirlPieChart = ({
                       y="7"
                       textAnchor="middle"
                       fill="#0f172a"
-                      className="font-black text-[24px]"
+                      className="font-black text-[25px]"
                       style={{ fontFamily: "'Poppins', sans-serif" }}
                     >
                       {slot.pct.toFixed(1)}%
@@ -190,7 +190,7 @@ const ObservedSwirlPieChart = ({
                       y="26"
                       textAnchor="middle"
                       fill="#475569"
-                      className="font-black text-[11px]"
+                      className="font-black text-[12px]"
                       style={{ fontFamily: "'Poppins', sans-serif" }}
                     >
                       {`(${slot.item[valueKey]} ${typeof isCount === 'string' ? isCount : 'Units'})`}
@@ -291,7 +291,7 @@ const ObservedPieChart = ({
             >
               <div className="flex items-center gap-2 mb-2 w-full">
                 <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: color }}></span>
-                <span className="text-[10px] font-black text-gray-500 uppercase tracking-wider truncate">{item[labelKey]}</span>
+                <span className="text-[11px] font-black text-gray-500 uppercase tracking-wider truncate">{item[labelKey]}</span>
               </div>
               <div className="flex flex-col items-start gap-0.5 mt-auto">
                 <span className="text-gray-900 font-black text-xl leading-none">{percentage.toFixed(1)}%</span>
@@ -304,21 +304,21 @@ const ObservedPieChart = ({
 
       {hoveredItem && (
         <div 
-          className="absolute z-50 pointer-events-none bg-gray-900/95 backdrop-blur-md text-white text-[11px] px-3.5 py-2.5 rounded-2xl shadow-xl border border-gray-800 flex flex-col gap-1 pointer-events-none transition-all duration-75"
+          className="absolute z-50 pointer-events-none bg-gray-900/95 backdrop-blur-md text-white text-[12px] px-3.5 py-2.5 rounded-2xl shadow-xl border border-gray-800 flex flex-col gap-1 pointer-events-none transition-all duration-75"
           style={{ 
             left: `${mousePos.x + 15}px`, 
             top: `${mousePos.y + 15}px`,
             fontFamily: "'Segoe UI', system-ui, sans-serif"
           }}
         >
-          <span className="font-extrabold text-[9px] uppercase tracking-wider text-gray-400">
+          <span className="font-extrabold text-[10px] uppercase tracking-wider text-gray-400">
             {hoveredItem[labelKey]}
           </span>
           <div className="flex items-center gap-2 font-sans font-black">
             <span className="text-[#10b981] font-black text-sm">
               {((hoveredItem[valueKey] / total) * 100).toFixed(1)}%
             </span>
-            <span className="text-gray-300 font-extrabold text-[10px]">
+            <span className="text-gray-300 font-extrabold text-[11px]">
               ({isCount ? `${hoveredItem[valueKey]} ${typeof isCount === 'string' ? isCount : 'Leads'}` : `₹${Math.round(hoveredItem[valueKey]).toLocaleString()}`})
             </span>
           </div>
@@ -452,20 +452,8 @@ const CRDDashboard = () => {
     const month = String(d.getMonth() + 1).padStart(2, '0');
     return `${year}-${month}`;
   });
-  const [fromDate, setFromDate] = useState(() => {
-    const d = new Date();
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    return `${year}-${month}-01`;
-  });
-  const [toDate, setToDate] = useState(() => {
-    const d = new Date();
-    const lastDayVal = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(lastDayVal).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  });
+  const [fromDate, setFromDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [toDate, setToDate] = useState(() => new Date().toISOString().split('T')[0]);
 
   // User and Project filters
   const [selectedUser, setSelectedUser] = useState(() => {
@@ -1507,7 +1495,7 @@ const CRDDashboard = () => {
             className="flex items-center justify-center gap-1.5 px-4 py-2.5 bg-[#0e623a] hover:bg-[#0b4d2d] text-white text-xs font-bold rounded-xl transition shadow-sm"
           >
             <Download className="w-4 h-4" />
-            <span>Export Overall Report</span>
+            <span>Export NPA Collected Report</span>
           </button>
           
           <button
@@ -1543,7 +1531,7 @@ const CRDDashboard = () => {
           {/* User Select */}
           {(user?.role === 'Super Admin' || user?.role === 'Admin') ? (
             <div className="flex flex-col gap-1 w-full">
-              <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Filtered User</label>
+              <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Filtered User</label>
               <div className="flex items-center gap-2 bg-transparent border-none px-3 py-1.5 rounded-xl">
                 <User className="w-4 h-4 text-gray-455 shrink-0" />
                 <select
@@ -1564,7 +1552,7 @@ const CRDDashboard = () => {
 
           {/* Project Select */}
           <div className="flex flex-col gap-1 w-full">
-            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Filtered Project</label>
+            <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Filtered Project</label>
             <div className="flex items-center gap-2 bg-transparent border-none px-3 py-1.5 rounded-xl">
               <FolderOpen className="w-4 h-4 text-gray-455 shrink-0" />
               <select
@@ -1582,7 +1570,7 @@ const CRDDashboard = () => {
 
           {/* Project Type Select */}
           <div className="flex flex-col gap-1 w-full">
-            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Filtered Type</label>
+            <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Filtered Type</label>
             <div className="flex items-center gap-2 bg-transparent border-none px-3 py-1.5 rounded-xl">
               <Layers className="w-4 h-4 text-gray-455 shrink-0" />
               <select
@@ -1600,7 +1588,7 @@ const CRDDashboard = () => {
 
           {/* Source Select */}
           <div className="flex flex-col gap-1 w-full">
-            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Filtered Source</label>
+            <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Filtered Source</label>
             <div className="flex items-center gap-2 bg-transparent border-none px-3 py-1.5 rounded-xl">
               <Target className="w-4 h-4 text-gray-455 shrink-0" />
               <select
@@ -1618,7 +1606,7 @@ const CRDDashboard = () => {
 
           {/* Month Wise */}
           <div className="flex flex-col gap-1 w-full">
-            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Select Month</label>
+            <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Select Month</label>
             <div className="flex items-center gap-2 bg-transparent border-none px-3 py-1.5 rounded-xl">
               <Calendar className="w-4 h-4 text-[#0e623a] shrink-0" />
               <input
@@ -1632,7 +1620,7 @@ const CRDDashboard = () => {
 
           {/* Range picker */}
           <div className="flex flex-col gap-1 w-full">
-            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Custom Date Range</label>
+            <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Custom Date Range</label>
             <div className="flex items-center gap-2 bg-transparent border-none px-3 py-1.5 rounded-xl">
               <input
                 type="date"
@@ -1640,7 +1628,7 @@ const CRDDashboard = () => {
                 onChange={(e) => setFromDate(e.target.value)}
                 className="w-1/2 bg-transparent text-xs text-gray-700 font-bold focus:outline-none focus:ring-0 border-0 p-0 text-center"
               />
-              <span className="text-[10px] text-gray-400 font-bold">to</span>
+              <span className="text-[11px] text-gray-400 font-bold">to</span>
               <input
                 type="date"
                 value={toDate}

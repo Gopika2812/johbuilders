@@ -280,13 +280,13 @@ const SummaryPlanning = () => {
     <div className="max-w-7xl mx-auto space-y-6 text-left animate-fadeIn font-sans">
       
       {/* Page Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-white p-6 border border-gray-100 shadow-sm rounded-3xl">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-white p-6 border border-black-100 shadow-sm rounded-3xl">
         <div>
-          <h2 className="text-xl font-extrabold text-gray-800 flex items-center gap-2">
+          <h2 className="text-xl font-extrabold text-black-800 flex items-center gap-2">
             <Layers className="w-6 h-6 text-[#0e623a]" />
             <span>Summary Planning</span>
           </h2>
-          <p className="text-xs text-gray-500 mt-1">Manage corporate parameters, turnover projections, and project wise weekly actuals</p>
+          {/* <p className="text-xs text-black-500 mt-1">Manage corporate parameters, turnover projections, and project wise weekly actuals</p> */}
         </div>
 
         <div className="flex items-center gap-3">
@@ -306,14 +306,14 @@ const SummaryPlanning = () => {
       </div>
 
       {/* Top Phase Navigation Tabs */}
-      <div className="flex border-b border-gray-200 bg-white p-1 rounded-t-2xl shadow-sm">
+      <div className="flex border-b border-black-200 bg-white p-1 rounded-t-2xl shadow-sm">
         <button
           type="button"
           onClick={() => setActivePhase('phase1')}
           className={`py-3.5 px-6 text-xs font-bold border-b-2 transition flex items-center gap-2 ${
             activePhase === 'phase1'
               ? 'border-[#0e623a] text-[#0e623a]'
-              : 'border-transparent text-gray-550 hover:text-gray-800'
+              : 'border-transparent text-black-550 hover:text-black-800'
           }`}
         >
           <TrendingUp className="w-4 h-4" />
@@ -325,7 +325,7 @@ const SummaryPlanning = () => {
           className={`py-3.5 px-6 text-xs font-bold border-b-2 transition flex items-center gap-2 ${
             activePhase === 'phase2'
               ? 'border-[#0e623a] text-[#0e623a]'
-              : 'border-transparent text-gray-550 hover:text-gray-800'
+              : 'border-transparent text-black-550 hover:text-black-800'
           }`}
         >
           <Building2 className="w-4 h-4" />
@@ -337,7 +337,7 @@ const SummaryPlanning = () => {
           className={`py-3.5 px-6 text-xs font-bold border-b-2 transition flex items-center gap-2 ${
             activePhase === 'phase3'
               ? 'border-[#0e623a] text-[#0e623a]'
-              : 'border-transparent text-gray-550 hover:text-gray-800'
+              : 'border-transparent text-black-550 hover:text-black-800'
           }`}
         >
           <BarChart3 className="w-4 h-4" />
@@ -347,33 +347,33 @@ const SummaryPlanning = () => {
 
       {activePhase === 'phase1' ? (
         /* Phase 1: Turnover Plan */
-        <div className="bg-white border border-gray-100 rounded-b-3xl shadow-sm p-6 space-y-6 animate-fadeIn font-sans">
-          <div className="flex justify-end border-b border-gray-100 pb-4">
+        <div className="bg-white border border-black-100 rounded-b-3xl shadow-sm p-6 space-y-6 animate-fadeIn font-sans">
+          <div className="flex justify-end border-b border-black-100 pb-4">
             <div className="relative w-full sm:max-w-xs flex items-center gap-2 justify-end">
-              <span className="text-xs font-bold text-gray-455 uppercase tracking-wider flex items-center gap-1">
-                <Calendar className="w-3.5 h-3.5 text-gray-400" />
+              <span className="text-xs font-bold text-black-455 uppercase tracking-wider flex items-center gap-1">
+                <Calendar className="w-3.5 h-3.5 text-black-400" />
                 <span>Planning Month:</span>
               </span>
               <input
                 type="month"
                 value={selectedMonth}
                 onChange={(e) => setSelectedMonth(e.target.value)}
-                className="px-3 py-1.5 text-xs bg-gray-50 border border-gray-255 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-gray-700 font-bold"
+                className="px-3 py-1.5 text-xs bg-black-50 border border-black-255 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-black-700 font-bold"
               />
             </div>
           </div>
 
-          <h3 className="text-sm font-extrabold text-gray-800 uppercase tracking-wide">Total Sales Projection</h3>
+          <h3 className="text-sm font-extrabold text-black-800 uppercase tracking-wide">Total Sales Projection</h3>
 
           {loading ? (
-            <div className="py-20 text-center text-gray-500 italic">
+            <div className="py-20 text-center text-black-500 italic">
               Loading sales summary planner...
             </div>
           ) : (
-            <div className="overflow-x-auto border border-gray-150 rounded-2xl">
+            <div className="overflow-x-auto border border-black-150 rounded-2xl">
               <table className="w-full text-left border-collapse text-xs">
                 <thead>
-                  <tr className="bg-gray-50 border-b border-gray-200 font-bold text-gray-500 uppercase tracking-wider text-[10px]">
+                  <tr className="bg-black-50 border-b border-black-200 font-bold text-black-500 uppercase tracking-wider text-[11px]">
                     <th className="p-4 w-16 text-center">S.NO.</th>
                     <th className="p-4">TOTAL SALES PROJECTION</th>
                     <th className="p-4 w-44 text-right">TOTAL TARGET</th>
@@ -383,10 +383,10 @@ const SummaryPlanning = () => {
                     <th className="p-4 w-44 text-right">LAST MONTH ACHIEVED</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100 font-sans text-xs">
-                  <tr className="hover:bg-gray-50 transition align-middle">
-                    <td className="p-4 text-center font-bold text-gray-400">1</td>
-                    <td className="p-4 font-bold text-gray-750">Overall Sales Target</td>
+                <tbody className="divide-y divide-black-100 font-sans text-xs">
+                  <tr className="hover:bg-black-50 transition align-middle">
+                    <td className="p-4 text-center font-bold text-black-400">1</td>
+                    <td className="p-4 font-bold text-black-750">Overall Sales Target</td>
                     <td className="p-4 text-right">
                       <input
                         type="number"
@@ -394,65 +394,65 @@ const SummaryPlanning = () => {
                         step="0.01"
                         value={salesTarget || ''}
                         onChange={(e) => setSalesTarget(Number(e.target.value) || 0)}
-                        className="px-3 py-1.5 bg-gray-50 border border-gray-250 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-xs font-bold text-right w-36 mx-auto inline-block"
+                        className="px-3 py-1.5 bg-black-50 border border-black-250 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-xs font-bold text-right w-36 mx-auto inline-block"
                       />
                     </td>
-                    <td className="p-4 text-gray-500 font-semibold">Crores</td>
-                    <td className="p-4 text-right font-extrabold text-gray-800">
+                    <td className="p-4 text-black-500 font-semibold">Crores</td>
+                    <td className="p-4 text-right font-extrabold text-black-800">
                       {achievedStats.salesValue.toFixed(4)}
                     </td>
                     <td className="p-4 text-right font-extrabold text-[#0e623a]">
                       {(salesTarget - achievedStats.salesValue).toFixed(4)}
                     </td>
-                    <td className="p-4 text-right font-bold text-gray-500">
+                    <td className="p-4 text-right font-bold text-black-500">
                       {lastMonthStats.salesValue.toFixed(4)}
                     </td>
                   </tr>
 
-                  <tr className="hover:bg-gray-50 transition align-middle">
-                    <td className="p-4 text-center font-bold text-gray-400">2</td>
-                    <td className="p-4 font-bold text-gray-750">Total Villas to be Sold</td>
+                  <tr className="hover:bg-black-50 transition align-middle">
+                    <td className="p-4 text-center font-bold text-black-400">2</td>
+                    <td className="p-4 font-bold text-black-750">Total Villas to be Sold</td>
                     <td className="p-4 text-right">
                       <input
                         type="number"
                         placeholder="0"
                         value={villasTarget || ''}
                         onChange={(e) => setVillasTarget(Number(e.target.value) || 0)}
-                        className="px-3 py-1.5 bg-gray-55 border border-gray-255 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-xs font-bold text-right w-36 mx-auto inline-block"
+                        className="px-3 py-1.5 bg-black-55 border border-black-255 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-xs font-bold text-right w-36 mx-auto inline-block"
                       />
                     </td>
-                    <td className="p-4 text-gray-500 font-semibold">Units</td>
-                    <td className="p-4 text-right font-extrabold text-gray-800">
+                    <td className="p-4 text-black-500 font-semibold">Units</td>
+                    <td className="p-4 text-right font-extrabold text-black-800">
                       {achievedStats.villasCount}
                     </td>
                     <td className="p-4 text-right font-extrabold text-[#0e623a]">
                       {villasTarget - achievedStats.villasCount}
                     </td>
-                    <td className="p-4 text-right font-bold text-gray-500">
+                    <td className="p-4 text-right font-bold text-black-500">
                       {lastMonthStats.villasCount}
                     </td>
                   </tr>
 
-                  <tr className="hover:bg-gray-50 transition align-middle">
-                    <td className="p-4 text-center font-bold text-gray-400">3</td>
-                    <td className="p-4 font-bold text-gray-750">Total Plots to be Sold</td>
+                  <tr className="hover:bg-black-50 transition align-middle">
+                    <td className="p-4 text-center font-bold text-black-400">3</td>
+                    <td className="p-4 font-bold text-black-750">Total Plots to be Sold</td>
                     <td className="p-4 text-right">
                       <input
                         type="number"
                         placeholder="0"
                         value={plotsTarget || ''}
                         onChange={(e) => setPlotsTarget(Number(e.target.value) || 0)}
-                        className="px-3 py-1.5 bg-gray-50 border border-gray-255 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-xs font-bold text-right w-36 mx-auto inline-block"
+                        className="px-3 py-1.5 bg-black-50 border border-black-255 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-xs font-bold text-right w-36 mx-auto inline-block"
                       />
                     </td>
-                    <td className="p-4 text-gray-500 font-semibold">Units</td>
-                    <td className="p-4 text-right font-extrabold text-gray-800">
+                    <td className="p-4 text-black-500 font-semibold">Units</td>
+                    <td className="p-4 text-right font-extrabold text-black-800">
                       {achievedStats.plotsCount}
                     </td>
                     <td className="p-4 text-right font-extrabold text-[#0e623a]">
                       {plotsTarget - achievedStats.plotsCount}
                     </td>
-                    <td className="p-4 text-right font-bold text-gray-500">
+                    <td className="p-4 text-right font-bold text-black-500">
                       {lastMonthStats.plotsCount}
                     </td>
                   </tr>
@@ -463,33 +463,33 @@ const SummaryPlanning = () => {
         </div>
       ) : activePhase === 'phase2' ? (
         /* Phase 2: Project Wise Plan */
-        <div className="bg-white border border-gray-100 rounded-b-3xl shadow-sm p-6 space-y-6 animate-fadeIn font-sans">
-          <div className="flex justify-end border-b border-gray-100 pb-4">
+        <div className="bg-white border border-black-100 rounded-b-3xl shadow-sm p-6 space-y-6 animate-fadeIn font-sans">
+          <div className="flex justify-end border-b border-black-100 pb-4">
             <div className="relative w-full sm:max-w-xs flex items-center gap-2 justify-end">
-              <span className="text-xs font-bold text-gray-455 uppercase tracking-wider flex items-center gap-1">
-                <Calendar className="w-3.5 h-3.5 text-gray-400" />
+              <span className="text-xs font-bold text-black-455 uppercase tracking-wider flex items-center gap-1">
+                <Calendar className="w-3.5 h-3.5 text-black-400" />
                 <span>Planning Month:</span>
               </span>
               <input
                 type="month"
                 value={selectedMonth}
                 onChange={(e) => setSelectedMonth(e.target.value)}
-                className="px-3 py-1.5 text-xs bg-gray-50 border border-gray-255 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-gray-700 font-bold"
+                className="px-3 py-1.5 text-xs bg-black-50 border border-black-255 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-black-700 font-bold"
               />
             </div>
           </div>
 
-          <h3 className="text-sm font-extrabold text-gray-800 uppercase tracking-wide">Project Wise Parameter Report</h3>
+          <h3 className="text-sm font-extrabold text-black-800 uppercase tracking-wide">Project Wise Parameter Report</h3>
 
           {loading ? (
-            <div className="py-20 text-center text-gray-500 italic">
+            <div className="py-20 text-center text-black-500 italic">
               Loading project planning data...
             </div>
           ) : (
-            <div className="overflow-x-auto border border-gray-150 rounded-2xl">
-              <table className="w-full text-left border-collapse text-[11px]">
+            <div className="overflow-x-auto border border-black-150 rounded-2xl">
+              <table className="w-full text-left border-collapse text-[12px]">
                 <thead>
-                  <tr className="bg-gray-50 border-b border-gray-200 font-bold text-gray-500 uppercase tracking-wider text-[9px]">
+                  <tr className="bg-black-50 border-b border-black-200 font-bold text-black-500 uppercase tracking-wider text-[10px]">
                     <th className="p-3 w-14 text-center">S.NO.</th>
                     <th className="p-3 w-28">PROJECT</th>
                     <th className="p-3">DESCRIPTION</th>
@@ -502,10 +502,10 @@ const SummaryPlanning = () => {
                     <th className="p-3 w-24 text-right">4TH WK ACTUAL</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100 font-sans">
+                <tbody className="divide-y divide-black-100 font-sans">
                   {Object.keys(projectStats).length === 0 ? (
                     <tr>
-                      <td colSpan="10" className="p-12 text-center text-gray-400 italic text-xs">
+                      <td colSpan="10" className="p-12 text-center text-black-400 italic text-xs">
                         No projects found. Add projects in Project Master first.
                       </td>
                     </tr>
@@ -571,18 +571,18 @@ const SummaryPlanning = () => {
                       return (
                         <React.Fragment key={projId}>
                           {rows.map((row, rIndex) => (
-                            <tr key={row.field} className="hover:bg-gray-50/50 transition">
+                            <tr key={row.field} className="hover:bg-black-50/50 transition">
                               {rIndex === 0 && (
                                 <>
-                                  <td rowSpan="5" className="p-3 text-center align-middle font-bold text-gray-400 border-r border-gray-100">
+                                  <td rowSpan="5" className="p-3 text-center align-middle font-bold text-black-400 border-r border-black-100">
                                     {index + 1}
                                   </td>
-                                  <td rowSpan="5" className="p-3 font-extrabold text-gray-800 align-middle border-r border-gray-100 uppercase tracking-wide">
+                                  <td rowSpan="5" className="p-3 font-extrabold text-black-800 align-middle border-r border-black-100 uppercase tracking-wide">
                                     {proj.code || proj.name}
                                   </td>
                                 </>
                               )}
-                              <td className="p-3 font-semibold text-gray-750 text-left pl-4">
+                              <td className="p-3 font-semibold text-black-750 text-left pl-4">
                                 {row.label}
                               </td>
                               <td className="p-3 text-right">
@@ -592,25 +592,25 @@ const SummaryPlanning = () => {
                                   step={row.isFloat ? '0.01' : '1'}
                                   value={row.target || ''}
                                   onChange={(e) => handleUpdateProjectTarget(projId, row.field, e.target.value)}
-                                  className="px-2.5 py-1.5 bg-gray-50 border border-gray-250 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-[11px] font-bold text-right w-24 inline-block"
+                                  className="px-2.5 py-1.5 bg-black-50 border border-black-250 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-[12px] font-bold text-right w-24 inline-block"
                                 />
                               </td>
-                              <td className="p-3 text-right font-extrabold text-gray-800">
+                              <td className="p-3 text-right font-extrabold text-black-800">
                                 {row.isFloat ? row.actual.toFixed(4) : row.actual}
                               </td>
                               <td className="p-3 text-right font-bold text-[#0e623a]">
                                 {calculatePercentage(row.actual, row.target)}
                               </td>
-                              <td className="p-3 text-right text-gray-500 font-semibold">
+                              <td className="p-3 text-right text-black-500 font-semibold">
                                 {row.isFloat ? row.w1.toFixed(4) : row.w1}
                               </td>
-                              <td className="p-3 text-right text-gray-500 font-semibold">
+                              <td className="p-3 text-right text-black-500 font-semibold">
                                 {row.isFloat ? row.w2.toFixed(4) : row.w2}
                               </td>
-                              <td className="p-3 text-right text-gray-500 font-semibold">
+                              <td className="p-3 text-right text-black-500 font-semibold">
                                 {row.isFloat ? row.w3.toFixed(4) : row.w3}
                               </td>
-                              <td className="p-3 text-right text-gray-500 font-semibold">
+                              <td className="p-3 text-right text-black-500 font-semibold">
                                 {row.isFloat ? row.w4.toFixed(4) : row.w4}
                               </td>
                             </tr>
@@ -626,33 +626,33 @@ const SummaryPlanning = () => {
         </div>
       ) : (
         /* Phase 3: Marketing Plan */
-        <div className="bg-white border border-gray-100 rounded-b-3xl shadow-sm p-6 space-y-6 animate-fadeIn font-sans">
-          <div className="flex justify-end border-b border-gray-100 pb-4">
+        <div className="bg-white border border-black-100 rounded-b-3xl shadow-sm p-6 space-y-6 animate-fadeIn font-sans">
+          <div className="flex justify-end border-b border-black-100 pb-4">
             <div className="relative w-full sm:max-w-xs flex items-center gap-2 justify-end">
-              <span className="text-xs font-bold text-gray-455 uppercase tracking-wider flex items-center gap-1">
-                <Calendar className="w-3.5 h-3.5 text-gray-400" />
+              <span className="text-xs font-bold text-black-455 uppercase tracking-wider flex items-center gap-1">
+                <Calendar className="w-3.5 h-3.5 text-black-400" />
                 <span>Planning Month:</span>
               </span>
               <input
                 type="month"
                 value={selectedMonth}
                 onChange={(e) => setSelectedMonth(e.target.value)}
-                className="px-3 py-1.5 text-xs bg-gray-50 border border-gray-255 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-gray-700 font-bold"
+                className="px-3 py-1.5 text-xs bg-black-50 border border-black-255 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-black-700 font-bold"
               />
             </div>
           </div>
 
-          <h3 className="text-sm font-extrabold text-gray-800 uppercase tracking-wide">JB Marketing Parameter Report</h3>
+          <h3 className="text-sm font-extrabold text-black-800 uppercase tracking-wide">JB Marketing Parameter Report</h3>
 
           {loading ? (
-            <div className="py-20 text-center text-gray-500 italic">
+            <div className="py-20 text-center text-black-500 italic">
               Loading marketing planning data...
             </div>
           ) : (
-            <div className="overflow-x-auto border border-gray-150 rounded-2xl">
-              <table className="w-full text-left border-collapse text-[11px]">
+            <div className="overflow-x-auto border border-black-150 rounded-2xl">
+              <table className="w-full text-left border-collapse text-[12px]">
                 <thead>
-                  <tr className="bg-gray-50 border-b border-gray-200 font-bold text-gray-500 uppercase tracking-wider text-[9px]">
+                  <tr className="bg-black-50 border-b border-black-200 font-bold text-black-500 uppercase tracking-wider text-[10px]">
                     <th className="p-3 w-14 text-center">S.NO.</th>
                     <th className="p-3">DESCRIPTION</th>
                     <th className="p-3 w-36 text-right">BUDGET/ TARGET</th>
@@ -664,13 +664,13 @@ const SummaryPlanning = () => {
                     <th className="p-3 w-28 text-right">4TH WEEK ACTUAL</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100 font-sans">
+                <tbody className="divide-y divide-black-100 font-sans">
                   {marketingRows.map((row, index) => (
-                    <tr key={row.name} className="hover:bg-gray-50 transition align-middle">
-                      <td className="p-3 text-center font-bold text-gray-400">
+                    <tr key={row.name} className="hover:bg-black-50 transition align-middle">
+                      <td className="p-3 text-center font-bold text-black-400">
                         {row.sNo}
                       </td>
-                      <td className="p-3 font-bold text-gray-750 uppercase">
+                      <td className="p-3 font-bold text-black-750 uppercase">
                         {row.name}
                       </td>
                       <td className="p-3 text-right">
@@ -679,25 +679,25 @@ const SummaryPlanning = () => {
                           placeholder="0"
                           value={row.target || ''}
                           onChange={(e) => handleUpdateMarketingTarget(row.name, e.target.value)}
-                          className="px-2.5 py-1.5 bg-gray-50 border border-gray-250 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-[11px] font-bold text-right w-28 inline-block"
+                          className="px-2.5 py-1.5 bg-black-50 border border-black-250 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-[12px] font-bold text-right w-28 inline-block"
                         />
                       </td>
-                      <td className="p-3 text-right font-extrabold text-gray-800">
+                      <td className="p-3 text-right font-extrabold text-black-800">
                         {row.isFloat ? row.actual.toFixed(4) : row.actual}
                       </td>
                       <td className="p-3 text-right font-extrabold text-[#0e623a]">
                         {calculatePercentage(row.actual, row.target)}
                       </td>
-                      <td className="p-3 text-right text-gray-500 font-semibold">
+                      <td className="p-3 text-right text-black-500 font-semibold">
                         {row.isFloat ? row.w1.toFixed(4) : row.w1}
                       </td>
-                      <td className="p-3 text-right text-gray-500 font-semibold">
+                      <td className="p-3 text-right text-black-500 font-semibold">
                         {row.isFloat ? row.w2.toFixed(4) : row.w2}
                       </td>
-                      <td className="p-3 text-right text-gray-500 font-semibold">
+                      <td className="p-3 text-right text-black-500 font-semibold">
                         {row.isFloat ? row.w3.toFixed(4) : row.w3}
                       </td>
-                      <td className="p-3 text-right text-gray-500 font-semibold">
+                      <td className="p-3 text-right text-black-500 font-semibold">
                         {row.isFloat ? row.w4.toFixed(4) : row.w4}
                       </td>
                     </tr>
@@ -706,7 +706,7 @@ const SummaryPlanning = () => {
               </table>
 
               {/* Overall Performance Metric Panel */}
-              <div className="bg-emerald-50/20 border-t border-gray-150 p-4 flex items-center justify-center rounded-b-2xl font-bold text-xs text-gray-700">
+              <div className="bg-emerald-50/20 border-t border-black-150 p-4 flex items-center justify-center rounded-b-2xl font-bold text-xs text-black-700">
                 <span>Overall Performance Metric: </span>
                 <span className="text-[#0e623a] text-sm font-extrabold ml-1.5 bg-emerald-50 border border-emerald-100 px-3 py-1.5 rounded-xl">
                   {overallPerformance}

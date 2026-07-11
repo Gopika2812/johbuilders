@@ -16,6 +16,12 @@ const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
 
   useEffect(() => {
     if (!token) return;
+
+    // Request Notification permission for lock screen alerts
+    if ('Notification' in window && Notification.permission !== 'granted' && Notification.permission !== 'denied') {
+      Notification.requestPermission();
+    }
+
     fetchNotifications();
     // Poll every 60 seconds
     const interval = setInterval(fetchNotifications, 60000);
@@ -55,6 +61,26 @@ const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
       if (newLeads.length > 0) {
         setPopupLeads(newLeads);
         setShowPopup(true);
+
+        // Trigger system-level notification (for lock screen/background)
+        if ('Notification' in window && Notification.permission === 'granted') {
+          const names = newLeads.map(l => l.name).slice(0, 3).join(', ');
+          const more = newLeads.length > 3 ? ' and more...' : '';
+          const body = `Please review action for: ${names}${more}`;
+          
+          try {
+            // Try service worker first (better support on Android Chrome)
+            navigator.serviceWorker.getRegistration().then(reg => {
+              if (reg) {
+                reg.showNotification('New Alerts & Follow-ups', { body, vibrate: [200, 100, 200] });
+              } else {
+                new Notification('New Alerts & Follow-ups', { body });
+              }
+            });
+          } catch (e) {
+            new Notification('New Alerts & Follow-ups', { body });
+          }
+        }
       }
     } catch (err) {
       console.error('Error fetching notifications:', err);
@@ -112,7 +138,7 @@ const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
 
   return (
     <>
-      <header className={`h-16 bg-transparent border-none flex items-center justify-between px-4 md:px-8 fixed top-0 right-0 z-30 shadow-sm transition-all duration-300 ${sidebarOpen ? 'left-0 md:left-64' : 'left-0 md:left-20'}`}>
+      <header className={`h-16 bg-transparent border-none flex items-center justify-between px-4 md:px-8 z-30 shadow-sm transition-all duration-300 w-full`}>
         {/* Title & Hamburger */}
         <div className="flex items-center gap-3">
           <button
@@ -148,8 +174,8 @@ const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
             {showDropdown && (
               <div className="absolute right-0 mt-2.5 w-80 bg-white border border-gray-150 rounded-2xl shadow-xl z-[100] p-4 text-left animate-fadeIn max-h-80 flex flex-col">
                 <div className="flex items-center justify-between border-b border-gray-100 pb-2 mb-2">
-                  <span className="text-[10px] font-bold text-gray-800 uppercase tracking-wide">Assignments & Follow-ups</span>
-                  <span className="text-[10px] font-extrabold px-2 py-0.5 bg-[#0e623a]/10 text-[#0e623a] rounded-full">
+                  <span className="text-[11px] font-bold text-gray-800 uppercase tracking-wide">Assignments & Follow-ups</span>
+                  <span className="text-[11px] font-extrabold px-2 py-0.5 bg-[#0e623a]/10 text-[#0e623a] rounded-full">
                     {notifications.length} Pending
                   </span>
                 </div>
@@ -166,11 +192,11 @@ const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
                       >
                         <div className="flex justify-between font-bold text-gray-850">
                           <span>{lead.name}</span>
-                          <span className="text-[9px] text-[#0e623a] bg-[#0e623a]/10 px-1.5 py-0.5 rounded">
+                          <span className="text-[10px] text-[#0e623a] bg-[#0e623a]/10 px-1.5 py-0.5 rounded">
                             {lead.project?.code || 'No Proj'}
                           </span>
                         </div>
-                        <div className="text-[10px] text-gray-500 flex justify-between">
+                        <div className="text-[11px] text-gray-500 flex justify-between">
                           <span>{lead.leadSource ? `Source: ${lead.leadSource}` : `Next Follow-Up: ${new Date(lead.followUpInfo?.nextFollowUpDate).toLocaleString()}`}</span>
                           {(user?.role === 'Admin' || user?.role === 'Manager' || user?.role === 'Super Admin') && (
                             <span className="font-semibold text-gray-650">Executive: {lead.assignedTo?.name || 'Unassigned'}</span>
@@ -191,7 +217,7 @@ const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
           <div className="flex items-center gap-2.5 md:gap-3">
             <div className="text-right">
               <p className="text-xs md:text-sm font-semibold text-gray-800 leading-none">{user?.name}</p>
-              <span className={`text-[9px] md:text-[10px] font-bold px-2 py-0.5 rounded-full border mt-1 inline-block ${getRoleBadgeStyle(user?.role)}`}>
+              <span className={`text-[10px] md:text-[11px] font-bold px-2 py-0.5 rounded-full border mt-1 inline-block ${getRoleBadgeStyle(user?.role)}`}>
                 {user?.role}
               </span>
             </div>
@@ -214,7 +240,7 @@ const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
                 <h3 className="text-sm font-extrabold text-gray-800 uppercase tracking-wide">
                   New Alerts & Follow-ups
                 </h3>
-                <p className="text-[10px] text-gray-500">Please review and action these leads</p>
+                <p className="text-[11px] text-gray-500">Please review and action these leads</p>
               </div>
             </div>
 
@@ -223,11 +249,11 @@ const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
                 <div key={lead._id} className="p-3 bg-amber-50/30 border border-amber-100 rounded-2xl text-xs space-y-1">
                   <div className="flex justify-between font-bold text-gray-850">
                     <span>{lead.name}</span>
-                    <span className="text-[9px] text-[#0e623a] bg-[#0e623a]/10 px-1.5 py-0.5 rounded">
+                    <span className="text-[10px] text-[#0e623a] bg-[#0e623a]/10 px-1.5 py-0.5 rounded">
                       {lead.project?.code}
                     </span>
                   </div>
-                  <div className="text-[10px] text-gray-500 flex justify-between">
+                  <div className="text-[11px] text-gray-500 flex justify-between">
                     <span>Phone: {lead.phone}</span>
                     {(user?.role === 'Admin' || user?.role === 'Manager' || user?.role === 'Super Admin') && (
                       <span className="font-semibold text-gray-650">Assigned To: {lead.assignedTo?.name || 'Unassigned'}</span>

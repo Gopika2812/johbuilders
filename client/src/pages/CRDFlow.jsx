@@ -23,7 +23,8 @@ import {
   ChevronDown,
   ChevronUp,
   Layers,
-  ChevronRight
+  ChevronRight,
+  Loader2
 } from 'lucide-react';
 
 const defaultStagesTemplate = [
@@ -69,6 +70,7 @@ const CRDFlow = () => {
   const [selectedBookingId, setSelectedBookingId] = useState('');
   
   const [loading, setLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   
@@ -98,7 +100,7 @@ const CRDFlow = () => {
 
   // Filters
   const [filterProjectCode, setFilterProjectCode] = useState('');
-  const [filterDate, setFilterDate] = useState('');
+  const [filterDate, setFilterDate] = useState(new Date().toISOString().split('T')[0]);
   const [actionMenuId, setActionMenuId] = useState(null);
 
   // Dual Mode amounts
@@ -355,6 +357,7 @@ const CRDFlow = () => {
     e.preventDefault();
     if (!extraWorkName || !extraWorkAmount) return;
 
+    setIsSubmitting(true);
     try {
       const res = await fetch(`${API_URL}/crd-flow/${activeFlow._id}/stage/${extraWorkStageIdx}/extra-work`, {
         method: 'PUT',
@@ -379,6 +382,8 @@ const CRDFlow = () => {
       }
     } catch (err) {
       setError('Error adding extra work');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -465,6 +470,7 @@ const CRDFlow = () => {
   };
 
   const handleStageComplete = async (stageIdx) => {
+    setIsSubmitting(true);
     try {
       const res = await fetch(`${API_URL}/crd-flow/${activeFlow._id}/stage/${stageIdx}/complete`, {
         method: 'PUT',
@@ -485,6 +491,8 @@ const CRDFlow = () => {
       }
     } catch (err) {
       setError('Error completing stage');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -494,6 +502,7 @@ const CRDFlow = () => {
       alert('Narration is required to request cancellation');
       return;
     }
+    setIsSubmitting(true);
     try {
       const res = await fetch(`${API_URL}/crd-flow/${activeFlow._id}/cancel-request`, {
         method: 'PUT',
@@ -516,6 +525,8 @@ const CRDFlow = () => {
       }
     } catch (err) {
       setError('Failed to request cancellation');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -618,6 +629,7 @@ const CRDFlow = () => {
       };
     }
 
+    setIsSubmitting(true);
     try {
       const res = await fetch(`${API_URL}/crd-flow/${activeFlow._id}/stage/${paymentStageIdx}/payment`, {
         method: 'PUT',
@@ -654,6 +666,8 @@ const CRDFlow = () => {
       }
     } catch (err) {
       setError('Error posting payment details');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -704,9 +718,9 @@ const CRDFlow = () => {
   return (
     <div className="space-y-6 w-full mx-auto px-4 lg:px-8">
       {/* Top Header Section */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white border border-gray-150 p-6 rounded-3xl shadow-sm">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white border border-black-150 p-6 rounded-3xl shadow-sm">
         <div>
-          <h1 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+          <h1 className="text-xl font-bold text-black-800 flex items-center gap-2">
             <BookOpen className="w-5 h-5 text-[#0e623a]" />
             <span>CRD Flow: Milestone Payment Manager</span>
           </h1>
@@ -732,11 +746,11 @@ const CRDFlow = () => {
 
       {/* Conditionally Render: Leads Directory OR Active Stage Stepper */}
       
-      <div className="bg-white border border-gray-150 p-6 rounded-3xl shadow-sm mb-6">
+      <div className="bg-white border border-black-150 p-6 rounded-3xl shadow-sm mb-6">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
           <div>
-            <h2 className="text-base font-bold text-gray-800">Booked Leads Directory</h2>
-            <p className="text-xs text-gray-500 mt-1">Manage milestone payments for all confirmed bookings</p>
+            <h2 className="text-base font-bold text-black-800">Booked Leads Directory</h2>
+           
           </div>
           
           <div className="flex flex-wrap items-center gap-3">
@@ -745,7 +759,7 @@ const CRDFlow = () => {
               <select
                 value={filterProjectCode}
                 onChange={(e) => setFilterProjectCode(e.target.value)}
-                className="px-3 py-2 bg-gray-50 border border-gray-250 rounded-xl text-xs font-semibold text-gray-700 focus:outline-none focus:ring-1 focus:ring-[#0e623a]"
+                className="px-3 py-2 bg-black-50 border border-black-250 rounded-xl text-xs font-semibold text-black-700 focus:outline-none focus:ring-1 focus:ring-[#0e623a]"
               >
                 <option value="">All Projects</option>
                 {Array.from(new Set(projects.map(p => p.code).filter(Boolean))).map(code => (
@@ -760,7 +774,7 @@ const CRDFlow = () => {
                 type="date"
                 value={filterDate}
                 onChange={(e) => setFilterDate(e.target.value)}
-                className="px-3 py-2 bg-gray-50 border border-gray-250 rounded-xl text-xs font-semibold text-gray-700 focus:outline-none focus:ring-1 focus:ring-[#0e623a]"
+                className="px-3 py-2 bg-black-50 border border-black-250 rounded-xl text-xs font-semibold text-black-700 focus:outline-none focus:ring-1 focus:ring-[#0e623a]"
               />
             </div>
 
@@ -779,7 +793,7 @@ const CRDFlow = () => {
         {/* Booked Leads Grid / Table */}
         <div className="overflow-x-auto">
           <table className="w-full text-xs text-left">
-            <thead className="bg-gray-50 text-gray-500 font-bold uppercase tracking-wider border-b">
+            <thead className="bg-black-50 text-black-500 font-bold uppercase tracking-wider border-b">
               <tr>
                 <th className="p-4">S.No</th>
                 <th className="p-4">Booking Date</th>
@@ -794,7 +808,7 @@ const CRDFlow = () => {
                 <th className="p-4 text-center">Quick Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-50">
+            <tbody className="divide-y divide-black-50">
               {bookings
                 .filter(lead => {
                   if (filterProjectCode && lead.project?.code !== filterProjectCode) return false;
@@ -818,7 +832,7 @@ const CRDFlow = () => {
                   return (
                     <React.Fragment key={lead._id}>
                       <tr 
-                        className={`transition cursor-pointer ${isSelected ? 'bg-emerald-50/30' : 'hover:bg-gray-50/50'}`}
+                        className={`transition cursor-pointer ${isSelected ? 'bg-emerald-50/30' : 'hover:bg-black-50/50'}`}
                         onClick={() => {
                           if (isSelected) {
                             setSelectedBookingId(null);
@@ -829,50 +843,50 @@ const CRDFlow = () => {
                         }}
                       >
                         <td className="p-4">{index + 1}</td>
-                        <td className="p-4 text-gray-600">
+                        <td className="p-4 text-black-600">
                           {new Date(lead.bookingInfo?.bookingDate || lead.createdAt).toLocaleDateString('en-GB')}
                         </td>
                         <td className="p-4">
-                          <div className="font-bold text-gray-800">{lead.name}</div>
+                          <div className="font-bold text-black-800">{lead.name}</div>
                         </td>
                         <td className="p-4">
-                          <div className="font-semibold text-gray-700">{lead.phone}</div>
+                          <div className="font-semibold text-black-700">{lead.phone}</div>
                         </td>
                         <td className="p-4">
-                          <div className="font-semibold text-gray-700">
+                          <div className="font-semibold text-black-700">
                             {lead.project?.name || lead.project?.code || 'N/A'}
                           </div>
                         </td>
                         <td className="p-4">
-                          <div className="text-[10px] text-emerald-800 font-bold bg-emerald-50 px-2 py-0.5 rounded inline-block">
+                          <div className="text-[11px] text-emerald-800 font-bold bg-emerald-50 px-2 py-0.5 rounded inline-block">
                             {lead.bookingInfo?.selectedUnits?.join(', ') || 'N/A'}
                           </div>
                         </td>
                         <td className="p-4">
                           {value !== null ? (
-                            <span className="text-blue-800 font-black bg-blue-50 border border-blue-200 px-2 py-1 rounded shadow-sm text-[10px]">
+                            <span className="text-blue-800 font-black bg-blue-50 border border-blue-200 px-2 py-1 rounded shadow-sm text-[11px]">
                               Rs. {value.toLocaleString()}
                             </span>
                           ) : (
-                            <span className="text-gray-400 text-[10px]">N/A</span>
+                            <span className="text-black-400 text-[11px]">N/A</span>
                           )}
                         </td>
                         <td className="p-4">
                           {value !== null ? (
-                            <span className="text-emerald-800 font-black bg-emerald-50 border border-emerald-200 px-2 py-1 rounded shadow-sm text-[10px]">
+                            <span className="text-emerald-800 font-black bg-emerald-50 border border-emerald-200 px-2 py-1 rounded shadow-sm text-[11px]">
                               Rs. {received.toLocaleString()}
                             </span>
                           ) : (
-                            <span className="text-gray-400 text-[10px]">N/A</span>
+                            <span className="text-black-400 text-[11px]">N/A</span>
                           )}
                         </td>
                         <td className="p-4">
                           {value !== null ? (
-                            <span className="text-rose-800 font-black bg-rose-50 border border-rose-200 px-2 py-1 rounded shadow-sm text-[10px]">
+                            <span className="text-rose-800 font-black bg-rose-50 border border-rose-200 px-2 py-1 rounded shadow-sm text-[11px]">
                               Rs. {(pending || 0).toLocaleString()}
                             </span>
                           ) : (
-                            <span className="text-gray-400 text-[10px]">N/A</span>
+                            <span className="text-black-400 text-[11px]">N/A</span>
                           )}
                         </td>
                         <td className="p-4" onClick={(e) => e.stopPropagation()}>
@@ -894,7 +908,7 @@ const CRDFlow = () => {
                                 setTimeout(() => setSuccess(''), 3000);
                               });
                             }}
-                            className="w-[120px] px-2 py-1.5 bg-white border border-gray-200 rounded-lg text-[10px] font-semibold focus:outline-none focus:ring-1 focus:ring-[#0e623a]"
+                            className="w-[120px] px-2 py-1.5 bg-white border border-black-200 rounded-lg text-[11px] font-semibold focus:outline-none focus:ring-1 focus:ring-[#0e623a]"
                           >
                             <option value="">Unassigned</option>
                             {users.filter(u => u.role === 'Sales Executive' || u.role === 'Manager').map(user => (
@@ -916,7 +930,7 @@ const CRDFlow = () => {
                                   }
                                 }
                               }}
-                              className="p-1.5 text-gray-500 hover:text-emerald-700 bg-gray-50 hover:bg-emerald-50 rounded transition cursor-pointer"
+                              className="p-1.5 text-black-500 hover:text-emerald-700 bg-black-50 hover:bg-emerald-50 rounded transition cursor-pointer"
                               title="Quick Actions"
                             >
                               <MoreVertical className="w-4 h-4" />
@@ -924,11 +938,11 @@ const CRDFlow = () => {
                             
                             {actionMenuId === lead._id && (
                               <div 
-                                className="absolute right-8 top-1/2 -translate-y-1/2 w-48 bg-white border border-gray-200 shadow-xl z-50 rounded-xl flex flex-col p-1 text-left"
+                                className="absolute right-8 top-1/2 -translate-y-1/2 w-48 bg-white border border-black-200 shadow-xl z-50 rounded-xl flex flex-col p-1 text-left"
                                 onClick={(e) => e.stopPropagation()}
                               >
                                 {(!activeFlow || (activeFlow.lead?._id !== lead._id && activeFlow.lead !== lead._id)) ? (
-                                  <div className="p-3 text-xs text-center text-gray-500 flex flex-col items-center justify-center gap-2">
+                                  <div className="p-3 text-xs text-center text-black-500 flex flex-col items-center justify-center gap-2">
                                     <div className="animate-spin h-4 w-4 border-b-2 border-[#0e623a] rounded-full"></div>
                                     Please click the row first to load options
                                   </div>
@@ -946,7 +960,7 @@ const CRDFlow = () => {
                                         setPaymentMethod(lead.bookingInfo?.bankLoan === 'Yes' ? 'Bank Loan' : 'Bank Transfer');
                                         setActionMenuId(null);
                                       }}
-                                      className="flex items-center gap-2 px-3 py-2 text-xs font-bold text-gray-700 hover:bg-emerald-50 hover:text-emerald-800 rounded-lg transition"
+                                      className="flex items-center gap-2 px-3 py-2 text-xs font-bold text-black-700 hover:bg-emerald-50 hover:text-emerald-800 rounded-lg transition"
                                     >
                                       <DollarSign className="w-4 h-4" /> Log Payment
                                     </button>
@@ -957,7 +971,7 @@ const CRDFlow = () => {
                                         setDemandLetterStageIdx(0);
                                         setActionMenuId(null);
                                       }}
-                                      className="flex items-center gap-2 px-3 py-2 text-xs font-bold text-gray-700 hover:bg-blue-50 hover:text-blue-800 rounded-lg transition"
+                                      className="flex items-center gap-2 px-3 py-2 text-xs font-bold text-black-700 hover:bg-blue-50 hover:text-blue-800 rounded-lg transition"
                                     >
                                       <Printer className="w-4 h-4" /> Demand Letter
                                     </button>
@@ -983,7 +997,7 @@ const CRDFlow = () => {
                                           setActiveFlow(null);
                                           setActionMenuId(null);
                                         }}
-                                        className="flex items-center gap-2 px-3 py-2 text-xs font-bold text-gray-500 hover:bg-gray-100 hover:text-gray-800 rounded-lg transition border-t border-gray-100 mt-1 pt-2"
+                                        className="flex items-center gap-2 px-3 py-2 text-xs font-bold text-black-500 hover:bg-black-100 hover:text-black-800 rounded-lg transition border-t border-black-100 mt-1 pt-2"
                                       >
                                         <ChevronUp className="w-4 h-4" /> Close Details
                                       </button>
@@ -1000,37 +1014,37 @@ const CRDFlow = () => {
                       {isSelected && (
                         <tr>
                           <td colSpan="11" className="p-0 border-b-2 border-emerald-500">
-                            <div className="bg-gray-50/50 p-6 border-x-4 border-emerald-500 shadow-inner">
+                            <div className="bg-black-50/50 p-6 border-x-4 border-emerald-500 shadow-inner">
                               
                               {/* Auto Initializing Flow State */}
                               {!activeFlow ? (
-                                <div className="bg-white border border-gray-150 p-12 rounded-3xl shadow-sm space-y-6 text-center flex flex-col items-center justify-center">
+                                <div className="bg-white border border-black-150 p-12 rounded-3xl shadow-sm space-y-6 text-center flex flex-col items-center justify-center">
                                   <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#0e623a]"></div>
                                   <div className="max-w-md mx-auto space-y-2 mt-4">
-                                    <h3 className="text-sm font-bold text-gray-800">Initializing CRD Master Format...</h3>
-                                    <p className="text-xs text-gray-500">Automatically setting up the milestone payment schedules for this booking.</p>
+                                    <h3 className="text-sm font-bold text-black-800">Initializing CRD Master Format...</h3>
+                                    <p className="text-xs text-black-500">Automatically setting up the milestone payment schedules for this booking.</p>
                                   </div>
                                 </div>
                               ) : (
-                                <div className="bg-white border border-gray-150 p-6 rounded-3xl shadow-sm">
+                                <div className="bg-white border border-black-150 p-6 rounded-3xl shadow-sm">
                                   <div className="flex items-center justify-between mb-6">
                                     <div>
-                                      <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+                                      <h3 className="text-lg font-bold text-black-800 flex items-center gap-2">
                                         <Layers className="w-5 h-5 text-[#0e623a]" />
                                         Stage Details & Milestone Payments
                                       </h3>
-                                      <p className="text-xs text-gray-500 mt-1">Manage payment milestones for {lead.name}</p>
+                                      <p className="text-xs text-black-500 mt-1">Manage payment milestones for {lead.name}</p>
                                     </div>
                                     <div className="flex items-center gap-2">
                                       <button
                                         onClick={() => setExtraWorkStageIdx(0)}
-                                        className="px-4 py-2 bg-emerald-50 text-emerald-800 font-bold text-[10px] rounded-xl hover:bg-emerald-100 transition border border-emerald-200 shadow-sm cursor-pointer"
+                                        className="px-4 py-2 bg-emerald-50 text-emerald-800 font-bold text-[11px] rounded-xl hover:bg-emerald-100 transition border border-emerald-200 shadow-sm cursor-pointer"
                                       >
                                         + Add Extra Works
                                       </button>
                                       <button
                                         onClick={() => setPaymentStageIdx(0)}
-                                        className="px-4 py-2 bg-[#0e623a] text-white font-bold text-[10px] rounded-xl hover:bg-[#0b4d2d] transition shadow cursor-pointer flex items-center gap-1"
+                                        className="px-4 py-2 bg-[#0e623a] text-white font-bold text-[11px] rounded-xl hover:bg-[#0b4d2d] transition shadow cursor-pointer flex items-center gap-1"
                                       >
                                         <CreditCard className="w-3.5 h-3.5" /> Log Payment
                                       </button>
@@ -1039,7 +1053,7 @@ const CRDFlow = () => {
 
                                   <div className="overflow-x-auto">
                                     <table className="w-full text-xs text-left">
-                                      <thead className="bg-gray-50 text-gray-500 font-bold uppercase tracking-wider border-y">
+                                      <thead className="bg-black-50 text-black-500 font-bold uppercase tracking-wider border-y">
                                         <tr>
                                           <th className="p-4 w-12">#</th>
                                           <th className="p-4">Milestone Stage</th>
@@ -1050,7 +1064,7 @@ const CRDFlow = () => {
                                           <th className="p-4 text-center">Action</th>
                                         </tr>
                                       </thead>
-                                      <tbody className="divide-y divide-gray-100">
+                                      <tbody className="divide-y divide-black-100">
                                         {activeFlow.stages.map((stage, idx) => {
                                           const stageTotal = getStageTotal(stage);
                                           const stagePaid = getStagePaid(stage);
@@ -1058,20 +1072,20 @@ const CRDFlow = () => {
 
                                           return (
                                             <React.Fragment key={idx}>
-                                              <tr className={`hover:bg-gray-50/50 transition ${isPaidInFull ? 'bg-emerald-50/10' : ''}`}>
-                                                <td className="p-4 font-bold text-gray-400">{idx + 1}</td>
+                                              <tr className={`hover:bg-black-50/50 transition ${isPaidInFull ? 'bg-emerald-50/10' : ''}`}>
+                                                <td className="p-4 font-bold text-black-400">{idx + 1}</td>
                                                 <td className="p-4">
-                                                  <div className="font-bold text-gray-800">{stage.name}</div>
-                                                  <div className="text-[10px] text-gray-400">{stage.percentage}% of total value</div>
+                                                  <div className="font-bold text-black-800">{stage.name}</div>
+                                                  <div className="text-[11px] text-black-400">{stage.percentage}% of total value</div>
                                                 </td>
-                                                <td className="p-4 text-right font-semibold text-gray-700">
+                                                <td className="p-4 text-right font-semibold text-black-700">
                                                   Rs. {stageTotal.toLocaleString()}
                                                   {stage.extraWorks && stage.extraWorks.length > 0 && (
-                                                    <div className="text-[9px] text-blue-600 mt-0.5">+ Extra Works</div>
+                                                    <div className="text-[10px] text-blue-600 mt-0.5">+ Extra Works</div>
                                                   )}
                                                 </td>
                                                 <td className="p-4 text-center">
-                                                  <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase ${isPaidInFull ? 'bg-emerald-100 text-emerald-800' : (stagePaid > 0 ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-600')}`}>
+                                                  <span className={`px-2 py-1 rounded text-[11px] font-bold uppercase ${isPaidInFull ? 'bg-emerald-100 text-emerald-800' : (stagePaid > 0 ? 'bg-blue-100 text-blue-800' : 'bg-black-100 text-black-600')}`}>
                                                     {isPaidInFull ? 'Paid' : (stagePaid > 0 ? 'Partial' : 'Pending')}
                                                   </span>
                                                 </td>
@@ -1085,7 +1099,7 @@ const CRDFlow = () => {
                                                   <button
                                                     onClick={() => setPaymentStageIdx(idx)}
                                                     disabled={isPaidInFull}
-                                                    className={`px-3 py-1.5 rounded-lg text-[10px] font-bold transition ${isPaidInFull ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-blue-50 text-blue-700 hover:bg-blue-100 cursor-pointer border border-blue-200'}`}
+                                                    className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition ${isPaidInFull ? 'bg-black-100 text-black-400 cursor-not-allowed' : 'bg-blue-50 text-blue-700 hover:bg-blue-100 cursor-pointer border border-blue-200'}`}
                                                   >
                                                     {isPaidInFull ? 'Cleared' : 'Pay Now'}
                                                   </button>
@@ -1095,26 +1109,26 @@ const CRDFlow = () => {
                                               {stage.extraWorks && stage.extraWorks.map((ew, ewIdx) => (
                                                 <tr key={`ew-${idx}-${ewIdx}`} className="bg-blue-50/30">
                                                   <td className="p-2 border-l-2 border-blue-400"></td>
-                                                  <td className="p-2 text-[10px] text-gray-600 flex items-center gap-1">
+                                                  <td className="p-2 text-[11px] text-black-600 flex items-center gap-1">
                                                     <ChevronRight className="w-3 h-3 text-blue-400" />
                                                     <span className="font-bold">{ew.name}</span>
                                                   </td>
-                                                  <td className="p-2 text-right text-[10px] font-semibold text-gray-700">Rs. {ew.amount.toLocaleString()}</td>
+                                                  <td className="p-2 text-right text-[11px] font-semibold text-black-700">Rs. {ew.amount.toLocaleString()}</td>
                                                   <td colSpan="4"></td>
                                                 </tr>
                                               ))}
                                               {/* Payments breakdown if any */}
                                               {stage.payments && stage.payments.length > 0 && (
-                                                <tr className="bg-gray-50/50">
+                                                <tr className="bg-black-50/50">
                                                   <td></td>
                                                   <td colSpan="6" className="p-2">
                                                     <div className="flex flex-wrap gap-2">
                                                       {stage.payments.map((p, pIdx) => (
-                                                        <div key={`p-${idx}-${pIdx}`} className="flex items-center gap-1.5 bg-white border border-gray-200 px-2 py-1 rounded text-[9px] shadow-sm">
+                                                        <div key={`p-${idx}-${pIdx}`} className="flex items-center gap-1.5 bg-white border border-black-200 px-2 py-1 rounded text-[10px] shadow-sm">
                                                           <CheckCircle className="w-3 h-3 text-emerald-500" />
-                                                          <span className="font-semibold text-gray-700">Rs. {p.amount.toLocaleString()}</span>
-                                                          <span className="text-gray-400 border-l border-gray-200 pl-1.5 ml-0.5">{new Date(p.date).toLocaleDateString('en-GB')}</span>
-                                                          <span className="text-blue-600 font-bold border-l border-gray-200 pl-1.5 ml-0.5">{p.mode}</span>
+                                                          <span className="font-semibold text-black-700">Rs. {p.amount.toLocaleString()}</span>
+                                                          <span className="text-black-400 border-l border-black-200 pl-1.5 ml-0.5">{new Date(p.date).toLocaleDateString('en-GB')}</span>
+                                                          <span className="text-blue-600 font-bold border-l border-black-200 pl-1.5 ml-0.5">{p.mode}</span>
                                                         </div>
                                                       ))}
                                                     </div>
@@ -1125,9 +1139,9 @@ const CRDFlow = () => {
                                           );
                                         })}
                                       </tbody>
-                                      <tfoot className="bg-gray-50 border-t border-gray-200">
+                                      <tfoot className="bg-black-50 border-t border-black-200">
                                         <tr>
-                                          <td colSpan="2" className="p-4 text-right font-black text-gray-800 uppercase text-[10px] tracking-wider">Total CRD Value</td>
+                                          <td colSpan="2" className="p-4 text-right font-black text-black-800 uppercase text-[11px] tracking-wider">Total CRD Value</td>
                                           <td className="p-4 text-right font-black text-[#0e623a] text-sm">Rs. {(() => {
                                             const totalWithExtra = activeFlow.stages.reduce((sum, s) => sum + getStageTotal(s), 0);
                                             return totalWithExtra.toLocaleString();
@@ -1157,7 +1171,7 @@ const CRDFlow = () => {
                 return true;
               }).length === 0 && (
                 <tr>
-                  <td colSpan="11" className="p-8 text-center text-gray-400">
+                  <td colSpan="11" className="p-8 text-center text-black-400">
                     No matching booked leads found.
                   </td>
                 </tr>
@@ -1169,7 +1183,7 @@ const CRDFlow = () => {
 {/* Extra Work Modal dialog */}
       {extraWorkStageIdx !== null && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="bg-white rounded-3xl max-w-md w-full overflow-hidden shadow-2xl border border-gray-100">
+          <div className="bg-white rounded-3xl max-w-md w-full overflow-hidden shadow-2xl border border-black-100">
             <div className="bg-[#0e623a] p-6 text-white">
               <h3 className="text-base font-bold flex items-center gap-2">
                 <Plus className="w-5 h-5 text-emerald-300" />
@@ -1180,11 +1194,11 @@ const CRDFlow = () => {
 
             <form onSubmit={handleAddExtraWork} className="p-6 space-y-4">
               <div>
-                <label className="text-xs font-semibold text-gray-600 block mb-1">Select Milestone Stage</label>
+                <label className="text-xs font-semibold text-black-600 block mb-1">Select Milestone Stage</label>
                 <select
                   value={extraWorkStageIdx}
                   onChange={(e) => setExtraWorkStageIdx(Number(e.target.value))}
-                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-250 rounded-xl text-sm font-semibold text-gray-800"
+                  className="w-full px-4 py-2.5 bg-black-50 border border-black-250 rounded-xl text-sm font-semibold text-black-800"
                 >
                   {activeFlow?.stages.map((stage, idx) => {
                     const thisStagePending = Math.max(0, getStageTotal(stage) - getStagePaid(stage));
@@ -1197,26 +1211,26 @@ const CRDFlow = () => {
                 </select>
               </div>
               <div>
-                <label className="text-xs font-semibold text-gray-600 block mb-1">Extra Work Name / Description</label>
+                <label className="text-xs font-semibold text-black-600 block mb-1">Extra Work Name / Description</label>
                 <input
                   type="text"
                   required
                   placeholder="e.g. Premium Tiles upgrade, Additional electrical points"
                   value={extraWorkName}
                   onChange={(e) => setExtraWorkName(e.target.value)}
-                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-250 rounded-xl text-sm"
+                  className="w-full px-4 py-2.5 bg-black-50 border border-black-250 rounded-xl text-sm"
                 />
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-gray-600 block mb-1">Chargeable Amount (Rs)</label>
+                <label className="text-xs font-semibold text-black-600 block mb-1">Chargeable Amount (Rs)</label>
                 <input
                   type="number"
                   required
                   placeholder="e.g. 45000"
                   value={extraWorkAmount}
                   onChange={(e) => setExtraWorkAmount(e.target.value)}
-                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-250 rounded-xl text-sm"
+                  className="w-full px-4 py-2.5 bg-black-50 border border-black-250 rounded-xl text-sm"
                 />
               </div>
 
@@ -1224,15 +1238,16 @@ const CRDFlow = () => {
                 <button
                   type="button"
                   onClick={() => setExtraWorkStageIdx(null)}
-                  className="flex-1 py-3 border border-gray-200 rounded-xl text-xs font-bold text-gray-500 hover:bg-gray-50 transition cursor-pointer"
+                  className="flex-1 py-3 border border-black-200 rounded-xl text-xs font-bold text-black-500 hover:bg-black-50 transition cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 py-3 bg-[#0e623a] text-white rounded-xl text-xs font-bold hover:bg-[#0b4d2d] transition shadow-md cursor-pointer"
+                  disabled={isSubmitting}
+                  className="flex-1 py-3 bg-[#0e623a] text-white rounded-xl text-xs font-bold hover:bg-[#0b4d2d] transition shadow-md cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2"
                 >
-                  Add Work to Project
+                  {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Add Work to Project'}
                 </button>
               </div>
             </form>
@@ -1243,7 +1258,7 @@ const CRDFlow = () => {
       {/* Payment Split Modal Dialog */}
       {paymentStageIdx !== null && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="bg-white rounded-3xl max-w-4xl w-full overflow-hidden shadow-2xl border border-gray-100">
+          <div className="bg-white rounded-3xl max-w-4xl w-full overflow-hidden shadow-2xl border border-black-100">
             <div className="bg-[#0e623a] p-6 text-white">
               <h3 className="text-base font-bold flex items-center gap-2">
                 <CreditCard className="w-5 h-5 text-emerald-300" />
@@ -1254,7 +1269,7 @@ const CRDFlow = () => {
 
             <form onSubmit={handleMakePayment} className="p-6 space-y-4">
               <div>
-                <label className="text-xs font-semibold text-gray-600 block mb-1">Select Milestone Stage to Credit</label>
+                <label className="text-xs font-semibold text-black-600 block mb-1">Select Milestone Stage to Credit</label>
                 <select
                   value={paymentStageIdx}
                   onChange={(e) => {
@@ -1265,7 +1280,7 @@ const CRDFlow = () => {
                     const arrears = getPendingPreviousStages(newIdx).reduce((sum, s) => sum + s.pending, 0);
                     setPaymentAmount((thisStagePending + arrears).toString());
                   }}
-                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-250 rounded-xl text-sm font-semibold text-gray-800"
+                  className="w-full px-4 py-2.5 bg-black-50 border border-black-250 rounded-xl text-sm font-semibold text-black-800"
                 >
                   {activeFlow?.stages.map((stage, idx) => {
                     const thisStagePending = Math.max(0, getStageTotal(stage) - getStagePaid(stage));
@@ -1288,7 +1303,7 @@ const CRDFlow = () => {
                         const arrears = getPendingPreviousStages(newIdx).reduce((sum, s) => sum + s.pending, 0);
                         setPaymentAmount((thisStagePending + arrears).toString());
                       }}
-                      className="text-[10px] text-purple-600 font-bold hover:text-purple-800 flex items-center gap-1 transition cursor-pointer bg-purple-50 px-2 py-1 rounded"
+                      className="text-[11px] text-purple-600 font-bold hover:text-purple-800 flex items-center gap-1 transition cursor-pointer bg-purple-50 px-2 py-1 rounded"
                     >
                      
                     </button>
@@ -1299,10 +1314,10 @@ const CRDFlow = () => {
                 <button
                   type="button"
                   onClick={() => setPaymentMethod('Bank Transfer')}
-                  className={`py-2.5 rounded-xl text-[10px] font-bold transition cursor-pointer text-center ${
+                  className={`py-2.5 rounded-xl text-[11px] font-bold transition cursor-pointer text-center ${
                     paymentMethod === 'Bank Transfer'
                       ? 'bg-[#0e623a] text-white shadow'
-                      : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                      : 'bg-black-100 text-black-500 hover:bg-black-200'
                   }`}
                 >
                   Bank Transfer
@@ -1310,10 +1325,10 @@ const CRDFlow = () => {
                 <button
                   type="button"
                   onClick={() => setPaymentMethod('Bank Loan')}
-                  className={`py-2.5 rounded-xl text-[10px] font-bold transition cursor-pointer text-center ${
+                  className={`py-2.5 rounded-xl text-[11px] font-bold transition cursor-pointer text-center ${
                     paymentMethod === 'Bank Loan'
                       ? 'bg-[#0e623a] text-white shadow'
-                      : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                      : 'bg-black-100 text-black-500 hover:bg-black-200'
                   }`}
                 >
                   Bank Loan
@@ -1321,10 +1336,10 @@ const CRDFlow = () => {
                 <button
                   type="button"
                   onClick={() => setPaymentMethod('Dual Mode')}
-                  className={`py-2.5 rounded-xl text-[10px] font-bold transition cursor-pointer text-center ${
+                  className={`py-2.5 rounded-xl text-[11px] font-bold transition cursor-pointer text-center ${
                     paymentMethod === 'Dual Mode'
                       ? 'bg-[#0e623a] text-white shadow'
-                      : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                      : 'bg-black-100 text-black-500 hover:bg-black-200'
                   }`}
                 >
                   Dual Mode
@@ -1333,27 +1348,27 @@ const CRDFlow = () => {
 
               {paymentMethod !== 'Dual Mode' ? (
                 <div>
-                  <label className="text-xs font-semibold text-gray-600 block mb-1">Paid Amount (Rs)</label>
+                  <label className="text-xs font-semibold text-black-600 block mb-1">Paid Amount (Rs)</label>
                   <input
                     type="number"
                     required
                     placeholder="e.g. 150000"
                     value={paymentAmount}
                     onChange={(e) => setPaymentAmount(e.target.value)}
-                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-250 rounded-xl text-sm font-bold text-gray-800"
+                    className="w-full px-4 py-2.5 bg-black-50 border border-black-250 rounded-xl text-sm font-bold text-black-800"
                   />
                 </div>
               ) : (
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="text-xs font-bold text-gray-700 block mb-1">Bank Transfer Amt (Rs)</label>
+                    <label className="text-xs font-bold text-black-700 block mb-1">Bank Transfer Amt (Rs)</label>
                     <input
                       type="number"
                       required
                       placeholder="e.g. 200000"
                       value={dualTransferAmount}
                       onChange={(e) => setDualTransferAmount(e.target.value)}
-                      className="w-full px-3 py-2 bg-gray-50 border rounded-xl text-xs font-bold text-gray-800"
+                      className="w-full px-3 py-2 bg-black-50 border rounded-xl text-xs font-bold text-black-800"
                     />
                   </div>
                   <div>
@@ -1373,11 +1388,11 @@ const CRDFlow = () => {
               {paymentStageIdx === 1 && (
                 <div className="pt-2 border-t mt-4">
                   <div className="flex items-center justify-between mb-3">
-                    <label className="text-xs font-semibold text-gray-600">Agreement Documents (Required)</label>
+                    <label className="text-xs font-semibold text-black-600">Agreement Documents (Required)</label>
                     <button
                       type="button"
                       onClick={handleAutoPrepareDocs}
-                      className="text-[9px] font-bold text-[#0e623a] bg-emerald-50 px-2 py-1 rounded hover:bg-emerald-100 transition"
+                      className="text-[10px] font-bold text-[#0e623a] bg-emerald-50 px-2 py-1 rounded hover:bg-emerald-100 transition"
                     >
                       Auto-Prepare 5 PDFs
                     </button>
@@ -1390,14 +1405,14 @@ const CRDFlow = () => {
                       'Stamped Property Schedule',
                       'Registration Challan'
                     ].map((docName, i) => (
-                      <div key={i} className="flex flex-col gap-1.5 p-2 bg-gray-50/50 border border-gray-100 rounded-xl">
-                        <div className="text-[10px] text-gray-700 font-bold flex items-center justify-between">
+                      <div key={i} className="flex flex-col gap-1.5 p-2 bg-black-50/50 border border-black-100 rounded-xl">
+                        <div className="text-[11px] text-black-700 font-bold flex items-center justify-between">
                           <div className="flex items-center gap-1.5">
-                            <div className={`w-1.5 h-1.5 rounded-full ${pdfFiles[i] ? 'bg-emerald-500 shadow-sm' : 'bg-gray-300'}`}></div>
+                            <div className={`w-1.5 h-1.5 rounded-full ${pdfFiles[i] ? 'bg-emerald-500 shadow-sm' : 'bg-black-300'}`}></div>
                             {docName}
                           </div>
                           {pdfFiles[i] && (
-                            <span className="text-[9px] text-emerald-600 font-bold bg-emerald-50 px-1.5 py-0.5 rounded truncate max-w-[120px]">
+                            <span className="text-[10px] text-emerald-600 font-bold bg-emerald-50 px-1.5 py-0.5 rounded truncate max-w-[120px]">
                               {pdfFiles[i]}
                             </span>
                           )}
@@ -1406,7 +1421,7 @@ const CRDFlow = () => {
                           type="file"
                           accept=".pdf"
                           onChange={(e) => handleSingleFileUpload(e, i)}
-                          className="w-full text-[9px] text-gray-500 file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-[9px] file:font-bold file:bg-white file:text-gray-700 file:shadow-sm hover:file:bg-gray-50 cursor-pointer"
+                          className="w-full text-[10px] text-black-500 file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-[10px] file:font-bold file:bg-white file:text-black-700 file:shadow-sm hover:file:bg-black-50 cursor-pointer"
                         />
                       </div>
                     ))}
@@ -1418,15 +1433,16 @@ const CRDFlow = () => {
                 <button
                   type="button"
                   onClick={() => setPaymentStageIdx(null)}
-                  className="flex-1 py-3 border border-gray-200 rounded-xl text-xs font-bold text-gray-500 hover:bg-gray-50 transition cursor-pointer"
+                  className="flex-1 py-3 border border-black-200 rounded-xl text-xs font-bold text-black-500 hover:bg-black-50 transition cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 py-3 bg-[#0e623a] text-white rounded-xl text-xs font-bold hover:bg-[#0b4d2d] transition shadow-md cursor-pointer"
+                  disabled={isSubmitting}
+                  className="flex-1 py-3 bg-[#0e623a] text-white rounded-xl text-xs font-bold hover:bg-[#0b4d2d] transition shadow-md cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2"
                 >
-                  Submit Payment Record
+                  {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Submit Payment Record'}
                 </button>
               </div>
             </form>
@@ -1437,41 +1453,41 @@ const CRDFlow = () => {
       {/* Demand Letter Screen Preview Modal Dialog */}
       {demandLetterStageIdx !== null && activeFlow && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm overflow-y-auto no-print">
-          <div className="bg-white rounded-3xl max-w-2xl w-full overflow-hidden shadow-2xl border border-gray-250 my-8">
+          <div className="bg-white rounded-3xl max-w-2xl w-full overflow-hidden shadow-2xl border border-black-250 my-8">
             <div className="bg-[#0e623a] p-4 text-white flex justify-between items-center">
               <span className="text-xs font-bold uppercase tracking-wider">Demand Letter Preview</span>
               <button 
                 onClick={() => setDemandLetterStageIdx(null)}
-                className="text-white hover:text-gray-200 font-bold"
+                className="text-white hover:text-black-200 font-bold"
               >
                 ✕
               </button>
             </div>
 
             {/* Screen View Padded Document Container */}
-            <div className="p-6 bg-gray-50 max-h-[70vh] overflow-y-auto">
-              <div className="p-8 bg-white border border-gray-250 rounded-2xl shadow-sm text-gray-900 font-serif leading-relaxed text-xs">
+            <div className="p-6 bg-black-50 max-h-[70vh] overflow-y-auto">
+              <div className="p-8 bg-white border border-black-250 rounded-2xl shadow-sm text-black-900 font-serif leading-relaxed text-xs">
                 {/* Header Company Logo */}
                 <div className="flex justify-between items-start border-b-2 border-[#0e623a] pb-4 mb-6">
                   <div>
                     <div className="text-xl font-black tracking-wider text-[#0e623a]">JOHN BUILDWELL</div>
-                    <div className="text-[9px] text-gray-400 font-sans tracking-widest uppercase mt-0.5">Since 2007</div>
+                    <div className="text-[10px] text-black-400 font-sans tracking-widest uppercase mt-0.5">Since 2007</div>
                   </div>
-                  <div className="text-right text-[10px] text-gray-500 font-sans">
+                  <div className="text-right text-[11px] text-black-500 font-sans">
                     Date: {new Date().toLocaleDateString('en-GB')}
                   </div>
                 </div>
 
                 {/* To Address block */}
-                <div className="space-y-1 mb-6 font-sans text-[10px]">
+                <div className="space-y-1 mb-6 font-sans text-[11px]">
                   <div>To,</div>
-                  <div className="font-bold text-gray-800">{activeFlow.lead?.name}</div>
+                  <div className="font-bold text-black-800">{activeFlow.lead?.name}</div>
                   <div>{activeFlow.lead?.address}</div>
                   <div>Phone: {activeFlow.lead?.phone}</div>
                 </div>
 
                 {/* Subject */}
-                <div className="mb-6 text-[11px]">
+                <div className="mb-6 text-[12px]">
                   <span className="font-bold">Subject:</span> Payment Request Letter for <strong>{activeFlow.lead?.name}</strong> – <strong>"{activeFlow.project?.name}"</strong>, Plot/Unit No: <strong>{activeFlow.unitId}</strong>
                 </div>
 
@@ -1483,36 +1499,36 @@ const CRDFlow = () => {
                   const grandTotalRequested = currentStageTotal + prevPendingTotal;
 
                   return (
-                    <div className="space-y-4 text-gray-700 mb-6 font-sans text-[10px] leading-relaxed">
+                    <div className="space-y-4 text-black-700 mb-6 font-sans text-[11px] leading-relaxed">
                       <p>Dear Sir,</p>
                       <p>
-                        We are writing to inform you that the <strong className="text-gray-900">{activeFlow.stages[demandLetterStageIdx].name} ({activeFlow.stages[demandLetterStageIdx].percentage}%)</strong> milestone has been successfully completed for Unit No. <strong className="text-gray-900">{activeFlow.unitId}</strong> in our premium project <strong className="text-gray-900">"{activeFlow.project?.name}"</strong>, located at {activeFlow.project?.location || 'Palayamkottai, Tirunelveli'}.
+                        We are writing to inform you that the <strong className="text-black-900">{activeFlow.stages[demandLetterStageIdx].name} ({activeFlow.stages[demandLetterStageIdx].percentage}%)</strong> milestone has been successfully completed for Unit No. <strong className="text-black-900">{activeFlow.unitId}</strong> in our premium project <strong className="text-black-900">"{activeFlow.project?.name}"</strong>, located at {activeFlow.project?.location || 'Palayamkottai, Tirunelveli'}.
                       </p>
                       
                       {pendingPrev.length > 0 && (
-                        <div className="bg-red-50/50 border border-red-200 p-4 rounded-xl my-4 text-gray-800">
-                          <span className="text-[10px] font-bold text-red-800 uppercase tracking-wider block mb-2">Previous Outstanding Balances:</span>
-                          <table className="w-full text-left text-[9px] border-collapse">
+                        <div className="bg-red-50/50 border border-red-200 p-4 rounded-xl my-4 text-black-800">
+                          <span className="text-[11px] font-bold text-red-800 uppercase tracking-wider block mb-2">Previous Outstanding Balances:</span>
+                          <table className="w-full text-left text-[10px] border-collapse">
                             <thead>
                               <tr className="border-b border-red-200">
-                                <th className="pb-1 text-gray-500">Milestone Stage</th>
-                                <th className="pb-1 text-right text-gray-500">Stage Total</th>
-                                <th className="pb-1 text-right text-gray-500">Amount Paid</th>
-                                <th className="pb-1 text-right text-gray-500 font-bold">Balance Due</th>
+                                <th className="pb-1 text-black-500">Milestone Stage</th>
+                                <th className="pb-1 text-right text-black-500">Stage Total</th>
+                                <th className="pb-1 text-right text-black-500">Amount Paid</th>
+                                <th className="pb-1 text-right text-black-500 font-bold">Balance Due</th>
                               </tr>
                             </thead>
                             <tbody>
                               {pendingPrev.map((prev, pIdx) => (
                                 <tr key={pIdx} className="border-b border-red-100/50">
                                   <td className="py-1 font-semibold">{prev.name} ({prev.percentage}%)</td>
-                                  <td className="py-1 text-right text-gray-650">Rs. {prev.total.toLocaleString()}</td>
-                                  <td className="py-1 text-right text-gray-650">Rs. {prev.paid.toLocaleString()}</td>
+                                  <td className="py-1 text-right text-black-650">Rs. {prev.total.toLocaleString()}</td>
+                                  <td className="py-1 text-right text-black-650">Rs. {prev.paid.toLocaleString()}</td>
                                   <td className="py-1 text-right font-bold text-red-750">Rs. {prev.pending.toLocaleString()}</td>
                                 </tr>
                               ))}
                             </tbody>
                           </table>
-                          <div className="mt-2 text-right font-bold text-red-800 text-[10px]">
+                          <div className="mt-2 text-right font-bold text-red-800 text-[11px]">
                             Total Previous Outstanding: Rs. {prevPendingTotal.toLocaleString()}/-
                           </div>
                         </div>
@@ -1528,54 +1544,54 @@ const CRDFlow = () => {
                 })()}
 
                 {/* Corporate Bank accounts info */}
-                <div className="bg-gray-50 p-4 border rounded-2xl space-y-1 text-[10px] font-sans mb-6">
+                <div className="bg-black-50 p-4 border rounded-2xl space-y-1 text-[11px] font-sans mb-6">
                   <div className="grid grid-cols-3">
-                    <span className="text-gray-400 font-bold uppercase">Name:</span>
-                    <span className="col-span-2 font-bold text-gray-700">John Buildwell India Private Limited</span>
+                    <span className="text-black-400 font-bold uppercase">Name:</span>
+                    <span className="col-span-2 font-bold text-black-700">John Buildwell India Private Limited</span>
                   </div>
                   <div className="grid grid-cols-3">
-                    <span className="text-gray-400 font-bold uppercase">Bank Name:</span>
-                    <span className="col-span-2 font-bold text-gray-700">Axis Bank Ltd, Palayamkottai</span>
+                    <span className="text-black-400 font-bold uppercase">Bank Name:</span>
+                    <span className="col-span-2 font-bold text-black-700">Axis Bank Ltd, Palayamkottai</span>
                   </div>
                   <div className="grid grid-cols-3">
-                    <span className="text-gray-400 font-bold uppercase">A/C No:</span>
-                    <span className="col-span-2 font-bold text-gray-700 tracking-wider">914030011343603</span>
+                    <span className="text-black-400 font-bold uppercase">A/C No:</span>
+                    <span className="col-span-2 font-bold text-black-700 tracking-wider">914030011343603</span>
                   </div>
                   <div className="grid grid-cols-3">
-                    <span className="text-gray-400 font-bold uppercase">IFSC NO:</span>
-                    <span className="col-span-2 font-bold text-gray-700 tracking-wider">UTIB0002095</span>
+                    <span className="text-black-400 font-bold uppercase">IFSC NO:</span>
+                    <span className="col-span-2 font-bold text-black-700 tracking-wider">UTIB0002095</span>
                   </div>
                 </div>
 
                 {/* Sign off and footer */}
-                <div className="flex justify-between items-end pt-4 font-sans text-[10px]">
+                <div className="flex justify-between items-end pt-4 font-sans text-[11px]">
                   <div>
-                    <div className="text-gray-400 uppercase font-bold text-[8px]">Prepared By</div>
-                    <div className="font-bold text-gray-700 mt-4">Customer Relation Manager</div>
-                    <div className="text-gray-400 italic mt-0.5">(Mrs. J. Mary)</div>
+                    <div className="text-black-400 uppercase font-bold text-[9px]">Prepared By</div>
+                    <div className="font-bold text-black-700 mt-4">Customer Relation Manager</div>
+                    <div className="text-black-400 italic mt-0.5">(Mrs. J. Mary)</div>
                   </div>
                   <div className="text-right">
-                    <div className="text-gray-400 uppercase font-bold text-[8px]">For John Buildwell India (P) Ltd.</div>
-                    <div className="mt-8 border-t border-dashed border-gray-400 w-32 pt-1 text-gray-400 italic">Authorized Signatory</div>
+                    <div className="text-black-400 uppercase font-bold text-[9px]">For John Buildwell India (P) Ltd.</div>
+                    <div className="mt-8 border-t border-dashed border-black-400 w-32 pt-1 text-black-400 italic">Authorized Signatory</div>
                   </div>
                 </div>
               </div>
             </div>
 
             {/* Bottom print trigger toolbar */}
-            <div className="p-4 bg-gray-50 border-t flex justify-between items-center">
+            <div className="p-4 bg-black-50 border-t flex justify-between items-center">
               <div className="flex gap-2">
                 <button
                   onClick={() => setDemandLetterStageIdx(prev => Math.max(0, prev - 1))}
                   disabled={demandLetterStageIdx === 0}
-                  className={`px-3 py-2 border rounded-xl text-xs font-bold transition flex items-center gap-1 ${demandLetterStageIdx === 0 ? 'text-gray-300 bg-gray-50 border-gray-100 cursor-not-allowed' : 'text-gray-600 hover:bg-gray-200 cursor-pointer'}`}
+                  className={`px-3 py-2 border rounded-xl text-xs font-bold transition flex items-center gap-1 ${demandLetterStageIdx === 0 ? 'text-black-300 bg-black-50 border-black-100 cursor-not-allowed' : 'text-black-600 hover:bg-black-200 cursor-pointer'}`}
                 >
                   &larr; Prev Stage
                 </button>
                 <button
                   onClick={() => setDemandLetterStageIdx(prev => Math.min(activeFlow.stages.length - 1, prev + 1))}
                   disabled={demandLetterStageIdx === activeFlow.stages.length - 1}
-                  className={`px-3 py-2 border rounded-xl text-xs font-bold transition flex items-center gap-1 ${demandLetterStageIdx === activeFlow.stages.length - 1 ? 'text-gray-300 bg-gray-50 border-gray-100 cursor-not-allowed' : 'text-gray-600 hover:bg-gray-200 cursor-pointer'}`}
+                  className={`px-3 py-2 border rounded-xl text-xs font-bold transition flex items-center gap-1 ${demandLetterStageIdx === activeFlow.stages.length - 1 ? 'text-black-300 bg-black-50 border-black-100 cursor-not-allowed' : 'text-black-600 hover:bg-black-200 cursor-pointer'}`}
                 >
                   Next Stage &rarr;
                 </button>
@@ -1583,7 +1599,7 @@ const CRDFlow = () => {
               <div className="flex justify-end gap-3">
                 <button
                   onClick={() => setDemandLetterStageIdx(null)}
-                  className="px-4 py-2 border rounded-xl text-xs font-bold text-gray-500 hover:bg-gray-100 transition cursor-pointer"
+                  className="px-4 py-2 border rounded-xl text-xs font-bold text-black-500 hover:bg-black-100 transition cursor-pointer"
                 >
                   Close
                 </button>
@@ -1603,7 +1619,7 @@ const CRDFlow = () => {
       {/* Dynamic Document Preview Modal */}
       {previewingDoc !== null && activeFlow && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm overflow-y-auto no-print">
-          <div className="bg-white rounded-3xl max-w-3xl w-full overflow-hidden shadow-2xl border border-gray-250 my-8">
+          <div className="bg-white rounded-3xl max-w-3xl w-full overflow-hidden shadow-2xl border border-black-250 my-8">
             <div className="bg-[#0e623a] p-4 text-white flex justify-between items-center">
               <div>
                 <span className="text-xs font-bold uppercase tracking-wider block">Official Document Prepared Draft</span>
@@ -1611,40 +1627,40 @@ const CRDFlow = () => {
               </div>
               <button 
                 onClick={() => setPreviewingDoc(null)}
-                className="text-white hover:text-gray-200 font-extrabold text-lg px-2"
+                className="text-white hover:text-black-200 font-extrabold text-lg px-2"
               >
                 ✕
               </button>
             </div>
 
             {/* Document Draft Body */}
-            <div className="p-6 bg-gray-100 max-h-[70vh] overflow-y-auto">
-              <div className="p-8 bg-white border border-gray-200 rounded-2xl shadow-sm text-gray-800 font-serif leading-relaxed text-xs space-y-6 text-left">
+            <div className="p-6 bg-black-100 max-h-[70vh] overflow-y-auto">
+              <div className="p-8 bg-white border border-black-200 rounded-2xl shadow-sm text-black-800 font-serif leading-relaxed text-xs space-y-6 text-left">
                 
                 {/* Stamp Duty / Bond paper Style Header */}
                 <div className="border-4 border-double border-[#0e623a] p-4 text-center space-y-1 bg-emerald-50/20">
                   <div className="text-sm font-bold uppercase tracking-widest text-emerald-800">Government of Tamil Nadu</div>
-                  <div className="text-[18px] font-black uppercase text-[#0e623a] tracking-wider">Stamp Duty India Certificate</div>
-                  <div className="text-[10px] text-gray-500 font-sans tracking-wide">Certificate No: TN-DL914380184B | Stamp Amount: Rs. 100/-</div>
-                  <div className="text-[9px] text-gray-400 font-sans italic">Prepared automatically under builders automated deed registration software</div>
+                  <div className="text-[19px] font-black uppercase text-[#0e623a] tracking-wider">Stamp Duty India Certificate</div>
+                  <div className="text-[11px] text-black-500 font-sans tracking-wide">Certificate No: TN-DL914380184B | Stamp Amount: Rs. 100/-</div>
+                  <div className="text-[10px] text-black-400 font-sans italic">Prepared automatically under builders automated deed registration software</div>
                 </div>
 
                 {/* Main Heading */}
-                <div className="text-center font-extrabold text-sm uppercase tracking-wide text-gray-900 border-b pb-2">
+                <div className="text-center font-extrabold text-sm uppercase tracking-wide text-black-900 border-b pb-2">
                   {previewingDoc.title.toUpperCase()}
                 </div>
 
                 {/* Dynamic Content depending on document index */}
                 {previewingDoc.index === 0 && (
-                  <div className="space-y-4 text-justify text-gray-700">
+                  <div className="space-y-4 text-justify text-black-700">
                     <p>
                       THIS AGREEMENT OF SALE is entered into on this <strong>{new Date().toLocaleDateString('en-GB')}</strong> at Tirunelveli.
                     </p>
-                    <p className="font-semibold text-gray-800">BETWEEN:</p>
+                    <p className="font-semibold text-black-800">BETWEEN:</p>
                     <p>
                       <strong>JOHN BUILDWELL INDIA PRIVATE LIMITED</strong>, having its registered office at Palayamkottai, Tirunelveli, represented herein by its authorized director, hereinafter referred to as the <strong>"DEVELOPER / VENDOR"</strong> of the ONE PART.
                     </p>
-                    <p className="font-semibold text-gray-800">AND:</p>
+                    <p className="font-semibold text-black-800">AND:</p>
                     <p>
                       <strong>{activeFlow.lead?.name}</strong>, residing at {activeFlow.lead?.address || 'N/A'}, hereinafter referred to as the <strong>"PURCHASER"</strong> of the OTHER PART.
                     </p>
@@ -1654,8 +1670,8 @@ const CRDFlow = () => {
                     <p>
                       AND WHEREAS the Purchaser has agreed to buy and the Developer has agreed to sell the unit/plot designated as <strong>Unit No: {activeFlow.unitId}</strong> having a total valuation of <strong>Rs. {activeFlow.totalOriginalValue.toLocaleString()}/-</strong> (<em>{numberToWords(activeFlow.totalOriginalValue)}</em>).
                     </p>
-                    <p className="font-bold text-gray-800 uppercase text-[10px] tracking-wider">TERMS AND CONDITIONS:</p>
-                    <ol className="list-decimal pl-5 space-y-2 font-sans text-[10px]">
+                    <p className="font-bold text-black-800 uppercase text-[11px] tracking-wider">TERMS AND CONDITIONS:</p>
+                    <ol className="list-decimal pl-5 space-y-2 font-sans text-[11px]">
                       <li>The Purchaser shall pay the balance payment in accordance with the construction stages and payment schedules initialized in the CRD Flow Manager.</li>
                       <li>The possession of the unit will be handed over to the Purchaser only upon complete settlement of all dues including core value and additional extra work adjustments.</li>
                       <li>Registration fees, stamp duty, and legal document charges are entirely payable by the Purchaser.</li>
@@ -1664,7 +1680,7 @@ const CRDFlow = () => {
                 )}
 
                 {previewingDoc.index === 1 && (
-                  <div className="space-y-4 text-justify text-gray-700">
+                  <div className="space-y-4 text-justify text-black-700">
                     <p>
                       THIS CONSTRUCTION AGREEMENT is entered into on this <strong>{new Date().toLocaleDateString('en-GB')}</strong>.
                     </p>
@@ -1677,7 +1693,7 @@ const CRDFlow = () => {
                     <p>
                       NOW IT IS MUTUALLY AGREED BETWEEN THE PARTIES AS FOLLOWS:
                     </p>
-                    <ol className="list-decimal pl-5 space-y-2 font-sans text-[10px]">
+                    <ol className="list-decimal pl-5 space-y-2 font-sans text-[11px]">
                       <li><strong>Scope of Work:</strong> The Developer agrees to build and complete the construction of the unit conforming to standard design specifications.</li>
                       <li><strong>Payment Schedule:</strong> The client will make stage-wise payments linked to construction progress. Stage 2 (Agreement & Deed) value is set at <strong>Rs. {activeFlow.stages[1]?.amount.toLocaleString()}/-</strong> (<em>{numberToWords(activeFlow.stages[1]?.amount || 0)}</em>).</li>
                       <li><strong>Delay Interest:</strong> Any delayed payment from the scheduled completion date of a milestone will attract interest at 12% per annum.</li>
@@ -1686,7 +1702,7 @@ const CRDFlow = () => {
                 )}
 
                 {previewingDoc.index === 2 && (
-                  <div className="space-y-4 text-justify text-gray-700">
+                  <div className="space-y-4 text-justify text-black-700">
                     <p>
                       <strong>DRAFT DEED OF SALE</strong>
                     </p>
@@ -1703,16 +1719,16 @@ const CRDFlow = () => {
                 )}
 
                 {previewingDoc.index === 3 && (
-                  <div className="space-y-4 text-justify text-gray-700">
+                  <div className="space-y-4 text-justify text-black-700">
                     <p>
                       <strong>SCHEDULE OF PROPERTY (STAMPED)</strong>
                     </p>
                     <p>
                       All that piece and parcel of land/building situated at {activeFlow.project?.location}, bearing <strong>Unit No: {activeFlow.unitId}</strong> under Survey Numbers belonging to <strong>"{activeFlow.project?.name}"</strong>.
                     </p>
-                    <table className="w-full border-collapse border border-gray-300 text-[10px] mt-2 font-sans">
+                    <table className="w-full border-collapse border border-black-300 text-[11px] mt-2 font-sans">
                       <thead>
-                        <tr className="bg-gray-100">
+                        <tr className="bg-black-100">
                           <th className="border p-2">Boundary Direction</th>
                           <th className="border p-2">Bordering Property Description</th>
                         </tr>
@@ -1740,10 +1756,10 @@ const CRDFlow = () => {
                 )}
 
                 {previewingDoc.index === 4 && (
-                  <div className="space-y-4 text-justify text-gray-700 font-sans text-[10px]">
+                  <div className="space-y-4 text-justify text-black-700 font-sans text-[11px]">
                     <div className="bg-emerald-50/50 p-4 border border-dashed border-emerald-300 rounded-xl">
                       <div className="font-bold text-center text-[#0e623a] text-xs uppercase mb-2">E-Challan State Bank of India Receipt</div>
-                      <div className="grid grid-cols-2 gap-2 text-[10px]">
+                      <div className="grid grid-cols-2 gap-2 text-[11px]">
                         <div><strong>GRN Number:</strong> MH091480108390A</div>
                         <div><strong>Transaction Date:</strong> {new Date().toLocaleDateString('en-GB')}</div>
                         <div><strong>Department:</strong> Inspector General of Registration</div>
@@ -1759,22 +1775,22 @@ const CRDFlow = () => {
                 )}
 
                 {/* Footer Signatures */}
-                <div className="flex justify-between items-end pt-12 border-t font-sans text-[10px]">
+                <div className="flex justify-between items-end pt-12 border-t font-sans text-[11px]">
                   <div>
-                    <div className="font-bold text-gray-700">For VENDOR / DEVELOPER</div>
-                    <div className="mt-8 border-t border-dashed border-gray-300 w-32 pt-1 text-gray-400 italic">Authorized Signatory</div>
+                    <div className="font-bold text-black-700">For VENDOR / DEVELOPER</div>
+                    <div className="mt-8 border-t border-dashed border-black-300 w-32 pt-1 text-black-400 italic">Authorized Signatory</div>
                   </div>
                   <div className="text-right">
-                    <div className="font-bold text-gray-700">For PURCHASER / CLIENT</div>
-                    <div className="mt-8 border-t border-dashed border-gray-300 w-32 pt-1 text-gray-400 italic">Signature of Purchaser</div>
+                    <div className="font-bold text-black-700">For PURCHASER / CLIENT</div>
+                    <div className="mt-8 border-t border-dashed border-black-300 w-32 pt-1 text-black-400 italic">Signature of Purchaser</div>
                   </div>
                 </div>
               </div>
             </div>
 
             {/* Bottom Actions */}
-            <div className="p-4 bg-gray-50 border-t flex justify-between items-center">
-              <span className="text-[10px] text-gray-400 font-mono">File reference: {previewingDoc.filename}</span>
+            <div className="p-4 bg-black-50 border-t flex justify-between items-center">
+              <span className="text-[11px] text-black-400 font-mono">File reference: {previewingDoc.filename}</span>
               <button
                 onClick={() => setPreviewingDoc(null)}
                 className="px-5 py-2 bg-[#0e623a] hover:bg-[#0b4d2d] text-white text-xs font-bold rounded-xl transition shadow cursor-pointer"
@@ -1794,9 +1810,9 @@ const CRDFlow = () => {
             <div className="flex justify-between items-start border-b-2 border-[#0e623a] pb-6 mb-6">
               <div>
                 <div className="text-2xl font-black tracking-wider text-[#0e623a]">JOHN BUILDWELL</div>
-                <div className="text-[10px] text-gray-400 font-sans tracking-widest uppercase mt-0.5">Since 2007</div>
+                <div className="text-[11px] text-black-400 font-sans tracking-widest uppercase mt-0.5">Since 2007</div>
               </div>
-              <div className="text-right text-xs text-gray-500 font-sans">
+              <div className="text-right text-xs text-black-500 font-sans">
                 Date: {new Date().toLocaleDateString('en-GB')}
               </div>
             </div>
@@ -1804,7 +1820,7 @@ const CRDFlow = () => {
             {/* To Address block */}
             <div className="space-y-1 mb-6 font-sans text-xs">
               <div>To,</div>
-              <div className="font-bold text-sm text-gray-800">{activeFlow.lead?.name}</div>
+              <div className="font-bold text-sm text-black-800">{activeFlow.lead?.name}</div>
               <div>{activeFlow.lead?.address}</div>
               <div>Phone: {activeFlow.lead?.phone}</div>
             </div>
@@ -1815,10 +1831,10 @@ const CRDFlow = () => {
             </div>
 
             {/* Letter Paragraphs */}
-            <div className="space-y-4 text-gray-700 mb-8 font-sans text-xs leading-relaxed">
+            <div className="space-y-4 text-black-700 mb-8 font-sans text-xs leading-relaxed">
               <p>Dear Sir,</p>
               <p>
-                We are writing to inform you that the <strong className="text-gray-900">{activeFlow.stages[demandLetterStageIdx].name} ({activeFlow.stages[demandLetterStageIdx].percentage}%)</strong> milestone has been successfully completed for Unit No. <strong className="text-gray-900">{activeFlow.unitId}</strong> in our premium project <strong className="text-gray-900">"{activeFlow.project?.name}"</strong>, located at {activeFlow.project?.location || 'Palayamkottai, Tirunelveli'}.
+                We are writing to inform you that the <strong className="text-black-900">{activeFlow.stages[demandLetterStageIdx].name} ({activeFlow.stages[demandLetterStageIdx].percentage}%)</strong> milestone has been successfully completed for Unit No. <strong className="text-black-900">{activeFlow.unitId}</strong> in our premium project <strong className="text-black-900">"{activeFlow.project?.name}"</strong>, located at {activeFlow.project?.location || 'Palayamkottai, Tirunelveli'}.
               </p>
               <p>
                 As per the project's schedule and agreements, we kindly request you to release the corresponding stage payment of <strong className="text-[#0e623a]">Rs. {getStageTotal(activeFlow.stages[demandLetterStageIdx]).toLocaleString()}/-</strong> (<em>{numberToWords(getStageTotal(activeFlow.stages[demandLetterStageIdx]))}</em>) towards the completed milestone work.
@@ -1827,35 +1843,35 @@ const CRDFlow = () => {
             </div>
 
             {/* Corporate Bank accounts info */}
-            <div className="bg-gray-50 p-4 border rounded-2xl space-y-1 text-xs font-sans mb-8">
+            <div className="bg-black-50 p-4 border rounded-2xl space-y-1 text-xs font-sans mb-8">
               <div className="grid grid-cols-3">
-                <span className="text-gray-400 font-bold uppercase">Name:</span>
-                <span className="col-span-2 font-bold text-gray-700">John Buildwell India Private Limited</span>
+                <span className="text-black-400 font-bold uppercase">Name:</span>
+                <span className="col-span-2 font-bold text-black-700">John Buildwell India Private Limited</span>
               </div>
               <div className="grid grid-cols-3">
-                <span className="text-gray-400 font-bold uppercase">Bank Name:</span>
-                <span className="col-span-2 font-bold text-gray-700">Axis Bank Ltd, Palayamkottai</span>
+                <span className="text-black-400 font-bold uppercase">Bank Name:</span>
+                <span className="col-span-2 font-bold text-black-700">Axis Bank Ltd, Palayamkottai</span>
               </div>
               <div className="grid grid-cols-3">
-                <span className="text-gray-400 font-bold uppercase">A/C No:</span>
-                <span className="col-span-2 font-bold text-gray-700 tracking-wider">914030011343603</span>
+                <span className="text-black-400 font-bold uppercase">A/C No:</span>
+                <span className="col-span-2 font-bold text-black-700 tracking-wider">914030011343603</span>
               </div>
               <div className="grid grid-cols-3">
-                <span className="text-gray-400 font-bold uppercase">IFSC NO:</span>
-                <span className="col-span-2 font-bold text-gray-700 tracking-wider">UTIB0002095</span>
+                <span className="text-black-400 font-bold uppercase">IFSC NO:</span>
+                <span className="col-span-2 font-bold text-black-700 tracking-wider">UTIB0002095</span>
               </div>
             </div>
 
             {/* Sign off and footer */}
             <div className="flex justify-between items-end pt-8 font-sans text-xs">
               <div>
-                <div className="text-gray-400 uppercase font-bold text-[9px]">Prepared By</div>
-                <div className="font-bold text-gray-700 mt-4">Customer Relation Manager</div>
-                <div className="text-gray-400 italic mt-0.5">(Mrs. J. Mary)</div>
+                <div className="text-black-400 uppercase font-bold text-[10px]">Prepared By</div>
+                <div className="font-bold text-black-700 mt-4">Customer Relation Manager</div>
+                <div className="text-black-400 italic mt-0.5">(Mrs. J. Mary)</div>
               </div>
               <div className="text-right">
-                <div className="text-gray-400 uppercase font-bold text-[9px]">For John Buildwell India (P) Ltd.</div>
-                <div className="mt-8 border-t border-dashed border-gray-400 w-40 pt-1 text-gray-400 italic">Authorized Signatory</div>
+                <div className="text-black-400 uppercase font-bold text-[10px]">For John Buildwell India (P) Ltd.</div>
+                <div className="mt-8 border-t border-dashed border-black-400 w-40 pt-1 text-black-400 italic">Authorized Signatory</div>
               </div>
             </div>
           </div>
@@ -1920,10 +1936,10 @@ const CRDFlow = () => {
       {completeStageIdx !== null && (
         <div className="fixed inset-0 bg-black/60 z-[90] flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
-            <h2 className="text-xl font-bold text-gray-800 mb-4">Complete Stage</h2>
-            <p className="text-sm text-gray-600 mb-4">Please provide conversation notes or narration for this stage completion.</p>
+            <h2 className="text-xl font-bold text-black-800 mb-4">Complete Stage</h2>
+            <p className="text-sm text-black-600 mb-4">Please provide conversation notes or narration for this stage completion.</p>
             <textarea
-              className="w-full border border-gray-300 rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-[#0e623a]"
+              className="w-full border border-black-300 rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-[#0e623a]"
               rows="4"
               value={completionNotes}
               onChange={(e) => setCompletionNotes(e.target.value)}
@@ -1932,15 +1948,16 @@ const CRDFlow = () => {
             <div className="mt-6 flex justify-end gap-3">
               <button
                 onClick={() => { setCompleteStageIdx(null); setCompletionNotes(''); }}
-                className="px-4 py-2 text-gray-600 font-semibold hover:bg-gray-100 rounded-lg transition"
+                className="px-4 py-2 text-black-600 font-semibold hover:bg-black-100 rounded-lg transition"
               >
                 Cancel
               </button>
               <button
                 onClick={() => handleStageComplete(completeStageIdx)}
-                className="px-4 py-2 bg-[#0e623a] hover:bg-[#0b4d2d] text-white font-bold rounded-lg transition shadow-md"
+                disabled={isSubmitting}
+                className="px-4 py-2 bg-[#0e623a] hover:bg-[#0b4d2d] text-white font-bold rounded-lg transition shadow-md disabled:opacity-50 flex items-center justify-center gap-2"
               >
-                Confirm Completion
+                {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Confirm Completion'}
               </button>
             </div>
           </div>
@@ -1954,7 +1971,7 @@ const CRDFlow = () => {
             <h2 className="text-xl font-bold text-red-700 mb-4 flex items-center gap-2">
               <AlertCircle className="w-5 h-5" /> Cancel CRD Plan
             </h2>
-            <p className="text-sm text-gray-600 mb-4">This will send a cancellation request to the Super Admin. Please provide a detailed narration.</p>
+            <p className="text-sm text-black-600 mb-4">This will send a cancellation request to the Super Admin. Please provide a detailed narration.</p>
             <textarea
               className="w-full border border-red-300 rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-red-600 bg-red-50"
               rows="4"
@@ -1965,15 +1982,16 @@ const CRDFlow = () => {
             <div className="mt-6 flex justify-end gap-3">
               <button
                 onClick={() => { setCancelModalOpen(false); setCancelNarration(''); }}
-                className="px-4 py-2 text-gray-600 font-semibold hover:bg-gray-100 rounded-lg transition"
+                className="px-4 py-2 text-black-600 font-semibold hover:bg-black-100 rounded-lg transition"
               >
                 Abort
               </button>
               <button
                 onClick={handleCancelRequest}
-                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg transition shadow-md"
+                disabled={isSubmitting}
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg transition shadow-md disabled:opacity-50 flex items-center justify-center gap-2"
               >
-                Send Request
+                {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Send Request'}
               </button>
             </div>
           </div>
@@ -1984,35 +2002,35 @@ const CRDFlow = () => {
       {historyModalOpen && (
         <div className="fixed inset-0 bg-black/60 z-[90] flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl p-6 max-h-[80vh] flex flex-col">
-            <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+            <h2 className="text-xl font-bold text-black-800 mb-4 flex items-center gap-2">
               <History className="w-5 h-5 text-[#0e623a]" /> CRD Flow History
             </h2>
             <div className="overflow-y-auto flex-1 space-y-4 pr-2">
               {activeFlow?.history?.length > 0 ? (
                 activeFlow.history.slice().reverse().map((entry, idx) => (
-                  <div key={idx} className="bg-gray-50 border border-gray-200 p-4 rounded-xl flex gap-4">
+                  <div key={idx} className="bg-black-50 border border-black-200 p-4 rounded-xl flex gap-4">
                     <div className="flex-shrink-0 mt-1">
                       <div className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-xs uppercase">
                         {entry.user ? entry.user.slice(0, 2) : 'SY'}
                       </div>
                     </div>
                     <div>
-                      <h4 className="font-bold text-gray-800">{entry.action}</h4>
-                      <p className="text-sm text-gray-600 mt-1">{entry.notes}</p>
-                      <div className="text-xs text-gray-400 mt-2 font-medium">
+                      <h4 className="font-bold text-black-800">{entry.action}</h4>
+                      <p className="text-sm text-black-600 mt-1">{entry.notes}</p>
+                      <div className="text-xs text-black-400 mt-2 font-medium">
                         {new Date(entry.date).toLocaleString()} • {entry.user || 'System'}
                       </div>
                     </div>
                   </div>
                 ))
               ) : (
-                <p className="text-center text-gray-500 py-6">No history available yet.</p>
+                <p className="text-center text-black-500 py-6">No history available yet.</p>
               )}
             </div>
             <div className="mt-6 flex justify-end">
               <button
                 onClick={() => setHistoryModalOpen(false)}
-                className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold rounded-lg transition shadow-sm"
+                className="px-4 py-2 bg-black-200 hover:bg-black-300 text-black-800 font-bold rounded-lg transition shadow-sm"
               >
                 Close
               </button>
@@ -2035,21 +2053,21 @@ const CRDFlow = () => {
               </button>
             </div>
             
-            <div className="flex-1 overflow-y-auto p-6 bg-gray-50">
-              <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+            <div className="flex-1 overflow-y-auto p-6 bg-black-50">
+              <div className="bg-white border border-black-200 rounded-xl overflow-hidden shadow-sm">
                 <table className="w-full text-left text-sm">
-                  <thead className="bg-gray-100 border-b border-gray-200 text-gray-600 font-bold">
+                  <thead className="bg-black-100 border-b border-black-200 text-black-600 font-bold">
                     <tr>
-                      <th className="p-4 border-r border-gray-200 w-16 text-center">#</th>
-                      <th className="p-4 border-r border-gray-200">Construction Stage / Milestone</th>
+                      <th className="p-4 border-r border-black-200 w-16 text-center">#</th>
+                      <th className="p-4 border-r border-black-200">Construction Stage / Milestone</th>
                       <th className="p-4 text-center w-24">Payment %</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-100">
+                  <tbody className="divide-y divide-black-100">
                     {defaultStagesTemplate.map((stage, idx) => (
-                      <tr key={idx} className="hover:bg-gray-50/50">
-                        <td className="p-4 border-r border-gray-200 text-center font-bold text-gray-400">{idx + 1}</td>
-                        <td className="p-4 border-r border-gray-200 font-semibold text-gray-700">{stage.name}</td>
+                      <tr key={idx} className="hover:bg-black-50/50">
+                        <td className="p-4 border-r border-black-200 text-center font-bold text-black-400">{idx + 1}</td>
+                        <td className="p-4 border-r border-black-200 font-semibold text-black-700">{stage.name}</td>
                         <td className="p-4 text-center font-bold text-[#0e623a]">{stage.percentage}%</td>
                       </tr>
                     ))}
@@ -2057,8 +2075,8 @@ const CRDFlow = () => {
                 </table>
               </div>
             </div>
-            <div className="p-4 border-t border-gray-100 bg-white flex justify-end">
-               <button onClick={() => setSheetPreviewModalOpen(false)} className="px-5 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-xl transition">
+            <div className="p-4 border-t border-black-100 bg-white flex justify-end">
+               <button onClick={() => setSheetPreviewModalOpen(false)} className="px-5 py-2 bg-black-100 hover:bg-black-200 text-black-700 font-bold rounded-xl transition">
                  Close Preview
                </button>
             </div>

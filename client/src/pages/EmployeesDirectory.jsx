@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth, API_URL } from '../context/AuthContext';
-import { Users, ShieldAlert, CheckCircle2, XCircle, ArrowUpDown } from 'lucide-react';
+import { Users, ShieldAlert, CheckCircle2, XCircle, ArrowUpDown, Loader2 } from 'lucide-react';
 
 const EmployeesDirectory = () => {
   const { token, user } = useAuth();
@@ -8,6 +8,7 @@ const EmployeesDirectory = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
+  const [approvingId, setApprovingId] = useState(null);
 
   useEffect(() => {
     fetchEmployees();
@@ -35,6 +36,7 @@ const EmployeesDirectory = () => {
 
   const handleApproveToggle = async (empId, currentApproval) => {
     setMessage('');
+    setApprovingId(empId);
     try {
       const response = await fetch(`${API_URL}/employees/${empId}/approve`, {
         method: 'PUT',
@@ -55,6 +57,8 @@ const EmployeesDirectory = () => {
       }
     } catch (err) {
       console.error(err);
+    } finally {
+      setApprovingId(null);
     }
   };
 
@@ -106,21 +110,21 @@ const EmployeesDirectory = () => {
       )}
 
       {/* Main card */}
-      <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="bg-white rounded-3xl shadow-sm border border-black-100 overflow-hidden">
         <div className="bg-[#0e623a] p-6 text-white">
           <h3 className="text-lg font-bold flex items-center gap-2">
             <Users className="w-5 h-5 text-[#a7d8ff]" />
             <span>Employee Access Directory</span>
           </h3>
-          <p className="text-red-100 text-xs mt-1">
+          {/* <p className="text-red-100 text-xs mt-1">
             Review registration requests, approve platform access, and manage user roles
-          </p>
+          </p> */}
         </div>
 
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-gray-50 border-b border-gray-100 text-xs font-bold text-gray-500 uppercase tracking-wider">
+              <tr className="bg-black-50 border-b border-black-100 text-xs font-bold text-black-500 uppercase tracking-wider">
                 <th className="p-5">Name</th>
                 <th className="p-5">Email</th>
                 <th className="p-5">Registered On</th>
@@ -129,18 +133,18 @@ const EmployeesDirectory = () => {
                 {user.role === 'Admin' && <th className="p-5 text-right">Administrative Actions</th>}
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-50 text-sm">
+            <tbody className="divide-y divide-black-50 text-sm">
               {employees.map((emp) => (
-                <tr key={emp._id} className="hover:bg-gray-50/50">
-                  <td className="p-5 font-semibold text-gray-800">{emp.name}</td>
-                  <td className="p-5 text-gray-600">{emp.email}</td>
-                  <td className="p-5 text-gray-500">{new Date(emp.createdAt).toLocaleDateString()}</td>
+                <tr key={emp._id} className="hover:bg-black-50/50">
+                  <td className="p-5 font-semibold text-black-800">{emp.name}</td>
+                  <td className="p-5 text-black-600">{emp.email}</td>
+                  <td className="p-5 text-black-500">{new Date(emp.createdAt).toLocaleDateString()}</td>
                   <td className="p-5">
                     {user.role === 'Admin' ? (
                       <select
                         value={emp.role}
                         onChange={(e) => handleRoleChange(emp._id, e.target.value)}
-                        className="px-2.5 py-1.5 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#0e623a] font-medium"
+                        className="px-2.5 py-1.5 bg-black-50 border border-black-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#0e623a] font-medium"
                       >
                         <option value="Admin">Admin</option>
                         <option value="Manager">Manager</option>
@@ -148,7 +152,7 @@ const EmployeesDirectory = () => {
                         <option value="Site Engineer">Site Engineer</option>
                       </select>
                     ) : (
-                      <span className="font-semibold text-gray-700 bg-gray-100 px-2.5 py-1 rounded-full text-xs">
+                      <span className="font-semibold text-black-700 bg-black-100 px-2.5 py-1 rounded-full text-xs">
                         {emp.role}
                       </span>
                     )}
@@ -175,16 +179,18 @@ const EmployeesDirectory = () => {
                   {user.role === 'Admin' && (
                     <td className="p-5 text-right">
                       {emp._id === user._id ? (
-                        <span className="text-xs text-gray-400 italic font-light pr-4">Self account</span>
+                        <span className="text-xs text-black-400 italic font-light pr-4">Self account</span>
                       ) : (
                         <button
                           onClick={() => handleApproveToggle(emp._id, emp.isApproved)}
-                          className={`px-4 py-1.5 rounded-xl text-xs font-bold transition border ${
+                          disabled={approvingId === emp._id}
+                          className={`px-4 py-1.5 rounded-xl text-xs font-bold transition border disabled:opacity-50 flex items-center justify-center gap-1 ${
                             emp.isApproved
                               ? 'bg-red-50 text-red-700 border-red-200 hover:bg-red-100'
                               : 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
                           }`}
                         >
+                          {approvingId === emp._id ? <Loader2 className="w-3 h-3 animate-spin" /> : null}
                           {emp.isApproved ? 'Revoke Access' : 'Approve Access'}
                         </button>
                       )}

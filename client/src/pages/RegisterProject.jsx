@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth, API_URL } from '../context/AuthContext';
-import { Building, MapPin, Ruler, DollarSign, ListPlus, ShieldAlert, Share2, Video, Image as ImageIcon, Plus, Trash, Table, Grid, Trash2, ArrowLeft } from 'lucide-react';
+import { Building, MapPin, Ruler, DollarSign, ListPlus, ShieldAlert, Share2, Video, Image as ImageIcon, Plus, Trash, Table, Grid, Trash2, ArrowLeft, Loader2 } from 'lucide-react';
 import SearchableSelect from '../components/SearchableSelect';
 
 const SOURCE_TYPES = [
@@ -532,7 +532,7 @@ const RegisterProject = () => {
                     <button
                       type="button"
                       onClick={() => setLayoutPlanImage('')}
-                      className="absolute -top-1.5 -right-1.5 bg-red-150 hover:bg-red-200 text-red-700 rounded-full w-4 h-4 flex items-center justify-center text-[10px] font-bold"
+                      className="absolute -top-1.5 -right-1.5 bg-red-150 hover:bg-red-200 text-red-700 rounded-full w-4 h-4 flex items-center justify-center text-[11px] font-bold"
                     >
                       ✕
                     </button>
@@ -721,7 +721,7 @@ const RegisterProject = () => {
               <div className="bg-white/20 backdrop-blur-sm border-2 border-[#0e623a]/30 rounded-2xl p-6 space-y-6 text-left animate-fadeIn">
                 <div className="space-y-1">
                   <h4 className="text-xs font-bold text-[#0e623a] uppercase tracking-wider">Bulk Import Custom Unit Specifications</h4>
-                  <p className="text-[11px] text-gray-500">Copy rows directly from your Excel spreadsheet (including Floor, Unit No, BHK/Type, Size/Area, and Sold details) and paste them below.</p>
+                  <p className="text-[12px] text-gray-500">Copy rows directly from your Excel spreadsheet (including Floor, Unit No, BHK/Type, Size/Area, and Sold details) and paste them below.</p>
                 </div>
 
                 <div>
@@ -740,7 +740,7 @@ const RegisterProject = () => {
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between bg-[#0e623a]/10 px-4 py-3 rounded-2xl border border-[#0e623a]/20 gap-4">
                       <div>
                         <span className="text-xs font-extrabold text-[#0e623a] block">Parsed Inventory Verification</span>
-                        <span className="text-[10px] font-semibold text-gray-600">
+                        <span className="text-[11px] font-semibold text-gray-600">
                           Total: {parsedUnits.length} units | Land Area: {totalLandArea} sq.ft | Sold: {parsedUnits.filter(u => u.status === 'Sold Out').length}
                         </span>
                       </div>
@@ -751,7 +751,7 @@ const RegisterProject = () => {
                       <div className="bg-white/45 p-5 rounded-2xl border border-[#0e623a]/20 space-y-4 text-left">
                         <div className="space-y-1">
                           <h5 className="text-xs font-bold text-[#0e623a] uppercase tracking-wider">Excel Plot Coordinate Seeder Workspace</h5>
-                          <p className="text-[10px] text-gray-500">
+                          <p className="text-[11px] text-gray-500">
                             Click a plot in the list on the right, then click on the layout map on the left to map its position. It will automatically advance to the next plot.
                           </p>
                         </div>
@@ -812,8 +812,8 @@ const RegisterProject = () => {
                           {/* Right: Unmapped plots selection panel */}
                           <div className="flex flex-col h-[50vh] bg-white border border-gray-150 rounded-2xl overflow-hidden text-left">
                             <div className="bg-[#0e623a]/5 p-3 border-b border-gray-150 flex items-center justify-between">
-                              <span className="text-[10px] font-bold text-[#0e623a] uppercase">Pasted Plots Queue</span>
-                              <span className="text-[9px] bg-emerald-50 text-[#0e623a] border border-[#bce2cb] font-bold px-2 py-0.5 rounded-full">
+                              <span className="text-[11px] font-bold text-[#0e623a] uppercase">Pasted Plots Queue</span>
+                              <span className="text-[10px] bg-emerald-50 text-[#0e623a] border border-[#bce2cb] font-bold px-2 py-0.5 rounded-full">
                                 {parsedUnits.filter(u => u.mapCoordinates).length} / {parsedUnits.length} Mapped
                               </span>
                             </div>
@@ -826,7 +826,7 @@ const RegisterProject = () => {
                                     type="button"
                                     key={u.unitId}
                                     onClick={() => setSelectedImportPlotId(u.unitId)}
-                                    className={`w-full flex items-center justify-between p-2.5 rounded-xl text-[10px] font-bold border transition text-left cursor-pointer ${
+                                    className={`w-full flex items-center justify-between p-2.5 rounded-xl text-[11px] font-bold border transition text-left cursor-pointer ${
                                       isSelected 
                                         ? 'bg-[#0e623a] text-white border-[#0e623a] shadow-sm' 
                                         : isMapped 
@@ -836,12 +836,12 @@ const RegisterProject = () => {
                                   >
                                     <div className="min-w-0">
                                       <span className="block truncate">{u.unitId}</span>
-                                      <span className="text-[8px] opacity-60 font-semibold block">{u.size} sqft</span>
+                                      <span className="text-[9px] opacity-60 font-semibold block">{u.size} sqft</span>
                                     </div>
                                     {isMapped ? (
-                                      <span className="text-[8px] bg-emerald-500 text-white px-1.5 py-0.5 rounded-full font-bold">Mapped</span>
+                                      <span className="text-[9px] bg-emerald-500 text-white px-1.5 py-0.5 rounded-full font-bold">Mapped</span>
                                     ) : (
-                                      <span className="text-[8px] bg-gray-200 text-gray-500 px-1.5 py-0.5 rounded-full font-bold">Unplaced</span>
+                                      <span className="text-[9px] bg-gray-200 text-gray-500 px-1.5 py-0.5 rounded-full font-bold">Unplaced</span>
                                     )}
                                   </button>
                                 );
@@ -863,7 +863,7 @@ const RegisterProject = () => {
                           <button
                             type="button"
                             onClick={() => setImportViewMode('table')}
-                            className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 text-[10px] font-bold transition ${
+                            className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 text-[11px] font-bold transition ${
                               importViewMode === 'table' ? 'bg-[#0e623a] text-white shadow-sm' : 'text-gray-550 hover:text-gray-800'
                             }`}
                           >
@@ -873,7 +873,7 @@ const RegisterProject = () => {
                           <button
                             type="button"
                             onClick={() => setImportViewMode('card')}
-                            className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 text-[10px] font-bold transition ${
+                            className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 text-[11px] font-bold transition ${
                               importViewMode === 'card' ? 'bg-[#0e623a] text-white shadow-sm' : 'text-gray-550 hover:text-gray-800'
                             }`}
                           >
@@ -886,7 +886,7 @@ const RegisterProject = () => {
                         <button
                           type="button"
                           onClick={handleAddUnitRow}
-                          className="px-3.5 py-2 bg-emerald-700 text-white rounded-xl text-[10px] font-bold hover:bg-emerald-800 transition flex items-center gap-1"
+                          className="px-3.5 py-2 bg-emerald-700 text-white rounded-xl text-[11px] font-bold hover:bg-emerald-800 transition flex items-center gap-1"
                         >
                           <Plus className="w-3.5 h-3.5" />
                           <span>Add Row</span>
@@ -898,7 +898,7 @@ const RegisterProject = () => {
                     {importViewMode === 'table' ? (
                       <div className="max-h-[420px] overflow-auto border border-gray-200 rounded-2xl shadow-inner bg-white">
                         <table className="w-full text-left border-collapse min-w-[1000px]">
-                          <thead className="bg-gray-100 border-b text-gray-500 font-bold uppercase tracking-wider text-[9px] sticky top-0 z-10">
+                          <thead className="bg-gray-100 border-b text-gray-500 font-bold uppercase tracking-wider text-[10px] sticky top-0 z-10">
                             <tr>
                               <th className="p-3 w-28">Unit No</th>
                               <th className="p-3 w-24">Floor</th>
@@ -1015,7 +1015,7 @@ const RegisterProject = () => {
                           <div key={index} className="bg-white p-4 border border-gray-200 rounded-2xl shadow-sm hover:shadow transition space-y-3 relative group">
                             <div className="flex items-center justify-between">
                               <span className="font-extrabold text-gray-800 text-sm">{u.unitId || '—'}</span>
-                              <span className={`px-2 py-0.5 rounded-full text-[9px] font-extrabold uppercase ${
+                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase ${
                                 u.status === 'Sold Out'
                                   ? 'bg-red-50 text-red-700 border border-red-200'
                                   : 'bg-emerald-50 text-emerald-800 border border-emerald-200'
@@ -1024,7 +1024,7 @@ const RegisterProject = () => {
                               </span>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-2 text-[10px] py-2 border-y border-gray-100">
+                            <div className="grid grid-cols-2 gap-2 text-[11px] py-2 border-y border-gray-100">
                               <div>
                                 <span className="text-gray-400 block uppercase font-bold tracking-wider">Floor</span>
                                 <span className="font-semibold text-gray-700">{u.floor || 'N/A'}</span>
@@ -1044,7 +1044,7 @@ const RegisterProject = () => {
                             </div>
 
                             {u.remarks && (
-                              <p className="text-[10px] text-gray-500 italic truncate" title={u.remarks}>
+                              <p className="text-[11px] text-gray-500 italic truncate" title={u.remarks}>
                                 Note: {u.remarks}
                               </p>
                             )}
@@ -1070,7 +1070,7 @@ const RegisterProject = () => {
               <div className="bg-white/20 backdrop-blur-sm border-2 border-[#0e623a]/30 rounded-2xl p-6 space-y-6 text-left animate-fadeIn">
                 <div className="space-y-1">
                   <h4 className="text-xs font-bold text-[#0e623a] uppercase tracking-wider">Visual Plot Coordinate Seeding Workspace</h4>
-                  <p className="text-[11px] text-gray-500">
+                  <p className="text-[12px] text-gray-500">
                     Upload a map image above, then click directly on the map below to position and name your plots visually.
                   </p>
                 </div>
@@ -1104,7 +1104,7 @@ const RegisterProject = () => {
                             style={{ left: `${u.mapCoordinates.x}%`, top: `${u.mapCoordinates.y}%` }}
                           >
                             <span className="text-[7.5px] text-white font-extrabold">{idx + 1}</span>
-                            <div className="absolute bottom-full mb-1.5 bg-gray-900 text-white text-[9px] font-bold px-2 py-0.5 rounded shadow pointer-events-none opacity-0 group-hover:opacity-100 transition whitespace-nowrap z-30">
+                            <div className="absolute bottom-full mb-1.5 bg-gray-900 text-white text-[10px] font-bold px-2 py-0.5 rounded shadow pointer-events-none opacity-0 group-hover:opacity-100 transition whitespace-nowrap z-30">
                               {u.unitId} ({u.size} sq.ft)
                             </div>
                           </div>
@@ -1117,10 +1117,10 @@ const RegisterProject = () => {
                           className="absolute bg-white border border-gray-200 p-4 rounded-2xl shadow-2xl space-y-3 z-30 w-56 -translate-x-1/2 -translate-y-[110%]"
                           style={{ left: `${activeVisualCoords.x}%`, top: `${activeVisualCoords.y}%` }}
                         >
-                          <h5 className="text-[10px] font-bold text-gray-400 uppercase">Seeding Details</h5>
+                          <h5 className="text-[11px] font-bold text-gray-400 uppercase">Seeding Details</h5>
                           <div className="space-y-2 text-xs">
                             <div>
-                              <label className="text-[9px] font-bold text-gray-500 uppercase block mb-1">Plot / Unit Number</label>
+                              <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">Plot / Unit Number</label>
                               <input 
                                 type="text"
                                 placeholder="e.g. 45"
@@ -1130,7 +1130,7 @@ const RegisterProject = () => {
                               />
                             </div>
                             <div>
-                              <label className="text-[9px] font-bold text-gray-500 uppercase block mb-1">Plot Size (sq.ft)</label>
+                              <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">Plot Size (sq.ft)</label>
                               <input 
                                 type="number"
                                 placeholder="e.g. 1200"
@@ -1167,14 +1167,14 @@ const RegisterProject = () => {
                                 setVisualFormData({ unitId: '', size: 1000 });
                                 setActiveVisualCoords(null);
                               }}
-                              className="flex-1 py-1.5 bg-[#0e623a] text-white rounded-lg text-[10px] font-bold hover:bg-[#0b4d2d] cursor-pointer"
+                              className="flex-1 py-1.5 bg-[#0e623a] text-white rounded-lg text-[11px] font-bold hover:bg-[#0b4d2d] cursor-pointer"
                             >
                               Add Plot
                             </button>
                             <button
                               type="button"
                               onClick={() => setActiveVisualCoords(null)}
-                              className="py-1.5 px-2 bg-gray-100 text-gray-500 rounded-lg text-[10px] font-bold hover:bg-gray-200 cursor-pointer"
+                              className="py-1.5 px-2 bg-gray-100 text-gray-500 rounded-lg text-[11px] font-bold hover:bg-gray-200 cursor-pointer"
                             >
                               Cancel
                             </button>
@@ -1186,7 +1186,7 @@ const RegisterProject = () => {
                     {/* Plotted plots summary list */}
                     {parsedUnits.length > 0 && (
                       <div className="space-y-2">
-                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Created Plot Pins ({parsedUnits.length})</span>
+                        <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block">Created Plot Pins ({parsedUnits.length})</span>
                         <div className="flex flex-wrap gap-2 max-h-40 overflow-y-auto bg-gray-50/50 p-3 rounded-xl border border-gray-150">
                           {parsedUnits.map((u, idx) => (
                             <div key={idx} className="flex items-center gap-1.5 bg-white px-2.5 py-1 rounded-lg border text-xs font-semibold text-gray-700 shadow-xs">
@@ -1351,9 +1351,9 @@ const RegisterProject = () => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-4 bg-[#0e623a] text-white font-bold rounded-xl shadow-lg hover:bg-[#0b4d2d] hover:shadow-xl transition disabled:opacity-50"
+              className="w-full py-4 bg-[#0e623a] text-white font-bold rounded-xl shadow-lg hover:bg-[#0b4d2d] hover:shadow-xl transition disabled:opacity-50 flex items-center justify-center gap-2"
             >
-              {loading ? 'Creating Project & Running Generators...' : 'Register Project & Generate Inventory'}
+              {loading ? <><Loader2 className="w-5 h-5 animate-spin" /> Creating Project & Running Generators...</> : 'Register Project & Generate Inventory'}
             </button>
           </div>
         </form>
