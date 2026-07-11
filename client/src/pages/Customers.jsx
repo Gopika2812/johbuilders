@@ -166,10 +166,9 @@ const Customers = () => {
           <p className="text-xs text-black-400">Initialize a milestone CRD Flow for booked leads to list them here.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-          
-          {/* Left panel: Customers List */}
-          <div className="bg-white border border-black-150 rounded-3xl p-4 shadow-sm space-y-4">
+        <div className="bg-white border border-black-150 rounded-3xl p-6 shadow-sm space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-black-100 pb-4">
+            <h2 className="text-sm font-bold text-black-800">Active Handover Customers</h2>
             <div className="relative">
               <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-black-400">
                 <Search className="w-4 h-4" />
@@ -179,269 +178,298 @@ const Customers = () => {
                 placeholder="Search customers..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-3 py-2 bg-black-50 border border-black-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-xs"
+                className="w-full sm:w-64 pl-10 pr-3 py-2 bg-black-50 border border-black-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-xs font-semibold"
               />
-            </div>
-
-            <div className="divide-y divide-black-100 max-h-[60vh] overflow-y-auto pr-1">
-              {filteredFlows.map(flow => {
-                const isSelected = selectedFlow?._id === flow._id;
-                return (
-                  <button
-                    key={flow._id}
-                    onClick={() => {
-                      setSelectedFlow(flow);
-                      setError('');
-                    }}
-                    className={`w-full text-left p-3.5 rounded-2xl transition duration-150 flex flex-col gap-1.5 border my-1 cursor-pointer ${
-                      isSelected 
-                        ? 'bg-emerald-50/50 border-[#0e623a]/30 shadow-xs' 
-                        : 'border-transparent hover:bg-black-50'
-                    }`}
-                  >
-                    <div className="flex justify-between items-center">
-                      <span className="font-extrabold text-black-800 text-xs">{flow.lead?.name}</span>
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100/70 border border-emerald-200 text-emerald-800 uppercase tracking-wide">
-                        {flow.project?.code || 'PROJECT'}
-                      </span>
-                    </div>
-                    
-                    <div className="flex flex-col gap-0.5 text-[11px] text-black-400">
-                      <div className="flex items-center gap-1">
-                        <Phone className="w-3 h-3 text-black-300" />
-                        <span>{flow.lead?.phone || 'No phone'}</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Building className="w-3 h-3 text-black-300" />
-                        <span>Plot / Unit: {flow.unitId} ({flow.project?.projectType || 'Land'})</span>
-                      </div>
-                    </div>
-                  </button>
-                );
-              })}
-              {filteredFlows.length === 0 && (
-                <div className="text-center py-6 text-xs text-black-450 italic">
-                  No customers matched search
-                </div>
-              )}
             </div>
           </div>
 
-          {/* Right panel: Details, Extra Works & Complaints tab */}
-          {selectedFlow && (
-            <div className="lg:col-span-2 space-y-6">
-              
-              {/* Customer Header card */}
-              <div className="bg-white border border-black-150 rounded-3xl p-6 shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                <div className="space-y-1">
-                  <span className="text-[11px] font-bold text-black-400 uppercase tracking-wider block">Handover Customer Details</span>
-                  <h2 className="text-lg font-black text-black-800 uppercase">{selectedFlow.lead?.name}</h2>
-                  <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-black-500 font-semibold">
-                    <span className="flex items-center gap-1"><Phone className="w-3.5 h-3.5 text-black-400" /> {selectedFlow.lead?.phone}</span>
-                    <span className="flex items-center gap-1"><Building className="w-3.5 h-3.5 text-black-400" /> Plot / Unit {selectedFlow.unitId}</span>
-                  </div>
-                </div>
-
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => setActiveSubTab('extra-works')}
-                    className={`px-4 py-2 text-xs font-bold rounded-xl transition ${
-                      activeSubTab === 'extra-works'
-                        ? 'bg-[#0e623a] text-white shadow-sm'
-                        : 'bg-black-100 hover:bg-black-250 text-black-700'
-                    }`}
-                  >
-                    Extra Works
-                  </button>
-                  <button
-                    onClick={() => setActiveSubTab('complaints')}
-                    className={`px-4 py-2 text-xs font-bold rounded-xl transition ${
-                      activeSubTab === 'complaints'
-                        ? 'bg-[#0e623a] text-white shadow-sm'
-                        : 'bg-black-100 hover:bg-black-250 text-black-700'
-                    }`}
-                  >
-                    Complaints ({selectedFlow.complaints?.length || 0})
-                  </button>
-                  <button
-                    onClick={() => setActiveSubTab('history')}
-                    className={`px-4 py-2 text-xs font-bold rounded-xl transition ${
-                      activeSubTab === 'history'
-                        ? 'bg-[#0e623a] text-white shadow-sm'
-                        : 'bg-black-100 hover:bg-black-250 text-black-700'
-                    }`}
-                  >
-                    History
-                  </button>
-                </div>
-              </div>
-
-              {/* Toggle Subtab content panels */}
-              {activeSubTab === 'extra-works' ? (
-                <div className="bg-white border border-black-150 rounded-3xl p-6 shadow-sm space-y-4">
-                  <h3 className="text-xs font-bold text-black-700 uppercase tracking-wide">Customer Extra Works Ledger</h3>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead className="bg-black-50 text-black-500 font-bold uppercase tracking-wider border-b">
+                <tr>
+                  <th className="p-4">Customer Name</th>
+                  <th className="p-4">Phone Number</th>
+                  <th className="p-4">Project</th>
+                  <th className="p-4">Unit / Plot</th>
+                  <th className="p-4 text-center">Complaints</th>
+                  <th className="p-4 text-center">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-black-50">
+                {filteredFlows.map(flow => {
+                  const isExpanded = selectedFlow?._id === flow._id;
                   
-                  {/* Ledger list */}
-                  {(() => {
-                    const allExtraWorks = [];
-                    (selectedFlow.stages || []).forEach(stage => {
-                      (stage.extraWorks || []).forEach(ew => {
-                        allExtraWorks.push({
-                          stageName: stage.name,
-                          workName: ew.name,
-                          amount: ew.amount,
-                          isCompleted: stage.isCompleted,
-                          addedAt: ew.addedAt
-                        });
-                      });
-                    });
-
-                    if (allExtraWorks.length === 0) {
-                      return (
-                        <div className="p-8 bg-black-50 rounded-2xl border text-center text-xs text-black-400 italic">
-                          No extra works registered for this customer.
-                        </div>
-                      );
-                    }
-
-                    return (
-                      <div className="divide-y border rounded-2xl overflow-hidden bg-white">
-                        {allExtraWorks.map((ew, idx) => (
-                          <div key={idx} className="p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 hover:bg-black-50/50 transition">
-                            <div className="text-left space-y-1">
-                              <span className="font-bold text-xs text-black-800 block">{ew.workName}</span>
-                              <span className="text-[11px] text-black-450 font-bold block uppercase">{ew.stageName}</span>
-                            </div>
-                            <div className="flex items-center gap-4 shrink-0 w-full sm:w-auto justify-between sm:justify-end">
-                              <span className="font-black text-black-800 text-xs">₹ {ew.amount.toLocaleString()}</span>
-                              <span className={`text-[11px] px-2 py-0.5 rounded-full font-bold border ${
-                                ew.isCompleted 
-                                  ? 'bg-emerald-50 border-emerald-250 text-emerald-800' 
-                                  : 'bg-amber-50 border-amber-250 text-amber-800'
-                              }`}>
-                                {ew.isCompleted ? 'Completed' : 'Pending'}
-                              </span>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    );
-                  })()}
-                </div>
-              ) : activeSubTab === 'complaints' ? (
-                <div className="bg-white border border-black-150 rounded-3xl p-6 shadow-sm space-y-6">
-                  
-                  {/* File a complaint form */}
-                  <form onSubmit={handleAddComplaint} className="space-y-3">
-                    <label className="text-xs font-bold text-black-700 uppercase tracking-wide block">Report New Complaint</label>
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        placeholder="Describe the complaint (e.g. Paint patch repair in bedroom)..."
-                        value={newComplaintDesc}
-                        onChange={(e) => setNewComplaintDesc(e.target.value)}
-                        className="flex-1 px-3 py-2 bg-black-50 border border-black-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-xs font-semibold text-black-700"
-                        required
-                      />
-                      <button
-                        type="submit"
-                        disabled={submittingComplaint}
-                        className="px-5 py-2.5 bg-[#0e623a] hover:bg-[#0b4d2d] text-white text-xs font-bold rounded-xl transition shadow-sm flex items-center gap-1 cursor-pointer shrink-0 disabled:opacity-50"
-                      >
-                        {submittingComplaint ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
-                        <span>File Complaint</span>
-                      </button>
-                    </div>
-                  </form>
-
-                  {/* Complaints lists */}
-                  <div className="space-y-3">
-                    <h4 className="text-xs font-bold text-black-500 uppercase tracking-wide border-b pb-2">Reported Complaints</h4>
-                    
-                    {(!selectedFlow.complaints || selectedFlow.complaints.length === 0) ? (
-                      <div className="p-8 bg-black-50 rounded-2xl border text-center text-xs text-black-400 italic">
-                        No complaints filed for this customer.
-                      </div>
-                    ) : (
-                      <div className="divide-y border rounded-2xl overflow-hidden bg-white">
-                        {selectedFlow.complaints.map((comp, idx) => {
-                          let statusColor = 'bg-amber-50 border-amber-250 text-amber-800';
-                          if (comp.status === 'In Progress') {
-                            statusColor = 'bg-blue-50 border-blue-200 text-blue-800';
-                          } else if (comp.status === 'Resolved') {
-                            statusColor = 'bg-emerald-50 border-emerald-250 text-emerald-800';
+                  return (
+                    <React.Fragment key={flow._id}>
+                      <tr 
+                        className={`hover:bg-black-50/50 transition cursor-pointer ${isExpanded ? 'bg-emerald-50/20' : ''}`}
+                        onClick={() => {
+                          if (isExpanded) {
+                            setSelectedFlow(null);
+                          } else {
+                            setSelectedFlow(flow);
+                            setActiveSubTab('extra-works');
+                            setError('');
                           }
+                        }}
+                      >
+                        <td className="p-4 font-extrabold text-black-800 text-[13px]">{flow.lead?.name || 'N/A'}</td>
+                        <td className="p-4 text-black-600 font-semibold">{flow.lead?.phone || 'N/A'}</td>
+                        <td className="p-4">
+                          <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-emerald-100/70 border border-emerald-200 text-emerald-800 uppercase tracking-wide">
+                            {flow.project?.code || 'PROJECT'}
+                          </span>
+                        </td>
+                        <td className="p-4 font-semibold text-black-700">
+                          {flow.unitId} <span className="text-black-400 font-normal">({flow.project?.projectType || 'Land'})</span>
+                        </td>
+                        <td className="p-4 text-center">
+                          <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${
+                            (flow.complaints?.length || 0) > 0 
+                              ? 'bg-amber-50 text-amber-800 border border-amber-200' 
+                              : 'bg-black-50 text-black-500 border border-black-200'
+                          }`}>
+                            {flow.complaints?.length || 0}
+                          </span>
+                        </td>
+                        <td className="p-4 text-center">
+                          <button className="px-3 py-1.5 bg-emerald-50 text-[#0e623a] hover:bg-emerald-100 transition font-bold rounded-lg border border-emerald-200 text-[11px]">
+                            {isExpanded ? 'Close' : 'View Details'}
+                          </button>
+                        </td>
+                      </tr>
+                      
+                      {isExpanded && (
+                        <tr>
+                          <td colSpan="6" className="p-0 border-b border-black-150">
+                            <div className="p-6 bg-black-50/30 border-x border-black-150 mx-2 mb-4 rounded-b-2xl shadow-inner space-y-6">
+                              
+                              {/* Customer Header card */}
+                              <div className="bg-white border border-black-150 rounded-2xl p-5 shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                                <div className="space-y-1">
+                                  <span className="text-[10px] font-bold text-black-400 uppercase tracking-wider block">Handover Customer Details</span>
+                                  <h2 className="text-base font-black text-black-800 uppercase">{selectedFlow.lead?.name}</h2>
+                                  <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-black-500 font-semibold">
+                                    <span className="flex items-center gap-1.5"><Phone className="w-3.5 h-3.5 text-black-400" /> {selectedFlow.lead?.phone}</span>
+                                    <span className="flex items-center gap-1.5"><Building className="w-3.5 h-3.5 text-black-400" /> Plot / Unit {selectedFlow.unitId}</span>
+                                  </div>
+                                </div>
 
-                          return (
-                            <div key={comp._id} className="p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 hover:bg-black-50/50 transition">
-                              <div className="text-left space-y-1">
-                                <p className="text-xs font-semibold text-black-800">{comp.description}</p>
-                                <div className="flex gap-2 text-[10px] text-black-400 font-bold">
-                                  <span>Reported: {new Date(comp.reportedAt).toLocaleDateString()}</span>
-                                  {comp.resolvedAt && (
-                                    <span className="text-emerald-700">Resolved: {new Date(comp.resolvedAt).toLocaleDateString()}</span>
-                                  )}
+                                <div className="flex gap-2 bg-black-50 p-1.5 rounded-xl border border-black-150">
+                                  <button
+                                    onClick={(e) => { e.stopPropagation(); setActiveSubTab('extra-works'); }}
+                                    className={`px-4 py-2 text-xs font-bold rounded-lg transition ${
+                                      activeSubTab === 'extra-works'
+                                        ? 'bg-white text-[#0e623a] shadow-sm border border-black-200'
+                                        : 'text-black-500 hover:text-black-800'
+                                    }`}
+                                  >
+                                    Extra Works
+                                  </button>
+                                  <button
+                                    onClick={(e) => { e.stopPropagation(); setActiveSubTab('complaints'); }}
+                                    className={`px-4 py-2 text-xs font-bold rounded-lg transition ${
+                                      activeSubTab === 'complaints'
+                                        ? 'bg-white text-[#0e623a] shadow-sm border border-black-200'
+                                        : 'text-black-500 hover:text-black-800'
+                                    }`}
+                                  >
+                                    Complaints ({selectedFlow.complaints?.length || 0})
+                                  </button>
+                                  <button
+                                    onClick={(e) => { e.stopPropagation(); setActiveSubTab('history'); }}
+                                    className={`px-4 py-2 text-xs font-bold rounded-lg transition ${
+                                      activeSubTab === 'history'
+                                        ? 'bg-white text-[#0e623a] shadow-sm border border-black-200'
+                                        : 'text-black-500 hover:text-black-800'
+                                    }`}
+                                  >
+                                    History
+                                  </button>
                                 </div>
                               </div>
 
-                              <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto justify-between sm:justify-end">
-                                <span className={`text-[11px] px-2.5 py-0.5 rounded-full font-bold border ${statusColor}`}>
-                                  {comp.status}
-                                </span>
-                                
-                                <select
-                                  value={comp.status}
-                                  onChange={(e) => handleUpdateComplaintStatus(comp._id, e.target.value)}
-                                  className="px-2 py-1 bg-black-50 border rounded-lg text-[11px] font-bold text-black-700 focus:outline-none focus:ring-1 focus:ring-[#0e623a]"
-                                >
-                                  <option value="Pending">Pending</option>
-                                  <option value="In Progress">In Progress</option>
-                                  <option value="Resolved">Resolved</option>
-                                </select>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ) : activeSubTab === 'history' ? (
-                <div className="bg-white border border-black-150 rounded-3xl p-6 shadow-sm space-y-4">
-                  <h3 className="text-xs font-bold text-black-700 uppercase tracking-wide flex items-center gap-2">
-                    <History className="w-4 h-4 text-[#0e623a]" /> CRD Flow History
-                  </h3>
-                  
-                  {(!selectedFlow.history || selectedFlow.history.length === 0) ? (
-                    <div className="p-8 bg-black-50 rounded-2xl border text-center text-xs text-black-400 italic">
-                      No history logs for this CRD flow yet.
-                    </div>
-                  ) : (
-                    <div className="divide-y border rounded-2xl overflow-hidden bg-white">
-                      {selectedFlow.history.slice().reverse().map((entry, idx) => (
-                        <div key={idx} className="p-4 flex gap-4 hover:bg-black-50/50 transition">
-                          <div className="flex-shrink-0 mt-1">
-                            <div className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-xs uppercase">
-                              {entry.user ? entry.user.slice(0, 2) : 'SY'}
-                            </div>
-                          </div>
-                          <div>
-                            <h4 className="font-bold text-black-800 text-sm">{entry.action}</h4>
-                            <p className="text-xs text-black-600 mt-1">{entry.notes}</p>
-                            <div className="text-[11px] text-black-400 mt-2 font-medium">
-                              {new Date(entry.date).toLocaleString()} • {entry.user || 'System'}
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ) : null}
+                              {/* Toggle Subtab content panels */}
+                              {activeSubTab === 'extra-works' ? (
+                                <div className="bg-white border border-black-150 rounded-2xl p-5 shadow-sm space-y-4">
+                                  <h3 className="text-[11px] font-bold text-black-700 uppercase tracking-wide">Customer Extra Works Ledger</h3>
+                                  
+                                  {/* Ledger list */}
+                                  {(() => {
+                                    const allExtraWorks = [];
+                                    (selectedFlow.stages || []).forEach(stage => {
+                                      (stage.extraWorks || []).forEach(ew => {
+                                        allExtraWorks.push({
+                                          stageName: stage.name,
+                                          workName: ew.name,
+                                          amount: ew.amount,
+                                          isCompleted: stage.isCompleted,
+                                          addedAt: ew.addedAt
+                                        });
+                                      });
+                                    });
 
-            </div>
-          )}
+                                    if (allExtraWorks.length === 0) {
+                                      return (
+                                        <div className="p-8 bg-black-50 rounded-xl border border-dashed border-black-200 text-center text-xs text-black-400 font-semibold italic">
+                                          No extra works registered for this customer.
+                                        </div>
+                                      );
+                                    }
 
+                                    return (
+                                      <div className="divide-y border rounded-xl overflow-hidden bg-white">
+                                        {allExtraWorks.map((ew, idx) => (
+                                          <div key={idx} className="p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 hover:bg-black-50/50 transition">
+                                            <div className="text-left space-y-1">
+                                              <span className="font-bold text-xs text-black-800 block">{ew.workName}</span>
+                                              <span className="text-[10px] text-black-450 font-bold block uppercase">{ew.stageName}</span>
+                                            </div>
+                                            <div className="flex items-center gap-4 shrink-0 w-full sm:w-auto justify-between sm:justify-end">
+                                              <span className="font-black text-black-800 text-xs">₹ {ew.amount.toLocaleString()}</span>
+                                              <span className={`text-[10px] px-2 py-0.5 rounded-md font-bold uppercase tracking-wide border ${
+                                                ew.isCompleted 
+                                                  ? 'bg-emerald-50 border-emerald-200 text-emerald-800' 
+                                                  : 'bg-amber-50 border-amber-200 text-amber-800'
+                                              }`}>
+                                                {ew.isCompleted ? 'Completed' : 'Pending'}
+                                              </span>
+                                            </div>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    );
+                                  })()}
+                                </div>
+                              ) : activeSubTab === 'complaints' ? (
+                                <div className="bg-white border border-black-150 rounded-2xl p-5 shadow-sm space-y-6">
+                                  
+                                  {/* File a complaint form */}
+                                  <form onSubmit={handleAddComplaint} className="space-y-3 bg-black-50 p-4 rounded-xl border border-black-100">
+                                    <label className="text-[11px] font-bold text-black-700 uppercase tracking-wide block">Report New Complaint</label>
+                                    <div className="flex gap-2">
+                                      <input
+                                        type="text"
+                                        placeholder="Describe the complaint (e.g. Paint patch repair in bedroom)..."
+                                        value={newComplaintDesc}
+                                        onChange={(e) => setNewComplaintDesc(e.target.value)}
+                                        className="flex-1 px-3 py-2 bg-white border border-black-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-xs font-semibold text-black-700 shadow-sm"
+                                        required
+                                      />
+                                      <button
+                                        type="submit"
+                                        disabled={submittingComplaint}
+                                        className="px-5 py-2 bg-[#0e623a] hover:bg-[#0b4d2d] text-white text-[11px] font-bold rounded-lg transition shadow-sm flex items-center gap-1 cursor-pointer shrink-0 disabled:opacity-50"
+                                      >
+                                        {submittingComplaint ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
+                                        <span>File Complaint</span>
+                                      </button>
+                                    </div>
+                                  </form>
+
+                                  {/* Complaints lists */}
+                                  <div className="space-y-3">
+                                    <h4 className="text-[11px] font-bold text-black-500 uppercase tracking-wide border-b pb-2">Reported Complaints</h4>
+                                    
+                                    {(!selectedFlow.complaints || selectedFlow.complaints.length === 0) ? (
+                                      <div className="p-8 bg-black-50 rounded-xl border border-dashed border-black-200 text-center text-xs text-black-400 font-semibold italic">
+                                        No complaints filed for this customer.
+                                      </div>
+                                    ) : (
+                                      <div className="divide-y border rounded-xl overflow-hidden bg-white">
+                                        {selectedFlow.complaints.map((comp, idx) => {
+                                          let statusColor = 'bg-amber-50 border-amber-250 text-amber-800';
+                                          if (comp.status === 'In Progress') {
+                                            statusColor = 'bg-blue-50 border-blue-200 text-blue-800';
+                                          } else if (comp.status === 'Resolved') {
+                                            statusColor = 'bg-emerald-50 border-emerald-250 text-emerald-800';
+                                          }
+
+                                          return (
+                                            <div key={comp._id} className="p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 hover:bg-black-50/50 transition">
+                                              <div className="text-left space-y-1">
+                                                <p className="text-xs font-semibold text-black-800">{comp.description}</p>
+                                                <div className="flex gap-2 text-[10px] text-black-400 font-bold">
+                                                  <span>Reported: {new Date(comp.reportedAt).toLocaleDateString()}</span>
+                                                  {comp.resolvedAt && (
+                                                    <span className="text-emerald-700">Resolved: {new Date(comp.resolvedAt).toLocaleDateString()}</span>
+                                                  )}
+                                                </div>
+                                              </div>
+
+                                              <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto justify-between sm:justify-end">
+                                                <span className={`text-[10px] px-2.5 py-0.5 rounded-md font-bold uppercase tracking-wide border ${statusColor}`}>
+                                                  {comp.status}
+                                                </span>
+                                                
+                                                <select
+                                                  value={comp.status}
+                                                  onChange={(e) => handleUpdateComplaintStatus(comp._id, e.target.value)}
+                                                  className="px-2 py-1 bg-black-50 border rounded-lg text-[10px] font-bold text-black-700 uppercase tracking-wide focus:outline-none focus:ring-1 focus:ring-[#0e623a]"
+                                                >
+                                                  <option value="Pending">Pending</option>
+                                                  <option value="In Progress">In Progress</option>
+                                                  <option value="Resolved">Resolved</option>
+                                                </select>
+                                              </div>
+                                            </div>
+                                          );
+                                        })}
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              ) : activeSubTab === 'history' ? (
+                                <div className="bg-white border border-black-150 rounded-2xl p-5 shadow-sm space-y-4">
+                                  <h3 className="text-[11px] font-bold text-black-700 uppercase tracking-wide flex items-center gap-2">
+                                    <History className="w-3.5 h-3.5 text-[#0e623a]" /> CRD Flow History
+                                  </h3>
+                                  
+                                  {(!selectedFlow.history || selectedFlow.history.length === 0) ? (
+                                    <div className="p-8 bg-black-50 rounded-xl border border-dashed border-black-200 text-center text-xs text-black-400 font-semibold italic">
+                                      No history logs for this CRD flow yet.
+                                    </div>
+                                  ) : (
+                                    <div className="divide-y border rounded-xl overflow-hidden bg-white">
+                                      {selectedFlow.history.slice().reverse().map((entry, idx) => (
+                                        <div key={idx} className="p-4 flex gap-4 hover:bg-black-50/50 transition">
+                                          <div className="flex-shrink-0 mt-0.5">
+                                            <div className="w-7 h-7 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-black text-[10px] uppercase shadow-inner">
+                                              {entry.user ? entry.user.slice(0, 2) : 'SY'}
+                                            </div>
+                                          </div>
+                                          <div>
+                                            <h4 className="font-bold text-black-800 text-xs">{entry.action}</h4>
+                                            <p className="text-[11px] text-black-600 mt-1 font-medium">{entry.notes}</p>
+                                            <div className="text-[10px] text-black-400 mt-1.5 font-bold uppercase tracking-wide">
+                                              {new Date(entry.date).toLocaleString()} • {entry.user || 'System'}
+                                            </div>
+                                          </div>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                              ) : null}
+
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
+                  );
+                })}
+                
+                {filteredFlows.length === 0 && (
+                  <tr>
+                    <td colSpan="6" className="text-center py-10 text-xs text-black-450 italic font-semibold">
+                      No customers matched search
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
     </div>
