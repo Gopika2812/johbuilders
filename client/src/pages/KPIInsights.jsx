@@ -2689,6 +2689,10 @@ const KPIInsights = () => {
     return acc;
   }, {});
 
+  const overallTotalLeads = Object.values(filteredSourceStats).reduce((sum, d) => sum + (d.count || 0), 0);
+  const overallTotalSpent = Object.values(filteredSourceStats).reduce((sum, d) => sum + (d.spent || 0), 0);
+  const overallCostPerLead = overallTotalLeads > 0 ? (overallTotalSpent / overallTotalLeads) : 0;
+
   const getSourcesData = () => {
     const budgetData = [];
     const spentData = [];
@@ -2818,7 +2822,16 @@ const KPIInsights = () => {
             <div className="bg-white border border-black-150 p-5 rounded-3xl shadow-sm hover:shadow-md transition">
               <span className="text-[11px] font-bold text-black-400 uppercase tracking-wider block">Marketing Investment</span>
               <h3 className="text-2xl font-black text-black-800 mt-1">₹{Math.round(stats.insights?.totalMarketingSpend || 0).toLocaleString()}</h3>
-              
+              <div className="mt-3 pt-3 border-t border-black-100 grid grid-cols-2 gap-2 text-left">
+                <div>
+                  <span className="text-[10px] text-black-400 font-bold uppercase block">Overall Leads</span>
+                  <span className="text-sm font-black text-black-700">{overallTotalLeads}</span>
+                </div>
+                <div>
+                  <span className="text-[10px] text-black-400 font-bold uppercase block">Cost Per Lead</span>
+                  <span className="text-sm font-black text-[#0e623a]">₹{Math.round(overallCostPerLead).toLocaleString()}</span>
+                </div>
+              </div>
             </div>
 
             {/* Cost Per Enquiry */}
@@ -2845,13 +2858,25 @@ const KPIInsights = () => {
                 <BarChart3 className="w-5 h-5 text-[#0e623a]" />
                 <span>Daily Lead Cost Analysis Report</span>
               </h3>
-              <button
-                onClick={handleExportLeadCostAnalysis}
-                className="px-4 py-2 bg-[#0e623a] text-white rounded-xl text-xs font-bold hover:bg-[#0b4d2d] transition flex items-center gap-2 shadow-sm"
-              >
-                <FileText className="w-3.5 h-3.5" />
-                <span>Export Report</span>
-              </button>
+              <div className="flex items-center gap-3">
+                <select
+                  value={selectedSource}
+                  onChange={(e) => setSelectedSource(e.target.value)}
+                  className="px-3 py-2 bg-black-50 border border-black-200 rounded-xl text-xs font-bold text-black-700 focus:outline-none focus:ring-1 focus:ring-[#0e623a]"
+                >
+                  <option value="">All Lead Sources</option>
+                  {SOURCE_TYPES.map(src => (
+                    <option key={src} value={src}>{src}</option>
+                  ))}
+                </select>
+                <button
+                  onClick={handleExportLeadCostAnalysis}
+                  className="px-4 py-2 bg-[#0e623a] text-white rounded-xl text-xs font-bold hover:bg-[#0b4d2d] transition flex items-center gap-2 shadow-sm"
+                >
+                  <FileText className="w-3.5 h-3.5" />
+                  <span>Export Report</span>
+                </button>
+              </div>
             </div>
             
             

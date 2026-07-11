@@ -304,21 +304,21 @@ const ObservedPieChart = ({
 
       {hoveredItem && (
         <div 
-          className="absolute z-50 pointer-events-none bg-gray-900/95 backdrop-blur-md text-white text-[12px] px-3.5 py-2.5 rounded-2xl shadow-xl border border-gray-800 flex flex-col gap-1 pointer-events-none transition-all duration-75"
+          className="absolute z-50 pointer-events-none bg-white/95 backdrop-blur-md text-black-800 text-[12px] px-3.5 py-2.5 rounded-2xl shadow-xl border border-[#c5a059]/40 flex flex-col gap-1 pointer-events-none transition-all duration-75"
           style={{ 
             left: `${mousePos.x + 15}px`, 
             top: `${mousePos.y + 15}px`,
             fontFamily: "'Segoe UI', system-ui, sans-serif"
           }}
         >
-          <span className="font-extrabold text-[10px] uppercase tracking-wider text-gray-400">
+          <span className="font-extrabold text-[10px] uppercase tracking-wider text-black-400">
             {hoveredItem[labelKey]}
           </span>
           <div className="flex items-center gap-2 font-sans font-black">
-            <span className="text-[#10b981] font-black text-sm">
+            <span className="text-[#0a4c2c] font-black text-sm">
               {((hoveredItem[valueKey] / total) * 100).toFixed(1)}%
             </span>
-            <span className="text-gray-300 font-extrabold text-[11px]">
+            <span className="text-black-550 font-extrabold text-[11px]">
               ({isCount ? `${hoveredItem[valueKey]} ${typeof isCount === 'string' ? isCount : 'Leads'}` : `₹${Math.round(hoveredItem[valueKey]).toLocaleString()}`})
             </span>
           </div>
@@ -1628,14 +1628,14 @@ const CRDDashboard = () => {
                 type="date"
                 value={fromDate}
                 onChange={(e) => setFromDate(e.target.value)}
-                className="w-1/2 bg-transparent text-xs text-gray-700 font-bold focus:outline-none focus:ring-0 border-0 p-0 text-center"
+                className="w-1/2 min-w-[125px] bg-transparent text-xs text-gray-700 font-bold focus:outline-none focus:ring-0 border-0 p-0 text-center"
               />
               <span className="text-[11px] text-gray-400 font-bold">to</span>
               <input
                 type="date"
                 value={toDate}
                 onChange={(e) => setToDate(e.target.value)}
-                className="w-1/2 bg-transparent text-xs text-gray-700 font-bold focus:outline-none focus:ring-0 border-0 p-0 text-center"
+                className="w-1/2 min-w-[125px] bg-transparent text-xs text-gray-700 font-bold focus:outline-none focus:ring-0 border-0 p-0 text-center"
               />
             </div>
           </div>
