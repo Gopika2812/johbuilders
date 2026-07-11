@@ -1843,7 +1843,7 @@ const Dashboard = () => {
                   <div>
                     <span className="text-sm text-rose-600 font-extrabold uppercase tracking-wider">Lost Leads</span>
                     <h3 className="text-3xl font-extrabold text-rose-600 mt-1">
-                      {(stats.cards.enquiries?.closed || 0) + (stats.cards.siteVisits?.closed || 0) + (stats.stageStats?.['Lost']?.count || 0)}
+                      {(stats.cards.enquiries?.closed || 0) + (stats.cards.siteVisits?.closed || 0)}
                     </h3>
                   </div>
                 </div>

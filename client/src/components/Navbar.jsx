@@ -72,17 +72,25 @@ const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
           const more = newLeads.length > 3 ? ' and more...' : '';
           const body = `Please review action for: ${names}${more}`;
           
+          const notifOptions = {
+            body,
+            icon: '/jb_logo.jpg',
+            badge: '/favicon.svg',
+            vibrate: [200, 100, 200],
+            requireInteraction: true
+          };
+
           try {
             // Try service worker first (better support on Android Chrome)
             navigator.serviceWorker.getRegistration().then(reg => {
               if (reg) {
-                reg.showNotification('New Alerts & Follow-ups', { body, vibrate: [200, 100, 200] });
+                reg.showNotification('New Alerts & Follow-ups', notifOptions);
               } else {
-                new Notification('New Alerts & Follow-ups', { body });
+                new Notification('New Alerts & Follow-ups', notifOptions);
               }
             });
           } catch (e) {
-            new Notification('New Alerts & Follow-ups', { body });
+            new Notification('New Alerts & Follow-ups', notifOptions);
           }
         }
       }

@@ -773,7 +773,7 @@ const LeadsDirectory = () => {
 
     const payload = {
       status: 'Booking',
-      BookedInfo: {
+      bookingInfo: {
         selectedUnits: selectedBookedUnits,
         alternativePhone: BookedAltPhone,
         aadharNumber: BookedAadhar,
