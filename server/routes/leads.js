@@ -134,7 +134,7 @@ router.post('/', protect, async (req, res) => {
 
   try {
     // 1. Phone number tracking for reopening existing leads
-    let lead = await Lead.findOne({ phone });
+    let lead = await Lead.findOne({ phone }).populate('assignedTo', 'name');
 
     let defaultStatus = 'New';
     if (leadType === 'Direct Visit') {
@@ -144,6 +144,21 @@ router.post('/', protect, async (req, res) => {
     }
 
     if (lead) {
+      // Check if lead has completed Handover stage
+      const CRDFlow = require('../models/CrdFlow');
+      const flows = await CRDFlow.find({ lead: lead._id });
+      let isHandover = lead.status === 'Won';
+      if (flows && flows.length > 0) {
+        isHandover = flows.some(flow => flow.stages && flow.stages.some(s => s.name.toLowerCase().includes('handover') && s.isCompleted));
+      }
+
+      if (!isHandover) {
+        const assignedName = lead.assignedTo ? lead.assignedTo.name : 'someone';
+        return res.status(400).json({ 
+          message: `This lead is currently assigned to ${assignedName} and is in '${lead.status}' stage. You can only use this number again after the lead has moved to the Handover stage.` 
+        });
+      }
+
       const oldStatus = lead.status;
       // Reopen existing lead
       lead.leadType = leadType;
