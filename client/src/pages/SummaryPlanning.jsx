@@ -223,7 +223,7 @@ const SummaryPlanning = () => {
         w2: statsObj.w2,
         w3: statsObj.w3,
         w4: statsObj.w4,
-        isFloat: true
+        isFloat: false
       });
     });
 

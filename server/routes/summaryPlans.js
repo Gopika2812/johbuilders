@@ -135,11 +135,11 @@ router.get('/marketing-stats/:month', protect, async (req, res) => {
     leads.forEach(lead => {
       const week = getWeekBucket(lead.createdAt);
       const status = lead.status;
+      // 2. LEADS GENERATED means total lead count (unconditional)
+      staticStats.leadsGenerated.actual += 1;
+      staticStats.leadsGenerated[week] += 1;
 
-      if (status === 'Contacted' || status === 'Follow-Up') {
-        staticStats.leadsGenerated.actual += 1;
-        staticStats.leadsGenerated[week] += 1;
-      }
+      // 3. SITE VISIT CONVERSIONS means booking count
       if (status === 'Booking') {
         staticStats.conversions.actual += 1;
         staticStats.conversions[week] += 1;
@@ -157,6 +157,7 @@ router.get('/marketing-stats/:month', protect, async (req, res) => {
       const week = getWeekBucket(q.createdAt);
       const val = q.totalValue || 0; // value in rupees
 
+      // 1. Group Stats (Booking value in Cr by source group)
       for (let gName in groupStats) {
         if (groupStats[gName].sources.includes(leadSource)) {
           groupStats[gName].actual += val;
@@ -166,15 +167,7 @@ router.get('/marketing-stats/:month', protect, async (req, res) => {
       }
     });
 
-    // Convert quotation groups value to Crores (1 Crore = 10,000,000)
-    for (let gName in groupStats) {
-      groupStats[gName].actual = parseFloat((groupStats[gName].actual / 10000000).toFixed(4));
-      groupStats[gName].w1 = parseFloat((groupStats[gName].w1 / 10000000).toFixed(4));
-      groupStats[gName].w2 = parseFloat((groupStats[gName].w2 / 10000000).toFixed(4));
-      groupStats[gName].w3 = parseFloat((groupStats[gName].w3 / 10000000).toFixed(4));
-      groupStats[gName].w4 = parseFloat((groupStats[gName].w4 / 10000000).toFixed(4));
-    }
-
+    // No division by Crores for Marketing Plan; send exact Rupee values
     res.json({
       groups: groupStats,
       static: staticStats
