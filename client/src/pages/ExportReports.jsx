@@ -852,11 +852,18 @@ const ExportReports = () => {
       const res = await fetch(`${API_URL}/leads`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
+      const quotRes = await fetch(`${API_URL}/quotations`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
       if (!res.ok) {
         alert('Failed to load lead details for export');
         return;
       }
       const data = await res.json();
+      let allQuotations = [];
+      if (quotRes.ok) {
+        allQuotations = await quotRes.json();
+      }
 
       // Apply active dashboard filters
       const filtered = data.filter(lead => {
@@ -934,7 +941,12 @@ const ExportReports = () => {
         const attendedBy = lead.assignedTo?.name || 'UNASSIGNED';
         const projectStr = lead.project?.code || '';
         const unitNo = lead.bookingInfo?.selectedUnits?.join(', ') || '';
-        const unitValStr = lead.leadCost ? lead.leadCost.toLocaleString() : '0';
+        
+        const leadQuots = allQuotations.filter(q => (q.lead?._id || q.lead) === lead._id);
+        const finalQuot = leadQuots[leadQuots.length - 1];
+        const unitValue = finalQuot ? finalQuot.totalValue : (lead.leadCost || 0);
+        
+        const unitValStr = unitValue.toLocaleString();
         const rowClass = index % 2 === 1 ? 'class="even-row"' : '';
 
         html += `
