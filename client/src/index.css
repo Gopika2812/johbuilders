@@ -17,8 +17,8 @@
 
 body {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  background: linear-gradient(135deg, #e6f4ea 0%, #d2ebd9 100%);
-  color: #2d3748;
+  background: linear-gradient(135deg, #eef3f0 0%, #dbe7df 100%);
+  color: #1a2530;
   margin: 0;
   padding: 0;
   min-height: 100vh;
@@ -34,7 +34,7 @@ body::after {
   background-image: url('/pattern.png');
   background-size: 300px 300px;
   animation: patternMove 60s linear infinite;
-  opacity: 0.4;
+  opacity: 0.25;
   pointer-events: none;
   filter: invert(1);
   z-index: 0;
@@ -56,12 +56,12 @@ body::after {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: #c5a059; /* Gold scrollbar thumb */
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #0e623a;
+  background: #0a4c2c; /* Royal green on hover */
 }
 
 /* Background Wave Animation Keyframes */
@@ -111,35 +111,35 @@ body::after {
 
 
 .glass-card {
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.7) 0%, rgba(255, 255, 255, 0.3) 100%);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.8) 0%, rgba(255, 255, 255, 0.45) 100%);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
-  border: 1px solid rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(197, 160, 89, 0.25); /* Gold-tinted border */
   box-shadow: 
-    0 10px 40px -10px rgba(31, 38, 135, 0.15),
+    0 10px 40px -10px rgba(10, 76, 44, 0.08),
     inset 0 0 0 1px rgba(255, 255, 255, 0.5);
   border-radius: 24px;
 }
 
 .glass-nav {
-  background: linear-gradient(90deg, rgba(255, 255, 255, 0.7) 0%, rgba(255, 255, 255, 0.5) 100%);
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.8) 0%, rgba(255, 255, 255, 0.6) 100%);
   backdrop-filter: blur(25px);
   -webkit-backdrop-filter: blur(25px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.6);
-  box-shadow: 0 4px 30px -5px rgba(0,0,0,0.03);
+  border-bottom: 1.5px solid rgba(197, 160, 89, 0.2); /* Gold-tinted line */
+  box-shadow: 0 4px 30px -5px rgba(10, 76, 44, 0.02);
 }
 
 .glass-sidebar {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.85) 0%, rgba(248, 250, 252, 0.7) 100%);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.9) 0%, rgba(244, 246, 244, 0.8) 100%);
   backdrop-filter: blur(30px);
   -webkit-backdrop-filter: blur(30px);
-  border-right: 1px solid rgba(255, 255, 255, 0.7);
-  box-shadow: 5px 0 30px -10px rgba(0,0,0,0.05);
+  border-right: 1.5px solid rgba(197, 160, 89, 0.2); /* Gold-tinted border */
+  box-shadow: 5px 0 30px -10px rgba(10, 76, 44, 0.05);
 }
 
 
 .grand-heading {
-  background: linear-gradient(135deg, #065f46 0%, #047857 100%);
+  background: linear-gradient(135deg, #0a4c2c 0%, #c5a059 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   font-weight: 800;
@@ -147,32 +147,36 @@ body::after {
 }
 
 .premium-shadow {
-  box-shadow: 0 20px 40px -15px rgba(4, 120, 87, 0.15);
+  box-shadow: 0 20px 40px -15px rgba(10, 76, 44, 0.1);
 }
 
 .btn-grand {
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  background: linear-gradient(135deg, #0a4c2c 0%, #115c36 100%); /* Royal Green */
   color: white;
-  border: 1px solid rgba(255,255,255,0.2);
-  box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3), inset 0 1px 0 rgba(255,255,255,0.3);
+  border: 1px solid rgba(212, 175, 55, 0.4); /* Gold Border */
+  box-shadow: 0 4px 15px rgba(10, 76, 44, 0.25), inset 0 1px 0 rgba(255,255,255,0.25);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
+
 .btn-grand:hover {
-  box-shadow: 0 8px 25px rgba(16, 185, 129, 0.4), inset 0 1px 0 rgba(255,255,255,0.4);
+  background: linear-gradient(135deg, #115c36 0%, #0a4c2c 100%);
+  border-color: rgba(212, 175, 55, 0.8);
+  box-shadow: 0 8px 25px rgba(212, 175, 55, 0.25), inset 0 1px 0 rgba(255,255,255,0.35);
   transform: translateY(-2px);
 }
 
-/* Highlight all table headers with Brand/Logo Dark Green */
+/* Highlight all table headers with Brand Royal Green and Gold Bottom Border */
 table thead,
 thead,
 table thead tr,
 thead tr {
-  background-color: #0e623a !important;
+  background-color: #0a4c2c !important;
 }
 
 table thead th,
 thead th {
-  background-color: #0e623a !important;
+  background-color: #0a4c2c !important;
+  border-bottom: 2.5px solid #d4af37 !important; /* Gold bottom line */
   color: #ffffff !important;
   font-weight: 700 !important;
 }
@@ -180,4 +184,91 @@ thead th {
 /* Ensure table cells inherit row background highlight colors */
 table tbody tr td {
   background-color: inherit !important;
+}
+
+/* Style all notification alerts as beautiful floating toasts */
+div.bg-emerald-50.border-emerald-200:not(.rounded-full),
+div.bg-red-50.border-red-200:not(.rounded-full) {
+  position: fixed !important;
+  top: 24px !important;
+  right: 24px !important;
+  z-index: 99999 !important;
+  min-width: 320px !important;
+  max-width: 450px !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.16) !important;
+  border-radius: 16px !important;
+  padding: 16px 20px !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  animation: slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+}
+
+div.bg-emerald-50.border-emerald-200:not(.rounded-full) {
+  background-color: #f7fcf9 !important;
+  border-color: #d4af37 !important; /* Gold border for success */
+  color: #0a4c2c !important;
+  border-left: 5px solid #d4af37 !important; /* Gold left-accent */
+}
+
+div.bg-red-50.border-red-200:not(.rounded-full) {
+  background-color: #fce8e6 !important;
+  border-color: #c5221f !important;
+  color: #c5221f !important;
+  border-left: 5px solid #c5221f !important;
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(120%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* Custom Royal Green & Gold Overrides for Active States */
+aside .bg-\[\#0e623a\] {
+  background-color: #0a4c2c !important; /* Deep Royal Green background */
+  border-left: 4.5px solid #d4af37 !important; /* Solid Gold indicator */
+  box-shadow: 0 4px 15px rgba(10, 76, 44, 0.25) !important;
+  font-weight: 700 !important;
+}
+
+aside .text-\[\#0e623a\] {
+  color: #0a4c2c !important;
+}
+
+aside .hover\:bg-\[\#0e623a\]\/10:hover {
+  background-color: rgba(10, 76, 44, 0.08) !important;
+}
+
+aside .hover\:text-\[\#0e623a\]:hover {
+  color: #0a4c2c !important;
+}
+
+/* Tab selector overrides */
+.bg-\[\#0e623a\] {
+  background-color: #0a4c2c !important;
+}
+.text-\[\#0e623a\] {
+  color: #0a4c2c !important;
+}
+.border-\[\#0e623a\] {
+  border-color: #0a4c2c !important;
+}
+
+/* Gold Highlights for icons, borders and tags */
+.text-gold-500 {
+  color: #d4af37 !important;
+}
+.border-gold-500 {
+  border-color: #d4af37 !important;
+}
+.bg-gold-500 {
+  background-color: #d4af37 !important;
 }

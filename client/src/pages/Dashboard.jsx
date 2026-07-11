@@ -1902,7 +1902,7 @@ const Dashboard = () => {
                       { label: 'Enquiries', count: selectedUserPerfData.enquiries, color: 'bg-emerald-600', icon: Users },
                       { label: 'Site Visit', count: selectedUserPerfData.siteVisits, color: 'bg-blue-500', icon: MapPin },
                       { label: 'Hot List', count: selectedUserPerfData.hotList, color: 'bg-amber-500', icon: Target },
-                      { label: 'Booked', count: selectedUserPerfData.booked || 0, color: 'bg-rose-500', icon: DollarSign },
+                      { label: 'Booked', count: selectedUserPerfData.booked || 0, color: 'bg-yellow-500', icon: DollarSign },
                       /* { label: 'Handover', count: selectedUserPerfData.handover, color: 'bg-emerald-700', icon: Building }, */
                       { label: 'Lost', count: selectedUserPerfData.lost, color: 'bg-red-500', icon: TrendingDown }
                     ].filter(m => m.label === 'Total Leads' || m.count > 0).map((m, idx) => {
@@ -2046,7 +2046,7 @@ const Dashboard = () => {
                       { label: 'Enquiries', count: selectedSourcePerfData.enquiries, color: 'bg-emerald-600', icon: Users },
                       { label: 'Site Visit', count: selectedSourcePerfData.siteVisits, color: 'bg-blue-500', icon: MapPin },
                       { label: 'Hot List', count: selectedSourcePerfData.hotList, color: 'bg-amber-500', icon: Target },
-                      { label: 'Booked', count: selectedSourcePerfData.booked || 0, color: 'bg-rose-500', icon: DollarSign },
+                      { label: 'Booked', count: selectedSourcePerfData.booked || 0, color: 'bg-yellow-500', icon: DollarSign },
                       /* { label: 'Handover', count: selectedSourcePerfData.handover, color: 'bg-emerald-700', icon: Building }, */
                       { label: 'Lost', count: selectedSourcePerfData.lost, color: 'bg-red-500', icon: TrendingDown }
                     ].filter(m => m.label === 'Total Leads' || m.count > 0).map((m, idx) => {
@@ -2099,9 +2099,9 @@ const Dashboard = () => {
             </h3>
             
             <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse text-xs">
+              <table className="w-full text-left border-collapse text-sm">
                 <thead>
-                  <tr className="bg-black-50 border-b border-black-150 font-bold text-black-500 uppercase tracking-wider text-[11px]">
+                  <tr className="bg-black-50 border-b border-black-150 font-bold text-black-500 uppercase tracking-wider text-xs">
                     <th className="p-4 w-12 text-center">S.NO.</th>
                     <th className="p-4 w-32">PROJECT CODE</th>
                     <th className="p-4">PIPELINE STAGE SPLITS</th>
@@ -2109,7 +2109,7 @@ const Dashboard = () => {
                     <th className="p-4 w-32 text-right">TOTAL LEADS</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-black-100 font-sans text-xs">
+                <tbody className="divide-y divide-black-100 font-sans text-sm">
                   {Object.keys(stats.projectStats || {}).length === 0 ? (
                     <tr>
                       <td colSpan="5" className="p-12 text-center text-black-400 italic">No project statistics logged for this period</td>
@@ -2126,15 +2126,15 @@ const Dashboard = () => {
                               {Object.keys(p.stages || {}).map(stageName => (
                                 <span 
                                   key={stageName}
-                                  className="text-[11px] font-bold px-2.5 py-1 bg-black-50 border-none text-black-650 rounded-xl"
+                                  className="text-[13px] font-bold px-2.5 py-1 bg-black-50 border-none text-black-650 rounded-xl"
                                 >
-                                  {stageName === 'Booking' ? 'Booked' : stageName}: {p.stages[stageName]}
+                                  {stageName === 'Booking' ? 'Booked' : stageName}: <span className="text-[15px] font-black text-black-900 ml-1">{p.stages[stageName]}</span>
                                 </span>
                               ))}
                             </div>
                           </td>
                           
-                          <td className="p-4 text-right font-bold text-black-700">
+                          <td className="p-4 text-right font-black text-black-900 text-base">
                             {p.count}
                           </td>
                         </tr>
@@ -2204,15 +2204,27 @@ const Dashboard = () => {
                       <div className="space-y-3">
                         {[
                           { label: 'Total Leads', count: stats.projectStats[selectedProjectPerfCode].count, color: 'bg-black-400', icon: TrendingUp },
-                          ...Object.keys(stats.projectStats[selectedProjectPerfCode].stages || {}).map((stageName, i) => {
-                            const colors = ['bg-emerald-600', 'bg-blue-500', 'bg-amber-500', 'bg-rose-500', 'bg-purple-500', 'bg-teal-500', 'bg-orange-500', 'bg-red-500'];
-                            return {
-                              label: stageName,
-                              count: stats.projectStats[selectedProjectPerfCode].stages[stageName],
-                              color: colors[i % colors.length],
-                              icon: Users
-                            };
-                          })
+                          ...Object.keys(stats.projectStats[selectedProjectPerfCode].stages || {})
+                            .sort((a, b) => {
+                              const order = { 'Assigned': 1, 'Follow-Up': 2, 'Booking': 3, 'Lost': 4 };
+                              return (order[a] || 99) - (order[b] || 99);
+                            })
+                            .map((stageName) => {
+                              const getStageColor = (label) => {
+                                const cleanLabel = label.toLowerCase();
+                                if (cleanLabel.includes('assign')) return 'bg-purple-500';
+                                if (cleanLabel.includes('follow')) return 'bg-emerald-600';
+                                if (cleanLabel.includes('book')) return 'bg-yellow-500';
+                                if (cleanLabel.includes('lost')) return 'bg-red-500';
+                                return 'bg-blue-500';
+                              };
+                              return {
+                                label: stageName,
+                                count: stats.projectStats[selectedProjectPerfCode].stages[stageName],
+                                color: getStageColor(stageName),
+                                icon: Users
+                              };
+                            })
                         ].filter(m => m.label === 'Total Leads' || m.count > 0).map((m, idx) => {
                           const IconComponent = m.icon;
                           const percentageOfTotal = stats.projectStats[selectedProjectPerfCode].count > 0 
@@ -2228,7 +2240,7 @@ const Dashboard = () => {
                                   <div className="text-black-700">
                                     <IconComponent className="w-3.5 h-3.5" />
                                   </div>
-                                  <span className="font-bold text-black-750">{m.label}</span>
+                                  <span className="font-bold text-black-750">{m.label === 'Booking' ? 'Booked' : m.label}</span>
                                 </div>
                                 <div className="font-extrabold text-black-800">
                                   {m.count}

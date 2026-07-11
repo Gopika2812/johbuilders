@@ -57,10 +57,10 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
         {/* Dashboard */}
         <Link
           to="/"
-          className={`flex items-center gap-3 py-3 ${isExpanded ? "justify-start px-4" : "justify-center px-0"} rounded-xl transition-all duration-200 rounded-xl transition-all duration-200 ${
+          className={`flex items-center gap-3 py-3 ${isExpanded ? "justify-start px-4" : "justify-center px-0"} rounded-xl transition-all duration-200 ${
             isActive('/') 
-              ? 'bg-[#11c278] text-white font-bold shadow-md' 
-              : 'text-emerald-900 hover:bg-[#11c278]/10 hover:text-emerald-500'
+              ? 'bg-[#0e623a] text-white font-bold shadow-md' 
+              : 'text-emerald-900 hover:bg-[#0e623a]/10 hover:text-[#0e623a]'
           }`}
         >
           <LayoutDashboard className={`w-5 h-5 ${isActive('/') ? 'text-white' : 'text-emerald-900'}`} />
@@ -70,10 +70,10 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
         {/* KPI Insights */}
         <Link
           to="/kpi-insights"
-          className={`flex items-center gap-3 py-3 ${isExpanded ? "justify-start px-4" : "justify-center px-0"} rounded-xl transition-all duration-200 rounded-xl transition-all duration-200 ${
+          className={`flex items-center gap-3 py-3 ${isExpanded ? "justify-start px-4" : "justify-center px-0"} rounded-xl transition-all duration-200 ${
             isActive('/kpi-insights') 
-              ? 'bg-[#11c278] text-white font-bold shadow-md' 
-              : 'text-emerald-900 hover:bg-[#11c278]/10 hover:text-emerald-500'
+              ? 'bg-[#0e623a] text-white font-bold shadow-md' 
+              : 'text-emerald-900 hover:bg-[#0e623a]/10 hover:text-[#0e623a]'
           }`}
         >
           <BarChart3 className={`w-5 h-5 ${isActive('/kpi-insights') ? 'text-white' : 'text-emerald-900'}`} />
@@ -83,10 +83,10 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
         {/* Projects Directory */}
         <Link
           to="/projects"
-          className={`flex items-center gap-3 py-3 ${isExpanded ? "justify-start px-4" : "justify-center px-0"} rounded-xl transition-all duration-200 rounded-xl transition duration-200 ${
+          className={`flex items-center gap-3 py-3 ${isExpanded ? "justify-start px-4" : "justify-center px-0"} rounded-xl transition duration-205 ${
             isActive('/projects') 
-              ? 'bg-[#11c278] text-white font-bold shadow-md' 
-              : 'text-emerald-900 hover:bg-[#11c278]/10 hover:text-emerald-500'
+              ? 'bg-[#0e623a] text-white font-bold shadow-md' 
+              : 'text-emerald-900 hover:bg-[#0e623a]/10 hover:text-[#0e623a]'
           }`}
         >
           <FolderGit2 className={`w-5 h-5 ${isActive('/projects') ? 'text-white' : 'text-emerald-900'}`} />
@@ -99,8 +99,8 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
           to="/leads"
           className={`flex items-center gap-3 py-3 ${isExpanded ? "justify-start px-4" : "justify-center px-0"} rounded-xl transition duration-200 ${
             location.pathname === '/leads' && !location.search
-              ? 'bg-[#11c278] text-white font-bold shadow-md' 
-              : 'text-emerald-900 hover:bg-[#11c278]/10 hover:text-emerald-500'
+              ? 'bg-[#0e623a] text-white font-bold shadow-md' 
+              : 'text-emerald-900 hover:bg-[#0e623a]/10 hover:text-[#0e623a]'
           }`}
         >
           <UserPlus className={`w-5 h-5 ${location.pathname === '/leads' && !location.search ? 'text-white' : 'text-emerald-900'}`} />
@@ -111,7 +111,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
         <div>
           <button
             onClick={() => setLeadsMenuOpen(!leadsMenuOpen)}
-            className={`w-full flex items-center ${isExpanded ? "justify-between px-4" : "justify-center px-0"} py-3 text-emerald-900 hover:bg-[#11c278]/10 hover:text-emerald-500 rounded-xl transition duration-200`}
+            className={`w-full flex items-center ${isExpanded ? "justify-between px-4" : "justify-center px-0"} py-3 text-emerald-900 hover:bg-[#0e623a]/10 hover:text-[#0e623a] rounded-xl transition duration-200`}
           >
             <div className="flex items-center gap-3">
               <FolderGit2 className="w-5 h-5 text-emerald-900" />
@@ -126,8 +126,8 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
                 to="/crd-flow"
                 className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs transition ${
                   isActive('/crd-flow')
-                    ? 'text-emerald-500 font-extrabold pl-2'
-                    : 'text-emerald-900 hover:text-emerald-500 hover:bg-[#11c278]/10'
+                    ? 'text-[#0e623a] font-extrabold pl-2'
+                    : 'text-emerald-900 hover:text-[#0e623a] hover:bg-[#0e623a]/10'
                 }`}
               >
                 <span className={isExpanded ? "block truncate" : "hidden"}>CRD Flow</span>
@@ -137,8 +137,8 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
                 to="/quotations"
                 className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs transition ${
                   location.pathname === '/quotations'
-                    ? 'text-emerald-500 font-extrabold pl-2'
-                    : 'text-emerald-900 hover:text-emerald-500 hover:bg-[#11c278]/10'
+                    ? 'text-[#0e623a] font-extrabold pl-2'
+                    : 'text-emerald-900 hover:text-[#0e623a] hover:bg-[#0e623a]/10'
                 }`}
               >
                 <span className={isExpanded ? "block truncate" : "hidden"}>Quotation Records</span>
@@ -148,30 +148,19 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
                 to="/crd-flow/bank-loan-history"
                 className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs transition ${
                   isActive('/crd-flow/bank-loan-history')
-                    ? 'text-emerald-500 font-extrabold pl-2'
-                    : 'text-emerald-900 hover:text-emerald-500 hover:bg-[#11c278]/10'
+                    ? 'text-[#0e623a] font-extrabold pl-2'
+                    : 'text-emerald-900 hover:text-[#0e623a] hover:bg-[#0e623a]/10'
                 }`}
               >
                 <span className={isExpanded ? "block truncate" : "hidden"}>Bank Loan History</span>
               </Link>
 
-              {/* <Link
-                to="/crd-flow/collection-report"
-                className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs transition ${
-                  isActive('/crd-flow/collection-report')
-                    ? 'text-emerald-500 font-extrabold pl-2'
-                    : 'text-emerald-900 hover:text-emerald-500 hover:bg-[#11c278]/10'
-                }`}
-              >
-                <span className={isExpanded ? "block truncate" : "hidden"}>Collection Report</span>
-              </Link> */}
-
               <Link
                 to="/crd-flow/overall-report"
                 className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs transition ${
                   isActive('/crd-flow/overall-report')
-                    ? 'text-emerald-500 font-extrabold pl-2'
-                    : 'text-emerald-900 hover:text-emerald-500 hover:bg-[#11c278]/10'
+                    ? 'text-[#0e623a] font-extrabold pl-2'
+                    : 'text-emerald-900 hover:text-[#0e623a] hover:bg-[#0e623a]/10'
                 }`}
               >
                 <span className={isExpanded ? "block truncate" : "hidden"}>Overall Collection Report</span>
@@ -184,7 +173,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
         <div>
           <button
             onClick={() => setReportsMenuOpen(!reportsMenuOpen)}
-            className={`w-full flex items-center ${isExpanded ? "justify-between px-4" : "justify-center px-0"} py-3 text-emerald-900 hover:bg-[#11c278]/10 hover:text-emerald-500 rounded-xl transition duration-200`}
+            className={`w-full flex items-center ${isExpanded ? "justify-between px-4" : "justify-center px-0"} py-3 text-emerald-900 hover:bg-[#0e623a]/10 hover:text-[#0e623a] rounded-xl transition duration-200`}
           >
             <div className="flex items-center gap-3">
               <FileSpreadsheet className="w-5 h-5 text-emerald-900" />
@@ -199,8 +188,8 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
                 to="/reports/export"
                 className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs transition ${
                   isActive('/reports/export')
-                    ? 'text-emerald-500 font-extrabold pl-2'
-                    : 'text-emerald-900 hover:text-emerald-500 hover:bg-[#11c278]/10'
+                    ? 'text-[#0e623a] font-extrabold pl-2'
+                    : 'text-emerald-900 hover:text-[#0e623a] hover:bg-[#0e623a]/10'
                 }`}
               >
                 <span className={isExpanded ? "block truncate" : "hidden"}>Sales Reports</span>
@@ -209,8 +198,8 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
                 to="/reports/crd"
                 className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs transition ${
                   isActive('/reports/crd')
-                    ? 'text-emerald-500 font-extrabold pl-2'
-                    : 'text-emerald-900 hover:text-emerald-500 hover:bg-[#11c278]/10'
+                    ? 'text-[#0e623a] font-extrabold pl-2'
+                    : 'text-emerald-900 hover:text-[#0e623a] hover:bg-[#0e623a]/10'
                 }`}
               >
                 <span className={isExpanded ? "block truncate" : "hidden"}>CRD Reports</span>
@@ -226,8 +215,8 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
             onClick={handleNavClick}
             className={`w-full flex items-center gap-3 py-3 ${isExpanded ? "justify-start px-4" : "justify-center px-0"} rounded-xl transition duration-200 ${
               isActive('/customers')
-                ? 'bg-[#11c278] text-white font-bold shadow-md'
-                : 'text-emerald-900 hover:bg-[#11c278]/10 hover:text-emerald-500'
+                ? 'bg-[#0e623a] text-white font-bold shadow-md'
+                : 'text-emerald-900 hover:bg-[#0e623a]/10 hover:text-[#0e623a]'
             }`}
           >
             <Users2 className={`w-5 h-5 ${isActive('/customers') ? 'text-white' : 'text-emerald-900'}`} />
@@ -239,7 +228,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
         <div>
           <button
             onClick={() => setEmployeeMenuOpen(!employeeMenuOpen)}
-            className={`w-full flex items-center ${isExpanded ? "justify-between px-4" : "justify-center px-0"} py-3 text-emerald-900 hover:bg-[#11c278]/10 hover:text-emerald-500 rounded-xl transition duration-200`}
+            className={`w-full flex items-center ${isExpanded ? "justify-between px-4" : "justify-center px-0"} py-3 text-emerald-900 hover:bg-[#0e623a]/10 hover:text-[#0e623a] rounded-xl transition duration-200`}
           >
             <div className="flex items-center gap-3">
               <Users2 className="w-5 h-5 text-emerald-900" />
@@ -254,8 +243,8 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
                 to="/employees"
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm transition ${
                   isActive('/employees')
-                    ? 'text-emerald-500 font-extrabold pl-2'
-                    : 'text-emerald-900 hover:text-emerald-500 hover:bg-[#11c278]/10'
+                    ? 'text-[#0e623a] font-extrabold pl-2'
+                    : 'text-emerald-900 hover:text-[#0e623a] hover:bg-[#0e623a]/10'
                 }`}
               >
                 <Users2 className="w-4 h-4 text-emerald-900" />
@@ -272,8 +261,8 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
             onClick={handleNavClick}
             className={`w-full flex items-center gap-3 py-3 ${isExpanded ? "justify-start px-4" : "justify-center px-0"} rounded-xl transition duration-200 ${
               isActive('/audit-logs')
-                ? 'bg-[#11c278] text-white font-bold shadow-md'
-                : 'text-emerald-900 hover:bg-[#11c278]/10 hover:text-emerald-500'
+                ? 'bg-[#0e623a] text-white font-bold shadow-md'
+                : 'text-emerald-900 hover:bg-[#0e623a]/10 hover:text-[#0e623a]'
             }`}
           >
             <History className={`w-5 h-5 ${isActive('/audit-logs') ? 'text-white' : 'text-emerald-900'}`} />
@@ -285,7 +274,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
         <div>
           <button
             onClick={() => setFinanceMenuOpen(!financeMenuOpen)}
-            className={`w-full flex items-center ${isExpanded ? "justify-between px-4" : "justify-center px-0"} py-3 text-emerald-900 hover:bg-[#11c278]/10 hover:text-emerald-500 rounded-xl transition duration-200`}
+            className={`w-full flex items-center ${isExpanded ? "justify-between px-4" : "justify-center px-0"} py-3 text-emerald-900 hover:bg-[#0e623a]/10 hover:text-[#0e623a] rounded-xl transition duration-200`}
           >
             <div className="flex items-center gap-3">
               <Coins className="w-5 h-5 text-emerald-900" />
@@ -300,8 +289,8 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
                 to="/finance/budget-planning"
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs transition ${
                   isActive('/finance/budget-planning')
-                    ? 'text-emerald-500 font-extrabold pl-2'
-                    : 'text-emerald-900 hover:text-emerald-500 hover:bg-[#11c278]/10'
+                    ? 'text-[#0e623a] font-extrabold pl-2'
+                    : 'text-emerald-900 hover:text-[#0e623a] hover:bg-[#0e623a]/10'
                 }`}
               >
                 <span className={isExpanded ? "block truncate" : "hidden"}>Budget Planning</span>
@@ -311,8 +300,8 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
                 to="/finance/lead-target-planning"
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs transition ${
                   isActive('/finance/lead-target-planning')
-                    ? 'text-emerald-500 font-extrabold pl-2'
-                    : 'text-emerald-900 hover:text-emerald-500 hover:bg-[#11c278]/10'
+                    ? 'text-[#0e623a] font-extrabold pl-2'
+                    : 'text-emerald-900 hover:text-[#0e623a] hover:bg-[#0e623a]/10'
                 }`}
               >
                 <span className={isExpanded ? "block truncate" : "hidden"}>Lead Target Planning</span>
@@ -322,8 +311,8 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
                 to="/finance/summary-planning"
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs transition ${
                   isActive('/finance/summary-planning')
-                    ? 'text-emerald-500 font-extrabold pl-2'
-                    : 'text-emerald-900 hover:text-emerald-500 hover:bg-[#11c278]/10'
+                    ? 'text-[#0e623a] font-extrabold pl-2'
+                    : 'text-emerald-900 hover:text-[#0e623a] hover:bg-[#0e623a]/10'
                 }`}
               >
                 <span className={isExpanded ? "block truncate" : "hidden"}>Summary Planning</span>
@@ -337,10 +326,10 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
           <>
             <Link
               to="/access-control"
-              className={`flex items-center gap-3 py-3 ${isExpanded ? "justify-start px-4" : "justify-center px-0"} rounded-xl transition-all duration-200 rounded-xl transition-all duration-200 ${
+              className={`flex items-center gap-3 py-3 ${isExpanded ? "justify-start px-4" : "justify-center px-0"} rounded-xl transition-all duration-200 ${
                 isActive('/access-control') 
-                  ? 'bg-[#11c278] text-white font-bold shadow-md' 
-                  : 'text-emerald-900 hover:bg-[#11c278]/10 hover:text-emerald-500'
+                  ? 'bg-[#0e623a] text-white font-bold shadow-md' 
+                  : 'text-emerald-900 hover:bg-[#0e623a]/10 hover:text-[#0e623a]'
               }`}
             >
               <ShieldCheck className={`w-5 h-5 ${isActive('/access-control') ? 'text-white' : 'text-emerald-900'}`} />
@@ -349,10 +338,10 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
 
             <Link
               to="/requests"
-              className={`flex items-center gap-3 py-3 ${isExpanded ? "justify-start px-4" : "justify-center px-0"} rounded-xl transition-all duration-200 rounded-xl transition-all duration-200 ${
+              className={`flex items-center gap-3 py-3 ${isExpanded ? "justify-start px-4" : "justify-center px-0"} rounded-xl transition-all duration-200 ${
                 isActive('/requests') 
-                  ? 'bg-[#11c278] text-white font-bold shadow-md' 
-                  : 'text-emerald-900 hover:bg-[#11c278]/10 hover:text-emerald-500'
+                  ? 'bg-[#0e623a] text-white font-bold shadow-md' 
+                  : 'text-emerald-900 hover:bg-[#0e623a]/10 hover:text-[#0e623a]'
               }`}
             >
               <ClipboardList className={`w-5 h-5 ${isActive('/requests') ? 'text-white' : 'text-emerald-900'}`} />
@@ -364,10 +353,10 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
         {/* Settings */}
         <Link
           to="/settings"
-          className={`flex items-center gap-3 py-3 ${isExpanded ? "justify-start px-4" : "justify-center px-0"} rounded-xl transition-all duration-200 rounded-xl transition-all duration-200 ${
+          className={`flex items-center gap-3 py-3 ${isExpanded ? "justify-start px-4" : "justify-center px-0"} rounded-xl transition-all duration-200 ${
             isActive('/settings') 
-              ? 'bg-[#11c278] text-white font-bold shadow-md' 
-              : 'text-emerald-900 hover:bg-[#11c278]/10 hover:text-emerald-500'
+              ? 'bg-[#0e623a] text-white font-bold shadow-md' 
+              : 'text-emerald-900 hover:bg-[#0e623a]/10 hover:text-[#0e623a]'
           }`}
         >
           <Settings2 className={`w-5 h-5 ${isActive('/settings') ? 'text-white' : 'text-emerald-900'}`} />
