@@ -45,7 +45,7 @@ const Login = () => {
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-            <label className="text-xs font-bold text-gray-500 uppercase block mb-2 tracking-wider">Full Name</label>
+            <label className="text-xs font-bold text-gray-500 uppercase block mb-2 tracking-wider">Email or Full Name</label>
             <div className="relative">
               <span className="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-400">
                 <User className="w-5 h-5" />
@@ -55,7 +55,7 @@ const Login = () => {
                 required
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="John Doe"
+                placeholder="john.doe@example.com"
                 className="w-full pl-11 pr-4 py-3.5 bg-gray-50 border border-gray-200 rounded-xl text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#0e623a] focus:border-transparent transition"
               />
             </div>

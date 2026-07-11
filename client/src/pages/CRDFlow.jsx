@@ -1377,7 +1377,14 @@ const CRDFlow = () => {
                       
                       const thisStagePending = Math.max(0, getStageTotal(activeFlow.stages[newIdx]) - getStagePaid(activeFlow.stages[newIdx]));
                       const arrears = getPendingPreviousStages(newIdx).reduce((sum, s) => sum + s.pending, 0);
-                      setPaymentAmount((thisStagePending + arrears).toString());
+                      const totalAmt = thisStagePending + arrears;
+                      setPaymentAmount(totalAmt.toString());
+                      
+                      if (paymentMethod === 'Dual Mode') {
+                        const half = Math.round(totalAmt / 2);
+                        setDualTransferAmount(half.toString());
+                        setDualLoanAmount((totalAmt - half).toString());
+                      }
                     }}
                     className="w-full px-4 py-2.5 bg-black-50 border border-black-250 rounded-xl text-sm font-semibold text-black-800"
                   >
@@ -1400,7 +1407,14 @@ const CRDFlow = () => {
                           setPaymentStageIdx(newIdx);
                           const thisStagePending = Math.max(0, getStageTotal(activeFlow.stages[newIdx]) - getStagePaid(activeFlow.stages[newIdx]));
                           const arrears = getPendingPreviousStages(newIdx).reduce((sum, s) => sum + s.pending, 0);
-                          setPaymentAmount((thisStagePending + arrears).toString());
+                          const totalAmt = thisStagePending + arrears;
+                          setPaymentAmount(totalAmt.toString());
+                          
+                          if (paymentMethod === 'Dual Mode') {
+                            const half = Math.round(totalAmt / 2);
+                            setDualTransferAmount(half.toString());
+                            setDualLoanAmount((totalAmt - half).toString());
+                          }
                         }}
                         className="text-[11px] text-purple-600 font-bold hover:text-purple-800 flex items-center gap-1 transition cursor-pointer bg-purple-50 px-2 py-1 rounded"
                       >
@@ -1434,7 +1448,13 @@ const CRDFlow = () => {
                   </button>
                   <button
                     type="button"
-                    onClick={() => setPaymentMethod('Dual Mode')}
+                    onClick={() => {
+                      setPaymentMethod('Dual Mode');
+                      const totalAmt = Number(paymentAmount) || 0;
+                      const half = Math.round(totalAmt / 2);
+                      setDualTransferAmount(half.toString());
+                      setDualLoanAmount((totalAmt - half).toString());
+                    }}
                     className={`py-2.5 rounded-xl text-[11px] font-bold transition cursor-pointer text-center ${
                       paymentMethod === 'Dual Mode'
                         ? 'bg-[#0e623a] text-white shadow'
@@ -1484,49 +1504,6 @@ const CRDFlow = () => {
                   </div>
                 )}
 
-                {paymentStageIdx === 1 && (
-                  <div className="pt-2 border-t mt-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <label className="text-xs font-semibold text-black-600">Agreement Documents (Required)</label>
-                      <button
-                        type="button"
-                        onClick={handleAutoPrepareDocs}
-                        className="text-[10px] font-bold text-[#0e623a] bg-emerald-50 px-2 py-1 rounded hover:bg-emerald-100 transition"
-                      >
-                        Auto-Prepare 5 PDFs
-                      </button>
-                    </div>
-                    <div className="space-y-3">
-                      {[
-                        'Agreement of Sale',
-                        'Construction Agreement',
-                        'Deed of Sale Draft',
-                        'Stamped Property Schedule',
-                        'Registration Challan'
-                      ].map((docName, i) => (
-                        <div key={i} className="flex flex-col gap-1.5 p-2 bg-black-50/50 border border-black-100 rounded-xl">
-                          <div className="text-[11px] text-black-700 font-bold flex items-center justify-between">
-                            <div className="flex items-center gap-1.5">
-                              <div className={`w-1.5 h-1.5 rounded-full ${pdfFiles[i] ? 'bg-emerald-500 shadow-sm' : 'bg-black-300'}`}></div>
-                              {docName}
-                            </div>
-                            {pdfFiles[i] && (
-                              <span className="text-[10px] text-emerald-600 font-bold bg-emerald-50 px-1.5 py-0.5 rounded truncate max-w-[120px]">
-                                {pdfFiles[i]}
-                              </span>
-                            )}
-                          </div>
-                          <input
-                            type="file"
-                            accept=".pdf"
-                            onChange={(e) => handleSingleFileUpload(e, i)}
-                            className="w-full text-[10px] text-black-500 file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-[10px] file:font-bold file:bg-white file:text-black-700 file:shadow-sm hover:file:bg-black-50 cursor-pointer"
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
               </div>
 
               <div className="flex gap-3 p-6 border-t bg-black-50/10 shrink-0">

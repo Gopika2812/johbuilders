@@ -1334,7 +1334,6 @@ const KPIInsights = () => {
 
         const rows = [
           { label: 'Total Enquiries', target: targets.enquiries, actual: proj.enquiries.actual, w1: proj.enquiries.w1, w2: proj.enquiries.w2, w3: proj.enquiries.w3, w4: proj.enquiries.w4 },
-          { label: 'Hot list', target: targets.hotlist, actual: proj.hotlist.actual, w1: proj.hotlist.w1, w2: proj.hotlist.w2, w3: proj.hotlist.w3, w4: proj.hotlist.w4 },
           { label: 'Site Visits', target: proj.sitevisits.target || targets.sitevisits, actual: proj.sitevisits.actual, w1: proj.sitevisits.w1, w2: proj.sitevisits.w2, w3: proj.sitevisits.w3, w4: proj.sitevisits.w4 },
           { label: 'Booked Units', target: targets.booked, actual: proj.bookedUnits.actual, w1: proj.bookedUnits.w1, w2: proj.bookedUnits.w2, w3: proj.bookedUnits.w3, w4: proj.bookedUnits.w4 },
           { label: 'Booking Value', target: targets.value, actual: proj.bookingValue.actual, w1: proj.bookingValue.w1, w2: proj.bookingValue.w2, w3: proj.bookingValue.w3, w4: proj.bookingValue.w4, isFloat: true }
@@ -1347,7 +1346,7 @@ const KPIInsights = () => {
 
           html += `
             <tr>
-              ${rIdx === 0 ? `<td rowspan="5" style="vertical-align: middle;">${index + 1}</td><td rowspan="5" class="font-bold" style="vertical-align: middle;">${proj.code || proj.name}</td>` : ''}
+              ${rIdx === 0 ? `<td rowspan="4" style="vertical-align: middle;">${index + 1}</td><td rowspan="4" class="font-bold" style="vertical-align: middle;">${proj.code || proj.name}</td>` : ''}
               <td class="text-left">${row.label}</td>
               <td class="text-right">${row.target}${row.isFloat ? ' Cr' : ''}</td>
               <td class="text-right">${row.isFloat ? row.actual.toFixed(2) : row.actual}</td>
@@ -1729,29 +1728,28 @@ const KPIInsights = () => {
   const handleExportRegistrationReport = async () => {
     try {
       setLoading(true);
-      const res = await fetch(`${API_URL}/leads`, {
+      const res = await fetch(`${API_URL}/crd-flow`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (!res.ok) {
-        alert('Failed to load lead details for export');
+        alert('Failed to load CRD flows details for export');
         return;
       }
       const data = await res.json();
 
       // Apply active dashboard filters
-      const filtered = data.filter(lead => {
-        // Must be in Booking or Won stage
-        const isValidStage = lead.status === 'Booking' || lead.status === 'Won';
-        if (!isValidStage) return false;
+      const filtered = data.filter(flow => {
+        const lead = flow.lead;
+        if (!lead) return false;
 
         // Project filter
-        if (selectedProject && (lead.project?._id || lead.project) !== selectedProject) return false;
+        if (selectedProject && (flow.project?._id || flow.project) !== selectedProject) return false;
 
         // User/Executive filter
         if (selectedUser && (lead.assignedTo?._id || lead.assignedTo) !== selectedUser) return false;
 
         // Date range filter
-        const createdAt = new Date(lead.createdAt);
+        const createdAt = new Date(flow.createdAt);
         if (fromDate && createdAt < new Date(fromDate)) return false;
         if (toDate) {
           const end = new Date(toDate);
@@ -1763,7 +1761,7 @@ const KPIInsights = () => {
       });
 
       if (filtered.length === 0) {
-        alert('No registration/booking records found for the selected filters.');
+        alert('No registration records found for the selected filters.');
         return;
       }
 
@@ -1779,24 +1777,44 @@ const KPIInsights = () => {
       const dateForMonth = fromDate ? new Date(fromDate) : new Date();
       const monthTitle = `MONTH OF ${monthNames[dateForMonth.getMonth()]} - ${dateForMonth.getFullYear()}`;
 
-      // Separate Booking and Won stages
-      const bookingLeads = filtered.filter(l => l.status === 'Booking');
-      const wonLeads = filtered.filter(l => l.status === 'Won');
+      // Separate Completed Registration (Agreement Stage) and Pending Registration
+      const registeredFlows = [];
+      const pendingFlows = [];
 
-      // Group Booking leads by Project Code
-      const groupedBooking = {};
-      bookingLeads.forEach(lead => {
-        const projCode = lead.project?.code || 'UNASSIGNED';
-        if (!groupedBooking[projCode]) groupedBooking[projCode] = [];
-        groupedBooking[projCode].push(lead);
+      filtered.forEach(flow => {
+        const stages = flow.stages || [];
+        const agreementStage = stages.find(s => s.name.toLowerCase().includes('agreement')) || (stages.length > 1 ? stages[1] : null);
+        
+        let isRegistered = false;
+        if (agreementStage) {
+          const stageTotal = agreementStage.amount || 0;
+          const stagePaid = agreementStage.payments?.reduce((sum, p) => sum + p.amount, 0) || 0;
+          if (agreementStage.isCompleted || (stageTotal > 0 && stagePaid >= stageTotal)) {
+            isRegistered = true;
+          }
+        }
+        
+        if (isRegistered) {
+          registeredFlows.push(flow);
+        } else {
+          pendingFlows.push(flow);
+        }
       });
 
-      // Group Won leads by Project Code
-      const groupedWon = {};
-      wonLeads.forEach(lead => {
-        const projCode = lead.project?.code || 'UNASSIGNED';
-        if (!groupedWon[projCode]) groupedWon[projCode] = [];
-        groupedWon[projCode].push(lead);
+      // Group Registered leads by Project Code
+      const groupedRegistered = {};
+      registeredFlows.forEach(flow => {
+        const projCode = flow.project?.code || 'UNASSIGNED';
+        if (!groupedRegistered[projCode]) groupedRegistered[projCode] = [];
+        groupedRegistered[projCode].push(flow);
+      });
+
+      // Group Pending leads by Project Code
+      const groupedPending = {};
+      pendingFlows.forEach(flow => {
+        const projCode = flow.project?.code || 'UNASSIGNED';
+        if (!groupedPending[projCode]) groupedPending[projCode] = [];
+        groupedPending[projCode].push(flow);
       });
 
       // Helper function to build rows for a given grouped structure
@@ -1813,17 +1831,18 @@ const KPIInsights = () => {
           `;
 
           // Lead rows
-          groupedData[projCode].forEach((lead, idx) => {
+          groupedData[projCode].forEach((flow, idx) => {
+            const lead = flow.lead || {};
             const advDate = lead.bookingInfo?.bookingDate 
               ? new Date(lead.bookingInfo.bookingDate).toLocaleDateString('en-GB').replace(/\//g, '.')
               : '';
               
-            const plotNo = lead.bookingInfo?.selectedUnits?.join(' & ') || '';
+            const plotNo = flow.unitId || lead.bookingInfo?.selectedUnits?.join(' & ') || '';
             const custName = lead.name || '';
             
-            // Villa: mapping projectType to Land/Villa/Flat
-            const typeRaw = (lead.project?.projectType || '').toLowerCase();
-            let houseType = 'Land';
+            // Mapping projectType to Plots/Villa/Flat
+            const typeRaw = (flow.project?.projectType || '').toLowerCase();
+            let houseType = 'Plots';
             if (typeRaw.includes('villa') || typeRaw.includes('house') || typeRaw.includes('individual')) {
               houseType = 'Villa';
             } else if (typeRaw.includes('apartment') || typeRaw.includes('flat')) {
@@ -1867,12 +1886,12 @@ const KPIInsights = () => {
               <th>Project</th>
               <th>Plot No</th>
               <th>Customer Name</th>
-              <th>Villa</th>
+              <th>Project Type</th>
               <th>Comments / Action notes</th>
             </tr>
             
-            <!-- BOOKING STAGE LEADS (REGISTRATION THIS MONTH TARGET) -->
-            ${buildRowsHtml(groupedBooking)}
+            <!-- REGISTERED STAGE LEADS (REGISTRATION THIS MONTH TARGET) -->
+            ${buildRowsHtml(groupedRegistered)}
 
             <!-- REGISTRATION PENDING HEADER -->
             <tr>
@@ -1884,12 +1903,12 @@ const KPIInsights = () => {
               <th>Project</th>
               <th>Plot No</th>
               <th>Customer Name</th>
-              <th>Villa</th>
+              <th>Project Type</th>
               <th>Comments / Action notes</th>
             </tr>
 
-            <!-- WON STAGE LEADS (REGISTRATION PENDING) -->
-            ${buildRowsHtml(groupedWon)}
+            <!-- PENDING STAGE LEADS (REGISTRATION PENDING) -->
+            ${buildRowsHtml(groupedPending)}
           </table>
         </body>
         </html>

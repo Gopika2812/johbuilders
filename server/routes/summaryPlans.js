@@ -51,16 +51,18 @@ router.get('/project-stats/:month', protect, async (req, res) => {
       const week = getWeekBucket(lead.createdAt);
       const status = lead.status;
 
-      if (status === 'Contacted' || status === 'Follow-Up') {
-        stats[projId].enquiries.actual += 1;
-        stats[projId].enquiries[week] += 1;
-      } else if (status === 'Site Visit' || status === 'Site Visit Follow-up') {
+      // 1. Total Enquiries means total leads, so we unconditionally count every lead
+      stats[projId].enquiries.actual += 1;
+      stats[projId].enquiries[week] += 1;
+
+      // 2. Site visits means leads that are in 'Site Visit' or 'Site Visit Follow-up' status
+      if (status === 'Site Visit' || status === 'Site Visit Follow-up') {
         stats[projId].sitevisits.actual += 1;
         stats[projId].sitevisits[week] += 1;
-      } else if (status === 'Qualified') {
-        stats[projId].hotlist.actual += 1;
-        stats[projId].hotlist[week] += 1;
-      } else if (status === 'Booking') {
+      }
+
+      // 3. Booked units means leads in 'Booking' stage
+      if (status === 'Booking') {
         stats[projId].bookedUnits.actual += 1;
         stats[projId].bookedUnits[week] += 1;
       }

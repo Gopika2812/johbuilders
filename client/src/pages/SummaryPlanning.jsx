@@ -526,16 +526,6 @@ const SummaryPlanning = () => {
                           w4: proj.enquiries.w4
                         },
                         {
-                          field: 'hotlist',
-                          label: 'Hot list',
-                          target: targets.hotlist,
-                          actual: proj.hotlist.actual,
-                          w1: proj.hotlist.w1,
-                          w2: proj.hotlist.w2,
-                          w3: proj.hotlist.w3,
-                          w4: proj.hotlist.w4
-                        },
-                        {
                           field: 'sitevisits',
                           label: 'Site Visits',
                           target: targets.sitevisits,
@@ -574,10 +564,10 @@ const SummaryPlanning = () => {
                             <tr key={row.field} className="hover:bg-black-50/50 transition">
                               {rIndex === 0 && (
                                 <>
-                                  <td rowSpan="5" className="p-3 text-center align-middle font-bold text-black-400 border-r border-black-100">
+                                  <td rowSpan="4" className="p-3 text-center align-middle font-bold text-black-400 border-r border-black-100">
                                     {index + 1}
                                   </td>
-                                  <td rowSpan="5" className="p-3 font-extrabold text-black-800 align-middle border-r border-black-100 uppercase tracking-wide">
+                                  <td rowSpan="4" className="p-3 font-extrabold text-black-800 align-middle border-r border-black-100 uppercase tracking-wide">
                                     {proj.code || proj.name}
                                   </td>
                                 </>
