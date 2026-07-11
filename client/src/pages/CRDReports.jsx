@@ -2363,58 +2363,84 @@ const KPIInsights = () => {
       const res = await fetch(`${API_URL}/crd-flow`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
+      const leadsRes = await fetch(`${API_URL}/leads?status=Booking,Cancelled`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
       if (!res.ok) {
         alert('Failed to load CRD flows details for export');
         return;
       }
-      const data = await res.json();
+      
+      const flowsData = await res.json();
+      let allFlows = [...flowsData];
+      
+      if (leadsRes.ok) {
+        const leadsData = await leadsRes.json();
+        const pendingLoanLeads = leadsData.filter(l => (l.bankLoan === 'Yes' || l.bookingInfo?.hasLoan === 'Yes') && !flowsData.some(f => f.lead?._id === l._id));
+        
+        const mockFlows = pendingLoanLeads.map(lead => ({
+          _id: `mock-${lead._id}`,
+          project: lead.project || {},
+          lead: lead,
+          unitId: lead.bookingInfo?.selectedUnits?.join(', ') || 'N/A',
+          totalCurrentValue: lead.bookingInfo?.loanDetails?.amountRequired || 0,
+          stages: [],
+          createdAt: lead.createdAt
+        }));
+        
+        allFlows = [...allFlows, ...mockFlows];
+      }
 
-      const loanList = [];
+      // Helper to extract bank loan details for each client
+      const getClientLoanDetails = (flow) => {
+        let bankLoanPaid = flow.lead?.bookingInfo?.loanDetails?.disbursedAmount || 0;
+        let bankLoanPending = 0;
+        const loanPayments = [];
 
-      data.forEach(flow => {
-        const lead = flow.lead;
-        if (!lead) return;
-
-        // Apply filters
-        if (selectedProject && (flow.project?._id || flow.project) !== selectedProject) return;
-        if (selectedUser && (lead.assignedTo?._id || lead.assignedTo) !== selectedUser) return;
-
-        const stages = flow.stages || [];
-        stages.forEach(stage => {
-          const payments = stage.payments || [];
-          payments.forEach(pay => {
-            if (pay.method !== 'Bank Loan') return;
-
-            const payDate = new Date(pay.date);
-
-            // Apply date filters at payment date level
-            if (fromDate && payDate < new Date(fromDate)) return;
-            if (toDate) {
-              const end = new Date(toDate);
-              end.setHours(23, 59, 59, 999);
-              if (payDate > end) return;
-            }
-
-            loanList.push({
-              customerName: lead.name || '',
-              projectCode: flow.project?.code || 'UNASSIGNED',
-              plotNo: flow.unitId || '',
-              stageName: stage.name || '',
-              bankName: pay.details?.preferredBank || pay.details?.bankName || 'UNSPECIFIED',
-              amount: pay.amount || 0,
-              date: payDate
-            });
+        (flow.stages || []).forEach((stage, sIdx) => {
+          const stageLoanPayments = (stage.payments || []).filter(p => p.method === 'Bank Loan');
+          stageLoanPayments.forEach(p => {
+            bankLoanPaid += p.amount;
+            loanPayments.push(p);
           });
+
+          const stagePaidTotal = (stage.payments || []).reduce((sum, p) => sum + p.amount, 0);
+          const stagePending = Math.max(0, stage.amount - stagePaidTotal);
+          
+          const hasBankLoanPayment = stageLoanPayments.length > 0;
+          const isBankLoanCustomer = flow.lead?.bankLoan === 'Yes' || flow.lead?.bookingInfo?.hasLoan === 'Yes';
+          if (hasBankLoanPayment || isBankLoanCustomer || (flow.stages || []).some(s => (s.payments || []).some(p => p.method === 'Bank Loan'))) {
+            bankLoanPending += stagePending;
+          }
         });
+
+        const preferredBank = (flow.stages || []).flatMap(s => s.payments || []).find(p => p.method === 'Bank Loan')?.details?.preferredBank || flow.lead?.bookingInfo?.loanDetails?.preferredBank || 'N/A';
+        const accountNumber = (flow.stages || []).flatMap(s => s.payments || []).find(p => p.method === 'Bank Loan')?.details?.accountNumber || flow.lead?.bookingInfo?.loanDetails?.accountNumber || 'N/A';
+        
+        let loanStatus = flow.lead?.bookingInfo?.loanDetails?.loanStatus || 'Pending';
+
+        return { bankLoanPaid, bankLoanPending, loanPayments, preferredBank, accountNumber, loanStatus };
+      };
+
+      let loanClients = allFlows.map(flow => {
+        return { flow, ...getClientLoanDetails(flow) };
+      }).filter(c => {
+        const isYesType = c.flow.lead?.bankLoan === 'Yes' || c.flow.lead?.bookingInfo?.hasLoan === 'Yes';
+        return (isYesType || c.loanPayments.length > 0);
       });
 
-      if (loanList.length === 0) {
+      // Apply Filters
+      loanClients = loanClients.filter(c => {
+        if (selectedProject && (c.flow.project?._id || c.flow.project) !== selectedProject) return false;
+        if (selectedUser && (c.flow.lead?.assignedTo?._id || c.flow.lead?.assignedTo) !== selectedUser) return false;
+        return true;
+      });
+
+      if (loanClients.length === 0) {
         alert('No bank loan collection records found for the selected filters.');
         return;
       }
-
-      // Sort by date ascending
-      loanList.sort((a, b) => a.date - b.date);
 
       // Generate the styled HTML sheet
       const dateForMonth = fromDate ? new Date(fromDate) : new Date();
@@ -2430,37 +2456,44 @@ const KPIInsights = () => {
         </head>
         <body>
           <table>
-            ${getExcelHeader(titleText, "", 8, "#7c3aed", logoPath)}
+            ${getExcelHeader(titleText, "", 10, "#7c3aed", logoPath)}
             <!-- Table Headers -->
             <tr class="table-headers">
               <th>S No</th>
               <th>Customer Name</th>
-              <th>PROJECT</th>
-              <th>PLOT NO</th>
-              <th>Payment Stage</th>
-              <th>Bank Name</th>
-              <th>Loan Value</th>
-              <th>Date</th>
+              <th>Project</th>
+              <th>Plot/Unit No</th>
+              <th>Project Value</th>
+              <th>Financing Bank</th>
+              <th>Account Number</th>
+              <th>Status</th>
+              <th>Loan Disbursed</th>
+              <th>Loan Pending</th>
             </tr>
       `;
 
-      let totalLoan = 0;
+      let totalDisbursed = 0;
+      let totalPending = 0;
 
-      loanList.forEach((loan, index) => {
-        const dateStr = loan.date.toLocaleDateString('en-GB').replace(/\//g, '.');
-        totalLoan += loan.amount;
+      loanClients.forEach((client, index) => {
+        totalDisbursed += client.bankLoanPaid;
+        totalPending += client.bankLoanPending;
         const rowClass = index % 2 === 1 ? 'class="even-row"' : '';
+        const projCode = client.flow.project?.code || 'UNASSIGNED';
+        const unitId = client.flow.unitId || '';
 
         html += `
           <tr ${rowClass}>
             <td>${index + 1}</td>
-            <td class="text-left bold-label">${loan.customerName}</td>
-            <td>${loan.projectCode}</td>
-            <td>${loan.plotNo}</td>
-            <td class="text-left">${loan.stageName}</td>
-            <td>${loan.bankName}</td>
-            <td class="text-right">₹ ${loan.amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-            <td>${dateStr}</td>
+            <td class="text-left bold-label">${client.flow.lead?.name || 'N/A'}</td>
+            <td>${projCode}</td>
+            <td>${unitId}</td>
+            <td class="text-right">₹ ${(client.flow.totalCurrentValue || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+            <td>${client.preferredBank}</td>
+            <td>${client.accountNumber !== 'N/A' ? client.accountNumber : ''}</td>
+            <td style="font-weight: bold; color: ${client.loanStatus === 'Approved' ? '#1d4ed8' : '#b45309'}">${client.loanStatus}</td>
+            <td class="text-right text-emerald-800 font-bold">₹ ${client.bankLoanPaid.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+            <td class="text-right text-amber-700 font-bold">₹ ${client.bankLoanPending.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
           </tr>
         `;
       });
@@ -2468,9 +2501,9 @@ const KPIInsights = () => {
       // Total Row
       html += `
         <tr class="subtotal-row">
-          <td colspan="6" class="text-right">TOTAL LOAN RECEIVED</td>
-          <td class="text-right">₹ ${totalLoan.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-          <td></td>
+          <td colspan="8" class="text-right">TOTAL</td>
+          <td class="text-right text-emerald-800 font-bold">₹ ${totalDisbursed.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+          <td class="text-right text-amber-700 font-bold">₹ ${totalPending.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
         </tr>
       `;
 
