@@ -267,6 +267,7 @@ const LeadsDirectory = () => {
   const [BookedHasLoan, setBookedHasLoan] = useState('No');
   const [loanAmount, setLoanAmount] = useState(0);
   const [loanBank, setLoanBank] = useState('');
+  const [loanAccountNumber, setLoanAccountNumber] = useState('');
   const [loanStatusNotes, setLoanStatusNotes] = useState('');
   const [customBookedAmount, setCustomBookedAmount] = useState('');
   const [typedBookedUnits, setTypedBookedUnits] = useState('');
@@ -709,8 +710,10 @@ const LeadsDirectory = () => {
     setBookedAadhar('');
     setBookedPan('');
     setBookedHasLoan(lead.bankLoan || 'No');
+    setLeadCategory(lead.leadCategory || 'Cold');
     setLoanAmount(0);
     setLoanBank('');
+    setLoanAccountNumber('');
     setLoanStatusNotes('');
     setSelectedBookedUnits([]);
     setTypedBookedUnits('');
@@ -768,11 +771,13 @@ const LeadsDirectory = () => {
       panNumber: BookedPan,
       bankLoanRequired: BookedHasLoan,
       loanAmount: Number(loanAmount),
-      preferredBank: loanBank
+      preferredBank: loanBank,
+      accountNumber: loanAccountNumber
     };
 
     const payload = {
       status: 'Booking',
+      leadCategory: leadCategory,
       bookingInfo: {
         selectedUnits: selectedBookedUnits,
         alternativePhone: BookedAltPhone,
@@ -782,6 +787,7 @@ const LeadsDirectory = () => {
         loanDetails: {
           amountRequired: Number(loanAmount),
           preferredBank: loanBank,
+          accountNumber: loanAccountNumber,
           loanStatus: loanStatusNotes || 'Initiated'
         }
       }
@@ -890,7 +896,7 @@ const LeadsDirectory = () => {
       payload = {
         status: 'Lost',
         isClosed: true,
-        closeRemarks: `[Lost at ${selectedLeadForFollow?.status || 'Unknown'} stage] - ${closeRemarks}`,
+        closeRemarks: `[Lost at ${followTargetStatus === 'Lost' ? (selectedLeadForFollow?.status || 'Unknown') : followTargetStatus} stage] - ${closeRemarks}`,
         leadCategory
       };
     }
@@ -1104,7 +1110,7 @@ const LeadsDirectory = () => {
         'Follow-Up': 'background-color: #fffbeb; color: #92400e; font-weight: bold;',
         'Site Visit': 'background-color: #fff1f2; color: #9f1239; font-weight: bold;',
         'Site Visit Follow-up': 'background-color: #fdf2f8; color: #9d174d; font-weight: bold;',
-        'Booking': 'background-color: #fef9c3; color: #854d0e; font-weight: bold;',
+        'Booked': 'background-color: #fef9c3; color: #854d0e; font-weight: bold;',
         'Lost': 'background-color: #f3f4f6; color: #374151; font-weight: bold;'
       };
 
@@ -2708,7 +2714,7 @@ const LeadsDirectory = () => {
               <div className="space-y-4">
                 <h4 className="text-xs font-bold text-black-700 uppercase tracking-wider border-b pb-1.5">Booked Customer Information</h4>
                 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                   <div>
                     <label className="text-xs font-semibold text-black-600 block mb-1">Alternative Contact</label>
                     <div className={`flex items-center bg-black-50 border rounded-xl focus-within:ring-1 transition-all overflow-hidden w-full ${BookedAltPhoneErr ? 'border-red-500 focus-within:ring-red-500' : 'border-black-200 focus-within:ring-[#0e623a] focus-within:border-transparent'}`}>
@@ -2768,9 +2774,22 @@ const LeadsDirectory = () => {
                       type="text"
                       placeholder="PAN Number"
                       value={BookedPan}
-                      onChange={(e) => setBookedPan(e.target.value)}
+                      onChange={(e) => setBookedPan(e.target.value.toUpperCase().slice(0, 10))}
                       className="w-full px-3 py-2 bg-black-50 border border-black-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-xs"
                     />
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold text-black-600 block mb-1">Lead Category <span className="text-red-500">*</span></label>
+                    <select
+                      value={leadCategory}
+                      onChange={(e) => setLeadCategory(e.target.value)}
+                      className="w-full px-3 py-2 bg-black-50 border border-black-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-xs font-semibold text-black-600"
+                      required
+                    >
+                      <option value="Hot">Hot</option>
+                      <option value="Warm">Warm</option>
+                      <option value="Cold">Cold</option>
+                    </select>
                   </div>
                 </div>
 
@@ -2828,15 +2847,16 @@ const LeadsDirectory = () => {
                         />
                       </div>
                       <div>
-                        <label className="text-[11px] font-semibold text-black-500 block mb-1">Loan Notes / Status</label>
+                        <label className="text-[11px] font-semibold text-black-500 block mb-1">Account Number</label>
                         <input
                           type="text"
-                          placeholder="e.g. Approved / Processed"
-                          value={loanStatusNotes}
-                          onChange={(e) => setLoanStatusNotes(e.target.value)}
+                          placeholder="Bank Account Number"
+                          value={loanAccountNumber}
+                          onChange={(e) => setLoanAccountNumber(e.target.value.replace(/\D/g, ''))}
                           className="w-full px-3 py-2 bg-white border border-black-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-xs"
                         />
                       </div>
+                      
                     </div>
                   )}
                 </div>

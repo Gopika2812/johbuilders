@@ -60,7 +60,8 @@ router.post('/', protect, async (req, res) => {
     panNumber,
     bankLoanRequired,
     loanAmount,
-    preferredBank
+    preferredBank,
+    accountNumber
   } = req.body;
 
   try {
@@ -81,6 +82,7 @@ router.post('/', protect, async (req, res) => {
       bankLoanRequired,
       loanAmount,
       preferredBank,
+      accountNumber,
       createdBy: req.user._id
     });
 

@@ -62,9 +62,32 @@ const BankLoanHistory = () => {
       const res = await fetch(`${API_URL}/crd-flow`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
+      const leadsRes = await fetch(`${API_URL}/leads?status=Booking,Cancelled`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
       if (res.ok) {
-        const data = await res.json();
-        setFlows(data);
+        const flowsData = await res.json();
+        
+        let allFlows = [...flowsData];
+        if (leadsRes.ok) {
+          const leadsData = await leadsRes.json();
+          // Find leads that need bank loan but don't have a CRD flow yet
+          const pendingLoanLeads = leadsData.filter(l => (l.bankLoan === 'Yes' || l.bookingInfo?.hasLoan === 'Yes') && !flowsData.some(f => f.lead?._id === l._id));
+          
+          const mockFlows = pendingLoanLeads.map(lead => ({
+            _id: `mock-${lead._id}`,
+            project: lead.project || {},
+            lead: lead,
+            unitId: lead.bookingInfo?.selectedUnits?.join(', ') || 'N/A',
+            totalCurrentValue: lead.bookingInfo?.loanDetails?.amountRequired || 0,
+            stages: []
+          }));
+          
+          allFlows = [...allFlows, ...mockFlows];
+        }
+        
+        setFlows(allFlows);
       } else {
         setError('Failed to fetch milestone records');
       }
@@ -103,7 +126,7 @@ const BankLoanHistory = () => {
       // Assume remaining pending amounts can be covered by bank loan if customer is flagged for bank loan
       // or if they have made at least one bank loan payment.
       const hasBankLoanPayment = stageLoanPayments.length > 0;
-      const isBankLoanCustomer = flow.lead?.bankLoan === 'Yes';
+      const isBankLoanCustomer = flow.lead?.bankLoan === 'Yes' || flow.lead?.bookingInfo?.hasLoan === 'Yes';
       if (hasBankLoanPayment || isBankLoanCustomer || flow.stages.some(s => (s.payments || []).some(p => p.method === 'Bank Loan'))) {
         bankLoanPending += stagePending;
       }
@@ -111,6 +134,7 @@ const BankLoanHistory = () => {
 
     // Extract bank loan info from active flow stage splits
     const preferredBank = flow.stages.flatMap(s => s.payments || []).find(p => p.method === 'Bank Loan')?.details?.preferredBank || flow.lead?.bookingInfo?.loanDetails?.preferredBank || 'N/A';
+    const accountNumber = flow.stages.flatMap(s => s.payments || []).find(p => p.method === 'Bank Loan')?.details?.accountNumber || flow.lead?.bookingInfo?.loanDetails?.accountNumber || 'N/A';
     
     let loanStatus = flow.lead?.bookingInfo?.loanDetails?.loanStatus || 'Pending';
     if (bankLoanPaid > 0) loanStatus = 'Disbursed';
@@ -120,6 +144,7 @@ const BankLoanHistory = () => {
       bankLoanPending,
       loanPayments,
       preferredBank,
+      accountNumber,
       loanStatus
     };
   };
@@ -135,8 +160,9 @@ const BankLoanHistory = () => {
     // Show clients that have matches name and are strictly marked with Bank Loan: Yes
     const matchesSearch = c.flow.lead?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       c.flow.project?.name?.toLowerCase().includes(searchQuery.toLowerCase());
-    const isYesType = c.flow.lead?.bankLoan === 'Yes';
-    return matchesSearch && isYesType;
+    // Only include flows that have actual bank loan payments, OR are marked as Bank Loan customers
+    const isYesType = c.flow.lead?.bankLoan === 'Yes' || c.flow.lead?.bookingInfo?.hasLoan === 'Yes';
+    return matchesSearch && (isYesType || c.loanPayments.length > 0);
   });
 
   // Calculate summary metrics
@@ -245,7 +271,10 @@ const BankLoanHistory = () => {
                             Rs. {client.flow.totalCurrentValue.toLocaleString()}
                           </td>
                           <td className="p-4 text-black-600 font-bold">
-                            {client.preferredBank}
+                            <div>{client.preferredBank}</div>
+                            {client.accountNumber && client.accountNumber !== 'N/A' && (
+                              <div className="text-[10px] text-black-400 mt-1 font-mono tracking-wider">A/C: {client.accountNumber}</div>
+                            )}
                           </td>
                           <td className="p-4" onClick={(e) => e.stopPropagation()}>
                             <select 

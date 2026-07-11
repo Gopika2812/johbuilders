@@ -71,6 +71,10 @@ const QuotationSchema = new mongoose.Schema({
     type: String,
     default: ''
   },
+  accountNumber: {
+    type: String,
+    default: ''
+  },
   createdBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'

@@ -324,8 +324,11 @@ router.put('/:id', protect, async (req, res) => {
     }
     if (closeRemarks !== undefined) lead.closeRemarks = closeRemarks;
 
-    if (status === 'Booking' && bookingInfo) {
+    if (bookingInfo !== undefined) {
       lead.bookingInfo = bookingInfo;
+    }
+
+    if (status === 'Booking' && bookingInfo) {
       // Mark selected units as booked in the project
       if (bookingInfo.selectedUnits && bookingInfo.selectedUnits.length > 0) {
         const Project = require('../models/Project');

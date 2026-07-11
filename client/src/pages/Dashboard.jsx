@@ -1541,7 +1541,7 @@ const Dashboard = () => {
         <div className="grid grid-cols-2 lg:flex lg:flex-wrap lg:items-center gap-2 w-full lg:w-auto">
           <button
             onClick={handleExportExcel}
-            className="flex items-center justify-center gap-1.5 px-3 py-2 lg:px-4 lg:py-2.5 bg-[#0e623a] hover:bg-[#0b4d2d] text-white text-[11px] lg:text-xs font-bold rounded-xl transition shadow-sm w-full lg:w-auto"
+            className="flex items-center justify-center gap-1.5 px-3 py-2 lg:px-4 lg:py-2.5 bg-red-600 hover:bg-red-700 text-white text-[11px] lg:text-xs font-bold rounded-xl transition shadow-sm w-full lg:w-auto"
           >
             <Download className="w-3.5 h-3.5 lg:w-4 lg:h-4" />
             <span>Summary Report</span>
@@ -1549,7 +1549,7 @@ const Dashboard = () => {
           
           <button
             onClick={() => setShowUserModal(true)}
-            className="flex items-center justify-center gap-1.5 px-3 py-2 lg:px-4 lg:py-2.5 bg-teal-600 hover:bg-teal-700 text-white text-[11px] lg:text-xs font-bold rounded-xl transition shadow-sm w-full lg:w-auto"
+            className="flex items-center justify-center gap-1.5 px-3 py-2 lg:px-4 lg:py-2.5 bg-green-600 hover:bg-green-700 text-white text-[11px] lg:text-xs font-bold rounded-xl transition shadow-sm w-full lg:w-auto"
           >
             <Download className="w-3.5 h-3.5 lg:w-4 lg:h-4" />
             <span>User Report</span>
@@ -1557,7 +1557,7 @@ const Dashboard = () => {
 
           <button
             onClick={() => setShowProjectModal(true)}
-            className="flex items-center justify-center gap-1.5 px-3 py-2 lg:px-4 lg:py-2.5 bg-[#0aa083] hover:bg-[#08836b] text-white text-[11px] lg:text-xs font-bold rounded-xl transition shadow-sm w-full lg:w-auto"
+            className="flex items-center justify-center gap-1.5 px-3 py-2 lg:px-4 lg:py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-[11px] lg:text-xs font-bold rounded-xl transition shadow-sm w-full lg:w-auto"
           >
             <Download className="w-3.5 h-3.5 lg:w-4 lg:h-4" />
             <span>Project Report</span>
@@ -1565,7 +1565,7 @@ const Dashboard = () => {
 
           <button
             onClick={() => setShowSourceModal(true)}
-            className="flex items-center justify-center gap-1.5 px-3 py-2 lg:px-4 lg:py-2.5 bg-amber-600 hover:bg-amber-700 text-white text-[11px] lg:text-xs font-bold rounded-xl transition shadow-sm w-full lg:w-auto"
+            className="flex items-center justify-center gap-1.5 px-3 py-2 lg:px-4 lg:py-2.5 bg-purple-600 hover:bg-purple-700 text-white text-[11px] lg:text-xs font-bold rounded-xl transition shadow-sm w-full lg:w-auto"
           >
             <Download className="w-3.5 h-3.5 lg:w-4 lg:h-4" />
             <span>Source Report</span>
@@ -1855,42 +1855,7 @@ const Dashboard = () => {
 
 
           {/* Pending Follow-ups Widget */}
-          {pendingFollowUps.length > 0 && (
-            <div className="bg-[#f0fbf4] border-none rounded-3xl p-6 shadow-sm mb-8 animate-fadeIn">
-              <div className="flex items-center gap-2 border-b border-black-100 pb-3 mb-4">
-                <Clock className="w-5 h-5 text-amber-500" />
-                <h3 className="text-sm font-extrabold text-black-800 uppercase tracking-wide">
-                  Pending Follow-ups ({pendingFollowUps.length})
-                </h3>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {pendingFollowUps.map(lead => (
-                  <div key={lead._id} className="bg-amber-50/50 border border-amber-100 rounded-2xl p-4 hover:shadow-md transition">
-                    <div className="flex justify-between items-start mb-2">
-                      <div>
-                        <h4 className="font-bold text-black-800">{lead.name}</h4>
-                        <p className="text-[11px] text-black-500 font-medium">{lead.phone}</p>
-                      </div>
-                      <span className="text-[10px] font-bold px-2 py-0.5 bg-[#0e623a]/10 text-[#0e623a] rounded-full uppercase">
-                        {lead.project?.code || 'No Project'}
-                      </span>
-                    </div>
-                    <div className="text-[11px] text-amber-700 font-semibold mb-3">
-                      Due: {new Date(lead.followUpInfo?.nextFollowUpDate).toLocaleString()}
-                    </div>
-                    <div className="text-right border-t border-amber-100/50 pt-2">
-                      <button
-                        onClick={() => navigate(`/leads?search=${lead.name}`)}
-                        className="text-[11px] font-bold text-blue-600 hover:text-blue-700 uppercase tracking-wider"
-                      >
-                        Take Action →
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+          
 
           {/* User Wise & Stage Wise Performance Pie Reports */}
           <div className="flex flex-col gap-8">
@@ -2166,7 +2131,7 @@ const Dashboard = () => {
                     <th className="p-4 w-12 text-center">S.NO.</th>
                     <th className="p-4 w-32">PROJECT CODE</th>
                     <th className="p-4">PIPELINE STAGE SPLITS</th>
-                    <th className="p-4 w-40 text-right">BOOKED NET WORTH (₹)</th>
+                    
                     <th className="p-4 w-32 text-right">TOTAL LEADS</th>
                   </tr>
                 </thead>
@@ -2194,9 +2159,7 @@ const Dashboard = () => {
                               ))}
                             </div>
                           </td>
-                          <td className="p-4 text-right font-extrabold text-[#0e623a] text-sm">
-                            ₹{Math.round(p.value || 0).toLocaleString()}
-                          </td>
+                          
                           <td className="p-4 text-right font-bold text-black-700">
                             {p.count}
                           </td>

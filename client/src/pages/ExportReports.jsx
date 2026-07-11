@@ -422,10 +422,11 @@ const ExportReports = () => {
 
       // Apply active dashboard filters
       const filtered = data.filter(lead => {
-        // 1. Must be enquiry (Contacted or Follow-Up) or closed at this stage
+        // 1. Must be enquiry (New, Assigned, Contacted, Follow-Up, Future Follow-up) or closed at this stage
         const isClosed = lead.status === 'Lost' || lead.status === 'Closed' || lead.isClosed;
-        const hasSiteVisitHistory = lead.history?.some(h => h.status === 'Site Visit' || h.status === 'Site Visit Follow-up');
-        const isEnquiry = lead.status === 'Contacted' || lead.status === 'Follow-Up' || (isClosed && !hasSiteVisitHistory);
+        const hasSiteVisitHistory = lead.history?.some(h => h.status === 'Site Visit' || h.status === 'Site Visit Follow-up') || (lead.closeRemarks && lead.closeRemarks.includes('[Lost at Site Visit'));
+        const activeEnquiryStatuses = ['New', 'Assigned', 'Contacted', 'Follow-Up', 'Future Follow-up'];
+        const isEnquiry = activeEnquiryStatuses.includes(lead.status) || (isClosed && !hasSiteVisitHistory);
         if (!isEnquiry) return false;
 
         // 2. Project filter
@@ -573,7 +574,7 @@ const ExportReports = () => {
       const filtered = data.filter(lead => {
         // 1. Must be site visit stage (Site Visit or Site Visit Follow-up) or closed at this stage
         const isClosed = lead.status === 'Lost' || lead.status === 'Closed' || lead.isClosed;
-        const hasSiteVisitHistory = lead.history?.some(h => h.status === 'Site Visit' || h.status === 'Site Visit Follow-up');
+        const hasSiteVisitHistory = lead.history?.some(h => h.status === 'Site Visit' || h.status === 'Site Visit Follow-up') || (lead.closeRemarks && lead.closeRemarks.includes('[Lost at Site Visit'));
         const isSiteVisit = lead.status === 'Site Visit' || lead.status === 'Site Visit Follow-up' || (isClosed && hasSiteVisitHistory);
         if (!isSiteVisit) return false;
 
