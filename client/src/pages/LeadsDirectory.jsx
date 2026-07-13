@@ -2058,23 +2058,38 @@ const LeadsDirectory = () => {
 
               {/* Conditional Direct Visit Fields */}
               {leadType === 'Direct Visit' && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-black-50 p-4 rounded-2xl border border-black-150">
-                  <div>
-                    <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Next Follow-up Date <span className="text-red-500">*</span></label>
-                    <input
-                      type="date"
-                      min={(() => {
-                        const now = new Date();
-                        const year = now.getFullYear();
-                        const month = String(now.getMonth() + 1).padStart(2, '0');
-                        const day = String(now.getDate()).padStart(2, '0');
-                        return `${year}-${month}-${day}`;
-                      })()}
-                      required
-                      value={directFollowDate}
-                      onChange={(e) => setDirectFollowDate(e.target.value)}
-                      className="w-full px-4 py-3 bg-white border border-black-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0e623a] text-sm text-black-700"
-                    />
+                <div className="space-y-4 bg-black-50 p-4 rounded-2xl border border-black-150">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Lead Category <span className="text-red-500">*</span></label>
+                      <select
+                        value={leadCategory}
+                        onChange={(e) => setLeadCategory(e.target.value)}
+                        className="w-full px-4 py-3 bg-white border border-black-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0e623a] text-sm font-semibold appearance-none"
+                        style={{ backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 12px center', backgroundSize: '16px' }}
+                      >
+                        <option value="Hot">🔥 Hot</option>
+                        <option value="Warm">☀️ Warm</option>
+                        <option value="Cold">❄️ Cold</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Next Follow-up Date <span className="text-red-500">*</span></label>
+                      <input
+                        type="date"
+                        min={(() => {
+                          const now = new Date();
+                          const year = now.getFullYear();
+                          const month = String(now.getMonth() + 1).padStart(2, '0');
+                          const day = String(now.getDate()).padStart(2, '0');
+                          return `${year}-${month}-${day}`;
+                        })()}
+                        required
+                        value={directFollowDate}
+                        onChange={(e) => setDirectFollowDate(e.target.value)}
+                        className="w-full px-4 py-3 bg-white border border-black-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0e623a] text-sm text-black-700"
+                      />
+                    </div>
                   </div>
                   <div>
                     <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Notes (Narration)</label>
