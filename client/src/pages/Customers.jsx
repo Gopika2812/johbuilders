@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth, API_URL } from '../context/AuthContext';
+import { useLocation } from 'react-router-dom';
 import { 
   Users, 
   Search, 
@@ -25,7 +26,12 @@ const Customers = () => {
 
   // Selected customer CRD Flow
   const [selectedFlow, setSelectedFlow] = useState(null);
-  const [searchTerm, setSearchTerm] = useState('');
+  
+  const location = useLocation();
+  const queryParams = new URLSearchParams(location.search);
+  const initialSearch = queryParams.get('search') || '';
+  
+  const [searchTerm, setSearchTerm] = useState(initialSearch);
   const [activeSubTab, setActiveSubTab] = useState('extra-works'); // 'extra-works' or 'complaints'
 
   // New complaint input
@@ -45,7 +51,20 @@ const Customers = () => {
       if (res.ok) {
         const data = await res.json();
         setFlows(data);
-        if (data.length > 0) {
+        
+        // Auto-select logic
+        if (initialSearch && data.length > 0) {
+          const match = initialSearch.toLowerCase();
+          const filtered = data.filter(flow => 
+            (flow.lead?.name || '').toLowerCase().includes(match) || 
+            (flow.lead?.phone || '').includes(match)
+          );
+          if (filtered.length > 0) {
+            setSelectedFlow(filtered[0]);
+          } else {
+            setSelectedFlow(data[0]);
+          }
+        } else if (data.length > 0) {
           setSelectedFlow(data[0]);
         }
       } else {

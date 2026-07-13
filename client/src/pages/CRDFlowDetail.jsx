@@ -108,6 +108,21 @@ const CRDFlowDetail = () => {
           <p className="text-xs text-gray-500 font-bold uppercase mb-1">Assigned Executive</p>
           <p className="text-base font-black text-[#0e623a]">{flow.lead?.assignedTo?.name || flow.lead?.assignedTo || 'Unassigned'}</p>
         </div>
+        {flow.credentials && (
+          <div className="border-l border-gray-200 pl-8 flex flex-col justify-center">
+            <p className="text-[10px] text-gray-400 font-bold uppercase mb-1.5 tracking-wider">Customer Portal Access</p>
+            <div className="flex flex-col gap-1.5">
+              <div className="text-xs text-gray-600 flex items-center gap-2">
+                <span className="font-semibold w-8">User:</span>
+                <span className="text-gray-900 font-black bg-gray-100 px-2 py-0.5 rounded-md border border-gray-200 font-mono text-[11px] select-all">{flow.credentials.username}</span>
+              </div>
+              <div className="text-xs text-gray-600 flex items-center gap-2">
+                <span className="font-semibold w-8">Pass:</span>
+                <span className="text-gray-900 font-black bg-gray-100 px-2 py-0.5 rounded-md border border-gray-200 font-mono text-[11px] select-all">{flow.credentials.password}</span>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Stages Table */}

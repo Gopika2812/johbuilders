@@ -1,0 +1,1530 @@
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { User, LogOut, CheckCircle, Clock, Plus, Minus, AlertTriangle, X, Loader2, MessageSquareWarning, Home, Sparkles, Menu, Phone, MapPin, Activity, Wrench, ShieldAlert, FileText, ChevronRight, Building, CreditCard, Droplets, Grid, Utensils, Zap, Trees, Layout, Paintbrush, Hammer, Cloud, TrendingUp, Maximize, Package } from 'lucide-react';
+import { API_URL } from '../../context/AuthContext';
+
+const WelcomePopup = ({ isOpen, onClose, userName, projectName }) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+      <style>
+        {`
+          @keyframes confetti-fall {
+            0% { transform: translateY(-10vh) rotate(0deg) scale(1); opacity: 1; }
+            100% { transform: translateY(100vh) rotate(720deg) scale(0.5); opacity: 0; }
+          }
+          .spark {
+            position: absolute;
+            top: -10%;
+            animation: confetti-fall linear forwards;
+          }
+        `}
+      </style>
+      
+      {/* Confetti Sparks (Green & White) */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden z-50">
+        {[...Array(60)].map((_, i) => (
+          <div
+            key={i}
+            className={`spark ${i % 2 === 0 ? 'bg-[#006838]' : 'bg-white'} ${i % 3 === 0 ? 'rounded-full' : 'rounded-sm'}`}
+            style={{
+              left: `${Math.random() * 100}%`,
+              width: `${Math.random() * 8 + 4}px`,
+              height: `${Math.random() * 12 + 6}px`,
+              opacity: Math.random() * 0.8 + 0.2,
+              animationDelay: `${Math.random() * 1.5}s`,
+              animationDuration: `${Math.random() * 2 + 2}s`,
+              transform: `rotate(${Math.random() * 360}deg)`
+            }}
+          />
+        ))}
+      </div>
+
+      <div className="bg-[#050907] border border-white/10 rounded-[2.5rem] w-full max-w-lg p-10 relative overflow-hidden shadow-[0_0_50px_rgba(0,104,56,0.3)] animate-fade-in-up z-40 text-center">
+        {/* Decorative Background */}
+        <div className="absolute inset-0 bg-gradient-to-br from-black/80 via-[#0a140f] to-[#006838]/20 z-0"></div>
+        <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-[#006838]/30 rounded-full blur-[80px]"></div>
+
+        <div className="relative z-10">
+          <div className="inline-flex items-center justify-center w-20 h-20 rounded-3xl bg-white/5 backdrop-blur-xl border border-white/10 shadow-2xl mb-6">
+            <Sparkles className="w-10 h-10 text-emerald-400" strokeWidth={1.5} />
+          </div>
+          
+          <h2 className="text-3xl font-serif font-light text-white mb-2">
+            Welcome to <span className="font-bold italic text-emerald-400">John Buildwell</span>
+          </h2>
+          <h3 className="text-xl font-bold text-white mb-6 tracking-wide">{userName}</h3>
+          
+          <p className="text-gray-400 text-sm font-light leading-relaxed mb-8 max-w-sm mx-auto">
+            We are thrilled to have you here. Your dream property at <strong>{projectName}</strong> is in great hands. Track your milestones and stay updated.
+          </p>
+
+          <button 
+            onClick={onClose}
+            className="w-full py-4 bg-gradient-to-r from-[#006838] to-[#008c4a] hover:from-[#007b42] hover:to-[#00a356] text-white rounded-2xl font-bold text-sm tracking-widest uppercase transition-all shadow-[0_0_20px_rgba(0,104,56,0.4)]"
+          >
+            Explore Dashboard
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const CustomerDashboard = () => {
+  const navigate = useNavigate();
+  const [flow, setFlow] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [showWelcome, setShowWelcome] = useState(false);
+  const [activeTab, setActiveTab] = useState('profile');
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  
+  // Modals
+  const [extraWorkModal, setExtraWorkModal] = useState({ open: false, stageIdx: null });
+  const [complaintModalOpen, setComplaintModalOpen] = useState(false);
+  
+  // Form State
+  const [extraName, setExtraName] = useState('');
+  const [extraAmount, setExtraAmount] = useState('');
+  const [complaintDesc, setComplaintDesc] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+
+  // Catalog State
+  const [selectedCategory, setSelectedCategory] = useState('');
+  const [catalogModalOpen, setCatalogModalOpen] = useState(false);
+  const [selectedCatalogItem, setSelectedCatalogItem] = useState(null);
+  const [catalogQuantity, setCatalogQuantity] = useState(1);
+  const [catalogStageIdx, setCatalogStageIdx] = useState('');
+
+  const [customWorkDesc, setCustomWorkDesc] = useState('');
+  const [customWorkStageIdx, setCustomWorkStageIdx] = useState('');
+
+  // Bulk Selection State
+  const [bulkSelections, setBulkSelections] = useState({});
+  const [previewModalOpen, setPreviewModalOpen] = useState(false);
+  
+  // Requested Works Sub-Tab State
+  const [requestedWorksTab, setRequestedWorksTab] = useState('history'); // 'history' or 'confirmed'
+  const [quotation, setQuotation] = useState(null);
+
+  const fetchFlow = async () => {
+    const token = localStorage.getItem('customerToken');
+    if (!token) {
+      navigate('/portal');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const res = await fetch(`${API_URL}/customer/my-flow`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.status === 401 || res.status === 403) {
+        handleLogout();
+        return;
+      }
+      if (!res.ok) throw new Error('Failed to load your project data');
+      
+      const data = await res.json();
+      setFlow(data);
+      
+      // Also fetch quotation
+      try {
+        const qRes = await fetch(`${API_URL}/customer/my-quotation`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (qRes.ok) {
+          setQuotation(await qRes.json());
+        }
+      } catch (e) {
+        // Quotation might not exist, that's fine
+      }
+      
+      // Check if we should show welcome popup
+      if (!sessionStorage.getItem('hasSeenWelcome')) {
+        setShowWelcome(true);
+        sessionStorage.setItem('hasSeenWelcome', 'true');
+      }
+      
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchFlow();
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem('customerToken');
+    localStorage.removeItem('customerUsername');
+    sessionStorage.removeItem('hasSeenWelcome');
+    navigate('/portal');
+  };
+
+  const handleAddExtraWork = async (e) => {
+    e.preventDefault();
+    setSubmitting(true);
+    try {
+      const token = localStorage.getItem('customerToken');
+      const res = await fetch(`${API_URL}/customer/extra-work`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          stageIndex: extraWorkModal.stageIdx,
+          name: extraName,
+          amount: extraAmount
+        })
+      });
+      if (!res.ok) throw new Error('Failed to request extra work');
+      
+      setExtraWorkModal({ open: false, stageIdx: null });
+      setExtraName('');
+      setExtraAmount('');
+      fetchFlow();
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleRequestCatalogItem = async (e) => {
+    e.preventDefault();
+    setSubmitting(true);
+    try {
+      const token = localStorage.getItem('customerToken');
+      const amount = catalogQuantity * (selectedCatalogItem.rate || 0);
+      const name = `${selectedCatalogItem.name} (${catalogQuantity} ${selectedCatalogItem.unit})`;
+      
+      const res = await fetch(`${API_URL}/customer/extra-work`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          stageIndex: catalogStageIdx,
+          name: name,
+          amount: amount
+        })
+      });
+      if (!res.ok) throw new Error('Failed to request extra work');
+      
+      setCatalogModalOpen(false);
+      setSelectedCatalogItem(null);
+      setCatalogQuantity(1);
+      fetchFlow();
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleBulkSubmit = async () => {
+    const selectedIndices = Object.keys(bulkSelections).filter(idx => bulkSelections[idx].selected);
+    if (selectedIndices.length === 0) return;
+
+    // Validate that all selected items have a stage assigned
+    const missingStage = selectedIndices.find(idx => bulkSelections[idx].stageIdx === '');
+    if (missingStage) {
+      alert("Please select a billing stage for all checked items.");
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const itemsPayload = selectedIndices.map(idx => {
+        const catalogItem = flow.project.extraWorkCatalog[idx];
+        const sel = bulkSelections[idx];
+        return {
+          stageIndex: sel.stageIdx,
+          name: catalogItem.name,
+          category: catalogItem.category,
+          unit: catalogItem.unit,
+          quantity: sel.quantity,
+          rate: catalogItem.rate,
+          amount: catalogItem.rate * sel.quantity
+        };
+      });
+
+      const token = localStorage.getItem('customerToken');
+      const res = await fetch(`${API_URL}/customer/bulk-extra-work`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ items: itemsPayload })
+      });
+      if (!res.ok) throw new Error('Failed to submit extra works request');
+      
+      setBulkSelections({});
+      fetchFlow();
+      alert("Items successfully requested! They are now Pending approval from the admin.");
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleCustomerApprove = async (stageIdx, workId) => {
+    try {
+      setSubmitting(true);
+      const token = localStorage.getItem('customerToken');
+      const res = await fetch(`${API_URL}/customer/extra-work/${stageIdx}/${workId}/approve`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (!res.ok) throw new Error('Failed to approve extra work');
+      await fetchFlow();
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleCustomerRemove = async (stageIdx, workId) => {
+    if (!window.confirm('Are you sure you want to remove this extra work request?')) return;
+    try {
+      setSubmitting(true);
+      const token = localStorage.getItem('customerToken');
+      const res = await fetch(`${API_URL}/customer/extra-work/${stageIdx}/${workId}/remove`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (!res.ok) throw new Error('Failed to remove extra work');
+      await fetchFlow();
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleCustomWorkSubmit = async (e) => {
+    e.preventDefault();
+    if (!customWorkDesc || customWorkStageIdx === '') return;
+    setSubmitting(true);
+    try {
+      const token = localStorage.getItem('customerToken');
+      const res = await fetch(`${API_URL}/customer/extra-work`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          stageIndex: customWorkStageIdx,
+          name: `Custom Request: ${customWorkDesc}`,
+          amount: 0
+        })
+      });
+      if (!res.ok) throw new Error('Failed to submit custom request');
+      
+      setCustomWorkDesc('');
+      setCustomWorkStageIdx('');
+      fetchFlow();
+      alert("Custom request submitted! The admin will review it and assign a rate.");
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleRaiseComplaint = async (e) => {
+    e.preventDefault();
+    setSubmitting(true);
+    try {
+      const token = localStorage.getItem('customerToken');
+      const res = await fetch(`${API_URL}/customer/complaint`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ description: complaintDesc })
+      });
+      if (!res.ok) throw new Error('Failed to submit complaint');
+      
+      setComplaintModalOpen(false);
+      setComplaintDesc('');
+      fetchFlow();
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const extraWorkCatalog = flow?.project?.extraWorkCatalog || [];
+  const catalogCategories = Array.from(new Set(extraWorkCatalog.map(item => item.category)));
+
+  useEffect(() => {
+    if (catalogCategories.length > 0 && !selectedCategory) {
+      setSelectedCategory(catalogCategories[0]);
+    }
+  }, [catalogCategories, selectedCategory]);
+
+  if (loading) return <div className="min-h-screen bg-[#f8fafc] flex items-center justify-center"><Loader2 className="w-10 h-10 animate-spin text-[#006838]" /></div>;
+  if (error || !flow) return (
+    <div className="min-h-screen bg-[#f8fafc] flex flex-col items-center justify-center p-6 text-center">
+      <AlertTriangle className="w-16 h-16 text-red-500 mb-4" />
+      <h2 className="text-2xl font-bold text-gray-900 mb-2">Oops! Something went wrong.</h2>
+      <p className="text-gray-500 mb-6">{error || 'Could not find your project data.'}</p>
+      <button onClick={handleLogout} className="px-6 py-2 bg-gray-900 text-white rounded-full font-bold">Return to Home</button>
+    </div>
+  );
+
+  // Extract all extra works
+  const allExtraWorks = flow?.stages.reduce((acc, stage, idx) => {
+    if (stage.extraWorks) {
+      stage.extraWorks.forEach(ew => acc.push({ ...ew, stageName: stage.name, stageIdx: idx }));
+    }
+    return acc;
+  }, []);
+
+  return (
+    <div className="min-h-screen flex bg-gradient-to-br from-[#f1f5f9] via-[#f8fafc] to-[#e2e8f0] font-sans selection:bg-[#006838] selection:text-white relative overflow-hidden print:bg-white print:block">
+      
+      {/* Subtle Glacier Background Elements */}
+      <div className="fixed top-[-20%] left-[-10%] w-[60%] h-[60%] bg-[#006838]/5 rounded-full blur-[120px] pointer-events-none z-0 print:hidden"></div>
+      <div className="fixed bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-blue-400/5 rounded-full blur-[100px] pointer-events-none z-0 print:hidden"></div>
+
+      <WelcomePopup 
+        isOpen={showWelcome} 
+        onClose={() => setShowWelcome(false)} 
+        userName={flow.lead?.name || 'Valued Client'} 
+        projectName={flow.project?.name || 'your project'} 
+      />
+      
+      {/* Mobile Sidebar Overlay */}
+      {sidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 lg:hidden transition-opacity" 
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
+      {/* Sidebar - Glassmorphic */}
+      <aside className={`fixed inset-y-0 left-0 w-72 bg-white/70 backdrop-blur-2xl border-r border-white/50 shadow-[4px_0_24px_rgba(0,0,0,0.02)] z-50 transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:flex-shrink-0 flex flex-col print:hidden ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+        <div className="p-8 flex items-center justify-between">
+          <div className="text-[#006838] font-black text-2xl tracking-tighter">
+            JOHN<span className="text-gray-400 font-light">BUILDWELL</span>
+          </div>
+          <button className="lg:hidden text-gray-500 hover:text-gray-900" onClick={() => setSidebarOpen(false)}>
+            <X className="w-6 h-6" />
+          </button>
+        </div>
+
+        <div className="px-8 pb-6">
+          <div className="p-4 bg-gradient-to-br from-[#006838] to-[#008c4a] rounded-2xl text-white shadow-lg shadow-[#006838]/20 relative overflow-hidden">
+            <div className="absolute top-0 right-0 p-4 opacity-10">
+              <User className="w-16 h-16" />
+            </div>
+            <div className="relative z-10">
+              <p className="text-[10px] uppercase tracking-widest text-emerald-200 font-bold mb-1">Client Portal</p>
+              <h3 className="font-bold text-lg leading-tight truncate">{flow.lead?.name}</h3>
+              <p className="text-xs text-emerald-100 truncate mt-1">Unit {flow.unitId}</p>
+            </div>
+          </div>
+        </div>
+
+        <nav className="flex-1 px-4 space-y-2 overflow-y-auto">
+          {[
+            { id: 'profile', icon: User, label: 'My Profile' },
+            { id: 'quotation', icon: FileText, label: 'My Quotation' },
+            { id: 'extraworks', icon: Wrench, label: 'Extra Works' },
+            { id: 'requestedworks', icon: FileText, label: 'Requested Works' },
+            { id: 'complaints', icon: ShieldAlert, label: 'Complaints' }
+          ].map(item => (
+            <button
+              key={item.id}
+              onClick={() => { setActiveTab(item.id); setSidebarOpen(false); }}
+              className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-xl text-sm font-bold transition-all ${
+                activeTab === item.id 
+                  ? 'bg-white text-[#006838] shadow-sm shadow-gray-200/50' 
+                  : 'text-gray-500 hover:bg-white/50 hover:text-gray-900'
+              }`}
+            >
+              <item.icon className={`w-5 h-5 ${activeTab === item.id ? 'text-[#006838]' : 'text-gray-400'}`} />
+              {item.label}
+              {activeTab === item.id && <ChevronRight className="w-4 h-4 ml-auto text-gray-300" />}
+            </button>
+          ))}
+        </nav>
+
+        <div className="p-6">
+          <button 
+            onClick={handleLogout}
+            className="w-full flex items-center justify-center gap-2 px-4 py-3 text-sm font-bold text-gray-500 bg-white/50 hover:bg-red-50 hover:text-red-600 border border-white/60 rounded-xl transition-all shadow-sm"
+          >
+            <LogOut className="w-4 h-4" /> Sign Out
+          </button>
+        </div>
+      </aside>
+
+      {/* Main Content Area */}
+      <main className="flex-1 flex flex-col h-screen overflow-hidden relative z-10">
+        
+        {/* Top Header Mobile */}
+        <header className="lg:hidden flex items-center justify-between p-4 bg-white/70 backdrop-blur-xl border-b border-white/50 sticky top-0 z-30">
+          <div className="text-[#006838] font-black text-xl tracking-tighter">JOHN<span className="text-gray-400 font-light">BUILDWELL</span></div>
+          <button onClick={() => setSidebarOpen(true)} className="p-2 bg-white rounded-lg text-gray-600 shadow-sm border border-gray-100">
+            <Menu className="w-5 h-5" />
+          </button>
+        </header>
+
+        <div className="flex-1 overflow-y-auto p-4 md:p-8 lg:p-12 scrollbar-thin">
+          <div className="w-full space-y-8 animate-fade-in-up">
+            
+            {/* TAB: MY PROFILE */}
+            {activeTab === 'profile' && (
+              <div className="space-y-8">
+                <div className="flex flex-col md:flex-row gap-6">
+                  {/* Registered Details Glass Card */}
+                  <div className="flex-1 bg-white/60 backdrop-blur-xl border border-white/60 rounded-[2rem] p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-[#006838]/5 rounded-bl-full -z-10 group-hover:scale-110 transition-transform duration-700"></div>
+                    <div className="flex items-center gap-3 mb-6">
+                      <div className="p-2 bg-[#006838]/10 text-[#006838] rounded-xl"><User className="w-5 h-5" /></div>
+                      <h2 className="text-lg font-bold text-gray-900">Registered Details</h2>
+                    </div>
+                    
+                    <div className="space-y-5">
+                      <div>
+                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Client Name</p>
+                        <p className="font-semibold text-gray-900 text-base">{flow.lead?.name || 'N/A'}</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Contact Phone</p>
+                        <p className="font-semibold text-gray-900 flex items-center gap-2">
+                          <Phone className="w-3.5 h-3.5 text-gray-400" /> {flow.lead?.phone || 'N/A'}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Registered Address</p>
+                        <p className="font-semibold text-gray-900 flex items-start gap-2">
+                          <MapPin className="w-3.5 h-3.5 text-gray-400 mt-1 shrink-0" /> {flow.lead?.address || 'Not Provided'}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Project Summary Card */}
+                  <div className="flex-1 bg-[#006838] text-white rounded-[2rem] p-8 shadow-[0_8px_30px_rgba(0,104,56,0.2)] relative overflow-hidden">
+                    <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent pointer-events-none"></div>
+                    <div className="absolute -bottom-10 -right-10 opacity-10">
+                      <Home className="w-48 h-48" />
+                    </div>
+                    
+                    <div className="relative z-10">
+                      <p className="text-[10px] font-bold text-emerald-200 uppercase tracking-widest mb-2">Project Assignment</p>
+                      <h2 className="text-3xl font-serif font-light mb-1">{flow.project?.name}</h2>
+                      <p className="text-emerald-100 font-medium mb-8">Unit {flow.unitId}</p>
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="bg-black/20 backdrop-blur-md rounded-2xl p-4 border border-white/10">
+                          <p className="text-[10px] uppercase text-emerald-200 font-bold mb-1">Total Valuation</p>
+                          <p className="font-bold">Rs. {flow.totalOriginalValue?.toLocaleString()}</p>
+                        </div>
+                        <div className="bg-black/20 backdrop-blur-md rounded-2xl p-4 border border-white/10">
+                          <p className="text-[10px] uppercase text-emerald-200 font-bold mb-1">Project Status</p>
+                          <p className="font-bold flex items-center gap-1"><Activity className="w-4 h-4 text-emerald-300" /> {flow.status}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Complaints Snapshot */}
+                <div className="bg-white/60 backdrop-blur-xl border border-white/60 rounded-[2rem] p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
+                  <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-red-50 text-red-500 rounded-xl"><ShieldAlert className="w-5 h-5" /></div>
+                      <h2 className="text-lg font-bold text-gray-900">Complaints Status</h2>
+                    </div>
+                    <button onClick={() => setActiveTab('complaints')} className="text-xs font-bold text-[#006838] hover:underline">View All</button>
+                  </div>
+
+                  {(!flow.complaints || flow.complaints.length === 0) ? (
+                    <div className="py-6 text-center bg-gray-50/50 rounded-2xl border border-dashed border-gray-200">
+                      <p className="text-sm text-gray-500 font-medium">No complaints registered. Everything is smooth!</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {flow.complaints.slice(0, 3).map((comp, idx) => (
+                        <div key={idx} className="flex items-center justify-between p-4 bg-white rounded-2xl border border-gray-100 shadow-sm">
+                          <div className="flex-1 pr-4">
+                            <p className="text-sm font-semibold text-gray-900 line-clamp-1">{comp.description}</p>
+                            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mt-1">Reported: {new Date(comp.reportedAt).toLocaleDateString()}</p>
+                          </div>
+                          <span className={`px-3 py-1 text-[10px] font-bold uppercase tracking-wider rounded-lg shrink-0 ${
+                            comp.status === 'Resolved' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' :
+                            comp.status === 'In Progress' ? 'bg-amber-50 text-amber-600 border border-amber-100' :
+                            'bg-gray-100 text-gray-600 border border-gray-200'
+                          }`}>
+                            {comp.status || 'Pending'}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Construction Milestones */}
+                <div className="bg-white/60 backdrop-blur-xl border border-white/60 rounded-[2rem] p-1 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden">
+                  <div className="p-6 md:p-8 flex items-center gap-3 border-b border-gray-100">
+                    <div className="p-2 bg-blue-50 text-blue-600 rounded-xl"><FileText className="w-5 h-5" /></div>
+                    <div>
+                      <h2 className="text-lg font-bold text-gray-900">Current Project Status</h2>
+                      <p className="text-xs text-gray-500 mt-0.5">Track the exact status of your construction stages.</p>
+                    </div>
+                  </div>
+                  
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-sm whitespace-nowrap">
+                      <thead className="bg-gray-50/80 text-gray-400 font-bold uppercase text-[10px] tracking-wider">
+                        <tr>
+                          <th className="p-4 md:px-8 font-bold">Milestone Stage</th>
+                          <th className="p-4 text-center font-bold">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100">
+                        {flow.stages?.map((stage, idx) => {
+                          const stagePaid = stage.payments?.reduce((sum, p) => sum + (Number(p.amount) || 0), 0) || 0;
+                          const totalAmt = stage.amount + (stage.extraWorks?.reduce((s, e) => s + e.amount, 0) || 0);
+                          const isCompleted = stage.isCompleted || stagePaid >= totalAmt;
+
+                          return (
+                            <tr key={idx} className="hover:bg-white transition bg-white/40">
+                              <td className="p-4 md:px-8">
+                                <div className="font-bold text-gray-900">{stage.name}</div>
+                                <div className="text-xs text-gray-500 mt-0.5">{stage.percentage}% of total value</div>
+                              </td>
+                              <td className="p-4 text-center">
+                                {isCompleted ? (
+                                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 text-[#006838] text-[10px] font-bold uppercase tracking-wider border border-emerald-100">
+                                    <CheckCircle className="w-3.5 h-3.5" /> Completed
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-50 text-amber-600 text-[10px] font-bold uppercase tracking-wider border border-amber-100">
+                                    <Clock className="w-3.5 h-3.5" /> Pending
+                                  </span>
+                                )}
+                              </td>
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* TAB: QUOTATION */}
+            {activeTab === 'quotation' && (
+              <div className="space-y-6">
+                <div className="flex items-center justify-between print:hidden">
+                  <div>
+                    <h1 className="text-3xl font-serif font-light text-gray-900">My Quotation</h1>
+                    <p className="text-sm text-gray-500 mt-1">View your official project quotation preview.</p>
+                  </div>
+                </div>
+
+                {!quotation ? (
+                  <div className="bg-white rounded-[2rem] p-12 text-center shadow-sm border border-gray-100">
+                    <p className="text-gray-500">Official quotation details not available yet.</p>
+                  </div>
+                ) : (
+                  <div className="bg-white border border-gray-150 rounded-3xl p-8 shadow-sm space-y-8 print:shadow-none print:border-none print:p-0">
+                    {/* Brand Header */}
+                    <div className="flex justify-between items-start border-b pb-6">
+                      <div>
+                        <h1 className="text-2xl font-black text-[#0e623a] tracking-tight">JOHN BUILDWELL CONSTRUCTIONS</h1>
+                        <p className="text-xs text-gray-400 mt-1">Premium Builders & Real Estate Developers</p>
+                        <div className="text-[11px] text-gray-500 mt-2 space-y-0.5">
+                          <div>Corporate Office: Bypass Road, Vannarpettai</div>
+                          <div>Tirunelveli, Tamil Nadu - 627003</div>
+                          <div>Contact: +91 94432 83634 | info@johnbuildwell.com</div>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <h2 className="text-xl font-bold text-gray-700">VALUATION ESTIMATE</h2>
+                        <div className="text-xs text-gray-500 mt-2 space-y-1">
+                          <div><strong>Quote Ref:</strong> JB/QTN/{quotation._id?.substring(18).toUpperCase() || 'N/A'}</div>
+                          <div><strong>Date:</strong> {new Date(quotation.createdAt).toLocaleDateString()}</div>
+                          <div><strong>Valid Until:</strong> {new Date(new Date(quotation.createdAt).getTime() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString()} (30 Days)</div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Client Details Section */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 border-b pb-6">
+                      <div>
+                        <h3 className="text-xs font-bold text-[#0e623a] uppercase tracking-wider block mb-2">Prepared For:</h3>
+                        <div className="space-y-1.5">
+                          <div className="text-sm font-bold text-gray-800 flex items-center gap-1.5">
+                            <User className="w-4 h-4 text-gray-400 shrink-0" />
+                            <span>{quotation.customerName}</span>
+                          </div>
+                          <div className="text-xs text-gray-600 flex items-center gap-1.5">
+                            <Phone className="w-4 h-4 text-gray-400 shrink-0" />
+                            <span>{quotation.customerPhone}</span>
+                          </div>
+                          {quotation.customerAddress && (
+                            <div className="text-xs text-gray-500 flex items-start gap-1.5">
+                              <MapPin className="w-4 h-4 text-gray-400 shrink-0 mt-0.5" />
+                              <span>{quotation.customerAddress}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      <div>
+                        <h3 className="text-xs font-bold text-[#0e623a] uppercase tracking-wider block mb-2">Project Association:</h3>
+                        <div className="space-y-1.5">
+                          <div className="text-sm font-bold text-gray-800 flex items-center gap-1.5">
+                            <Building className="w-4 h-4 text-gray-400 shrink-0" />
+                            <span>{quotation.project?.name || 'Project Reference'}</span>
+                          </div>
+                          <div className="text-xs text-gray-600">
+                            <strong>Project Code:</strong> {quotation.project?.code || 'N/A'}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            <strong>Project Type:</strong> {quotation.projectType}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Quotation Valuation Table */}
+                    <div className="space-y-2">
+                      <h3 className="text-xs font-bold text-[#0e623a] uppercase tracking-wider">Itemized Valuation Estimate:</h3>
+                      <table className="w-full text-left border border-gray-150 rounded-2xl overflow-hidden">
+                        <thead>
+                          <tr className="bg-gray-50 border-b border-gray-150 text-xs font-bold text-gray-500">
+                            <th className="p-4">Description</th>
+                            <th className="p-4">Type</th>
+                            <th className="p-4 text-right">Units Selected</th>
+                            <th className="p-4 text-right">Area (Sq.Ft)</th>
+                            <th className="p-4 text-right">Rate / Sq.Ft</th>
+                            <th className="p-4 text-right">Total Price</th>
+                          </tr>
+                        </thead>
+                        <tbody className="text-xs text-gray-700 divide-y divide-gray-100">
+                          <tr>
+                            <td className="p-4 font-semibold text-gray-800">
+                              Proposed Layout Booking Valuation
+                            </td>
+                            <td className="p-4">{quotation.projectType}</td>
+                            <td className="p-4 text-right font-bold">{quotation.selectedUnits?.join(', ') || flow.unitId}</td>
+                            <td className="p-4 text-right">{quotation.totalArea} Sq.Ft</td>
+                            <td className="p-4 text-right">Rs. {(quotation.pricePerSqFt || 0).toLocaleString()}</td>
+                            <td className="p-4 text-right font-bold text-gray-800">Rs. {(quotation.totalValue || 0).toLocaleString()}</td>
+                          </tr>
+                          {/* Total Cost summary Row */}
+                          <tr className="bg-emerald-50/20 font-bold border-t border-gray-200">
+                            <td colSpan="5" className="p-4 text-right text-[#0e623a]">Base Valuation Cost:</td>
+                            <td className="p-4 text-right text-base text-[#0e623a]">Rs. {(quotation.totalValue || 0).toLocaleString()}</td>
+                          </tr>
+
+                          {allExtraWorks.filter(ew => ['Sent to Customer', 'Client Approved', 'Added to CRD'].includes(ew.status)).length > 0 && (
+                            <>
+                              <tr className="bg-gray-50 border-t border-gray-200">
+                                <td colSpan="6" className="p-4 font-bold text-gray-600 text-[10px] uppercase tracking-wider">
+                                  Approved / Requested Extra Works
+                                </td>
+                              </tr>
+                              {allExtraWorks.filter(ew => ['Sent to Customer', 'Client Approved', 'Added to CRD'].includes(ew.status)).map((work, idx) => (
+                                <tr key={work._id || idx}>
+                                  <td className="p-4" colSpan="2">
+                                    <div className="font-semibold text-gray-800">{work.name}</div>
+                                    <div className="text-[10px] text-gray-500">{work.category} • {work.stageName}</div>
+                                  </td>
+                                  <td className="p-4 text-right font-bold">{work.quantity} {work.unit}</td>
+                                  <td className="p-4 text-right" colSpan="2">
+                                    {work.rate > 0 ? `Rs. ${work.rate.toLocaleString()}` : 'TBD'}
+                                  </td>
+                                  <td className="p-4 text-right font-bold text-gray-800">
+                                    {work.amount > 0 ? `Rs. ${work.amount.toLocaleString()}` : 'TBD'}
+                                  </td>
+                                </tr>
+                              ))}
+                              <tr className="bg-emerald-50/20 font-bold border-t border-gray-200">
+                                <td colSpan="5" className="p-4 text-right text-[#0e623a]">Extra Works Total:</td>
+                                <td className="p-4 text-right text-base text-[#0e623a]">Rs. {allExtraWorks.filter(ew => ['Sent to Customer', 'Client Approved', 'Added to CRD'].includes(ew.status)).reduce((sum, ew) => sum + (ew.amount || 0), 0).toLocaleString()}</td>
+                              </tr>
+                            </>
+                          )}
+
+                          {allExtraWorks.filter(ew => ['Sent to Customer', 'Client Approved', 'Added to CRD'].includes(ew.status)).length > 0 && (
+                            <tr className="bg-[#0e623a] text-white font-bold border-t-2 border-[#0b4d2d]">
+                              <td colSpan="5" className="p-4 text-right uppercase tracking-wider">Grand Total Valuation:</td>
+                              <td className="p-4 text-right text-lg">Rs. {(quotation.totalValue + allExtraWorks.filter(ew => ['Sent to Customer', 'Client Approved', 'Added to CRD'].includes(ew.status)).reduce((sum, ew) => sum + (ew.amount || 0), 0)).toLocaleString()}</td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {/* Customer ID & Bank Loan Info */}
+                    {(quotation.alternativePhone || quotation.aadharNumber || quotation.panNumber || quotation.bankLoanRequired === 'Yes') && (
+                      <div className="bg-gray-50 p-5 rounded-2xl border border-gray-100 space-y-3">
+                        <h3 className="text-[11px] font-bold text-[#0e623a] uppercase tracking-wider flex items-center gap-1.5">
+                          <CreditCard className="w-4 h-4 text-[#0e623a]/75" />
+                          <span>Financial details & Credentials</span>
+                        </h3>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
+                          {quotation.alternativePhone && (
+                            <div>
+                              <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block">Alt Phone</span>
+                              <span className="font-semibold text-gray-700">{quotation.alternativePhone}</span>
+                            </div>
+                          )}
+                          {quotation.aadharNumber && (
+                            <div>
+                              <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block">Aadhar Card</span>
+                              <span className="font-semibold text-gray-700">{quotation.aadharNumber}</span>
+                            </div>
+                          )}
+                          {quotation.panNumber && (
+                            <div>
+                              <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block">PAN Card</span>
+                              <span className="font-semibold text-gray-700">{quotation.panNumber}</span>
+                            </div>
+                          )}
+                        </div>
+
+                        {quotation.bankLoanRequired === 'Yes' && (
+                          <div className="border-t pt-3 mt-1 grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                            <div>
+                              <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block">Required Bank Loan</span>
+                              <span className="font-semibold text-gray-700">Yes</span>
+                            </div>
+                            {quotation.loanAmount > 0 && (
+                              <div>
+                                <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block">Loan amount / preferred bank</span>
+                                <span className="font-semibold text-gray-700">Rs. {(quotation.loanAmount || 0).toLocaleString()} ({quotation.preferredBank || 'Any Bank'})</span>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Terms and Signature Footer */}
+                    <div className="pt-12 grid grid-cols-2 gap-8 text-xs border-t">
+                      <div>
+                        <h4 className="font-bold text-[#0e623a]">Terms & Conditions:</h4>
+                        <ul className="list-disc pl-4 mt-2 space-y-1 text-gray-400 text-[11px]">
+                          <li>This is an estimate quotation copy valid for 30 days from date of issue.</li>
+                          <li>Final pricing depends on plot dimensions at physical site registration.</li>
+                          <li>Installment schedules must follow project payment milestone policies.</li>
+                        </ul>
+                      </div>
+                      <div className="text-right flex flex-col justify-end items-end space-y-12">
+                        <div className="text-[11px] text-gray-400">Authorized Signature, John Buildwell ERP</div>
+                        <div className="border-t border-gray-300 w-48 pt-1 text-xs text-gray-700 font-bold">John Buildwell Developers</div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* TAB: EXTRA WORKS */}
+            {activeTab === 'extraworks' && (
+              <div className="space-y-8">
+                <div className="flex items-center justify-between flex-wrap gap-4">
+                  <div>
+                    <h1 className="text-3xl font-serif font-light text-gray-900">Extra Works Shop</h1>
+                    <p className="text-sm text-gray-500 mt-1">Browse and request custom additions for your dream property.</p>
+                  </div>
+                </div>
+
+                {extraWorkCatalog.length === 0 ? (
+                  <div className="bg-white/60 backdrop-blur-xl border border-white/60 rounded-[2rem] p-12 text-center shadow-sm">
+                    <Wrench className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                    <h3 className="text-lg font-bold text-gray-900">No Catalog Available</h3>
+                    <p className="text-gray-500 text-sm mt-1">Your builder hasn't published any standard extra works for this project yet.</p>
+                  </div>
+                ) : (
+                  <div className="flex flex-col md:flex-row gap-6">
+                    {/* Category Sidebar */}
+                    <div className="w-full md:w-64 flex-shrink-0">
+                      <div className="bg-white/60 backdrop-blur-xl border border-white/60 rounded-3xl p-4 shadow-sm sticky top-6">
+                        <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4 px-3">Categories</h3>
+                        <div className="space-y-1">
+                          {catalogCategories.map(cat => (
+                            <button
+                              key={cat}
+                              onClick={() => setSelectedCategory(cat)}
+                              className={`w-full text-left px-4 py-3 rounded-2xl text-sm font-bold transition-all duration-300 ${
+                                selectedCategory === cat 
+                                  ? 'bg-[#006838] text-white shadow-lg shadow-[#006838]/20' 
+                                  : 'text-gray-600 hover:bg-white/80 hover:text-gray-900'
+                              }`}
+                            >
+                              {cat}
+                            </button>
+                          ))}
+                          <button
+                            onClick={() => {
+                              setSelectedCategory('Other Requirements');
+                              const firstOngoingStageIdx = flow.stages.findIndex(s => !s.isCompleted);
+                              setCustomWorkStageIdx(firstOngoingStageIdx !== -1 ? firstOngoingStageIdx : '');
+                            }}
+                            className={`w-full text-left px-4 py-3 rounded-2xl text-sm font-bold transition-all duration-300 mt-2 border border-dashed ${
+                              selectedCategory === 'Other Requirements' 
+                                ? 'bg-emerald-50 text-emerald-800 border-emerald-200 shadow-sm' 
+                                : 'text-gray-500 hover:bg-white/80 border-gray-200'
+                            }`}
+                          >
+                            + Other Requirements
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Catalog Grid */}
+                    <div className="flex-1">
+                      {selectedCategory === 'Other Requirements' ? (
+                        <div className="bg-white/60 backdrop-blur-xl border border-emerald-100 rounded-[2rem] p-8 shadow-sm flex flex-col">
+                          <div className="flex items-center gap-3 mb-6">
+                            <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-600">
+                              <Plus className="w-6 h-6" />
+                            </div>
+                            <div>
+                              <h3 className="text-xl font-bold text-gray-900">Custom Work Request</h3>
+                              <p className="text-sm text-gray-500">Need something not in the catalog? Tell us what you need.</p>
+                            </div>
+                          </div>
+                          
+                          <form onSubmit={handleCustomWorkSubmit} className="space-y-5 bg-white p-6 rounded-[1.5rem] shadow-sm border border-gray-100">
+                            <div>
+                              <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Work Description / Sub Category</label>
+                              <input
+                                type="text"
+                                required
+                                placeholder="e.g. Install custom Italian marble in living room..."
+                                value={customWorkDesc}
+                                onChange={(e) => setCustomWorkDesc(e.target.value)}
+                                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-[#006838]/20 focus:border-[#006838] transition"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Bill to Milestone Stage</label>
+                              <select
+                                required
+                                value={customWorkStageIdx}
+                                onChange={(e) => setCustomWorkStageIdx(e.target.value)}
+                                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-[#006838]/20 focus:border-[#006838] transition"
+                              >
+                                <option value="" disabled>Select a stage...</option>
+                                {flow.stages.map((stg, idx) => (
+                                  <option key={idx} value={idx} disabled={stg.isCompleted}>
+                                    {stg.name} {stg.isCompleted ? '(Completed)' : ''}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                            <div className="pt-2">
+                              <button
+                                type="submit"
+                                disabled={submitting || customWorkStageIdx === ''}
+                                className="w-full py-4 bg-[#006838] text-white font-bold rounded-xl hover:bg-[#00522c] transition flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/20"
+                              >
+                                {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Submit Custom Request'}
+                              </button>
+                            </div>
+                          </form>
+                        </div>
+                      ) : (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 pb-24">
+                        {extraWorkCatalog.filter(item => item.category === selectedCategory).map((item) => {
+                          const absoluteIdx = extraWorkCatalog.findIndex(c => c === item);
+                          const isSelected = bulkSelections[absoluteIdx]?.selected || false;
+                          
+                          const getCategoryIcon = (cat) => {
+                            const c = (cat || '').toLowerCase();
+                            if (c.includes('bath') || c.includes('plumb')) return <Droplets className="w-10 h-10 opacity-40 text-blue-600 group-hover:opacity-100 group-hover:scale-110 transition-all duration-300" />;
+                            if (c.includes('tile')) return <Grid className="w-10 h-10 opacity-40 text-amber-600 group-hover:opacity-100 group-hover:scale-110 transition-all duration-300" />;
+                            if (c.includes('kitchen')) return <Utensils className="w-10 h-10 opacity-40 text-orange-600 group-hover:opacity-100 group-hover:scale-110 transition-all duration-300" />;
+                            if (c.includes('elect')) return <Zap className="w-10 h-10 opacity-40 text-yellow-600 group-hover:opacity-100 group-hover:scale-110 transition-all duration-300" />;
+                            if (c.includes('landscape') || c.includes('garden')) return <Trees className="w-10 h-10 opacity-40 text-emerald-600 group-hover:opacity-100 group-hover:scale-110 transition-all duration-300" />;
+                            if (c.includes('floor')) return <Layout className="w-10 h-10 opacity-40 text-indigo-600 group-hover:opacity-100 group-hover:scale-110 transition-all duration-300" />;
+                            if (c.includes('paint')) return <Paintbrush className="w-10 h-10 opacity-40 text-pink-600 group-hover:opacity-100 group-hover:scale-110 transition-all duration-300" />;
+                            if (c.includes('civil') || c.includes('fabrication')) return <Hammer className="w-10 h-10 opacity-40 text-gray-600 group-hover:opacity-100 group-hover:scale-110 transition-all duration-300" />;
+                            if (c.includes('ceiling')) return <Cloud className="w-10 h-10 opacity-40 text-cyan-600 group-hover:opacity-100 group-hover:scale-110 transition-all duration-300" />;
+                            if (c.includes('staircase')) return <TrendingUp className="w-10 h-10 opacity-40 text-purple-600 group-hover:opacity-100 group-hover:scale-110 transition-all duration-300" />;
+                            if (c.includes('balcony')) return <Maximize className="w-10 h-10 opacity-40 text-teal-600 group-hover:opacity-100 group-hover:scale-110 transition-all duration-300" />;
+                            return <Package className="w-10 h-10 opacity-40 text-[#006838] group-hover:opacity-100 group-hover:scale-110 transition-all duration-300" />;
+                          };
+                          
+                          return (
+                            <div key={absoluteIdx} className={`bg-white/60 backdrop-blur-xl border ${isSelected ? 'border-[#006838] shadow-lg shadow-[#006838]/20' : 'border-white/60'} rounded-[2rem] p-6 transition-all duration-500 group relative overflow-hidden flex flex-col`}>
+                              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-emerald-100/50 to-transparent rounded-bl-full -z-10 transition-transform group-hover:scale-110"></div>
+                              
+                              <div className="flex-1">
+                                <div className="flex justify-between items-start mb-4">
+                                  <span className="inline-block px-3 py-1 bg-emerald-50 text-emerald-700 rounded-full text-[10px] font-bold uppercase tracking-wider">
+                                    {item.unit}
+                                  </span>
+                                  <div className="p-3 bg-white rounded-2xl shadow-sm border border-gray-50 flex-shrink-0">
+                                    {getCategoryIcon(item.category)}
+                                  </div>
+                                </div>
+                                <h4 className="text-lg font-bold text-gray-900 leading-tight mb-2">{item.name}</h4>
+                              </div>
+                              
+                              <div className="mt-6 pt-4 border-t border-gray-100 flex items-end justify-between min-h-[4rem]">
+                                <div>
+                                  {item.rate > 0 && (
+                                    <>
+                                      <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-0.5">Estimated Rate</p>
+                                      <p className="text-xl font-black text-[#006838]">
+                                        Rs. {item.rate.toLocaleString()}
+                                      </p>
+                                    </>
+                                  )}
+                                </div>
+                                <button 
+                                  onClick={() => {
+                                    setBulkSelections(prev => {
+                                      const current = prev[absoluteIdx] || { selected: false, quantity: 1, stageIdx: '' };
+                                      return {
+                                        ...prev,
+                                        [absoluteIdx]: {
+                                          ...current,
+                                          selected: !current.selected,
+                                          stageIdx: current.stageIdx === '' ? (flow.stages.findIndex(s => !s.isCompleted) !== -1 ? flow.stages.findIndex(s => !s.isCompleted) : '') : current.stageIdx
+                                        }
+                                      };
+                                    });
+                                  }}
+                                  className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors shadow-lg shrink-0 ${isSelected ? 'bg-red-500 hover:bg-red-600 text-white' : 'bg-gray-900 text-white hover:bg-[#006838]'}`}
+                                >
+                                  {isSelected ? <Minus className="w-5 h-5" /> : <Plus className="w-5 h-5" />}
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+                
+                {/* Floating Action Bar for Bulk Selection */}
+                {Object.values(bulkSelections).some(s => s.selected) && (
+                  <div className="fixed top-6 right-8 bg-gray-900 backdrop-blur-xl border border-gray-800 shadow-2xl rounded-2xl px-6 py-4 flex items-center gap-4 z-50 animate-fade-in-up hover:-translate-y-1 transition-transform shadow-[#006838]/20">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-[#006838] text-white flex items-center justify-center font-black text-lg shadow-lg">
+                        {Object.values(bulkSelections).filter(s => s.selected).length}
+                      </div>
+                    </div>
+                    <button 
+                      onClick={() => setPreviewModalOpen(true)} 
+                      className="px-6 py-3 bg-white text-gray-900 rounded-xl font-bold text-sm hover:bg-[#006838] hover:text-white transition shadow-sm whitespace-nowrap"
+                    >
+                      Review & Request
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* TAB: REQUESTED WORKS */}
+            {activeTab === 'requestedworks' && (
+              <div className="space-y-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <h1 className="text-3xl font-serif font-light text-gray-900">Requested Extra Works</h1>
+                    <p className="text-sm text-gray-500 mt-1">Track the status of all your custom requests.</p>
+                  </div>
+                  
+                  {/* Sub-Tabs */}
+                  <div className="bg-white/60 backdrop-blur-xl border border-white/60 p-1 rounded-2xl inline-flex shadow-sm">
+                    <button
+                      onClick={() => setRequestedWorksTab('history')}
+                      className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${
+                        requestedWorksTab === 'history' 
+                          ? 'bg-[#006838] text-white shadow-md' 
+                          : 'text-gray-500 hover:text-gray-900'
+                      }`}
+                    >
+                      History
+                    </button>
+                    <button
+                      onClick={() => setRequestedWorksTab('confirmed')}
+                      className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all relative ${
+                        requestedWorksTab === 'confirmed' 
+                          ? 'bg-[#006838] text-white shadow-md' 
+                          : 'text-gray-500 hover:text-gray-900'
+                      }`}
+                    >
+                      Confirmed Requests
+                      {allExtraWorks.filter(ew => ew.status === 'Sent to Customer').length > 0 && (
+                        <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-white animate-pulse"></span>
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                {allExtraWorks.filter(ew => requestedWorksTab === 'confirmed' ? ['Sent to Customer', 'Client Approved', 'Added to CRD'].includes(ew.status) : true).length === 0 ? (
+                  <div className="bg-white/60 backdrop-blur-xl border border-white/60 rounded-[2rem] p-12 text-center shadow-sm">
+                    <FileText className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                    <h3 className="text-lg font-bold text-gray-900">No {requestedWorksTab === 'confirmed' ? 'pending approvals' : 'requests yet'}</h3>
+                    <p className="text-gray-500 text-sm mt-1">
+                      {requestedWorksTab === 'confirmed' 
+                        ? 'You have no extra works waiting for your approval.' 
+                        : "You haven't requested any extra works for your project."}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="bg-white/60 backdrop-blur-xl border border-white/60 rounded-[2rem] p-1 shadow-sm overflow-hidden">
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left text-sm whitespace-nowrap">
+                        <thead className="bg-gray-50/80 text-gray-400 font-bold uppercase text-[10px] tracking-wider border-b border-gray-100">
+                          <tr>
+                            <th className="p-4 w-16 text-center">S.No</th>
+                            <th className="p-4">Date</th>
+                            <th className="p-4">Stage</th>
+                            <th className="p-4">Category</th>
+                            <th className="p-4">Extra Work</th>
+                            <th className="p-4 text-right">Est. Amount</th>
+                            <th className="p-4 text-center">{requestedWorksTab === 'confirmed' ? 'Action' : 'Status'}</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100">
+                          {allExtraWorks
+                            .filter(ew => requestedWorksTab === 'confirmed' ? ['Sent to Customer', 'Client Approved', 'Added to CRD'].includes(ew.status) : true)
+                            .map((ew, idx) => (
+                            <tr key={idx} className="hover:bg-white transition bg-white/40">
+                              <td className="p-4 text-center text-gray-400 font-bold">{idx + 1}</td>
+                              <td className="p-4 text-xs font-bold text-gray-600">
+                                {new Date(ew.addedAt).toLocaleDateString()}
+                              </td>
+                              <td className="p-4">
+                                <span className="inline-block px-2.5 py-1 bg-gray-100 text-gray-600 rounded-lg text-[10px] font-bold uppercase tracking-wider">
+                                  {ew.stageName}
+                                </span>
+                              </td>
+                              <td className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider">
+                                {ew.category || 'General'}
+                              </td>
+                              <td className="p-4">
+                                <div className="font-bold text-gray-900">{ew.name}</div>
+                                <div className="text-[10px] text-gray-500 mt-0.5">Qty: {ew.quantity || 1} {ew.unit ? `x ${ew.unit}` : ''} @ Rs. {ew.rate || 0}</div>
+                              </td>
+                              <td className="p-4 text-right font-black text-[#006838]">
+                                Rs. {(ew.amount || 0).toLocaleString()}
+                              </td>
+                              <td className="p-4 text-center flex items-center justify-center gap-2">
+                                {requestedWorksTab === 'confirmed' ? (
+                                  ew.status === 'Sent to Customer' ? (
+                                    <div className="flex items-center justify-center gap-2">
+                                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-50 text-blue-600 text-[10px] font-bold uppercase tracking-wider border border-blue-100">
+                                        <AlertTriangle className="w-3 h-3" /> Reviewing
+                                      </span>
+                                      <button 
+                                        onClick={() => handleCustomerRemove(ew.stageIdx, ew._id)}
+                                        disabled={submitting}
+                                        title="Remove Request"
+                                        className="p-1 rounded bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-colors disabled:opacity-50"
+                                      >
+                                        <X className="w-3 h-3" />
+                                      </button>
+                                    </div>
+                                  ) : (
+                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-600 text-[10px] font-bold uppercase tracking-wider border border-emerald-100">
+                                      <CheckCircle className="w-3 h-3" /> I Agreed
+                                    </span>
+                                  )
+                                ) : (
+                                  ew.status === 'Approved' || ew.status === 'Client Approved' || ew.status === 'Added to CRD' ? (
+                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-600 text-[10px] font-bold uppercase tracking-wider border border-emerald-100">
+                                      <CheckCircle className="w-3 h-3" /> {ew.status === 'Approved' ? 'Approved' : ew.status}
+                                    </span>
+                                  ) : ew.status === 'Rejected' || ew.status === 'Removed by Client' ? (
+                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-red-50 text-red-600 text-[10px] font-bold uppercase tracking-wider border border-red-100">
+                                      <X className="w-3 h-3" /> {ew.status}
+                                    </span>
+                                  ) : ew.status === 'Sent to Customer' ? (
+                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-50 text-blue-600 text-[10px] font-bold uppercase tracking-wider border border-blue-100">
+                                      <AlertTriangle className="w-3 h-3" /> Action Required
+                                    </span>
+                                  ) : (ew.status === 'Pending' || !ew.status) ? (
+                                    <div className="flex items-center gap-2">
+                                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-50 text-amber-600 text-[10px] font-bold uppercase tracking-wider border border-amber-100">
+                                        <Clock className="w-3 h-3" /> {ew.status || 'Pending'}
+                                      </span>
+                                      <button 
+                                        onClick={() => handleCustomerRemove(ew.stageIdx, ew._id)}
+                                        disabled={submitting}
+                                        title="Remove Request"
+                                        className="p-1 rounded bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-colors disabled:opacity-50"
+                                      >
+                                        <X className="w-3 h-3" />
+                                      </button>
+                                    </div>
+                                  ) : (
+                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-gray-50 text-gray-600 text-[10px] font-bold uppercase tracking-wider border border-gray-100">
+                                      <Clock className="w-3 h-3" /> {ew.status}
+                                    </span>
+                                  )
+                                )}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    {allExtraWorks.filter(ew => requestedWorksTab === 'confirmed' && ew.status === 'Sent to Customer').length > 0 && (
+                      <div className="p-4 bg-white/40 border-t border-gray-100 flex flex-wrap items-center justify-end gap-4">
+                        <button
+                          onClick={() => setActiveTab('quotation')}
+                          className="px-5 py-2 bg-white text-gray-700 font-bold rounded-lg border border-gray-200 hover:bg-gray-50 transition flex items-center gap-2 text-sm shadow-sm"
+                        >
+                          <FileText className="w-4 h-4" /> Preview Quotation
+                        </button>
+                        <button
+                          onClick={async () => {
+                            try {
+                              setSubmitting(true);
+                              const worksToApprove = allExtraWorks.filter(ew => ew.status === 'Sent to Customer');
+                              for (const work of worksToApprove) {
+                                await fetch(`${API_URL}/customer/extra-work/${work.stageIdx}/${work._id}/approve`, {
+                                  method: 'POST',
+                                  headers: { Authorization: `Bearer ${localStorage.getItem('customerToken')}` }
+                                });
+                              }
+                              await fetchFlow();
+                            } catch (err) {
+                              alert('Failed to approve some items');
+                            } finally {
+                              setSubmitting(false);
+                            }
+                          }}
+                          disabled={submitting}
+                          className="px-5 py-2 bg-[#006838] text-white font-bold rounded-lg hover:bg-[#00522c] transition flex items-center gap-2 shadow-sm text-sm disabled:opacity-50"
+                        >
+                          {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <><CheckCircle className="w-4 h-4" /> I Agree to All & Send</>}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* TAB: COMPLAINTS */}
+            {activeTab === 'complaints' && (
+              <div className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h1 className="text-3xl font-serif font-light text-gray-900">Complaints</h1>
+                    <p className="text-sm text-gray-500 mt-1">Track issues or raise new concerns.</p>
+                  </div>
+                  <button 
+                    onClick={() => setComplaintModalOpen(true)}
+                    className="px-5 py-2.5 bg-[#ED1C24] text-white rounded-xl text-sm font-bold shadow-lg shadow-red-500/20 hover:bg-red-700 transition flex items-center gap-2"
+                  >
+                    <Plus className="w-4 h-4" /> Raise Complaint
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {(!flow.complaints || flow.complaints.length === 0) ? (
+                    <div className="col-span-full p-12 bg-white/60 backdrop-blur-xl border border-white/60 rounded-[2rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] text-center">
+                      <div className="w-16 h-16 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <CheckCircle className="w-8 h-8 text-emerald-500" />
+                      </div>
+                      <h3 className="text-lg font-bold text-gray-900 mb-1">All Clear!</h3>
+                      <p className="text-gray-500 text-sm">You haven't reported any issues. We're glad everything is perfect!</p>
+                    </div>
+                  ) : (
+                    flow.complaints.map((comp, idx) => (
+                      <div key={idx} className="bg-white/60 backdrop-blur-xl border border-white/60 rounded-[1.5rem] p-6 shadow-[0_4px_20px_rgb(0,0,0,0.03)] flex flex-col h-full relative overflow-hidden">
+                        <div className={`absolute top-0 left-0 w-1 h-full ${
+                          comp.status === 'Resolved' ? 'bg-emerald-500' :
+                          comp.status === 'In Progress' ? 'bg-amber-500' : 'bg-gray-300'
+                        }`}></div>
+                        
+                        <div className="flex items-start justify-between mb-4 pl-3">
+                          <span className={`px-3 py-1 text-[10px] font-bold uppercase tracking-widest rounded-lg border ${
+                            comp.status === 'Resolved' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
+                            comp.status === 'In Progress' ? 'bg-amber-50 text-amber-600 border-amber-100' :
+                            'bg-gray-100 text-gray-600 border-gray-200'
+                          }`}>
+                            {comp.status || 'Pending'}
+                          </span>
+                          <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">{new Date(comp.reportedAt).toLocaleDateString()}</span>
+                        </div>
+                        
+                        <p className="text-gray-800 text-sm font-medium leading-relaxed pl-3 flex-1">{comp.description}</p>
+                        
+                        {comp.resolvedAt && (
+                          <div className="mt-4 pt-4 border-t border-gray-100/50 pl-3">
+                            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Resolved On: {new Date(comp.resolvedAt).toLocaleDateString()}</p>
+                          </div>
+                        )}
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
+
+          </div>
+        </div>
+      </main>
+
+      {/* Extra Work Modal */}
+      {extraWorkModal.open && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-[60] flex items-center justify-center p-4">
+          <div className="bg-white rounded-[2rem] w-full max-w-md overflow-hidden shadow-2xl animate-fade-in-up">
+            <div className="p-6 flex justify-between items-center border-b border-gray-100">
+              <h3 className="font-bold text-lg text-gray-900">Request Customization</h3>
+              <button onClick={() => setExtraWorkModal({ open: false, stageIdx: null })} className="text-gray-400 hover:text-gray-900 bg-gray-50 hover:bg-gray-100 p-2 rounded-full transition"><X className="w-5 h-5" /></button>
+            </div>
+            <form onSubmit={handleAddExtraWork} className="p-8 space-y-5">
+              <p className="text-sm text-gray-500 mb-6 bg-gray-50 p-4 rounded-xl border border-gray-100">You are requesting additional work for <strong className="text-gray-900">{flow.stages[extraWorkModal.stageIdx]?.name}</strong>.</p>
+              <div>
+                <label className="text-[11px] font-bold text-gray-400 uppercase tracking-widest block mb-1.5">What do you want to customize?</label>
+                <input type="text" required value={extraName} onChange={e => setExtraName(e.target.value)} placeholder="e.g., Premium Italian Tiles" className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm font-semibold text-gray-900 focus:border-[#006838] focus:ring-2 focus:ring-[#006838]/10 transition shadow-sm" />
+              </div>
+              <div>
+                <label className="text-[11px] font-bold text-gray-400 uppercase tracking-widest block mb-1.5">Estimated Budget (Rs)</label>
+                <input type="number" required value={extraAmount} onChange={e => setExtraAmount(e.target.value)} placeholder="e.g., 50000" className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm font-semibold text-gray-900 focus:border-[#006838] focus:ring-2 focus:ring-[#006838]/10 transition shadow-sm" />
+              </div>
+              <button type="submit" disabled={submitting} className="w-full py-4 mt-4 bg-[#006838] hover:bg-[#00512c] text-white rounded-xl font-bold text-sm tracking-wide transition shadow-lg shadow-[#006838]/30 flex justify-center">
+                {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Submit Request'}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Complaint Modal */}
+      {complaintModalOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-[60] flex items-center justify-center p-4">
+          <div className="bg-white rounded-[2rem] w-full max-w-md overflow-hidden shadow-2xl animate-fade-in-up border border-red-100">
+            <div className="p-6 flex justify-between items-center border-b border-gray-100">
+              <h3 className="font-bold text-lg text-red-600 flex items-center gap-2"><ShieldAlert className="w-5 h-5" /> Raise a Complaint</h3>
+              <button onClick={() => setComplaintModalOpen(false)} className="text-gray-400 hover:text-gray-900 bg-gray-50 hover:bg-gray-100 p-2 rounded-full transition"><X className="w-5 h-5" /></button>
+            </div>
+            <form onSubmit={handleRaiseComplaint} className="p-8 space-y-5">
+              <p className="text-sm text-gray-500 mb-6 bg-red-50 p-4 rounded-xl border border-red-100 text-red-800 font-medium">Please describe your concern. Our team will look into it immediately.</p>
+              <div>
+                <label className="text-[11px] font-bold text-gray-400 uppercase tracking-widest block mb-1.5">Description of Issue</label>
+                <textarea required value={complaintDesc} onChange={e => setComplaintDesc(e.target.value)} placeholder="Describe your issue in detail..." rows="5" className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm font-semibold text-gray-900 focus:border-red-500 focus:ring-2 focus:ring-red-500/10 transition shadow-sm resize-none"></textarea>
+              </div>
+              <button type="submit" disabled={submitting} className="w-full py-4 mt-4 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold text-sm tracking-wide transition shadow-lg shadow-red-600/30 flex justify-center">
+                {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Submit Complaint'}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+      {/* Catalog Request Modal */}
+      {catalogModalOpen && selectedCatalogItem && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-md overflow-hidden" onClick={e => e.stopPropagation()}>
+            <div className="p-6 md:p-8">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-2xl font-serif font-light text-gray-900">Request Item</h3>
+                <button onClick={() => setCatalogModalOpen(false)} className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 hover:bg-gray-200 transition">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="bg-gray-50 p-4 rounded-2xl mb-6">
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">{selectedCatalogItem.category}</p>
+                <p className="font-bold text-gray-900 mb-2">{selectedCatalogItem.name}</p>
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-gray-500">Rate: <span className="font-bold text-gray-900">Rs. {selectedCatalogItem.rate?.toLocaleString() || 0}</span> / {selectedCatalogItem.unit}</span>
+                </div>
+              </div>
+
+              <form onSubmit={handleRequestCatalogItem} className="space-y-5">
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Quantity ({selectedCatalogItem.unit})</label>
+                  <input
+                    type="number"
+                    min="1"
+                    required
+                    value={catalogQuantity}
+                    onChange={(e) => setCatalogQuantity(e.target.value)}
+                    className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-[#006838]/20 focus:border-[#006838] transition"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Bill to Milestone Stage</label>
+                  <select
+                    required
+                    value={catalogStageIdx}
+                    onChange={(e) => setCatalogStageIdx(e.target.value)}
+                    className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-[#006838]/20 focus:border-[#006838] transition"
+                  >
+                    <option value="" disabled>Select a stage...</option>
+                    {flow.stages.map((stg, idx) => (
+                      <option key={idx} value={idx} disabled={stg.isCompleted}>
+                        {stg.name} {stg.isCompleted ? '(Completed)' : ''}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="pt-4 border-t border-gray-100 flex items-center justify-between">
+                  <div>
+                    <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-0.5">Total Estimated</p>
+                    <p className="text-lg font-black text-[#006838]">
+                      Rs. {(catalogQuantity * (selectedCatalogItem.rate || 0)).toLocaleString()}
+                    </p>
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={submitting || catalogStageIdx === ''}
+                    className="px-6 py-3 bg-[#006838] text-white font-bold rounded-xl hover:bg-[#00522c] transition disabled:opacity-50 flex items-center gap-2"
+                  >
+                    {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Confirm Request'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* BULK PREVIEW MODAL */}
+      {previewModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setPreviewModalOpen(false)}></div>
+          <div className="relative bg-[#f8fafc] w-full max-w-4xl rounded-[2rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-fade-in-up">
+            <div className="p-6 bg-white border-b border-gray-100 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-600">
+                  <Wrench className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-gray-900">Review Requested Works</h3>
+                  <p className="text-sm text-gray-500">Please assign quantities and billing stages.</p>
+                </div>
+              </div>
+              <button onClick={() => setPreviewModalOpen(false)} className="p-2 text-gray-400 hover:text-gray-900 bg-gray-50 rounded-full">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="p-6 overflow-y-auto flex-1 bg-gray-50/50">
+              <div className="space-y-4">
+                {Object.keys(bulkSelections).filter(idx => bulkSelections[idx].selected).length === 0 ? (
+                  <div className="text-center py-12 text-gray-500 font-bold">No items selected.</div>
+                ) : (
+                  Object.keys(bulkSelections).filter(idx => bulkSelections[idx].selected).map(idx => {
+                    const item = flow.project.extraWorkCatalog[idx];
+                    const sel = bulkSelections[idx];
+                    return (
+                      <div key={idx} className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex flex-col md:flex-row md:items-center gap-4">
+                        <div className="flex-1">
+                          <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider bg-emerald-50 px-2 py-0.5 rounded">{item.category}</span>
+                          <h4 className="text-sm font-bold text-gray-900 mt-1">{item.name}</h4>
+                          <div className="text-xs text-gray-500 mt-1">Rate: {item.rate > 0 ? `Rs. ${item.rate.toLocaleString()}` : 'TBD'} / {item.unit}</div>
+                        </div>
+                        <div className="flex items-center gap-4 flex-wrap md:flex-nowrap">
+                          <div className="w-24">
+                            <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Quantity</label>
+                            <input 
+                              type="number" 
+                              min="1"
+                              value={sel.quantity}
+                              onChange={(e) => {
+                                setBulkSelections(prev => ({
+                                  ...prev,
+                                  [idx]: { ...sel, quantity: Number(e.target.value) }
+                                }));
+                              }}
+                              className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm font-bold focus:outline-none focus:ring-2 focus:ring-[#006838]/20 focus:border-[#006838]"
+                            />
+                          </div>
+                          <div className="w-48">
+                            <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Bill to Stage</label>
+                            <select
+                              value={sel.stageIdx}
+                              onChange={(e) => {
+                                setBulkSelections(prev => ({
+                                  ...prev,
+                                  [idx]: { ...sel, stageIdx: e.target.value }
+                                }));
+                              }}
+                              className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs font-bold focus:outline-none focus:ring-2 focus:ring-[#006838]/20 focus:border-[#006838]"
+                            >
+                              <option value="" disabled>Select stage...</option>
+                              {flow.stages.map((stg, i) => (
+                                <option key={i} value={i} disabled={stg.isCompleted}>
+                                  {stg.name} {stg.isCompleted ? '(Done)' : ''}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                          <button 
+                            onClick={() => {
+                              setBulkSelections(prev => {
+                                const newSelections = { ...prev };
+                                newSelections[idx].selected = false;
+                                return newSelections;
+                              });
+                            }}
+                            className="w-8 h-8 rounded-full bg-red-50 text-red-500 flex items-center justify-center hover:bg-red-500 hover:text-white transition-colors md:mt-4 shrink-0"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+
+            <div className="p-6 bg-white border-t border-gray-100 flex items-center justify-between">
+              <div>
+                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-0.5">Total Estimated Amount</p>
+                <p className="text-xl font-black text-[#006838]">
+                  Rs. {Object.keys(bulkSelections).filter(idx => bulkSelections[idx].selected).reduce((acc, idx) => acc + (flow.project.extraWorkCatalog[idx].rate * bulkSelections[idx].quantity), 0).toLocaleString()}
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  handleBulkSubmit();
+                  setPreviewModalOpen(false);
+                }}
+                disabled={submitting || Object.keys(bulkSelections).filter(idx => bulkSelections[idx].selected).length === 0}
+                className="px-8 py-3 bg-[#006838] text-white font-bold rounded-xl hover:bg-[#00522c] transition flex items-center gap-2 shadow-lg shadow-emerald-600/20 disabled:opacity-50"
+              >
+                {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Send to CRD Team'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+    </div>
+  );
+};
+
+export default CustomerDashboard;

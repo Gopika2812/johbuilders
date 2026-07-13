@@ -273,17 +273,21 @@ const LeadsDirectory = () => {
   const [typedBookedUnits, setTypedBookedUnits] = useState('');
   const [unitDropdownOpen, setUnitDropdownOpen] = useState(false);
   const [BookedLoading, setBookedLoading] = useState(false);
+  const [editedUnitSizes, setEditedUnitSizes] = useState({});
 
   useEffect(() => {
     if (BookedProjectDetails && selectedBookedUnits.length > 0) {
       const total = BookedProjectDetails.units
         ?.filter(u => selectedBookedUnits.includes(u.unitId))
-        .reduce((sum, u) => sum + u.price, 0);
+        .reduce((sum, u) => {
+          const size = editedUnitSizes[u.unitId] !== undefined ? editedUnitSizes[u.unitId] : u.size;
+          return sum + (Number(size) || 0) * (BookedProjectDetails.pricePerSqFt || 1);
+        }, 0);
       setCustomBookedAmount(total || '');
     } else {
       setCustomBookedAmount('');
     }
-  }, [selectedBookedUnits, BookedProjectDetails]);
+  }, [selectedBookedUnits, BookedProjectDetails, editedUnitSizes]);
 
   // Follow-Up & Completion Modal States
   const [followModalOpen, setFollowModalOpen] = useState(false);
@@ -601,6 +605,15 @@ const LeadsDirectory = () => {
     setError('');
     setSuccessMsg('');
 
+    if (!name || !profession || !email || !address || !leadLocation || !leadSource || !selectedProjectId) {
+      setError('Please fill in all mandatory fields.');
+      return;
+    }
+    if ((user?.role === 'Admin' || user?.role === 'Manager') && !assignedToId) {
+      setError('Please select an assigned executive.');
+      return;
+    }
+
     const phoneError = validatePhone(phoneCountryCode, phoneLocal, 'Phone number');
     if (phoneError) {
       setCreatePhoneErr(phoneError);
@@ -718,6 +731,7 @@ const LeadsDirectory = () => {
     setSelectedBookedUnits([]);
     setTypedBookedUnits('');
     setCustomBookedAmount('');
+    setEditedUnitSizes({});
 
     try {
       const projId = lead.project?._id || lead.project;
@@ -752,8 +766,28 @@ const LeadsDirectory = () => {
     const BookedAltPhone = BookedAltLocal ? (BookedAltCountryCode === '+' ? `+${BookedAltLocal}` : `${BookedAltCountryCode}${BookedAltLocal}`) : '';
     
     const selectedUnitsData = BookedProjectDetails.units.filter(u => selectedBookedUnits.includes(u.unitId));
-    const totalArea = selectedUnitsData.reduce((sum, u) => sum + u.size, 0);
-    const totalValue = Number(customBookedAmount) || selectedUnitsData.reduce((sum, u) => sum + u.price, 0);
+    
+    const totalArea = selectedUnitsData.reduce((sum, u) => {
+       const size = editedUnitSizes[u.unitId] !== undefined ? editedUnitSizes[u.unitId] : u.size;
+       return sum + (Number(size) || 0);
+    }, 0);
+
+    const calculatedValue = totalArea * (BookedProjectDetails.pricePerSqFt || 1);
+    const totalValue = Number(customBookedAmount) || calculatedValue;
+    const effectiveRate = totalArea > 0 ? (totalValue / totalArea) : (BookedProjectDetails.pricePerSqFt || 1);
+
+    const unitUpdates = selectedUnitsData.map(u => {
+      const editedSize = editedUnitSizes[u.unitId];
+      const finalSize = editedSize !== undefined ? Number(editedSize) : u.size;
+      return { 
+        unitId: u.unitId, 
+        size: finalSize,
+        ratePerUom: effectiveRate,
+        soldRatePerUom: effectiveRate
+      };
+    });
+
+
 
     const qtnPayload = {
       lead: selectedLeadForBooked._id,
@@ -795,6 +829,18 @@ const LeadsDirectory = () => {
 
     setIsSubmitting(true);
     try {
+      // 0. Update Unit Sizes if any edits were made
+      if (unitUpdates.length > 0) {
+        await fetch(`${API_URL}/projects/${BookedProjectDetails._id}/update-unit-sizes`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ unitUpdates })
+        });
+      }
+
       // 1. Create Quotation directly
       const qRes = await fetch(`${API_URL}/quotations`, {
         method: 'POST',
@@ -1823,9 +1869,10 @@ const LeadsDirectory = () => {
                   />
                 </div>
                 <div>
-                  <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Profession</label>
+                  <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Profession <span className="text-red-500">*</span></label>
                   <input
                     type="text"
+                    required
                     placeholder="e.g. Software Engineer"
                     value={profession}
                     onChange={(e) => setProfession(e.target.value)}
@@ -1874,9 +1921,10 @@ const LeadsDirectory = () => {
                   )}
                 </div>
                 <div>
-                  <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Email Address</label>
+                  <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Email Address <span className="text-red-500">*</span></label>
                   <input
                     type="email"
+                    required
                     placeholder="e.g. user@example.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
@@ -1913,8 +1961,9 @@ const LeadsDirectory = () => {
                   />
                 </div>
                 <div>
-                  <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Location (City/Area)</label>
+                  <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Location (City/Area) <span className="text-red-500">*</span></label>
                   <textarea
+                    required
                     rows="2"
                     placeholder="e.g. Downtown"
                     value={leadLocation}
@@ -1930,7 +1979,7 @@ const LeadsDirectory = () => {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {/* Lead Source */}
                     <div className="flex flex-col">
-                      <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Lead Source</label>
+                      <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Lead Source <span className="text-red-500">*</span></label>
                       <SearchableSelect
                         options={SOURCE_TYPES}
                         value={leadSource}
@@ -1941,7 +1990,7 @@ const LeadsDirectory = () => {
 
                     {/* Project Code selection */}
                     <div className="flex flex-col">
-                      <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Project Code</label>
+                      <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Project Code <span className="text-red-500">*</span></label>
                       <SearchableSelect
                         options={projects.map(p => ({ value: p._id, label: `${p.code} - ${p.name} (${p.projectType})` }))}
                         value={selectedProjectId}
@@ -1984,7 +2033,7 @@ const LeadsDirectory = () => {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {/* Lead Source */}
                     <div className="flex flex-col">
-                      <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Lead Source</label>
+                      <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Lead Source <span className="text-red-500">*</span></label>
                       <SearchableSelect
                         options={SOURCE_TYPES}
                         value={leadSource}
@@ -1995,7 +2044,7 @@ const LeadsDirectory = () => {
 
                     {/* Project Code selection */}
                     <div className="flex flex-col">
-                      <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Project Code</label>
+                      <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Project Code <span className="text-red-500">*</span></label>
                       <SearchableSelect
                         options={projects.map(p => ({ value: p._id, label: `${p.code} - ${p.name} (${p.projectType})` }))}
                         value={selectedProjectId}
@@ -2043,7 +2092,7 @@ const LeadsDirectory = () => {
               {/* Assigned Executive */}
               {(user?.role === 'Admin' || user?.role === 'Manager') && (
                 <div className="flex flex-col">
-                  <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Assigned Executive / Member</label>
+                  <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Assigned Executive / Member <span className="text-red-500">*</span></label>
                   <SearchableSelect
                     options={employees.map(emp => ({ value: emp._id, label: `${emp.name} (${emp.role})` }))}
                     value={assignedToId}
@@ -2708,19 +2757,74 @@ const LeadsDirectory = () => {
                 <div className="bg-black-50 p-4 rounded-2xl border border-black-150 space-y-2">
                   <h4 className="text-[11px] font-bold text-black-500 uppercase tracking-wider">Quotation Valuation</h4>
                   <div className="text-xs space-y-1 text-black-600">
-                    <div className="flex justify-between">
+                    <div className="flex justify-between border-b border-black-150 pb-2">
                       <span>Rate Sq.Ft:</span>
-                      <span className="font-semibold text-black-800">Rs. {BookedProjectDetails.pricePerSqFt}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Total area selected:</span>
                       <span className="font-semibold text-black-800">
-                        {BookedProjectDetails.units
-                          ?.filter(u => selectedBookedUnits.includes(u.unitId))
-                          .reduce((sum, u) => sum + u.size, 0).toFixed(2)} Sq.Ft
+                        Rs. {
+                          (() => {
+                            const totalArea = BookedProjectDetails.units
+                              ?.filter(u => selectedBookedUnits.includes(u.unitId))
+                              .reduce((sum, u) => {
+                                 const size = editedUnitSizes[u.unitId] !== undefined ? editedUnitSizes[u.unitId] : u.size;
+                                 return sum + (Number(size) || 0);
+                              }, 0);
+                            
+                            if (totalArea && customBookedAmount) {
+                              const dynamicRate = Number(customBookedAmount) / totalArea;
+                              if (!isNaN(dynamicRate)) {
+                                return parseFloat(dynamicRate.toFixed(2)).toLocaleString();
+                              }
+                            }
+                            return BookedProjectDetails.pricePerSqFt?.toLocaleString() || 0;
+                          })()
+                        }
                       </span>
                     </div>
-                    <div className="flex justify-between border-t pt-1.5 text-sm font-bold text-black-800 items-center">
+                    
+                    {/* Unit Size Editable List */}
+                    <div className="py-2 space-y-2 border-b border-black-150">
+                      <span className="text-[10px] font-bold text-black-500 uppercase tracking-wide">Selected Units Area (Editable)</span>
+                      <div className="max-h-32 overflow-y-auto pr-1 space-y-1.5 scrollbar-thin">
+                        {selectedBookedUnits.map(unitId => {
+                          const originalUnit = BookedProjectDetails.units?.find(u => u.unitId === unitId);
+                          const currentSize = editedUnitSizes[unitId] !== undefined ? editedUnitSizes[unitId] : (originalUnit?.size || 0);
+                          
+                          return (
+                            <div key={unitId} className="flex justify-between items-center bg-white px-2 py-1.5 rounded-lg border border-black-200 shadow-sm">
+                              <span className="font-bold text-[#0e623a]">{unitId}</span>
+                              <div className="flex items-center gap-1.5 bg-black-50 px-2 py-1 rounded">
+                                <input 
+                                  type="number" 
+                                  value={currentSize}
+                                  onChange={(e) => {
+                                    const val = parseFloat(e.target.value);
+                                    setEditedUnitSizes(prev => ({
+                                      ...prev,
+                                      [unitId]: isNaN(val) ? '' : val
+                                    }));
+                                  }}
+                                  className="w-16 text-right bg-transparent border-none focus:outline-none focus:ring-0 text-black-900 font-black text-xs"
+                                />
+                                <span className="text-[10px] text-black-500 font-bold">Sq.Ft</span>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    <div className="flex justify-between pt-2">
+                      <span>Total area selected:</span>
+                      <span className="font-black text-[#0e623a] text-sm">
+                        {BookedProjectDetails.units
+                          ?.filter(u => selectedBookedUnits.includes(u.unitId))
+                          .reduce((sum, u) => {
+                             const size = editedUnitSizes[u.unitId] !== undefined ? editedUnitSizes[u.unitId] : u.size;
+                             return sum + (Number(size) || 0);
+                          }, 0).toFixed(2)} Sq.Ft
+                      </span>
+                    </div>
+                    <div className="flex justify-between border-t border-black-200 mt-2 pt-2 text-sm font-bold text-black-800 items-center">
                       <span>Total Valuation Cost:</span>
                       <div className="flex items-center gap-1">
                         <span className="text-[#0e623a]">Rs.</span>
@@ -2740,7 +2844,7 @@ const LeadsDirectory = () => {
               <div className="space-y-4">
                 <h4 className="text-xs font-bold text-black-700 uppercase tracking-wider border-b pb-1.5">Booked Customer Information</h4>
                 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   <div>
                     <label className="text-xs font-semibold text-black-600 block mb-1">Alternative Contact</label>
                     <div className={`flex items-center bg-black-50 border rounded-xl focus-within:ring-1 transition-all overflow-hidden w-full ${BookedAltPhoneErr ? 'border-red-500 focus-within:ring-red-500' : 'border-black-200 focus-within:ring-[#0e623a] focus-within:border-transparent'}`}>
@@ -2804,19 +2908,7 @@ const LeadsDirectory = () => {
                       className="w-full px-3 py-2 bg-black-50 border border-black-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-xs"
                     />
                   </div>
-                  <div>
-                    <label className="text-xs font-semibold text-black-600 block mb-1">Lead Category <span className="text-red-500">*</span></label>
-                    <select
-                      value={leadCategory}
-                      onChange={(e) => setLeadCategory(e.target.value)}
-                      className="w-full px-3 py-2 bg-black-50 border border-black-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-xs font-semibold text-black-600"
-                      required
-                    >
-                      <option value="Hot">Hot</option>
-                      <option value="Warm">Warm</option>
-                      <option value="Cold">Cold</option>
-                    </select>
-                  </div>
+
                 </div>
 
                 {/* Bank Loan Details Sub-Form */}

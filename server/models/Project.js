@@ -131,6 +131,12 @@ const ProjectSchema = new mongoose.Schema({
     link: { type: String, default: '' },
     uploadedAt: { type: Date, default: Date.now }
   },
+  extraWorkCatalog: [{
+    category: { type: String, required: true },
+    name: { type: String, required: true },
+    unit: { type: String, default: 'Unit' },
+    rate: { type: Number, default: 0 }
+  }],
   createdAt: {
     type: Date,
     default: Date.now

@@ -19,6 +19,7 @@ const QuotationView = () => {
   const navigate = useNavigate();
   const { id } = useParams();
   const [quotation, setQuotation] = useState(null);
+  const [crdFlow, setCrdFlow] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -34,6 +35,19 @@ const QuotationView = () => {
       if (res.ok) {
         const data = await res.json();
         setQuotation(data);
+        if (data.lead && data.lead._id) {
+          try {
+            const crdRes = await fetch(`${API_URL}/crd-flow/booking/${data.lead._id}`, {
+              headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (crdRes.ok) {
+              const crdData = await crdRes.json();
+              setCrdFlow(crdData);
+            }
+          } catch (e) {
+            // CRD flow might not exist yet, that's fine
+          }
+        }
       } else {
         setError('Failed to fetch quotation details');
       }
@@ -50,8 +64,21 @@ const QuotationView = () => {
 
   // Convert numbers to currency formatted string
   const formatCurrency = (val) => {
-    return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(val);
+    return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(val || 0);
   };
+
+  const approvedExtraWorks = [];
+  if (crdFlow && crdFlow.stages) {
+    crdFlow.stages.forEach(stage => {
+      stage.extraWorks?.forEach(work => {
+        if (['PED Approved', 'Sent to Customer', 'Client Approved', 'Added to CRD'].includes(work.status)) {
+          approvedExtraWorks.push({ ...work, stageName: stage.name });
+        }
+      });
+    });
+  }
+  const totalExtraWorks = approvedExtraWorks.reduce((sum, w) => sum + (w.amount || 0), 0);
+  const grandTotal = quotation ? (quotation.totalValue + totalExtraWorks) : 0;
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -213,9 +240,45 @@ const QuotationView = () => {
                 </tr>
                 {/* Total Cost summary Row */}
                 <tr className="bg-emerald-50/20 font-bold border-t border-gray-200">
-                  <td colSpan="5" className="p-4 text-right text-[#0e623a]">Estimated Project Valuation Cost:</td>
+                  <td colSpan="5" className="p-4 text-right text-[#0e623a]">Base Valuation Cost:</td>
                   <td className="p-4 text-right text-base text-[#0e623a]">{formatCurrency(quotation.totalValue)}</td>
                 </tr>
+
+                {approvedExtraWorks.length > 0 && (
+                  <>
+                    <tr className="bg-gray-50 border-t border-gray-200">
+                      <td colSpan="6" className="p-4 font-bold text-gray-600 text-[10px] uppercase tracking-wider">
+                        Approved / Requested Extra Works
+                      </td>
+                    </tr>
+                    {approvedExtraWorks.map((work, idx) => (
+                      <tr key={work._id || idx}>
+                        <td className="p-4" colSpan="2">
+                          <div className="font-semibold text-gray-800">{work.name}</div>
+                          <div className="text-[10px] text-gray-500">{work.category} • {work.stageName}</div>
+                        </td>
+                        <td className="p-4 text-right font-bold">{work.quantity} {work.unit}</td>
+                        <td className="p-4 text-right" colSpan="2">
+                          {work.rate > 0 ? formatCurrency(work.rate) : 'TBD'}
+                        </td>
+                        <td className="p-4 text-right font-bold text-gray-800">
+                          {work.amount > 0 ? formatCurrency(work.amount) : 'TBD'}
+                        </td>
+                      </tr>
+                    ))}
+                    <tr className="bg-emerald-50/20 font-bold border-t border-gray-200">
+                      <td colSpan="5" className="p-4 text-right text-[#0e623a]">Extra Works Total:</td>
+                      <td className="p-4 text-right text-base text-[#0e623a]">{formatCurrency(totalExtraWorks)}</td>
+                    </tr>
+                  </>
+                )}
+
+                {approvedExtraWorks.length > 0 && (
+                  <tr className="bg-[#0e623a] text-white font-bold border-t-2 border-[#0b4d2d]">
+                    <td colSpan="5" className="p-4 text-right uppercase tracking-wider">Grand Total Valuation:</td>
+                    <td className="p-4 text-right text-lg">{formatCurrency(grandTotal)}</td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>

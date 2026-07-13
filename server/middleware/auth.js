@@ -30,6 +30,36 @@ const protect = async (req, res, next) => {
   }
 };
 
+const protectCustomer = async (req, res, next) => {
+  let token;
+  if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+    token = req.headers.authorization.split(' ')[1];
+  }
+
+  if (!token) {
+    return res.status(401).json({ message: 'Not authorized, no token provided' });
+  }
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'merun_glacier_secret_key_12345');
+    if (decoded.role !== 'customer') {
+      return res.status(403).json({ message: 'Access denied. Customers only.' });
+    }
+
+    const CRDFlow = require('../models/CRDFlow');
+    const flow = await CRDFlow.findById(decoded.id);
+    
+    if (!flow) {
+      return res.status(401).json({ message: 'Customer flow not found' });
+    }
+
+    req.customerFlow = flow;
+    next();
+  } catch (err) {
+    return res.status(401).json({ message: 'Not authorized, token validation failed' });
+  }
+};
+
 // Check if user has specific roles
 const authorize = (...roles) => {
   return (req, res, next) => {
@@ -79,4 +109,4 @@ const checkPermission = (pageId, action) => {
   };
 };
 
-module.exports = { protect, authorize, checkPermission };
+module.exports = { protect, protectCustomer, authorize, checkPermission };

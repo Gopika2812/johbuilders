@@ -32,6 +32,17 @@ router.get('/booking/:leadId', protect, async (req, res) => {
     const flow = await CRDFlow.findOne({ lead: req.params.leadId })
       .populate('project')
       .populate('lead');
+    if (!flow) return res.status(404).json({ message: 'Flow not found' });
+    
+    // Retroactively generate credentials if missing
+    if (!flow.credentials || !flow.credentials.username) {
+      flow.credentials = {
+        username: flow.lead?.phone || `user${Math.floor(1000 + Math.random() * 9000)}`,
+        password: `JB${Math.floor(100000 + Math.random() * 900000)}`
+      };
+      await flow.save();
+    }
+    
     res.json(flow);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -49,6 +60,16 @@ router.get('/:id', protect, async (req, res) => {
         populate: { path: 'assignedTo', select: 'name' }
       });
     if (!flow) return res.status(404).json({ message: 'Flow not found' });
+
+    // Retroactively generate credentials if missing
+    if (!flow.credentials || !flow.credentials.username) {
+      flow.credentials = {
+        username: flow.lead?.phone || `user${Math.floor(1000 + Math.random() * 9000)}`,
+        password: `JB${Math.floor(100000 + Math.random() * 900000)}`
+      };
+      await flow.save();
+    }
+
     res.json(flow);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -67,6 +88,8 @@ router.post('/', protect, async (req, res) => {
       return res.status(400).json({ message: 'CRD Flow already initialized for this booking' });
     }
 
+    const lead = await Lead.findById(leadId);
+
     const flow = new CRDFlow({
       project: projectId,
       lead: leadId,
@@ -82,7 +105,11 @@ router.post('/', protect, async (req, res) => {
       })),
       totalOriginalValue: Number(totalOriginalValue),
       totalExtraWorksValue: 0,
-      totalCurrentValue: Number(totalOriginalValue)
+      totalCurrentValue: Number(totalOriginalValue),
+      credentials: {
+        username: lead ? lead.phone : `user${Math.floor(1000 + Math.random() * 9000)}`,
+        password: `JB${Math.floor(100000 + Math.random() * 900000)}`
+      }
     });
 
     await flow.save();
@@ -105,7 +132,7 @@ router.post('/', protect, async (req, res) => {
 // @route   PUT /api/crd-flow/:id/stage/:stageIndex/complete
 // @desc    Complete a stage & verify document uploads if required
 router.put('/:id/stage/:stageIndex/complete', protect, async (req, res) => {
-  const { uploadedPdfs, completionNotes } = req.body;
+  const { uploadedPdfs, completionNotes, isCompleted } = req.body;
   try {
     const flow = await CRDFlow.findById(req.params.id);
     if (!flow) return res.status(404).json({ message: 'Flow record not found' });
@@ -120,8 +147,17 @@ router.put('/:id/stage/:stageIndex/complete', protect, async (req, res) => {
       return res.status(400).json({ message: 'Agreement & Deed registration stage requires 5 PDF uploads' });
     }
 
-    flow.stages[idx].isCompleted = true;
-    flow.stages[idx].completedDate = new Date();
+    if (isCompleted !== undefined) {
+      flow.stages[idx].isCompleted = isCompleted;
+      if (isCompleted) {
+        flow.stages[idx].completedDate = new Date();
+      } else {
+        flow.stages[idx].completedDate = undefined;
+      }
+    } else {
+      flow.stages[idx].isCompleted = true;
+      flow.stages[idx].completedDate = new Date();
+    }
     if (completionNotes) {
       flow.stages[idx].completionNotes = completionNotes;
     }

@@ -35,6 +35,11 @@ import KPIInsights from './pages/KPIInsights';
 import Customers from './pages/Customers';
 import ExportReports from './pages/ExportReports';
 import CRDReports from './pages/CRDReports';
+import ExtraWorks from './pages/ExtraWorks';
+
+// Portal Pages
+import LandingPage from './pages/portal/LandingPage';
+import CustomerDashboard from './pages/portal/CustomerDashboard';
 
 const Layout = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth >= 768);
@@ -92,7 +97,11 @@ function App() {
     <Router>
       <AuthProvider>
         <Routes>
-          {/* Public Pages */}
+          {/* Public Landing & Customer Portal Pages */}
+          <Route path="/portal" element={<LandingPage />} />
+          <Route path="/portal/dashboard" element={<CustomerDashboard />} />
+
+          {/* Public Admin/ERP Login Pages */}
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
 
@@ -126,6 +135,7 @@ function App() {
             <Route path="/crd-flow/bank-loan-history" element={<Layout><BankLoanHistory /></Layout>} />
             <Route path="/crd-flow/collection-report" element={<Layout><CollectionReport /></Layout>} />
             <Route path="/crd-flow/overall-report" element={<Layout><OverallReport /></Layout>} />
+            <Route path="/crd-flow/extra-works" element={<Layout><ExtraWorks /></Layout>} />
             <Route path="/customers" element={<Layout><Customers /></Layout>} />
             
             {/* KPI Insights & Conversions */}

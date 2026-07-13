@@ -18,6 +18,8 @@ const rolePermissionRoutes = require('./routes/rolePermissions');
 const dashboardRoutes = require('./routes/dashboard');
 const auditLogRoutes = require('./routes/auditLogs');
 const requestsRoutes = require('./routes/requests');
+const customerRoutes = require('./routes/customer');
+const extraWorksRoutes = require('./routes/extraWorks');
 
 const app = express();
 
@@ -150,6 +152,8 @@ app.use('/api/role-permissions', rolePermissionRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/audit-logs', auditLogRoutes);
 app.use('/api/requests', requestsRoutes);
+app.use('/api/customer', customerRoutes);
+app.use('/api/extra-works', extraWorksRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useAuth, API_URL } from '../context/AuthContext';
 import SearchableSelect from '../components/SearchableSelect';
+import * as XLSX from 'xlsx-js-style';
 import { 
   Building, 
   MapPin, 
@@ -62,6 +63,7 @@ const SOURCE_TYPES = [
 
 const ProjectDetail = () => {
   const { id } = useParams();
+  const navigate = useNavigate();
   const { token, user } = useAuth();
   const [project, setProject] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -76,6 +78,15 @@ const ProjectDetail = () => {
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
   const [leadName, setLeadName] = useState('');
+  const [soldRatePerUom, setSoldRatePerUom] = useState(0);
+  const [soldConsideration, setSoldConsideration] = useState(0);
+
+  useEffect(() => {
+    if (selectedUnit) {
+      setSoldRatePerUom(selectedUnit.soldRatePerUom || 0);
+      setSoldConsideration(selectedUnit.soldConsideration || 0);
+    }
+  }, [selectedUnit]);
 
   // Resize Modal State
   const [resizeModalOpen, setResizeModalOpen] = useState(false);
@@ -97,9 +108,19 @@ const ProjectDetail = () => {
   const [crdFlowSheetLink, setCrdFlowSheetLink] = useState('');
   const [isUploadingCrd, setIsUploadingCrd] = useState(false);
   const [mPosters, setMPosters] = useState([{ name: '', link: '', status: 'Active', updatedAt: new Date().toISOString() }]);
-  const [activeTab, setActiveTab] = useState('project'); // 'project' | 'marketing'
+  const [activeTab, setActiveTab] = useState('project'); // 'project' | 'marketing' | 'crdFlow' | 'extraWorksCatalog'
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [selectedInventoryType, setSelectedInventoryType] = useState('');
+
+  // Extra Works Catalog State
+  const [extraWorkCatalog, setExtraWorkCatalog] = useState([]);
+  const [ewCategory, setEwCategory] = useState('');
+  const [ewName, setEwName] = useState('');
+  const [ewUnit, setEwUnit] = useState('No');
+  const [ewRate, setEwRate] = useState('');
+  const [isSavingCatalog, setIsSavingCatalog] = useState(false);
+  const [editingCatalogIdx, setEditingCatalogIdx] = useState(null);
+  const [editCatalogForm, setEditCatalogForm] = useState({ name: '', unit: '', rate: '' });
 
   const [marketingSubmitting, setMarketingSubmitting] = useState(false);
   const [bookingSubmitting, setBookingSubmitting] = useState(false);
@@ -151,6 +172,9 @@ const ProjectDetail = () => {
         if (data.crdFlowSheet) {
           setCrdFlowSheetName(data.crdFlowSheet.name || '');
           setCrdFlowSheetLink(data.crdFlowSheet.link || '');
+        }
+        if (data.extraWorkCatalog) {
+          setExtraWorkCatalog(data.extraWorkCatalog);
         }
         if (data.marketingInfo) {
           setMSourceType(data.marketingInfo.sourceType || '');
@@ -214,6 +238,125 @@ const ProjectDetail = () => {
         setCrdFlowSheetFile(null);
       }
     }, 1500);
+  };
+
+  const saveExtraWorkCatalog = async (updatedCatalog) => {
+    setIsSavingCatalog(true);
+    try {
+      const response = await fetch(`${API_URL}/projects/${id}/extra-work-catalog`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ extraWorkCatalog: updatedCatalog })
+      });
+
+      if (response.ok) {
+        const updated = await response.json();
+        setProject(updated);
+        setExtraWorkCatalog(updated.extraWorkCatalog || []);
+        setSaveSuccess(true);
+        setTimeout(() => setSaveSuccess(false), 3000);
+      } else {
+        alert('Failed to save Extra Work Catalog');
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsSavingCatalog(false);
+    }
+  };
+
+  const handleAddExtraWorkCatalogItem = (e) => {
+    e.preventDefault();
+    if (!ewCategory || !ewName) return;
+    const newItem = { category: ewCategory, name: ewName, unit: ewUnit, rate: Number(ewRate) || 0 };
+    const updatedCatalog = [...extraWorkCatalog, newItem];
+    saveExtraWorkCatalog(updatedCatalog);
+    setEwName('');
+    setEwRate('');
+  };
+
+  const handleSaveEditCatalogItem = (idx) => {
+    if (!editCatalogForm.name) return;
+    const updatedCatalog = [...extraWorkCatalog];
+    updatedCatalog[idx] = { 
+      ...updatedCatalog[idx], 
+      name: editCatalogForm.name, 
+      unit: editCatalogForm.unit, 
+      rate: Number(editCatalogForm.rate) || 0 
+    };
+    saveExtraWorkCatalog(updatedCatalog);
+    setEditingCatalogIdx(null);
+  };
+
+  const handleRemoveExtraWorkCatalogItem = (idx) => {
+    const updatedCatalog = extraWorkCatalog.filter((_, i) => i !== idx);
+    saveExtraWorkCatalog(updatedCatalog);
+  };
+
+  const handleBulkUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      try {
+        const bstr = evt.target.result;
+        const wb = XLSX.read(bstr, { type: 'binary' });
+        const wsname = wb.SheetNames[0];
+        const ws = wb.Sheets[wsname];
+        const data = XLSX.utils.sheet_to_json(ws, { header: 1 });
+        
+        let currentCategory = 'General';
+        const newItems = [];
+        let startParsing = false;
+        
+        data.forEach(row => {
+          if (!row || !row.length) return;
+          
+          const val0 = row[0] ? String(row[0]).trim() : '';
+          const val1 = row[1] ? String(row[1]).trim() : '';
+          const val2 = row[2] ? String(row[2]).trim() : '';
+          
+          // Detect the header row to start parsing
+          if (val1.toLowerCase().includes('description') || val0.toLowerCase().includes('s.no')) {
+             startParsing = true;
+             return;
+          }
+          
+          if (!startParsing) return;
+          
+          // If a row has text but no unit, it is a category/sub-category header
+          if ((val0 || val1) && !val2) {
+             const potentialCat = val1 || val0; // Prefer description column
+             if (potentialCat && potentialCat.toLowerCase() !== 'customer choice' && potentialCat.toLowerCase() !== 'remarks') {
+               currentCategory = potentialCat;
+             }
+             return;
+          }
+          
+          if (!val1) return; // Skip empty description
+          
+          newItems.push({
+            category: currentCategory,
+            name: val1,
+            unit: val2,
+            rate: 0
+          });
+        });
+        
+        if (newItems.length > 0) {
+          const updatedCatalog = [...extraWorkCatalog, ...newItems];
+          saveExtraWorkCatalog(updatedCatalog);
+        }
+        e.target.value = '';
+      } catch (err) {
+        alert("Failed to parse Excel file.");
+      }
+    };
+    reader.readAsBinaryString(file);
   };
 
   const handleMarketingSubmit = async (e) => {
@@ -326,7 +469,9 @@ const ProjectDetail = () => {
           status: unitStatus,
           customerName,
           customerPhone,
-          leadName
+          leadName,
+          soldRatePerUom,
+          soldConsideration
         })
       });
 
@@ -548,6 +693,17 @@ const ProjectDetail = () => {
           }`}
         >
           CRD Flow Format
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab('extraWorksCatalog')}
+          className={`flex-1 sm:flex-initial py-3 px-6 text-sm font-bold border-b-2 transition text-center ${
+            activeTab === 'extraWorksCatalog'
+              ? 'border-[#0e623a] text-[#0e623a]'
+              : 'border-transparent text-black-500 hover:text-black-800'
+          }`}
+        >
+          Extra Works Catalog
         </button>
       </div>
 
@@ -1424,20 +1580,40 @@ const ProjectDetail = () => {
                   <span className="font-extrabold text-black-800">{selectedUnit.unitType || 'Flat'}</span>
                 </div>
                 <div className="flex justify-between border-b border-black-200/60 pb-1.5">
+                  <span className="text-black-400 font-bold uppercase tracking-wider">Unit Size</span>
+                  <span className="font-extrabold text-black-800">{(selectedUnit.size || 0).toLocaleString()} sq.ft</span>
+                </div>
+                <div className="flex justify-between border-b border-black-200/60 pb-1.5">
                   <span className="text-black-400 font-bold uppercase tracking-wider">Rate per UOM</span>
                   <span className="font-extrabold text-[#0e623a]">Rs. {(selectedUnit.ratePerUom || project.pricePerSqFt || 0).toLocaleString()}</span>
                 </div>
-                <div className="flex justify-between border-b border-black-200/60 pb-1.5">
+                <div className="flex justify-between items-center border-b border-black-200/60 pb-1.5">
                   <span className="text-black-400 font-bold uppercase tracking-wider">Sold Rate per UOM</span>
-                  <span className="font-extrabold text-red-650">Rs. {(selectedUnit.soldRatePerUom || 0).toLocaleString()}</span>
+                  <div className="flex items-center gap-1">
+                    <span className="text-red-650 font-extrabold">Rs.</span>
+                    <input 
+                      type="number" 
+                      value={soldRatePerUom} 
+                      onChange={(e) => setSoldRatePerUom(e.target.value)} 
+                      className="w-24 text-right bg-red-50 text-red-650 font-extrabold px-1.5 py-0.5 rounded border border-red-200 focus:outline-none focus:ring-1 focus:ring-red-400"
+                    />
+                  </div>
                 </div>
                 <div className="flex justify-between border-b border-black-200/60 pb-1.5">
                   <span className="text-black-400 font-bold uppercase tracking-wider">Total Unit Amount</span>
                   <span className="font-extrabold text-emerald-700">Rs. {Math.round(selectedUnit.price || 0).toLocaleString()}</span>
                 </div>
-                <div className="flex justify-between">
+                <div className="flex justify-between items-center">
                   <span className="text-black-400 font-bold uppercase tracking-wider">Sold Consideration</span>
-                  <span className="font-extrabold text-red-700">Rs. {(selectedUnit.soldConsideration || 0).toLocaleString()}</span>
+                  <div className="flex items-center gap-1">
+                    <span className="text-red-700 font-extrabold">Rs.</span>
+                    <input 
+                      type="number" 
+                      value={soldConsideration} 
+                      onChange={(e) => setSoldConsideration(e.target.value)} 
+                      className="w-28 text-right bg-red-50 text-red-700 font-extrabold px-1.5 py-0.5 rounded border border-red-200 focus:outline-none focus:ring-1 focus:ring-red-400"
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -1463,7 +1639,18 @@ const ProjectDetail = () => {
 
               {/* Customer Details */}
               <div>
-                <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-2 text-left">Customer Name</label>
+                <div className="flex justify-between items-center mb-2">
+                  <label className="text-xs font-bold text-black-500 uppercase tracking-wider block text-left">Customer Name</label>
+                  {customerName && (
+                    <button 
+                      type="button" 
+                      onClick={() => navigate(`/customers?search=${encodeURIComponent(customerName)}`)} 
+                      className="text-[10px] text-[#0e623a] font-bold hover:underline flex items-center gap-1"
+                    >
+                      <ExternalLink className="w-3 h-3" /> View Profile
+                    </button>
+                  )}
+                </div>
                 <input
                   type="text"
                   placeholder="e.g. Robert Miller"
@@ -1690,6 +1877,190 @@ const ProjectDetail = () => {
                     <span className="text-xs text-black-400">.xlsx, .xls formats up to 10MB</span>
                   </label>
                 )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'extraWorksCatalog' && (
+        <div className="bg-white p-6 border border-black-100 shadow-sm rounded-2xl animate-fade-in-up mt-6">
+          <div className="flex items-center justify-between gap-3 mb-6">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center">
+                <Layers className="w-5 h-5 text-blue-600" />
+              </div>
+              <div>
+                <h2 className="text-xl font-black text-black-800">Extra Works Catalog</h2>
+                <p className="text-sm text-black-500 font-medium">Define standard extra works for this project to appear in the client app.</p>
+              </div>
+            </div>
+            <div>
+              <input type="file" id="bulkUpload" accept=".xlsx, .xls" className="hidden" onChange={handleBulkUpload} />
+              <label htmlFor="bulkUpload" className="px-4 py-2 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 font-bold rounded-lg transition cursor-pointer flex items-center gap-2 text-sm border border-emerald-200 shadow-sm">
+                <Upload className="w-4 h-4" />
+                Import from Excel
+              </label>
+            </div>
+          </div>
+
+          <form onSubmit={handleAddExtraWorkCatalogItem} className="flex flex-wrap items-end gap-4 bg-black-50 p-4 rounded-xl border border-black-100 mb-8">
+            <div className="flex-1 min-w-[200px]">
+              <label className="block text-[11px] font-bold text-black-500 uppercase tracking-wider mb-2">Category</label>
+              <input 
+                type="text"
+                placeholder="e.g. Electrical & Plumbing"
+                value={ewCategory}
+                onChange={e => setEwCategory(e.target.value)}
+                className="w-full px-4 py-3 bg-white border border-black-200 rounded-xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
+                required
+              />
+            </div>
+            <div className="flex-1 min-w-[200px]">
+              <label className="block text-[11px] font-bold text-black-500 uppercase tracking-wider mb-2">Item Name / Description</label>
+              <input 
+                type="text"
+                placeholder="e.g. Washbasin provision"
+                value={ewName}
+                onChange={e => setEwName(e.target.value)}
+                className="w-full px-4 py-3 bg-white border border-black-200 rounded-xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
+                required
+              />
+            </div>
+            <div className="w-32">
+              <label className="block text-[11px] font-bold text-black-500 uppercase tracking-wider mb-2">Unit</label>
+              <select
+                value={ewUnit}
+                onChange={e => setEwUnit(e.target.value)}
+                className="w-full px-4 py-3 bg-white border border-black-200 rounded-xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
+              >
+                <option value="No">No</option>
+                <option value="Set">Set</option>
+                <option value="Unit">Unit</option>
+                <option value="Points">Points</option>
+                <option value="Sq.Ft">Sq.Ft</option>
+                <option value="Lumpsum">Lumpsum</option>
+              </select>
+            </div>
+            <div className="w-40">
+              <label className="block text-[11px] font-bold text-black-500 uppercase tracking-wider mb-2">Rate (Rs)</label>
+              <input 
+                type="number"
+                placeholder="Optional"
+                value={ewRate}
+                onChange={e => setEwRate(e.target.value)}
+                className="w-full px-4 py-3 bg-white border border-black-200 rounded-xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
+              />
+            </div>
+            <button 
+              type="submit"
+              disabled={isSavingCatalog}
+              className="px-6 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition flex items-center justify-center min-w-[120px]"
+            >
+              {isSavingCatalog ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Add Item'}
+            </button>
+          </form>
+
+          {/* Catalog List Grouped by Category */}
+          <div className="space-y-6">
+            {Array.from(new Set(extraWorkCatalog.map(item => item.category))).map(category => (
+              <div key={category} className="bg-white border border-black-200 rounded-xl overflow-hidden shadow-sm">
+                <div className="bg-black-50 px-5 py-3 border-b border-black-200">
+                  <h3 className="font-bold text-black-800 uppercase tracking-wider">{category}</h3>
+                </div>
+                <table className="w-full text-left text-sm">
+                  <thead className="bg-white border-b border-black-100 text-black-500 font-semibold">
+                    <tr>
+                      <th className="p-4 w-12 text-center">#</th>
+                      <th className="p-4">Description</th>
+                      <th className="p-4 w-32 text-center">Unit</th>
+                      <th className="p-4 w-40 text-right">Rate (Rs)</th>
+                      <th className="p-4 w-20 text-center">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-black-100">
+                    {extraWorkCatalog.map((item, idx) => item.category === category && (
+                      <tr key={idx} className="hover:bg-black-50 transition">
+                        <td className="p-4 text-center font-bold text-black-400">{idx + 1}</td>
+                        <td className="p-4 font-semibold text-black-700">
+                          {editingCatalogIdx === idx ? (
+                            <input 
+                              type="text" 
+                              value={editCatalogForm.name} 
+                              onChange={(e) => setEditCatalogForm({...editCatalogForm, name: e.target.value})}
+                              className="w-full px-2 py-1 border border-black-200 rounded text-sm focus:outline-none focus:border-blue-500"
+                            />
+                          ) : item.name}
+                        </td>
+                        <td className="p-4 text-center font-bold text-black-500">
+                          {editingCatalogIdx === idx ? (
+                            <input 
+                              type="text" 
+                              value={editCatalogForm.unit} 
+                              onChange={(e) => setEditCatalogForm({...editCatalogForm, unit: e.target.value})}
+                              className="w-full px-2 py-1 border border-black-200 rounded text-sm focus:outline-none focus:border-blue-500 text-center"
+                            />
+                          ) : item.unit}
+                        </td>
+                        <td className="p-4 text-right font-bold text-emerald-600">
+                          {editingCatalogIdx === idx ? (
+                            <input 
+                              type="number" 
+                              value={editCatalogForm.rate} 
+                              onChange={(e) => setEditCatalogForm({...editCatalogForm, rate: e.target.value})}
+                              className="w-full px-2 py-1 border border-black-200 rounded text-sm focus:outline-none focus:border-blue-500 text-right"
+                            />
+                          ) : (item.rate > 0 ? item.rate.toLocaleString() : '-')}
+                        </td>
+                        <td className="p-4 text-center">
+                          <div className="flex items-center justify-center gap-2">
+                            {editingCatalogIdx === idx ? (
+                              <>
+                                <button 
+                                  onClick={() => handleSaveEditCatalogItem(idx)}
+                                  className="p-1.5 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 rounded-lg transition"
+                                >
+                                  <CheckCircle2 className="w-4 h-4" />
+                                </button>
+                                <button 
+                                  onClick={() => setEditingCatalogIdx(null)}
+                                  className="p-1.5 text-black-400 hover:text-black-600 hover:bg-black-100 rounded-lg transition"
+                                >
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                                </button>
+                              </>
+                            ) : (
+                              <>
+                                <button 
+                                  onClick={() => {
+                                    setEditingCatalogIdx(idx);
+                                    setEditCatalogForm({ name: item.name, unit: item.unit, rate: item.rate || '' });
+                                  }}
+                                  className="p-1.5 text-blue-500 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition"
+                                >
+                                  <Edit className="w-4 h-4" />
+                                </button>
+                                <button 
+                                  onClick={() => handleRemoveExtraWorkCatalogItem(idx)}
+                                  className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ))}
+            
+            {extraWorkCatalog.length === 0 && (
+              <div className="text-center py-12 bg-black-50 rounded-xl border border-dashed border-black-200">
+                <Layers className="w-12 h-12 text-black-300 mx-auto mb-3" />
+                <p className="text-black-500 font-medium">No extra work catalog items added yet.</p>
               </div>
             )}
           </div>

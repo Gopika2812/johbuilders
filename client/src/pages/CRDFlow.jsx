@@ -692,6 +692,32 @@ const CRDFlow = () => {
     }
   };
 
+  const handleToggleStageCompletion = async (stageIdx, currentStatus) => {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${API_URL}/crd-flow/${activeFlow._id}/stage/${stageIdx}/complete`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ isCompleted: !currentStatus })
+      });
+      if (res.ok) {
+        const updatedRes = await fetch(`${API_URL}/crd-flow/booking/${selectedBookingId}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const updated = await updatedRes.json();
+        setActiveFlow(updated);
+        setSuccess(`Stage marked as ${!currentStatus ? 'Completed' : 'In Progress'}`);
+        setTimeout(() => setSuccess(''), 3000);
+      }
+    } catch (err) {
+      setError('Error toggling stage completion');
+      setTimeout(() => setError(''), 3000);
+    }
+  };
+
   const handleMakePayment = async (e) => {
     e.preventDefault();
 
@@ -1112,6 +1138,15 @@ const CRDFlow = () => {
                                       <p className="text-xs text-black-500 mt-1">Manage payment milestones for {lead.name}</p>
                                     </div>
                                     <div className="flex items-center gap-2">
+                                      {activeFlow.credentials && (
+                                        <div className="flex flex-col mr-4 border-r border-black-150 pr-4">
+                                          <span className="text-[9px] font-bold text-black-400 uppercase tracking-widest mb-1">Customer Portal Access</span>
+                                          <div className="flex items-center gap-3">
+                                            <span className="text-[11px] text-black-600 font-semibold">User: <span className="font-mono bg-black-50 px-1.5 py-0.5 rounded text-black-800 border border-black-200 select-all">{activeFlow.credentials.username}</span></span>
+                                            <span className="text-[11px] text-black-600 font-semibold">Pass: <span className="font-mono bg-black-50 px-1.5 py-0.5 rounded text-black-800 border border-black-200 select-all">{activeFlow.credentials.password}</span></span>
+                                          </div>
+                                        </div>
+                                      )}
                                       <button
                                         onClick={() => setExtraWorkStageIdx(0)}
                                         className="px-4 py-2 bg-emerald-50 text-emerald-800 font-bold text-[11px] rounded-xl hover:bg-emerald-100 transition border border-emerald-200 shadow-sm cursor-pointer"
@@ -1164,6 +1199,9 @@ const CRDFlow = () => {
                                                   <span className={`px-2 py-1 rounded text-[11px] font-bold uppercase ${isPaidInFull ? 'bg-emerald-100 text-emerald-800' : (stagePaid > 0 ? 'bg-blue-100 text-blue-800' : 'bg-black-100 text-black-600')}`}>
                                                     {isPaidInFull ? 'Paid' : (stagePaid > 0 ? 'Partial' : 'Pending')}
                                                   </span>
+                                                  <span className={`block mt-1.5 px-2 py-1 rounded text-[11px] font-bold uppercase ${stage.isCompleted ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>
+                                                    {stage.isCompleted ? 'Completed' : 'In Progress'}
+                                                  </span>
                                                 </td>
                                                 <td className="p-4 text-right font-bold text-emerald-600">
                                                   Rs. {stagePaid.toLocaleString()}
@@ -1171,13 +1209,19 @@ const CRDFlow = () => {
                                                 <td className="p-4 text-right font-bold text-rose-600">
                                                   Rs. {Math.max(0, stageTotal - stagePaid).toLocaleString()}
                                                 </td>
-                                                <td className="p-4 text-center">
+                                                <td className="p-4 text-center flex flex-col gap-1.5 items-center justify-center">
                                                   <button
                                                     onClick={() => setPaymentStageIdx(idx)}
                                                     disabled={isPaidInFull}
-                                                    className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition ${isPaidInFull ? 'bg-black-100 text-black-400 cursor-not-allowed' : 'bg-blue-50 text-blue-700 hover:bg-blue-100 cursor-pointer border border-blue-200'}`}
+                                                    className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition w-full ${isPaidInFull ? 'bg-black-100 text-black-400 cursor-not-allowed' : 'bg-blue-50 text-blue-700 hover:bg-blue-100 cursor-pointer border border-blue-200'}`}
                                                   >
                                                     {isPaidInFull ? 'Cleared' : 'Pay Now'}
+                                                  </button>
+                                                  <button
+                                                    onClick={() => handleToggleStageCompletion(idx, stage.isCompleted)}
+                                                    className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition w-full cursor-pointer border ${stage.isCompleted ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border-emerald-200' : 'bg-amber-50 text-amber-700 hover:bg-amber-100 border-amber-200'}`}
+                                                  >
+                                                    {stage.isCompleted ? 'Mark In Progress' : 'Mark Completed'}
                                                   </button>
                                                 </td>
                                               </tr>

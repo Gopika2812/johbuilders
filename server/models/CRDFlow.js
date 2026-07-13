@@ -1,9 +1,17 @@
 const mongoose = require('mongoose');
 
 const ExtraWorkSchema = new mongoose.Schema({
-  name: { type: String, required: true },
-  amount: { type: Number, required: true },
-  addedAt: { type: Date, default: Date.now }
+  name: { type: String, required: true }, // acts as description/sub-category
+  category: { type: String, default: 'General' },
+  unit: { type: String, default: 'Unit' },
+  quantity: { type: Number, default: 1 },
+  rate: { type: Number, default: 0 },
+  amount: { type: Number, required: true }, // total amount (quantity * rate)
+  status: { type: String, enum: ['Pending', 'PED Approved', 'Sent to Customer', 'Client Approved', 'Added to CRD', 'Rejected', 'Removed by Client'], default: 'Pending' },
+  addedAt: { type: Date, default: Date.now },
+  pricingDate: { type: Date },
+  customerApprovalDate: { type: Date },
+  crdAddedDate: { type: Date }
 });
 
 const PaymentSplitSchema = new mongoose.Schema({
@@ -72,6 +80,10 @@ const CRDFlowSchema = new mongoose.Schema({
     date: { type: Date, default: Date.now },
     user: { type: String }
   }],
+  credentials: {
+    username: { type: String },
+    password: { type: String }
+  },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now }
 });

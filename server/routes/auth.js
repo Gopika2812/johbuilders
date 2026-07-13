@@ -124,6 +124,38 @@ router.get('/me', protect, async (req, res) => {
       permissions
     });
   } catch (err) {
+    res.status(500).json({ message: 'Server error fetching user details' });
+  }
+});
+
+// @route   POST /api/auth/customer-login
+// @desc    Authenticate customer portal user
+router.post('/customer-login', async (req, res) => {
+  const { username, password } = req.body;
+  try {
+    const CRDFlow = require('../models/CRDFlow');
+    const flow = await CRDFlow.findOne({ 
+      'credentials.username': username, 
+      'credentials.password': password 
+    });
+
+    if (!flow) {
+      return res.status(401).json({ message: 'Invalid portal credentials' });
+    }
+
+    const token = jwt.sign(
+      { id: flow._id, role: 'customer' }, 
+      process.env.JWT_SECRET || 'merun_glacier_secret_key_12345', 
+      { expiresIn: '30d' }
+    );
+
+    res.json({ 
+      token, 
+      flowId: flow._id, 
+      username: username,
+      role: 'customer' 
+    });
+  } catch (err) {
     res.status(500).json({ message: err.message });
   }
 });

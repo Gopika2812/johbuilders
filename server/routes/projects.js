@@ -390,7 +390,7 @@ router.put('/:id/resize-plot', protect, checkPermission('projects', 'edit'), asy
 // @route   PUT /api/projects/:id/unit-status
 // @desc    Update specific unit status & customer booking details
 router.put('/:id/unit-status', protect, async (req, res) => {
-  const { unitId, status, customerName, customerPhone, leadName } = req.body;
+  const { unitId, status, customerName, customerPhone, leadName, soldRatePerUom, soldConsideration } = req.body;
 
   try {
     const project = await Project.findById(req.params.id);
@@ -413,6 +413,8 @@ router.put('/:id/unit-status', protect, async (req, res) => {
     if (customerName !== undefined) unit.customerName = customerName;
     if (customerPhone !== undefined) unit.customerPhone = customerPhone;
     if (leadName !== undefined) unit.leadName = leadName;
+    if (soldRatePerUom !== undefined) unit.soldRatePerUom = Number(soldRatePerUom);
+    if (soldConsideration !== undefined) unit.soldConsideration = Number(soldConsideration);
 
     await project.save();
 
@@ -422,6 +424,32 @@ router.put('/:id/unit-status', protect, async (req, res) => {
       userRole: req.user.role,
       action: 'Update Unit',
       description: `Updated unit ${unitId} in project ${project.name} to status: ${status}`
+    });
+
+    res.json(project);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// @route   PUT /api/projects/:id/extra-work-catalog
+// @desc    Update project extra work catalog
+router.put('/:id/extra-work-catalog', protect, async (req, res) => {
+  try {
+    const project = await Project.findById(req.params.id);
+    if (!project) {
+      return res.status(404).json({ message: 'Project not found' });
+    }
+
+    project.extraWorkCatalog = req.body.extraWorkCatalog;
+    await project.save();
+
+    await AuditLog.create({
+      user: req.user._id,
+      userName: req.user.name,
+      userRole: req.user.role,
+      action: 'Update Extra Work Catalog',
+      description: `Updated extra work catalog for project ${project.name}`
     });
 
     res.json(project);
@@ -482,6 +510,52 @@ router.delete('/:id', protect, async (req, res) => {
     });
 
     res.json({ message: 'Project deleted successfully' });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+
+// @route   PUT /api/projects/:id/update-unit-sizes
+// @desc    Update specific units' size (used during booking/quotation to override default sq.ft)
+router.put('/:id/update-unit-sizes', protect, async (req, res) => {
+  const { unitUpdates } = req.body; // Array of { unitId, size }
+  
+  try {
+    const project = await Project.findById(req.params.id);
+    if (!project) {
+      return res.status(404).json({ message: 'Project not found' });
+    }
+
+    if (!unitUpdates || !Array.isArray(unitUpdates)) {
+      return res.status(400).json({ message: 'unitUpdates array is required' });
+    }
+
+    let updatedCount = 0;
+    unitUpdates.forEach(update => {
+      const unit = project.units.find(u => u.unitId === update.unitId);
+      if (unit && update.size > 0) {
+        unit.size = Number(update.size);
+        if (update.ratePerUom !== undefined) unit.ratePerUom = Number(update.ratePerUom);
+        if (update.soldRatePerUom !== undefined) unit.soldRatePerUom = Number(update.soldRatePerUom);
+        // unit.price will be recalculated by the pre-save hook based on ratePerUom
+        updatedCount++;
+      }
+    });
+
+    if (updatedCount > 0) {
+      await project.save();
+      
+      await AuditLog.create({
+        user: req.user._id,
+        userName: req.user.name,
+        userRole: req.user.role,
+        action: 'Update Unit Sizes',
+        description: `Updated sizes for ${updatedCount} units in project ${project.name}`
+      });
+    }
+
+    res.json(project);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

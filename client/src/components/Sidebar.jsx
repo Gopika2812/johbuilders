@@ -145,6 +145,17 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
               </Link>
 
               <Link
+                to="/crd-flow/extra-works"
+                className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs transition ${
+                  isActive('/crd-flow/extra-works')
+                    ? 'text-[#0e623a] font-extrabold pl-2'
+                    : 'text-emerald-900 hover:text-[#0e623a] hover:bg-[#0e623a]/10'
+                }`}
+              >
+                <span className={isExpanded ? "block truncate" : "hidden"}>Extra Works Approval</span>
+              </Link>
+
+              <Link
                 to="/crd-flow/bank-loan-history"
                 className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs transition ${
                   isActive('/crd-flow/bank-loan-history')
