@@ -823,6 +823,15 @@ const CRDFlow = () => {
     ? Math.max(0, activeFlow.totalCurrentValue - totalReceived)
     : 0;
 
+  if (loading && !activeFlow && flows.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3">
+        <Loader2 className="w-8 h-8 animate-spin text-[#0e623a]" />
+        <p className="text-sm font-medium text-gray-500">Loading CRD flows...</p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6 w-full mx-auto px-4 lg:px-8">
       {/* Top Header Section */}
@@ -1027,9 +1036,6 @@ const CRDFlow = () => {
                                   setActionMenuId(null);
                                 } else {
                                   setActionMenuId(lead._id);
-                                  if (selectedBookingId !== lead._id) {
-                                    handleBookingSelect(lead._id);
-                                  }
                                 }
                               }}
                               className="p-1.5 text-black-500 hover:text-emerald-700 bg-black-50 hover:bg-emerald-50 rounded transition cursor-pointer"
@@ -1038,38 +1044,55 @@ const CRDFlow = () => {
                               <MoreVertical className="w-4 h-4" />
                             </button>
                             
-                            {actionMenuId === lead._id && (
-                              <div 
-                                className="absolute right-8 top-1/2 -translate-y-1/2 w-48 bg-white border border-black-200 shadow-xl z-50 rounded-xl flex flex-col p-1 text-left"
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                {(!activeFlow || (activeFlow.lead?._id !== lead._id && activeFlow.lead !== lead._id)) ? (
-                                  <div className="p-3 text-xs text-center text-black-500 flex flex-col items-center justify-center gap-2">
-                                    <div className="animate-spin h-4 w-4 border-b-2 border-[#0e623a] rounded-full"></div>
-                                    Please click the row first to load options
-                                  </div>
-                                ) : (
-                                  <>
+                            {actionMenuId === lead._id && (() => {
+                              const menuFlow = flows.find(f => (f.lead?._id || f.lead) === lead._id);
+                              
+                              return (
+                                <div 
+                                  className="absolute right-8 top-1/2 -translate-y-1/2 w-48 bg-white border border-black-200 shadow-xl z-50 rounded-xl flex flex-col p-1 text-left"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  {/* View Payment */}
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setActionMenuId(null);
+                                      if (selectedBookingId !== lead._id) {
+                                        handleBookingSelect(lead._id);
+                                      }
+                                    }}
+                                    className="flex items-center gap-2 px-3 py-2 text-xs font-bold text-black-700 hover:bg-emerald-50 hover:text-emerald-800 rounded-lg transition"
+                                  >
+                                    <Layers className="w-4 h-4" /> View Payment
+                                  </button>
+
+                                  {/* Get Payment */}
+                                  {menuFlow && (
                                     <button
                                       onClick={(e) => {
                                         e.stopPropagation();
-                                        const firstUncompletedIdx = activeFlow.stages.findIndex(s => !(s.isCompleted || getStagePaid(s) >= getStageTotal(s)));
+                                        setActiveFlow(menuFlow);
+                                        const firstUncompletedIdx = menuFlow.stages.findIndex(s => !(s.isCompleted || getStagePaid(s) >= getStageTotal(s)));
                                         const idx = firstUncompletedIdx >= 0 ? firstUncompletedIdx : 0;
                                         setPaymentStageIdx(idx);
-                                        const thisStagePending = Math.max(0, getStageTotal(activeFlow.stages[idx]) - getStagePaid(activeFlow.stages[idx]));
-                                        const arrears = activeFlow.stages.slice(0, idx).reduce((sum, s) => sum + Math.max(0, getStageTotal(s) - getStagePaid(s)), 0);
+                                        const thisStagePending = Math.max(0, getStageTotal(menuFlow.stages[idx]) - getStagePaid(menuFlow.stages[idx]));
+                                        const arrears = menuFlow.stages.slice(0, idx).reduce((sum, s) => sum + Math.max(0, getStageTotal(s) - getStagePaid(s)), 0);
                                         setPaymentAmount((thisStagePending + arrears).toString());
                                         setPaymentMethod(lead.bookingInfo?.bankLoan === 'Yes' ? 'Bank Loan' : 'Bank Transfer');
                                         setActionMenuId(null);
                                       }}
                                       className="flex items-center gap-2 px-3 py-2 text-xs font-bold text-black-700 hover:bg-emerald-50 hover:text-emerald-800 rounded-lg transition"
                                     >
-                                      <DollarSign className="w-4 h-4" /> Log Payment
+                                      <DollarSign className="w-4 h-4" /> Get Payment
                                     </button>
-                                    
+                                  )}
+                                  
+                                  {/* Demand Letter */}
+                                  {menuFlow && (
                                     <button
                                       onClick={(e) => {
                                         e.stopPropagation();
+                                        setActiveFlow(menuFlow);
                                         setDemandLetterStageIdx(0);
                                         setActionMenuId(null);
                                       }}
@@ -1077,37 +1100,39 @@ const CRDFlow = () => {
                                     >
                                       <Printer className="w-4 h-4" /> Demand Letter
                                     </button>
+                                  )}
 
-                                    {activeFlow.status === 'Active' && (
-                                      <button
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          setCancelModalOpen(true);
-                                          setActionMenuId(null);
-                                        }}
-                                        className="flex items-center gap-2 px-3 py-2 text-xs font-bold text-red-600 hover:bg-red-50 hover:text-red-800 rounded-lg transition"
-                                      >
-                                        <Trash className="w-4 h-4" /> Cancel Lead
-                                      </button>
-                                    )}
+                                  {/* Cancel Lead */}
+                                  {menuFlow && menuFlow.status === 'Active' && (
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setActiveFlow(menuFlow);
+                                        setCancelModalOpen(true);
+                                        setActionMenuId(null);
+                                      }}
+                                      className="flex items-center gap-2 px-3 py-2 text-xs font-bold text-red-600 hover:bg-red-50 hover:text-red-800 rounded-lg transition"
+                                    >
+                                      <Trash className="w-4 h-4" /> Cancel Lead
+                                    </button>
+                                  )}
 
-                                    {selectedBookingId === lead._id && (
-                                      <button
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          setSelectedBookingId(null);
-                                          setActiveFlow(null);
-                                          setActionMenuId(null);
-                                        }}
-                                        className="flex items-center gap-2 px-3 py-2 text-xs font-bold text-black-500 hover:bg-black-100 hover:text-black-800 rounded-lg transition border-t border-black-100 mt-1 pt-2"
-                                      >
-                                        <ChevronUp className="w-4 h-4" /> Close Details
-                                      </button>
-                                    )}
-                                  </>
-                                )}
-                              </div>
-                            )}
+                                  {selectedBookingId === lead._id && (
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setSelectedBookingId(null);
+                                        setActiveFlow(null);
+                                        setActionMenuId(null);
+                                      }}
+                                      className="flex items-center gap-2 px-3 py-2 text-xs font-bold text-black-500 hover:bg-black-100 hover:text-black-800 rounded-lg transition border-t border-black-100 mt-1 pt-2"
+                                    >
+                                      <ChevronUp className="w-4 h-4" /> Close Details
+                                    </button>
+                                  )}
+                                </div>
+                              );
+                            })()}
                           </div>
                         </td>
                       </tr>
@@ -1135,7 +1160,7 @@ const CRDFlow = () => {
                                         <Layers className="w-5 h-5 text-[#0e623a]" />
                                         Stage Details & Milestone Payments
                                       </h3>
-                                      <p className="text-xs text-black-500 mt-1">Manage payment milestones for {lead.name}</p>
+                                     
                                     </div>
                                     <div className="flex items-center gap-2">
                                       {activeFlow.credentials && (
