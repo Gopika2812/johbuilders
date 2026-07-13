@@ -272,3 +272,36 @@ aside .hover\:text-\[\#0e623a\]:hover {
 .bg-gold-500 {
   background-color: #d4af37 !important;
 }
+
+/* Dark Row styling for Leads Table */
+tr.dark-row,
+tr.dark-row td,
+tr.dark-row div,
+tr.dark-row span,
+tr.dark-row a,
+tr.dark-row svg {
+  color: #ffffff !important;
+}
+
+tr.dark-row td {
+  border-bottom-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+tr.dark-row select {
+  background-color: rgba(0, 0, 0, 0.2) !important;
+  color: #ffffff !important;
+  border-color: rgba(255, 255, 255, 0.3) !important;
+}
+
+tr.dark-row option {
+  color: #000000 !important;
+  background-color: #ffffff !important;
+}
+
+tr.dark-row button {
+  color: #ffffff !important;
+}
+
+tr.dark-row button:hover {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+}

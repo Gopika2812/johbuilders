@@ -73,8 +73,8 @@ const STATUS_COLORS = {
   'New': { bg: 'bg-blue-50/70', text: 'text-blue-700', border: 'border-blue-200', dot: 'bg-blue-500' },
   'Assigned': { bg: 'bg-purple-50/70', text: 'text-purple-700', border: 'border-purple-200', dot: 'bg-purple-500' },
   'Follow-Up': { bg: 'bg-amber-50/70', text: 'text-amber-700', border: 'border-amber-200', dot: 'bg-amber-500' },
-  'Site Visit': { bg: 'bg-rose-50/70', text: 'text-rose-700', border: 'border-rose-200', dot: 'bg-rose-500' },
-  'Booking': { bg: 'bg-yellow-50/70', text: 'text-yellow-700', border: 'border-yellow-300', dot: 'bg-yellow-500' },
+  'Site Visit': { bg: 'bg-yellow-50/70', text: 'text-yellow-700', border: 'border-yellow-300', dot: 'bg-yellow-500' },
+  'Booking': { bg: 'bg-[#0e623a]/10', text: 'text-[#0e623a]', border: 'border-[#0e623a]/30', dot: 'bg-[#0e623a]' },
   'Future Follow-up': { bg: 'bg-indigo-50/70', text: 'text-indigo-700', border: 'border-indigo-200', dot: 'bg-indigo-500' },
   'Lost': { bg: 'bg-black-100', text: 'text-black-750', border: 'border-black-300', dot: 'bg-black-500' },
 };
@@ -1527,9 +1527,9 @@ const LeadsDirectory = () => {
                           : lead.status === 'Follow-Up'
                             ? 'bg-amber-50/70 border-l-4 border-amber-400 hover:bg-amber-100/80 text-black-800'
                             : lead.status === 'Site Visit'
-                              ? 'bg-rose-50/70 border-l-4 border-rose-400 hover:bg-rose-100/80 text-black-800'
+                              ? 'bg-yellow-50/70 border-l-4 border-yellow-400 hover:bg-yellow-100/80 text-black-800'
                               : lead.status === 'Booking'
-                                ? 'bg-yellow-50/70 border-l-4 border-yellow-400 hover:bg-yellow-100/80 text-black-800'
+                                ? 'bg-[#0e623a]/10 border-l-4 border-[#0e623a] hover:bg-[#0e623a]/20 text-black-800'
                                 : lead.status === 'Future Follow-up'
                                   ? 'bg-indigo-50/70 border-l-4 border-indigo-400 hover:bg-indigo-100/80 text-black-800'
                                   : 'hover:bg-black-50/50'
