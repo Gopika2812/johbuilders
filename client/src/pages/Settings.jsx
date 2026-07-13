@@ -12,7 +12,8 @@ import {
   SlidersHorizontal,
   Layers,
   DollarSign,
-  Loader2
+  Loader2,
+  Palette
 } from 'lucide-react';
 
 const SOURCE_TYPES = [
@@ -66,9 +67,64 @@ const SettingsPage = () => {
   const [deletingGroupId, setDeletingGroupId] = useState(null);
   const [savingEditGroupId, setSavingEditGroupId] = useState(null);
 
+  // Stage Colors
+  const [stageColors, setStageColors] = useState({
+    'Hot': '#ffffff',
+    'Warm': '#ffffff',
+    'Cold': '#ffffff',
+    'New': '#ffffff',
+    'Assigned': '#ffffff',
+    'Follow-Up': '#ffffff',
+    'Site Visit': '#ffffff',
+    'Booking': '#0a4c2c',
+    'Future Follow-up': '#ffffff',
+    'Lost': '#ffffff',
+  });
+  const [isSavingColors, setIsSavingColors] = useState(false);
+
   useEffect(() => {
     fetchLeadGroups();
+    fetchStageColors();
   }, []);
+
+  const fetchStageColors = async () => {
+    try {
+      const response = await fetch(`${API_URL}/settings`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        if (data.stageColors) {
+          setStageColors(prev => ({ ...prev, ...data.stageColors }));
+        }
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleSaveStageColors = async (e) => {
+    e.preventDefault();
+    setIsSavingColors(true);
+    try {
+      const response = await fetch(`${API_URL}/settings`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ stageColors })
+      });
+      if (response.ok) {
+        setSaved(true);
+        setTimeout(() => setSaved(false), 2000);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsSavingColors(false);
+    }
+  };
 
   const fetchLeadGroups = async () => {
     try {
@@ -229,6 +285,18 @@ const SettingsPage = () => {
           <Share2 className="w-4 h-4" />
           <span>Lead Groups & Budget Planning</span>
         </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab('visuals')}
+          className={`flex-1 sm:flex-initial py-3.5 px-6 text-sm font-bold border-b-2 transition text-center flex items-center justify-center gap-2 ${
+            activeTab === 'visuals'
+              ? 'border-[#0e623a] text-[#0e623a]'
+              : 'border-transparent text-black-550 hover:text-black-800'
+          }`}
+        >
+          <Palette className="w-4 h-4" />
+          <span>Visual & Stage Colors</span>
+        </button>
       </div>
 
       {activeTab === 'general' ? (
@@ -329,7 +397,7 @@ const SettingsPage = () => {
             </button>
           </form>
         </div>
-      ) : (
+      ) : activeTab === 'marketing' ? (
         /* Tab 2: Marketing Lead Groups & Budget Planning */
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 text-left animate-fadeIn">
           {/* List of groups */}
@@ -559,7 +627,49 @@ const SettingsPage = () => {
             </div>
           </div>
         </div>
-      )}
+      ) : activeTab === 'visuals' ? (
+        <div className="bg-white rounded-b-3xl shadow-sm border border-black-100 overflow-hidden animate-fadeIn">
+          <div className="bg-[#0e623a] p-6 text-white text-left">
+            <h3 className="text-lg font-bold flex items-center gap-2">
+              <Palette className="w-5 h-5 text-[#a7d8ff]" />
+              <span>Visual & Stage Row Colors</span>
+            </h3>
+            <p className="text-emerald-100 text-xs mt-1">
+              Customize the background colors of the rows in the Leads Directory based on their status or category.
+            </p>
+          </div>
+
+          <form onSubmit={handleSaveStageColors} className="p-8 space-y-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+              {Object.keys(stageColors).map((stage) => (
+                <div key={stage} className="bg-black-50 p-4 rounded-2xl border border-black-150 flex items-center justify-between">
+                  <div>
+                    <label className="text-[11px] font-bold text-black-600 uppercase tracking-wider block">{stage}</label>
+                    <span className="text-[10px] text-black-400 font-semibold">{stageColors[stage]}</span>
+                  </div>
+                  <input
+                    type="color"
+                    value={stageColors[stage]}
+                    onChange={(e) => setStageColors(prev => ({ ...prev, [stage]: e.target.value }))}
+                    className="w-10 h-10 p-0 border-0 rounded cursor-pointer overflow-hidden"
+                  />
+                </div>
+              ))}
+            </div>
+
+            <div className="flex justify-end border-t border-black-150 pt-6">
+              <button
+                type="submit"
+                disabled={isSavingColors}
+                className="px-8 py-3 bg-[#0e623a] text-white rounded-xl text-sm font-bold hover:bg-[#0b4d2d] transition flex items-center gap-2 disabled:opacity-50 shadow-sm"
+              >
+                {isSavingColors ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                Save Color Configuration
+              </button>
+            </div>
+          </form>
+        </div>
+      ) : null}
     </div>
   );
 };

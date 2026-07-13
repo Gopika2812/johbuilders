@@ -142,6 +142,17 @@ const handleLocalPhoneChange = (val, countryCode, setter) => {
   }
 };
 
+const getContrastClass = (hex) => {
+  if (!hex || hex === '#ffffff') return '';
+  let cleanHex = hex.replace('#', '');
+  if (cleanHex.length === 3) cleanHex = cleanHex.split('').map(c => c + c).join('');
+  const r = parseInt(cleanHex.substr(0, 2), 16);
+  const g = parseInt(cleanHex.substr(2, 2), 16);
+  const b = parseInt(cleanHex.substr(4, 2), 16);
+  const yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000;
+  return yiq >= 128 ? '' : 'dark-row';
+};
+
 const LeadsDirectory = () => {
   const { token, user } = useAuth();
   const location = useLocation();
@@ -315,12 +326,36 @@ const LeadsDirectory = () => {
   const [qtnConfirmOpen, setQtnConfirmOpen] = useState(false);
   const [pendingLeadForBooked, setPendingLeadForBooked] = useState(null);
 
+  // Stage Colors from settings
+  const [stageColors, setStageColors] = useState({
+    'Booking': '#0a4c2c'
+  });
+
   useEffect(() => {
-    fetchLeads();
-    fetchProjects();
-    fetchEmployees();
-    fetchQuotations();
+    if (token) {
+      fetchLeads();
+      fetchProjects();
+      fetchEmployees();
+      fetchQuotations();
+      fetchStageColors();
+    }
   }, [token]);
+
+  const fetchStageColors = async () => {
+    try {
+      const response = await fetch(`${API_URL}/settings`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        if (data.stageColors) {
+          setStageColors(prev => ({ ...prev, ...data.stageColors }));
+        }
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   // Update active ads dropdown when project changes
   useEffect(() => {
@@ -1524,15 +1559,18 @@ const LeadsDirectory = () => {
             </tr>
           </thead>
           <tbody className="divide-y divide-black-100 text-sm">
-            {paginatedLeadsList.map((lead, index) => (
-              <tr 
-                key={lead._id} 
-                className={`transition duration-150 border-b border-black-100 ${
-                  lead.status === 'Booking'
-                    ? 'bg-[#0a4c2c] border-l-4 border-[#c5a059] hover:bg-[#083a21] dark-row'
-                    : 'bg-white hover:bg-black-50'
-                }`}
-              >
+            {paginatedLeadsList.map((lead, index) => {
+              const rowColor = lead.isClosed && stageColors['Lost'] && stageColors['Lost'] !== '#ffffff'
+                ? stageColors['Lost']
+                : stageColors[lead.status] || '#ffffff';
+              const contrastClass = getContrastClass(rowColor);
+              
+              return (
+                <tr 
+                  key={lead._id} 
+                  className={`transition duration-150 border-b border-black-100 ${contrastClass} hover:opacity-90`}
+                  style={{ backgroundColor: rowColor }}
+                >
                 {/* S.No */}
                 <td className="px-3 py-1.5 border-b border-black-100 text-center">
                   <div className="text-[11px] font-bold text-black-500">
@@ -1744,7 +1782,8 @@ const LeadsDirectory = () => {
                    </div>
                  </td>
               </tr>
-            ))}
+            );
+          })}
             {filteredLeadsList.length === 0 && (
               <tr>
                 <td colSpan="8" className="p-8 text-center text-black-400 text-xs">
