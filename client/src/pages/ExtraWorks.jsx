@@ -467,7 +467,6 @@ const ExtraWorks = () => {
                           <tr key={work._id} className="hover:bg-emerald-50/30 transition-colors">
                             <td className="p-4 align-middle">
                               <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 bg-emerald-100 px-2 py-1 rounded-full whitespace-nowrap">{work.category}</span>
-                              <div className="text-[10px] font-bold text-gray-500 mt-2">Stage: {stage.name}</div>
                             </td>
                             <td className="p-4 align-middle font-bold text-gray-900 text-sm max-w-[200px] break-words">
                               {work.name}
