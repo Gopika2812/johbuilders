@@ -275,12 +275,16 @@ aside .hover\:text-\[\#0e623a\]:hover {
 
 /* Dark Row styling for Leads Table */
 tr.dark-row,
-tr.dark-row td,
-tr.dark-row div,
-tr.dark-row span,
-tr.dark-row a,
-tr.dark-row svg {
+tr.dark-row > td,
+tr.dark-row div:not(.dropdown-menu):not(.dropdown-menu div),
+tr.dark-row span:not(.dropdown-menu span),
+tr.dark-row a:not(.dropdown-menu a),
+tr.dark-row svg:not(.dropdown-menu svg) {
   color: #ffffff !important;
+}
+
+.dropdown-menu * {
+  color: inherit;
 }
 
 tr.dark-row td {
@@ -298,10 +302,10 @@ tr.dark-row option {
   background-color: #ffffff !important;
 }
 
-tr.dark-row button {
+tr.dark-row button:not(.dropdown-menu button) {
   color: #ffffff !important;
 }
 
-tr.dark-row button:hover {
+tr.dark-row button:not(.dropdown-menu button):hover {
   background-color: rgba(255, 255, 255, 0.1) !important;
 }

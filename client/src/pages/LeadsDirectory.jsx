@@ -911,9 +911,9 @@ const LeadsDirectory = () => {
 
     let payload = {};
 
-    if (followMode === 'FollowUp') {
+    if (followMode === 'FollowUp' || followMode === 'SiteVisit') {
       if (!nextFollowDate) {
-        alert('Please select the next Follow-up date!');
+        alert('Please select the next date!');
         return;
       }
       
@@ -922,11 +922,11 @@ const LeadsDirectory = () => {
       const currentDate = new Date();
       currentDate.setHours(0, 0, 0, 0);
       if (selectedDate < currentDate) {
-        alert('Please select a valid future date for the next Follow-up!');
+        alert('Please select a valid future date!');
         return;
       }
 
-      let finalStatus = followTargetStatus;
+      let finalStatus = followMode === 'SiteVisit' ? 'Site Visit' : followTargetStatus;
 
       payload = {
         status: finalStatus,
@@ -1713,19 +1713,21 @@ const LeadsDirectory = () => {
                      <button className="p-1.5 text-black-500 hover:bg-black-100 rounded-full transition">
                        <MoreVertical className="w-4 h-4" />
                      </button>
-                     <div className="absolute right-6 top-0 mt-0 w-32 bg-white border border-black-150 rounded-xl shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10 py-1">
+                     <div className="absolute right-6 top-0 mt-0 w-32 bg-white border border-black-150 rounded-xl shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 py-1 dropdown-menu">
                        <button
                          onClick={() => {
                            setSelectedLeadForHistory(lead);
                            setHistoryModalOpen(true);
                          }}
-                         className="w-full text-left px-4 py-2 text-[11px] font-bold text-black-600 hover:bg-black-50 flex items-center gap-2"
+                         className="w-full text-left px-4 py-2 text-[11px] font-bold hover:bg-gray-100 flex items-center gap-2"
+                         style={{ color: '#374151' }}
                        >
                          <History className="w-3.5 h-3.5" /> History
                        </button>
                        <button
                          onClick={() => handleOpenEditModal(lead)}
-                         className="w-full text-left px-4 py-2 text-[11px] font-bold text-amber-600 hover:bg-amber-50 flex items-center gap-2"
+                         className="w-full text-left px-4 py-2 text-[11px] font-bold hover:bg-amber-50 flex items-center gap-2"
+                         style={{ color: '#d97706' }}
                        >
                          <Edit2 className="w-3.5 h-3.5" /> Edit
                        </button>
@@ -1733,7 +1735,8 @@ const LeadsDirectory = () => {
                          <button
                            onClick={() => handleDeleteLead(lead._id, lead.name)}
                            disabled={deletingId === lead._id}
-                           className="w-full text-left px-4 py-2 text-[11px] font-bold text-red-600 hover:bg-red-50 flex items-center gap-2 disabled:opacity-50"
+                           className="w-full text-left px-4 py-2 text-[11px] font-bold hover:bg-red-50 flex items-center gap-2 disabled:opacity-50"
+                           style={{ color: '#dc2626' }}
                          >
                            {deletingId === lead._id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
                            Delete
@@ -2554,7 +2557,7 @@ const LeadsDirectory = () => {
               <form onSubmit={handleFollowSubmit} className="p-6 space-y-4">
                 
                 {hasFollowUpOptions && (
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-3 gap-3">
                     <button
                       type="button"
                       onClick={() => setFollowMode('FollowUp')}
@@ -2565,6 +2568,17 @@ const LeadsDirectory = () => {
                       }`}
                     >
                       Schedule Follow-up
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setFollowMode('SiteVisit')}
+                      className={`py-3 rounded-xl text-xs font-bold transition ${
+                        followMode === 'SiteVisit'
+                          ? 'bg-yellow-600 text-white shadow'
+                          : 'bg-black-100 text-black-500 hover:bg-black-200'
+                      }`}
+                    >
+                      Move to Site Visit
                     </button>
                     <button
                       type="button"
@@ -2596,10 +2610,12 @@ const LeadsDirectory = () => {
                   </div>
                 </div>
 
-                {followMode === 'FollowUp' ? (
+                {followMode === 'FollowUp' || followMode === 'SiteVisit' ? (
                   <div className="space-y-4">
                     <div>
-                      <label className="text-xs font-semibold text-black-600 block mb-1">Next Follow-up Date</label>
+                      <label className="text-xs font-semibold text-black-600 block mb-1">
+                        {followMode === 'SiteVisit' ? 'Site Visit Scheduled Date' : 'Next Follow-up Date'}
+                      </label>
                       <input
                         type="date"
                         required
