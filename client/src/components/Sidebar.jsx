@@ -123,17 +123,6 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
           {leadsMenuOpen && isExpanded && (
             <div className={`mt-1 space-y-1 ${isExpanded ? "pl-8" : "pl-0 flex flex-col items-center"}`}>
               <Link
-                to="/crd-flow"
-                className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs transition ${
-                  isActive('/crd-flow')
-                    ? 'text-[#0e623a] font-extrabold pl-2'
-                    : 'text-emerald-900 hover:text-[#0e623a] hover:bg-[#0e623a]/10'
-                }`}
-              >
-                <span className={isExpanded ? "block truncate" : "hidden"}>CRD Flow</span>
-              </Link>
-
-              <Link
                 to="/quotations"
                 className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs transition ${
                   location.pathname === '/quotations'
@@ -145,6 +134,17 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
               </Link>
 
               <Link
+                to="/crd-flow"
+                className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs transition ${
+                  isActive('/crd-flow')
+                    ? 'text-[#0e623a] font-extrabold pl-2'
+                    : 'text-emerald-900 hover:text-[#0e623a] hover:bg-[#0e623a]/10'
+                }`}
+              >
+                <span className={isExpanded ? "block truncate" : "hidden"}>CRD Flow</span>
+              </Link>
+
+              <Link
                 to="/crd-flow/extra-works"
                 className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs transition ${
                   isActive('/crd-flow/extra-works')
@@ -152,7 +152,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
                     : 'text-emerald-900 hover:text-[#0e623a] hover:bg-[#0e623a]/10'
                 }`}
               >
-                <span className={isExpanded ? "block truncate" : "hidden"}>Extra Works Approval</span>
+                <span className={isExpanded ? "block truncate" : "hidden"}>Extra Works Flow</span>
               </Link>
 
               <Link

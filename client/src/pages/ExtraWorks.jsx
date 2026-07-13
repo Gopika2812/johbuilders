@@ -260,8 +260,8 @@ const ExtraWorks = () => {
     <div className="p-6 md:p-8 w-full mx-auto space-y-6 animate-fade-in">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-serif font-light text-emerald-900">Extra Works Management</h1>
-          <p className="text-sm text-emerald-700/70 mt-1">Manage extra works, set prices, and send to customers.</p>
+          <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">Extra Works Management</h1>
+          <p className="text-sm text-gray-500 mt-1">Manage extra works, set prices, and send to customers.</p>
         </div>
       </div>
 

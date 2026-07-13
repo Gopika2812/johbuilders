@@ -107,7 +107,13 @@ const CustomerDashboard = () => {
   
   // Requested Works Sub-Tab State
   const [requestedWorksTab, setRequestedWorksTab] = useState('history'); // 'history' or 'confirmed'
+  const [requestedWorksStartDate, setRequestedWorksStartDate] = useState('');
+  const [requestedWorksEndDate, setRequestedWorksEndDate] = useState('');
   const [quotation, setQuotation] = useState(null);
+
+  // Complaints Filtration State
+  const [complaintStartDate, setComplaintStartDate] = useState('');
+  const [complaintEndDate, setComplaintEndDate] = useState('');
 
   const fetchFlow = async () => {
     const token = localStorage.getItem('customerToken');
@@ -417,31 +423,35 @@ const CustomerDashboard = () => {
         />
       )}
 
-      {/* Sidebar - Glassmorphic */}
-      <aside className={`fixed inset-y-0 left-0 w-72 bg-white/70 backdrop-blur-2xl border-r border-white/50 shadow-[4px_0_24px_rgba(0,0,0,0.02)] z-50 transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:flex-shrink-0 flex flex-col print:hidden ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-        <div className="p-8 flex items-center justify-between">
-          <div className="text-[#006838] font-black text-2xl tracking-tighter">
-            JOHN<span className="text-gray-400 font-light">BUILDWELL</span>
+      {/* Sidebar - Dark Glassmorphic (Glacier) */}
+      <aside className={`fixed inset-y-0 left-0 w-72 bg-[#050907]/95 backdrop-blur-3xl border-r border-white/10 shadow-[4px_0_30px_rgba(0,0,0,0.5)] z-50 transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:flex-shrink-0 flex flex-col print:hidden overflow-hidden ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+        {/* Decorative background glows inside sidebar */}
+        <div className="absolute top-[-10%] left-[-20%] w-[100%] h-[40%] bg-[#006838]/20 rounded-full blur-[80px] pointer-events-none z-0"></div>
+        <div className="absolute bottom-[-10%] right-[-10%] w-[80%] h-[30%] bg-emerald-600/10 rounded-full blur-[70px] pointer-events-none z-0"></div>
+
+        <div className="p-8 flex items-center justify-between relative z-10">
+          <div className="text-white font-black text-2xl tracking-tighter">
+            JOHN<span className="text-gray-500 font-light">BUILDWELL</span>
           </div>
-          <button className="lg:hidden text-gray-500 hover:text-gray-900" onClick={() => setSidebarOpen(false)}>
+          <button className="lg:hidden text-gray-400 hover:text-white" onClick={() => setSidebarOpen(false)}>
             <X className="w-6 h-6" />
           </button>
         </div>
 
-        <div className="px-8 pb-6">
-          <div className="p-4 bg-gradient-to-br from-[#006838] to-[#008c4a] rounded-2xl text-white shadow-lg shadow-[#006838]/20 relative overflow-hidden">
+        <div className="px-8 pb-6 relative z-10">
+          <div className="p-4 bg-gradient-to-br from-[#006838] to-[#008c4a] rounded-2xl text-white border border-white/10 shadow-[0_8px_20px_rgba(0,104,56,0.3)] relative overflow-hidden">
             <div className="absolute top-0 right-0 p-4 opacity-10">
               <User className="w-16 h-16" />
             </div>
             <div className="relative z-10">
               <p className="text-[10px] uppercase tracking-widest text-emerald-200 font-bold mb-1">Client Portal</p>
-              <h3 className="font-bold text-lg leading-tight truncate">{flow.lead?.name}</h3>
-              <p className="text-xs text-emerald-100 truncate mt-1">Unit {flow.unitId}</p>
+              <h3 className="font-bold text-lg leading-tight truncate text-white">{flow.lead?.name}</h3>
+              <p className="text-xs text-emerald-100 truncate mt-1 font-medium">Unit {flow.unitId}</p>
             </div>
           </div>
         </div>
 
-        <nav className="flex-1 px-4 space-y-2 overflow-y-auto">
+        <nav className="flex-1 px-4 space-y-2 overflow-y-auto relative z-10 scrollbar-thin">
           {[
             { id: 'profile', icon: User, label: 'My Profile' },
             { id: 'quotation', icon: FileText, label: 'My Quotation' },
@@ -452,25 +462,25 @@ const CustomerDashboard = () => {
             <button
               key={item.id}
               onClick={() => { setActiveTab(item.id); setSidebarOpen(false); }}
-              className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-xl text-sm font-bold transition-all ${
+              className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-xl text-sm font-bold transition-all group ${
                 activeTab === item.id 
-                  ? 'bg-white text-[#006838] shadow-sm shadow-gray-200/50' 
-                  : 'text-gray-500 hover:bg-white/50 hover:text-gray-900'
+                  ? 'bg-gradient-to-r from-[#006838] to-[#008c4a] text-white shadow-[0_0_20px_rgba(0,104,56,0.4)] border border-[#00a356]/30' 
+                  : 'text-gray-400 hover:bg-white/5 hover:text-white border border-transparent'
               }`}
             >
-              <item.icon className={`w-5 h-5 ${activeTab === item.id ? 'text-[#006838]' : 'text-gray-400'}`} />
+              <item.icon className={`w-5 h-5 transition-colors ${activeTab === item.id ? 'text-white' : 'text-gray-500 group-hover:text-emerald-400'}`} />
               {item.label}
-              {activeTab === item.id && <ChevronRight className="w-4 h-4 ml-auto text-gray-300" />}
+              {activeTab === item.id && <ChevronRight className="w-4 h-4 ml-auto text-emerald-200" />}
             </button>
           ))}
         </nav>
 
-        <div className="p-6">
+        <div className="p-6 relative z-10">
           <button 
             onClick={handleLogout}
-            className="w-full flex items-center justify-center gap-2 px-4 py-3 text-sm font-bold text-gray-500 bg-white/50 hover:bg-red-50 hover:text-red-600 border border-white/60 rounded-xl transition-all shadow-sm"
+            className="w-full flex items-center justify-center gap-2 px-4 py-3 text-sm font-bold text-gray-400 bg-white/5 hover:bg-red-500/20 hover:text-red-400 border border-white/10 rounded-xl transition-all shadow-sm group"
           >
-            <LogOut className="w-4 h-4" /> Sign Out
+            <LogOut className="w-4 h-4 group-hover:text-red-400 text-gray-500 transition-colors" /> Sign Out
           </button>
         </div>
       </aside>
@@ -478,10 +488,10 @@ const CustomerDashboard = () => {
       {/* Main Content Area */}
       <main className="flex-1 flex flex-col h-screen overflow-hidden relative z-10">
         
-        {/* Top Header Mobile */}
-        <header className="lg:hidden flex items-center justify-between p-4 bg-white/70 backdrop-blur-xl border-b border-white/50 sticky top-0 z-30">
-          <div className="text-[#006838] font-black text-xl tracking-tighter">JOHN<span className="text-gray-400 font-light">BUILDWELL</span></div>
-          <button onClick={() => setSidebarOpen(true)} className="p-2 bg-white rounded-lg text-gray-600 shadow-sm border border-gray-100">
+        {/* Top Header Mobile (Glacier Style) */}
+        <header className="lg:hidden flex items-center justify-between p-4 bg-[#050907]/90 backdrop-blur-xl border-b border-white/10 sticky top-0 z-30 shadow-lg">
+          <div className="text-white font-black text-xl tracking-tighter">JOHN<span className="text-gray-400 font-light">BUILDWELL</span></div>
+          <button onClick={() => setSidebarOpen(true)} className="p-2 bg-white/10 rounded-lg text-white shadow-sm border border-white/20 hover:bg-white/20 transition-colors">
             <Menu className="w-5 h-5" />
           </button>
         </header>
@@ -710,9 +720,9 @@ const CustomerDashboard = () => {
                     </div>
 
                     {/* Quotation Valuation Table */}
-                    <div className="space-y-2">
-                      <h3 className="text-xs font-bold text-[#0e623a] uppercase tracking-wider">Itemized Valuation Estimate:</h3>
-                      <table className="w-full text-left border border-gray-150 rounded-2xl overflow-hidden">
+                    <div className="space-y-2 overflow-x-auto pb-4">
+                      <h3 className="text-xs font-bold text-[#0e623a] uppercase tracking-wider min-w-[600px]">Itemized Valuation Estimate:</h3>
+                      <table className="w-full text-left border border-gray-150 rounded-2xl overflow-hidden min-w-[600px]">
                         <thead>
                           <tr className="bg-gray-50 border-b border-gray-150 text-xs font-bold text-gray-500">
                             <th className="p-4">Description</th>
@@ -1048,70 +1058,110 @@ const CustomerDashboard = () => {
             )}
 
             {/* TAB: REQUESTED WORKS */}
-            {activeTab === 'requestedworks' && (
+            {activeTab === 'requestedworks' && (() => {
+              const filteredRequestedWorks = allExtraWorks.filter(ew => {
+                if (requestedWorksTab === 'confirmed') {
+                  if (!['Sent to Customer', 'Client Approved', 'Added to CRD'].includes(ew.status)) return false;
+                }
+                if (requestedWorksStartDate && requestedWorksEndDate) {
+                  const ewDate = new Date(ew.addedAt);
+                  const start = new Date(requestedWorksStartDate);
+                  const end = new Date(requestedWorksEndDate);
+                  end.setHours(23, 59, 59, 999);
+                  if (ewDate < start || ewDate > end) return false;
+                }
+                return true;
+              });
+
+              return (
               <div className="space-y-6">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                   <div>
                     <h1 className="text-3xl font-serif font-light text-gray-900">Requested Extra Works</h1>
                     <p className="text-sm text-gray-500 mt-1">Track the status of all your custom requests.</p>
                   </div>
                   
-                  {/* Sub-Tabs */}
-                  <div className="bg-white/60 backdrop-blur-xl border border-white/60 p-1 rounded-2xl inline-flex shadow-sm">
-                    <button
-                      onClick={() => setRequestedWorksTab('history')}
-                      className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${
-                        requestedWorksTab === 'history' 
-                          ? 'bg-[#006838] text-white shadow-md' 
-                          : 'text-gray-500 hover:text-gray-900'
-                      }`}
-                    >
-                      History
-                    </button>
-                    <button
-                      onClick={() => setRequestedWorksTab('confirmed')}
-                      className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all relative ${
-                        requestedWorksTab === 'confirmed' 
-                          ? 'bg-[#006838] text-white shadow-md' 
-                          : 'text-gray-500 hover:text-gray-900'
-                      }`}
-                    >
-                      Confirmed Requests
-                      {allExtraWorks.filter(ew => ew.status === 'Sent to Customer').length > 0 && (
-                        <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-white animate-pulse"></span>
-                      )}
-                    </button>
+                  {/* Filters & Sub-Tabs */}
+                  <div className="flex flex-col sm:flex-row items-center gap-4">
+                    {/* Date Filters */}
+                    <div className="flex items-center gap-2 bg-white/60 backdrop-blur-xl border border-white/60 p-1.5 rounded-xl shadow-sm">
+                      <input
+                        type="date"
+                        value={requestedWorksStartDate}
+                        onChange={(e) => setRequestedWorksStartDate(e.target.value)}
+                        className="px-3 py-1.5 bg-white border border-gray-100 rounded-lg text-xs text-gray-700 focus:outline-none focus:ring-1 focus:ring-[#006838]"
+                      />
+                      <span className="text-xs text-gray-400 font-bold">to</span>
+                      <input
+                        type="date"
+                        value={requestedWorksEndDate}
+                        onChange={(e) => setRequestedWorksEndDate(e.target.value)}
+                        className="px-3 py-1.5 bg-white border border-gray-100 rounded-lg text-xs text-gray-700 focus:outline-none focus:ring-1 focus:ring-[#006838]"
+                      />
+                    </div>
+
+                    {/* Sub-Tabs */}
+                    <div className="bg-white/60 backdrop-blur-xl border border-white/60 p-1 rounded-2xl inline-flex shadow-sm">
+                      <button
+                        onClick={() => setRequestedWorksTab('history')}
+                        className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${
+                          requestedWorksTab === 'history' 
+                            ? 'bg-[#006838] text-white shadow-md' 
+                            : 'text-gray-500 hover:text-gray-900'
+                        }`}
+                      >
+                        History
+                      </button>
+                      <button
+                        onClick={() => setRequestedWorksTab('confirmed')}
+                        className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all relative ${
+                          requestedWorksTab === 'confirmed' 
+                            ? 'bg-[#006838] text-white shadow-md' 
+                            : 'text-gray-500 hover:text-gray-900'
+                        }`}
+                      >
+                        Confirmed Requests
+                        {allExtraWorks.filter(ew => ew.status === 'Sent to Customer').length > 0 && (
+                          <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-white animate-pulse"></span>
+                        )}
+                      </button>
+                    </div>
                   </div>
                 </div>
 
-                {allExtraWorks.filter(ew => requestedWorksTab === 'confirmed' ? ['Sent to Customer', 'Client Approved', 'Added to CRD'].includes(ew.status) : true).length === 0 ? (
+                {filteredRequestedWorks.length === 0 ? (
                   <div className="bg-white/60 backdrop-blur-xl border border-white/60 rounded-[2rem] p-12 text-center shadow-sm">
                     <FileText className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-                    <h3 className="text-lg font-bold text-gray-900">No {requestedWorksTab === 'confirmed' ? 'pending approvals' : 'requests yet'}</h3>
+                    <h3 className="text-lg font-bold text-gray-900">
+                      {allExtraWorks.filter(ew => requestedWorksTab === 'confirmed' ? ['Sent to Customer', 'Client Approved', 'Added to CRD'].includes(ew.status) : true).length > 0 
+                        ? 'No requests found for the selected date range.' 
+                        : (requestedWorksTab === 'confirmed' ? 'No pending approvals' : 'No requests yet')}
+                    </h3>
                     <p className="text-gray-500 text-sm mt-1">
-                      {requestedWorksTab === 'confirmed' 
-                        ? 'You have no extra works waiting for your approval.' 
-                        : "You haven't requested any extra works for your project."}
+                      {allExtraWorks.filter(ew => requestedWorksTab === 'confirmed' ? ['Sent to Customer', 'Client Approved', 'Added to CRD'].includes(ew.status) : true).length > 0 
+                        ? 'Try adjusting your date filters.' 
+                        : (requestedWorksTab === 'confirmed' 
+                          ? 'You have no extra works waiting for your approval.' 
+                          : "You haven't requested any extra works for your project.")}
                     </p>
                   </div>
                 ) : (
                   <div className="bg-white/60 backdrop-blur-xl border border-white/60 rounded-[2rem] p-1 shadow-sm overflow-hidden">
                     <div className="overflow-x-auto">
                       <table className="w-full text-left text-sm whitespace-nowrap">
-                        <thead className="bg-gray-50/80 text-gray-400 font-bold uppercase text-[10px] tracking-wider border-b border-gray-100">
+                        <thead className="bg-[#006838] text-white text-[10px] tracking-wider border-b border-[#00512c]">
                           <tr>
-                            <th className="p-4 w-16 text-center">S.No</th>
-                            <th className="p-4">Date</th>
-                            <th className="p-4">Stage</th>
-                            <th className="p-4">Category</th>
-                            <th className="p-4">Extra Work</th>
-                            <th className="p-4 text-right">Est. Amount</th>
-                            <th className="p-4 text-center">{requestedWorksTab === 'confirmed' ? 'Action' : 'Status'}</th>
+                            <th className="p-4 w-16 text-center font-bold uppercase">S.No</th>
+                            <th className="p-4 font-bold uppercase">Date</th>
+                            <th className="p-4 font-bold uppercase">Stage</th>
+                            <th className="p-4 font-bold uppercase">Category</th>
+                            <th className="p-4 font-bold uppercase">Extra Work</th>
+                            <th className="p-4 text-right font-bold uppercase">Est. Amount</th>
+                            <th className="p-4 text-center font-bold uppercase">{requestedWorksTab === 'confirmed' ? 'Action' : 'Status'}</th>
                           </tr>
                         </thead>
-                        <tbody className="divide-y divide-gray-100">
-                          {allExtraWorks
-                            .filter(ew => requestedWorksTab === 'confirmed' ? ['Sent to Customer', 'Client Approved', 'Added to CRD'].includes(ew.status) : true)
+                        <tbody className="divide-y divide-emerald-50">
+                          {filteredRequestedWorks
                             .map((ew, idx) => (
                             <tr key={idx} className="hover:bg-white transition bg-white/40">
                               <td className="p-4 text-center text-gray-400 font-bold">{idx + 1}</td>
@@ -1193,7 +1243,7 @@ const CustomerDashboard = () => {
                         </tbody>
                       </table>
                     </div>
-                    {allExtraWorks.filter(ew => requestedWorksTab === 'confirmed' && ew.status === 'Sent to Customer').length > 0 && (
+                    {filteredRequestedWorks.filter(ew => requestedWorksTab === 'confirmed' && ew.status === 'Sent to Customer').length > 0 && (
                       <div className="p-4 bg-white/40 border-t border-gray-100 flex flex-wrap items-center justify-end gap-4">
                         <button
                           onClick={() => setActiveTab('quotation')}
@@ -1229,65 +1279,97 @@ const CustomerDashboard = () => {
                   </div>
                 )}
               </div>
-            )}
+            );})()}
 
             {/* TAB: COMPLAINTS */}
-            {activeTab === 'complaints' && (
+            {activeTab === 'complaints' && (() => {
+              const filteredComplaints = flow.complaints?.filter(comp => {
+                if (!complaintStartDate || !complaintEndDate) return true;
+                const compDate = new Date(comp.reportedAt);
+                const start = new Date(complaintStartDate);
+                const end = new Date(complaintEndDate);
+                end.setHours(23, 59, 59, 999);
+                return compDate >= start && compDate <= end;
+              }) || [];
+
+              return (
               <div className="space-y-6">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                   <div>
                     <h1 className="text-3xl font-serif font-light text-gray-900">Complaints</h1>
                     <p className="text-sm text-gray-500 mt-1">Track issues or raise new concerns.</p>
                   </div>
-                  <button 
-                    onClick={() => setComplaintModalOpen(true)}
-                    className="px-5 py-2.5 bg-[#ED1C24] text-white rounded-xl text-sm font-bold shadow-lg shadow-red-500/20 hover:bg-red-700 transition flex items-center gap-2"
-                  >
-                    <Plus className="w-4 h-4" /> Raise Complaint
-                  </button>
+                  <div className="flex flex-col sm:flex-row items-center gap-3">
+                    <div className="flex items-center gap-2 bg-white/60 backdrop-blur-xl border border-white/60 p-1.5 rounded-xl shadow-sm">
+                      <input
+                        type="date"
+                        value={complaintStartDate}
+                        onChange={(e) => setComplaintStartDate(e.target.value)}
+                        className="px-3 py-1.5 bg-white border border-gray-100 rounded-lg text-xs text-gray-700 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                      />
+                      <span className="text-xs text-gray-400 font-bold">to</span>
+                      <input
+                        type="date"
+                        value={complaintEndDate}
+                        onChange={(e) => setComplaintEndDate(e.target.value)}
+                        className="px-3 py-1.5 bg-white border border-gray-100 rounded-lg text-xs text-gray-700 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                      />
+                    </div>
+                    <button 
+                      onClick={() => setComplaintModalOpen(true)}
+                      className="w-full sm:w-auto px-5 py-2.5 bg-[#ED1C24] text-white rounded-xl text-sm font-bold shadow-lg shadow-red-500/20 hover:bg-red-700 transition flex items-center justify-center gap-2"
+                    >
+                      <Plus className="w-4 h-4" /> Raise Complaint
+                    </button>
+                  </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {(!flow.complaints || flow.complaints.length === 0) ? (
-                    <div className="col-span-full p-12 bg-white/60 backdrop-blur-xl border border-white/60 rounded-[2rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] text-center">
-                      <div className="w-16 h-16 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <CheckCircle className="w-8 h-8 text-emerald-500" />
-                      </div>
-                      <h3 className="text-lg font-bold text-gray-900 mb-1">All Clear!</h3>
-                      <p className="text-gray-500 text-sm">You haven't reported any issues. We're glad everything is perfect!</p>
-                    </div>
-                  ) : (
-                    flow.complaints.map((comp, idx) => (
-                      <div key={idx} className="bg-white/60 backdrop-blur-xl border border-white/60 rounded-[1.5rem] p-6 shadow-[0_4px_20px_rgb(0,0,0,0.03)] flex flex-col h-full relative overflow-hidden">
-                        <div className={`absolute top-0 left-0 w-1 h-full ${
-                          comp.status === 'Resolved' ? 'bg-emerald-500' :
-                          comp.status === 'In Progress' ? 'bg-amber-500' : 'bg-gray-300'
-                        }`}></div>
-                        
-                        <div className="flex items-start justify-between mb-4 pl-3">
-                          <span className={`px-3 py-1 text-[10px] font-bold uppercase tracking-widest rounded-lg border ${
-                            comp.status === 'Resolved' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
-                            comp.status === 'In Progress' ? 'bg-amber-50 text-amber-600 border-amber-100' :
-                            'bg-gray-100 text-gray-600 border-gray-200'
-                          }`}>
-                            {comp.status || 'Pending'}
-                          </span>
-                          <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">{new Date(comp.reportedAt).toLocaleDateString()}</span>
-                        </div>
-                        
-                        <p className="text-gray-800 text-sm font-medium leading-relaxed pl-3 flex-1">{comp.description}</p>
-                        
-                        {comp.resolvedAt && (
-                          <div className="mt-4 pt-4 border-t border-gray-100/50 pl-3">
-                            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Resolved On: {new Date(comp.resolvedAt).toLocaleDateString()}</p>
-                          </div>
+                <div className="bg-white/60 backdrop-blur-xl border border-white/60 rounded-[2rem] shadow-sm overflow-hidden">
+                  <div className="overflow-x-auto pb-2">
+                    <table className="w-full text-left text-sm whitespace-nowrap min-w-[800px]">
+                      <thead className="bg-[#006838] text-white">
+                        <tr>
+                          <th className="px-6 py-4 font-bold text-xs uppercase tracking-wider text-center w-16">S.No</th>
+                          <th className="px-6 py-4 font-bold text-xs uppercase tracking-wider">Date</th>
+                          <th className="px-6 py-4 font-bold text-xs uppercase tracking-wider">Project</th>
+                          <th className="px-6 py-4 font-bold text-xs uppercase tracking-wider">Units</th>
+                          <th className="px-6 py-4 font-bold text-xs uppercase tracking-wider">Complaints</th>
+                          <th className="px-6 py-4 font-bold text-xs uppercase tracking-wider text-center">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-emerald-50">
+                        {filteredComplaints.length === 0 ? (
+                          <tr>
+                            <td colSpan="6" className="px-6 py-12 text-center text-gray-500 font-medium">
+                              {flow.complaints?.length === 0 ? "You haven't reported any issues. We're glad everything is perfect!" : "No complaints found for the selected date range."}
+                            </td>
+                          </tr>
+                        ) : (
+                          filteredComplaints.map((comp, idx) => (
+                            <tr key={idx} className="hover:bg-emerald-50/50 transition-colors">
+                              <td className="px-6 py-4 text-center text-gray-400 font-bold">{idx + 1}</td>
+                              <td className="px-6 py-4 font-medium text-gray-900">{new Date(comp.reportedAt).toLocaleDateString()}</td>
+                              <td className="px-6 py-4 font-medium text-gray-900">{flow.project?.name || 'N/A'}</td>
+                              <td className="px-6 py-4 font-bold text-emerald-600">{flow.unitId}</td>
+                              <td className="px-6 py-4 text-gray-800 whitespace-normal min-w-[250px]">{comp.description}</td>
+                              <td className="px-6 py-4 text-center">
+                                <span className={`inline-flex px-3 py-1 text-[10px] font-bold uppercase tracking-widest rounded-lg border ${
+                                  comp.status === 'Resolved' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
+                                  comp.status === 'In Progress' ? 'bg-amber-50 text-amber-600 border-amber-100' :
+                                  'bg-gray-100 text-gray-600 border-gray-200'
+                                }`}>
+                                  {comp.status || 'Pending'}
+                                </span>
+                              </td>
+                            </tr>
+                          ))
                         )}
-                      </div>
-                    ))
-                  )}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               </div>
-            )}
+            );})()}
 
           </div>
         </div>
