@@ -1646,7 +1646,7 @@ const LeadsDirectory = () => {
  
                 {/* Lead Category */}
                 <td className="px-3 py-1.5 border-b border-black-100 text-center">
-                  <span className={`px-2 py-1 text-[10px] font-bold uppercase tracking-wider`}>{lead.leadCategory || 'Cold'}</span>
+                  <span className={`px-2 py-1 text-[11px] font-extrabold uppercase tracking-wider`}>{lead.leadCategory || 'Cold'}</span>
                 </td>
 
                 {/* Assigned By */}
@@ -1709,7 +1709,7 @@ const LeadsDirectory = () => {
                     </div>
                   ) : activeTab === 'All' ? (
                     <div className="flex flex-col items-start gap-1">
-                      <span className={`px-3 py-1.5 text-[11px] font-bold`}>
+                      <span className={`px-3 py-1.5 text-[12px] font-extrabold uppercase tracking-wider`}>
                         {lead.status === 'Booking' ? 'Booked' : lead.status}
                       </span>
                     </div>
@@ -1719,7 +1719,7 @@ const LeadsDirectory = () => {
                         value={lead.status}
                         onChange={(e) => handleStatusChange(lead._id, e.target.value)}
                         disabled={statusChangingId === lead._id}
-                        className={`appearance-none cursor-pointer flex items-center justify-between gap-1.5 pl-3 pr-7 py-1.5 text-xs font-bold bg-transparent outline-none disabled:opacity-50 text-inherit border-none`}
+                        className={`appearance-none cursor-pointer flex items-center justify-between gap-1.5 pl-3 pr-7 py-1.5 text-[12px] font-extrabold uppercase tracking-wider bg-transparent outline-none disabled:opacity-50 text-inherit border-none`}
                       >
                         {LEAD_STATUSES.map(status => (
                           <option key={status} value={status}>
