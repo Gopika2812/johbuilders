@@ -887,7 +887,14 @@ const LeadsDirectory = () => {
     setFollowTargetStatus(targetStatus);
     
     const hasFollowUp = ['Follow-Up', 'Site Visit', 'Future Follow-up'].includes(targetStatus);
-    setFollowMode(hasFollowUp ? 'FollowUp' : 'Completed');
+    
+    let initialMode = 'Completed';
+    if (targetStatus === 'Site Visit') {
+      initialMode = 'SiteVisit';
+    } else if (hasFollowUp) {
+      initialMode = 'FollowUp';
+    }
+    setFollowMode(initialMode);
     
     const now = new Date();
     const year = now.getFullYear();
@@ -926,7 +933,12 @@ const LeadsDirectory = () => {
         return;
       }
 
-      let finalStatus = followMode === 'SiteVisit' ? 'Site Visit' : followTargetStatus;
+      let finalStatus = followTargetStatus;
+      if (followMode === 'SiteVisit') {
+        finalStatus = 'Site Visit';
+      } else if (followMode === 'FollowUp' && !['Follow-Up', 'Future Follow-up'].includes(followTargetStatus)) {
+        finalStatus = 'Follow-Up';
+      }
 
       payload = {
         status: finalStatus,
