@@ -1568,14 +1568,23 @@ const LeadsDirectory = () => {
             {paginatedLeadsList.map((lead, index) => {
               const rowColor = lead.isClosed && stageColors['Lost'] && stageColors['Lost'] !== '#ffffff'
                 ? stageColors['Lost']
-                : stageColors[lead.status] || '#ffffff';
+                : lead.status === 'Booking'
+                  ? stageColors['Booking']
+                  : stageColors[lead.leadCategory] || '#ffffff';
+                  
+              const rowTextColor = lead.isClosed && stageTextColors['Lost']
+                ? stageTextColors['Lost']
+                : lead.status === 'Booking'
+                  ? stageTextColors['Booking']
+                  : stageTextColors[lead.leadCategory] || '#000000';
+                  
               const contrastClass = getContrastClass(rowColor);
               
               return (
                 <tr 
                   key={lead._id} 
                   className={`transition duration-150 border-b border-black-100 custom-text-row hover:opacity-90`}
-                  style={{ backgroundColor: rowColor, color: stageTextColors[lead.status] || '#000000' }}
+                  style={{ backgroundColor: rowColor, color: rowTextColor }}
                 >
                 {/* S.No */}
                 <td className="px-3 py-1.5 border-b border-black-100 text-center">
@@ -1676,7 +1685,7 @@ const LeadsDirectory = () => {
                         const isHidden = isSiteVisit || isFollowUp;
                         return (
                           <>
-                            <span className="text-[10px] font-extrabold bg-red-700 border border-red-800 px-2 py-0.5 rounded-full uppercase tracking-wider">
+                            <span className="px-3 py-1.5 text-[12px] font-extrabold uppercase tracking-wider">
                               {lostStage ? (
                                 isSiteVisit ? 'Site Visit - Closed' :
                                 isFollowUp ? 'Follow-Up - Closed' :
