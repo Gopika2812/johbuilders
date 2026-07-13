@@ -13,6 +13,9 @@ router.get('/', protect, async (req, res) => {
         key: 'global',
         stageColors: {
           'Booking': '#0a4c2c'
+        },
+        stageTextColors: {
+          'Booking': '#ffffff'
         }
       });
       await settings.save();
@@ -34,6 +37,9 @@ router.put('/', protect, authorize('Admin', 'Manager'), async (req, res) => {
     // Update stage colors
     if (req.body.stageColors) {
       settings.stageColors = req.body.stageColors;
+    }
+    if (req.body.stageTextColors) {
+      settings.stageTextColors = req.body.stageTextColors;
     }
 
     await settings.save();

@@ -1640,7 +1640,7 @@ const LeadsDirectory = () => {
  
                 {/* Lead Category */}
                 <td className="px-3 py-1.5 border-b border-black-100 text-center">
-                  <span className={`px-2 py-1 text-[10px] font-bold uppercase rounded-full tracking-wider border shadow-sm ${lead.leadCategory === 'Hot' ? 'bg-red-600 border-red-700' : lead.leadCategory === 'Warm' ? 'bg-orange-600 border-orange-700' : 'bg-blue-600 border-blue-700'}`}>{lead.leadCategory || 'Cold'}</span>
+                  <span className={`px-2 py-1 text-[10px] font-bold text-white uppercase rounded-full tracking-wider border shadow-sm ${lead.leadCategory === 'Hot' ? 'bg-red-600 border-red-700' : lead.leadCategory === 'Warm' ? 'bg-orange-600 border-orange-700' : 'bg-blue-600 border-blue-700'}`}>{lead.leadCategory || 'Cold'}</span>
                 </td>
 
                 {/* Assigned By */}

@@ -80,6 +80,18 @@ const SettingsPage = () => {
     'Future Follow-up': '#ffffff',
     'Lost': '#ffffff',
   });
+  const [stageTextColors, setStageTextColors] = useState({
+    'Hot': '#000000',
+    'Warm': '#000000',
+    'Cold': '#000000',
+    'New': '#000000',
+    'Assigned': '#000000',
+    'Follow-Up': '#000000',
+    'Site Visit': '#000000',
+    'Booking': '#ffffff',
+    'Future Follow-up': '#000000',
+    'Lost': '#000000',
+  });
   const [isSavingColors, setIsSavingColors] = useState(false);
 
   useEffect(() => {
@@ -97,6 +109,9 @@ const SettingsPage = () => {
         if (data.stageColors) {
           setStageColors(prev => ({ ...prev, ...data.stageColors }));
         }
+        if (data.stageTextColors) {
+          setStageTextColors(prev => ({ ...prev, ...data.stageTextColors }));
+        }
       }
     } catch (err) {
       console.error(err);
@@ -113,7 +128,7 @@ const SettingsPage = () => {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ stageColors })
+        body: JSON.stringify({ stageColors, stageTextColors })
       });
       if (response.ok) {
         setSaved(true);
@@ -635,7 +650,7 @@ const SettingsPage = () => {
               <span>Visual & Stage Row Colors</span>
             </h3>
             <p className="text-emerald-100 text-xs mt-1">
-              Customize the background colors of the rows in the Leads Directory based on their status or category.
+              Customize the background and text colors of the rows in the Leads Directory based on their status or category.
             </p>
           </div>
 
@@ -645,14 +660,27 @@ const SettingsPage = () => {
                 <div key={stage} className="bg-black-50 p-4 rounded-2xl border border-black-150 flex items-center justify-between">
                   <div>
                     <label className="text-[11px] font-bold text-black-600 uppercase tracking-wider block">{stage}</label>
-                    <span className="text-[10px] text-black-400 font-semibold">{stageColors[stage]}</span>
+                    <div className="flex gap-2 text-[10px] text-black-400 font-semibold mt-0.5">
+                      <span>Bg: {stageColors[stage]}</span>
+                      <span>| Text: {stageTextColors[stage]}</span>
+                    </div>
                   </div>
-                  <input
-                    type="color"
-                    value={stageColors[stage]}
-                    onChange={(e) => setStageColors(prev => ({ ...prev, [stage]: e.target.value }))}
-                    className="w-10 h-10 p-0 border-0 rounded cursor-pointer overflow-hidden"
-                  />
+                  <div className="flex gap-2">
+                    <input
+                      type="color"
+                      title="Background Color"
+                      value={stageColors[stage] || '#ffffff'}
+                      onChange={(e) => setStageColors(prev => ({ ...prev, [stage]: e.target.value }))}
+                      className="w-8 h-8 p-0 border-0 rounded cursor-pointer overflow-hidden"
+                    />
+                    <input
+                      type="color"
+                      title="Text Color"
+                      value={stageTextColors[stage] || '#000000'}
+                      onChange={(e) => setStageTextColors(prev => ({ ...prev, [stage]: e.target.value }))}
+                      className="w-8 h-8 p-0 border-0 rounded cursor-pointer overflow-hidden"
+                    />
+                  </div>
                 </div>
               ))}
             </div>

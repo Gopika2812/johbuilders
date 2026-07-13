@@ -13,6 +13,13 @@ const systemSettingsSchema = new mongoose.Schema({
     default: {
       'Booking': '#0a4c2c', // The dark green default
     }
+  },
+  stageTextColors: {
+    type: Map,
+    of: String,
+    default: {
+      'Booking': '#ffffff', // The default white text
+    }
   }
 }, { timestamps: true });
 
