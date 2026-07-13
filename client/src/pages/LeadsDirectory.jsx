@@ -330,6 +330,9 @@ const LeadsDirectory = () => {
   const [stageColors, setStageColors] = useState({
     'Booking': '#0a4c2c'
   });
+  const [stageTextColors, setStageTextColors] = useState({
+    'Booking': '#ffffff'
+  });
 
   useEffect(() => {
     if (token) {
@@ -350,6 +353,9 @@ const LeadsDirectory = () => {
         const data = await response.json();
         if (data.stageColors) {
           setStageColors(prev => ({ ...prev, ...data.stageColors }));
+        }
+        if (data.stageTextColors) {
+          setStageTextColors(prev => ({ ...prev, ...data.stageTextColors }));
         }
       }
     } catch (err) {
@@ -1568,8 +1574,8 @@ const LeadsDirectory = () => {
               return (
                 <tr 
                   key={lead._id} 
-                  className={`transition duration-150 border-b border-black-100 ${contrastClass} hover:opacity-90`}
-                  style={{ backgroundColor: rowColor }}
+                  className={`transition duration-150 border-b border-black-100 custom-text-row hover:opacity-90`}
+                  style={{ backgroundColor: rowColor, color: stageTextColors[lead.status] || '#000000' }}
                 >
                 {/* S.No */}
                 <td className="px-3 py-1.5 border-b border-black-100 text-center">
@@ -1640,7 +1646,7 @@ const LeadsDirectory = () => {
  
                 {/* Lead Category */}
                 <td className="px-3 py-1.5 border-b border-black-100 text-center">
-                  <span className={`px-2 py-1 text-[10px] font-bold text-white uppercase rounded-full tracking-wider border shadow-sm ${lead.leadCategory === 'Hot' ? 'bg-red-600 border-red-700' : lead.leadCategory === 'Warm' ? 'bg-orange-600 border-orange-700' : 'bg-blue-600 border-blue-700'}`}>{lead.leadCategory || 'Cold'}</span>
+                  <span className={`px-2 py-1 text-[10px] font-bold uppercase tracking-wider`}>{lead.leadCategory || 'Cold'}</span>
                 </td>
 
                 {/* Assigned By */}
@@ -1703,11 +1709,7 @@ const LeadsDirectory = () => {
                     </div>
                   ) : activeTab === 'All' ? (
                     <div className="flex flex-col items-start gap-1">
-                      <span className={`px-3 py-1.5 rounded-full border text-[11px] font-bold shadow-sm inline-block ${
-                        STATUS_COLORS[lead.status]?.bg || 'bg-black-50/70'
-                      } ${STATUS_COLORS[lead.status]?.text || 'text-black-700'} ${
-                        STATUS_COLORS[lead.status]?.border || 'border-black-200'
-                      }`}>
+                      <span className={`px-3 py-1.5 text-[11px] font-bold`}>
                         {lead.status === 'Booking' ? 'Booked' : lead.status}
                       </span>
                     </div>
@@ -1717,11 +1719,7 @@ const LeadsDirectory = () => {
                         value={lead.status}
                         onChange={(e) => handleStatusChange(lead._id, e.target.value)}
                         disabled={statusChangingId === lead._id}
-                        className={`appearance-none cursor-pointer flex items-center justify-between gap-1.5 pl-3 pr-7 py-1.5 rounded-full border text-xs font-bold shadow-sm outline-none disabled:opacity-50 ${
-                          STATUS_COLORS[lead.status]?.bg || 'bg-black-50/70'
-                        } ${STATUS_COLORS[lead.status]?.text || 'text-black-700'} ${
-                          STATUS_COLORS[lead.status]?.border || 'border-black-200'
-                        }`}
+                        className={`appearance-none cursor-pointer flex items-center justify-between gap-1.5 pl-3 pr-7 py-1.5 text-xs font-bold bg-transparent outline-none disabled:opacity-50 text-inherit border-none`}
                       >
                         {LEAD_STATUSES.map(status => (
                           <option key={status} value={status}>
@@ -1729,7 +1727,7 @@ const LeadsDirectory = () => {
                           </option>
                         ))}
                       </select>
-                      <ChevronDown className={`w-3.5 h-3.5 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none opacity-70 ${STATUS_COLORS[lead.status]?.text || 'text-black-700'}`} />
+                      <ChevronDown className={`w-3.5 h-3.5 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none opacity-70 text-inherit`} />
                     </div>
                   )}
                 </td>
