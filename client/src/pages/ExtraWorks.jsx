@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 
 const ExtraWorks = () => {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const [flows, setFlows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -33,6 +33,18 @@ const ExtraWorks = () => {
   // Export Modal
   const [showExportModal, setShowExportModal] = useState(false);
   const [exporting, setExporting] = useState(false);
+
+  // Add Extra Work Modal Form
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [isAddingWork, setIsAddingWork] = useState(false);
+  const [addForm, setAddForm] = useState({
+    stageId: '',
+    name: '',
+    category: 'General',
+    unit: 'Unit',
+    quantity: 1,
+    rate: 0
+  });
 
   const fetchFlows = async () => {
     try {
@@ -108,6 +120,45 @@ const ExtraWorks = () => {
       alert(err.message);
     } finally {
       setSubmitting(null);
+    }
+  };
+
+  const handleAddExtraWork = async (flowId) => {
+    if (!addForm.stageId) {
+      alert("Please select a stage!");
+      return;
+    }
+    if (!addForm.name.trim()) {
+      alert("Please enter a work name!");
+      return;
+    }
+
+    try {
+      setIsAddingWork(true);
+      const res = await fetch(`${API_URL}/extra-works/${flowId}/add`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify(addForm)
+      });
+      if (!res.ok) throw new Error('Failed to add extra work');
+      
+      setAddForm({
+        stageId: '',
+        name: '',
+        category: 'General',
+        unit: 'Unit',
+        quantity: 1,
+        rate: 0
+      });
+      setShowAddForm(false);
+      await fetchFlows();
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setIsAddingWork(false);
     }
   };
 
@@ -444,11 +495,100 @@ const ExtraWorks = () => {
                 <h2 className="text-xl font-black uppercase tracking-wider flex items-center gap-2">
                   <Building className="w-5 h-5" /> Extra Works Details - {flow.lead?.name}
                 </h2>
-                <button onClick={() => setExpandedFlow(null)} className="text-white/80 hover:text-white transition bg-white/10 hover:bg-white/20 p-2 rounded-full">
-                  <X className="w-5 h-5" />
-                </button>
+                <div className="flex items-center gap-3">
+                  {(user?.role === 'Admin' || user?.role === 'Manager') && (
+                    <button 
+                      onClick={() => setShowAddForm(!showAddForm)} 
+                      className="flex items-center gap-2 px-4 py-2 bg-white text-[#006838] font-bold rounded-xl hover:bg-emerald-50 transition-colors shadow-sm text-sm"
+                    >
+                      <Plus className="w-4 h-4" /> Add Extra Work
+                    </button>
+                  )}
+                  <button onClick={() => setExpandedFlow(null)} className="text-white/80 hover:text-white transition bg-white/10 hover:bg-white/20 p-2 rounded-full">
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
               </div>
               <div className="p-6 overflow-y-auto flex-1 bg-emerald-50/50">
+                {showAddForm && (
+                  <div className="mb-6 bg-white p-5 rounded-2xl border border-emerald-200 shadow-sm animate-fade-in-up">
+                    <h3 className="text-sm font-black text-emerald-900 mb-4 uppercase tracking-wider">Add New Extra Work</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
+                      <div className="lg:col-span-1">
+                        <label className="block text-xs font-bold text-gray-700 mb-1">Stage <span className="text-red-500">*</span></label>
+                        <select 
+                          className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#006838]/20"
+                          value={addForm.stageId}
+                          onChange={e => setAddForm({...addForm, stageId: e.target.value})}
+                        >
+                          <option value="">Select Stage...</option>
+                          {flow.stages.map(stage => (
+                            <option key={stage._id} value={stage._id}>{stage.name}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="lg:col-span-1">
+                        <label className="block text-xs font-bold text-gray-700 mb-1">Category</label>
+                        <input 
+                          type="text" 
+                          placeholder="e.g. Electrical"
+                          className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#006838]/20"
+                          value={addForm.category}
+                          onChange={e => setAddForm({...addForm, category: e.target.value})}
+                        />
+                      </div>
+                      <div className="lg:col-span-2">
+                        <label className="block text-xs font-bold text-gray-700 mb-1">Sub Category (Name) <span className="text-red-500">*</span></label>
+                        <input 
+                          type="text" 
+                          placeholder="e.g. Extra Switch Board"
+                          className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#006838]/20"
+                          value={addForm.name}
+                          onChange={e => setAddForm({...addForm, name: e.target.value})}
+                        />
+                      </div>
+                      <div className="lg:col-span-1 flex gap-2">
+                        <div className="flex-1">
+                          <label className="block text-xs font-bold text-gray-700 mb-1">Qty</label>
+                          <input 
+                            type="number" min="1"
+                            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#006838]/20"
+                            value={addForm.quantity}
+                            onChange={e => setAddForm({...addForm, quantity: e.target.value})}
+                          />
+                        </div>
+                        <div className="flex-1">
+                          <label className="block text-xs font-bold text-gray-700 mb-1">Unit</label>
+                          <input 
+                            type="text" placeholder="No"
+                            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#006838]/20"
+                            value={addForm.unit}
+                            onChange={e => setAddForm({...addForm, unit: e.target.value})}
+                          />
+                        </div>
+                      </div>
+                      <div className="lg:col-span-1">
+                        <label className="block text-xs font-bold text-gray-700 mb-1">Rate (Optional)</label>
+                        <input 
+                          type="number" min="0"
+                          className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#006838]/20"
+                          value={addForm.rate}
+                          onChange={e => setAddForm({...addForm, rate: e.target.value})}
+                        />
+                      </div>
+                    </div>
+                    <div className="mt-4 flex justify-end">
+                      <button 
+                        onClick={() => handleAddExtraWork(flow._id)}
+                        disabled={isAddingWork}
+                        className="px-5 py-2.5 bg-[#006838] hover:bg-[#00522a] text-white font-bold rounded-lg transition-colors flex items-center gap-2 disabled:opacity-50"
+                      >
+                        {isAddingWork ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
+                        Save Extra Work
+                      </button>
+                    </div>
+                  </div>
+                )}
                 <div className="bg-white rounded-2xl shadow-sm border border-emerald-100 overflow-hidden">
                   <table className="w-full text-left">
                     <thead className="bg-[#006838] text-white">
@@ -501,15 +641,16 @@ const ExtraWorks = () => {
               </div>
               
               {/* Bulk Actions */}
-              {(flow.stages.some(s => s.extraWorks?.some(w => w.status === 'PED Approved')) || 
-                flow.stages.some(s => s.extraWorks?.some(w => w.status === 'Client Approved'))) && (
-                <div className="p-6 border-t border-emerald-100 bg-white flex flex-wrap justify-end gap-4 rounded-b-[2rem]">
-                  {(() => {
-                    const hasPendingWithRate = flow.stages.some(s => s.extraWorks?.some(w => w.status === 'Pending' && rates[w._id] > 0));
-                    const hasPEDApproved = flow.stages.some(s => s.extraWorks?.some(w => w.status === 'PED Approved'));
-                    
-                    if (hasPendingWithRate || hasPEDApproved) {
-                      return (
+              {(() => {
+                const hasPendingWithRate = flow.stages.some(s => s.extraWorks?.some(w => w.status === 'Pending' && rates[w._id] > 0));
+                const hasPEDApproved = flow.stages.some(s => s.extraWorks?.some(w => w.status === 'PED Approved'));
+                const hasClientApproved = flow.stages.some(s => s.extraWorks?.some(w => w.status === 'Client Approved'));
+                
+                if (!hasPendingWithRate && !hasPEDApproved && !hasClientApproved) return null;
+
+                return (
+                  <div className="p-6 border-t border-emerald-100 bg-white flex flex-wrap justify-end gap-4 rounded-b-[2rem]">
+                    {(hasPendingWithRate || hasPEDApproved) && (
                         <button
                           onClick={async () => {
                             try {
@@ -562,12 +703,9 @@ const ExtraWorks = () => {
                         >
                           {submitting === 'bulk-save-send' ? <Loader2 className="w-5 h-5 animate-spin" /> : <><Send className="w-5 h-5" /> Save & Send All to Customer</>}
                         </button>
-                      );
-                    }
-                    return null;
-                  })()}
+                    )}
                   
-                  {flow.stages.some(s => s.extraWorks?.some(w => w.status === 'Client Approved')) && (
+                  {hasClientApproved && (
                     <button
                       onClick={async () => {
                         try {
@@ -598,7 +736,8 @@ const ExtraWorks = () => {
                     </button>
                   )}
                 </div>
-              )}
+                );
+              })()}
             </div>
           </div>
         );

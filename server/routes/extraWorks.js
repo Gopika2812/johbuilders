@@ -144,4 +144,51 @@ router.put('/:flowId/:stageIdx/:workId/add-to-crd', protect, authorize('Admin'),
   }
 });
 
+// @route   POST /api/extra-works/:flowId/add
+// @desc    Admin adds a new extra work directly
+router.post('/:flowId/add', protect, authorize('Admin'), async (req, res) => {
+  const { flowId } = req.params;
+  const { stageId, name, category, unit, quantity, rate } = req.body;
+  
+  try {
+    const flow = await CRDFlow.findById(flowId);
+    if (!flow) return res.status(404).json({ message: 'CRD Flow not found' });
+
+    const stage = flow.stages.id(stageId);
+    if (!stage) return res.status(404).json({ message: 'Stage not found' });
+
+    const parsedRate = Number(rate) || 0;
+    const parsedQty = Number(quantity) || 1;
+    const amount = parsedQty * parsedRate;
+    
+    const newWork = {
+      name,
+      category: category || 'General',
+      unit: unit || 'Unit',
+      quantity: parsedQty,
+      rate: parsedRate,
+      amount: amount,
+      status: parsedRate > 0 ? 'PED Approved' : 'Pending',
+      addedAt: new Date()
+    };
+    
+    if (parsedRate > 0) {
+      newWork.pricingDate = new Date();
+    }
+
+    stage.extraWorks.push(newWork);
+    
+    flow.history.push({
+      action: 'Admin Added Extra Work',
+      notes: `Added extra work: ${name} to Stage ${stage.name}`,
+      user: 'Admin'
+    });
+
+    await flow.save();
+    res.json(flow);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 module.exports = router;
