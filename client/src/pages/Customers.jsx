@@ -18,8 +18,9 @@ import {
 } from 'lucide-react';
 
 const Customers = () => {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const [flows, setFlows] = useState([]);
+  const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
@@ -40,7 +41,22 @@ const Customers = () => {
 
   useEffect(() => {
     fetchFlows();
+    if (user?.role === 'Admin' || user?.role === 'Super Admin') {
+      fetchEmployees();
+    }
   }, [token]);
+
+  const fetchEmployees = async () => {
+    try {
+      const res = await fetch(`${API_URL}/employees`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setEmployees(data);
+      }
+    } catch (err) {}
+  };
 
   const fetchFlows = async () => {
     try {
@@ -116,7 +132,7 @@ const Customers = () => {
   const handleUpdateComplaintStatus = async (complaintId, newStatus) => {
     if (!selectedFlow) return;
     try {
-      const res = await fetch(`${API_URL}/crd-flow/${selectedFlow._id}/complaints/${complaintId}`, {
+      const res = await fetch(`${API_URL}/tasks/${selectedFlow._id}/${complaintId}/status`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -126,15 +142,41 @@ const Customers = () => {
       });
 
       if (res.ok) {
-        const updatedFlow = await res.json();
-        setFlows(prev => prev.map(f => f._id === updatedFlow._id ? updatedFlow : f));
-        setSelectedFlow(updatedFlow);
+        // Refresh flows to get updated state
+        fetchFlows();
+        setSuccessMsg('Complaint status updated');
+        setTimeout(() => setSuccessMsg(''), 3000);
       } else {
         const data = await res.json();
         setError(data.message || 'Failed to update complaint status');
       }
     } catch (err) {
       setError('Connection error updating complaint status');
+    }
+  };
+
+  const handleAssignTask = async (complaintId, assignedTo, riskLevel) => {
+    if (!selectedFlow || !assignedTo) return;
+    try {
+      const res = await fetch(`${API_URL}/tasks/${selectedFlow._id}/${complaintId}/assign`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ assignedTo, riskLevel })
+      });
+
+      if (res.ok) {
+        fetchFlows();
+        setSuccessMsg('Task assigned successfully');
+        setTimeout(() => setSuccessMsg(''), 3000);
+      } else {
+        const data = await res.json();
+        setError(data.message || 'Failed to assign task');
+      }
+    } catch (err) {
+      setError('Connection error assigning task');
     }
   };
 
@@ -395,45 +437,115 @@ const Customers = () => {
                                         No complaints filed for this customer.
                                       </div>
                                     ) : (
-                                      <div className="divide-y border rounded-xl overflow-hidden bg-white">
-                                        {selectedFlow.complaints.map((comp, idx) => {
-                                          let statusColor = 'bg-amber-50 border-amber-250 text-amber-800';
-                                          if (comp.status === 'In Progress') {
-                                            statusColor = 'bg-blue-50 border-blue-200 text-blue-800';
-                                          } else if (comp.status === 'Resolved') {
-                                            statusColor = 'bg-emerald-50 border-emerald-250 text-emerald-800';
-                                          }
+                                      <div className="border rounded-xl overflow-hidden bg-white">
+                                        <table className="w-full text-left text-[11px]">
+                                          <thead className="bg-black-50 text-black-500 font-bold uppercase tracking-wider border-b">
+                                            <tr>
+                                              <th className="p-3 w-12 text-center">S.No</th>
+                                              <th className="p-3">Date</th>
+                                              <th className="p-3">Complaint</th>
+                                              <th className="p-3">Assigned Person</th>
+                                              <th className="p-3">Task/Risk Level</th>
+                                              <th className="p-3 text-center">Status</th>
+                                              <th className="p-3 text-center">Action</th>
+                                            </tr>
+                                          </thead>
+                                          <tbody className="divide-y divide-black-50">
+                                            {selectedFlow.complaints.map((comp, idx) => {
+                                              let statusColor = 'bg-amber-50 border-amber-250 text-amber-800';
+                                              if (comp.status === 'In Progress' || comp.status === 'Start Work') {
+                                                statusColor = 'bg-blue-50 border-blue-200 text-blue-800';
+                                              } else if (comp.status === 'Resolved' || comp.status === 'Completed') {
+                                                statusColor = 'bg-emerald-50 border-emerald-250 text-emerald-800';
+                                              }
+                                              
+                                              let riskColor = 'bg-gray-50 border-gray-200 text-gray-700';
+                                              if (comp.riskLevel === 'High') riskColor = 'bg-red-50 border-red-200 text-red-700';
+                                              if (comp.riskLevel === 'Medium') riskColor = 'bg-orange-50 border-orange-200 text-orange-700';
+                                              if (comp.riskLevel === 'Low') riskColor = 'bg-emerald-50 border-emerald-200 text-emerald-700';
 
-                                          return (
-                                            <div key={comp._id} className="p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 hover:bg-black-50/50 transition">
-                                              <div className="text-left space-y-1">
-                                                <p className="text-xs font-semibold text-black-800">{comp.description}</p>
-                                                <div className="flex gap-2 text-[10px] text-black-400 font-bold">
-                                                  <span>Reported: {new Date(comp.reportedAt).toLocaleDateString()}</span>
-                                                  {comp.resolvedAt && (
-                                                    <span className="text-emerald-700">Resolved: {new Date(comp.resolvedAt).toLocaleDateString()}</span>
-                                                  )}
-                                                </div>
-                                              </div>
-
-                                              <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto justify-between sm:justify-end">
-                                                <span className={`text-[10px] px-2.5 py-0.5 rounded-md font-bold uppercase tracking-wide border ${statusColor}`}>
-                                                  {comp.status}
-                                                </span>
-                                                
-                                                <select
-                                                  value={comp.status}
-                                                  onChange={(e) => handleUpdateComplaintStatus(comp._id, e.target.value)}
-                                                  className="px-2 py-1 bg-black-50 border rounded-lg text-[10px] font-bold text-black-700 uppercase tracking-wide focus:outline-none focus:ring-1 focus:ring-[#0e623a]"
-                                                >
-                                                  <option value="Pending">Pending</option>
-                                                  <option value="In Progress">In Progress</option>
-                                                  <option value="Resolved">Resolved</option>
-                                                </select>
-                                              </div>
-                                            </div>
-                                          );
-                                        })}
+                                              return (
+                                                <tr key={comp._id} className="hover:bg-black-50/50 transition">
+                                                  <td className="p-3 text-center font-bold text-black-400">{idx + 1}</td>
+                                                  <td className="p-3 text-black-500 font-bold">{new Date(comp.reportedAt).toLocaleDateString()}</td>
+                                                  <td className="p-3">
+                                                    <p className="font-semibold text-black-800">{comp.description}</p>
+                                                    {comp.resolvedAt && (
+                                                      <span className="text-[9px] text-emerald-700 font-bold block mt-0.5">Resolved: {new Date(comp.resolvedAt).toLocaleDateString()}</span>
+                                                    )}
+                                                  </td>
+                                                  <td className="p-3">
+                                                    {comp.assignedPersonName ? (
+                                                      <div className="flex items-center gap-2">
+                                                        <div className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-black text-[9px] uppercase">
+                                                          {comp.assignedPersonName.slice(0, 2)}
+                                                        </div>
+                                                        <span className="font-bold text-black-700">{comp.assignedPersonName}</span>
+                                                      </div>
+                                                    ) : (
+                                                      <span className="text-black-400 italic font-semibold text-[10px]">Unassigned</span>
+                                                    )}
+                                                  </td>
+                                                  <td className="p-3">
+                                                    {comp.riskLevel ? (
+                                                      <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider border ${riskColor}`}>
+                                                        {comp.riskLevel} Risk
+                                                      </span>
+                                                    ) : (
+                                                      <span className="text-black-400 italic font-semibold text-[10px]">-</span>
+                                                    )}
+                                                  </td>
+                                                  <td className="p-3 text-center">
+                                                    <span className={`text-[10px] px-2.5 py-0.5 rounded-md font-bold uppercase tracking-wide border whitespace-nowrap ${statusColor}`}>
+                                                      {comp.status}
+                                                    </span>
+                                                  </td>
+                                                  <td className="p-3 text-center">
+                                                    {(user?.role === 'Admin' || user?.role === 'Super Admin') && !comp.assignedTo && (
+                                                      <div className="flex flex-col gap-1 items-end">
+                                                        <select
+                                                          className="w-full text-[10px] border rounded p-1 font-semibold text-black-600 bg-black-50 outline-none"
+                                                          onChange={(e) => {
+                                                            if (e.target.value) {
+                                                              const [userId, risk] = e.target.value.split('|');
+                                                              if (userId && risk) {
+                                                                handleAssignTask(comp._id, userId, risk);
+                                                                e.target.value = '';
+                                                              }
+                                                            }
+                                                          }}
+                                                        >
+                                                          <option value="">Assign Task...</option>
+                                                          {employees.map(emp => (
+                                                            <optgroup key={emp._id} label={emp.name}>
+                                                              <option value={`${emp._id}|High`}>High Risk</option>
+                                                              <option value={`${emp._id}|Medium`}>Medium Risk</option>
+                                                              <option value={`${emp._id}|Low`}>Low Risk</option>
+                                                            </optgroup>
+                                                          ))}
+                                                        </select>
+                                                      </div>
+                                                    )}
+                                                    
+                                                    {/* Allow changing status if already assigned */}
+                                                    {(user?.role === 'Admin' || user?.role === 'Super Admin') && comp.assignedTo && (
+                                                      <select
+                                                        value={comp.status}
+                                                        onChange={(e) => handleUpdateComplaintStatus(comp._id, e.target.value)}
+                                                        className="w-full mt-1 px-2 py-1 bg-white border rounded text-[10px] font-bold text-black-700 uppercase tracking-wide focus:outline-none"
+                                                      >
+                                                        <option value="Pending">Pending</option>
+                                                        <option value="Start Work">Start Work</option>
+                                                        <option value="In Progress">In Progress</option>
+                                                        <option value="Completed">Completed</option>
+                                                      </select>
+                                                    )}
+                                                  </td>
+                                                </tr>
+                                              );
+                                            })}
+                                          </tbody>
+                                        </table>
                                       </div>
                                     )}
                                   </div>

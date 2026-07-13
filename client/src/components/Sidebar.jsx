@@ -235,6 +235,22 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
           </Link>
         </div>
 
+        {/* Tasks Board Module */}
+        <div>
+          <Link
+            to="/tasks-board"
+            onClick={handleNavClick}
+            className={`w-full flex items-center gap-3 py-3 ${isExpanded ? "justify-start px-4" : "justify-center px-0"} rounded-xl transition duration-200 ${
+              isActive('/tasks-board')
+                ? 'bg-[#0e623a] text-white font-bold shadow-md'
+                : 'text-emerald-900 hover:bg-[#0e623a]/10 hover:text-[#0e623a]'
+            }`}
+          >
+            <ClipboardList className={`w-5 h-5 ${isActive('/tasks-board') ? 'text-white' : 'text-emerald-900'}`} />
+            <span className={`font-semibold whitespace-nowrap ${isExpanded ? "block" : "hidden"}`}>Tasks Board</span>
+          </Link>
+        </div>
+
         {/* Employees Directory */}
         <div>
           <button

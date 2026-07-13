@@ -36,6 +36,7 @@ import Customers from './pages/Customers';
 import ExportReports from './pages/ExportReports';
 import CRDReports from './pages/CRDReports';
 import ExtraWorks from './pages/ExtraWorks';
+import TasksBoard from './pages/TasksBoard';
 
 // Portal Pages
 import LandingPage from './pages/portal/LandingPage';
@@ -137,6 +138,7 @@ function App() {
             <Route path="/crd-flow/overall-report" element={<Layout><OverallReport /></Layout>} />
             <Route path="/crd-flow/extra-works" element={<Layout><ExtraWorks /></Layout>} />
             <Route path="/customers" element={<Layout><Customers /></Layout>} />
+            <Route path="/tasks-board" element={<Layout><TasksBoard /></Layout>} />
             
             {/* KPI Insights & Conversions */}
             <Route path="/kpi-insights" element={<Layout><KPIInsights /></Layout>} />

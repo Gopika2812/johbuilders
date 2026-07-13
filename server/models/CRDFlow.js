@@ -46,9 +46,13 @@ const StageSchema = new mongoose.Schema({
 
 const ComplaintSchema = new mongoose.Schema({
   description: { type: String, required: true },
-  status: { type: String, enum: ['Pending', 'In Progress', 'Resolved'], default: 'Pending' },
+  status: { type: String, enum: ['Pending', 'Start Work', 'In Progress', 'Resolved', 'Completed'], default: 'Pending' },
   reportedAt: { type: Date, default: Date.now },
-  resolvedAt: { type: Date }
+  resolvedAt: { type: Date },
+  assignedTo: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  assignedPersonName: { type: String },
+  riskLevel: { type: String, enum: ['Low', 'Medium', 'High'] },
+  taskBoardVisible: { type: Boolean, default: true }
 });
 
 const CRDFlowSchema = new mongoose.Schema({

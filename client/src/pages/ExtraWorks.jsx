@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import ExcelJS from 'exceljs';
+import { saveAs } from 'file-saver';
 import { useAuth, API_URL } from '../context/AuthContext';
 import { 
   Building, 
@@ -8,7 +10,10 @@ import {
   Clock,
   Loader2,
   Send,
-  Plus
+  Plus,
+  Search,
+  Download,
+  X
 } from 'lucide-react';
 
 const ExtraWorks = () => {
@@ -19,6 +24,15 @@ const ExtraWorks = () => {
   const [expandedFlow, setExpandedFlow] = useState(null);
   const [rates, setRates] = useState({});
   const [submitting, setSubmitting] = useState(null); // id of work being submitted
+
+  // Filters
+  const [searchTerm, setSearchTerm] = useState('');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+
+  // Export Modal
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
   const fetchFlows = async () => {
     try {
@@ -109,6 +123,136 @@ const ExtraWorks = () => {
     }
   };
 
+  // Filter flows
+  const filteredFlows = flows.filter(flow => {
+    let matchesSearch = true;
+    if (searchTerm) {
+      const search = searchTerm.toLowerCase();
+      matchesSearch = 
+        (flow.lead?.name || '').toLowerCase().includes(search) ||
+        (flow.lead?.phone || '').toLowerCase().includes(search) ||
+        (flow.project?.name || '').toLowerCase().includes(search) ||
+        (flow.unitId || '').toLowerCase().includes(search);
+    }
+
+    let matchesDate = true;
+    if (startDate && endDate) {
+      const flowDate = new Date(flow.createdAt);
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      end.setHours(23, 59, 59, 999);
+      matchesDate = flowDate >= start && flowDate <= end;
+    }
+
+    return matchesSearch && matchesDate;
+  });
+
+  const exportToExcel = async () => {
+    try {
+      setExporting(true);
+      const workbook = new ExcelJS.Workbook();
+      const sheet = workbook.addWorksheet('Extra Works Report');
+
+      // Add Header with Logo
+      let logoId = null;
+      try {
+        const logoRes = await fetch('/jb_logo.jpg');
+        const logoBlob = await logoRes.blob();
+        
+        // Convert blob to base64 and strip the data URI prefix
+        const base64data = await new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.readAsDataURL(logoBlob);
+          reader.onloadend = () => {
+            const base64String = reader.result.split(',')[1];
+            resolve(base64String);
+          };
+        });
+        
+        logoId = workbook.addImage({
+          base64: base64data,
+          extension: 'jpeg',
+        });
+      } catch (err) {
+        console.error("Could not load logo", err);
+      }
+
+      if (logoId) {
+        sheet.addImage(logoId, {
+          tl: { col: 0, row: 0 },
+          br: { col: 3, row: 4 },
+          editAs: 'oneCell'
+        });
+      }
+
+      // Style Header Title
+      sheet.mergeCells('D1:H4');
+      const titleCell = sheet.getCell('D1');
+      titleCell.value = 'JOHN BUILDWELL - EXTRA WORKS REPORT';
+      titleCell.font = { name: 'Arial', size: 18, bold: true, color: { argb: 'FFFFFFFF' } };
+      titleCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF006838' } };
+      titleCell.alignment = { vertical: 'middle', horizontal: 'center' };
+
+      sheet.addRow([]);
+
+      // Headers
+      const headers = ['Date', 'Customer Name', 'Phone', 'Project', 'Units', 'Quotation Value', 'Extra Works', 'Final Value'];
+      const headerRow = sheet.addRow(headers);
+      headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 11 };
+      headerRow.eachCell(cell => {
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF006838' } };
+        cell.alignment = { vertical: 'middle', horizontal: 'center' };
+        cell.border = {
+          top: {style:'thin', color: {argb:'FFFFFFFF'}},
+          left: {style:'thin', color: {argb:'FFFFFFFF'}},
+          bottom: {style:'thin', color: {argb:'FFFFFFFF'}},
+          right: {style:'thin', color: {argb:'FFFFFFFF'}}
+        };
+      });
+
+      // Columns width
+      sheet.columns = [
+        { width: 15 }, // Date
+        { width: 25 }, // Customer
+        { width: 20 }, // Phone
+        { width: 20 }, // Project
+        { width: 15 }, // Units
+        { width: 20 }, // Quotation
+        { width: 20 }, // Extra Works
+        { width: 20 }, // Final Value
+      ];
+
+      // Data
+      filteredFlows.forEach(flow => {
+        const row = sheet.addRow([
+          new Date(flow.createdAt).toLocaleDateString(),
+          flow.lead?.name || '',
+          (flow.lead?.phone || '').toString(),
+          flow.project?.name || '',
+          flow.unitId || '',
+          flow.totalOriginalValue || 0,
+          flow.totalExtraWorksValue || 0,
+          flow.totalCurrentValue || 0
+        ]);
+        
+        row.getCell(3).numFmt = '@'; // Force phone as text
+        row.getCell(6).numFmt = '₹#,##0.00';
+        row.getCell(7).numFmt = '₹#,##0.00';
+        row.getCell(8).numFmt = '₹#,##0.00';
+      });
+
+      const buffer = await workbook.xlsx.writeBuffer();
+      saveAs(new Blob([buffer]), 'Extra_Works_Report.xlsx');
+      
+      setShowExportModal(false);
+    } catch (err) {
+      console.error(err);
+      alert('Failed to export Excel file.');
+    } finally {
+      setExporting(false);
+    }
+  };
+
   if (loading) return <div className="p-8 flex justify-center"><Loader2 className="w-8 h-8 animate-spin text-emerald-600" /></div>;
   if (error) return <div className="p-8 text-red-500">{error}</div>;
 
@@ -120,6 +264,117 @@ const ExtraWorks = () => {
           <p className="text-sm text-emerald-700/70 mt-1">Manage extra works, set prices, and send to customers.</p>
         </div>
       </div>
+
+      <div className="bg-white/60 backdrop-blur-xl border border-white/60 rounded-[2rem] shadow-sm overflow-hidden p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="relative w-full md:w-72">
+          <Search className="absolute left-3 top-2.5 w-4 h-4 text-emerald-700/50" />
+          <input
+            type="text"
+            placeholder="Search all columns..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-9 pr-4 py-2 bg-white/50 border border-emerald-100 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500"
+          />
+        </div>
+        
+        <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
+          <div className="flex items-center gap-2">
+            <input
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              className="px-3 py-2 bg-white/50 border border-emerald-100 rounded-xl text-sm text-gray-700 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+            />
+            <span className="text-sm text-gray-400 font-medium">to</span>
+            <input
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              className="px-3 py-2 bg-white/50 border border-emerald-100 rounded-xl text-sm text-gray-700 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+            />
+          </div>
+          
+          <button
+            onClick={() => setShowExportModal(true)}
+            className="w-full sm:w-auto px-4 py-2 bg-emerald-50 text-emerald-700 font-bold rounded-xl flex items-center justify-center gap-2 hover:bg-emerald-100 transition-colors"
+          >
+            <Download className="w-4 h-4" /> Export
+          </button>
+        </div>
+      </div>
+
+      {/* Export Preview Modal */}
+      {showExportModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-[2rem] w-full max-w-6xl max-h-[90vh] flex flex-col shadow-2xl animate-fade-in-up">
+            <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-[#006838] text-white rounded-t-[2rem]">
+              <h2 className="text-xl font-bold flex items-center gap-2"><Download className="w-5 h-5" /> Export Preview</h2>
+              <button onClick={() => setShowExportModal(false)} className="text-white/80 hover:text-white transition">
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            
+            <div className="p-6 overflow-y-auto flex-1 bg-gray-50">
+              <div className="bg-white border border-emerald-100 rounded-2xl shadow-sm overflow-hidden">
+                <div className="bg-[#006838] p-4 flex items-center gap-4 text-white">
+                  <img src="/jb_logo.jpg" alt="Logo" className="h-14 rounded-xl bg-white p-1 shadow-sm" />
+                  <div>
+                    <h3 className="text-lg font-black tracking-wider uppercase">JOHN BUILDWELL</h3>
+                    <p className="text-sm font-semibold text-emerald-100">EXTRA WORKS REPORT {startDate && endDate ? `(${startDate} to ${endDate})` : ''}</p>
+                  </div>
+                </div>
+                <div className="overflow-x-auto max-h-[50vh]">
+                  <table className="w-full text-sm text-left">
+                    <thead className="bg-emerald-50 text-emerald-900 sticky top-0 shadow-sm border-b border-emerald-100">
+                      <tr>
+                        <th className="px-4 py-3 font-bold text-xs uppercase tracking-wider">Date</th>
+                        <th className="px-4 py-3 font-bold text-xs uppercase tracking-wider">Customer Name</th>
+                        <th className="px-4 py-3 font-bold text-xs uppercase tracking-wider">Phone</th>
+                        <th className="px-4 py-3 font-bold text-xs uppercase tracking-wider">Project</th>
+                        <th className="px-4 py-3 font-bold text-xs uppercase tracking-wider">Units</th>
+                        <th className="px-4 py-3 font-bold text-xs uppercase tracking-wider text-right">Quotation</th>
+                        <th className="px-4 py-3 font-bold text-xs uppercase tracking-wider text-right">Extra Works</th>
+                        <th className="px-4 py-3 font-bold text-xs uppercase tracking-wider text-right">Final Value</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-emerald-50">
+                      {filteredFlows.map(flow => (
+                        <tr key={flow._id} className="hover:bg-emerald-50/50">
+                          <td className="px-4 py-3 text-gray-600">{new Date(flow.createdAt).toLocaleDateString()}</td>
+                          <td className="px-4 py-3 font-bold text-gray-900">{flow.lead?.name}</td>
+                          <td className="px-4 py-3 text-gray-600">{flow.lead?.phone}</td>
+                          <td className="px-4 py-3 font-medium text-gray-900">{flow.project?.name}</td>
+                          <td className="px-4 py-3 font-bold text-emerald-600">{flow.unitId}</td>
+                          <td className="px-4 py-3 text-right font-semibold text-gray-900">₹{flow.totalOriginalValue?.toLocaleString()}</td>
+                          <td className="px-4 py-3 text-right font-bold text-amber-600">₹{flow.totalExtraWorksValue?.toLocaleString()}</td>
+                          <td className="px-4 py-3 text-right font-black text-emerald-600">₹{flow.totalCurrentValue?.toLocaleString()}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-6 border-t border-gray-100 bg-white rounded-b-[2rem] flex justify-end gap-3">
+              <button 
+                onClick={() => setShowExportModal(false)}
+                className="px-6 py-2.5 rounded-xl font-bold text-gray-600 hover:bg-gray-100 transition"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={exportToExcel}
+                disabled={exporting}
+                className="px-8 py-2.5 bg-[#006838] text-white font-bold rounded-xl flex items-center gap-2 hover:bg-[#00522c] transition shadow-lg shadow-emerald-600/20 disabled:opacity-50"
+              >
+                {exporting ? <Loader2 className="w-5 h-5 animate-spin" /> : <Download className="w-5 h-5" />}
+                Download Excel Sheet
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="bg-white/60 backdrop-blur-xl border border-white/60 rounded-[2rem] shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
@@ -139,11 +394,11 @@ const ExtraWorks = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-emerald-100">
-              {flows.length === 0 ? (
+              {filteredFlows.length === 0 ? (
                 <tr>
                   <td colSpan="10" className="px-6 py-12 text-center text-gray-500 font-medium">No extra works requests found.</td>
                 </tr>
-              ) : flows.map((flow, idx) => {
+              ) : filteredFlows.map((flow, idx) => {
                 const isExpanded = expandedFlow === flow._id;
                 
                 return (

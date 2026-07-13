@@ -20,6 +20,7 @@ const auditLogRoutes = require('./routes/auditLogs');
 const requestsRoutes = require('./routes/requests');
 const customerRoutes = require('./routes/customer');
 const extraWorksRoutes = require('./routes/extraWorks');
+const tasksRoutes = require('./routes/tasks');
 
 const app = express();
 
@@ -154,6 +155,7 @@ app.use('/api/audit-logs', auditLogRoutes);
 app.use('/api/requests', requestsRoutes);
 app.use('/api/customer', customerRoutes);
 app.use('/api/extra-works', extraWorksRoutes);
+app.use('/api/tasks', tasksRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
