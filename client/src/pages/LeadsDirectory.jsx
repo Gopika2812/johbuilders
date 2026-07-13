@@ -1527,24 +1527,10 @@ const LeadsDirectory = () => {
             {paginatedLeadsList.map((lead, index) => (
               <tr 
                 key={lead._id} 
-                className={`transition duration-150 ${
-                  lead.isClosed 
-                    ? 'bg-red-700 border-l-4 border-red-900 hover:bg-red-800 dark-row' 
-                    : lead.leadCategory === 'Hot'
-                      ? 'bg-rose-600 border-l-4 border-rose-800 hover:bg-rose-700 dark-row'
-                      : lead.status === 'New'
-                        ? 'bg-blue-600 border-l-4 border-blue-800 hover:bg-blue-700 dark-row'
-                        : lead.status === 'Assigned'
-                          ? 'bg-purple-600 border-l-4 border-purple-800 hover:bg-purple-700 dark-row'
-                          : lead.status === 'Follow-Up'
-                            ? 'bg-orange-600 border-l-4 border-orange-800 hover:bg-orange-700 dark-row'
-                            : lead.status === 'Site Visit'
-                              ? 'bg-yellow-600 border-l-4 border-yellow-800 hover:bg-yellow-700 dark-row'
-                              : lead.status === 'Booking'
-                                ? 'bg-[#0a4c2c] border-l-4 border-[#c5a059] hover:bg-[#083a21] dark-row'
-                                : lead.status === 'Future Follow-up'
-                                  ? 'bg-indigo-600 border-l-4 border-indigo-800 hover:bg-indigo-700 dark-row'
-                                  : 'bg-gray-700 hover:bg-gray-600 border-l-4 border-gray-900 dark-row'
+                className={`transition duration-150 border-b border-black-100 ${
+                  lead.status === 'Booking'
+                    ? 'bg-[#0a4c2c] border-l-4 border-[#c5a059] hover:bg-[#083a21] dark-row'
+                    : 'bg-white hover:bg-black-50'
                 }`}
               >
                 {/* S.No */}
