@@ -1137,181 +1137,7 @@ const CRDFlow = () => {
                         </td>
                       </tr>
                       
-                      {/* Expanded Accordion for Stage Details */}
-                      {isSelected && (
-                        <tr>
-                          <td colSpan="11" className="p-0 border-b-2 border-emerald-500">
-                            <div className="bg-black-50/50 p-6 border-x-4 border-emerald-500 shadow-inner">
-                              
-                              {/* Auto Initializing Flow State */}
-                              {!activeFlow ? (
-                                <div className="bg-white border border-black-150 p-12 rounded-3xl shadow-sm space-y-6 text-center flex flex-col items-center justify-center">
-                                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#0e623a]"></div>
-                                  <div className="max-w-md mx-auto space-y-2 mt-4">
-                                    <h3 className="text-sm font-bold text-black-800">Initializing CRD Master Format...</h3>
-                                    <p className="text-xs text-black-500">Automatically setting up the milestone payment schedules for this booking.</p>
-                                  </div>
-                                </div>
-                              ) : (
-                                <div className="bg-white border border-black-150 p-6 rounded-3xl shadow-sm">
-                                  <div className="flex items-center justify-between mb-6">
-                                    <div>
-                                      <h3 className="text-lg font-bold text-black-800 flex items-center gap-2">
-                                        <Layers className="w-5 h-5 text-[#0e623a]" />
-                                        Stage Details & Milestone Payments
-                                      </h3>
-                                     
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                      {activeFlow.credentials && (
-                                        <div className="flex flex-col mr-4 border-r border-black-150 pr-4">
-                                          <span className="text-[9px] font-bold text-black-400 uppercase tracking-widest mb-1">Customer Portal Access</span>
-                                          <div className="flex items-center gap-3">
-                                            <span className="text-[11px] text-black-600 font-semibold">User: <span className="font-mono bg-black-50 px-1.5 py-0.5 rounded text-black-800 border border-black-200 select-all">{activeFlow.credentials.username}</span></span>
-                                            <span className="text-[11px] text-black-600 font-semibold">Pass: <span className="font-mono bg-black-50 px-1.5 py-0.5 rounded text-black-800 border border-black-200 select-all">{activeFlow.credentials.password}</span></span>
-                                          </div>
-                                        </div>
-                                      )}
-                                      <button
-                                        onClick={() => setExtraWorkStageIdx(0)}
-                                        className="px-4 py-2 bg-emerald-50 text-emerald-800 font-bold text-[11px] rounded-xl hover:bg-emerald-100 transition border border-emerald-200 shadow-sm cursor-pointer"
-                                      >
-                                        + Add Extra Works
-                                      </button>
-                                      <button
-                                        onClick={() => setPaymentStageIdx(0)}
-                                        className="px-4 py-2 bg-[#0e623a] text-white font-bold text-[11px] rounded-xl hover:bg-[#0b4d2d] transition shadow cursor-pointer flex items-center gap-1"
-                                      >
-                                        <CreditCard className="w-3.5 h-3.5" /> Log Payment
-                                      </button>
-                                    </div>
-                                  </div>
 
-                                  <div className="overflow-x-auto">
-                                    <table className="w-full text-xs text-left">
-                                      <thead className="bg-black-50 text-black-500 font-bold uppercase tracking-wider border-y">
-                                        <tr>
-                                          <th className="p-4 w-12">#</th>
-                                          <th className="p-4">Milestone Stage</th>
-                                          <th className="p-4 text-right">Stage Value</th>
-                                          <th className="p-4 text-center">Status</th>
-                                          <th className="p-4 text-right">Received</th>
-                                          <th className="p-4 text-right">Pending</th>
-                                          <th className="p-4 text-center">Action</th>
-                                        </tr>
-                                      </thead>
-                                      <tbody className="divide-y divide-black-100">
-                                        {activeFlow.stages.map((stage, idx) => {
-                                          const stageTotal = getStageTotal(stage);
-                                          const stagePaid = getStagePaid(stage);
-                                          const isPaidInFull = stagePaid >= stageTotal;
-
-                                          return (
-                                            <React.Fragment key={idx}>
-                                              <tr className={`hover:bg-black-50/50 transition ${isPaidInFull ? 'bg-emerald-50/10' : ''}`}>
-                                                <td className="p-4 font-bold text-black-400">{idx + 1}</td>
-                                                <td className="p-4">
-                                                  <div className="font-bold text-black-800">{stage.name}</div>
-                                                  <div className="text-[11px] text-black-400">{stage.percentage}% of total value</div>
-                                                </td>
-                                                <td className="p-4 text-right font-semibold text-black-700">
-                                                  Rs. {stageTotal.toLocaleString()}
-                                                  {stage.extraWorks && stage.extraWorks.length > 0 && (
-                                                    <div className="text-[10px] text-blue-600 mt-0.5">+ Extra Works</div>
-                                                  )}
-                                                </td>
-                                                <td className="p-4 text-center">
-                                                  <span className={`px-2 py-1 rounded text-[11px] font-bold uppercase ${isPaidInFull ? 'bg-emerald-100 text-emerald-800' : (stagePaid > 0 ? 'bg-blue-100 text-blue-800' : 'bg-black-100 text-black-600')}`}>
-                                                    {isPaidInFull ? 'Paid' : (stagePaid > 0 ? 'Partial' : 'Pending')}
-                                                  </span>
-                                                  <span className={`block mt-1.5 px-2 py-1 rounded text-[11px] font-bold uppercase ${stage.isCompleted ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>
-                                                    {stage.isCompleted ? 'Completed' : 'In Progress'}
-                                                  </span>
-                                                </td>
-                                                <td className="p-4 text-right font-bold text-emerald-600">
-                                                  Rs. {stagePaid.toLocaleString()}
-                                                </td>
-                                                <td className="p-4 text-right font-bold text-rose-600">
-                                                  Rs. {Math.max(0, stageTotal - stagePaid).toLocaleString()}
-                                                </td>
-                                                <td className="p-4 text-center flex flex-col gap-1.5 items-center justify-center">
-                                                  <button
-                                                    onClick={() => setPaymentStageIdx(idx)}
-                                                    disabled={isPaidInFull}
-                                                    className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition w-full ${isPaidInFull ? 'bg-black-100 text-black-400 cursor-not-allowed' : 'bg-blue-50 text-blue-700 hover:bg-blue-100 cursor-pointer border border-blue-200'}`}
-                                                  >
-                                                    {isPaidInFull ? 'Cleared' : 'Pay Now'}
-                                                  </button>
-                                                  <button
-                                                    onClick={() => handleToggleStageCompletion(idx, stage.isCompleted)}
-                                                    className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition w-full cursor-pointer border ${stage.isCompleted ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border-emerald-200' : 'bg-amber-50 text-amber-700 hover:bg-amber-100 border-amber-200'}`}
-                                                  >
-                                                    {stage.isCompleted ? 'Mark In Progress' : 'Mark Completed'}
-                                                  </button>
-                                                </td>
-                                              </tr>
-                                              {/* Extra works rows if any */}
-                                              {stage.extraWorks && stage.extraWorks.map((ew, ewIdx) => (
-                                                <tr key={`ew-${idx}-${ewIdx}`} className="bg-blue-50/30">
-                                                  <td className="p-2 border-l-2 border-blue-400"></td>
-                                                  <td className="p-2 text-[11px] text-black-600 flex items-center gap-1">
-                                                    <ChevronRight className="w-3 h-3 text-blue-400" />
-                                                    <span className="font-bold">{ew.name}</span>
-                                                  </td>
-                                                  <td className="p-2 text-right text-[11px] font-semibold text-black-700">Rs. {ew.amount.toLocaleString()}</td>
-                                                  <td colSpan="3"></td>
-                                                  <td className="p-2 text-center">
-                                                    <button
-                                                      onClick={() => handleRevertExtraWork(idx, ew._id || ew.id)}
-                                                      className="p-1 hover:bg-red-55 text-red-500 rounded transition cursor-pointer"
-                                                      title="Delete Extra Work"
-                                                    >
-                                                      <Trash className="w-3.5 h-3.5" />
-                                                    </button>
-                                                  </td>
-                                                </tr>
-                                              ))}
-                                              {/* Payments breakdown if any */}
-                                              {stage.payments && stage.payments.length > 0 && (
-                                                <tr className="bg-black-50/50">
-                                                  <td></td>
-                                                  <td colSpan="6" className="p-2">
-                                                    <div className="flex flex-wrap gap-2">
-                                                      {stage.payments.map((p, pIdx) => (
-                                                        <div key={`p-${idx}-${pIdx}`} className="flex items-center gap-1.5 bg-white border border-black-200 px-2 py-1 rounded text-[10px] shadow-sm">
-                                                          <CheckCircle className="w-3 h-3 text-emerald-500" />
-                                                          <span className="font-semibold text-black-700">Rs. {p.amount.toLocaleString()}</span>
-                                                          <span className="text-black-400 border-l border-black-200 pl-1.5 ml-0.5">{new Date(p.date).toLocaleDateString('en-GB')}</span>
-                                                          <span className="text-blue-600 font-bold border-l border-black-200 pl-1.5 ml-0.5">{p.mode}</span>
-                                                        </div>
-                                                      ))}
-                                                    </div>
-                                                  </td>
-                                                </tr>
-                                              )}
-                                            </React.Fragment>
-                                          );
-                                        })}
-                                      </tbody>
-                                      <tfoot className="bg-black-50 border-t border-black-200">
-                                        <tr>
-                                          <td colSpan="2" className="p-4 text-right font-black text-black-800 uppercase text-[11px] tracking-wider">Total CRD Value</td>
-                                          <td className="p-4 text-right font-black text-[#0e623a] text-sm">Rs. {(() => {
-                                            const totalWithExtra = activeFlow.stages.reduce((sum, s) => sum + getStageTotal(s), 0);
-                                            return totalWithExtra.toLocaleString();
-                                          })()}</td>
-                                          <td colSpan="4"></td>
-                                        </tr>
-                                      </tfoot>
-                                    </table>
-                                  </div>
-                                </div>
-                              )}
-
-                            </div>
-                          </td>
-                        </tr>
-                      )}
                     </React.Fragment>
                   );
                 })}
@@ -1333,6 +1159,194 @@ const CRDFlow = () => {
           </table>
         </div>
       </div>
+{/* Stage Details Modal */}
+      {selectedBookingId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm overflow-y-auto">
+          <div className="bg-white rounded-3xl max-w-6xl w-full max-h-[90vh] flex flex-col overflow-hidden shadow-2xl border border-black-100">
+             {/* Header */}
+             <div className="bg-[#0e623a] p-4 text-white flex justify-between items-center shrink-0">
+               <h3 className="font-bold flex items-center gap-2 text-lg">
+                 <Layers className="w-5 h-5 text-emerald-300" />
+                 <span>Stage Details & Milestone Payments</span>
+               </h3>
+               <button 
+                 onClick={() => { setSelectedBookingId(''); setActiveFlow(null); }}
+                 className="text-white hover:text-emerald-200 transition cursor-pointer"
+               >
+                 <X className="w-5 h-5" />
+               </button>
+             </div>
+             
+             {/* Body */}
+             <div className="p-6 bg-black-50 flex-1 overflow-y-auto">
+                {/* Auto Initializing Flow State */}
+                {!activeFlow ? (
+                  <div className="bg-white border border-black-150 p-12 rounded-3xl shadow-sm space-y-6 text-center flex flex-col items-center justify-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#0e623a]"></div>
+                    <div className="max-w-md mx-auto space-y-2 mt-4">
+                      <h3 className="text-sm font-bold text-black-800">Initializing CRD Master Format...</h3>
+                      <p className="text-xs text-black-500">Automatically setting up the milestone payment schedules for this booking.</p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="bg-white border border-black-150 p-6 rounded-3xl shadow-sm">
+                    <div className="flex items-center justify-between mb-6">
+                      <div>
+                        <h3 className="text-lg font-bold text-black-800 flex items-center gap-2">
+                          <Layers className="w-5 h-5 text-[#0e623a]" />
+                          Milestone Breakdown
+                        </h3>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {activeFlow.credentials && (
+                          <div className="flex flex-col mr-4 border-r border-black-150 pr-4">
+                            <span className="text-[9px] font-bold text-black-400 uppercase tracking-widest mb-1">Customer Portal Access</span>
+                            <div className="flex items-center gap-3">
+                              <span className="text-[11px] text-black-600 font-semibold">User: <span className="font-mono bg-black-50 px-1.5 py-0.5 rounded text-black-800 border border-black-200 select-all">{activeFlow.credentials.username}</span></span>
+                              <span className="text-[11px] text-black-600 font-semibold">Pass: <span className="font-mono bg-black-50 px-1.5 py-0.5 rounded text-black-800 border border-black-200 select-all">{activeFlow.credentials.password}</span></span>
+                            </div>
+                          </div>
+                        )}
+                        <button
+                          onClick={() => setExtraWorkStageIdx(0)}
+                          className="px-4 py-2 bg-emerald-50 text-emerald-800 font-bold text-[11px] rounded-xl hover:bg-emerald-100 transition border border-emerald-200 shadow-sm cursor-pointer"
+                        >
+                          + Add Extra Works
+                        </button>
+                        <button
+                          onClick={() => setPaymentStageIdx(0)}
+                          className="px-4 py-2 bg-[#0e623a] text-white font-bold text-[11px] rounded-xl hover:bg-[#0b4d2d] transition shadow cursor-pointer flex items-center gap-1"
+                        >
+                          <CreditCard className="w-3.5 h-3.5" /> Log Payment
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-xs text-left">
+                        <thead className="bg-black-50 text-black-500 font-bold uppercase tracking-wider border-y">
+                          <tr>
+                            <th className="p-4 w-12">#</th>
+                            <th className="p-4">Milestone Stage</th>
+                            <th className="p-4 text-right">Stage Value</th>
+                            <th className="p-4 text-center">Status</th>
+                            <th className="p-4 text-right">Received</th>
+                            <th className="p-4 text-right">Pending</th>
+                            <th className="p-4 text-center">Action</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-black-100">
+                          {activeFlow.stages.map((stage, idx) => {
+                            const stageTotal = getStageTotal(stage);
+                            const stagePaid = getStagePaid(stage);
+                            const isPaidInFull = stagePaid >= stageTotal;
+
+                            return (
+                              <React.Fragment key={idx}>
+                                <tr className={`hover:bg-black-50/50 transition ${isPaidInFull ? 'bg-emerald-50/10' : ''}`}>
+                                  <td className="p-4 font-bold text-black-400">{idx + 1}</td>
+                                  <td className="p-4">
+                                    <div className="font-bold text-black-800">{stage.name}</div>
+                                    <div className="text-[11px] text-black-400">{stage.percentage}% of total value</div>
+                                  </td>
+                                  <td className="p-4 text-right font-semibold text-black-700">
+                                    Rs. {stageTotal.toLocaleString()}
+                                    {stage.extraWorks && stage.extraWorks.length > 0 && (
+                                      <div className="text-[10px] text-blue-600 mt-0.5">+ Extra Works</div>
+                                    )}
+                                  </td>
+                                  <td className="p-4 text-center">
+                                    <span className={`px-2 py-1 rounded text-[11px] font-bold uppercase ${isPaidInFull ? 'bg-emerald-100 text-emerald-800' : (stagePaid > 0 ? 'bg-blue-100 text-blue-800' : 'bg-black-100 text-black-600')}`}>
+                                      {isPaidInFull ? 'Paid' : (stagePaid > 0 ? 'Partial' : 'Pending')}
+                                    </span>
+                                    <span className={`block mt-1.5 px-2 py-1 rounded text-[11px] font-bold uppercase ${stage.isCompleted ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>
+                                      {stage.isCompleted ? 'Completed' : 'In Progress'}
+                                    </span>
+                                  </td>
+                                  <td className="p-4 text-right font-bold text-emerald-600">
+                                    Rs. {stagePaid.toLocaleString()}
+                                  </td>
+                                  <td className="p-4 text-right font-bold text-rose-600">
+                                    Rs. {Math.max(0, stageTotal - stagePaid).toLocaleString()}
+                                  </td>
+                                  <td className="p-4 text-center flex flex-col gap-1.5 items-center justify-center">
+                                    <button
+                                      onClick={() => setPaymentStageIdx(idx)}
+                                      disabled={isPaidInFull}
+                                      className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition w-full ${isPaidInFull ? 'bg-black-100 text-black-400 cursor-not-allowed' : 'bg-blue-50 text-blue-700 hover:bg-blue-100 cursor-pointer border border-blue-200'}`}
+                                    >
+                                      {isPaidInFull ? 'Cleared' : 'Pay Now'}
+                                    </button>
+                                    <button
+                                      onClick={() => handleToggleStageCompletion(idx, stage.isCompleted)}
+                                      className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition w-full cursor-pointer border ${stage.isCompleted ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border-emerald-200' : 'bg-amber-50 text-amber-700 hover:bg-amber-100 border-amber-200'}`}
+                                    >
+                                      {stage.isCompleted ? 'Mark In Progress' : 'Mark Completed'}
+                                    </button>
+                                  </td>
+                                </tr>
+                                {/* Extra works rows if any */}
+                                {stage.extraWorks && stage.extraWorks.map((ew, ewIdx) => (
+                                  <tr key={`ew-${idx}-${ewIdx}`} className="bg-blue-50/30">
+                                    <td className="p-2 border-l-2 border-blue-400"></td>
+                                    <td className="p-2 text-[11px] text-black-600 flex items-center gap-1">
+                                      <ChevronRight className="w-3 h-3 text-blue-400" />
+                                      <span className="font-bold">{ew.name}</span>
+                                    </td>
+                                    <td className="p-2 text-right text-[11px] font-semibold text-black-700">Rs. {ew.amount.toLocaleString()}</td>
+                                    <td colSpan="3"></td>
+                                    <td className="p-2 text-center">
+                                      <button
+                                        onClick={() => handleRevertExtraWork(idx, ew._id || ew.id)}
+                                        className="p-1 hover:bg-red-55 text-red-500 rounded transition cursor-pointer"
+                                        title="Delete Extra Work"
+                                      >
+                                        <Trash className="w-3.5 h-3.5" />
+                                      </button>
+                                    </td>
+                                  </tr>
+                                ))}
+                                {/* Payments breakdown if any */}
+                                {stage.payments && stage.payments.length > 0 && (
+                                  <tr className="bg-black-50/50">
+                                    <td></td>
+                                    <td colSpan="6" className="p-2">
+                                      <div className="flex flex-wrap gap-2">
+                                        {stage.payments.map((p, pIdx) => (
+                                          <div key={`p-${idx}-${pIdx}`} className="flex items-center gap-1.5 bg-white border border-black-200 px-2 py-1 rounded text-[10px] shadow-sm">
+                                            <CheckCircle className="w-3 h-3 text-emerald-500" />
+                                            <span className="font-semibold text-black-700">Rs. {p.amount.toLocaleString()}</span>
+                                            <span className="text-black-400 border-l border-black-200 pl-1.5 ml-0.5">{new Date(p.date).toLocaleDateString('en-GB')}</span>
+                                            <span className="text-blue-600 font-bold border-l border-black-200 pl-1.5 ml-0.5">{p.mode}</span>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </td>
+                                  </tr>
+                                )}
+                              </React.Fragment>
+                            );
+                          })}
+                        </tbody>
+                        <tfoot className="bg-black-50 border-t border-black-200">
+                          <tr>
+                            <td colSpan="2" className="p-4 text-right font-black text-black-800 uppercase text-[11px] tracking-wider">Total CRD Value</td>
+                            <td className="p-4 text-right font-black text-[#0e623a] text-sm">Rs. {(() => {
+                              const totalWithExtra = activeFlow.stages.reduce((sum, s) => sum + getStageTotal(s), 0);
+                              return totalWithExtra.toLocaleString();
+                            })()}</td>
+                            <td colSpan="4"></td>
+                          </tr>
+                        </tfoot>
+                      </table>
+                    </div>
+                  </div>
+                )}
+             </div>
+          </div>
+        </div>
+      )}
+
 {/* Extra Work Modal dialog */}
       {extraWorkStageIdx !== null && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
