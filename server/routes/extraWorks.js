@@ -9,12 +9,24 @@ router.get('/', protect, authorize('Admin'), async (req, res) => {
   try {
     const flows = await CRDFlow.find()
       .populate('project')
-      .populate('lead');
+      .populate('lead')
+      .lean();
     
     // We can filter flows that have extraWorks in any stage
     const flowsWithExtraWorks = flows.filter(flow => 
       flow.stages.some(stage => stage.extraWorks && stage.extraWorks.length > 0)
     );
+
+    const Quotation = require('../models/Quotation');
+    
+    for (const flow of flowsWithExtraWorks) {
+      if (flow.lead && flow.lead._id) {
+        const quotation = await Quotation.findOne({ lead: flow.lead._id }).populate('crdPerson', 'name');
+        flow.crdPersonName = quotation && quotation.crdPerson ? quotation.crdPerson.name : 'Unassigned';
+      } else {
+        flow.crdPersonName = 'Unassigned';
+      }
+    }
 
     res.json(flowsWithExtraWorks);
   } catch (err) {

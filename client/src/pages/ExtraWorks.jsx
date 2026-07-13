@@ -196,7 +196,7 @@ const ExtraWorks = () => {
       sheet.addRow([]);
 
       // Headers
-      const headers = ['Date', 'Customer Name', 'Phone', 'Project', 'Units', 'Quotation Value', 'Extra Works', 'Final Value'];
+      const headers = ['Date', 'Customer Name', 'Phone', 'CRD Person', 'Project', 'Units', 'Quotation Value', 'Extra Works', 'Final Value'];
       const headerRow = sheet.addRow(headers);
       headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 11 };
       headerRow.eachCell(cell => {
@@ -215,6 +215,7 @@ const ExtraWorks = () => {
         { width: 15 }, // Date
         { width: 25 }, // Customer
         { width: 20 }, // Phone
+        { width: 25 }, // CRD Person
         { width: 20 }, // Project
         { width: 15 }, // Units
         { width: 20 }, // Quotation
@@ -228,6 +229,7 @@ const ExtraWorks = () => {
           new Date(flow.createdAt).toLocaleDateString(),
           flow.lead?.name || '',
           (flow.lead?.phone || '').toString(),
+          flow.crdPersonName || 'Unassigned',
           flow.project?.name || '',
           flow.unitId || '',
           flow.totalOriginalValue || 0,
@@ -236,9 +238,9 @@ const ExtraWorks = () => {
         ]);
         
         row.getCell(3).numFmt = '@'; // Force phone as text
-        row.getCell(6).numFmt = '₹#,##0.00';
         row.getCell(7).numFmt = '₹#,##0.00';
         row.getCell(8).numFmt = '₹#,##0.00';
+        row.getCell(9).numFmt = '₹#,##0.00';
       });
 
       const buffer = await workbook.xlsx.writeBuffer();
@@ -330,6 +332,7 @@ const ExtraWorks = () => {
                         <th className="px-4 py-3 font-bold text-xs uppercase tracking-wider">Date</th>
                         <th className="px-4 py-3 font-bold text-xs uppercase tracking-wider">Customer Name</th>
                         <th className="px-4 py-3 font-bold text-xs uppercase tracking-wider">Phone</th>
+                        <th className="px-4 py-3 font-bold text-xs uppercase tracking-wider">CRD Person</th>
                         <th className="px-4 py-3 font-bold text-xs uppercase tracking-wider">Project</th>
                         <th className="px-4 py-3 font-bold text-xs uppercase tracking-wider">Units</th>
                         <th className="px-4 py-3 font-bold text-xs uppercase tracking-wider text-right">Quotation</th>
@@ -343,6 +346,7 @@ const ExtraWorks = () => {
                           <td className="px-4 py-3 text-gray-600">{new Date(flow.createdAt).toLocaleDateString()}</td>
                           <td className="px-4 py-3 font-bold text-gray-900">{flow.lead?.name}</td>
                           <td className="px-4 py-3 text-gray-600">{flow.lead?.phone}</td>
+                          <td className="px-4 py-3 font-medium text-emerald-700">{flow.crdPersonName || 'Unassigned'}</td>
                           <td className="px-4 py-3 font-medium text-gray-900">{flow.project?.name}</td>
                           <td className="px-4 py-3 font-bold text-emerald-600">{flow.unitId}</td>
                           <td className="px-4 py-3 text-right font-semibold text-gray-900">₹{flow.totalOriginalValue?.toLocaleString()}</td>
@@ -385,6 +389,7 @@ const ExtraWorks = () => {
                 <th className="px-6 py-4 font-bold text-xs uppercase tracking-wider">Date</th>
                 <th className="px-6 py-4 font-bold text-xs uppercase tracking-wider">Customer Name</th>
                 <th className="px-6 py-4 font-bold text-xs uppercase tracking-wider">Phone</th>
+                <th className="px-6 py-4 font-bold text-xs uppercase tracking-wider">CRD Person</th>
                 <th className="px-6 py-4 font-bold text-xs uppercase tracking-wider">Project</th>
                 <th className="px-6 py-4 font-bold text-xs uppercase tracking-wider">Units</th>
                 <th className="px-6 py-4 font-bold text-xs uppercase tracking-wider text-right">Quotation Value</th>
@@ -396,7 +401,7 @@ const ExtraWorks = () => {
             <tbody className="divide-y divide-emerald-100">
               {filteredFlows.length === 0 ? (
                 <tr>
-                  <td colSpan="10" className="px-6 py-12 text-center text-gray-500 font-medium">No extra works requests found.</td>
+                  <td colSpan="11" className="px-6 py-12 text-center text-gray-500 font-medium">No extra works requests found.</td>
                 </tr>
               ) : filteredFlows.map((flow, idx) => {
                 const isExpanded = expandedFlow === flow._id;
@@ -411,6 +416,7 @@ const ExtraWorks = () => {
                       <td className="px-6 py-4 text-gray-600">{new Date(flow.createdAt).toLocaleDateString()}</td>
                       <td className="px-6 py-4 font-bold text-emerald-900">{flow.lead?.name}</td>
                       <td className="px-6 py-4 text-gray-600">{flow.lead?.phone}</td>
+                      <td className="px-6 py-4 font-medium text-emerald-700">{flow.crdPersonName || 'Unassigned'}</td>
                       <td className="px-6 py-4 font-medium text-gray-900">{flow.project?.name}</td>
                       <td className="px-6 py-4 text-emerald-600 font-bold">{flow.unitId}</td>
                       <td className="px-6 py-4 text-right font-bold text-gray-900">Rs. {flow.totalOriginalValue?.toLocaleString()}</td>
@@ -423,7 +429,7 @@ const ExtraWorks = () => {
                     
                     {isExpanded && (
                       <tr>
-                        <td colSpan="10" className="p-0 border-b-2 border-emerald-600">
+                        <td colSpan="11" className="p-0 border-b-2 border-emerald-600">
                           <div className="bg-emerald-50 p-6 shadow-inner">
                             <h4 className="text-sm font-black text-emerald-900 uppercase tracking-wider mb-4 flex items-center gap-2">
                               <Building className="w-4 h-4" /> Requested Extra Works Details
