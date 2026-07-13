@@ -70,13 +70,13 @@ const LEAD_STATUSES = [
 ];
 
 const STATUS_COLORS = {
-  'New': { bg: 'bg-blue-50/70', text: 'text-blue-700', border: 'border-blue-200', dot: 'bg-blue-500' },
-  'Assigned': { bg: 'bg-purple-50/70', text: 'text-purple-700', border: 'border-purple-200', dot: 'bg-purple-500' },
-  'Follow-Up': { bg: 'bg-amber-50/70', text: 'text-amber-700', border: 'border-amber-200', dot: 'bg-amber-500' },
-  'Site Visit': { bg: 'bg-yellow-50/70', text: 'text-yellow-700', border: 'border-yellow-300', dot: 'bg-yellow-500' },
-  'Booking': { bg: 'bg-[#0e623a]/10', text: 'text-[#0e623a]', border: 'border-[#0e623a]/30', dot: 'bg-[#0e623a]' },
-  'Future Follow-up': { bg: 'bg-indigo-50/70', text: 'text-indigo-700', border: 'border-indigo-200', dot: 'bg-indigo-500' },
-  'Lost': { bg: 'bg-black-100', text: 'text-black-750', border: 'border-black-300', dot: 'bg-black-500' },
+  'New': { bg: 'bg-blue-600', text: 'text-white', border: 'border-blue-700', dot: 'bg-blue-200' },
+  'Assigned': { bg: 'bg-purple-600', text: 'text-white', border: 'border-purple-700', dot: 'bg-purple-200' },
+  'Follow-Up': { bg: 'bg-orange-600', text: 'text-white', border: 'border-orange-700', dot: 'bg-orange-200' },
+  'Site Visit': { bg: 'bg-yellow-600', text: 'text-white', border: 'border-yellow-700', dot: 'bg-yellow-200' },
+  'Booking': { bg: 'bg-[#0a4c2c]', text: 'text-white', border: 'border-[#c5a059]', dot: 'bg-white' },
+  'Future Follow-up': { bg: 'bg-indigo-600', text: 'text-white', border: 'border-indigo-700', dot: 'bg-indigo-200' },
+  'Lost': { bg: 'bg-gray-700', text: 'text-white', border: 'border-gray-800', dot: 'bg-gray-300' },
 };
 
 const getPreviousStatus = (lead) => {
@@ -1517,22 +1517,22 @@ const LeadsDirectory = () => {
                 key={lead._id} 
                 className={`transition duration-150 ${
                   lead.isClosed 
-                    ? 'bg-red-50/80 text-black-600 border-l-4 border-red-500 hover:bg-red-100' 
+                    ? 'bg-red-700 border-l-4 border-red-900 hover:bg-red-800 dark-row' 
                     : lead.leadCategory === 'Hot'
-                      ? 'bg-yellow-50/85 border-l-4 border-yellow-400 hover:bg-yellow-100/90 text-black-800'
+                      ? 'bg-rose-600 border-l-4 border-rose-800 hover:bg-rose-700 dark-row'
                       : lead.status === 'New'
-                        ? 'bg-blue-50/70 border-l-4 border-blue-400 hover:bg-blue-100/80 text-black-800'
+                        ? 'bg-blue-600 border-l-4 border-blue-800 hover:bg-blue-700 dark-row'
                         : lead.status === 'Assigned'
-                          ? 'bg-purple-50/70 border-l-4 border-purple-400 hover:bg-purple-100/80 text-black-800'
+                          ? 'bg-purple-600 border-l-4 border-purple-800 hover:bg-purple-700 dark-row'
                           : lead.status === 'Follow-Up'
-                            ? 'bg-amber-50/70 border-l-4 border-amber-400 hover:bg-amber-100/80 text-black-800'
+                            ? 'bg-orange-600 border-l-4 border-orange-800 hover:bg-orange-700 dark-row'
                             : lead.status === 'Site Visit'
-                              ? 'bg-yellow-50/70 border-l-4 border-yellow-400 hover:bg-yellow-100/80 text-black-800'
+                              ? 'bg-yellow-600 border-l-4 border-yellow-800 hover:bg-yellow-700 dark-row'
                               : lead.status === 'Booking'
-                                ? 'bg-[#0e623a]/10 border-l-4 border-[#0e623a] hover:bg-[#0e623a]/20 text-black-800'
+                                ? 'bg-[#0a4c2c] border-l-4 border-[#c5a059] hover:bg-[#083a21] dark-row'
                                 : lead.status === 'Future Follow-up'
-                                  ? 'bg-indigo-50/70 border-l-4 border-indigo-400 hover:bg-indigo-100/80 text-black-800'
-                                  : 'hover:bg-black-50/50'
+                                  ? 'bg-indigo-600 border-l-4 border-indigo-800 hover:bg-indigo-700 dark-row'
+                                  : 'bg-gray-700 hover:bg-gray-600 border-l-4 border-gray-900 dark-row'
                 }`}
               >
                 {/* S.No */}
@@ -1554,7 +1554,7 @@ const LeadsDirectory = () => {
                   <div className="flex items-center gap-2">
                     <span className="font-bold text-black-800 text-xs">{lead.name}</span>
                     {(lead.isReopened === true || (lead.history && lead.history.some(h => h.note && h.note.toLowerCase().includes('reopened')))) && (
-                      <span className="bg-amber-100 text-amber-800 border border-amber-250 text-[10px] font-extrabold px-1.5 py-0.5 rounded-full uppercase tracking-wider shrink-0 shadow-sm animate-pulse">
+                      <span className="bg-amber-600 border border-amber-700 text-[10px] font-extrabold px-1.5 py-0.5 rounded-full uppercase tracking-wider shrink-0 shadow-sm animate-pulse">
                         Reopened
                       </span>
                     )}
@@ -1586,7 +1586,7 @@ const LeadsDirectory = () => {
                           )}
                         </div>
                         {lead.leadCost > 0 && (
-                          <span className="text-[10px] font-extrabold text-[#0e623a] bg-[#0e623a]/10 px-1.5 py-0.5 rounded w-fit">
+                          <span className="text-[10px] font-extrabold bg-[#0e623a] border border-[#0a4c2c] px-1.5 py-0.5 rounded w-fit">
                             Cost: ₹{lead.leadCost}
                           </span>
                         )}
@@ -1604,7 +1604,7 @@ const LeadsDirectory = () => {
  
                 {/* Lead Category */}
                 <td className="px-3 py-1.5 border-b border-black-100 text-center">
-                  <span className={`px-2 py-1 text-[10px] font-bold uppercase rounded-full tracking-wider border shadow-sm ${lead.leadCategory === 'Hot' ? 'bg-red-50 text-red-600 border-red-200' : lead.leadCategory === 'Warm' ? 'bg-orange-50 text-orange-600 border-orange-200' : 'bg-blue-50 text-blue-600 border-blue-200'}`}>{lead.leadCategory || 'Cold'}</span>
+                  <span className={`px-2 py-1 text-[10px] font-bold uppercase rounded-full tracking-wider border shadow-sm ${lead.leadCategory === 'Hot' ? 'bg-red-600 border-red-700' : lead.leadCategory === 'Warm' ? 'bg-orange-600 border-orange-700' : 'bg-blue-600 border-blue-700'}`}>{lead.leadCategory || 'Cold'}</span>
                 </td>
 
                 {/* Assigned By */}
@@ -1634,7 +1634,7 @@ const LeadsDirectory = () => {
                         const isHidden = isSiteVisit || isFollowUp;
                         return (
                           <>
-                            <span className="text-[10px] font-extrabold text-red-700 bg-red-100 border border-red-200 px-2 py-0.5 rounded-full uppercase tracking-wider">
+                            <span className="text-[10px] font-extrabold bg-red-700 border border-red-800 px-2 py-0.5 rounded-full uppercase tracking-wider">
                               {lostStage ? (
                                 isSiteVisit ? 'Site Visit - Closed' :
                                 isFollowUp ? 'Follow-Up - Closed' :

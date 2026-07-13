@@ -9,6 +9,8 @@ const OverallReport = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
   const [editingId, setEditingId] = useState(null);
   const [editValues, setEditValues] = useState({ debtorsAmount: '', targetAmount: '' });
 
@@ -137,11 +139,32 @@ const OverallReport = () => {
   };
 
   const filteredFlows = flows.filter(flow => {
-    if (!searchQuery) return true;
-    const searchLower = searchQuery.toLowerCase();
-    const custName = flow.lead?.name?.toLowerCase() || '';
-    const projName = flow.project?.name?.toLowerCase() || '';
-    return custName.includes(searchLower) || projName.includes(searchLower);
+    // Search
+    if (searchQuery) {
+      const searchLower = searchQuery.toLowerCase();
+      const custName = flow.lead?.name?.toLowerCase() || '';
+      const projName = flow.project?.name?.toLowerCase() || '';
+      if (!custName.includes(searchLower) && !projName.includes(searchLower)) return false;
+    }
+    
+    // Date filter
+    if (startDate || endDate) {
+      const flowDate = new Date(flow.createdAt || new Date());
+      flowDate.setHours(0, 0, 0, 0);
+      
+      if (startDate) {
+        const start = new Date(startDate);
+        start.setHours(0, 0, 0, 0);
+        if (flowDate < start) return false;
+      }
+      if (endDate) {
+        const end = new Date(endDate);
+        end.setHours(0, 0, 0, 0);
+        if (flowDate > end) return false;
+      }
+    }
+    
+    return true;
   });
 
   return (
@@ -157,6 +180,21 @@ const OverallReport = () => {
           </div>
         </div>
         <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <input 
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              className="px-3 py-2.5 bg-black-50 border border-black-250 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 text-black-600"
+            />
+            <span className="text-black-400 text-sm font-semibold">to</span>
+            <input 
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              className="px-3 py-2.5 bg-black-50 border border-black-250 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 text-black-600"
+            />
+          </div>
           <div className="relative">
             <Search className="w-4 h-4 text-black-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
@@ -164,7 +202,7 @@ const OverallReport = () => {
               placeholder="Search lead or project..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 pr-4 py-2.5 bg-black-50 border border-black-250 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 w-64"
+              className="pl-9 pr-4 py-2.5 bg-black-50 border border-black-250 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 w-56"
             />
           </div>
           <button

@@ -409,8 +409,8 @@ const ExtraWorks = () => {
                 return (
                   <React.Fragment key={flow._id}>
                     <tr 
-                      className={`hover:bg-emerald-50/50 transition-colors cursor-pointer ${isExpanded ? 'bg-emerald-50/80' : ''}`}
-                      onClick={() => setExpandedFlow(isExpanded ? null : flow._id)}
+                      className="hover:bg-emerald-50/50 transition-colors cursor-pointer"
+                      onClick={() => setExpandedFlow(flow._id)}
                     >
                       <td className="px-6 py-4 font-bold text-gray-900">{idx + 1}</td>
                       <td className="px-6 py-4 text-gray-600">{new Date(flow.createdAt).toLocaleDateString()}</td>
@@ -422,174 +422,10 @@ const ExtraWorks = () => {
                       <td className="px-6 py-4 text-right font-bold text-gray-900">Rs. {flow.totalOriginalValue?.toLocaleString()}</td>
                       <td className="px-6 py-4 text-right font-bold text-amber-600">Rs. {flow.totalExtraWorksValue?.toLocaleString()}</td>
                       <td className="px-6 py-4 text-right font-black text-emerald-600">Rs. {flow.totalCurrentValue?.toLocaleString()}</td>
-                      <td className="px-6 py-4 text-right">
-                        {isExpanded ? <ChevronUp className="w-5 h-5 text-gray-400" /> : <ChevronDown className="w-5 h-5 text-gray-400" />}
+                      <td className="px-6 py-4 text-right text-emerald-600 font-bold hover:underline">
+                        View Details
                       </td>
                     </tr>
-                    
-                    {isExpanded && (
-                      <tr>
-                        <td colSpan="11" className="p-0 border-b-2 border-emerald-600">
-                          <div className="bg-emerald-50 p-6 shadow-inner">
-                            <h4 className="text-sm font-black text-emerald-900 uppercase tracking-wider mb-4 flex items-center gap-2">
-                              <Building className="w-4 h-4" /> Requested Extra Works Details
-                            </h4>
-                            
-                            <div className="space-y-4">
-                              {flow.stages.map((stage, sIdx) => (
-                                stage.extraWorks && stage.extraWorks.length > 0 && stage.extraWorks.map(work => {
-                                  const isPriced = work.status !== 'Pending';
-                                  
-                                  return (
-                                    <div key={work._id} className="bg-white p-4 rounded-xl shadow-sm border border-emerald-100 flex flex-wrap items-center justify-between gap-4">
-                                      <div className="flex-1 min-w-[200px]">
-                                        <div className="flex items-center gap-2 mb-1">
-                                          <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-600 bg-emerald-100 px-2 py-0.5 rounded">{work.category}</span>
-                                          <span className="text-[10px] font-bold text-gray-500">Stage: {stage.name}</span>
-                                        </div>
-                                        <h5 className="font-bold text-gray-900">{work.name}</h5>
-                                        <p className="text-xs text-gray-500 mt-1">Quantity: <strong className="text-gray-900">{work.quantity}</strong> {work.unit}</p>
-                                      </div>
-                                      
-                                      <div className="flex items-center gap-4 flex-wrap">
-                                        <div className="w-32">
-                                          <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Rate (Rs.)</label>
-                                          <input
-                                            type="number"
-                                            disabled={work.status !== 'Pending'}
-                                            value={rates[work._id] ?? work.rate ?? ''}
-                                            onChange={(e) => handleRateChange(work._id, e.target.value)}
-                                            className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm font-bold focus:outline-none focus:ring-2 focus:ring-[#006838]/20 focus:border-[#006838] disabled:opacity-50"
-                                            placeholder="Enter rate..."
-                                          />
-                                        </div>
-                                        <div className="w-32">
-                                          <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Total (Rs.)</label>
-                                          <div className="px-3 py-2 bg-gray-100 rounded-lg text-sm font-black text-emerald-700">
-                                            {((rates[work._id] ?? work.rate ?? 0) * work.quantity).toLocaleString()}
-                                          </div>
-                                        </div>
-                                        
-                                        <div className="w-40 flex flex-col items-end gap-2">
-                                          {getStatusBadge(work.status)}
-                                        </div>
-                                      </div>
-                                    </div>
-                                  );
-                                })
-                              ))}
-                            </div>
-                            
-                            {/* Bulk Actions */}
-                            {(flow.stages.some(s => s.extraWorks?.some(w => w.status === 'PED Approved')) || 
-                              flow.stages.some(s => s.extraWorks?.some(w => w.status === 'Client Approved'))) && (
-                              <div className="mt-6 flex flex-wrap justify-end gap-4 border-t border-emerald-200/50 pt-6">
-                                {(() => {
-                                  const hasPendingWithRate = flow.stages.some(s => s.extraWorks?.some(w => w.status === 'Pending' && rates[w._id] > 0));
-                                  const hasPEDApproved = flow.stages.some(s => s.extraWorks?.some(w => w.status === 'PED Approved'));
-                                  
-                                  if (hasPendingWithRate || hasPEDApproved) {
-                                    return (
-                                      <button
-                                        onClick={async () => {
-                                          try {
-                                            setSubmitting('bulk-save-send');
-                                            
-                                            // 1. Save prices for any pending items that have a rate entered
-                                            const pendingToSave = [];
-                                            flow.stages.forEach((s, sIdx) => {
-                                              s.extraWorks?.forEach(w => {
-                                                if (w.status === 'Pending' && rates[w._id] > 0) {
-                                                  pendingToSave.push({ sIdx, wId: w._id, rate: rates[w._id] });
-                                                }
-                                              });
-                                            });
-                                            
-                                            if (pendingToSave.length > 0) {
-                                              await Promise.all(pendingToSave.map(work => 
-                                                fetch(`${API_URL}/extra-works/${flow._id}/${work.sIdx}/${work.wId}/price`, {
-                                                  method: 'PUT',
-                                                  headers: { 
-                                                    'Content-Type': 'application/json',
-                                                    Authorization: `Bearer ${token}` 
-                                                  },
-                                                  body: JSON.stringify({ rate: work.rate })
-                                                })
-                                              ));
-                                            }
-                                            
-                                            // 2. Send to customer (includes newly saved and previously approved ones)
-                                            const worksToSend = [];
-                                            flow.stages.forEach((s, sIdx) => {
-                                              s.extraWorks?.forEach(w => {
-                                                if (w.status === 'PED Approved' || (w.status === 'Pending' && rates[w._id] > 0)) {
-                                                  worksToSend.push({ sIdx, wId: w._id });
-                                                }
-                                              });
-                                            });
-                                            
-                                            if (worksToSend.length > 0) {
-                                              await Promise.all(worksToSend.map(work => 
-                                                fetch(`${API_URL}/extra-works/${flow._id}/${work.sIdx}/${work.wId}/send`, {
-                                                  method: 'PUT',
-                                                  headers: { Authorization: `Bearer ${token}` }
-                                                })
-                                              ));
-                                            }
-                                            
-                                            await fetchFlows();
-                                          } catch (err) {
-                                            alert('Failed to process some items');
-                                          } finally {
-                                            setSubmitting(null);
-                                          }
-                                        }}
-                                        disabled={submitting === 'bulk-save-send'}
-                                        className="px-6 py-2.5 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition flex items-center gap-2 shadow-lg shadow-blue-500/20 disabled:opacity-50"
-                                      >
-                                        {submitting === 'bulk-save-send' ? <Loader2 className="w-5 h-5 animate-spin" /> : <><Send className="w-4 h-4" /> Save & Send All to Customer</>}
-                                      </button>
-                                    );
-                                  }
-                                  return null;
-                                })()}
-                                
-                                {flow.stages.some(s => s.extraWorks?.some(w => w.status === 'Client Approved')) && (
-                                  <button
-                                    onClick={async () => {
-                                      try {
-                                        setSubmitting('bulk-add');
-                                        const worksToAdd = [];
-                                        flow.stages.forEach((s, sIdx) => {
-                                          s.extraWorks?.forEach(w => {
-                                            if (w.status === 'Client Approved') worksToAdd.push({ sIdx, wId: w._id });
-                                          });
-                                        });
-                                        for (const work of worksToAdd) {
-                                          await fetch(`${API_URL}/extra-works/${flow._id}/${work.sIdx}/${work.wId}/add-to-crd`, {
-                                            method: 'PUT',
-                                            headers: { Authorization: `Bearer ${token}` }
-                                          });
-                                        }
-                                        await fetchFlows();
-                                      } catch (err) {
-                                        alert('Failed to add some items to CRD');
-                                      } finally {
-                                        setSubmitting(null);
-                                      }
-                                    }}
-                                    disabled={submitting === 'bulk-add'}
-                                    className="px-6 py-2.5 bg-purple-600 text-white font-bold rounded-xl hover:bg-purple-700 transition flex items-center gap-2 shadow-lg shadow-purple-500/20 disabled:opacity-50"
-                                  >
-                                    {submitting === 'bulk-add' ? <Loader2 className="w-5 h-5 animate-spin" /> : <><Plus className="w-4 h-4" /> Add All Approved to CRD</>}
-                                  </button>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    )}
                   </React.Fragment>
                 );
               })}
@@ -597,6 +433,178 @@ const ExtraWorks = () => {
           </table>
         </div>
       </div>
+
+      {expandedFlow && (() => {
+        const flow = flows.find(f => f._id === expandedFlow);
+        if (!flow) return null;
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm overflow-y-auto animate-fade-in">
+            <div className="bg-white rounded-3xl max-w-6xl w-full max-h-[90vh] flex flex-col overflow-hidden shadow-2xl border border-emerald-100 animate-fade-in-up">
+              <div className="p-6 bg-[#006838] text-white flex justify-between items-center rounded-t-[2rem]">
+                <h2 className="text-xl font-black uppercase tracking-wider flex items-center gap-2">
+                  <Building className="w-5 h-5" /> Extra Works Details - {flow.lead?.name}
+                </h2>
+                <button onClick={() => setExpandedFlow(null)} className="text-white/80 hover:text-white transition bg-white/10 hover:bg-white/20 p-2 rounded-full">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <div className="p-6 overflow-y-auto flex-1 bg-emerald-50/50">
+                <div className="bg-white rounded-2xl shadow-sm border border-emerald-100 overflow-hidden">
+                  <table className="w-full text-left">
+                    <thead className="bg-[#006838] text-white">
+                      <tr>
+                        <th className="p-4 font-bold text-[11px] uppercase tracking-wider">Category</th>
+                        <th className="p-4 font-bold text-[11px] uppercase tracking-wider">Sub Category</th>
+                        <th className="p-4 font-bold text-[11px] uppercase tracking-wider text-center">Qty</th>
+                        <th className="p-4 font-bold text-[11px] uppercase tracking-wider text-right">Rate (Rs)</th>
+                        <th className="p-4 font-bold text-[11px] uppercase tracking-wider text-right">Total (Rs)</th>
+                        <th className="p-4 font-bold text-[11px] uppercase tracking-wider text-center">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-emerald-50">
+                      {flow.stages.map((stage, sIdx) => (
+                        stage.extraWorks && stage.extraWorks.length > 0 && stage.extraWorks.map(work => (
+                          <tr key={work._id} className="hover:bg-emerald-50/30 transition-colors">
+                            <td className="p-4 align-middle">
+                              <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 bg-emerald-100 px-2 py-1 rounded-full whitespace-nowrap">{work.category}</span>
+                              <div className="text-[10px] font-bold text-gray-500 mt-2">Stage: {stage.name}</div>
+                            </td>
+                            <td className="p-4 align-middle font-bold text-gray-900 text-sm max-w-[200px] break-words">
+                              {work.name}
+                            </td>
+                            <td className="p-4 align-middle text-center">
+                              <strong className="text-gray-900 text-sm">{work.quantity}</strong> <span className="text-gray-500 text-xs">{work.unit}</span>
+                            </td>
+                            <td className="p-4 align-middle text-right">
+                              <input
+                                type="number"
+                                disabled={work.status !== 'Pending'}
+                                value={rates[work._id] ?? work.rate ?? ''}
+                                onChange={(e) => handleRateChange(work._id, e.target.value)}
+                                className="w-28 ml-auto px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm font-bold focus:outline-none focus:ring-2 focus:ring-[#006838]/20 focus:border-[#006838] disabled:opacity-50 disabled:bg-gray-100 text-right transition-colors"
+                                placeholder="0"
+                              />
+                            </td>
+                            <td className="p-4 align-middle text-right font-black text-[#006838] text-sm">
+                              {((rates[work._id] ?? work.rate ?? 0) * work.quantity).toLocaleString()}
+                            </td>
+                            <td className="p-4 align-middle text-center">
+                              <div className="flex justify-center">
+                                {getStatusBadge(work.status)}
+                              </div>
+                            </td>
+                          </tr>
+                        ))
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+              
+              {/* Bulk Actions */}
+              {(flow.stages.some(s => s.extraWorks?.some(w => w.status === 'PED Approved')) || 
+                flow.stages.some(s => s.extraWorks?.some(w => w.status === 'Client Approved'))) && (
+                <div className="p-6 border-t border-emerald-100 bg-white flex flex-wrap justify-end gap-4 rounded-b-[2rem]">
+                  {(() => {
+                    const hasPendingWithRate = flow.stages.some(s => s.extraWorks?.some(w => w.status === 'Pending' && rates[w._id] > 0));
+                    const hasPEDApproved = flow.stages.some(s => s.extraWorks?.some(w => w.status === 'PED Approved'));
+                    
+                    if (hasPendingWithRate || hasPEDApproved) {
+                      return (
+                        <button
+                          onClick={async () => {
+                            try {
+                              setSubmitting('bulk-save-send');
+                              const pendingToSave = [];
+                              flow.stages.forEach((s, sIdx) => {
+                                s.extraWorks?.forEach(w => {
+                                  if (w.status === 'Pending' && rates[w._id] > 0) {
+                                    pendingToSave.push({ sIdx, wId: w._id, rate: rates[w._id] });
+                                  }
+                                });
+                              });
+                              if (pendingToSave.length > 0) {
+                                await Promise.all(pendingToSave.map(work => 
+                                  fetch(`${API_URL}/extra-works/${flow._id}/${work.sIdx}/${work.wId}/price`, {
+                                    method: 'PUT',
+                                    headers: { 
+                                      'Content-Type': 'application/json',
+                                      Authorization: `Bearer ${token}` 
+                                    },
+                                    body: JSON.stringify({ rate: work.rate })
+                                  })
+                                ));
+                              }
+                              const worksToSend = [];
+                              flow.stages.forEach((s, sIdx) => {
+                                s.extraWorks?.forEach(w => {
+                                  if (w.status === 'PED Approved' || (w.status === 'Pending' && rates[w._id] > 0)) {
+                                    worksToSend.push({ sIdx, wId: w._id });
+                                  }
+                                });
+                              });
+                              if (worksToSend.length > 0) {
+                                await Promise.all(worksToSend.map(work => 
+                                  fetch(`${API_URL}/extra-works/${flow._id}/${work.sIdx}/${work.wId}/send`, {
+                                    method: 'PUT',
+                                    headers: { Authorization: `Bearer ${token}` }
+                                  })
+                                ));
+                              }
+                              await fetchFlows();
+                            } catch (err) {
+                              alert('Failed to process some items');
+                            } finally {
+                              setSubmitting(null);
+                            }
+                          }}
+                          disabled={submitting === 'bulk-save-send'}
+                          className="px-6 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition flex items-center gap-2 shadow-lg shadow-blue-500/20 disabled:opacity-50"
+                        >
+                          {submitting === 'bulk-save-send' ? <Loader2 className="w-5 h-5 animate-spin" /> : <><Send className="w-5 h-5" /> Save & Send All to Customer</>}
+                        </button>
+                      );
+                    }
+                    return null;
+                  })()}
+                  
+                  {flow.stages.some(s => s.extraWorks?.some(w => w.status === 'Client Approved')) && (
+                    <button
+                      onClick={async () => {
+                        try {
+                          setSubmitting('bulk-add');
+                          const worksToAdd = [];
+                          flow.stages.forEach((s, sIdx) => {
+                            s.extraWorks?.forEach(w => {
+                              if (w.status === 'Client Approved') worksToAdd.push({ sIdx, wId: w._id });
+                            });
+                          });
+                          for (const work of worksToAdd) {
+                            await fetch(`${API_URL}/extra-works/${flow._id}/${work.sIdx}/${work.wId}/add-to-crd`, {
+                              method: 'PUT',
+                              headers: { Authorization: `Bearer ${token}` }
+                            });
+                          }
+                          await fetchFlows();
+                        } catch (err) {
+                          alert('Failed to add some items to CRD');
+                        } finally {
+                          setSubmitting(null);
+                        }
+                      }}
+                      disabled={submitting === 'bulk-add'}
+                      className="px-6 py-3 bg-purple-600 text-white font-bold rounded-xl hover:bg-purple-700 transition flex items-center gap-2 shadow-lg shadow-purple-500/20 disabled:opacity-50"
+                    >
+                      {submitting === 'bulk-add' ? <Loader2 className="w-5 h-5 animate-spin" /> : <><Plus className="w-5 h-5" /> Add All Approved to CRD</>}
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })()}
+
     </div>
   );
 };
