@@ -29,7 +29,8 @@ import {
   MoreVertical,
   Edit2,
   Trash2,
-  Loader2
+  Loader2,
+  XCircle
 } from 'lucide-react';
 
 const SOURCE_TYPES = [
@@ -524,6 +525,42 @@ const LeadsDirectory = () => {
       setError('Error updating lead');
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleCancelBooking = async (lead) => {
+    if (!window.confirm(`Are you sure you want to cancel the booking for "${lead.name}"? This will mark the lead as Cancelled.`)) {
+      return;
+    }
+    setError('');
+    setSuccessMsg('');
+    setStatusChangingId(lead._id);
+    try {
+      const payload = {
+        status: 'Lost',
+        isClosed: true,
+        closeRemarks: '[Lost at Booking stage] - Cancelled'
+      };
+      const res = await fetch(`${API_URL}/leads/${lead._id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(payload)
+      });
+      if (res.ok) {
+        setSuccessMsg('Booking cancelled successfully!');
+        fetchLeads();
+        setTimeout(() => setSuccessMsg(''), 3000);
+      } else {
+        const data = await res.json();
+        setError(data.message || 'Failed to cancel booking');
+      }
+    } catch (err) {
+      setError('Connection error cancelling booking');
+    } finally {
+      setStatusChangingId(null);
     }
   };
 
@@ -1682,11 +1719,13 @@ const LeadsDirectory = () => {
                         const displayRemarks = match ? lead.closeRemarks.replace(/\[Lost at .*? stage\] - /, '') : lead.closeRemarks;
                         const isSiteVisit = lostStage === 'Site Visit';
                         const isFollowUp = lostStage === 'Follow-Up' || lostStage === 'Assigned';
-                        const isHidden = isSiteVisit || isFollowUp;
+                        const isBooking = lostStage === 'Booking';
+                        const isHidden = isSiteVisit || isFollowUp || isBooking;
                         return (
                           <>
                             <span className="px-3 py-1.5 text-[12px] font-extrabold uppercase tracking-wider">
                               {lostStage ? (
+                                isBooking ? 'Booking - Cancelled' :
                                 isSiteVisit ? 'Site Visit - Closed' :
                                 isFollowUp ? 'Follow-Up - Closed' :
                                 `${lostStage} - Completed`
@@ -1774,15 +1813,15 @@ const LeadsDirectory = () => {
                        >
                          <Edit2 className="w-3.5 h-3.5" /> Edit
                        </button>
-                       {(user?.role === 'Admin' || user?.role === 'Manager') && (
+                       {lead.status === 'Booking' && !lead.isClosed && (
                          <button
-                           onClick={() => handleDeleteLead(lead._id, lead.name)}
-                           disabled={deletingId === lead._id}
+                           onClick={() => handleCancelBooking(lead)}
+                           disabled={statusChangingId === lead._id}
                            className="w-full text-left px-4 py-2 text-[11px] font-bold hover:bg-red-50 flex items-center gap-2 disabled:opacity-50"
                            style={{ color: '#dc2626' }}
                          >
-                           {deletingId === lead._id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
-                           Delete
+                           {statusChangingId === lead._id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <XCircle className="w-3.5 h-3.5" />}
+                           Cancel
                          </button>
                        )}
                      </div>
