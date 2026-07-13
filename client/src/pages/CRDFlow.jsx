@@ -1207,14 +1207,18 @@ const CRDFlow = () => {
                             </div>
                           </div>
                         )}
+                        {/* Extra Works button removed per user request */}
                         <button
-                          onClick={() => setExtraWorkStageIdx(0)}
-                          className="px-4 py-2 bg-emerald-50 text-emerald-800 font-bold text-[11px] rounded-xl hover:bg-emerald-100 transition border border-emerald-200 shadow-sm cursor-pointer"
-                        >
-                          + Add Extra Works
-                        </button>
-                        <button
-                          onClick={() => setPaymentStageIdx(0)}
+                          onClick={() => {
+                            setPaymentStageIdx(0);
+                            const thisStagePending = Math.max(0, getStageTotal(activeFlow.stages[0]) - getStagePaid(activeFlow.stages[0]));
+                            const arrears = getPendingPreviousStages(0).reduce((sum, s) => sum + s.pending, 0);
+                            const totalAmt = thisStagePending + arrears;
+                            setPaymentAmount(totalAmt.toString());
+                            const half = Math.round(totalAmt / 2);
+                            setDualTransferAmount(half.toString());
+                            setDualLoanAmount((totalAmt - half).toString());
+                          }}
                           className="px-4 py-2 bg-[#0e623a] text-white font-bold text-[11px] rounded-xl hover:bg-[#0b4d2d] transition shadow cursor-pointer flex items-center gap-1"
                         >
                           <CreditCard className="w-3.5 h-3.5" /> Log Payment
@@ -1256,10 +1260,12 @@ const CRDFlow = () => {
                                     )}
                                   </td>
                                   <td className="p-4 text-center">
-                                    <span className={`px-2 py-1 rounded text-[11px] font-bold uppercase ${isPaidInFull ? 'bg-emerald-100 text-emerald-800' : (stagePaid > 0 ? 'bg-blue-100 text-blue-800' : 'bg-black-100 text-black-600')}`}>
-                                      {isPaidInFull ? 'Paid' : (stagePaid > 0 ? 'Partial' : 'Pending')}
-                                    </span>
-                                    <span className={`block mt-1.5 px-2 py-1 rounded text-[11px] font-bold uppercase ${stage.isCompleted ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>
+                                    {stagePaid > 0 && (
+                                      <span className={`px-2 py-1 rounded text-[11px] font-bold uppercase ${isPaidInFull ? 'bg-emerald-100 text-emerald-800' : 'bg-blue-100 text-blue-800'}`}>
+                                        {isPaidInFull ? 'Paid' : 'Partial'}
+                                      </span>
+                                    )}
+                                    <span className={`block ${stagePaid > 0 ? 'mt-1.5' : ''} px-2 py-1 rounded text-[11px] font-bold uppercase ${stage.isCompleted ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>
                                       {stage.isCompleted ? 'Completed' : 'In Progress'}
                                     </span>
                                   </td>
@@ -1271,7 +1277,16 @@ const CRDFlow = () => {
                                   </td>
                                   <td className="p-4 text-center flex flex-col gap-1.5 items-center justify-center">
                                     <button
-                                      onClick={() => setPaymentStageIdx(idx)}
+                                      onClick={() => {
+                                        setPaymentStageIdx(idx);
+                                        const thisStagePending = Math.max(0, getStageTotal(stage) - getStagePaid(stage));
+                                        const arrears = getPendingPreviousStages(idx).reduce((sum, s) => sum + s.pending, 0);
+                                        const totalAmt = thisStagePending + arrears;
+                                        setPaymentAmount(totalAmt.toString());
+                                        const half = Math.round(totalAmt / 2);
+                                        setDualTransferAmount(half.toString());
+                                        setDualLoanAmount((totalAmt - half).toString());
+                                      }}
                                       disabled={isPaidInFull}
                                       className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition w-full ${isPaidInFull ? 'bg-black-100 text-black-400 cursor-not-allowed' : 'bg-blue-50 text-blue-700 hover:bg-blue-100 cursor-pointer border border-blue-200'}`}
                                     >
