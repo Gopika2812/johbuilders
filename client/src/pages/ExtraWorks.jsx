@@ -256,7 +256,7 @@ const handleRateChange = (workId, value) => {
     switch(activeTab) {
       case 'crd': return ['Pending', 'Sent to PED'];
       case 'ped': return ['Sent to PED', 'PED Approved'];
-      case 'client': return ['Client Approved'];
+      case 'client': return ['Sent to Customer', 'Client Approved'];
       case 'accounts': return ['Client Approved'];
       case 'work-orders': return ['Added to CRD'];
       default: return [];
@@ -745,7 +745,7 @@ const handleRateChange = (workId, value) => {
                                     stage.extraWorks && stage.extraWorks.length > 0 && stage.extraWorks.filter(w => {
                                       if (activeTab === 'crd') return ['Pending', 'Sent to PED'].includes(w.status);
                                       if (activeTab === 'ped') return ['Sent to PED', 'PED Approved'].includes(w.status);
-                                      if (activeTab === 'client') return ['Client Approved'].includes(w.status);
+                                      if (activeTab === 'client') return ['Sent to Customer', 'Client Approved'].includes(w.status);
                                       if (activeTab === 'accounts') return ['Client Approved'].includes(w.status);
                                       if (activeTab === 'work-orders') return ['Added to CRD'].includes(w.status);
                                       return false;
@@ -1019,16 +1019,28 @@ const handleRateChange = (workId, value) => {
                         </button>
                       )}
                       {activeTab === 'ped' && (
-                        <button
-                          onClick={() => {
-                            handleSavePrice(extraWorkDetailsModal.flow._id, extraWorkDetailsModal.stageIdx, extraWorkDetailsModal.work._id);
-                            setExtraWorkDetailsModal(null);
-                          }}
-                          disabled={submitting === extraWorkDetailsModal.work?._id || !(rates[extraWorkDetailsModal.work?._id] > 0)}
-                          className="px-4 py-2 bg-[#006838] text-white font-bold text-xs rounded-lg hover:bg-[#00512c] transition disabled:opacity-50 whitespace-nowrap shadow-sm"
-                        >
-                          {submitting === extraWorkDetailsModal.work?._id ? <Loader2 className="w-3 h-3 animate-spin mx-auto" /> : 'Save Price'}
-                        </button>
+                        <div className="flex gap-2 justify-center">
+                          <button
+                            onClick={() => {
+                              handleSavePrice(extraWorkDetailsModal.flow._id, extraWorkDetailsModal.stageIdx, extraWorkDetailsModal.work._id);
+                              setExtraWorkDetailsModal(null);
+                            }}
+                            disabled={submitting === extraWorkDetailsModal.work?._id || !(rates[extraWorkDetailsModal.work?._id] > 0)}
+                            className="px-4 py-2 bg-gray-100 text-gray-700 font-bold text-xs rounded-lg hover:bg-gray-200 transition disabled:opacity-50 whitespace-nowrap shadow-sm"
+                          >
+                            {submitting === extraWorkDetailsModal.work?._id ? <Loader2 className="w-3 h-3 animate-spin mx-auto" /> : 'Save Price'}
+                          </button>
+                          <button
+                            onClick={() => {
+                              handleSaveAndSendToClient(extraWorkDetailsModal.flow._id, extraWorkDetailsModal.stageIdx, extraWorkDetailsModal.work._id);
+                              setExtraWorkDetailsModal(null);
+                            }}
+                            disabled={submitting === extraWorkDetailsModal.work?._id || !(rates[extraWorkDetailsModal.work?._id] > 0)}
+                            className="px-4 py-2 bg-[#006838] text-white font-bold text-xs rounded-lg hover:bg-[#00512c] transition disabled:opacity-50 whitespace-nowrap shadow-sm"
+                          >
+                            {submitting === extraWorkDetailsModal.work?._id ? <Loader2 className="w-3 h-3 animate-spin mx-auto" /> : 'Send to Client'}
+                          </button>
+                        </div>
                       )}
                       {activeTab === 'accounts' && extraWorkDetailsModal.work?.status === 'Client Approved' && (
                         <button
