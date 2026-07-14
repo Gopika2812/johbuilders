@@ -120,6 +120,37 @@ const handleRateChange = (workId, value) => {
     }
   };
 
+  const handleSaveAndSendToClient = async (flowId, stageIdx, workId) => {
+    try {
+      setSubmitting(workId);
+      const rate = Number(rates[workId] || 0);
+      
+      // 1. Save the price
+      let res = await fetch(`${API_URL}/extra-works/${flowId}/${stageIdx}/${workId}/price`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ rate })
+      });
+      if (!res.ok) throw new Error('Failed to save price');
+
+      // 2. Send to customer
+      res = await fetch(`${API_URL}/extra-works/${flowId}/${stageIdx}/${workId}/send`, {
+        method: 'PUT',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (!res.ok) throw new Error('Failed to send to customer');
+
+      await fetchFlows();
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setSubmitting(null);
+    }
+  };
+
   const handleSendToCustomer = async (flowId, stageIdx, workId) => {
     try {
       setSubmitting(workId);
