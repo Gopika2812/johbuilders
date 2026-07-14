@@ -226,15 +226,13 @@ const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
             )}
           </div>
 
-          <div className="flex items-center gap-2.5 md:gap-3">
-            <div className="text-right hidden sm:block">
-              <p className="text-xs md:text-sm font-semibold text-gray-800 leading-none">{user?.name}</p>
-              <span className={`text-[10px] md:text-[11px] font-bold px-2 py-0.5 rounded-full border mt-1 inline-block ${getRoleBadgeStyle(user?.role)}`}>
-                {user?.role}
-              </span>
+          <div className="glass-card px-4 py-2 rounded-full flex items-center gap-3 md:gap-4 pointer-events-auto shadow-sm hover:shadow-md transition-all border border-white/60 cursor-pointer bg-white/60 backdrop-blur-xl">
+            <div className="flex flex-col items-end hidden sm:flex">
+              <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">{user?.role}</span>
+              <span className="text-sm font-black text-black">{user?.name}</span>
             </div>
-            <div className="w-8 h-8 md:w-10 md:h-10 rounded-full border border-gray-200 bg-gray-100 flex items-center justify-center text-gray-600 font-semibold shadow-inner">
-              <User className="w-4 h-4 md:w-5 md:h-5 text-gray-500" />
+            <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-gradient-to-br from-[#006838] to-[#008c4a] flex items-center justify-center text-white shadow-inner">
+              <User className="w-4 h-4 md:w-5 md:h-5" />
             </div>
           </div>
         </div>

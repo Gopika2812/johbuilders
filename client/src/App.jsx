@@ -46,11 +46,16 @@ const Layout = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth >= 768);
 
   return (
-    <div className="min-h-screen bg-transparent flex relative">
+    <div className="min-h-screen flex bg-gradient-to-br from-[#f1f5f9] via-[#f8fafc] to-[#e2e8f0] font-sans selection:bg-[#006838] selection:text-white relative overflow-hidden print:bg-white print:block">
+      
+      {/* Subtle Glacier Background Elements */}
+      <div className="fixed top-[-20%] left-[-10%] w-[60%] h-[60%] bg-[#006838]/5 rounded-full blur-[120px] pointer-events-none z-0 print:hidden"></div>
+      <div className="fixed bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-blue-400/5 rounded-full blur-[100px] pointer-events-none z-0 print:hidden"></div>
+
       {/* Mobile Sidebar backdrop overlay */}
       {sidebarOpen && (
         <div 
-          className="fixed inset-0 bg-black/40 backdrop-blur-xs z-40 md:hidden transition-opacity duration-300"
+          className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 md:hidden transition-opacity duration-300"
           onClick={() => setSidebarOpen(false)}
         />
       )}
@@ -59,35 +64,14 @@ const Layout = ({ children }) => {
       <Sidebar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
 
       {/* Main Panel Content Frame */}
-      <div className={`flex-1 flex flex-col min-h-screen relative z-10 w-full max-w-full min-w-0 transition-all duration-300 ${sidebarOpen ? 'pl-0 md:pl-64' : 'pl-0 md:pl-20'}`}>
+      <div className={`flex-1 flex flex-col h-screen overflow-hidden relative z-10 transition-all duration-300 ${sidebarOpen ? 'pl-0 md:pl-64' : 'pl-0 md:pl-20'}`}>
         {/* Top Navbar */}
         <Navbar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
 
         {/* Dynamic Page Views */}
-        <main className="flex-grow pt-4 md:pt-6 px-4 md:px-8 pb-12 relative z-10">
+        <main className="flex-1 overflow-y-auto p-4 md:p-8 lg:p-12 scrollbar-thin relative z-10">
           {children}
         </main>
-      </div>
-
-      {/* Animated Background Waves */}
-      <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden opacity-30 select-none">
-        <div className="absolute bottom-0 left-0 right-0 h-96 bg-gradient-to-t from-[#0e623a]/5 via-[#a7d8ff]/5 to-transparent"></div>
-        {/* Wave 1 */}
-        <svg 
-          className="absolute bottom-0 left-0 w-[200%] h-48 text-[#0e623a]/10 animate-wave-slow" 
-          viewBox="0 0 1200 120" 
-          preserveAspectRatio="none"
-        >
-          <path d="M0,60 C150,100 350,20 500,60 C650,100 850,20 1000,60 C1150,100 1350,20 1500,60 L1500,120 L0,120 Z" fill="currentColor" />
-        </svg>
-        {/* Wave 2 */}
-        <svg 
-          className="absolute bottom-0 left-0 w-[200%] h-36 text-[#a7d8ff]/15 animate-wave-fast" 
-          viewBox="0 0 1200 120" 
-          preserveAspectRatio="none"
-        >
-          <path d="M0,40 C180,80 380,0 550,40 C720,80 920,0 1090,40 C1260,80 1460,0 1630,40 L1630,120 L0,120 Z" fill="currentColor" />
-        </svg>
       </div>
     </div>
   );

@@ -223,7 +223,12 @@ router.put('/:id/stage/:stageIndex/extra-work', protect, async (req, res) => {
       return res.status(400).json({ message: 'Amount must be positive' });
     }
 
-    flow.stages[idx].extraWorks.push({ name, amount: extraAmt });
+    const project = await Project.findById(flow.project);
+    const projectCode = project ? project.code : 'EXT';
+    const totalEwCount = flow.stages.reduce((sum, s) => sum + s.extraWorks.length, 0);
+    const ewId = `${projectCode}EW${String(totalEwCount + 1).padStart(3, '0')}`;
+
+    flow.stages[idx].extraWorks.push({ ewId, name, amount: extraAmt });
 
     const stagesCount = flow.stages.length - idx;
     if (stagesCount > 0) {

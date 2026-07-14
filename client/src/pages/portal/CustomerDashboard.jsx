@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import confetti from 'canvas-confetti';
 import { useNavigate } from 'react-router-dom';
-import { User, LogOut, CheckCircle, Clock, Plus, Minus, AlertTriangle, X, Loader2, MessageSquareWarning, Home, Sparkles, Menu, Phone, MapPin, Activity, Wrench, ShieldAlert, FileText, ChevronRight, Building, CreditCard, Droplets, Grid, Utensils, Zap, Trees, Layout, Paintbrush, Hammer, Cloud, TrendingUp, Maximize, Package } from 'lucide-react';
+import { User, LogOut, CheckCircle, Clock, Plus, Minus, AlertTriangle, X, Loader2, MessageSquareWarning, Home, Sparkles, Menu, Phone, MapPin, Activity, Wrench, ShieldAlert, FileText, ChevronRight, Building, CreditCard, Droplets, Grid, Utensils, Zap, Trees, Layout, Paintbrush, Hammer, Cloud, TrendingUp, Maximize, Package, Copy, LayoutGrid, List, Check, Calendar, Search } from 'lucide-react';
 import { API_URL } from '../../context/AuthContext';
 
 const WelcomePopup = ({ isOpen, onClose, userName, projectName }) => {
@@ -84,6 +85,9 @@ const CustomerDashboard = () => {
   // Modals
   const [extraWorkModal, setExtraWorkModal] = useState({ open: false, stageIdx: null });
   const [complaintModalOpen, setComplaintModalOpen] = useState(false);
+  const [complaintsView, setComplaintsView] = useState('table');
+  const [copiedToken, setCopiedToken] = useState(false);
+  const [complaintSuccessToken, setComplaintSuccessToken] = useState(null);
   
   // Form State
   const [extraName, setExtraName] = useState('');
@@ -114,6 +118,7 @@ const CustomerDashboard = () => {
   // Complaints Filtration State
   const [complaintStartDate, setComplaintStartDate] = useState('');
   const [complaintEndDate, setComplaintEndDate] = useState('');
+  const [complaintSearchText, setComplaintSearchText] = useState('');
 
   const fetchFlow = async () => {
     const token = localStorage.getItem('customerToken');
@@ -164,6 +169,26 @@ const CustomerDashboard = () => {
   useEffect(() => {
     fetchFlow();
   }, []);
+
+  const handleCopyToken = () => {
+    if (complaintSuccessToken) {
+      navigator.clipboard.writeText(complaintSuccessToken);
+      setCopiedToken(true);
+      setTimeout(() => setCopiedToken(false), 2000);
+    }
+  };
+
+  useEffect(() => {
+    if (complaintSuccessToken) {
+      confetti({
+        particleCount: 150,
+        spread: 80,
+        origin: { y: 0.6 },
+        colors: ['#006838', '#10b981', '#f59e0b', '#ffffff'],
+        zIndex: 9999
+      });
+    }
+  }, [complaintSuccessToken]);
 
   const handleLogout = () => {
     localStorage.removeItem('customerToken');
@@ -364,9 +389,13 @@ const CustomerDashboard = () => {
       });
       if (!res.ok) throw new Error('Failed to submit complaint');
       
+      const updatedFlow = await res.json();
+      const newComplaint = updatedFlow.complaints[updatedFlow.complaints.length - 1];
+      setComplaintSuccessToken(newComplaint.token || 'CMP-UNKNOWN');
+      
       setComplaintModalOpen(false);
       setComplaintDesc('');
-      fetchFlow();
+      setFlow(updatedFlow);
     } catch (err) {
       alert(err.message);
     } finally {
@@ -760,7 +789,7 @@ const CustomerDashboard = () => {
                               {allExtraWorks.filter(ew => ['Sent to Customer', 'Client Approved', 'Added to CRD'].includes(ew.status)).map((work, idx) => (
                                 <tr key={work._id || idx}>
                                   <td className="p-4" colSpan="2">
-                                    <div className="font-semibold text-gray-800">{work.name}</div>
+                                    <div className="font-semibold text-gray-800">{work.ewId ? `${work.ewId} - ` : ''}{work.name}</div>
                                     <div className="text-[10px] text-gray-500">{work.category} • {work.stageName}</div>
                                   </td>
                                   <td className="p-4 text-right font-bold">{work.quantity} {work.unit}</td>
@@ -1071,7 +1100,7 @@ const CustomerDashboard = () => {
                   if (ewDate < start || ewDate > end) return false;
                 }
                 return true;
-              });
+              }).sort((a, b) => new Date(b.addedAt) - new Date(a.addedAt));
 
               return (
               <div className="space-y-6">
@@ -1152,6 +1181,7 @@ const CustomerDashboard = () => {
                         <thead className="bg-[#006838] text-white text-[10px] tracking-wider border-b border-[#00512c]">
                           <tr>
                             <th className="p-4 w-16 text-center font-bold uppercase">S.No</th>
+                            <th className="p-4 font-bold uppercase">Req ID</th>
                             <th className="p-4 font-bold uppercase">Date</th>
                             <th className="p-4 font-bold uppercase">Stage</th>
                             <th className="p-4 font-bold uppercase">Category</th>
@@ -1165,6 +1195,9 @@ const CustomerDashboard = () => {
                             .map((ew, idx) => (
                             <tr key={idx} className="hover:bg-white transition bg-white/40">
                               <td className="p-4 text-center text-gray-400 font-bold">{idx + 1}</td>
+                              <td className="p-4 text-xs font-bold text-[#006838]">
+                                {ew.ewId || '-'}
+                              </td>
                               <td className="p-4 text-xs font-bold text-gray-600">
                                 {new Date(ew.addedAt).toLocaleDateString()}
                               </td>
@@ -1284,13 +1317,19 @@ const CustomerDashboard = () => {
             {/* TAB: COMPLAINTS */}
             {activeTab === 'complaints' && (() => {
               const filteredComplaints = flow.complaints?.filter(comp => {
-                if (!complaintStartDate || !complaintEndDate) return true;
-                const compDate = new Date(comp.reportedAt);
-                const start = new Date(complaintStartDate);
-                const end = new Date(complaintEndDate);
-                end.setHours(23, 59, 59, 999);
-                return compDate >= start && compDate <= end;
-              }) || [];
+                let matchesDate = true;
+                if (complaintStartDate && complaintEndDate) {
+                  const compDate = new Date(comp.reportedAt);
+                  const start = new Date(complaintStartDate);
+                  const end = new Date(complaintEndDate);
+                  end.setHours(23, 59, 59, 999);
+                  matchesDate = compDate >= start && compDate <= end;
+                }
+                const matchesSearch = !complaintSearchText || 
+                  comp.description.toLowerCase().includes(complaintSearchText.toLowerCase()) || 
+                  (comp.token && comp.token.toLowerCase().includes(complaintSearchText.toLowerCase()));
+                return matchesDate && matchesSearch;
+              }).sort((a, b) => new Date(b.reportedAt) - new Date(a.reportedAt)) || [];
 
               return (
               <div className="space-y-6">
@@ -1300,6 +1339,32 @@ const CustomerDashboard = () => {
                     <p className="text-sm text-gray-500 mt-1">Track issues or raise new concerns.</p>
                   </div>
                   <div className="flex flex-col sm:flex-row items-center gap-3">
+                    {/* View Toggle */}
+                    <div className="flex items-center bg-white/60 backdrop-blur-xl border border-white/60 p-1 rounded-xl shadow-sm">
+                      <button 
+                        onClick={() => setComplaintsView('table')}
+                        className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 text-xs font-bold transition ${complaintsView === 'table' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                      >
+                        <List className="w-4 h-4" /> Table
+                      </button>
+                      <button 
+                        onClick={() => setComplaintsView('cards')}
+                        className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 text-xs font-bold transition ${complaintsView === 'cards' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                      >
+                        <LayoutGrid className="w-4 h-4" /> Cards
+                      </button>
+                    </div>
+                    
+                    <div className="flex items-center gap-2 bg-white/60 backdrop-blur-xl border border-white/60 p-1.5 rounded-xl shadow-sm px-3">
+                      <Search className="w-4 h-4 text-gray-400" />
+                      <input
+                        type="text"
+                        placeholder="Search complaints..."
+                        value={complaintSearchText}
+                        onChange={(e) => setComplaintSearchText(e.target.value)}
+                        className="bg-transparent border-none focus:outline-none focus:ring-0 text-xs text-gray-700 w-32 md:w-48 placeholder-gray-400"
+                      />
+                    </div>
                     <div className="flex items-center gap-2 bg-white/60 backdrop-blur-xl border border-white/60 p-1.5 rounded-xl shadow-sm">
                       <input
                         type="date"
@@ -1324,50 +1389,117 @@ const CustomerDashboard = () => {
                   </div>
                 </div>
 
-                <div className="bg-white/60 backdrop-blur-xl border border-white/60 rounded-[2rem] shadow-sm overflow-hidden">
-                  <div className="overflow-x-auto pb-2">
-                    <table className="w-full text-left text-sm whitespace-nowrap min-w-[800px]">
-                      <thead className="bg-[#006838] text-white">
-                        <tr>
-                          <th className="px-6 py-4 font-bold text-xs uppercase tracking-wider text-center w-16">S.No</th>
-                          <th className="px-6 py-4 font-bold text-xs uppercase tracking-wider">Date</th>
-                          <th className="px-6 py-4 font-bold text-xs uppercase tracking-wider">Project</th>
-                          <th className="px-6 py-4 font-bold text-xs uppercase tracking-wider">Units</th>
-                          <th className="px-6 py-4 font-bold text-xs uppercase tracking-wider">Complaints</th>
-                          <th className="px-6 py-4 font-bold text-xs uppercase tracking-wider text-center">Status</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-emerald-50">
-                        {filteredComplaints.length === 0 ? (
+                {complaintsView === 'table' ? (
+                  <div className="bg-white/60 backdrop-blur-xl border border-white/60 rounded-[2rem] shadow-sm overflow-hidden animate-fade-in-up">
+                    <div className="overflow-x-auto pb-2">
+                      <table className="w-full text-left text-sm whitespace-nowrap min-w-[800px]">
+                        <thead className="bg-[#006838] text-white">
                           <tr>
-                            <td colSpan="6" className="px-6 py-12 text-center text-gray-500 font-medium">
-                              {flow.complaints?.length === 0 ? "You haven't reported any issues. We're glad everything is perfect!" : "No complaints found for the selected date range."}
-                            </td>
+                            <th className="px-6 py-4 font-bold text-xs uppercase tracking-wider text-center w-16">S.No</th>
+                            <th className="px-6 py-4 font-bold text-xs uppercase tracking-wider">Token</th>
+                            <th className="px-6 py-4 font-bold text-xs uppercase tracking-wider">Date</th>
+                            <th className="px-6 py-4 font-bold text-xs uppercase tracking-wider">Project</th>
+                            <th className="px-6 py-4 font-bold text-xs uppercase tracking-wider">Units</th>
+                            <th className="px-6 py-4 font-bold text-xs uppercase tracking-wider">Complaints</th>
+                            <th className="px-6 py-4 font-bold text-xs uppercase tracking-wider text-center">Status</th>
                           </tr>
-                        ) : (
-                          filteredComplaints.map((comp, idx) => (
-                            <tr key={idx} className="hover:bg-emerald-50/50 transition-colors">
-                              <td className="px-6 py-4 text-center text-gray-400 font-bold">{idx + 1}</td>
-                              <td className="px-6 py-4 font-medium text-gray-900">{new Date(comp.reportedAt).toLocaleDateString()}</td>
-                              <td className="px-6 py-4 font-medium text-gray-900">{flow.project?.name || 'N/A'}</td>
-                              <td className="px-6 py-4 font-bold text-emerald-600">{flow.unitId}</td>
-                              <td className="px-6 py-4 text-gray-800 whitespace-normal min-w-[250px]">{comp.description}</td>
-                              <td className="px-6 py-4 text-center">
-                                <span className={`inline-flex px-3 py-1 text-[10px] font-bold uppercase tracking-widest rounded-lg border ${
-                                  comp.status === 'Resolved' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
-                                  comp.status === 'In Progress' ? 'bg-amber-50 text-amber-600 border-amber-100' :
-                                  'bg-gray-100 text-gray-600 border-gray-200'
-                                }`}>
-                                  {comp.status || 'Pending'}
-                                </span>
+                        </thead>
+                        <tbody className="divide-y divide-emerald-50">
+                          {filteredComplaints.length === 0 ? (
+                            <tr>
+                              <td colSpan="7" className="px-6 py-12 text-center text-gray-500 font-medium">
+                                {flow.complaints?.length === 0 ? "You haven't reported any issues. We're glad everything is perfect!" : "No complaints found for the selected date range."}
                               </td>
                             </tr>
-                          ))
-                        )}
-                      </tbody>
-                    </table>
+                          ) : (
+                            filteredComplaints.map((comp, idx) => (
+                              <tr key={idx} className="hover:bg-emerald-50/50 transition-colors">
+                                <td className="px-6 py-4 text-center text-gray-400 font-bold">{idx + 1}</td>
+                                <td className="px-6 py-4 font-mono font-bold text-[#006838]">{comp.token || '-'}</td>
+                                <td className="px-6 py-4 font-medium text-gray-900">{new Date(comp.reportedAt).toLocaleDateString()}</td>
+                                <td className="px-6 py-4 font-medium text-gray-900">{flow.project?.name || 'N/A'}</td>
+                                <td className="px-6 py-4 font-bold text-emerald-600">{flow.unitId}</td>
+                                <td className="px-6 py-4 text-gray-800 whitespace-normal min-w-[250px]">{comp.description}</td>
+                                <td className="px-6 py-4 text-center">
+                                  <span className={`inline-flex px-3 py-1 text-[10px] font-bold uppercase tracking-widest rounded-lg border ${
+                                    comp.status === 'Resolved' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
+                                    comp.status === 'In Progress' ? 'bg-amber-50 text-amber-600 border-amber-100' :
+                                    'bg-gray-100 text-gray-600 border-gray-200'
+                                  }`}>
+                                    {comp.status || 'Pending'}
+                                  </span>
+                                </td>
+                              </tr>
+                            ))
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
-                </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 animate-fade-in-up">
+                    {filteredComplaints.length === 0 ? (
+                      <div className="col-span-full bg-white/60 backdrop-blur-xl border border-white/60 rounded-[2rem] p-12 text-center text-gray-500 font-medium shadow-sm">
+                        {flow.complaints?.length === 0 ? "You haven't reported any issues. We're glad everything is perfect!" : "No complaints found for the selected date range."}
+                      </div>
+                    ) : (
+                      filteredComplaints.map((comp, idx) => (
+                        <div key={idx} className="bg-[#050907]/90 backdrop-blur-3xl border border-white/10 rounded-[2rem] shadow-[0_8px_30px_rgba(0,104,56,0.15)] overflow-hidden hover:shadow-[0_15px_40px_rgba(0,104,56,0.25)] hover:-translate-y-1 transition-all duration-300 relative group flex flex-col">
+                          {/* Decorative Glacier Glows */}
+                          <div className="absolute -top-10 -right-10 w-40 h-40 bg-[#006838]/30 rounded-full blur-[50px] pointer-events-none transition-all group-hover:bg-[#006838]/40"></div>
+                          <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-emerald-500/10 rounded-full blur-[40px] pointer-events-none"></div>
+                          
+                          <div className="p-6 pb-0 flex items-center justify-between relative z-10">
+                            <span className="text-[10px] font-black text-gray-500 tracking-widest uppercase">#{String(idx + 1).padStart(3, '0')}</span>
+                            <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest rounded-xl border shadow-sm ${
+                              comp.status === 'Resolved' ? 'bg-[#006838]/20 text-emerald-400 border-emerald-500/30' :
+                              comp.status === 'In Progress' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' :
+                              'bg-white/5 text-gray-400 border-white/10'
+                            }`}>
+                              {comp.status === 'Resolved' && <CheckCircle className="w-3 h-3" />}
+                              {comp.status === 'In Progress' && <Loader2 className="w-3 h-3 animate-spin" />}
+                              {(comp.status === 'Pending' || !comp.status) && <Clock className="w-3 h-3" />}
+                              {comp.status || 'Pending'}
+                            </span>
+                          </div>
+                          
+                          <div className="p-6 relative z-10 flex-1 flex flex-col">
+                            <p className="text-gray-200 text-sm font-medium leading-relaxed mb-6 flex-1">{comp.description}</p>
+                            
+                            <div className="flex items-center gap-4 text-xs font-semibold text-gray-400">
+                              <div className="flex items-center gap-1.5 bg-white/5 px-3 py-1.5 rounded-lg border border-white/5">
+                                <Calendar className="w-3.5 h-3.5 text-gray-500" />
+                                {new Date(comp.reportedAt).toLocaleDateString()}
+                              </div>
+                              <div className="flex items-center gap-1.5 bg-white/5 px-3 py-1.5 rounded-lg border border-white/5">
+                                <Building className="w-3.5 h-3.5 text-gray-500" />
+                                Unit {flow.unitId}
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="bg-[#006838]/10 border-t border-white/10 p-4 flex items-center justify-between relative z-10 mt-auto">
+                            <span className="text-[10px] font-bold text-emerald-500/80 uppercase tracking-widest">Tracking Token</span>
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-mono font-black text-emerald-400 tracking-widest bg-[#050907] px-3 py-1 rounded-md shadow-sm border border-[#006838]/30">
+                                {comp.token || '-'}
+                              </span>
+                              {comp.token && (
+                                <button 
+                                  onClick={() => { navigator.clipboard.writeText(comp.token); alert('Token copied!'); }}
+                                  className="w-7 h-7 rounded flex items-center justify-center bg-[#050907] text-gray-400 border border-white/10 hover:text-emerald-400 hover:border-emerald-500/50 hover:bg-[#006838]/20 transition-all shadow-sm"
+                                  title="Copy Token"
+                                >
+                                  <Copy className="w-3.5 h-3.5" />
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                )}
               </div>
             );})()}
 
@@ -1397,6 +1529,50 @@ const CustomerDashboard = () => {
                 {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Submit Request'}
               </button>
             </form>
+          </div>
+        </div>
+      )}
+
+      
+      {/* Complaint Success Modal */}
+      {complaintSuccessToken && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-[70] flex items-center justify-center p-4">
+          <div className="bg-white rounded-[2.5rem] w-full max-w-md overflow-hidden shadow-2xl animate-fade-in-up text-center relative p-10 border border-white/20">
+            {/* Decorative BG */}
+            <div className="absolute top-[-50px] left-[-50px] w-[200px] h-[200px] bg-emerald-500/10 rounded-full blur-[60px] pointer-events-none z-0"></div>
+            <div className="absolute bottom-[-50px] right-[-50px] w-[150px] h-[150px] bg-[#006838]/10 rounded-full blur-[60px] pointer-events-none z-0"></div>
+            
+            <button onClick={() => setComplaintSuccessToken(null)} className="absolute top-6 right-6 text-gray-400 hover:text-gray-900 bg-gray-50 hover:bg-gray-100 p-2.5 rounded-full transition z-10 shadow-sm"><X className="w-5 h-5" /></button>
+            
+            <div className="relative z-10 w-20 h-20 bg-gradient-to-br from-emerald-100 to-emerald-50 text-[#006838] rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner border border-emerald-100">
+              <CheckCircle className="w-10 h-10" />
+            </div>
+            
+            <h3 className="font-bold text-2xl text-gray-900 mb-3 relative z-10 tracking-tight">Complaint Submitted!</h3>
+            <p className="text-sm text-gray-500 mb-8 leading-relaxed relative z-10">
+              Your complaint has been safely submitted to the <strong className="text-gray-900">John Buildwell PED Team</strong>. Please save your tracking token below to monitor your status.
+            </p>
+            
+            <div className="relative z-10 bg-gray-50/80 backdrop-blur-xl border border-gray-200/60 rounded-2xl p-5 mb-8 flex items-center justify-between shadow-sm group hover:border-emerald-200 transition-colors">
+              <div className="text-left">
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Your Token</p>
+                <p className="text-3xl font-mono font-black text-[#006838] tracking-widest">{complaintSuccessToken}</p>
+              </div>
+              <button 
+                onClick={handleCopyToken}
+                className="w-12 h-12 rounded-xl flex items-center justify-center bg-white shadow-sm border border-gray-100 text-gray-400 hover:text-[#006838] hover:border-emerald-100 hover:bg-emerald-50 transition-all active:scale-95"
+                title="Copy Token"
+              >
+                {copiedToken ? <Check className="w-5 h-5 text-emerald-500" /> : <Copy className="w-5 h-5" />}
+              </button>
+            </div>
+            
+            <button 
+              onClick={() => setComplaintSuccessToken(null)}
+              className="relative z-10 w-full py-4 bg-gradient-to-r from-[#006838] to-[#004d2a] hover:from-[#00512c] hover:to-[#003b20] text-white rounded-xl font-bold tracking-wide transition shadow-xl shadow-[#006838]/20 flex items-center justify-center gap-2"
+            >
+              Okay, Got it
+            </button>
           </div>
         </div>
       )}

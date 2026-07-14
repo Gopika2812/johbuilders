@@ -254,8 +254,8 @@ const QuotationView = () => {
                     {approvedExtraWorks.map((work, idx) => (
                       <tr key={work._id || idx}>
                         <td className="p-4" colSpan="2">
-                          <div className="font-semibold text-gray-800">{work.name}</div>
-                          <div className="text-[10px] text-gray-500">{work.category} • {work.stageName}</div>
+                          <div className="font-semibold text-gray-800">{work.ewId ? `${work.ewId} - ` : ''}{work.name}</div>
+                                    <div className="text-[10px] text-gray-500">{work.category} • {work.stageName}</div>
                         </td>
                         <td className="p-4 text-right font-bold">{work.quantity} {work.unit}</td>
                         <td className="p-4 text-right" colSpan="2">

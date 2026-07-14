@@ -71,7 +71,7 @@ const authorize = (...roles) => {
 };
 
 // Check if role has dynamic permissions configured
-const RolePermission = require('../models/RolePermission');
+const UserPermission = require('../models/UserPermission');
 const checkPermission = (pageId, action) => {
   return async (req, res, next) => {
     try {
@@ -84,22 +84,22 @@ const checkPermission = (pageId, action) => {
         return next();
       }
       
-      const rolePerm = await RolePermission.findOne({ role: req.user.role });
-      if (!rolePerm) {
-        return res.status(403).json({ message: `Access denied. No permissions configured for role '${req.user.role}'.` });
+      const userPerm = await UserPermission.findOne({ userId: req.user._id });
+      if (!userPerm) {
+        return res.status(403).json({ message: `Access denied. No permissions configured for user '${req.user.name}'.` });
       }
       
-      const permission = rolePerm.permissions.find(p => p.pageId === pageId);
+      const permission = userPerm.permissions.find(p => p.pageId === pageId);
       if (!permission) {
-        return res.status(403).json({ message: `Access denied. Module '${pageId}' is not configured for role '${req.user.role}'.` });
+        return res.status(403).json({ message: `Access denied. Module '${pageId}' is not configured for user '${req.user.name}'.` });
       }
       
       if (action === 'view' && !permission.canView) {
-        return res.status(403).json({ message: `Access denied. Role '${req.user.role}' does not have view permission for '${pageId}'.` });
+        return res.status(403).json({ message: `Access denied. User '${req.user.name}' does not have view permission for '${pageId}'.` });
       }
       
       if (action === 'edit' && !permission.canEdit) {
-        return res.status(403).json({ message: `Access denied. Role '${req.user.role}' does not have edit permission for '${pageId}'.` });
+        return res.status(403).json({ message: `Access denied. User '${req.user.name}' does not have edit permission for '${pageId}'.` });
       }
       
       next();

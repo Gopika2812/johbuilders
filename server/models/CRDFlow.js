@@ -1,13 +1,15 @@
 const mongoose = require('mongoose');
 
 const ExtraWorkSchema = new mongoose.Schema({
+  ewId: { type: String }, // e.g., JLBEW001
+  woId: { type: String }, // e.g., JLBWO001
   name: { type: String, required: true }, // acts as description/sub-category
   category: { type: String, default: 'General' },
   unit: { type: String, default: 'Unit' },
   quantity: { type: Number, default: 1 },
   rate: { type: Number, default: 0 },
   amount: { type: Number, required: true }, // total amount (quantity * rate)
-  status: { type: String, enum: ['Pending', 'PED Approved', 'Sent to Customer', 'Client Approved', 'Added to CRD', 'Rejected', 'Removed by Client'], default: 'Pending' },
+  status: { type: String, enum: ['Pending', 'Sent to PED', 'PED Approved', 'Sent to Customer', 'Client Approved', 'Added to CRD', 'Rejected', 'Removed by Client'], default: 'Pending' },
   addedAt: { type: Date, default: Date.now },
   pricingDate: { type: Date },
   customerApprovalDate: { type: Date },
@@ -45,6 +47,7 @@ const StageSchema = new mongoose.Schema({
 });
 
 const ComplaintSchema = new mongoose.Schema({
+  token: { type: String }, // Random token for customer reference
   description: { type: String, required: true },
   status: { type: String, enum: ['Pending', 'Start Work', 'In Progress', 'Resolved', 'Completed'], default: 'Pending' },
   reportedAt: { type: Date, default: Date.now },

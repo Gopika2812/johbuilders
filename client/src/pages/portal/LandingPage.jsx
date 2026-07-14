@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { User, Lock, Loader2, ArrowRight } from 'lucide-react';
 import { API_URL } from '../../context/AuthContext';
 
@@ -134,6 +134,12 @@ const CustomerLogin = () => {
                   </>
                 )}
               </button>
+            </div>
+
+            <div className="pt-4 text-center">
+              <p className="text-gray-400 text-xs font-light">
+                Employee? <Link to="/login" className="text-emerald-400 font-bold hover:text-emerald-300 hover:underline transition-colors">ERP Login</Link>
+              </p>
             </div>
           </form>
         </div>

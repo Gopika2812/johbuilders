@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { protectCustomer } = require('../middleware/auth');
 const CRDFlow = require('../models/CRDFlow');
+const Project = require('../models/Project');
 
 // @route   GET /api/customer/my-flow
 // @desc    Get the logged-in customer's CRD flow
@@ -39,12 +40,17 @@ router.post('/extra-work', protectCustomer, async (req, res) => {
   const { stageIndex, name, amount } = req.body;
   try {
     const flow = req.customerFlow;
+    const project = await Project.findById(flow.project);
+    const projectCode = project ? project.code : 'EXT';
+    const totalEwCount = flow.stages.reduce((sum, s) => sum + s.extraWorks.length, 0);
+    const ewId = `${projectCode}EW${String(totalEwCount + 1).padStart(3, '0')}`;
     
     if (!flow.stages[stageIndex]) {
       return res.status(404).json({ message: 'Stage not found' });
     }
 
     flow.stages[stageIndex].extraWorks.push({
+      ewId,
       name,
       amount: Number(amount)
     });
@@ -70,6 +76,9 @@ router.post('/bulk-extra-work', protectCustomer, async (req, res) => {
   try {
     const flow = req.customerFlow;
     let totalAmountAdded = 0;
+    const project = await Project.findById(flow.project);
+    const projectCode = project ? project.code : 'EXT';
+    let currentTotalEwCount = flow.stages.reduce((sum, s) => sum + s.extraWorks.length, 0);
     
     if (!Array.isArray(items)) {
       return res.status(400).json({ message: 'Items must be an array' });
@@ -80,7 +89,11 @@ router.post('/bulk-extra-work', protectCustomer, async (req, res) => {
       
       if (!flow.stages[stageIndex]) continue;
 
+      currentTotalEwCount++;
+      const ewId = `${projectCode}EW${String(currentTotalEwCount).padStart(3, '0')}`;
+      
       flow.stages[stageIndex].extraWorks.push({
+        ewId,
         name,
         category: category || 'General',
         unit: unit || 'Unit',
@@ -117,11 +130,16 @@ router.post('/complaint', protectCustomer, async (req, res) => {
       flow.complaints = [];
     }
 
-    flow.complaints.push({
+    const token = Math.random().toString(36).substring(2, 10).toUpperCase();
+
+    const newComplaint = {
+      token,
       description,
       status: 'Pending',
       reportedAt: Date.now()
-    });
+    };
+
+    flow.complaints.push(newComplaint);
 
     flow.history.push({
       action: 'Customer Raised Complaint',

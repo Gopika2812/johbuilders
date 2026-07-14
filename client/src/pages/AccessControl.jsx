@@ -18,8 +18,8 @@ const AccessControl = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   // Data states
-  const [roleConfigs, setRoleConfigs] = useState([]);
-  const [activeRole, setActiveRole] = useState('Admin');
+  const [userConfigs, setUserConfigs] = useState([]);
+  const [activeUserId, setActiveUserId] = useState(null);
 
   useEffect(() => {
     fetchPermissions();
@@ -28,12 +28,15 @@ const AccessControl = () => {
   const fetchPermissions = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`${API_URL}/role-permissions`, {
+      const response = await fetch(`${API_URL}/user-permissions`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.ok) {
         const data = await response.json();
-        setRoleConfigs(data);
+        setUserConfigs(data);
+        if (data.length > 0 && !activeUserId) {
+          setActiveUserId(data[0].userId);
+        }
       }
     } catch (err) {
       console.error('Error fetching RBAC configs:', err);
@@ -42,10 +45,10 @@ const AccessControl = () => {
     }
   };
 
-  const handleTogglePermission = (roleName, pageId, field) => {
-    setRoleConfigs(prev => 
+  const handleTogglePermission = (userId, pageId, field) => {
+    setUserConfigs(prev => 
       prev.map(config => {
-        if (config.role !== roleName) return config;
+        if (config.userId !== userId) return config;
         
         return {
           ...config,
@@ -62,19 +65,20 @@ const AccessControl = () => {
   };
 
   const handleSavePermissions = async () => {
-    const activeConfig = roleConfigs.find(c => c.role === activeRole);
+    const activeConfig = userConfigs.find(c => c.userId === activeUserId);
     if (!activeConfig) return;
 
     setIsSubmitting(true);
     try {
-      const response = await fetch(`${API_URL}/role-permissions`, {
+      const response = await fetch(`${API_URL}/user-permissions`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
-          role: activeConfig.role,
+          userId: activeConfig.userId,
+          userName: activeConfig.userName,
           permissions: activeConfig.permissions
         })
       });
@@ -93,8 +97,8 @@ const AccessControl = () => {
     }
   };
 
-  // Find permissions array for active role
-  const currentPermissions = roleConfigs.find(c => c.role === activeRole)?.permissions || [];
+  // Find permissions array for active user
+  const currentPermissions = userConfigs.find(c => c.userId === activeUserId)?.permissions || [];
 
   return (
     <div className="max-w-7xl mx-auto space-y-6 text-left animate-fadeIn">
@@ -104,7 +108,7 @@ const AccessControl = () => {
         <div>
           <h2 className="text-xl font-extrabold text-black-800 flex items-center gap-2">
             <ShieldCheck className="w-6 h-6 text-[#0e623a]" />
-            <span>Role-Based Access Control (RBAC)</span>
+            <span>User-Based Access Control</span>
           </h2>
           {/* <p className="text-xs text-black-500 mt-1">Configure module-level view and edit permissions dynamically per enterprise role</p> */}
         </div>
@@ -133,16 +137,16 @@ const AccessControl = () => {
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
           
-          {/* Left panel - Enterprise Role Selection List */}
+          {/* Left panel - User Selection List */}
           <div className="lg:col-span-4 bg-white border border-black-100 p-5 rounded-3xl shadow-sm space-y-4">
-            <h3 className="text-xs font-extrabold text-black-450 uppercase tracking-wider block mb-2">Select User Role</h3>
+            <h3 className="text-xs font-extrabold text-black-450 uppercase tracking-wider block mb-2">Select User</h3>
             <div className="space-y-3">
-              {roleConfigs.map((config) => {
-                const isActive = config.role === activeRole;
+              {userConfigs.map((config) => {
+                const isActive = config.userId === activeUserId;
                 return (
                   <button
-                    key={config.role}
-                    onClick={() => setActiveRole(config.role)}
+                    key={config.userId}
+                    onClick={() => setActiveUserId(config.userId)}
                     className={`w-full p-4 rounded-2xl border text-left transition flex items-center gap-3 ${
                       isActive 
                         ? 'border-[#0e623a] bg-emerald-50/20 text-[#0e623a] shadow-sm'
@@ -153,7 +157,7 @@ const AccessControl = () => {
                       <UserCheck className="w-4 h-4" />
                     </div>
                     <div>
-                      <h4 className="text-xs font-bold">{config.role}</h4>
+                      <h4 className="text-xs font-bold">{config.userName}</h4>
                       {/* <p className="text-[11px] text-black-400 mt-0.5 font-medium">Configure page access privileges</p> */}
                     </div>
                   </button>
@@ -167,7 +171,7 @@ const AccessControl = () => {
             <div className="flex items-center justify-between border-b border-black-100 pb-4">
               <div>
                 <h3 className="text-sm font-extrabold text-black-800 uppercase tracking-wide">
-                  Module Matrix: <span className="text-[#0e623a]">{activeRole}</span>
+                  Module Matrix: <span className="text-[#0e623a]">{userConfigs.find(c => c.userId === activeUserId)?.userName}</span>
                 </h3>
                 {/* <p className="text-[11px] text-black-400 mt-0.5">Toggle View and Edit checkboxes below to customize system routing and capability.</p> */}
               </div>
@@ -193,7 +197,7 @@ const AccessControl = () => {
                       <td className="p-4 text-center">
                         <button
                           type="button"
-                          onClick={() => handleTogglePermission(activeRole, permission.pageId, 'canView')}
+                          onClick={() => handleTogglePermission(activeUserId, permission.pageId, 'canView')}
                           className={`mx-auto p-1.5 rounded-lg border transition-all ${
                             permission.canView 
                               ? 'bg-emerald-50 border-emerald-200 text-emerald-600'
@@ -208,7 +212,7 @@ const AccessControl = () => {
                       <td className="p-4 text-center">
                         <button
                           type="button"
-                          onClick={() => handleTogglePermission(activeRole, permission.pageId, 'canEdit')}
+                          onClick={() => handleTogglePermission(activeUserId, permission.pageId, 'canEdit')}
                           className={`mx-auto p-1.5 rounded-lg border transition-all ${
                             permission.canEdit
                               ? 'bg-emerald-50 border-emerald-200 text-emerald-600'

@@ -3,7 +3,7 @@ const router = express.Router();
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const AuditLog = require('../models/AuditLog');
-const RolePermission = require('../models/RolePermission');
+const UserPermission = require('../models/UserPermission');
 const { protect } = require('../middleware/auth');
 
 // Generate JWT Helper
@@ -44,8 +44,8 @@ router.post('/register', async (req, res) => {
       description: `Registered user ${user.name} (${user.email}). ${isFirstUser ? 'First user auto-promoted to Admin.' : 'Awaiting approval.'}`
     });
 
-    const rolePerm = await RolePermission.findOne({ role: user.role });
-    const permissions = rolePerm ? rolePerm.permissions : [];
+    const userPerm = await UserPermission.findOne({ userId: user._id });
+    const permissions = userPerm ? userPerm.permissions : [];
 
     res.status(201).json({
       _id: user._id,
@@ -95,8 +95,8 @@ router.post('/login', async (req, res) => {
       description: `User logged in successfully`
     });
 
-    const rolePerm = await RolePermission.findOne({ role: user.role });
-    const permissions = rolePerm ? rolePerm.permissions : [];
+    const userPerm = await UserPermission.findOne({ userId: user._id });
+    const permissions = userPerm ? userPerm.permissions : [];
 
     res.json({
       _id: user._id,
@@ -116,8 +116,8 @@ router.post('/login', async (req, res) => {
 // @desc    Get current user profile
 router.get('/me', protect, async (req, res) => {
   try {
-    const rolePerm = await RolePermission.findOne({ role: req.user.role });
-    const permissions = rolePerm ? rolePerm.permissions : [];
+    const userPerm = await UserPermission.findOne({ userId: req.user._id });
+    const permissions = userPerm ? userPerm.permissions : [];
     
     res.json({
       ...req.user.toObject(),

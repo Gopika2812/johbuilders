@@ -42,28 +42,32 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
     <aside 
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      className={`glass-sidebar text-emerald-900 flex flex-col h-screen fixed left-0 top-0 z-50 border-none shadow-none transition-all duration-300 ${isExpanded ? 'w-64 translate-x-0' : 'w-20 -translate-x-full md:translate-x-0 overflow-hidden'}`}>
+      className={`bg-[#050907]/95 backdrop-blur-3xl border-r border-white/10 shadow-[4px_0_30px_rgba(0,0,0,0.5)] text-white flex flex-col h-screen fixed left-0 top-0 z-50 transition-all duration-300 ${isExpanded ? 'w-64 translate-x-0' : 'w-20 -translate-x-full md:translate-x-0 overflow-hidden'}`}>
+      {/* Decorative background glows inside sidebar */}
+      <div className="absolute top-[-10%] left-[-20%] w-[100%] h-[40%] bg-[#006838]/20 rounded-full blur-[80px] pointer-events-none z-0"></div>
+      <div className="absolute bottom-[-10%] right-[-10%] w-[80%] h-[30%] bg-emerald-600/10 rounded-full blur-[70px] pointer-events-none z-0"></div>
+
       {/* Brand Logo Header */}
-      <div className={`p-5 border-none flex items-center justify-center w-full overflow-hidden`}>
+      <div className={`px-0 py-4 flex items-center justify-center w-full relative z-10 border-b border-white/5`}>
         {isExpanded ? (
-          <img src="/jb_logo.jpg" alt="JB Logo" className="w-full h-auto max-h-24 object-cover rounded-2xl shadow-sm" />
+          <img src="/jb_logo.jpg" alt="JB Logo" className="w-full h-auto object-contain" />
         ) : (
-          <img src="/jb_logo.jpg" alt="JB Logo" className="w-12 h-12 object-cover rounded-xl shadow-sm" />
+          <img src="/jb_logo.jpg" alt="JB Logo" className="w-12 h-12 object-contain" />
         )}
       </div>
 
       {/* Navigation Items */}
-      <nav className="flex-1 px-4 py-6 overflow-y-auto space-y-4" onClick={handleNavClick}>
+      <nav className="flex-1 px-4 py-6 overflow-y-auto space-y-3 relative z-10 custom-scrollbar" onClick={handleNavClick}>
         {/* Dashboard */}
         <Link
           to="/"
           className={`flex items-center gap-3 py-3 ${isExpanded ? "justify-start px-4" : "justify-center px-0"} rounded-xl transition-all duration-200 ${
             isActive('/') 
-              ? 'bg-[#0e623a] text-white font-bold shadow-md' 
-              : 'text-emerald-900 hover:bg-[#0e623a]/10 hover:text-[#0e623a]'
+              ? 'bg-gradient-to-r from-[#006838] to-[#008c4a] text-white shadow-[0_0_20px_rgba(0,104,56,0.4)] border border-[#00a356]/30 font-bold' 
+              : 'text-white hover:bg-white/5 hover:text-white border border-transparent'
           }`}
         >
-          <LayoutDashboard className={`w-5 h-5 ${isActive('/') ? 'text-white' : 'text-emerald-900'}`} />
+          <LayoutDashboard className={`w-5 h-5 ${isActive('/') ? 'text-white' : 'text-white group-hover:text-emerald-400'}`} />
           <span className={isExpanded ? "block truncate" : "hidden"}>Dashboard</span>
         </Link>
 
@@ -72,11 +76,11 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
           to="/kpi-insights"
           className={`flex items-center gap-3 py-3 ${isExpanded ? "justify-start px-4" : "justify-center px-0"} rounded-xl transition-all duration-200 ${
             isActive('/kpi-insights') 
-              ? 'bg-[#0e623a] text-white font-bold shadow-md' 
-              : 'text-emerald-900 hover:bg-[#0e623a]/10 hover:text-[#0e623a]'
+              ? 'bg-gradient-to-r from-[#006838] to-[#008c4a] text-white shadow-[0_0_20px_rgba(0,104,56,0.4)] border border-[#00a356]/30 font-bold' 
+              : 'text-white hover:bg-white/5 hover:text-white border border-transparent'
           }`}
         >
-          <BarChart3 className={`w-5 h-5 ${isActive('/kpi-insights') ? 'text-white' : 'text-emerald-900'}`} />
+          <BarChart3 className={`w-5 h-5 ${isActive('/kpi-insights') ? 'text-white' : 'text-white group-hover:text-emerald-400'}`} />
           <span className={isExpanded ? "block truncate" : "hidden"}>KPI Insights</span>
         </Link>
 
@@ -85,11 +89,11 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
           to="/projects"
           className={`flex items-center gap-3 py-3 ${isExpanded ? "justify-start px-4" : "justify-center px-0"} rounded-xl transition duration-205 ${
             isActive('/projects') 
-              ? 'bg-[#0e623a] text-white font-bold shadow-md' 
-              : 'text-emerald-900 hover:bg-[#0e623a]/10 hover:text-[#0e623a]'
+              ? 'bg-gradient-to-r from-[#006838] to-[#008c4a] text-white shadow-[0_0_20px_rgba(0,104,56,0.4)] border border-[#00a356]/30 font-bold' 
+              : 'text-white hover:bg-white/5 hover:text-white border border-transparent'
           }`}
         >
-          <FolderGit2 className={`w-5 h-5 ${isActive('/projects') ? 'text-white' : 'text-emerald-900'}`} />
+          <FolderGit2 className={`w-5 h-5 ${isActive('/projects') ? 'text-white' : 'text-white group-hover:text-emerald-400'}`} />
           <span className={isExpanded ? "block truncate" : "hidden"}>Projects Directory</span>
         </Link>
 
@@ -99,11 +103,11 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
           to="/leads"
           className={`flex items-center gap-3 py-3 ${isExpanded ? "justify-start px-4" : "justify-center px-0"} rounded-xl transition duration-200 ${
             location.pathname === '/leads' && !location.search
-              ? 'bg-[#0e623a] text-white font-bold shadow-md' 
-              : 'text-emerald-900 hover:bg-[#0e623a]/10 hover:text-[#0e623a]'
+              ? 'bg-gradient-to-r from-[#006838] to-[#008c4a] text-white shadow-[0_0_20px_rgba(0,104,56,0.4)] border border-[#00a356]/30 font-bold' 
+              : 'text-white hover:bg-white/5 hover:text-white border border-transparent'
           }`}
         >
-          <UserPlus className={`w-5 h-5 ${location.pathname === '/leads' && !location.search ? 'text-white' : 'text-emerald-900'}`} />
+          <UserPlus className={`w-5 h-5 ${location.pathname === '/leads' && !location.search ? 'text-white' : 'text-white group-hover:text-emerald-400'}`} />
           <span className={isExpanded ? "block truncate" : "hidden"}>Leads Directory</span>
         </Link>
 
@@ -111,13 +115,13 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
         <div>
           <button
             onClick={() => setLeadsMenuOpen(!leadsMenuOpen)}
-            className={`w-full flex items-center ${isExpanded ? "justify-between px-4" : "justify-center px-0"} py-3 text-emerald-900 hover:bg-[#0e623a]/10 hover:text-[#0e623a] rounded-xl transition duration-200`}
+            className={`w-full flex items-center ${isExpanded ? "justify-between px-4" : "justify-center px-0"} py-3 text-white font-bold hover:bg-white/5 hover:text-white rounded-xl transition duration-200`}
           >
             <div className="flex items-center gap-3">
-              <FolderGit2 className="w-5 h-5 text-emerald-900" />
+              <FolderGit2 className="w-5 h-5 text-white group-hover:text-emerald-400 transition-colors" />
               <span className={`font-semibold ${isExpanded ? "block" : "hidden"}`}>CRD</span>
             </div>
-            {isExpanded && <ChevronDown className={`w-4 h-4 text-emerald-900 transition-transform duration-200 ${leadsMenuOpen ? 'rotate-180' : ''}`} />}
+            {isExpanded && <ChevronDown className={`w-4 h-4 text-white transition-transform duration-200 ${leadsMenuOpen ? 'rotate-180' : ''}`} />}
           </button>
           
           {leadsMenuOpen && isExpanded && (
@@ -126,8 +130,8 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
                 to="/quotations"
                 className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs transition ${
                   location.pathname === '/quotations'
-                    ? 'text-[#0e623a] font-extrabold pl-2'
-                    : 'text-emerald-900 hover:text-[#0e623a] hover:bg-[#0e623a]/10'
+                    ? 'text-emerald-400 font-extrabold pl-2'
+                    : 'text-white hover:text-emerald-400 hover:bg-white/5'
                 }`}
               >
                 <span className={isExpanded ? "block truncate" : "hidden"}>Quotation Records</span>
@@ -137,8 +141,8 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
                 to="/crd-flow"
                 className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs transition ${
                   isActive('/crd-flow')
-                    ? 'text-[#0e623a] font-extrabold pl-2'
-                    : 'text-emerald-900 hover:text-[#0e623a] hover:bg-[#0e623a]/10'
+                    ? 'text-emerald-400 font-extrabold pl-2'
+                    : 'text-white hover:text-emerald-400 hover:bg-white/5'
                 }`}
               >
                 <span className={isExpanded ? "block truncate" : "hidden"}>CRD Flow</span>
@@ -148,8 +152,8 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
                 to="/crd-flow/extra-works"
                 className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs transition ${
                   isActive('/crd-flow/extra-works')
-                    ? 'text-[#0e623a] font-extrabold pl-2'
-                    : 'text-emerald-900 hover:text-[#0e623a] hover:bg-[#0e623a]/10'
+                    ? 'text-emerald-400 font-extrabold pl-2'
+                    : 'text-white hover:text-emerald-400 hover:bg-white/5'
                 }`}
               >
                 <span className={isExpanded ? "block truncate" : "hidden"}>Extra Works Flow</span>
@@ -159,8 +163,8 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
                 to="/crd-flow/bank-loan-history"
                 className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs transition ${
                   isActive('/crd-flow/bank-loan-history')
-                    ? 'text-[#0e623a] font-extrabold pl-2'
-                    : 'text-emerald-900 hover:text-[#0e623a] hover:bg-[#0e623a]/10'
+                    ? 'text-emerald-400 font-extrabold pl-2'
+                    : 'text-white hover:text-emerald-400 hover:bg-white/5'
                 }`}
               >
                 <span className={isExpanded ? "block truncate" : "hidden"}>Bank Loan History</span>
@@ -170,8 +174,8 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
                 to="/crd-flow/overall-report"
                 className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs transition ${
                   isActive('/crd-flow/overall-report')
-                    ? 'text-[#0e623a] font-extrabold pl-2'
-                    : 'text-emerald-900 hover:text-[#0e623a] hover:bg-[#0e623a]/10'
+                    ? 'text-emerald-400 font-extrabold pl-2'
+                    : 'text-white hover:text-emerald-400 hover:bg-white/5'
                 }`}
               >
                 <span className={isExpanded ? "block truncate" : "hidden"}>Overall Collection Report</span>
@@ -184,13 +188,13 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
         <div>
           <button
             onClick={() => setReportsMenuOpen(!reportsMenuOpen)}
-            className={`w-full flex items-center ${isExpanded ? "justify-between px-4" : "justify-center px-0"} py-3 text-emerald-900 hover:bg-[#0e623a]/10 hover:text-[#0e623a] rounded-xl transition duration-200`}
+            className={`w-full flex items-center ${isExpanded ? "justify-between px-4" : "justify-center px-0"} py-3 text-white font-bold hover:bg-white/5 hover:text-white rounded-xl transition duration-200`}
           >
             <div className="flex items-center gap-3">
-              <FileSpreadsheet className="w-5 h-5 text-emerald-900" />
+              <FileSpreadsheet className="w-5 h-5 text-white group-hover:text-emerald-400 transition-colors" />
               <span className={`font-semibold ${isExpanded ? "block" : "hidden"}`}>Reports Master</span>
             </div>
-            {isExpanded && <ChevronDown className={`w-4 h-4 text-emerald-900 transition-transform duration-200 ${reportsMenuOpen ? 'rotate-180' : ''}`} />}
+            {isExpanded && <ChevronDown className={`w-4 h-4 text-white transition-transform duration-200 ${reportsMenuOpen ? 'rotate-180' : ''}`} />}
           </button>
           
           {reportsMenuOpen && isExpanded && (
@@ -199,8 +203,8 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
                 to="/reports/export"
                 className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs transition ${
                   isActive('/reports/export')
-                    ? 'text-[#0e623a] font-extrabold pl-2'
-                    : 'text-emerald-900 hover:text-[#0e623a] hover:bg-[#0e623a]/10'
+                    ? 'text-emerald-400 font-extrabold pl-2'
+                    : 'text-white hover:text-emerald-400 hover:bg-white/5'
                 }`}
               >
                 <span className={isExpanded ? "block truncate" : "hidden"}>Sales Reports</span>
@@ -209,8 +213,8 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
                 to="/reports/crd"
                 className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs transition ${
                   isActive('/reports/crd')
-                    ? 'text-[#0e623a] font-extrabold pl-2'
-                    : 'text-emerald-900 hover:text-[#0e623a] hover:bg-[#0e623a]/10'
+                    ? 'text-emerald-400 font-extrabold pl-2'
+                    : 'text-white hover:text-emerald-400 hover:bg-white/5'
                 }`}
               >
                 <span className={isExpanded ? "block truncate" : "hidden"}>CRD Reports</span>
@@ -226,11 +230,11 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
             onClick={handleNavClick}
             className={`w-full flex items-center gap-3 py-3 ${isExpanded ? "justify-start px-4" : "justify-center px-0"} rounded-xl transition duration-200 ${
               isActive('/customers')
-                ? 'bg-[#0e623a] text-white font-bold shadow-md'
-                : 'text-emerald-900 hover:bg-[#0e623a]/10 hover:text-[#0e623a]'
+                ? 'bg-gradient-to-r from-[#006838] to-[#008c4a] text-white shadow-[0_0_20px_rgba(0,104,56,0.4)] border border-[#00a356]/30 font-bold'
+                : 'text-white hover:bg-white/5 hover:text-white border border-transparent'
             }`}
           >
-            <Users2 className={`w-5 h-5 ${isActive('/customers') ? 'text-white' : 'text-emerald-900'}`} />
+            <Users2 className={`w-5 h-5 ${isActive('/customers') ? 'text-white' : 'text-white group-hover:text-emerald-400'}`} />
             <span className={`font-semibold whitespace-nowrap ${isExpanded ? "block" : "hidden"}`}>Customers</span>
           </Link>
         </div>
@@ -242,11 +246,11 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
             onClick={handleNavClick}
             className={`w-full flex items-center gap-3 py-3 ${isExpanded ? "justify-start px-4" : "justify-center px-0"} rounded-xl transition duration-200 ${
               isActive('/tasks-board')
-                ? 'bg-[#0e623a] text-white font-bold shadow-md'
-                : 'text-emerald-900 hover:bg-[#0e623a]/10 hover:text-[#0e623a]'
+                ? 'bg-gradient-to-r from-[#006838] to-[#008c4a] text-white shadow-[0_0_20px_rgba(0,104,56,0.4)] border border-[#00a356]/30 font-bold'
+                : 'text-white hover:bg-white/5 hover:text-white border border-transparent'
             }`}
           >
-            <ClipboardList className={`w-5 h-5 ${isActive('/tasks-board') ? 'text-white' : 'text-emerald-900'}`} />
+            <ClipboardList className={`w-5 h-5 ${isActive('/tasks-board') ? 'text-white' : 'text-white group-hover:text-emerald-400'}`} />
             <span className={`font-semibold whitespace-nowrap ${isExpanded ? "block" : "hidden"}`}>Tasks Board</span>
           </Link>
         </div>
@@ -255,13 +259,13 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
         <div>
           <button
             onClick={() => setEmployeeMenuOpen(!employeeMenuOpen)}
-            className={`w-full flex items-center ${isExpanded ? "justify-between px-4" : "justify-center px-0"} py-3 text-emerald-900 hover:bg-[#0e623a]/10 hover:text-[#0e623a] rounded-xl transition duration-200`}
+            className={`w-full flex items-center ${isExpanded ? "justify-between px-4" : "justify-center px-0"} py-3 text-white font-bold hover:bg-white/5 hover:text-white rounded-xl transition duration-200`}
           >
             <div className="flex items-center gap-3">
-              <Users2 className="w-5 h-5 text-emerald-900" />
+              <Users2 className="w-5 h-5 text-white group-hover:text-emerald-400 transition-colors" />
               <span className={`font-semibold ${isExpanded ? "block" : "hidden"}`}>Employees</span>
             </div>
-            {isExpanded && <ChevronDown className={`w-4 h-4 text-emerald-900 transition-transform duration-200 ${employeeMenuOpen ? 'rotate-180' : ''}`} />}
+            {isExpanded && <ChevronDown className={`w-4 h-4 text-white transition-transform duration-200 ${employeeMenuOpen ? 'rotate-180' : ''}`} />}
           </button>
 
           {employeeMenuOpen && isExpanded && (
@@ -270,11 +274,11 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
                 to="/employees"
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm transition ${
                   isActive('/employees')
-                    ? 'text-[#0e623a] font-extrabold pl-2'
-                    : 'text-emerald-900 hover:text-[#0e623a] hover:bg-[#0e623a]/10'
+                    ? 'text-emerald-400 font-extrabold pl-2'
+                    : 'text-white hover:text-emerald-400 hover:bg-white/5'
                 }`}
               >
-                <Users2 className="w-4 h-4 text-emerald-900" />
+                <Users2 className="w-4 h-4 text-white" />
                 <span className={isExpanded ? "block truncate" : "hidden"}>Approve Access</span>
               </Link>
             </div>
@@ -288,11 +292,11 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
             onClick={handleNavClick}
             className={`w-full flex items-center gap-3 py-3 ${isExpanded ? "justify-start px-4" : "justify-center px-0"} rounded-xl transition duration-200 ${
               isActive('/audit-logs')
-                ? 'bg-[#0e623a] text-white font-bold shadow-md'
-                : 'text-emerald-900 hover:bg-[#0e623a]/10 hover:text-[#0e623a]'
+                ? 'bg-gradient-to-r from-[#006838] to-[#008c4a] text-white shadow-[0_0_20px_rgba(0,104,56,0.4)] border border-[#00a356]/30 font-bold'
+                : 'text-white hover:bg-white/5 hover:text-white border border-transparent'
             }`}
           >
-            <History className={`w-5 h-5 ${isActive('/audit-logs') ? 'text-white' : 'text-emerald-900'}`} />
+            <History className={`w-5 h-5 ${isActive('/audit-logs') ? 'text-white' : 'text-white group-hover:text-emerald-400'}`} />
             <span className={`font-semibold ${isExpanded ? "block" : "hidden"}`}>Audit Logs</span>
           </Link>
         </div>
@@ -301,13 +305,13 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
         <div>
           <button
             onClick={() => setFinanceMenuOpen(!financeMenuOpen)}
-            className={`w-full flex items-center ${isExpanded ? "justify-between px-4" : "justify-center px-0"} py-3 text-emerald-900 hover:bg-[#0e623a]/10 hover:text-[#0e623a] rounded-xl transition duration-200`}
+            className={`w-full flex items-center ${isExpanded ? "justify-between px-4" : "justify-center px-0"} py-3 text-white font-bold hover:bg-white/5 hover:text-white rounded-xl transition duration-200`}
           >
             <div className="flex items-center gap-3">
-              <Coins className="w-5 h-5 text-emerald-900" />
+              <Coins className="w-5 h-5 text-white group-hover:text-emerald-400 transition-colors" />
               <span className={`font-semibold text-sm whitespace-nowrap ${isExpanded ? "block" : "hidden"}`}>Finance & Accounts</span>
             </div>
-            {isExpanded && <ChevronDown className={`w-4 h-4 text-emerald-900 transition-transform duration-200 ${financeMenuOpen ? 'rotate-180' : ''}`} />}
+            {isExpanded && <ChevronDown className={`w-4 h-4 text-white transition-transform duration-200 ${financeMenuOpen ? 'rotate-180' : ''}`} />}
           </button>
 
           {financeMenuOpen && isExpanded && (
@@ -316,8 +320,8 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
                 to="/finance/budget-planning"
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs transition ${
                   isActive('/finance/budget-planning')
-                    ? 'text-[#0e623a] font-extrabold pl-2'
-                    : 'text-emerald-900 hover:text-[#0e623a] hover:bg-[#0e623a]/10'
+                    ? 'text-emerald-400 font-extrabold pl-2'
+                    : 'text-white hover:text-emerald-400 hover:bg-white/5'
                 }`}
               >
                 <span className={isExpanded ? "block truncate" : "hidden"}>Budget Planning</span>
@@ -327,8 +331,8 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
                 to="/finance/lead-target-planning"
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs transition ${
                   isActive('/finance/lead-target-planning')
-                    ? 'text-[#0e623a] font-extrabold pl-2'
-                    : 'text-emerald-900 hover:text-[#0e623a] hover:bg-[#0e623a]/10'
+                    ? 'text-emerald-400 font-extrabold pl-2'
+                    : 'text-white hover:text-emerald-400 hover:bg-white/5'
                 }`}
               >
                 <span className={isExpanded ? "block truncate" : "hidden"}>Lead Target Planning</span>
@@ -338,8 +342,8 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
                 to="/finance/summary-planning"
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs transition ${
                   isActive('/finance/summary-planning')
-                    ? 'text-[#0e623a] font-extrabold pl-2'
-                    : 'text-emerald-900 hover:text-[#0e623a] hover:bg-[#0e623a]/10'
+                    ? 'text-emerald-400 font-extrabold pl-2'
+                    : 'text-white hover:text-emerald-400 hover:bg-white/5'
                 }`}
               >
                 <span className={isExpanded ? "block truncate" : "hidden"}>Summary Planning</span>
@@ -355,11 +359,11 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
               to="/access-control"
               className={`flex items-center gap-3 py-3 ${isExpanded ? "justify-start px-4" : "justify-center px-0"} rounded-xl transition-all duration-200 ${
                 isActive('/access-control') 
-                  ? 'bg-[#0e623a] text-white font-bold shadow-md' 
-                  : 'text-emerald-900 hover:bg-[#0e623a]/10 hover:text-[#0e623a]'
+                  ? 'bg-gradient-to-r from-[#006838] to-[#008c4a] text-white shadow-[0_0_20px_rgba(0,104,56,0.4)] border border-[#00a356]/30 font-bold' 
+                  : 'text-white hover:bg-white/5 hover:text-white border border-transparent'
               }`}
             >
-              <ShieldCheck className={`w-5 h-5 ${isActive('/access-control') ? 'text-white' : 'text-emerald-900'}`} />
+              <ShieldCheck className={`w-5 h-5 ${isActive('/access-control') ? 'text-white' : 'text-white group-hover:text-emerald-400'}`} />
               <span className={isExpanded ? "block truncate" : "hidden"}>Access Control</span>
             </Link>
 
@@ -367,11 +371,11 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
               to="/requests"
               className={`flex items-center gap-3 py-3 ${isExpanded ? "justify-start px-4" : "justify-center px-0"} rounded-xl transition-all duration-200 ${
                 isActive('/requests') 
-                  ? 'bg-[#0e623a] text-white font-bold shadow-md' 
-                  : 'text-emerald-900 hover:bg-[#0e623a]/10 hover:text-[#0e623a]'
+                  ? 'bg-gradient-to-r from-[#006838] to-[#008c4a] text-white shadow-[0_0_20px_rgba(0,104,56,0.4)] border border-[#00a356]/30 font-bold' 
+                  : 'text-white hover:bg-white/5 hover:text-white border border-transparent'
               }`}
             >
-              <ClipboardList className={`w-5 h-5 ${isActive('/requests') ? 'text-white' : 'text-emerald-900'}`} />
+              <ClipboardList className={`w-5 h-5 ${isActive('/requests') ? 'text-white' : 'text-white group-hover:text-emerald-400'}`} />
               <span className={isExpanded ? "block truncate" : "hidden"}>Requests</span>
             </Link>
           </>
@@ -382,17 +386,17 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
           to="/settings"
           className={`flex items-center gap-3 py-3 ${isExpanded ? "justify-start px-4" : "justify-center px-0"} rounded-xl transition-all duration-200 ${
             isActive('/settings') 
-              ? 'bg-[#0e623a] text-white font-bold shadow-md' 
-              : 'text-emerald-900 hover:bg-[#0e623a]/10 hover:text-[#0e623a]'
+              ? 'bg-gradient-to-r from-[#006838] to-[#008c4a] text-white shadow-[0_0_20px_rgba(0,104,56,0.4)] border border-[#00a356]/30 font-bold' 
+              : 'text-white hover:bg-white/5 hover:text-white border border-transparent'
           }`}
         >
-          <Settings2 className={`w-5 h-5 ${isActive('/settings') ? 'text-white' : 'text-emerald-900'}`} />
+          <Settings2 className={`w-5 h-5 ${isActive('/settings') ? 'text-white' : 'text-white group-hover:text-emerald-400'}`} />
           <span className={isExpanded ? "block truncate" : "hidden"}>Settings</span>
         </Link>
       </nav>
 
       {/* User Footer Profile & Logout */}
-      <div className="p-4 border-t border-white/10 bg-black/10">
+      <div className="p-4 border-t border-white/5 relative z-10 bg-[#020403]/50 backdrop-blur-md">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 overflow-hidden">
             <div className="w-9 h-9 rounded-full bg-white text-[#0e623a] flex items-center justify-center font-bold text-sm shrink-0 shadow-sm">
@@ -400,13 +404,13 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
             </div>
             <div className="overflow-hidden">
               <p className="font-semibold text-sm truncate leading-tight text-white">{user?.name}</p>
-              <span className="text-[11px] text-emerald-900 font-light block">{user?.role}</span>
+              <span className="text-[11px] text-white font-light block">{user?.role}</span>
             </div>
           </div>
 
           <button
             onClick={logout}
-            className="p-2 text-emerald-900 hover:text-white hover:bg-white/10 rounded-lg transition"
+            className="p-2 text-white hover:text-white hover:bg-white/10 rounded-lg transition"
             title="Logout"
           >
             <LogOut className="w-5 h-5" />
