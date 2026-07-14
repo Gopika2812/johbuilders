@@ -639,7 +639,8 @@ const CustomerDashboard = () => {
                       <thead className="bg-gray-50/80 text-gray-400 font-bold uppercase text-[10px] tracking-wider">
                         <tr>
                           <th className="p-4 md:px-8 font-bold">Milestone Stage</th>
-                          <th className="p-4 text-center font-bold">Status</th>
+                          <th className="p-4 text-center font-bold">Payment Status</th>
+                          <th className="p-4 text-center font-bold">Project Status</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-100">
@@ -655,13 +656,28 @@ const CustomerDashboard = () => {
                                 <div className="text-xs text-gray-500 mt-0.5">{stage.percentage}% of total value</div>
                               </td>
                               <td className="p-4 text-center">
-                                {isCompleted ? (
+                                {stagePaid >= totalAmt ? (
+                                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 text-[#006838] text-[10px] font-bold uppercase tracking-wider border border-emerald-100">
+                                    <CheckCircle className="w-3.5 h-3.5" /> Completed
+                                  </span>
+                                ) : stagePaid > 0 ? (
+                                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-50 text-blue-600 text-[10px] font-bold uppercase tracking-wider border border-blue-100">
+                                    Partial
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-gray-50 text-gray-500 text-[10px] font-bold uppercase tracking-wider border border-gray-200">
+                                    Pending
+                                  </span>
+                                )}
+                              </td>
+                              <td className="p-4 text-center">
+                                {stage.isCompleted ? (
                                   <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 text-[#006838] text-[10px] font-bold uppercase tracking-wider border border-emerald-100">
                                     <CheckCircle className="w-3.5 h-3.5" /> Completed
                                   </span>
                                 ) : (
                                   <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-50 text-amber-600 text-[10px] font-bold uppercase tracking-wider border border-amber-100">
-                                    <Clock className="w-3.5 h-3.5" /> Pending
+                                    <Clock className="w-3.5 h-3.5" /> In Progress
                                   </span>
                                 )}
                               </td>
