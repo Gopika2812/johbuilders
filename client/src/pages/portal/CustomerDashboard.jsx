@@ -1269,10 +1269,10 @@ const CustomerDashboard = () => {
                                     <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-50 text-blue-600 text-[10px] font-bold uppercase tracking-wider border border-blue-100">
                                       <AlertTriangle className="w-3 h-3" /> Action Required
                                     </span>
-                                  ) : (ew.status === 'Pending' || !ew.status) ? (
+                                  ) : (ew.status === 'Pending' || ew.status === 'PED APPROVED' || !ew.status) ? (
                                     <div className="flex items-center gap-2">
                                       <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-50 text-amber-600 text-[10px] font-bold uppercase tracking-wider border border-amber-100">
-                                        <Clock className="w-3 h-3" /> {ew.status || 'Pending'}
+                                        <Clock className="w-3 h-3" /> {ew.status === 'PED APPROVED' ? 'Pending' : (ew.status || 'Pending')}
                                       </span>
                                       <button 
                                         onClick={() => handleCustomerRemove(ew.stageIdx, ew._id)}
