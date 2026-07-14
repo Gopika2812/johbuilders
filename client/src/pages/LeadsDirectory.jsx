@@ -1893,7 +1893,7 @@ const LeadsDirectory = () => {
           <div className="bg-white rounded-3xl max-w-3xl w-full overflow-hidden shadow-2xl border border-black-100">
             <div className="bg-[#0e623a] p-6 text-white flex justify-between items-start">
               <div>
-                <h3 className="text-lg font-bold">New Lead Registration</h3>
+                <h3 className="text-lg font-bold">New Lead Entries</h3>
                
               </div>
               <button 
