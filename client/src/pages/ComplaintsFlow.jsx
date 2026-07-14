@@ -164,34 +164,34 @@ const ComplaintsFlow = () => {
     }
 
     return tasks.map((t, idx) => (
-      <tr key={t.complaintId} className="border-b border-gray-100 hover:bg-gray-50/50 transition-colors">
-        <td className="p-4 text-sm text-gray-600 font-medium">{idx + 1}</td>
-        <td className="p-4 text-sm text-gray-900 font-bold whitespace-nowrap">
+      <tr key={t.complaintId} className="hover:bg-emerald-50/50 transition-colors cursor-pointer">
+        <td className="px-6 py-4 font-bold text-gray-900">{idx + 1}</td>
+        <td className="px-6 py-4 text-gray-600">
           {new Date(t.reportedAt).toLocaleDateString('en-GB')}
         </td>
-        <td className="p-4">
+        <td className="px-6 py-4">
           <span className="font-mono text-emerald-700 bg-emerald-50 px-2 py-1 rounded border border-emerald-100 text-xs font-bold tracking-wider">
             {t.token}
           </span>
         </td>
-        <td className="p-4">
+        <td className="px-6 py-4">
           <span className={`px-2.5 py-1 rounded-md text-[11px] font-bold tracking-wide uppercase ${t.scope === 'Customer' ? 'bg-purple-50 text-purple-700 border border-purple-200' : 'bg-blue-50 text-blue-700 border border-blue-200'}`}>
             {t.scope || 'Company'}
           </span>
         </td>
-        <td className="p-4 text-sm text-gray-600 font-medium whitespace-nowrap">
+        <td className="px-6 py-4 text-gray-600">
           {t.sentToPedAt ? new Date(t.sentToPedAt).toLocaleDateString('en-GB') : '-'}
         </td>
-        <td className="p-4">
+        <td className="px-6 py-4">
           {getStatusBadge(t.status)}
         </td>
-        <td className="p-4 text-sm text-gray-600 font-medium whitespace-nowrap">
+        <td className="px-6 py-4 text-gray-600">
           {t.resolvedAt ? new Date(t.resolvedAt).toLocaleDateString('en-GB') : '-'}
         </td>
         
         {/* Action Column for Complaints Tab */}
         {activeTab === 'Complaints' && (
-          <td className="p-4 text-right">
+          <td className="px-6 py-4 text-right">
             {!t.sentToPedAt ? (
               <button
                 onClick={() => handleSendToPED(t.flowId, t.complaintId)}
@@ -211,7 +211,7 @@ const ComplaintsFlow = () => {
         
         {/* Action Column for PED Team Tab */}
         {activeTab === 'PED Team' && (
-          <td className="p-4">
+          <td className="px-6 py-4">
             {t.scope === 'Customer' ? (
               <div className="flex items-center justify-end gap-2">
                 <div className="relative">
@@ -249,35 +249,24 @@ const ComplaintsFlow = () => {
   };
 
   return (
-    <div className="max-w-7xl mx-auto pb-24">
+    <div className="p-6 md:p-8 w-full mx-auto space-y-6 animate-fade-in pb-24">
       {/* Header */}
-      <div className="bg-white rounded-3xl p-8 shadow-[0_8px_30px_rgba(0,0,0,0.04)] mb-8 border border-white/40 backdrop-blur-xl relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-emerald-50 to-teal-50 rounded-full blur-3xl opacity-50 -translate-y-1/2 translate-x-1/2 z-0"></div>
-        <div className="relative z-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
-          <div>
-            <div className="flex items-center gap-2 text-sm font-medium text-[#006838] mb-2">
-              <span>CRD Flow</span>
-              <ChevronRight className="w-4 h-4" />
-              <span>Complaints Flow</span>
-            </div>
-            <h1 className="text-4xl font-extrabold text-gray-900 tracking-tight">Complaints Tracking</h1>
-            <p className="text-gray-500 mt-2 text-sm max-w-xl leading-relaxed">
-              Monitor customer complaints, determine scopes, and coordinate with the PED team for repair quotations.
-            </p>
-          </div>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">Complaints Tracking</h1>
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="flex items-center gap-2 mb-6">
+      <div className="bg-white/60 backdrop-blur-xl border border-white/60 p-1.5 rounded-2xl flex flex-wrap gap-2 shadow-sm">
         {['Complaints', 'PED Team'].map(tab => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
-            className={`px-6 py-3 rounded-xl text-sm font-bold transition-all duration-200 ${
-              activeTab === tab 
-                ? 'bg-white text-[#006838] shadow-sm border border-gray-100' 
-                : 'text-gray-500 hover:text-gray-700 hover:bg-white/50'
+            className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${
+              activeTab === tab
+                ? 'bg-[#006838] text-white shadow-md'
+                : 'text-gray-600 hover:bg-emerald-50 hover:text-emerald-700'
             }`}
           >
             {tab}
@@ -286,19 +275,19 @@ const ComplaintsFlow = () => {
       </div>
 
       {/* Table Section */}
-      <div className="bg-white rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.04)] border border-gray-100 overflow-hidden">
+      <div className="bg-white/60 backdrop-blur-xl border border-white/60 rounded-[2rem] shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse min-w-[1000px]">
-            <thead>
-              <tr className="bg-gray-50/80 border-b border-gray-100">
-                <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider w-16">S.No</th>
-                <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Raised On</th>
-                <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Token ID</th>
-                <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Scope</th>
-                <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Sent to PED</th>
-                <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Status</th>
-                <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Completed On</th>
-                <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">
+          <table className="w-full text-sm text-left border-collapse min-w-[1000px]">
+            <thead className="bg-[#006838] text-white">
+              <tr>
+                <th className="px-6 py-4 font-bold text-xs uppercase tracking-wider w-16">S.No</th>
+                <th className="px-6 py-4 font-bold text-xs uppercase tracking-wider">Raised On</th>
+                <th className="px-6 py-4 font-bold text-xs uppercase tracking-wider">Token ID</th>
+                <th className="px-6 py-4 font-bold text-xs uppercase tracking-wider">Scope</th>
+                <th className="px-6 py-4 font-bold text-xs uppercase tracking-wider">Sent to PED</th>
+                <th className="px-6 py-4 font-bold text-xs uppercase tracking-wider">Status</th>
+                <th className="px-6 py-4 font-bold text-xs uppercase tracking-wider">Completed On</th>
+                <th className="px-6 py-4 font-bold text-xs uppercase tracking-wider text-right">
                   {activeTab === 'PED Team' ? 'PED Pricing & Action' : 'Action'}
                 </th>
               </tr>
