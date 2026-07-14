@@ -18,7 +18,9 @@ import {
   CheckCircle,
   Key,
   AlertCircle,
-  Filter
+  Filter,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 
 const SOURCE_TYPES = [
@@ -358,6 +360,7 @@ const KPIInsights = () => {
   const [exportMenuOpen, setExportMenuOpen] = useState(false);
   const [crdMenuOpen, setCrdMenuOpen] = useState(false);
   const [leadCostAnalysisData, setLeadCostAnalysisData] = useState([]);
+  const [expandedSources, setExpandedSources] = useState({});
 
 
 
@@ -2910,13 +2913,23 @@ const KPIInsights = () => {
                   .sort((a, b) => (b[1].count || 0) - (a[1].count || 0))
                   .map(([source, data], index) => {
                   const costPerLead = data.count > 0 ? (data.spent / data.count) : 0;
+                  const isExpanded = expandedSources[source] || false;
+                  
                   return (
                     <div key={index} className="bg-white border border-black-150 rounded-2xl p-6 shadow-sm hover:shadow-md transition">
                       {/* Row 1: Source, Budget, Spent, Cost per Lead */}
-                      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-5 pb-5 border-b border-black-100">
-                        <div>
-                          <span className="text-[11px] text-black-400 font-bold uppercase block">Lead Source</span>
-                          <h4 className="text-xl font-black text-black-800 uppercase tracking-wider">{source}</h4>
+                      <div 
+                        className={`grid grid-cols-1 sm:grid-cols-4 gap-4 cursor-pointer ${isExpanded ? 'mb-5 pb-5 border-b border-black-100' : ''}`}
+                        onClick={() => setExpandedSources(prev => ({ ...prev, [source]: !prev[source] }))}
+                      >
+                        <div className="flex items-center justify-between sm:block">
+                          <div>
+                            <span className="text-[11px] text-black-400 font-bold uppercase block">Lead Source</span>
+                            <h4 className="text-xl font-black text-black-800 uppercase tracking-wider">{source}</h4>
+                          </div>
+                          <div className="sm:hidden">
+                            {isExpanded ? <ChevronUp className="w-5 h-5 text-gray-400" /> : <ChevronDown className="w-5 h-5 text-gray-400" />}
+                          </div>
                         </div>
                         <div className="text-center sm:text-left">
                           <span className="text-[11px] text-black-400 font-bold uppercase block">Budget</span>
@@ -2926,35 +2939,42 @@ const KPIInsights = () => {
                           <span className="text-[11px] text-black-400 font-bold uppercase block">Spent</span>
                           <span className="text-xl font-bold text-rose-600">₹{Math.round(data.spent || 0).toLocaleString()}</span>
                         </div>
-                        <div className="text-center sm:text-left">
-                          <span className="text-[11px] text-black-400 font-bold uppercase block">Cost / Lead</span>
-                          <span className="text-xl font-black text-[#0e623a]">₹{Math.round(costPerLead).toLocaleString()}</span>
+                        <div className="text-center sm:text-left flex items-center justify-between sm:block">
+                          <div>
+                            <span className="text-[11px] text-black-400 font-bold uppercase block">Cost / Lead</span>
+                            <span className="text-xl font-black text-[#0e623a]">₹{Math.round(costPerLead).toLocaleString()}</span>
+                          </div>
+                          <div className="hidden sm:block mt-2">
+                            {isExpanded ? <ChevronUp className="w-5 h-5 text-gray-400" /> : <ChevronDown className="w-5 h-5 text-gray-400" />}
+                          </div>
                         </div>
                       </div>
                       
                       {/* Row 2: 5 Metric Cards */}
-                      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                        <div className="bg-black-50 rounded-xl p-4 border border-black-100 text-center">
-                          <span className="text-[11px] font-extrabold text-black-500 uppercase block mb-1">Lead Count</span>
-                          <span className="text-2xl font-black text-black-800">{data.count || 0}</span>
+                      {isExpanded && (
+                        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 animate-fade-in-up">
+                          <div className="bg-black-50 rounded-xl p-4 border border-black-100 text-center">
+                            <span className="text-[11px] font-extrabold text-black-500 uppercase block mb-1">Lead Count</span>
+                            <span className="text-2xl font-black text-black-800">{data.count || 0}</span>
+                          </div>
+                          <div className="bg-black-50 rounded-xl p-4 border border-black-100 text-center">
+                            <span className="text-[11px] font-extrabold text-black-500 uppercase block mb-1">Followup Count</span>
+                            <span className="text-2xl font-black text-blue-600">{data.enquiries || 0}</span>
+                          </div>
+                          <div className="bg-black-50 rounded-xl p-4 border border-black-100 text-center">
+                            <span className="text-[11px] font-extrabold text-black-500 uppercase block mb-1">Site Visit Count</span>
+                            <span className="text-2xl font-black text-purple-600">{data.siteVisits || 0}</span>
+                          </div>
+                          <div className="bg-black-50 rounded-xl p-4 border border-black-100 text-center">
+                            <span className="text-[11px] font-extrabold text-black-500 uppercase block mb-1">Booked Count</span>
+                            <span className="text-2xl font-black text-[#0e623a]">{data.booked || 0}</span>
+                          </div>
+                          <div className="bg-black-50 rounded-xl p-4 border border-red-100 text-center">
+                            <span className="text-[11px] font-extrabold text-red-500 uppercase block mb-1">Lost Count</span>
+                            <span className="text-2xl font-black text-red-600">{data.lost || 0}</span>
+                          </div>
                         </div>
-                        <div className="bg-black-50 rounded-xl p-4 border border-black-100 text-center">
-                          <span className="text-[11px] font-extrabold text-black-500 uppercase block mb-1">Lost Count</span>
-                          <span className="text-2xl font-black text-red-500">{data.lost || 0}</span>
-                        </div>
-                        <div className="bg-black-50 rounded-xl p-4 border border-black-100 text-center">
-                          <span className="text-[11px] font-extrabold text-black-500 uppercase block mb-1">Followup Count</span>
-                          <span className="text-2xl font-black text-blue-600">{data.enquiries || 0}</span>
-                        </div>
-                        <div className="bg-black-50 rounded-xl p-4 border border-black-100 text-center">
-                          <span className="text-[11px] font-extrabold text-black-500 uppercase block mb-1">Site Visit Count</span>
-                          <span className="text-2xl font-black text-purple-600">{data.siteVisits || 0}</span>
-                        </div>
-                        <div className="bg-black-50 rounded-xl p-4 border border-black-100 text-center">
-                          <span className="text-[11px] font-extrabold text-black-500 uppercase block mb-1">Booked Count</span>
-                          <span className="text-2xl font-black text-[#0e623a]">{data.booked || 0}</span>
-                        </div>
-                      </div>
+                      )}
                     </div>
                   );
                 })
