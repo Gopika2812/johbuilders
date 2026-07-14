@@ -190,6 +190,8 @@ router.put('/:id/stage/:stageIndex/complete', protect, async (req, res) => {
 
     await flow.save();
 
+    await flow.save();
+
     await AuditLog.create({
       user: req.user._id,
       userName: req.user.name,
@@ -201,6 +203,7 @@ router.put('/:id/stage/:stageIndex/complete', protect, async (req, res) => {
     const populated = await CRDFlow.findById(flow._id).populate('project').populate('lead');
     res.json(populated);
   } catch (err) {
+    console.error("COMPLETE ERROR:", err);
     res.status(500).json({ message: err.message });
   }
 });
@@ -385,6 +388,7 @@ router.put('/:id/stage/:stageIndex/payment', protect, async (req, res) => {
     const populated = await CRDFlow.findById(flow._id).populate('project').populate('lead');
     res.json(populated);
   } catch (err) {
+    console.error("PAYMENT ERROR:", err);
     res.status(500).json({ message: err.message });
   }
 });
@@ -397,7 +401,22 @@ router.post('/:id/complaints', protect, async (req, res) => {
     const flow = await CRDFlow.findById(req.params.id);
     if (!flow) return res.status(404).json({ message: 'Flow record not found' });
 
-    flow.complaints.push({ description, status: 'Pending' });
+    let scope = 'Company';
+    if (flow.stages && flow.stages.length > 0) {
+      const lastStage = flow.stages[flow.stages.length - 1];
+      if (lastStage && lastStage.isCompleted && lastStage.completedDate) {
+        const completedDate = new Date(lastStage.completedDate);
+        const oneYearLater = new Date(completedDate);
+        oneYearLater.setFullYear(completedDate.getFullYear() + 1);
+        if (new Date() > oneYearLater) {
+          scope = 'Customer';
+        }
+      }
+    }
+
+    const token = Math.random().toString(36).substring(2, 10).toUpperCase();
+
+    flow.complaints.push({ token, description, status: 'Pending', scope });
     await flow.save();
 
     const populated = await CRDFlow.findById(flow._id).populate('project').populate('lead');

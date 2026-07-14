@@ -11,6 +11,7 @@ const ExtraWorkSchema = new mongoose.Schema({
   amount: { type: Number, required: true }, // total amount (quantity * rate)
   status: { type: String, enum: ['Pending', 'Sent to PED', 'PED Approved', 'Sent to Customer', 'Client Approved', 'Added to CRD', 'Rejected', 'Removed by Client'], default: 'Pending' },
   addedAt: { type: Date, default: Date.now },
+  sentToPedDate: { type: Date },
   pricingDate: { type: Date },
   customerApprovalDate: { type: Date },
   crdAddedDate: { type: Date }
@@ -48,6 +49,7 @@ const StageSchema = new mongoose.Schema({
 
 const ComplaintSchema = new mongoose.Schema({
   token: { type: String }, // Random token for customer reference
+  title: { type: String, default: 'Untitled Complaint' },
   description: { type: String, required: true },
   status: { type: String, enum: ['Pending', 'Start Work', 'In Progress', 'Resolved', 'Completed'], default: 'Pending' },
   reportedAt: { type: Date, default: Date.now },
@@ -55,7 +57,10 @@ const ComplaintSchema = new mongoose.Schema({
   assignedTo: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   assignedPersonName: { type: String },
   riskLevel: { type: String, enum: ['Low', 'Medium', 'High'] },
-  taskBoardVisible: { type: Boolean, default: true }
+  taskBoardVisible: { type: Boolean, default: true },
+  scope: { type: String, enum: ['Company', 'Customer'] },
+  sentToPedAt: { type: Date },
+  pedPrice: { type: Number, default: 0 }
 });
 
 const CRDFlowSchema = new mongoose.Schema({

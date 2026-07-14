@@ -122,7 +122,7 @@ router.post('/bulk-extra-work', protectCustomer, async (req, res) => {
 // @route   POST /api/customer/complaint
 // @desc    Customer raises a complaint
 router.post('/complaint', protectCustomer, async (req, res) => {
-  const { description } = req.body;
+  const { title, description } = req.body;
   try {
     const flow = req.customerFlow;
     
@@ -132,12 +132,27 @@ router.post('/complaint', protectCustomer, async (req, res) => {
 
     const token = Math.random().toString(36).substring(2, 10).toUpperCase();
 
-    const newComplaint = {
-      token,
-      description,
-      status: 'Pending',
-      reportedAt: Date.now()
-    };
+      let scope = 'Company';
+      if (flow.stages && flow.stages.length > 0) {
+        const lastStage = flow.stages[flow.stages.length - 1];
+        if (lastStage && lastStage.isCompleted && lastStage.completedDate) {
+          const completedDate = new Date(lastStage.completedDate);
+          const oneYearLater = new Date(completedDate);
+          oneYearLater.setFullYear(completedDate.getFullYear() + 1);
+          if (new Date() > oneYearLater) {
+            scope = 'Customer';
+          }
+        }
+      }
+
+      const newComplaint = {
+        token,
+        title: title || 'General Complaint',
+        description,
+        status: 'Pending',
+        reportedAt: Date.now(),
+        scope
+      };
 
     flow.complaints.push(newComplaint);
 

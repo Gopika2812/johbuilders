@@ -129,6 +129,12 @@ const CRDFlow = () => {
   // History Modal
   const [historyModalOpen, setHistoryModalOpen] = useState(false);
   const [sheetPreviewModalOpen, setSheetPreviewModalOpen] = useState(false);
+  const [expandedStages, setExpandedStages] = useState({});
+  const [extraWorkDetailsModal, setExtraWorkDetailsModal] = useState(null);
+
+  const toggleStage = (idx) => {
+    setExpandedStages(prev => ({ ...prev, [idx]: !prev[idx] }));
+  };
 
   useEffect(() => {
     fetchProjectsAndBookings();
@@ -1249,8 +1255,13 @@ const CRDFlow = () => {
                               <React.Fragment key={idx}>
                                 <tr className={`hover:bg-black-50/50 transition ${isPaidInFull ? 'bg-emerald-50/10' : ''}`}>
                                   <td className="p-4 font-bold text-black-400">{idx + 1}</td>
-                                  <td className="p-4">
-                                    <div className="font-bold text-black-800">{stage.name}</div>
+                                  <td className="p-4 cursor-pointer hover:bg-black-100/50 rounded transition group" onClick={() => toggleStage(idx)}>
+                                    <div className="font-bold text-black-800 flex items-center gap-2">
+                                      {stage.name}
+                                      {stage.extraWorks && stage.extraWorks.length > 0 && (
+                                        expandedStages[idx] ? <ChevronDown className="w-4 h-4 text-black-400 group-hover:text-black-600" /> : <ChevronRight className="w-4 h-4 text-black-400 group-hover:text-black-600" />
+                                      )}
+                                    </div>
                                     <div className="text-[11px] text-black-400">{stage.percentage}% of total value</div>
                                   </td>
                                   <td className="p-4 text-right font-semibold text-black-700">
@@ -1290,35 +1301,29 @@ const CRDFlow = () => {
                                       disabled={isPaidInFull}
                                       className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition w-full ${isPaidInFull ? 'bg-black-100 text-black-400 cursor-not-allowed' : 'bg-blue-50 text-blue-700 hover:bg-blue-100 cursor-pointer border border-blue-200'}`}
                                     >
-                                      {isPaidInFull ? 'Cleared' : 'Pay Now'}
+                                      {isPaidInFull ? 'Payment Completed' : 'Pay Now'}
                                     </button>
                                     <button
                                       onClick={() => handleToggleStageCompletion(idx, stage.isCompleted)}
                                       className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition w-full cursor-pointer border ${stage.isCompleted ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border-emerald-200' : 'bg-amber-50 text-amber-700 hover:bg-amber-100 border-amber-200'}`}
                                     >
-                                      {stage.isCompleted ? 'Mark In Progress' : 'Mark Completed'}
+                                      {stage.isCompleted ? 'Stage Completed' : 'Complete'}
                                     </button>
                                   </td>
                                 </tr>
                                 {/* Extra works rows if any */}
-                                {stage.extraWorks && stage.extraWorks.map((ew, ewIdx) => (
+                                {expandedStages[idx] && stage.extraWorks && stage.extraWorks.map((ew, ewIdx) => (
                                   <tr key={`ew-${idx}-${ewIdx}`} className="bg-blue-50/30">
                                     <td className="p-2 border-l-2 border-blue-400"></td>
-                                    <td className="p-2 text-[11px] text-black-600 flex items-center gap-1">
+                                    <td className="p-2 text-[11px] text-black-600 flex items-center gap-2">
                                       <ChevronRight className="w-3 h-3 text-blue-400" />
-                                      <span className="font-bold">{ew.name}</span>
+                                      <button onClick={() => setExtraWorkDetailsModal(ew)} className="font-mono text-blue-700 font-bold hover:underline cursor-pointer">
+                                        {ew.ewId || '-'}
+                                      </button>
+                                      <span className="font-bold border-l pl-2 border-black-200">{ew.name}</span>
                                     </td>
                                     <td className="p-2 text-right text-[11px] font-semibold text-black-700">Rs. {ew.amount.toLocaleString()}</td>
-                                    <td colSpan="3"></td>
-                                    <td className="p-2 text-center">
-                                      <button
-                                        onClick={() => handleRevertExtraWork(idx, ew._id || ew.id)}
-                                        className="p-1 hover:bg-red-55 text-red-500 rounded transition cursor-pointer"
-                                        title="Delete Extra Work"
-                                      >
-                                        <Trash className="w-3.5 h-3.5" />
-                                      </button>
-                                    </td>
+                                    <td colSpan="4"></td>
                                   </tr>
                                 ))}
                                 {/* Payments breakdown if any */}
@@ -2275,6 +2280,65 @@ const CRDFlow = () => {
                <button onClick={() => setSheetPreviewModalOpen(false)} className="px-5 py-2 bg-black-100 hover:bg-black-200 text-black-700 font-bold rounded-xl transition">
                  Close Preview
                </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Extra Work Details Popup */}
+      {extraWorkDetailsModal && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl max-w-lg w-full overflow-hidden shadow-2xl border border-black-100">
+            <div className="bg-[#0e623a] p-6 text-white relative">
+              <button 
+                type="button" 
+                onClick={() => setExtraWorkDetailsModal(null)}
+                className="absolute top-4 right-4 text-emerald-100 hover:text-white transition cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+              <h3 className="text-base font-bold flex items-center gap-2">
+                <FileText className="w-5 h-5 text-emerald-300" />
+                <span>Extra Work Details</span>
+              </h3>
+            </div>
+            <div className="p-6 space-y-4 text-sm">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <div className="text-xs text-black-400 font-bold uppercase tracking-wider mb-1">Work ID (Req ID)</div>
+                  <div className="font-mono font-bold text-black-800">{extraWorkDetailsModal.ewId || '-'}</div>
+                </div>
+                <div>
+                  <div className="text-xs text-black-400 font-bold uppercase tracking-wider mb-1">Estimated Value</div>
+                  <div className="font-bold text-black-800 text-base">Rs. {extraWorkDetailsModal.amount?.toLocaleString()}</div>
+                </div>
+                
+                <div className="col-span-2 border-t border-black-100 pt-3">
+                  <div className="text-xs text-black-400 font-bold uppercase tracking-wider mb-2 text-center bg-black-50 py-1 rounded">Timeline & Dates</div>
+                  <div className="space-y-3 mt-3">
+                    <div className="flex justify-between items-center border-b border-black-50 pb-2">
+                      <span className="text-black-600 font-semibold">Estimated Date (PED Created):</span>
+                      <span className="font-bold text-black-800">{extraWorkDetailsModal.pricingDate ? new Date(extraWorkDetailsModal.pricingDate).toLocaleDateString('en-GB') : '-'}</span>
+                    </div>
+                    <div className="flex justify-between items-center border-b border-black-50 pb-2">
+                      <span className="text-black-600 font-semibold">Sent to PED Team Date:</span>
+                      <span className="font-bold text-black-800">{extraWorkDetailsModal.sentToPedDate ? new Date(extraWorkDetailsModal.sentToPedDate).toLocaleDateString('en-GB') : '-'}</span>
+                    </div>
+                    <div className="flex justify-between items-center border-b border-black-50 pb-2">
+                      <span className="text-black-600 font-semibold">Customer Approval On:</span>
+                      <span className="font-bold text-emerald-700">{extraWorkDetailsModal.customerApprovalDate ? new Date(extraWorkDetailsModal.customerApprovalDate).toLocaleDateString('en-GB') : '-'}</span>
+                    </div>
+                    <div className="flex justify-between items-center border-b border-black-50 pb-2">
+                      <span className="text-black-600 font-semibold">Sent to Accounts Date:</span>
+                      <span className="font-bold text-blue-700">{extraWorkDetailsModal.crdAddedDate ? new Date(extraWorkDetailsModal.crdAddedDate).toLocaleDateString('en-GB') : '-'}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-black-600 font-semibold">Work Order Issued On:</span>
+                      <span className="font-bold text-purple-700">{extraWorkDetailsModal.crdAddedDate ? new Date(extraWorkDetailsModal.crdAddedDate).toLocaleDateString('en-GB') : '-'}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>

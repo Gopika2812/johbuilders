@@ -92,6 +92,7 @@ const CustomerDashboard = () => {
   // Form State
   const [extraName, setExtraName] = useState('');
   const [extraAmount, setExtraAmount] = useState('');
+  const [complaintTitle, setComplaintTitle] = useState('');
   const [complaintDesc, setComplaintDesc] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
@@ -385,7 +386,7 @@ const CustomerDashboard = () => {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ description: complaintDesc })
+        body: JSON.stringify({ title: complaintTitle, description: complaintDesc })
       });
       if (!res.ok) throw new Error('Failed to submit complaint');
       
@@ -394,6 +395,7 @@ const CustomerDashboard = () => {
       setComplaintSuccessToken(newComplaint.token || 'CMP-UNKNOWN');
       
       setComplaintModalOpen(false);
+      setComplaintTitle('');
       setComplaintDesc('');
       setFlow(updatedFlow);
     } catch (err) {
@@ -483,9 +485,9 @@ const CustomerDashboard = () => {
         <nav className="flex-1 px-4 space-y-2 overflow-y-auto relative z-10 scrollbar-thin">
           {[
             { id: 'profile', icon: User, label: 'My Profile' },
-            { id: 'quotation', icon: FileText, label: 'My Quotation' },
+            // { id: 'quotation', icon: FileText, label: 'My Quotation' },
             { id: 'extraworks', icon: Wrench, label: 'Extra Works' },
-            { id: 'requestedworks', icon: FileText, label: 'Requested Works' },
+            { id: 'requestedworks', icon: FileText, label: 'Requested Extra Works' },
             { id: 'complaints', icon: ShieldAlert, label: 'Complaints' }
           ].map(item => (
             <button
@@ -605,7 +607,8 @@ const CustomerDashboard = () => {
                       {flow.complaints.slice(0, 3).map((comp, idx) => (
                         <div key={idx} className="flex items-center justify-between p-4 bg-white rounded-2xl border border-gray-100 shadow-sm">
                           <div className="flex-1 pr-4">
-                            <p className="text-sm font-semibold text-gray-900 line-clamp-1">{comp.description}</p>
+                            <p className="text-sm font-semibold text-gray-900 line-clamp-1">{comp.title || 'Complaint'}</p>
+                            <p className="text-xs text-gray-600 line-clamp-1 mt-0.5">{comp.description}</p>
                             <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mt-1">Reported: {new Date(comp.reportedAt).toLocaleDateString()}</p>
                           </div>
                           <span className={`px-3 py-1 text-[10px] font-bold uppercase tracking-wider rounded-lg shrink-0 ${
@@ -1419,7 +1422,10 @@ const CustomerDashboard = () => {
                                 <td className="px-6 py-4 font-medium text-gray-900">{new Date(comp.reportedAt).toLocaleDateString()}</td>
                                 <td className="px-6 py-4 font-medium text-gray-900">{flow.project?.name || 'N/A'}</td>
                                 <td className="px-6 py-4 font-bold text-emerald-600">{flow.unitId}</td>
-                                <td className="px-6 py-4 text-gray-800 whitespace-normal min-w-[250px]">{comp.description}</td>
+                                <td className="px-6 py-4 text-gray-800 whitespace-normal min-w-[250px]">
+                                  <div className="font-bold mb-1">{comp.title || 'Complaint'}</div>
+                                  <div>{comp.description}</div>
+                                </td>
                                 <td className="px-6 py-4 text-center">
                                   <span className={`inline-flex px-3 py-1 text-[10px] font-bold uppercase tracking-widest rounded-lg border ${
                                     comp.status === 'Resolved' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
@@ -1464,6 +1470,7 @@ const CustomerDashboard = () => {
                           </div>
                           
                           <div className="p-6 relative z-10 flex-1 flex flex-col">
+                            <h4 className="text-white text-lg font-bold mb-2 leading-tight">{comp.title || 'Complaint'}</h4>
                             <p className="text-gray-200 text-sm font-medium leading-relaxed mb-6 flex-1">{comp.description}</p>
                             
                             <div className="flex items-center gap-4 text-xs font-semibold text-gray-400">
@@ -1587,6 +1594,10 @@ const CustomerDashboard = () => {
             </div>
             <form onSubmit={handleRaiseComplaint} className="p-8 space-y-5">
               <p className="text-sm text-gray-500 mb-6 bg-red-50 p-4 rounded-xl border border-red-100 text-red-800 font-medium">Please describe your concern. Our team will look into it immediately.</p>
+              <div>
+                <label className="text-[11px] font-bold text-gray-400 uppercase tracking-widest block mb-1.5">Complaint Title</label>
+                <input required value={complaintTitle} onChange={e => setComplaintTitle(e.target.value)} placeholder="Short title for your issue..." className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm font-semibold text-gray-900 focus:border-red-500 focus:ring-2 focus:ring-red-500/10 transition shadow-sm mb-4" />
+              </div>
               <div>
                 <label className="text-[11px] font-bold text-gray-400 uppercase tracking-widest block mb-1.5">Description of Issue</label>
                 <textarea required value={complaintDesc} onChange={e => setComplaintDesc(e.target.value)} placeholder="Describe your issue in detail..." rows="5" className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm font-semibold text-gray-900 focus:border-red-500 focus:ring-2 focus:ring-red-500/10 transition shadow-sm resize-none"></textarea>

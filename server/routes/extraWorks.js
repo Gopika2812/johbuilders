@@ -55,6 +55,7 @@ router.put('/:flowId/:stageIdx/:workId/send-to-ped', protect, authorize('Admin')
     }
 
     extraWork.status = 'Sent to PED';
+    extraWork.sentToPedDate = new Date();
 
     flow.history.push({
       action: 'Sent to PED',

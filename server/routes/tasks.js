@@ -124,4 +124,57 @@ router.put('/:flowId/:complaintId/status', protect, async (req, res) => {
   }
 });
 
+// @route   PUT /api/tasks/:flowId/:complaintId/send-to-ped
+// @desc    Send a complaint to the PED team
+// @access  Private
+router.put('/:flowId/:complaintId/send-to-ped', protect, async (req, res) => {
+  try {
+    const flow = await CRDFlow.findById(req.params.flowId);
+    if (!flow) return res.status(404).json({ message: 'Flow not found' });
+
+    const complaint = flow.complaints.id(req.params.complaintId);
+    if (!complaint) return res.status(404).json({ message: 'Complaint not found' });
+
+    complaint.sentToPedAt = Date.now();
+
+    flow.history.push({
+      action: 'Sent to PED Team',
+      notes: `Complaint ${complaint.token} sent to PED team`,
+      user: req.user.name
+    });
+
+    await flow.save();
+    res.json(complaint);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// @route   PUT /api/tasks/:flowId/:complaintId/ped-price
+// @desc    Update PED price for a complaint
+// @access  Private
+router.put('/:flowId/:complaintId/ped-price', protect, async (req, res) => {
+  const { pedPrice } = req.body;
+  try {
+    const flow = await CRDFlow.findById(req.params.flowId);
+    if (!flow) return res.status(404).json({ message: 'Flow not found' });
+
+    const complaint = flow.complaints.id(req.params.complaintId);
+    if (!complaint) return res.status(404).json({ message: 'Complaint not found' });
+
+    complaint.pedPrice = Number(pedPrice) || 0;
+
+    flow.history.push({
+      action: 'PED Price Updated',
+      notes: `PED price set to ${pedPrice} for complaint ${complaint.token}`,
+      user: req.user.name
+    });
+
+    await flow.save();
+    res.json(complaint);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 module.exports = router;

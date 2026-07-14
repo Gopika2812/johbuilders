@@ -36,6 +36,7 @@ import Customers from './pages/Customers';
 import ExportReports from './pages/ExportReports';
 import CRDReports from './pages/CRDReports';
 import ExtraWorks from './pages/ExtraWorks';
+import ComplaintsFlow from './pages/ComplaintsFlow';
 import TasksBoard from './pages/TasksBoard';
 
 // Portal Pages
@@ -121,6 +122,7 @@ function App() {
             <Route path="/crd-flow/collection-report" element={<Layout><CollectionReport /></Layout>} />
             <Route path="/crd-flow/overall-report" element={<Layout><OverallReport /></Layout>} />
             <Route path="/crd-flow/extra-works" element={<Layout><ExtraWorks /></Layout>} />
+            <Route path="/crd-flow/complaints" element={<Layout><ComplaintsFlow /></Layout>} />
             <Route path="/customers" element={<Layout><Customers /></Layout>} />
             <Route path="/tasks-board" element={<Layout><TasksBoard /></Layout>} />
             
