@@ -116,6 +116,7 @@ router.get('/due-followups', protect, async (req, res) => {
 router.get('/phone/:phone', protect, async (req, res) => {
   try {
     const lead = await Lead.findOne({ phone: req.params.phone })
+      .sort({ createdAt: -1 })
       .populate('project', 'name code')
       .populate('assignedTo', 'name role');
     if (lead) {
@@ -133,29 +134,46 @@ router.post('/', protect, async (req, res) => {
   const { leadType, name, phone, address, profession, email, location, bankLoan, leadSource, activeAd, projectLocation, project, assignedTo, leadCost, followUpInfo } = req.body;
 
   try {
-    // 1. Phone number tracking for reopening existing leads
-    let lead = await Lead.findOne({ phone }).populate('assignedTo', 'name');
+    // 1. Phone number tracking for duplicate checks / reopening
+    let existingLeads = await Lead.find({ phone }).populate('assignedTo', 'name').sort({ createdAt: -1 });
+
+    let finalAssignedTo = assignedTo;
+    // Retain previously assigned executive if customer exists
+    if (existingLeads.length > 0) {
+      const lastAssignedLead = existingLeads.find(l => l.assignedTo);
+      if (lastAssignedLead) {
+        finalAssignedTo = lastAssignedLead.assignedTo._id;
+      }
+    }
 
     let defaultStatus = 'New';
     if (leadType === 'Direct Visit') {
       defaultStatus = 'Site Visit';
-    } else if (assignedTo && assignedTo.toString().trim() !== '') {
+    } else if (finalAssignedTo && finalAssignedTo.toString().trim() !== '') {
       defaultStatus = 'Assigned';
     }
 
+    let lead = existingLeads.find(l => l.project.toString() === project.toString());
+
     if (lead) {
-      // Check if lead has completed Handover stage
-      const CRDFlow = require('../models/CrdFlow');
-      const flows = await CRDFlow.find({ lead: lead._id });
-      let isHandover = lead.status === 'Won';
-      if (flows && flows.length > 0) {
-        isHandover = flows.some(flow => flow.stages && flow.stages.some(s => s.name.toLowerCase().includes('handover') && s.isCompleted));
+      // Check if lead is in an allowed status (Lost, Cancelled, Booking, Won)
+      const allowedStatuses = ['Lost', 'Cancelled', 'Booking', 'Won'];
+      let isAllowedToReopen = allowedStatuses.includes(lead.status);
+
+      if (lead.status === 'Won') {
+        const CRDFlow = require('../models/CrdFlow');
+        const flows = await CRDFlow.find({ lead: lead._id });
+        let isHandover = true;
+        if (flows && flows.length > 0) {
+          isHandover = flows.some(flow => flow.stages && flow.stages.some(s => s.name.toLowerCase().includes('handover') && s.isCompleted));
+        }
+        isAllowedToReopen = isHandover;
       }
 
-      if (!isHandover) {
+      if (!isAllowedToReopen) {
         const assignedName = lead.assignedTo ? lead.assignedTo.name : 'someone';
         return res.status(400).json({ 
-          message: `This lead is currently assigned to ${assignedName} and is in '${lead.status}' stage. You can only use this number again after the lead has moved to the Handover stage.` 
+          message: `This lead is currently assigned to ${assignedName} and is in '${lead.status}' stage for this project. You can only register with this number again for the same project if the lead is Lost, Cancelled, or Booked.` 
         });
       }
 
@@ -169,10 +187,10 @@ router.post('/', protect, async (req, res) => {
       lead.address = address;
       lead.bankLoan = bankLoan || 'No';
       lead.project = project;
-      if (assignedTo && assignedTo.toString().trim() !== '') {
+      if (finalAssignedTo && finalAssignedTo.toString().trim() !== '') {
         lead.assignedBy = req.user._id;
       }
-      lead.assignedTo = (assignedTo && assignedTo.toString().trim() !== '') ? assignedTo : undefined;
+      lead.assignedTo = (finalAssignedTo && finalAssignedTo.toString().trim() !== '') ? finalAssignedTo : undefined;
       lead.status = defaultStatus; // reset/set status on reopen
       lead.isClosed = false;
       lead.isReopened = true;
@@ -193,7 +211,7 @@ router.post('/', protect, async (req, res) => {
 
       lead.history.push({
         status: defaultStatus,
-        assignedTo: (assignedTo && assignedTo.toString().trim() !== '') ? assignedTo : undefined,
+        assignedTo: (finalAssignedTo && finalAssignedTo.toString().trim() !== '') ? finalAssignedTo : undefined,
         updatedBy: req.user._id,
         timestamp: new Date(),
         note: `Lead Reopened (Previous status: ${oldStatus}). Details updated.`
@@ -228,8 +246,8 @@ router.post('/', protect, async (req, res) => {
       address,
       bankLoan: bankLoan || 'No',
       project,
-      assignedTo: (assignedTo && assignedTo.toString().trim() !== '') ? assignedTo : undefined,
-      assignedBy: (assignedTo && assignedTo.toString().trim() !== '') ? req.user._id : undefined,
+      assignedTo: (finalAssignedTo && finalAssignedTo.toString().trim() !== '') ? finalAssignedTo : undefined,
+      assignedBy: (finalAssignedTo && finalAssignedTo.toString().trim() !== '') ? req.user._id : undefined,
       status: defaultStatus,
       leadCost: Number(leadCost) || 0
     });
@@ -247,7 +265,7 @@ router.post('/', protect, async (req, res) => {
 
     lead.history.push({
       status: defaultStatus,
-      assignedTo: (assignedTo && assignedTo.toString().trim() !== '') ? assignedTo : undefined,
+      assignedTo: (finalAssignedTo && finalAssignedTo.toString().trim() !== '') ? finalAssignedTo : undefined,
       updatedBy: req.user._id,
       timestamp: new Date(),
       note: 'Initial Lead Creation'

@@ -3,6 +3,7 @@ const mongoose = require('mongoose');
 const ExtraWorkSchema = new mongoose.Schema({
   ewId: { type: String }, // e.g., JLBEW001
   woId: { type: String }, // e.g., JLBWO001
+  forUnit: { type: String }, // specific unit if multiple are booked
   name: { type: String, required: true }, // acts as description/sub-category
   category: { type: String, default: 'General' },
   unit: { type: String, default: 'Unit' },
@@ -51,6 +52,7 @@ const ComplaintSchema = new mongoose.Schema({
   token: { type: String }, // Random token for customer reference
   title: { type: String, default: 'Untitled Complaint' },
   description: { type: String, required: true },
+  images: [{ type: String }], // Array of Cloudinary image URLs
   status: { type: String, enum: ['Pending', 'Start Work', 'In Progress', 'Resolved', 'Completed'], default: 'Pending' },
   reportedAt: { type: Date, default: Date.now },
   resolvedAt: { type: Date },

@@ -208,10 +208,70 @@ router.put('/:id/stage/:stageIndex/complete', protect, async (req, res) => {
   }
 });
 
+// @route   POST /api/crd-flows/:id/extra-work
+// @desc    Add extra work directly by PED/CRD Admin
+router.post('/:id/extra-work', protect, async (req, res) => {
+  const { stageId, name, amount, forUnit } = req.body;
+  try {
+    const flow = await CRDFlow.findById(req.params.id);
+    if (!flow) return res.status(404).json({ message: 'CRD Flow not found' });
+
+    const idx = flow.stages.findIndex(s => s._id.toString() === stageId);
+    if (idx === -1) return res.status(404).json({ message: 'Stage not found' });
+
+    const extraAmt = Number(amount);
+    
+    const project = await Project.findById(flow.project);
+    const projectCode = project ? project.code : 'EXT';
+
+    const uniqueEwIds = new Set();
+    flow.stages.forEach(s => {
+      s.extraWorks.forEach(ew => {
+        if (ew.ewId) uniqueEwIds.add(ew.ewId);
+      });
+    });
+    const nextGroupNum = uniqueEwIds.size + 1;
+    
+    const targetUnit = forUnit || (flow.unitId.includes(',') ? flow.unitId.split(',')[0].trim() : flow.unitId);
+    const ewId = `${projectCode}/${targetUnit}/${String(nextGroupNum).padStart(3, '0')}`;
+
+    flow.stages[idx].extraWorks.push({ 
+      ewId, 
+      forUnit: targetUnit,
+      name, 
+      amount: extraAmt 
+    });
+
+    const stagesCount = flow.stages.length - idx;
+    if (stagesCount > 0) {
+      let sumSplit = 0;
+      for (let j = idx; j < flow.stages.length; j++) {
+        let currentSplit = Math.round(extraAmt / stagesCount);
+        if (j === flow.stages.length - 1) {
+          currentSplit = extraAmt - sumSplit;
+        } else {
+          sumSplit += currentSplit;
+        }
+        flow.stages[j].amount += currentSplit;
+      }
+    }
+
+    flow.totalExtraWorksValue += extraAmt;
+    flow.totalCurrentValue += extraAmt;
+
+    await flow.save();
+
+    const populated = await CRDFlow.findById(flow._id).populate('project').populate('lead');
+    res.json(populated);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 // @route   PUT /api/crd-flow/:id/stage/:stageIndex/extra-work
 // @desc    Add extra work to a stage
 router.put('/:id/stage/:stageIndex/extra-work', protect, async (req, res) => {
-  const { name, amount } = req.body;
+  const { name, amount, forUnit } = req.body;
   try {
     const flow = await CRDFlow.findById(req.params.id);
     if (!flow) return res.status(404).json({ message: 'Flow record not found' });
@@ -228,10 +288,24 @@ router.put('/:id/stage/:stageIndex/extra-work', protect, async (req, res) => {
 
     const project = await Project.findById(flow.project);
     const projectCode = project ? project.code : 'EXT';
-    const totalEwCount = flow.stages.reduce((sum, s) => sum + s.extraWorks.length, 0);
-    const ewId = `${projectCode}EW${String(totalEwCount + 1).padStart(3, '0')}`;
 
-    flow.stages[idx].extraWorks.push({ ewId, name, amount: extraAmt });
+    const uniqueEwIds = new Set();
+    flow.stages.forEach(s => {
+      s.extraWorks.forEach(ew => {
+        if (ew.ewId) uniqueEwIds.add(ew.ewId);
+      });
+    });
+    const nextGroupNum = uniqueEwIds.size + 1;
+    
+    const targetUnit = forUnit || (flow.unitId.includes(',') ? flow.unitId.split(',')[0].trim() : flow.unitId);
+    const ewId = `${projectCode}/${targetUnit}/${String(nextGroupNum).padStart(3, '0')}`;
+
+    flow.stages[idx].extraWorks.push({ 
+      ewId,
+      forUnit: targetUnit,
+      name, 
+      amount: extraAmt 
+    });
 
     const stagesCount = flow.stages.length - idx;
     if (stagesCount > 0) {

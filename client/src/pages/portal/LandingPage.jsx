@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import confetti from 'canvas-confetti';
 import { User, Lock, Loader2, ArrowRight } from 'lucide-react';
 import { API_URL } from '../../context/AuthContext';
 
@@ -34,7 +35,26 @@ const CustomerLogin = () => {
       localStorage.setItem('customerToken', data.token);
       localStorage.setItem('customerUsername', data.username);
       
-      navigate('/portal/dashboard');
+      try {
+        // A nice "pop" / "ta-da" celebration sound
+        const audio = new Audio('https://cdn.pixabay.com/download/audio/2022/03/10/audio_5bba0263f1.mp3'); 
+        audio.volume = 0.5;
+        audio.play().catch(e => console.log('Audio play failed:', e));
+      } catch (e) {
+        console.log(e);
+      }
+      
+      confetti({
+        particleCount: 200,
+        spread: 160,
+        origin: { y: 0.5 },
+        colors: ['#006838', '#10b981', '#f59e0b', '#ffffff', '#d4af37'],
+        zIndex: 9999
+      });
+      
+      setTimeout(() => {
+        navigate('/portal/dashboard');
+      }, 1500);
     } catch (err) {
       setError(err.message);
     } finally {

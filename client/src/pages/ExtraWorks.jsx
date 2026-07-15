@@ -47,7 +47,8 @@ const ExtraWorks = () => {
     category: 'General',
     unit: 'Unit',
     quantity: 1,
-    rate: 0
+    rate: 0,
+    forUnit: ''
   });
 
   const fetchFlows = async () => {
@@ -227,7 +228,8 @@ const handleRateChange = (workId, value) => {
         category: 'General',
         unit: 'Unit',
         quantity: 1,
-        rate: 0
+        rate: 0,
+        forUnit: ''
       });
       setShowAddForm(false);
       await fetchFlows();
@@ -637,6 +639,18 @@ const handleRateChange = (workId, value) => {
                                       onChange={e => setAddForm({...addForm, category: e.target.value})}
                                     />
                                   </div>
+                                  {flow.unitId && flow.unitId.includes(',') && (
+                                    <div className="lg:col-span-1">
+                                      <label className="block text-xs font-bold text-gray-700 mb-1">Select Unit</label>
+                                      <select 
+                                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#006838]/20"
+                                        value={addForm.forUnit || flow.unitId.split(',')[0].trim()}
+                                        onChange={e => setAddForm({...addForm, forUnit: e.target.value})}
+                                      >
+                                        {flow.unitId.split(',').map(u => <option key={u.trim()} value={u.trim()}>{u.trim()}</option>)}
+                                      </select>
+                                    </div>
+                                  )}
                                   <div className="lg:col-span-2">
                                     <label className="block text-xs font-bold text-gray-700 mb-1">Sub Category (Name) <span className="text-red-500">*</span></label>
                                     <input 

@@ -1,48 +1,58 @@
 import React, { useState, useEffect } from 'react';
 import confetti from 'canvas-confetti';
 import { useNavigate } from 'react-router-dom';
-import { User, LogOut, CheckCircle, Clock, Plus, Minus, AlertTriangle, X, Loader2, MessageSquareWarning, Home, Sparkles, Menu, Phone, MapPin, Activity, Wrench, ShieldAlert, FileText, ChevronRight, Building, CreditCard, Droplets, Grid, Utensils, Zap, Trees, Layout, Paintbrush, Hammer, Cloud, TrendingUp, Maximize, Package, Copy, LayoutGrid, List, Check, Calendar, Search } from 'lucide-react';
+import { User, LogOut, CheckCircle, Clock, Plus, Minus, AlertTriangle, X, Loader2, MessageSquareWarning, Home, Sparkles, Menu, Phone, MapPin, Activity, Wrench, ShieldAlert, FileText, ChevronRight, Building, CreditCard, Droplets, Grid, Utensils, Zap, Trees, Layout, Paintbrush, Hammer, Cloud, TrendingUp, Maximize, Package, Copy, LayoutGrid, List, Check, Calendar, Search, Frown } from 'lucide-react';
 import { API_URL } from '../../context/AuthContext';
 
 const WelcomePopup = ({ isOpen, onClose, userName, projectName }) => {
+  useEffect(() => {
+    if (isOpen) {
+      const timer = setTimeout(onClose, 60000);
+      
+      const duration = 10 * 1000;
+      const animationEnd = Date.now() + duration;
+      
+      // Create shapes from firework emojis
+      const sparkler = confetti && confetti.shapeFromText ? confetti.shapeFromText({ text: '🎇', scalar: 3 }) : null;
+      const firework = confetti && confetti.shapeFromText ? confetti.shapeFromText({ text: '🎆', scalar: 3 }) : null;
+      const star = confetti && confetti.shapeFromText ? confetti.shapeFromText({ text: '✨', scalar: 2 }) : null;
+      
+      const shapes = [sparkler, firework, star].filter(Boolean);
+      // fallback to circles if shapeFromText is missing
+      const fallbackShapes = shapes.length > 0 ? shapes : ['circle'];
+
+      const defaults = { startVelocity: 15, spread: 360, ticks: 60, zIndex: 105, shapes: fallbackShapes };
+
+      const randomInRange = (min, max) => Math.random() * (max - min) + min;
+
+      const interval = setInterval(() => {
+        const timeLeft = animationEnd - Date.now();
+        if (timeLeft <= 0) return clearInterval(interval);
+
+        const particleCount = 15 + Math.random() * 15;
+        
+        confetti({
+          ...defaults,
+          particleCount,
+          origin: { x: randomInRange(0.1, 0.9), y: Math.random() - 0.2 },
+          colors: ['#ffdd66', '#ffffff', '#ffaa00', '#ffd700'],
+          scalar: 1 + Math.random()
+        });
+      }, 400);
+
+      return () => {
+        clearTimeout(timer);
+        clearInterval(interval);
+      };
+    }
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-      <style>
-        {`
-          @keyframes confetti-fall {
-            0% { transform: translateY(-10vh) rotate(0deg) scale(1); opacity: 1; }
-            100% { transform: translateY(100vh) rotate(720deg) scale(0.5); opacity: 0; }
-          }
-          .spark {
-            position: absolute;
-            top: -10%;
-            animation: confetti-fall linear forwards;
-          }
-        `}
-      </style>
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-sm overflow-hidden">
       
-      {/* Confetti Sparks (Green & White) */}
-      <div className="absolute inset-0 pointer-events-none overflow-hidden z-50">
-        {[...Array(60)].map((_, i) => (
-          <div
-            key={i}
-            className={`spark ${i % 2 === 0 ? 'bg-[#006838]' : 'bg-white'} ${i % 3 === 0 ? 'rounded-full' : 'rounded-sm'}`}
-            style={{
-              left: `${Math.random() * 100}%`,
-              width: `${Math.random() * 8 + 4}px`,
-              height: `${Math.random() * 12 + 6}px`,
-              opacity: Math.random() * 0.8 + 0.2,
-              animationDelay: `${Math.random() * 1.5}s`,
-              animationDuration: `${Math.random() * 2 + 2}s`,
-              transform: `rotate(${Math.random() * 360}deg)`
-            }}
-          />
-        ))}
-      </div>
-
-      <div className="bg-[#050907] border border-white/10 rounded-[2.5rem] w-full max-w-lg p-10 relative overflow-hidden shadow-[0_0_50px_rgba(0,104,56,0.3)] animate-fade-in-up z-40 text-center">
+      <div className="bg-[#050907] border border-white/10 rounded-[2.5rem] w-full max-w-lg p-10 relative shadow-[0_0_50px_rgba(0,104,56,0.3)] animate-fade-in-up z-[110] text-center">
         {/* Decorative Background */}
         <div className="absolute inset-0 bg-gradient-to-br from-black/80 via-[#0a140f] to-[#006838]/20 z-0"></div>
         <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-[#006838]/30 rounded-full blur-[80px]"></div>
@@ -63,9 +73,9 @@ const WelcomePopup = ({ isOpen, onClose, userName, projectName }) => {
 
           <button 
             onClick={onClose}
-            className="w-full py-4 bg-gradient-to-r from-[#006838] to-[#008c4a] hover:from-[#007b42] hover:to-[#00a356] text-white rounded-2xl font-bold text-sm tracking-widest uppercase transition-all shadow-[0_0_20px_rgba(0,104,56,0.4)]"
+            className="w-full py-4 bg-gradient-to-r from-[#006838] to-[#008c4a] text-white rounded-2xl font-bold text-sm tracking-widest uppercase shadow-[0_0_20px_rgba(0,104,56,0.4)] flex items-center justify-center gap-2"
           >
-            Explore Dashboard
+            <Loader2 className="w-4 h-4 animate-spin" /> EXPLORING DASHBOARD...
           </button>
         </div>
       </div>
@@ -94,6 +104,8 @@ const CustomerDashboard = () => {
   const [extraAmount, setExtraAmount] = useState('');
   const [complaintTitle, setComplaintTitle] = useState('');
   const [complaintDesc, setComplaintDesc] = useState('');
+  const [complaintImages, setComplaintImages] = useState([]);
+  const [selectedComplaint, setSelectedComplaint] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
   // Catalog State
@@ -105,10 +117,13 @@ const CustomerDashboard = () => {
 
   const [customWorkDesc, setCustomWorkDesc] = useState('');
   const [customWorkStageIdx, setCustomWorkStageIdx] = useState('');
+  const [customWorkForUnit, setCustomWorkForUnit] = useState('');
 
   // Bulk Selection State
   const [bulkSelections, setBulkSelections] = useState({});
   const [previewModalOpen, setPreviewModalOpen] = useState(false);
+  const [bulkForUnit, setBulkForUnit] = useState('');
+  const [catalogForUnit, setCatalogForUnit] = useState('');
   
   // Requested Works Sub-Tab State
   const [requestedWorksTab, setRequestedWorksTab] = useState('history'); // 'history' or 'confirmed'
@@ -179,17 +194,7 @@ const CustomerDashboard = () => {
     }
   };
 
-  useEffect(() => {
-    if (complaintSuccessToken) {
-      confetti({
-        particleCount: 150,
-        spread: 80,
-        origin: { y: 0.6 },
-        colors: ['#006838', '#10b981', '#f59e0b', '#ffffff'],
-        zIndex: 9999
-      });
-    }
-  }, [complaintSuccessToken]);
+
 
   const handleLogout = () => {
     localStorage.removeItem('customerToken');
@@ -245,7 +250,8 @@ const CustomerDashboard = () => {
         body: JSON.stringify({
           stageIndex: catalogStageIdx,
           name: name,
-          amount: amount
+          amount: amount,
+          forUnit: catalogForUnit || flow.unitId.split(',')[0].trim()
         })
       });
       if (!res.ok) throw new Error('Failed to request extra work');
@@ -295,7 +301,7 @@ const CustomerDashboard = () => {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ items: itemsPayload })
+        body: JSON.stringify({ items: itemsPayload, forUnit: bulkForUnit || flow.unitId.split(',')[0].trim() })
       });
       if (!res.ok) throw new Error('Failed to submit extra works request');
       
@@ -359,7 +365,8 @@ const CustomerDashboard = () => {
         body: JSON.stringify({
           stageIndex: customWorkStageIdx,
           name: `Custom Request: ${customWorkDesc}`,
-          amount: 0
+          amount: 0,
+          forUnit: customWorkForUnit || flow.unitId.split(',')[0].trim()
         })
       });
       if (!res.ok) throw new Error('Failed to submit custom request');
@@ -375,10 +382,34 @@ const CustomerDashboard = () => {
     }
   };
 
+  const uploadToCloudinary = async (file) => {
+    const cloudName = 'dgo9lfoyd';
+    const uploadPreset = 'Johnbuilders';
+
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('upload_preset', uploadPreset);
+
+    const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
+      method: 'POST',
+      body: formData
+    });
+    
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error?.message || 'Failed to upload image');
+    return data.secure_url;
+  };
+
   const handleRaiseComplaint = async (e) => {
     e.preventDefault();
     setSubmitting(true);
     try {
+      const uploadedUrls = [];
+      for (const file of complaintImages) {
+        const url = await uploadToCloudinary(file);
+        uploadedUrls.push(url);
+      }
+
       const token = localStorage.getItem('customerToken');
       const res = await fetch(`${API_URL}/customer/complaint`, {
         method: 'POST',
@@ -386,7 +417,7 @@ const CustomerDashboard = () => {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ title: complaintTitle, description: complaintDesc })
+        body: JSON.stringify({ title: complaintTitle, description: complaintDesc, images: uploadedUrls })
       });
       if (!res.ok) throw new Error('Failed to submit complaint');
       
@@ -397,6 +428,7 @@ const CustomerDashboard = () => {
       setComplaintModalOpen(false);
       setComplaintTitle('');
       setComplaintDesc('');
+      setComplaintImages([]);
       setFlow(updatedFlow);
     } catch (err) {
       alert(err.message);
@@ -477,7 +509,9 @@ const CustomerDashboard = () => {
             <div className="relative z-10">
               <p className="text-[10px] uppercase tracking-widest text-emerald-200 font-bold mb-1">Client Portal</p>
               <h3 className="font-bold text-lg leading-tight truncate text-white">{flow.lead?.name}</h3>
-              <p className="text-xs text-emerald-100 truncate mt-1 font-medium">Unit {flow.unitId}</p>
+              <p className="text-xs text-emerald-100 truncate mt-1 font-medium">
+                {flow.project?.projectType?.[0] || 'Project'} - {flow.project?.code || 'N/A'} | Unit {flow.unitId}
+              </p>
             </div>
           </div>
         </div>
@@ -639,7 +673,9 @@ const CustomerDashboard = () => {
                       <thead className="bg-gray-50/80 text-gray-400 font-bold uppercase text-[10px] tracking-wider">
                         <tr>
                           <th className="p-4 md:px-8 font-bold">Milestone Stage</th>
+                          <th className="p-4 text-center font-bold">Payment Date On</th>
                           <th className="p-4 text-center font-bold">Payment Status</th>
+                          <th className="p-4 text-center font-bold">Project Status Date On</th>
                           <th className="p-4 text-center font-bold">Project Status</th>
                         </tr>
                       </thead>
@@ -655,6 +691,11 @@ const CustomerDashboard = () => {
                                 <div className="font-bold text-gray-900">{stage.name}</div>
                                 <div className="text-xs text-gray-500 mt-0.5">{stage.percentage}% of total value</div>
                               </td>
+                              <td className="p-4 text-center text-sm font-medium text-gray-600">
+                                {stage.payments?.length > 0 
+                                  ? new Date(Math.max(...stage.payments.map(p => new Date(p.date)))).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) 
+                                  : '--'}
+                              </td>
                               <td className="p-4 text-center">
                                 {stagePaid >= totalAmt ? (
                                   <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 text-[#006838] text-[10px] font-bold uppercase tracking-wider border border-emerald-100">
@@ -669,6 +710,11 @@ const CustomerDashboard = () => {
                                     Pending
                                   </span>
                                 )}
+                              </td>
+                              <td className="p-4 text-center text-sm font-medium text-gray-600">
+                                {stage.completedDate
+                                  ? new Date(stage.completedDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+                                  : '--'}
                               </td>
                               <td className="p-4 text-center">
                                 {stage.isCompleted ? (
@@ -982,6 +1028,18 @@ const CustomerDashboard = () => {
                                 className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-[#006838]/20 focus:border-[#006838] transition"
                               />
                             </div>
+                            {flow.unitId && flow.unitId.includes(',') && (
+                              <div>
+                                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Select Unit</label>
+                                <select
+                                  value={customWorkForUnit || flow.unitId.split(',')[0].trim()}
+                                  onChange={(e) => setCustomWorkForUnit(e.target.value)}
+                                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-[#006838]/20 focus:border-[#006838] transition"
+                                >
+                                  {flow.unitId.split(',').map(u => <option key={u.trim()} value={u.trim()}>Unit {u.trim()}</option>)}
+                                </select>
+                              </div>
+                            )}
                             <div>
                               <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Bill to Milestone Stage</label>
                               <select
@@ -1202,7 +1260,8 @@ const CustomerDashboard = () => {
                             <th className="p-4 w-16 text-center font-bold uppercase">S.No</th>
                             <th className="p-4 font-bold uppercase">Req ID</th>
                             <th className="p-4 font-bold uppercase">Date</th>
-                            <th className="p-4 font-bold uppercase">Stage</th>
+                            <th className="p-4 font-bold uppercase">Project</th>
+                            <th className="p-4 font-bold uppercase">Unit No</th>
                             <th className="p-4 font-bold uppercase">Category</th>
                             <th className="p-4 font-bold uppercase">Extra Work</th>
                             <th className="p-4 text-right font-bold uppercase">Est. Amount</th>
@@ -1221,9 +1280,11 @@ const CustomerDashboard = () => {
                                 {new Date(ew.addedAt).toLocaleDateString()}
                               </td>
                               <td className="p-4">
-                                <span className="inline-block px-2.5 py-1 bg-gray-100 text-gray-600 rounded-lg text-[10px] font-bold uppercase tracking-wider">
-                                  {ew.stageName}
-                                </span>
+                                <div className="font-bold text-gray-900">{flow.project?.code || '-'}</div>
+                                <div className="text-[10px] text-gray-500 uppercase">{flow.project?.projectType || '-'}</div>
+                              </td>
+                              <td className="p-4 text-xs font-bold text-emerald-600">
+                                {flow.unitId || '-'}
                               </td>
                               <td className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider">
                                 {ew.category || 'General'}
@@ -1432,7 +1493,7 @@ const CustomerDashboard = () => {
                             </tr>
                           ) : (
                             filteredComplaints.map((comp, idx) => (
-                              <tr key={idx} className="hover:bg-emerald-50/50 transition-colors">
+                              <tr key={idx} className="hover:bg-emerald-50/50 transition-colors cursor-pointer" onClick={() => setSelectedComplaint(comp)}>
                                 <td className="px-6 py-4 text-center text-gray-400 font-bold">{idx + 1}</td>
                                 <td className="px-6 py-4 font-mono font-bold text-[#006838]">{comp.token || '-'}</td>
                                 <td className="px-6 py-4 font-medium text-gray-900">{new Date(comp.reportedAt).toLocaleDateString()}</td>
@@ -1466,7 +1527,7 @@ const CustomerDashboard = () => {
                       </div>
                     ) : (
                       filteredComplaints.map((comp, idx) => (
-                        <div key={idx} className="bg-[#050907]/90 backdrop-blur-3xl border border-white/10 rounded-[2rem] shadow-[0_8px_30px_rgba(0,104,56,0.15)] overflow-hidden hover:shadow-[0_15px_40px_rgba(0,104,56,0.25)] hover:-translate-y-1 transition-all duration-300 relative group flex flex-col">
+                        <div key={idx} className="bg-[#050907]/90 backdrop-blur-3xl border border-white/10 rounded-[2rem] shadow-[0_8px_30px_rgba(0,104,56,0.15)] overflow-hidden hover:shadow-[0_15px_40px_rgba(0,104,56,0.25)] hover:-translate-y-1 transition-all duration-300 relative group flex flex-col cursor-pointer" onClick={() => setSelectedComplaint(comp)}>
                           {/* Decorative Glacier Glows */}
                           <div className="absolute -top-10 -right-10 w-40 h-40 bg-[#006838]/30 rounded-full blur-[50px] pointer-events-none transition-all group-hover:bg-[#006838]/40"></div>
                           <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-emerald-500/10 rounded-full blur-[40px] pointer-events-none"></div>
@@ -1560,6 +1621,27 @@ const CustomerDashboard = () => {
       {/* Complaint Success Modal */}
       {complaintSuccessToken && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-[70] flex items-center justify-center p-4">
+          
+          {/* Custom Emoji Burst */}
+          <div className="absolute inset-0 pointer-events-none z-[80] flex items-center justify-center overflow-hidden">
+            {Array.from({ length: 25 }).map((_, i) => {
+              const angle = (i / 25) * Math.PI * 2;
+              const distance = 100 + Math.random() * 200;
+              const tx = Math.cos(angle) * distance;
+              const ty = Math.sin(angle) * distance - 50; // shift up slightly
+              const rot = Math.random() * 360 - 180;
+              return (
+                <div 
+                  key={i} 
+                  className="absolute animate-emoji-burst text-4xl drop-shadow-lg"
+                  style={{ '--tx': `${tx}px`, '--ty': `${ty}px`, '--rot': `${rot}deg` }}
+                >
+                  😢
+                </div>
+              );
+            })}
+          </div>
+
           <div className="bg-white rounded-[2.5rem] w-full max-w-md overflow-hidden shadow-2xl animate-fade-in-up text-center relative p-10 border border-white/20">
             {/* Decorative BG */}
             <div className="absolute top-[-50px] left-[-50px] w-[200px] h-[200px] bg-emerald-500/10 rounded-full blur-[60px] pointer-events-none z-0"></div>
@@ -1567,13 +1649,15 @@ const CustomerDashboard = () => {
             
             <button onClick={() => setComplaintSuccessToken(null)} className="absolute top-6 right-6 text-gray-400 hover:text-gray-900 bg-gray-50 hover:bg-gray-100 p-2.5 rounded-full transition z-10 shadow-sm"><X className="w-5 h-5" /></button>
             
-            <div className="relative z-10 w-20 h-20 bg-gradient-to-br from-emerald-100 to-emerald-50 text-[#006838] rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner border border-emerald-100">
-              <CheckCircle className="w-10 h-10" />
+            <div className="relative z-10 w-24 h-24 md:w-28 md:h-28 bg-gradient-to-br from-red-100 to-red-50 text-red-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner border border-red-100 animate-sad-pop">
+              <Frown className="w-12 h-12 md:w-16 md:h-16 relative z-10" />
+              <div className="absolute top-[45%] left-[35%] w-2 h-3 bg-blue-400 rounded-full animate-tear z-20"></div>
+              <div className="absolute top-[45%] right-[35%] w-2 h-3 bg-blue-400 rounded-full animate-tear-delayed z-20"></div>
             </div>
             
-            <h3 className="font-bold text-2xl text-gray-900 mb-3 relative z-10 tracking-tight">Complaint Submitted!</h3>
+            <h3 className="font-bold text-2xl text-gray-900 mb-3 relative z-10 tracking-tight">We're sorry to hear that!</h3>
             <p className="text-sm text-gray-500 mb-8 leading-relaxed relative z-10">
-              Your complaint has been safely submitted to the <strong className="text-gray-900">John Buildwell PED Team</strong>. Please save your tracking token below to monitor your status.
+              Your complaint has been safely submitted to the <strong className="text-gray-900">John Buildwell CRD Team</strong>. Please save your tracking token below to monitor your status.
             </p>
             
             <div className="relative z-10 bg-gray-50/80 backdrop-blur-xl border border-gray-200/60 rounded-2xl p-5 mb-8 flex items-center justify-between shadow-sm group hover:border-emerald-200 transition-colors">
@@ -1618,10 +1702,72 @@ const CustomerDashboard = () => {
                 <label className="text-[11px] font-bold text-gray-400 uppercase tracking-widest block mb-1.5">Description of Issue</label>
                 <textarea required value={complaintDesc} onChange={e => setComplaintDesc(e.target.value)} placeholder="Describe your issue in detail..." rows="5" className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm font-semibold text-gray-900 focus:border-red-500 focus:ring-2 focus:ring-red-500/10 transition shadow-sm resize-none"></textarea>
               </div>
+              <div>
+                <label className="text-[11px] font-bold text-gray-400 uppercase tracking-widest block mb-1.5">Attach Images (Optional)</label>
+                <input 
+                  type="file" 
+                  multiple 
+                  accept="image/*"
+                  onChange={e => setComplaintImages(Array.from(e.target.files))}
+                  className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-red-50 file:text-red-700 hover:file:bg-red-100 transition"
+                />
+                {complaintImages.length > 0 && (
+                  <p className="mt-2 text-xs text-gray-500">{complaintImages.length} image(s) selected</p>
+                )}
+              </div>
               <button type="submit" disabled={submitting} className="w-full py-4 mt-4 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold text-sm tracking-wide transition shadow-lg shadow-red-600/30 flex justify-center">
                 {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Submit Complaint'}
               </button>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Selected Complaint Details Modal */}
+      {selectedComplaint && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-[60] flex items-center justify-center p-4" onClick={() => setSelectedComplaint(null)}>
+          <div className="bg-white rounded-[2rem] w-full max-w-2xl overflow-hidden shadow-2xl animate-fade-in-up" onClick={e => e.stopPropagation()}>
+            <div className="p-6 flex justify-between items-center border-b border-gray-100">
+              <h3 className="font-bold text-xl text-gray-900">Complaint Details</h3>
+              <button onClick={() => setSelectedComplaint(null)} className="text-gray-400 hover:text-gray-900 bg-gray-50 hover:bg-gray-100 p-2 rounded-full transition"><X className="w-5 h-5" /></button>
+            </div>
+            <div className="p-8">
+              <div className="mb-6">
+                <span className={`inline-flex px-3 py-1 text-[10px] font-bold uppercase tracking-widest rounded-lg border mb-4 ${
+                  selectedComplaint.status === 'Resolved' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
+                  selectedComplaint.status === 'In Progress' ? 'bg-amber-50 text-amber-600 border-amber-100' :
+                  'bg-gray-100 text-gray-600 border-gray-200'
+                }`}>
+                  {selectedComplaint.status || 'Pending'}
+                </span>
+                <h4 className="text-2xl font-bold text-gray-900 mb-2">{selectedComplaint.title || 'Complaint'}</h4>
+                <p className="text-gray-600 leading-relaxed bg-gray-50 p-4 rounded-xl border border-gray-100">{selectedComplaint.description}</p>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4 text-sm mb-6">
+                <div>
+                  <p className="text-gray-400 font-bold uppercase text-[10px] tracking-wider mb-1">Token</p>
+                  <p className="font-mono font-bold text-[#006838]">{selectedComplaint.token || '-'}</p>
+                </div>
+                <div>
+                  <p className="text-gray-400 font-bold uppercase text-[10px] tracking-wider mb-1">Date Reported</p>
+                  <p className="font-semibold text-gray-900">{new Date(selectedComplaint.reportedAt).toLocaleDateString()}</p>
+                </div>
+              </div>
+              
+              {selectedComplaint.images && selectedComplaint.images.length > 0 && (
+                <div>
+                  <p className="text-gray-400 font-bold uppercase text-[10px] tracking-wider mb-3">Attached Images</p>
+                  <div className="flex gap-4 overflow-x-auto pb-4">
+                    {selectedComplaint.images.map((imgUrl, i) => (
+                      <a key={i} href={imgUrl} target="_blank" rel="noopener noreferrer" className="flex-shrink-0 block">
+                        <img src={imgUrl} alt={`Attachment ${i+1}`} className="w-32 h-32 object-cover rounded-xl border border-gray-200 shadow-sm hover:opacity-80 transition" />
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}
@@ -1657,6 +1803,18 @@ const CustomerDashboard = () => {
                     className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-[#006838]/20 focus:border-[#006838] transition"
                   />
                 </div>
+                {flow.unitId && flow.unitId.includes(',') && (
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Select Unit</label>
+                    <select
+                      value={catalogForUnit || flow.unitId.split(',')[0].trim()}
+                      onChange={(e) => setCatalogForUnit(e.target.value)}
+                      className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-[#006838]/20 focus:border-[#006838] transition"
+                    >
+                      {flow.unitId.split(',').map(u => <option key={u.trim()} value={u.trim()}>Unit {u.trim()}</option>)}
+                    </select>
+                  </div>
+                )}
                 <div>
                   <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Bill to Milestone Stage</label>
                   <select
@@ -1709,6 +1867,18 @@ const CustomerDashboard = () => {
                   <h3 className="text-xl font-bold text-gray-900">Review Requested Works</h3>
                   <p className="text-sm text-gray-500">Please assign quantities and billing stages.</p>
                 </div>
+                {flow.unitId && flow.unitId.includes(',') && (
+                  <div className="ml-6 border-l border-gray-200 pl-6 hidden md:block">
+                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Select Unit</label>
+                    <select
+                      value={bulkForUnit || flow.unitId.split(',')[0].trim()}
+                      onChange={(e) => setBulkForUnit(e.target.value)}
+                      className="px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-sm font-semibold focus:outline-none focus:ring-1 focus:ring-[#006838]"
+                    >
+                      {flow.unitId.split(',').map(u => <option key={u.trim()} value={u.trim()}>Unit {u.trim()}</option>)}
+                    </select>
+                  </div>
+                )}
               </div>
               <button onClick={() => setPreviewModalOpen(false)} className="p-2 text-gray-400 hover:text-gray-900 bg-gray-50 rounded-full">
                 <X className="w-5 h-5" />

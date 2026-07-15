@@ -37,20 +37,30 @@ router.get('/my-quotation', protectCustomer, async (req, res) => {
 // @route   POST /api/customer/extra-work
 // @desc    Customer request for extra work
 router.post('/extra-work', protectCustomer, async (req, res) => {
-  const { stageIndex, name, amount } = req.body;
+  const { stageIndex, name, amount, forUnit } = req.body;
   try {
     const flow = req.customerFlow;
     const project = await Project.findById(flow.project);
     const projectCode = project ? project.code : 'EXT';
-    const totalEwCount = flow.stages.reduce((sum, s) => sum + s.extraWorks.length, 0);
-    const ewId = `${projectCode}EW${String(totalEwCount + 1).padStart(3, '0')}`;
     
+    const uniqueEwIds = new Set();
+    flow.stages.forEach(s => {
+      s.extraWorks.forEach(ew => {
+        if (ew.ewId) uniqueEwIds.add(ew.ewId);
+      });
+    });
+    const nextGroupNum = uniqueEwIds.size + 1;
+    
+    const targetUnit = forUnit || (flow.unitId.includes(',') ? flow.unitId.split(',')[0].trim() : flow.unitId);
+    const ewId = `${projectCode}/${targetUnit}/${String(nextGroupNum).padStart(3, '0')}`;
+
     if (!flow.stages[stageIndex]) {
       return res.status(404).json({ message: 'Stage not found' });
     }
 
     flow.stages[stageIndex].extraWorks.push({
       ewId,
+      forUnit: targetUnit,
       name,
       amount: Number(amount)
     });
@@ -58,7 +68,7 @@ router.post('/extra-work', protectCustomer, async (req, res) => {
     // We can push to history for tracking
     flow.history.push({
       action: 'Customer Requested Extra Work',
-      notes: `Requested '${name}' for Rs. ${amount} at stage ${flow.stages[stageIndex].name}`,
+      notes: `Requested '${name}' for Rs. ${amount} at stage ${flow.stages[stageIndex].name} for unit ${targetUnit}`,
       user: 'Customer'
     });
 
@@ -72,28 +82,37 @@ router.post('/extra-work', protectCustomer, async (req, res) => {
 // @route   POST /api/customer/bulk-extra-work
 // @desc    Customer request for multiple extra works at once
 router.post('/bulk-extra-work', protectCustomer, async (req, res) => {
-  const { items } = req.body;
+  const { items, forUnit } = req.body;
   try {
     const flow = req.customerFlow;
     let totalAmountAdded = 0;
     const project = await Project.findById(flow.project);
     const projectCode = project ? project.code : 'EXT';
-    let currentTotalEwCount = flow.stages.reduce((sum, s) => sum + s.extraWorks.length, 0);
     
     if (!Array.isArray(items)) {
       return res.status(400).json({ message: 'Items must be an array' });
     }
 
+    // Determine the next group ID
+    const uniqueEwIds = new Set();
+    flow.stages.forEach(s => {
+      s.extraWorks.forEach(ew => {
+        if (ew.ewId) uniqueEwIds.add(ew.ewId);
+      });
+    });
+    const nextGroupNum = uniqueEwIds.size + 1;
+    
+    const targetUnit = forUnit || (flow.unitId.includes(',') ? flow.unitId.split(',')[0].trim() : flow.unitId);
+    const ewId = `${projectCode}/${targetUnit}/${String(nextGroupNum).padStart(3, '0')}`;
+
     for (const item of items) {
       const { stageIndex, name, category, unit, quantity, rate, amount } = item;
       
       if (!flow.stages[stageIndex]) continue;
-
-      currentTotalEwCount++;
-      const ewId = `${projectCode}EW${String(currentTotalEwCount).padStart(3, '0')}`;
       
       flow.stages[stageIndex].extraWorks.push({
         ewId,
+        forUnit: targetUnit,
         name,
         category: category || 'General',
         unit: unit || 'Unit',
@@ -108,7 +127,7 @@ router.post('/bulk-extra-work', protectCustomer, async (req, res) => {
 
     flow.history.push({
       action: 'Customer Bulk Requested Extra Works',
-      notes: `Requested ${items.length} item(s) totaling Rs. ${totalAmountAdded}`,
+      notes: `Requested ${items.length} item(s) totaling Rs. ${totalAmountAdded} for unit ${targetUnit}`,
       user: 'Customer'
     });
 
@@ -122,7 +141,7 @@ router.post('/bulk-extra-work', protectCustomer, async (req, res) => {
 // @route   POST /api/customer/complaint
 // @desc    Customer raises a complaint
 router.post('/complaint', protectCustomer, async (req, res) => {
-  const { title, description } = req.body;
+  const { title, description, images } = req.body;
   try {
     const flow = req.customerFlow;
     
@@ -149,6 +168,7 @@ router.post('/complaint', protectCustomer, async (req, res) => {
         token,
         title: title || 'General Complaint',
         description,
+        images: images || [],
         status: 'Pending',
         reportedAt: Date.now(),
         scope

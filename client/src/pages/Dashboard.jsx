@@ -1702,7 +1702,7 @@ const Dashboard = () => {
                     {[
                       { label: 'Total', count: pStats.total, color: '#94a3b8', pct: 100 },
                       { label: 'Available', count: pStats.available, color: '#7ebda9', pct: pStats.total > 0 ? (pStats.available/pStats.total)*100 : 0 },
-                      { label: 'Booked', count: pStats.booked, color: '#8bc34a', pct: pStats.total > 0 ? (pStats.booked/pStats.total)*100 : 0 },
+                      { label: 'Booked', count: (pStats.booked || 0) + (pStats.handover || 0), color: '#8bc34a', pct: pStats.total > 0 ? (((pStats.booked || 0) + (pStats.handover || 0))/pStats.total)*100 : 0 },
                     ].map((slot, index) => {
                       return (
                         <div key={index} 
