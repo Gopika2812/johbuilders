@@ -65,7 +65,8 @@ export const AuthProvider = ({ children }) => {
         name: data.name,
         email: data.email,
         role: data.role,
-        isApproved: data.isApproved
+        isApproved: data.isApproved,
+        permissions: data.permissions || []
       });
       return data;
     } finally {
@@ -96,7 +97,8 @@ export const AuthProvider = ({ children }) => {
         name: data.name,
         email: data.email,
         role: data.role,
-        isApproved: data.isApproved
+        isApproved: data.isApproved,
+        permissions: data.permissions || []
       });
       return data;
     } finally {
@@ -115,6 +117,13 @@ export const AuthProvider = ({ children }) => {
   const isSales = user?.role === 'Sales Executive';
   const isSiteEngineer = user?.role === 'Site Engineer';
 
+  const hasPermission = (pageId) => {
+    if (isAdmin) return true; // Admins see everything
+    if (!user || !user.permissions) return false;
+    const perm = user.permissions.find(p => p.pageId === pageId);
+    return perm ? perm.canView : false;
+  };
+
   const value = {
     user,
     token,
@@ -126,7 +135,8 @@ export const AuthProvider = ({ children }) => {
     isManager,
     isSales,
     isSiteEngineer,
-    isAuthenticated: !!user
+    isAuthenticated: !!user,
+    hasPermission
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

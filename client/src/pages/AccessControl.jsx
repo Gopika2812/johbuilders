@@ -8,7 +8,8 @@ import {
   Edit3, 
   CheckSquare, 
   Square,
-  Loader2
+  Loader2,
+  Search
 } from 'lucide-react';
 
 const AccessControl = () => {
@@ -20,6 +21,7 @@ const AccessControl = () => {
   // Data states
   const [userConfigs, setUserConfigs] = useState([]);
   const [activeUserId, setActiveUserId] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     fetchPermissions();
@@ -138,10 +140,22 @@ const AccessControl = () => {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
           
           {/* Left panel - User Selection List */}
-          <div className="lg:col-span-4 bg-white border border-black-100 p-5 rounded-3xl shadow-sm space-y-4">
-            <h3 className="text-xs font-extrabold text-black-450 uppercase tracking-wider block mb-2">Select User</h3>
-            <div className="space-y-3">
-              {userConfigs.map((config) => {
+          <div className="lg:col-span-4 bg-white border border-black-100 p-5 rounded-3xl shadow-sm flex flex-col max-h-[800px]">
+            <div className="mb-4 space-y-3">
+              <h3 className="text-xs font-extrabold text-black-450 uppercase tracking-wider block">Select User</h3>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-black-400" />
+                <input
+                  type="text"
+                  placeholder="Search user..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-9 pr-4 py-2 bg-black-50 border border-black-150 rounded-xl text-xs focus:outline-none focus:border-[#0e623a] focus:ring-1 focus:ring-[#0e623a] transition-all"
+                />
+              </div>
+            </div>
+            <div className="space-y-3 overflow-y-auto pr-2 scrollbar-thin flex-1">
+              {userConfigs.filter(config => config.userName.toLowerCase().includes(searchQuery.toLowerCase())).map((config) => {
                 const isActive = config.userId === activeUserId;
                 return (
                   <button
