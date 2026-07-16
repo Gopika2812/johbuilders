@@ -52,9 +52,9 @@ router.put('/:flowId/:stageIdx/:workId/send-to-ped', protect, checkPermission('e
     const extraWork = stage.extraWorks.id(workId);
     if (!extraWork) return res.status(404).json({ message: 'Extra work not found' });
 
-    if (extraWork.status !== 'Pending') {
-      return res.status(400).json({ message: 'Work must be Pending first' });
-    }
+      if (extraWork.status !== 'Pending' && extraWork.status !== 'Returned to CRD') {
+        return res.status(400).json({ message: 'Work must be Pending or Returned to CRD first' });
+      }
 
     extraWork.status = 'Sent to PED';
     extraWork.sentToPedDate = new Date();

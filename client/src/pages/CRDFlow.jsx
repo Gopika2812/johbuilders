@@ -60,7 +60,7 @@ function numberToWords(num) {
 }
 
 const CRDFlow = () => {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const navigate = useNavigate();
   const [projects, setProjects] = useState([]);
   const [bookings, setBookings] = useState([]);
@@ -161,7 +161,7 @@ const CRDFlow = () => {
       const projRes = await fetch(`${API_URL}/projects`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
-      const leadRes = await fetch(`${API_URL}/leads?status=Booking,Cancelled`, {
+      const leadRes = await fetch(`${API_URL}/leads?status=Booking,Cancelled&crdView=true`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const flowsRes = await fetch(`${API_URL}/crd-flow`, {
@@ -949,6 +949,12 @@ const CRDFlow = () => {
                   const bookingStr = new Date(lead.bookingInfo?.bookingDate || lead.createdAt).toLocaleDateString('en-CA');
                   if (filterFromDate && bookingStr < filterFromDate) return false;
                   if (filterToDate && bookingStr > filterToDate) return false;
+                  if (user?.role !== 'Admin' && user?.role !== 'Manager') {
+                    const quot = quotations.find(q => (q.lead?._id || q.lead) === lead._id);
+                    if (quot?.crdPerson?.name !== user.name && quot?.crdPerson?._id !== user.name && quot?.crdPerson?._id !== user._id) {
+                      return false;
+                    }
+                  }
                   return true;
                 })
                 .map((lead, index) => {
@@ -1154,6 +1160,12 @@ const CRDFlow = () => {
                 const bookingStr = new Date(lead.bookingInfo?.bookingDate || lead.createdAt).toLocaleDateString('en-CA');
                 if (filterFromDate && bookingStr < filterFromDate) return false;
                 if (filterToDate && bookingStr > filterToDate) return false;
+                if (user?.role !== 'Admin' && user?.role !== 'Manager') {
+                  const quot = quotations.find(q => (q.lead?._id || q.lead) === lead._id);
+                  if (quot?.crdPerson?.name !== user.name && quot?.crdPerson?._id !== user._id) {
+                    return false;
+                  }
+                }
                 return true;
               }).length === 0 && (
                 <tr>

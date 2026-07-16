@@ -881,10 +881,10 @@ const handleRateChange = (workId, value) => {
                                         stage.extraWorks.forEach(work => {
                                           const isValid = (() => {
                                             if (activeTab === 'crd') return true; // all
-                                            if (activeTab === 'ped') return ['Sent to PED', 'PED Approved', 'Sent to Customer', 'Client Approved', 'Sent to Accounts', 'Added to CRD', 'Rejected', 'Removed by Client'].includes(work.status);
-                                            if (activeTab === 'client') return ['Sent to Customer', 'Client Approved', 'Sent to Accounts', 'Added to CRD', 'Rejected', 'Removed by Client'].includes(work.status);
-                                            if (activeTab === 'accounts') return ['Sent to Accounts', 'Added to CRD'].includes(work.status);
-                                            if (activeTab === 'work-orders') return ['Added to CRD'].includes(work.status);
+                                            if (activeTab === 'ped') return ['Sent to PED', 'PED Approved', 'Returned to CRD', 'Sent to Customer', 'Client Approved', 'Sent to Accounts', 'Added to CRD', 'Execution Sent to PED', 'Start Work', 'In Progress', 'Completed', 'Rejected', 'Removed by Client'].includes(work.status);
+                                            if (activeTab === 'client') return ['Sent to Customer', 'Client Approved', 'Sent to Accounts', 'Added to CRD', 'Execution Sent to PED', 'Start Work', 'In Progress', 'Completed', 'Rejected', 'Removed by Client'].includes(work.status);
+                                            if (activeTab === 'accounts') return ['Sent to Accounts', 'Added to CRD', 'Execution Sent to PED', 'Start Work', 'In Progress', 'Completed'].includes(work.status);
+                                            if (activeTab === 'work-orders') return ['Added to CRD', 'Execution Sent to PED', 'Start Work', 'In Progress', 'Completed'].includes(work.status);
                                             return false;
                                           })();
                                           if (isValid) {
@@ -1052,7 +1052,7 @@ const handleRateChange = (workId, value) => {
                                                         onClick={(e) => e.stopPropagation()}
                                                       />
                                                   )}
-                                                  {activeTab === 'ped' && ['Execution Sent to PED', 'Start Work', 'In Progress'].includes(work.status) && (
+                                                  {activeTab === 'ped' && ['Added to CRD', 'Execution Sent to PED', 'Start Work', 'In Progress'].includes(work.status) && (
                                                       <select
                                                         value={work.status}
                                                         disabled={!(isAdmin || canEditTab('ped'))}
@@ -1071,6 +1071,7 @@ const handleRateChange = (workId, value) => {
                                                         onClick={(e) => e.stopPropagation()}
                                                         className="px-2 py-1 bg-white border border-gray-200 rounded text-[10px] font-bold focus:outline-none focus:ring-1 focus:ring-[#006838] disabled:bg-gray-100 disabled:cursor-not-allowed"
                                                       >
+                                                        <option value="Added to CRD" disabled>Ready for Execution</option>
                                                         <option value="Execution Sent to PED" disabled>Execution Sent to PED</option>
                                                         <option value="Start Work">Start Work</option>
                                                         <option value="In Progress">In Progress</option>
@@ -1306,14 +1307,14 @@ const handleRateChange = (workId, value) => {
                                 if (!hasPending && !hasReturnedToCRD && !hasClientApproved && !hasAddedToCRD) return null;
                                 return (
                                   <div className="mt-4 flex flex-wrap justify-end gap-3">
-                                    {hasPending && (
+                                    {(hasPending || hasReturnedToCRD) && (
                                       <button
                                         onClick={async () => {
                                           setSubmitting('bulk-crd');
                                           try {
                                             const works = [];
                                             flow.stages.forEach((s, sIdx) => s.extraWorks?.forEach(w => {
-                                              if (w.status === 'Pending' && selectedWorks.includes(w._id)) works.push({sIdx, wId: w._id});
+                                              if ((w.status === 'Pending' || w.status === 'Returned to CRD') && selectedWorks.includes(w._id)) works.push({sIdx, wId: w._id});
                                             }));
                                             for (const work of works) {
                                               await fetch(`${API_URL}/extra-works/${flow._id}/${work.sIdx}/${work.wId}/send-to-ped`, {
@@ -1327,9 +1328,9 @@ const handleRateChange = (workId, value) => {
                                           }
                                         }}
                                         disabled={submitting === 'bulk-crd' || !selectedWorks.some(id => {
-                                          let isPending = false;
-                                          flow.stages.forEach(s => s.extraWorks?.forEach(w => { if (w._id === id && w.status === 'Pending') isPending = true; }));
-                                          return isPending;
+                                          let isPendingOrReturned = false;
+                                          flow.stages.forEach(s => s.extraWorks?.forEach(w => { if (w._id === id && (w.status === 'Pending' || w.status === 'Returned to CRD')) isPendingOrReturned = true; }));
+                                          return isPendingOrReturned;
                                         })}
                                         className="px-6 py-2 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition flex items-center justify-center gap-2 shadow-sm disabled:opacity-50"
                                       >

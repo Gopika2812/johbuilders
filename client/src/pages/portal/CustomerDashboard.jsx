@@ -1379,9 +1379,9 @@ const CustomerDashboard = () => {
                                         </span>
                                       )
                                     ) : (
-                                      ew.status === 'Approved' || ew.status === 'Client Approved' || ew.status === 'Added to CRD' ? (
+                                      ['Approved', 'Client Approved', 'Sent to Accounts', 'Added to CRD', 'Execution Sent to PED', 'Start Work', 'In Progress', 'Completed'].includes(ew.status) ? (
                                         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-600 text-[10px] font-bold uppercase tracking-wider border border-emerald-100">
-                                          <CheckCircle className="w-3 h-3" /> {ew.status === 'Approved' ? 'Approved' : ew.status}
+                                          <CheckCircle className="w-3 h-3" /> {ew.status === 'Client Approved' ? 'I Agreed' : ew.status === 'Added to CRD' ? 'Work Order Issued' : ['Execution Sent to PED'].includes(ew.status) ? 'Execution Pending' : ew.status}
                                         </span>
                                       ) : ew.status === 'Rejected' || ew.status === 'Removed by Client' ? (
                                         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-red-50 text-red-600 text-[10px] font-bold uppercase tracking-wider border border-red-100">

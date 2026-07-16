@@ -9,7 +9,7 @@ const { protect, authorize } = require('../middleware/auth');
 // @route   GET /api/leads
 // @desc    Get all leads with optional filters
 router.get('/', protect, async (req, res) => {
-  const { status, leadType, search } = req.query;
+  const { status, leadType, search, crdView } = req.query;
   const query = {};
 
   if (status) {
@@ -31,7 +31,26 @@ router.get('/', protect, async (req, res) => {
 
   // Restrict to assigned leads for Sales Executives and Site Engineers (non-Admin/non-Manager)
   if (req.user.role !== 'Admin' && req.user.role !== 'Manager') {
-    query.assignedTo = req.user._id;
+    if (crdView === 'true') {
+      const Quotation = require('../models/Quotation');
+      const userQuotations = await Quotation.find({ crdPerson: req.user._id }, 'lead');
+      const leadIds = userQuotations.map(q => q.lead);
+      
+      if (query.$or) {
+        query.$and = [
+          { $or: query.$or },
+          { $or: [{ assignedTo: req.user._id }, { _id: { $in: leadIds } }] }
+        ];
+        delete query.$or;
+      } else {
+        query.$or = [
+          { assignedTo: req.user._id },
+          { _id: { $in: leadIds } }
+        ];
+      }
+    } else {
+      query.assignedTo = req.user._id;
+    }
   }
 
   try {
