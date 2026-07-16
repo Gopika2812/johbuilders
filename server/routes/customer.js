@@ -212,7 +212,7 @@ router.post('/extra-work/:stageIdx/:workId/approve', protectCustomer, async (req
     const extraWork = stage.extraWorks.id(workId);
     if (!extraWork) return res.status(404).json({ message: 'Extra work not found' });
 
-    if (extraWork.status !== 'Sent to Customer') {
+    if (extraWork.status !== 'Sent to Customer' && extraWork.status !== 'PED Approved') {
       return res.status(400).json({ message: 'Work not ready for approval' });
     }
 

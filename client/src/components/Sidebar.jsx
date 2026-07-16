@@ -280,7 +280,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
         )}
 
         {/* Tasks Board Module */}
-        {hasPermission('tasks_board') && (
+        {/* {hasPermission('tasks_board') && (
           <div>
             <Link
               to="/tasks-board"
@@ -295,7 +295,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
               <span className={`font-semibold whitespace-nowrap ${isExpanded ? "block" : "hidden"}`}>Tasks Board</span>
             </Link>
           </div>
-        )}
+        )} */}
 
         {/* Employees Directory */}
         {hasPermission('employees') && (
