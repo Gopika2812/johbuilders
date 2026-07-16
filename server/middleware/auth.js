@@ -70,8 +70,7 @@ const authorize = (...roles) => {
   };
 };
 
-// Check if role has dynamic permissions configured
-const UserPermission = require('../models/UserPermission');
+const { getMergedPermissions } = require('../utils/permissionHelper');
 const checkPermission = (pageId, action) => {
   return async (req, res, next) => {
     try {
@@ -84,12 +83,9 @@ const checkPermission = (pageId, action) => {
         return next();
       }
       
-      const userPerm = await UserPermission.findOne({ userId: req.user._id });
-      if (!userPerm) {
-        return res.status(403).json({ message: `Access denied. No permissions configured for user '${req.user.name}'.` });
-      }
+      const permissions = await getMergedPermissions(req.user);
       
-      const permission = userPerm.permissions.find(p => p.pageId === pageId);
+      const permission = permissions.find(p => p.pageId === pageId);
       if (!permission) {
         return res.status(403).json({ message: `Access denied. Module '${pageId}' is not configured for user '${req.user.name}'.` });
       }

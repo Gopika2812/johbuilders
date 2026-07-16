@@ -2,11 +2,12 @@ const express = require('express');
 const router = express.Router();
 const CRDFlow = require('../models/CRDFlow');
 const Project = require('../models/Project');
-const { protect, authorize } = require('../middleware/auth');
+const { protect, authorize, checkPermission } = require('../middleware/auth');
 
 // @route   GET /api/extra-works
 // @desc    Get all CRD flows that have extra works
-router.get('/', protect, authorize('Admin', 'Super Admin'), async (req, res) => {
+router.get('/', protect, checkPermission('extra_works', 'view'), async (req, res) => {
+
   try {
     const flows = await CRDFlow.find()
       .populate('project')
@@ -37,7 +38,8 @@ router.get('/', protect, authorize('Admin', 'Super Admin'), async (req, res) => 
 
 // @route   PUT /api/extra-works/:flowId/:stageIdx/:workId/send-to-ped
 // @desc    CRD team sends pending work to PED team
-router.put('/:flowId/:stageIdx/:workId/send-to-ped', protect, authorize('Admin', 'Super Admin'), async (req, res) => {
+router.put('/:flowId/:stageIdx/:workId/send-to-ped', protect, checkPermission('extra_works_crd', 'edit'), async (req, res) => {
+
   const { flowId, stageIdx, workId } = req.params;
 
   try {
@@ -72,7 +74,8 @@ router.put('/:flowId/:stageIdx/:workId/send-to-ped', protect, authorize('Admin',
 
 // @route   PUT /api/extra-works/:flowId/:stageIdx/:workId/price
 // @desc    PED team saves the price for an extra work
-router.put('/:flowId/:stageIdx/:workId/price', protect, authorize('Admin', 'Super Admin'), async (req, res) => {
+router.put('/:flowId/:stageIdx/:workId/price', protect, checkPermission('extra_works_ped', 'edit'), async (req, res) => {
+
   const { flowId, stageIdx, workId } = req.params;
   const { rate, quantity } = req.body;
 
@@ -105,9 +108,10 @@ router.put('/:flowId/:stageIdx/:workId/price', protect, authorize('Admin', 'Supe
   }
 });
 
-// @route   PUT /api/extra-works/:flowId/:stageIdx/:workId/return-to-crd
-// @desc    PED team sends priced extra work back to CRD
-router.put('/:flowId/:stageIdx/:workId/return-to-crd', protect, authorize('Admin', 'Super Admin'), async (req, res) => {
+// @route   PUT /api/extra-works/:flowId/:stageIdx/:workId/send
+// @desc    Admin sends priced extra work to customer
+router.put('/:flowId/:stageIdx/:workId/send', protect, checkPermission('extra_works_ped', 'edit'), async (req, res) => {
+
   const { flowId, stageIdx, workId } = req.params;
 
   try {
@@ -174,7 +178,8 @@ router.put('/:flowId/:stageIdx/:workId/send', protect, authorize('Admin', 'Super
 });
 // @route   PUT /api/extra-works/:flowId/:stageIdx/:workId/send-to-accounts
 // @desc    CRD team sends Client Approved work to Accounts team
-router.put('/:flowId/:stageIdx/:workId/send-to-accounts', protect, authorize('Admin', 'Super Admin'), async (req, res) => {
+router.put('/:flowId/:stageIdx/:workId/send-to-accounts', protect, checkPermission('extra_works_crd', 'edit'), async (req, res) => {
+
   const { flowId, stageIdx, workId } = req.params;
 
   try {
@@ -208,7 +213,8 @@ router.put('/:flowId/:stageIdx/:workId/send-to-accounts', protect, authorize('Ad
 });
 // @route   PUT /api/extra-works/:flowId/:stageIdx/:workId/add-to-crd
 // @desc    Accounts Team adds the Client Approved extra work to the flow/stage and creates WO
-router.put('/:flowId/:stageIdx/:workId/add-to-crd', protect, authorize('Admin', 'Super Admin'), async (req, res) => {
+router.put('/:flowId/:stageIdx/:workId/add-to-crd', protect, checkPermission('extra_works_accounts', 'edit'), async (req, res) => {
+
   const { flowId, stageIdx, workId } = req.params;
 
   try {
@@ -249,7 +255,8 @@ router.put('/:flowId/:stageIdx/:workId/add-to-crd', protect, authorize('Admin', 
 
 // @route   PUT /api/extra-works/:flowId/:stageIdx/:workId/send-to-ped-execution
 // @desc    CRD team sends work order to PED team for execution
-router.put('/:flowId/:stageIdx/:workId/send-to-ped-execution', protect, authorize('Admin', 'Super Admin'), async (req, res) => {
+router.put('/:flowId/:stageIdx/:workId/send-to-ped-execution', protect, checkPermission('extra_works_crd', 'edit'), async (req, res) => {
+
   const { flowId, stageIdx, workId } = req.params;
 
   try {
@@ -283,7 +290,8 @@ router.put('/:flowId/:stageIdx/:workId/send-to-ped-execution', protect, authoriz
 
 // @route   PUT /api/extra-works/:flowId/:stageIdx/:workId/update-status
 // @desc    Update execution status (Start Work, In Progress, Completed)
-router.put('/:flowId/:stageIdx/:workId/update-status', protect, authorize('Admin', 'Super Admin'), async (req, res) => {
+router.put('/:flowId/:stageIdx/:workId/update-status', protect, checkPermission('extra_works_ped', 'edit'), async (req, res) => {
+
   const { flowId, stageIdx, workId } = req.params;
   const { status } = req.body;
 
@@ -319,7 +327,8 @@ router.put('/:flowId/:stageIdx/:workId/update-status', protect, authorize('Admin
 
 // @route   POST /api/extra-works/:flowId/add
 // @desc    Admin adds a new extra work directly
-router.post('/:flowId/add', protect, authorize('Admin', 'Super Admin'), async (req, res) => {
+router.post('/:flowId/add', protect, checkPermission('extra_works_crd', 'edit'), async (req, res) => {
+
   const { flowId } = req.params;
   const { stageId, name, category, unit, quantity, rate, ewId, forUnit, works } = req.body;
   
