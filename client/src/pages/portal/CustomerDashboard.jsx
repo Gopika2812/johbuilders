@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import confetti from 'canvas-confetti';
 import { useNavigate } from 'react-router-dom';
-import { User, LogOut, CheckCircle, Clock, Plus, Minus, AlertTriangle, X, Loader2, MessageSquareWarning, Home, Sparkles, Menu, Phone, MapPin, Activity, Wrench, ShieldAlert, FileText, ChevronRight, Building, CreditCard, Droplets, Grid, Utensils, Zap, Trees, Layout, Paintbrush, Hammer, Cloud, TrendingUp, Maximize, Package, Copy, LayoutGrid, List, Check, Calendar, Search, Frown } from 'lucide-react';
+import { User, LogOut, CheckCircle, Clock, Plus, Minus, AlertTriangle, X, Loader2, MessageSquareWarning, Home, Sparkles, Menu, Phone, MapPin, Activity, Wrench, ShieldAlert, FileText, ChevronRight, ChevronDown, ChevronUp, Building, CreditCard, Droplets, Grid, Utensils, Zap, Trees, Layout, Paintbrush, Hammer, Cloud, TrendingUp, Maximize, Package, Copy, LayoutGrid, List, Check, Calendar, Search, Frown } from 'lucide-react';
 import { API_URL } from '../../context/AuthContext';
 
 const WelcomePopup = ({ isOpen, onClose, userName, projectName }) => {
@@ -113,22 +113,22 @@ const CustomerDashboard = () => {
   const [catalogModalOpen, setCatalogModalOpen] = useState(false);
   const [selectedCatalogItem, setSelectedCatalogItem] = useState(null);
   const [catalogQuantity, setCatalogQuantity] = useState(1);
-  const [catalogStageIdx, setCatalogStageIdx] = useState('');
+  const [catalogForUnit, setCatalogForUnit] = useState('');
 
   const [customWorkDesc, setCustomWorkDesc] = useState('');
-  const [customWorkStageIdx, setCustomWorkStageIdx] = useState('');
   const [customWorkForUnit, setCustomWorkForUnit] = useState('');
 
   // Bulk Selection State
   const [bulkSelections, setBulkSelections] = useState({});
   const [previewModalOpen, setPreviewModalOpen] = useState(false);
   const [bulkForUnit, setBulkForUnit] = useState('');
-  const [catalogForUnit, setCatalogForUnit] = useState('');
+
   
   // Requested Works Sub-Tab State
-  const [requestedWorksTab, setRequestedWorksTab] = useState('history'); // 'history' or 'confirmed'
+  const [requestedWorksTab, setRequestedWorksTab] = useState('new'); // 'new', 'agreed', 'cancelled'
   const [requestedWorksStartDate, setRequestedWorksStartDate] = useState('');
   const [requestedWorksEndDate, setRequestedWorksEndDate] = useState('');
+  const [expandedReqIds, setExpandedReqIds] = useState({});
   const [quotation, setQuotation] = useState(null);
 
   // Complaints Filtration State
@@ -215,7 +215,6 @@ const CustomerDashboard = () => {
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
-          stageIndex: extraWorkModal.stageIdx,
           name: extraName,
           amount: extraAmount
         })
@@ -248,7 +247,6 @@ const CustomerDashboard = () => {
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
-          stageIndex: catalogStageIdx,
           name: name,
           amount: amount,
           forUnit: catalogForUnit || flow.unitId.split(',')[0].trim()
@@ -271,20 +269,12 @@ const CustomerDashboard = () => {
     const selectedIndices = Object.keys(bulkSelections).filter(idx => bulkSelections[idx].selected);
     if (selectedIndices.length === 0) return;
 
-    // Validate that all selected items have a stage assigned
-    const missingStage = selectedIndices.find(idx => bulkSelections[idx].stageIdx === '');
-    if (missingStage) {
-      alert("Please select a billing stage for all checked items.");
-      return;
-    }
-
     setSubmitting(true);
     try {
       const itemsPayload = selectedIndices.map(idx => {
         const catalogItem = flow.project.extraWorkCatalog[idx];
         const sel = bulkSelections[idx];
         return {
-          stageIndex: sel.stageIdx,
           name: catalogItem.name,
           category: catalogItem.category,
           unit: catalogItem.unit,
@@ -352,7 +342,7 @@ const CustomerDashboard = () => {
 
   const handleCustomWorkSubmit = async (e) => {
     e.preventDefault();
-    if (!customWorkDesc || customWorkStageIdx === '') return;
+      if (!customWorkDesc) return;
     setSubmitting(true);
     try {
       const token = localStorage.getItem('customerToken');
@@ -363,7 +353,6 @@ const CustomerDashboard = () => {
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
-          stageIndex: customWorkStageIdx,
           name: `Custom Request: ${customWorkDesc}`,
           amount: 0,
           forUnit: customWorkForUnit || flow.unitId.split(',')[0].trim()
@@ -372,7 +361,6 @@ const CustomerDashboard = () => {
       if (!res.ok) throw new Error('Failed to submit custom request');
       
       setCustomWorkDesc('');
-      setCustomWorkStageIdx('');
       fetchFlow();
       alert("Custom request submitted! The admin will review it and assign a rate.");
     } catch (err) {
@@ -987,8 +975,6 @@ const CustomerDashboard = () => {
                           <button
                             onClick={() => {
                               setSelectedCategory('Other Requirements');
-                              const firstOngoingStageIdx = flow.stages.findIndex(s => !s.isCompleted);
-                              setCustomWorkStageIdx(firstOngoingStageIdx !== -1 ? firstOngoingStageIdx : '');
                             }}
                             className={`w-full text-left px-4 py-3 rounded-2xl text-sm font-bold transition-all duration-300 mt-2 border border-dashed ${
                               selectedCategory === 'Other Requirements' 
@@ -1040,26 +1026,11 @@ const CustomerDashboard = () => {
                                 </select>
                               </div>
                             )}
-                            <div>
-                              <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Bill to Milestone Stage</label>
-                              <select
-                                required
-                                value={customWorkStageIdx}
-                                onChange={(e) => setCustomWorkStageIdx(e.target.value)}
-                                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-[#006838]/20 focus:border-[#006838] transition"
-                              >
-                                <option value="" disabled>Select a stage...</option>
-                                {flow.stages.map((stg, idx) => (
-                                  <option key={idx} value={idx} disabled={stg.isCompleted}>
-                                    {stg.name} {stg.isCompleted ? '(Completed)' : ''}
-                                  </option>
-                                ))}
-                              </select>
-                            </div>
+
                             <div className="pt-2">
                               <button
                                 type="submit"
-                                disabled={submitting || customWorkStageIdx === ''}
+                                disabled={submitting}
                                 className="w-full py-4 bg-[#006838] text-white font-bold rounded-xl hover:bg-[#00522c] transition flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/20"
                               >
                                 {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Submit Custom Request'}
@@ -1166,8 +1137,17 @@ const CustomerDashboard = () => {
             {/* TAB: REQUESTED WORKS */}
             {activeTab === 'requestedworks' && (() => {
               const filteredRequestedWorks = allExtraWorks.filter(ew => {
-                if (requestedWorksTab === 'confirmed') {
-                  if (!['Sent to Customer', 'Client Approved', 'Added to CRD'].includes(ew.status)) return false;
+                if (requestedWorksTab === 'new') {
+                  if (['Client Approved', 'Added to CRD', 'Rejected', 'Removed by Client'].includes(ew.status)) return false;
+                }
+                if (requestedWorksTab === 'agreed') {
+                  if (!['Client Approved', 'Added to CRD'].includes(ew.status)) return false;
+                }
+                if (requestedWorksTab === 'cancelled') {
+                  if (!['Rejected', 'Removed by Client'].includes(ew.status)) return false;
+                }
+                if (requestedWorksTab === 'history') {
+                  // Show all in history, no status filter
                 }
                 if (requestedWorksStartDate && requestedWorksEndDate) {
                   const ewDate = new Date(ew.addedAt);
@@ -1178,6 +1158,24 @@ const CustomerDashboard = () => {
                 }
                 return true;
               }).sort((a, b) => new Date(b.addedAt) - new Date(a.addedAt));
+
+              const groupedRequestedWorks = Object.values(filteredRequestedWorks.reduce((acc, ew) => {
+                const id = ew.ewId || `NO_ID_${ew._id}`;
+                if (!acc[id]) {
+                  acc[id] = {
+                    ewId: id,
+                    displayId: ew.ewId,
+                    addedAt: ew.addedAt,
+                    category: 'Multiple Categories',
+                    items: [],
+                    totalAmount: 0,
+                    status: ew.status
+                  };
+                }
+                acc[id].items.push(ew);
+                acc[id].totalAmount += (ew.amount || 0);
+                return acc;
+              }, {})).sort((a, b) => new Date(b.addedAt) - new Date(a.addedAt));
 
               return (
               <div className="space-y-6">
@@ -1209,6 +1207,39 @@ const CustomerDashboard = () => {
                     {/* Sub-Tabs */}
                     <div className="bg-white/60 backdrop-blur-xl border border-white/60 p-1 rounded-2xl inline-flex shadow-sm">
                       <button
+                        onClick={() => setRequestedWorksTab('new')}
+                        className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all relative ${
+                          requestedWorksTab === 'new' 
+                            ? 'bg-[#006838] text-white shadow-md' 
+                            : 'text-gray-500 hover:text-gray-900'
+                        }`}
+                      >
+                        New
+                        {allExtraWorks.filter(ew => ew.status === 'Sent to Customer').length > 0 && (
+                          <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-white animate-pulse"></span>
+                        )}
+                      </button>
+                      <button
+                        onClick={() => setRequestedWorksTab('agreed')}
+                        className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${
+                          requestedWorksTab === 'agreed' 
+                            ? 'bg-[#006838] text-white shadow-md' 
+                            : 'text-gray-500 hover:text-gray-900'
+                        }`}
+                      >
+                        Agreed
+                      </button>
+                      <button
+                        onClick={() => setRequestedWorksTab('cancelled')}
+                        className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${
+                          requestedWorksTab === 'cancelled' 
+                            ? 'bg-[#006838] text-white shadow-md' 
+                            : 'text-gray-500 hover:text-gray-900'
+                        }`}
+                      >
+                        Cancelled
+                      </button>
+                      <button
                         onClick={() => setRequestedWorksTab('history')}
                         className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${
                           requestedWorksTab === 'history' 
@@ -1218,19 +1249,6 @@ const CustomerDashboard = () => {
                       >
                         History
                       </button>
-                      <button
-                        onClick={() => setRequestedWorksTab('confirmed')}
-                        className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all relative ${
-                          requestedWorksTab === 'confirmed' 
-                            ? 'bg-[#006838] text-white shadow-md' 
-                            : 'text-gray-500 hover:text-gray-900'
-                        }`}
-                      >
-                        Confirmed Requests
-                        {allExtraWorks.filter(ew => ew.status === 'Sent to Customer').length > 0 && (
-                          <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-white animate-pulse"></span>
-                        )}
-                      </button>
                     </div>
                   </div>
                 </div>
@@ -1239,16 +1257,10 @@ const CustomerDashboard = () => {
                   <div className="bg-white/60 backdrop-blur-xl border border-white/60 rounded-[2rem] p-12 text-center shadow-sm">
                     <FileText className="w-12 h-12 text-gray-300 mx-auto mb-4" />
                     <h3 className="text-lg font-bold text-gray-900">
-                      {allExtraWorks.filter(ew => requestedWorksTab === 'confirmed' ? ['Sent to Customer', 'Client Approved', 'Added to CRD'].includes(ew.status) : true).length > 0 
-                        ? 'No requests found for the selected date range.' 
-                        : (requestedWorksTab === 'confirmed' ? 'No pending approvals' : 'No requests yet')}
+                      No {requestedWorksTab} requests found
                     </h3>
                     <p className="text-gray-500 text-sm mt-1">
-                      {allExtraWorks.filter(ew => requestedWorksTab === 'confirmed' ? ['Sent to Customer', 'Client Approved', 'Added to CRD'].includes(ew.status) : true).length > 0 
-                        ? 'Try adjusting your date filters.' 
-                        : (requestedWorksTab === 'confirmed' 
-                          ? 'You have no extra works waiting for your approval.' 
-                          : "You haven't requested any extra works for your project.")}
+                      You don't have any {requestedWorksTab} extra works at the moment.
                     </p>
                   </div>
                 ) : (
@@ -1265,98 +1277,112 @@ const CustomerDashboard = () => {
                             <th className="p-4 font-bold uppercase">Category</th>
                             <th className="p-4 font-bold uppercase">Extra Work</th>
                             <th className="p-4 text-right font-bold uppercase">Est. Amount</th>
-                            <th className="p-4 text-center font-bold uppercase">{requestedWorksTab === 'confirmed' ? 'Action' : 'Status'}</th>
+                            <th className="p-4 text-center font-bold uppercase">{requestedWorksTab === 'new' ? 'Action' : 'Status'}</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-emerald-50">
-                          {filteredRequestedWorks
-                            .map((ew, idx) => (
-                            <tr key={idx} className="hover:bg-white transition bg-white/40">
-                              <td className="p-4 text-center text-gray-400 font-bold">{idx + 1}</td>
-                              <td className="p-4 text-xs font-bold text-[#006838]">
-                                {ew.ewId || '-'}
-                              </td>
-                              <td className="p-4 text-xs font-bold text-gray-600">
-                                {new Date(ew.addedAt).toLocaleDateString()}
-                              </td>
-                              <td className="p-4">
-                                <div className="font-bold text-gray-900">{flow.project?.code || '-'}</div>
-                                <div className="text-[10px] text-gray-500 uppercase">{flow.project?.projectType || '-'}</div>
-                              </td>
-                              <td className="p-4 text-xs font-bold text-emerald-600">
-                                {flow.unitId || '-'}
-                              </td>
-                              <td className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider">
-                                {ew.category || 'General'}
-                              </td>
-                              <td className="p-4">
-                                <div className="font-bold text-gray-900">{ew.name}</div>
-                                <div className="text-[10px] text-gray-500 mt-0.5">Qty: {ew.quantity || 1} {ew.unit ? `x ${ew.unit}` : ''} @ Rs. {ew.rate || 0}</div>
-                              </td>
-                              <td className="p-4 text-right font-black text-[#006838]">
-                                Rs. {(ew.amount || 0).toLocaleString()}
-                              </td>
-                              <td className="p-4 text-center flex items-center justify-center gap-2">
-                                {requestedWorksTab === 'confirmed' ? (
-                                  ew.status === 'Sent to Customer' ? (
-                                    <div className="flex items-center justify-center gap-2">
-                                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-50 text-blue-600 text-[10px] font-bold uppercase tracking-wider border border-blue-100">
-                                        <AlertTriangle className="w-3 h-3" /> Reviewing
-                                      </span>
-                                      <button 
-                                        onClick={() => handleCustomerRemove(ew.stageIdx, ew._id)}
-                                        disabled={submitting}
-                                        title="Remove Request"
-                                        className="p-1 rounded bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-colors disabled:opacity-50"
-                                      >
-                                        <X className="w-3 h-3" />
-                                      </button>
-                                    </div>
-                                  ) : (
-                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-600 text-[10px] font-bold uppercase tracking-wider border border-emerald-100">
-                                      <CheckCircle className="w-3 h-3" /> I Agreed
-                                    </span>
-                                  )
-                                ) : (
-                                  ew.status === 'Approved' || ew.status === 'Client Approved' || ew.status === 'Added to CRD' ? (
-                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-600 text-[10px] font-bold uppercase tracking-wider border border-emerald-100">
-                                      <CheckCircle className="w-3 h-3" /> {ew.status === 'Approved' ? 'Approved' : ew.status}
-                                    </span>
-                                  ) : ew.status === 'Rejected' || ew.status === 'Removed by Client' ? (
-                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-red-50 text-red-600 text-[10px] font-bold uppercase tracking-wider border border-red-100">
-                                      <X className="w-3 h-3" /> {ew.status}
-                                    </span>
-                                  ) : ew.status === 'Sent to Customer' ? (
-                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-50 text-blue-600 text-[10px] font-bold uppercase tracking-wider border border-blue-100">
-                                      <AlertTriangle className="w-3 h-3" /> Action Required
-                                    </span>
-                                  ) : (ew.status === 'Pending' || ew.status === 'PED APPROVED' || !ew.status) ? (
-                                    <div className="flex items-center gap-2">
-                                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-50 text-amber-600 text-[10px] font-bold uppercase tracking-wider border border-amber-100">
-                                        <Clock className="w-3 h-3" /> {ew.status === 'PED APPROVED' ? 'Pending' : (ew.status || 'Pending')}
-                                      </span>
-                                      <button 
-                                        onClick={() => handleCustomerRemove(ew.stageIdx, ew._id)}
-                                        disabled={submitting}
-                                        title="Remove Request"
-                                        className="p-1 rounded bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-colors disabled:opacity-50"
-                                      >
-                                        <X className="w-3 h-3" />
-                                      </button>
-                                    </div>
-                                  ) : (
-                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-gray-50 text-gray-600 text-[10px] font-bold uppercase tracking-wider border border-gray-100">
-                                      <Clock className="w-3 h-3" /> {ew.status}
-                                    </span>
-                                  )
-                                )}
-                              </td>
-                            </tr>
+                          {groupedRequestedWorks.map((group, idx) => (
+                            <React.Fragment key={idx}>
+                              <tr 
+                                className="hover:bg-emerald-50/30 transition cursor-pointer bg-white"
+                                onClick={() => setExpandedReqIds(prev => ({ ...prev, [group.ewId]: !prev[group.ewId] }))}
+                              >
+                                <td className="p-4 text-center text-gray-400 font-bold flex items-center justify-center gap-2">
+                                  {idx + 1}
+                                  {expandedReqIds[group.ewId] ? <ChevronUp className="w-4 h-4 text-emerald-600" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
+                                </td>
+                                <td className="p-4 text-xs font-bold text-[#006838]">{group.displayId || '-'}</td>
+                                <td className="p-4 text-xs font-bold text-gray-600">{new Date(group.addedAt).toLocaleDateString()}</td>
+                                <td className="p-4">
+                                  <div className="font-bold text-gray-900">{flow.project?.code || '-'}</div>
+                                  <div className="text-[10px] text-gray-500 uppercase">{flow.project?.projectType || '-'}</div>
+                                </td>
+                                <td className="p-4 text-xs font-bold text-emerald-600">{flow.unitId || '-'}</td>
+                                <td className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider">{group.items.length === 1 ? group.items[0].category : 'Multiple'}</td>
+                                <td className="p-4"><div className="font-bold text-gray-900">{group.items.length} Items Requested</div></td>
+                                <td className="p-4 text-right font-black text-[#006838]">Rs. {group.totalAmount.toLocaleString()}</td>
+                                <td className="p-4 text-center">
+                                  <span className="inline-flex px-3 py-1 text-[10px] font-bold uppercase tracking-widest rounded-lg border bg-gray-50 text-gray-600 border-gray-200">
+                                    {group.items.length === 1 ? group.items[0].status || 'Pending' : 'Grouped Request'}
+                                  </span>
+                                </td>
+                              </tr>
+                              {expandedReqIds[group.ewId] && group.items.map((ew, childIdx) => (
+                                <tr key={`${idx}-${childIdx}`} className="bg-gray-50/50 hover:bg-white transition border-l-4 border-[#006838]">
+                                  <td className="p-4 text-center text-gray-400 font-bold text-xs">{idx + 1}.{childIdx + 1}</td>
+                                  <td className="p-4 text-xs font-bold text-[#006838]/50">↳ {ew.ewId || '-'}</td>
+                                  <td className="p-4 text-xs font-bold text-gray-400">{new Date(ew.addedAt).toLocaleDateString()}</td>
+                                  <td className="p-4"></td>
+                                  <td className="p-4"></td>
+                                  <td className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider">{ew.category || 'General'}</td>
+                                  <td className="p-4">
+                                    <div className="font-bold text-gray-900">{ew.name}</div>
+                                    <div className="text-[10px] text-gray-500 mt-0.5">Qty: {ew.quantity || 1} {ew.unit ? `x ${ew.unit}` : ''} @ Rs. {ew.rate || 0}</div>
+                                  </td>
+                                  <td className="p-4 text-right font-black text-[#006838]">Rs. {(ew.amount || 0).toLocaleString()}</td>
+                                  <td className="p-4 text-center flex items-center justify-center gap-2">
+                                    {requestedWorksTab === 'new' ? (
+                                      ew.status === 'Sent to Customer' ? (
+                                        <div className="flex items-center justify-center gap-2">
+                                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-50 text-blue-600 text-[10px] font-bold uppercase tracking-wider border border-blue-100">
+                                            <AlertTriangle className="w-3 h-3" /> Reviewing
+                                          </span>
+                                          <button 
+                                            onClick={() => handleCustomerRemove(ew.stageIdx, ew._id)}
+                                            disabled={submitting}
+                                            title="Remove Request"
+                                            className="p-1 rounded bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-colors disabled:opacity-50"
+                                          >
+                                            <X className="w-3 h-3" />
+                                          </button>
+                                        </div>
+                                      ) : (
+                                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-600 text-[10px] font-bold uppercase tracking-wider border border-emerald-100">
+                                          <CheckCircle className="w-3 h-3" /> I Agreed
+                                        </span>
+                                      )
+                                    ) : (
+                                      ew.status === 'Approved' || ew.status === 'Client Approved' || ew.status === 'Added to CRD' ? (
+                                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-600 text-[10px] font-bold uppercase tracking-wider border border-emerald-100">
+                                          <CheckCircle className="w-3 h-3" /> {ew.status === 'Approved' ? 'Approved' : ew.status}
+                                        </span>
+                                      ) : ew.status === 'Rejected' || ew.status === 'Removed by Client' ? (
+                                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-red-50 text-red-600 text-[10px] font-bold uppercase tracking-wider border border-red-100">
+                                          <X className="w-3 h-3" /> {ew.status}
+                                        </span>
+                                      ) : ew.status === 'Sent to Customer' ? (
+                                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-50 text-blue-600 text-[10px] font-bold uppercase tracking-wider border border-blue-100">
+                                          <AlertTriangle className="w-3 h-3" /> Action Required
+                                        </span>
+                                      ) : (ew.status === 'Pending' || ew.status === 'PED APPROVED' || !ew.status) ? (
+                                        <div className="flex items-center gap-2">
+                                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-50 text-amber-600 text-[10px] font-bold uppercase tracking-wider border border-amber-100">
+                                            <Clock className="w-3 h-3" /> {ew.status === 'PED APPROVED' ? 'Pending' : (ew.status || 'Pending')}
+                                          </span>
+                                          <button 
+                                            onClick={() => handleCustomerRemove(ew.stageIdx, ew._id)}
+                                            disabled={submitting}
+                                            title="Remove Request"
+                                            className="p-1 rounded bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-colors disabled:opacity-50"
+                                          >
+                                            <X className="w-3 h-3" />
+                                          </button>
+                                        </div>
+                                      ) : (
+                                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-gray-50 text-gray-600 text-[10px] font-bold uppercase tracking-wider border border-gray-100">
+                                          <Clock className="w-3 h-3" /> {ew.status}
+                                        </span>
+                                      )
+                                    )}
+                                  </td>
+                                </tr>
+                              ))}
+                            </React.Fragment>
                           ))}
                         </tbody>
                       </table>
                     </div>
-                    {filteredRequestedWorks.filter(ew => requestedWorksTab === 'confirmed' && ew.status === 'Sent to Customer').length > 0 && (
+                    {filteredRequestedWorks.filter(ew => requestedWorksTab === 'new' && ew.status === 'Sent to Customer').length > 0 && (
                       <div className="p-4 bg-white/40 border-t border-gray-100 flex flex-wrap items-center justify-end gap-4">
                         <button
                           onClick={() => setActiveTab('quotation')}
@@ -1600,7 +1626,7 @@ const CustomerDashboard = () => {
               <button onClick={() => setExtraWorkModal({ open: false, stageIdx: null })} className="text-gray-400 hover:text-gray-900 bg-gray-50 hover:bg-gray-100 p-2 rounded-full transition"><X className="w-5 h-5" /></button>
             </div>
             <form onSubmit={handleAddExtraWork} className="p-8 space-y-5">
-              <p className="text-sm text-gray-500 mb-6 bg-gray-50 p-4 rounded-xl border border-gray-100">You are requesting additional work for <strong className="text-gray-900">{flow.stages[extraWorkModal.stageIdx]?.name}</strong>.</p>
+              <p className="text-sm text-gray-500 mb-6 bg-gray-50 p-4 rounded-xl border border-gray-100">You are requesting custom additional work.</p>
               <div>
                 <label className="text-[11px] font-bold text-gray-400 uppercase tracking-widest block mb-1.5">What do you want to customize?</label>
                 <input type="text" required value={extraName} onChange={e => setExtraName(e.target.value)} placeholder="e.g., Premium Italian Tiles" className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm font-semibold text-gray-900 focus:border-[#006838] focus:ring-2 focus:ring-[#006838]/10 transition shadow-sm" />
@@ -1815,22 +1841,6 @@ const CustomerDashboard = () => {
                     </select>
                   </div>
                 )}
-                <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Bill to Milestone Stage</label>
-                  <select
-                    required
-                    value={catalogStageIdx}
-                    onChange={(e) => setCatalogStageIdx(e.target.value)}
-                    className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-[#006838]/20 focus:border-[#006838] transition"
-                  >
-                    <option value="" disabled>Select a stage...</option>
-                    {flow.stages.map((stg, idx) => (
-                      <option key={idx} value={idx} disabled={stg.isCompleted}>
-                        {stg.name} {stg.isCompleted ? '(Completed)' : ''}
-                      </option>
-                    ))}
-                  </select>
-                </div>
 
                 <div className="pt-4 border-t border-gray-100 flex items-center justify-between">
                   <div>
@@ -1841,7 +1851,7 @@ const CustomerDashboard = () => {
                   </div>
                   <button
                     type="submit"
-                    disabled={submitting || catalogStageIdx === ''}
+                    disabled={submitting}
                     className="px-6 py-3 bg-[#006838] text-white font-bold rounded-xl hover:bg-[#00522c] transition disabled:opacity-50 flex items-center gap-2"
                   >
                     {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Confirm Request'}
@@ -1915,26 +1925,6 @@ const CustomerDashboard = () => {
                               }}
                               className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm font-bold focus:outline-none focus:ring-2 focus:ring-[#006838]/20 focus:border-[#006838]"
                             />
-                          </div>
-                          <div className="w-48">
-                            <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Bill to Stage</label>
-                            <select
-                              value={sel.stageIdx}
-                              onChange={(e) => {
-                                setBulkSelections(prev => ({
-                                  ...prev,
-                                  [idx]: { ...sel, stageIdx: e.target.value }
-                                }));
-                              }}
-                              className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs font-bold focus:outline-none focus:ring-2 focus:ring-[#006838]/20 focus:border-[#006838]"
-                            >
-                              <option value="" disabled>Select stage...</option>
-                              {flow.stages.map((stg, i) => (
-                                <option key={i} value={i} disabled={stg.isCompleted}>
-                                  {stg.name} {stg.isCompleted ? '(Done)' : ''}
-                                </option>
-                              ))}
-                            </select>
                           </div>
                           <button 
                             onClick={() => {

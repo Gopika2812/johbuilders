@@ -38,6 +38,7 @@ const defaultStagesTemplate = [
   { name: 'On completion of Third Floor Roof Slab', percentage: 10 },
   { name: 'On Completion of Fourth Floor Roof Slab', percentage: 5 },
   { name: 'On Completion of Fifth Floor Roof Slab', percentage: 3 },
+  { name: 'Extra Works', percentage: 0 },
   { name: 'On Handing Over', percentage: 2 }
 ];
 

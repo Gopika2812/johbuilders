@@ -37,7 +37,7 @@ router.get('/my-quotation', protectCustomer, async (req, res) => {
 // @route   POST /api/customer/extra-work
 // @desc    Customer request for extra work
 router.post('/extra-work', protectCustomer, async (req, res) => {
-  const { stageIndex, name, amount, forUnit } = req.body;
+  const { name, amount, forUnit } = req.body;
   try {
     const flow = req.customerFlow;
     const project = await Project.findById(flow.project);
@@ -54,11 +54,16 @@ router.post('/extra-work', protectCustomer, async (req, res) => {
     const targetUnit = forUnit || (flow.unitId.includes(',') ? flow.unitId.split(',')[0].trim() : flow.unitId);
     const ewId = `${projectCode}/${targetUnit}/${String(nextGroupNum).padStart(3, '0')}`;
 
-    if (!flow.stages[stageIndex]) {
+    let targetStageIndex = flow.stages.findIndex(s => s.name === 'Extra Works');
+    if (targetStageIndex === -1) {
+      targetStageIndex = flow.stages.length > 1 ? flow.stages.length - 2 : flow.stages.length - 1;
+    }
+
+    if (!flow.stages[targetStageIndex]) {
       return res.status(404).json({ message: 'Stage not found' });
     }
 
-    flow.stages[stageIndex].extraWorks.push({
+    flow.stages[targetStageIndex].extraWorks.push({
       ewId,
       forUnit: targetUnit,
       name,
@@ -68,7 +73,7 @@ router.post('/extra-work', protectCustomer, async (req, res) => {
     // We can push to history for tracking
     flow.history.push({
       action: 'Customer Requested Extra Work',
-      notes: `Requested '${name}' for Rs. ${amount} at stage ${flow.stages[stageIndex].name} for unit ${targetUnit}`,
+      notes: `Requested '${name}' for Rs. ${amount} at stage ${flow.stages[targetStageIndex].name} for unit ${targetUnit}`,
       user: 'Customer'
     });
 
@@ -105,12 +110,17 @@ router.post('/bulk-extra-work', protectCustomer, async (req, res) => {
     const targetUnit = forUnit || (flow.unitId.includes(',') ? flow.unitId.split(',')[0].trim() : flow.unitId);
     const ewId = `${projectCode}/${targetUnit}/${String(nextGroupNum).padStart(3, '0')}`;
 
+    let targetStageIndex = flow.stages.findIndex(s => s.name === 'Extra Works');
+    if (targetStageIndex === -1) {
+      targetStageIndex = flow.stages.length > 1 ? flow.stages.length - 2 : flow.stages.length - 1;
+    }
+
     for (const item of items) {
-      const { stageIndex, name, category, unit, quantity, rate, amount } = item;
+      const { name, category, unit, quantity, rate, amount } = item;
       
-      if (!flow.stages[stageIndex]) continue;
+      if (!flow.stages[targetStageIndex]) continue;
       
-      flow.stages[stageIndex].extraWorks.push({
+      flow.stages[targetStageIndex].extraWorks.push({
         ewId,
         forUnit: targetUnit,
         name,

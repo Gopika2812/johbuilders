@@ -28,6 +28,7 @@ const ExtraWorks = () => {
   const [activeTab, setActiveTab] = useState('crd');
   const [selectedWorks, setSelectedWorks] = useState([]); // crd, ped, client, accounts, work-orders
   const [extraWorkDetailsModal, setExtraWorkDetailsModal] = useState(null);
+  const [expandedReqIds, setExpandedReqIds] = useState({});
 
   // Filters
   const [searchTerm, setSearchTerm] = useState('');
@@ -243,7 +244,7 @@ const handleRateChange = (workId, value) => {
   const getStatusBadge = (status) => {
     switch(status) {
       case 'Pending': return <span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded text-xs font-bold">Pending (CRD)</span>;
-      case 'Sent to PED': return <span className="px-2 py-1 bg-indigo-100 text-indigo-800 rounded text-xs font-bold">Shared to PED</span>;
+      case 'Sent to PED': return <span className="px-2 py-1 bg-indigo-100 text-indigo-800 rounded text-xs font-bold">Sent to PED</span>;
       case 'PED Approved': return <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs font-bold">Priced (Ready to Send)</span>;
       case 'Sent to Customer': return <span className="px-2 py-1 bg-purple-100 text-purple-800 rounded text-xs font-bold">Sent to Customer</span>;
       case 'Client Approved': return <span className="px-2 py-1 bg-emerald-100 text-emerald-800 rounded text-xs font-bold">Client Approved</span>;
@@ -256,10 +257,10 @@ const handleRateChange = (workId, value) => {
   // Filter flows based on active tab requirements
   const getTabStatuses = () => {
     switch(activeTab) {
-      case 'crd': return ['Pending', 'Sent to PED'];
-      case 'ped': return ['Sent to PED', 'PED Approved'];
-      case 'client': return ['Sent to Customer', 'Client Approved'];
-      case 'accounts': return ['Client Approved'];
+      case 'crd': return ['Pending', 'Sent to PED', 'PED Approved', 'Sent to Customer', 'Client Approved', 'Added to CRD', 'Rejected', 'Removed by Client'];
+      case 'ped': return ['Sent to PED', 'PED Approved', 'Sent to Customer', 'Client Approved', 'Added to CRD', 'Rejected', 'Removed by Client'];
+      case 'client': return ['Sent to Customer', 'Client Approved', 'Added to CRD', 'Rejected', 'Removed by Client'];
+      case 'accounts': return ['Client Approved', 'Added to CRD'];
       case 'work-orders': return ['Added to CRD'];
       default: return [];
     }
@@ -726,7 +727,7 @@ const handleRateChange = (workId, value) => {
                                             if (allSelected) {
                                               setSelectedWorks(prev => prev.filter(id => !selectableWorks.includes(id)));
                                             } else {
-                                              setSelectedWorks(prev => [...new set([...prev, ...selectableWorks])]);
+                                              setSelectedWorks(prev => [...new Set([...prev, ...selectableWorks])]);
                                             }
                                           }}
                                           checked={(() => {
@@ -746,63 +747,149 @@ const handleRateChange = (workId, value) => {
                                       )}
                                     </th>
                                     <th className="p-4 font-bold text-[11px] uppercase tracking-wider">Req ID</th>
+                                    <th className="p-4 font-bold text-[11px] uppercase tracking-wider text-center">Requested on</th>
+                                    <th className="p-4 font-bold text-[11px] uppercase tracking-wider text-center">Sent to PED Date on</th>
                                     <th className="p-4 font-bold text-[11px] uppercase tracking-wider text-right">Estimated Value</th>
-                                    <th className="p-4 font-bold text-[11px] uppercase tracking-wider text-center">Estimated Date</th>
-                                    <th className="p-4 font-bold text-[11px] uppercase tracking-wider text-center">Sent to PED Date</th>
-                                    <th className="p-4 font-bold text-[11px] uppercase tracking-wider text-center">Customer Approval</th>
-                                    <th className="p-4 font-bold text-[11px] uppercase tracking-wider text-center">Sent to Accounts</th>
-                                    <th className="p-4 font-bold text-[11px] uppercase tracking-wider text-center">Work Order Issued</th>
+                                    <th className="p-4 font-bold text-[11px] uppercase tracking-wider text-center">Estimated Date on</th>
+                                    <th className="p-4 font-bold text-[11px] uppercase tracking-wider text-center">Customer Approval on </th>
+                                    <th className="p-4 font-bold text-[11px] uppercase tracking-wider text-center">Sent to Account Team on </th>
+                                    <th className="p-4 font-bold text-[11px] uppercase tracking-wider text-center">Work Order Issued on</th>
                                   </tr>
                                 </thead>
                                 <tbody className="divide-y divide-emerald-50">
-                                  {flow.stages.map((stage, sIdx) => (
-                                    stage.extraWorks && stage.extraWorks.length > 0 && stage.extraWorks.filter(w => {
-                                      if (activeTab === 'crd') return ['Pending', 'Sent to PED'].includes(w.status);
-                                      if (activeTab === 'ped') return ['Sent to PED', 'PED Approved'].includes(w.status);
-                                      if (activeTab === 'client') return ['Sent to Customer', 'Client Approved'].includes(w.status);
-                                      if (activeTab === 'accounts') return ['Client Approved'].includes(w.status);
-                                      if (activeTab === 'work-orders') return ['Added to CRD'].includes(w.status);
-                                      return false;
-                                    }).map(work => (
-                                      <tr key={work._id} className="hover:bg-emerald-50/30 transition-colors">
-                                        <td className="p-4 align-middle text-center">
-                                          {((activeTab === 'crd' && work.status === 'Pending') ||
-                                            (activeTab === 'ped' && work.status === 'PED Approved') ||
-                                            (activeTab === 'accounts' && work.status === 'Client Approved')) && (
-                                            <input 
-                                              type="checkbox"
-                                              className="w-4 h-4 rounded border-gray-300 text-[#006838] focus:ring-[#006838]"
-                                              checked={selectedWorks.includes(work._id)}
-                                              onChange={() => setSelectedWorks(prev => prev.includes(work._id) ? prev.filter(id => id !== work._id) : [...prev, work._id])}
-                                            />
-                                          )}
-                                        </td>
-                                        <td className="p-4 align-middle">
-                                          <button onClick={() => setExtraWorkDetailsModal({ flow, stageIdx: sIdx, work })} className="font-mono text-blue-700 font-bold hover:underline cursor-pointer">
-                                            {work.ewId || '-'}
-                                          </button>
-                                        </td>
-                                        <td className="p-4 align-middle text-right font-bold text-black-800">
-                                          Rs. {(work.amount || 0).toLocaleString()}
-                                        </td>
-                                        <td className="p-4 align-middle text-center text-sm text-gray-600">
-                                          {work.pricingDate ? new Date(work.pricingDate).toLocaleDateString('en-GB') : '-'}
-                                        </td>
-                                        <td className="p-4 align-middle text-center text-sm text-gray-600">
-                                          {work.sentToPedDate ? new Date(work.sentToPedDate).toLocaleDateString('en-GB') : '-'}
-                                        </td>
-                                        <td className="p-4 align-middle text-center text-sm text-emerald-700 font-medium">
-                                          {work.customerApprovalDate ? new Date(work.customerApprovalDate).toLocaleDateString('en-GB') : '-'}
-                                        </td>
-                                        <td className="p-4 align-middle text-center text-sm text-blue-700 font-medium">
-                                          {work.crdAddedDate ? new Date(work.crdAddedDate).toLocaleDateString('en-GB') : '-'}
-                                        </td>
-                                        <td className="p-4 align-middle text-center text-sm text-purple-700 font-medium">
-                                          {work.woId || (work.crdAddedDate ? new Date(work.crdAddedDate).toLocaleDateString('en-GB') : '-')}
-                                        </td>
-                                      </tr>
-                                    ))
-                                  ))}
+                                  {(() => {
+                                    const filteredFlowWorks = [];
+                                    flow.stages.forEach((stage, sIdx) => {
+                                      if (stage.extraWorks && stage.extraWorks.length > 0) {
+                                        stage.extraWorks.forEach(work => {
+                                          const isValid = (() => {
+                                            if (activeTab === 'crd') return true; // all
+                                            if (activeTab === 'ped') return ['Sent to PED', 'PED Approved', 'Sent to Customer', 'Client Approved', 'Added to CRD', 'Rejected', 'Removed by Client'].includes(work.status);
+                                            if (activeTab === 'client') return ['Sent to Customer', 'Client Approved', 'Added to CRD', 'Rejected', 'Removed by Client'].includes(work.status);
+                                            if (activeTab === 'accounts') return ['Client Approved', 'Added to CRD'].includes(work.status);
+                                            if (activeTab === 'work-orders') return ['Added to CRD'].includes(work.status);
+                                            return false;
+                                          })();
+                                          if (isValid) {
+                                            filteredFlowWorks.push({ ...work, stageIdx: sIdx, originalWork: work });
+                                          }
+                                        });
+                                      }
+                                    });
+
+                                    const groupedFlowWorks = Object.values(filteredFlowWorks.reduce((acc, work) => {
+                                      const id = work.ewId || `NO_ID_${work._id}`;
+                                      if (!acc[id]) {
+                                        acc[id] = {
+                                          ewId: id,
+                                          displayId: work.ewId,
+                                          items: [],
+                                          totalAmount: 0,
+                                          pricingDate: work.pricingDate,
+                                          sentToPedDate: work.sentToPedDate,
+                                          customerApprovalDate: work.customerApprovalDate,
+                                          crdAddedDate: work.crdAddedDate,
+                                          workOrderDate: work.workOrderDate,
+                                          woId: work.woId,
+                                          addedAt: work.addedAt
+                                        };
+                                      }
+                                      acc[id].items.push(work);
+                                      acc[id].totalAmount += (work.amount || 0);
+                                      return acc;
+                                    }, {}));
+
+                                    return groupedFlowWorks.map((group, gIdx) => (
+                                      <React.Fragment key={group.ewId || gIdx}>
+                                        <tr 
+                                          className="hover:bg-emerald-50/30 transition-colors cursor-pointer bg-white"
+                                          onClick={() => setExpandedReqIds(prev => ({ ...prev, [group.ewId]: !prev[group.ewId] }))}
+                                        >
+                                          <td className="p-4 align-middle text-center">
+                                            {expandedReqIds[group.ewId] ? <ChevronUp className="w-4 h-4 mx-auto text-emerald-600" /> : <ChevronDown className="w-4 h-4 mx-auto text-gray-400" />}
+                                          </td>
+                                          <td className="p-4 align-middle">
+                                            <span className="font-mono text-[#006838] font-bold">
+                                              {group.displayId || '-'}
+                                            </span>
+                                          </td>
+                                          <td className="p-4 align-middle text-center text-sm text-gray-600">
+                                            {group.addedAt ? new Date(group.addedAt).toLocaleDateString('en-GB') : '-'}
+                                          </td>
+                                          <td className="p-4 align-middle text-center text-sm text-gray-600">
+                                            {group.sentToPedDate ? new Date(group.sentToPedDate).toLocaleDateString('en-GB') : '-'}
+                                          </td>
+                                          <td className="p-4 align-middle text-right font-bold text-black-800">
+                                            Rs. {(group.totalAmount || 0).toLocaleString()}
+                                          </td>
+                                          <td className="p-4 align-middle text-center text-sm text-gray-600">
+                                            {group.pricingDate ? new Date(group.pricingDate).toLocaleDateString('en-GB') : '-'}
+                                          </td>
+                                          <td className="p-4 align-middle text-center text-sm text-emerald-700 font-medium">
+                                            {group.customerApprovalDate ? new Date(group.customerApprovalDate).toLocaleDateString('en-GB') : '-'}
+                                          </td>
+                                          <td className="p-4 align-middle text-center text-sm text-blue-700 font-medium">
+                                            {group.crdAddedDate ? new Date(group.crdAddedDate).toLocaleDateString('en-GB') : '-'}
+                                          </td>
+                                          <td className="p-4 align-middle text-center text-sm text-purple-700 font-medium">
+                                            {group.woId || (group.crdAddedDate ? new Date(group.crdAddedDate).toLocaleDateString('en-GB') : '-')}
+                                          </td>
+                                        </tr>
+                                        {expandedReqIds[group.ewId] && group.items.map((work, wIdx) => (
+                                          <tr key={work._id} className="bg-gray-50/50 hover:bg-white transition border-l-4 border-[#006838]">
+                                            <td className="p-4 align-middle text-center flex items-center justify-center gap-2">
+                                              {((activeTab === 'crd' && work.status === 'Pending') ||
+                                                (activeTab === 'ped' && work.status === 'PED Approved') ||
+                                                (activeTab === 'accounts' && work.status === 'Client Approved')) && (
+                                                <input 
+                                                  type="checkbox"
+                                                  className="w-4 h-4 rounded border-gray-300 text-[#006838] focus:ring-[#006838]"
+                                                  checked={selectedWorks.includes(work._id)}
+                                                  onChange={(e) => {
+                                                    e.stopPropagation();
+                                                    setSelectedWorks(prev => prev.includes(work._id) ? prev.filter(id => id !== work._id) : [...prev, work._id]);
+                                                  }}
+                                                />
+                                              )}
+                                              <span className="text-xs text-gray-400 font-bold">{gIdx + 1}.{wIdx + 1}</span>
+                                            </td>
+                                            <td className="p-4 align-middle" colSpan="3">
+                                              <span className="font-bold text-gray-700 flex items-center gap-1 text-xs whitespace-normal max-w-[400px]">
+                                                ↳ {work.name || '-'}
+                                              </span>
+                                            </td>
+                                            <td className="p-4 align-middle text-right font-bold text-[#006838]">
+                                              Rs. {(work.amount || 0).toLocaleString()}
+                                            </td>
+                                            <td colSpan="4" className="p-4 align-middle">
+                                              <div className="flex items-center justify-between gap-4">
+                                                <div className="text-[10px] text-gray-500 uppercase tracking-wider text-left">
+                                                  Qty: {work.quantity || 1} {work.unit ? `x ${work.unit}` : ''} @ Rs. {work.rate || 0} | Status: {work.status}
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                  {activeTab === 'ped' && (work.status === 'Sent to PED' || work.status === 'PED Approved') && (
+                                                      <input
+                                                        type="number"
+                                                        value={rates[work._id] ?? work.rate ?? ''}
+                                                        onChange={(e) => handleRateChange(work._id, e.target.value)}
+                                                        onBlur={(e) => {
+                                                          if (rates[work._id] !== undefined && Number(rates[work._id]) !== Number(work.rate)) {
+                                                            handleSavePrice(flow._id, work.stageIdx, work._id);
+                                                          }
+                                                        }}
+                                                        className="w-20 px-2 py-1 bg-white border border-gray-200 rounded text-xs focus:outline-none focus:ring-1 focus:ring-[#006838]"
+                                                        placeholder="Rate"
+                                                        onClick={(e) => e.stopPropagation()}
+                                                      />
+                                                  )}
+                                                </div>
+                                              </div>
+                                            </td>
+                                          </tr>
+                                        ))}
+                                      </React.Fragment>
+                                    ));
+                                  })()}
                                 </tbody>
                               </table>
                             </div>
