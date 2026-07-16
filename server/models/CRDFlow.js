@@ -10,13 +10,14 @@ const ExtraWorkSchema = new mongoose.Schema({
   quantity: { type: Number, default: 1 },
   rate: { type: Number, default: 0 },
   amount: { type: Number, required: true }, // total amount (quantity * rate)
-  status: { type: String, enum: ['Pending', 'Sent to PED', 'PED Approved', 'Sent to Customer', 'Client Approved', 'Sent to Accounts', 'Added to CRD', 'Execution Sent to PED', 'Start Work', 'In Progress', 'Completed', 'Rejected', 'Removed by Client'], default: 'Pending' },
+  status: { type: String, enum: ['Pending', 'Sent to PED', 'PED Approved', 'Returned to CRD', 'Sent to Customer', 'Client Approved', 'Sent to Accounts', 'Added to CRD', 'Execution Sent to PED', 'Start Work', 'In Progress', 'Completed', 'Rejected', 'Removed by Client', 'Cancelled by Admin'], default: 'Pending' },
   addedAt: { type: Date, default: Date.now },
   sentToPedDate: { type: Date },
   pricingDate: { type: Date },
   customerApprovalDate: { type: Date },
   sentToAccountsDate: { type: Date },
-  crdAddedDate: { type: Date }
+  crdAddedDate: { type: Date },
+  clientNotes: { type: String, default: '' }
 });
 
 const PaymentSplitSchema = new mongoose.Schema({

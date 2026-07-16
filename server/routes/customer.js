@@ -260,4 +260,35 @@ router.post('/extra-work/:stageIdx/:workId/remove', protectCustomer, async (req,
   }
 });
 
+// @route   POST /api/customer/extra-work/:stageIdx/:workId/review
+// @desc    Customer requests review / negotiation for extra work
+router.post('/extra-work/:stageIdx/:workId/review', protectCustomer, async (req, res) => {
+  const { stageIdx, workId } = req.params;
+  const { notes } = req.body;
+  
+  try {
+    const flow = req.customerFlow;
+    
+    const stage = flow.stages[stageIdx];
+    if (!stage) return res.status(404).json({ message: 'Stage not found' });
+
+    const extraWork = stage.extraWorks.id(workId);
+    if (!extraWork) return res.status(404).json({ message: 'Extra work not found' });
+
+    extraWork.status = 'Returned to CRD';
+    extraWork.clientNotes = notes;
+
+    flow.history.push({
+      action: 'Customer Requested Review',
+      notes: `Requested review for: ${extraWork.name}. Notes: ${notes}`,
+      user: 'Customer'
+    });
+
+    await flow.save();
+    res.json(flow);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 module.exports = router;

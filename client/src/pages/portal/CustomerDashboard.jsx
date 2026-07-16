@@ -130,6 +130,8 @@ const CustomerDashboard = () => {
   const [requestedWorksEndDate, setRequestedWorksEndDate] = useState('');
   const [expandedReqIds, setExpandedReqIds] = useState({});
   const [quotation, setQuotation] = useState(null);
+  const [reviewModal, setReviewModal] = useState({ open: false, stageIdx: null, workId: null });
+  const [reviewNote, setReviewNote] = useState('');
 
   // Complaints Filtration State
   const [complaintStartDate, setComplaintStartDate] = useState('');
@@ -298,6 +300,28 @@ const CustomerDashboard = () => {
       setBulkSelections({});
       fetchFlow();
       alert("Items successfully requested! They are now Pending approval from the admin.");
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleCustomerReview = async (e) => {
+    e.preventDefault();
+    if (!reviewNote.trim()) return;
+    try {
+      setSubmitting(true);
+      const token = localStorage.getItem('customerToken');
+      const res = await fetch(`${API_URL}/customer/extra-work/${reviewModal.stageIdx}/${reviewModal.workId}/review`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ notes: reviewNote })
+      });
+      if (!res.ok) throw new Error('Failed to submit review');
+      setReviewModal({ open: false, stageIdx: null, workId: null });
+      setReviewNote('');
+      await fetchFlow();
     } catch (err) {
       alert(err.message);
     } finally {
@@ -1138,13 +1162,13 @@ const CustomerDashboard = () => {
             {activeTab === 'requestedworks' && (() => {
               const filteredRequestedWorks = allExtraWorks.filter(ew => {
                 if (requestedWorksTab === 'new') {
-                  if (['Client Approved', 'Added to CRD', 'Rejected', 'Removed by Client'].includes(ew.status)) return false;
+                  if (['Client Approved', 'Added to CRD', 'Rejected', 'Removed by Client', 'Cancelled by Admin'].includes(ew.status)) return false;
                 }
                 if (requestedWorksTab === 'agreed') {
                   if (!['Client Approved', 'Added to CRD'].includes(ew.status)) return false;
                 }
                 if (requestedWorksTab === 'cancelled') {
-                  if (!['Rejected', 'Removed by Client'].includes(ew.status)) return false;
+                  if (!['Rejected', 'Removed by Client', 'Cancelled by Admin'].includes(ew.status)) return false;
                 }
                 if (requestedWorksTab === 'history') {
                   // Show all in history, no status filter
@@ -1323,22 +1347,35 @@ const CustomerDashboard = () => {
                                   <td className="p-4 text-center flex items-center justify-center gap-2">
                                     {requestedWorksTab === 'new' ? (
                                       ew.status === 'Sent to Customer' ? (
-                                        <div className="flex items-center justify-center gap-2">
-                                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-50 text-blue-600 text-[10px] font-bold uppercase tracking-wider border border-blue-100">
-                                            <AlertTriangle className="w-3 h-3" /> Reviewing
-                                          </span>
-                                          <button 
+                                        <div className="flex items-center gap-2">
+                                          <button
+                                            onClick={() => handleCustomerApprove(ew.stageIdx, ew._id)}
+                                            disabled={submitting}
+                                            title="I Agree"
+                                            className="p-1.5 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-500 hover:text-white transition-colors disabled:opacity-50 border border-emerald-100 shadow-sm"
+                                          >
+                                            <CheckCircle className="w-4 h-4" />
+                                          </button>
+                                          <button
+                                            onClick={() => setReviewModal({ open: true, stageIdx: ew.stageIdx, workId: ew._id })}
+                                            disabled={submitting}
+                                            title="Review / Negotiate Price"
+                                            className="p-1.5 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-500 hover:text-white transition-colors disabled:opacity-50 border border-blue-100 shadow-sm"
+                                          >
+                                            <MessageSquare className="w-4 h-4" />
+                                          </button>
+                                          <button
                                             onClick={() => handleCustomerRemove(ew.stageIdx, ew._id)}
                                             disabled={submitting}
                                             title="Remove Request"
-                                            className="p-1 rounded bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-colors disabled:opacity-50"
+                                            className="p-1.5 rounded-lg bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-colors disabled:opacity-50 border border-red-100 shadow-sm"
                                           >
-                                            <X className="w-3 h-3" />
+                                            <X className="w-4 h-4" />
                                           </button>
                                         </div>
                                       ) : (
                                         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-600 text-[10px] font-bold uppercase tracking-wider border border-emerald-100">
-                                          <CheckCircle className="w-3 h-3" /> I Agreed
+                                          <CheckCircle className="w-3 h-3" /> {ew.status === 'Client Approved' ? 'I Agreed' : ew.status}
                                         </span>
                                       )
                                     ) : (
@@ -1637,6 +1674,28 @@ const CustomerDashboard = () => {
               </div>
               <button type="submit" disabled={submitting} className="w-full py-4 mt-4 bg-[#006838] hover:bg-[#00512c] text-white rounded-xl font-bold text-sm tracking-wide transition shadow-lg shadow-[#006838]/30 flex justify-center">
                 {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Submit Request'}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Review / Negotiate Modal */}
+      {reviewModal.open && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-[60] flex items-center justify-center p-4">
+          <div className="bg-white rounded-[2rem] w-full max-w-md overflow-hidden shadow-2xl animate-fade-in-up">
+            <div className="p-6 flex justify-between items-center border-b border-gray-100">
+              <h3 className="font-bold text-lg text-gray-900">Add Notes for Review</h3>
+              <button onClick={() => setReviewModal({ open: false, stageIdx: null, workId: null })} className="text-gray-400 hover:text-gray-900 bg-gray-50 hover:bg-gray-100 p-2 rounded-full transition"><X className="w-5 h-5" /></button>
+            </div>
+            <form onSubmit={handleCustomerReview} className="p-8 space-y-5">
+              <p className="text-sm text-gray-500 mb-6 bg-gray-50 p-4 rounded-xl border border-gray-100">Ask questions or request price negotiation for this item.</p>
+              <div>
+                <label className="text-[11px] font-bold text-gray-400 uppercase tracking-widest block mb-1.5">Your Notes <span className="text-red-500">*</span></label>
+                <textarea required value={reviewNote} onChange={e => setReviewNote(e.target.value)} placeholder="e.g., Can we do this for Rs. 40,000?" rows="4" className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm font-medium text-gray-900 focus:border-[#006838] focus:ring-2 focus:ring-[#006838]/10 transition shadow-sm resize-none"></textarea>
+              </div>
+              <button type="submit" disabled={submitting} className="w-full py-4 mt-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-sm tracking-wide transition shadow-lg shadow-blue-600/30 flex justify-center">
+                {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Send Review Request'}
               </button>
             </form>
           </div>

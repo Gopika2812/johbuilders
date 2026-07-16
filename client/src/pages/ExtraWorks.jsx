@@ -41,7 +41,9 @@ const ExtraWorks = () => {
 
   // Add Extra Work Modal Form
   const [showAddForm, setShowAddForm] = useState(false);
+  const [addingGroupWork, setAddingGroupWork] = useState(null);
   const [isAddingWork, setIsAddingWork] = useState(false);
+  const [addedWorks, setAddedWorks] = useState([]);
   const [addForm, setAddForm] = useState({
     stageId: '',
     name: '',
@@ -201,43 +203,85 @@ const handleRateChange = (workId, value) => {
     }
   };
 
-  const handleAddExtraWork = async (flowId) => {
-    if (!addForm.stageId) {
-      alert("Please select a stage!");
+  const handleAddToList = () => {
+    if (!addForm.name.trim()) {
+      alert("Please select a sub category!");
       return;
     }
-    if (!addForm.name.trim()) {
-      alert("Please enter a work name!");
+    setAddedWorks(prev => [...prev, addForm]);
+    setAddForm({
+      ...addForm,
+      name: '',
+      category: '',
+      unit: 'Unit',
+      quantity: 1,
+      rate: 0
+    });
+  };
+
+  const handleAddExtraWork = async (flow, ewId = null) => {
+    const stageId = flow.stages?.[0]?._id;
+    if (!stageId) {
+      alert("No stages found in this project to add work to!");
+      return;
+    }
+    
+    // If they filled the form but forgot to click Add to List
+    let worksToSubmit = [...addedWorks];
+    if (addForm.name.trim()) {
+      worksToSubmit.push(addForm);
+    }
+    
+    if (worksToSubmit.length === 0) {
+      alert("Please add at least one extra work!");
       return;
     }
 
     try {
       setIsAddingWork(true);
-      const res = await fetch(`${API_URL}/extra-works/${flowId}/add`, {
+      const res = await fetch(`${API_URL}/extra-works/${flow._id}/add`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`
         },
-        body: JSON.stringify(addForm)
+        body: JSON.stringify({ works: worksToSubmit, stageId, ewId: ewId || addForm.ewId, forUnit: addForm.forUnit })
       });
-      if (!res.ok) throw new Error('Failed to add extra work');
+      if (!res.ok) throw new Error('Failed to add extra works');
       
       setAddForm({
         stageId: '',
         name: '',
-        category: 'General',
+        category: '',
         unit: 'Unit',
         quantity: 1,
         rate: 0,
         forUnit: ''
       });
+      setAddedWorks([]);
       setShowAddForm(false);
+      setAddingGroupWork(null);
       await fetchFlows();
     } catch (err) {
       alert(err.message);
     } finally {
       setIsAddingWork(false);
+    }
+  };
+
+  const handleCancelExtraWork = async (flowId, stageIdx, workId) => {
+    try {
+      setSubmitting(workId);
+      const res = await fetch(`${API_URL}/extra-works/${flowId}/${stageIdx}/${workId}/cancel`, {
+        method: 'PUT',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (!res.ok) throw new Error('Failed to cancel extra work');
+      await fetchFlows();
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setSubmitting(null);
     }
   };
 
@@ -255,6 +299,7 @@ const handleRateChange = (workId, value) => {
       case 'In Progress': return <span className="px-2 py-1 bg-orange-100 text-orange-800 rounded text-xs font-bold">In Progress</span>;
       case 'Completed': return <span className="px-2 py-1 bg-green-100 text-green-800 rounded text-xs font-bold">Completed</span>;
       case 'Removed by Client': return <span className="px-2 py-1 bg-red-100 text-red-800 rounded text-xs font-bold">Removed by Client</span>;
+      case 'Cancelled by Admin': return <span className="px-2 py-1 bg-red-100 text-red-800 rounded text-xs font-bold">Cancelled by Admin</span>;
       default: return <span className="px-2 py-1 bg-gray-100 text-gray-800 rounded text-xs font-bold">{status}</span>;
     }
   };
@@ -610,7 +655,11 @@ const handleRateChange = (workId, value) => {
                               <h3 className="font-bold text-gray-800 text-lg">Extra Works Timeline</h3>
                               {(user?.role === 'Admin' || user?.role === 'Manager') && (
                                 <button 
-                                  onClick={() => setShowAddForm(!showAddForm)} 
+                                  onClick={() => {
+                                    setShowAddForm(!showAddForm);
+                                    setAddedWorks([]);
+                                    setAddForm({ stageId: '', name: '', category: '', unit: 'Unit', quantity: 1, rate: 0, forUnit: '' });
+                                  }} 
                                   className="flex items-center gap-2 px-4 py-2 bg-[#006838] text-white font-bold rounded-xl hover:bg-[#00512c] transition-colors shadow-sm text-sm"
                                 >
                                   <Plus className="w-4 h-4" /> Add Extra Work
@@ -621,86 +670,120 @@ const handleRateChange = (workId, value) => {
                             {showAddForm && (
                               <div className="mb-6 bg-white p-5 rounded-2xl border border-emerald-200 shadow-sm animate-fade-in-up">
                                 <h3 className="text-sm font-black text-emerald-900 mb-4 uppercase tracking-wider">Add New Extra Work</h3>
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
-                                  <div className="lg:col-span-1">
-                                    <label className="block text-xs font-bold text-gray-700 mb-1">Stage <span className="text-red-500">*</span></label>
-                                    <select 
-                                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#006838]/20"
-                                      value={addForm.stageId}
-                                      onChange={e => setAddForm({...addForm, stageId: e.target.value})}
-                                    >
-                                      <option value="">Select Stage...</option>
-                                      {flow.stages.map(stage => (
-                                        <option key={stage._id} value={stage._id}>{stage.name}</option>
-                                      ))}
-                                    </select>
-                                  </div>
-                                  <div className="lg:col-span-1">
-                                    <label className="block text-xs font-bold text-gray-700 mb-1">Category</label>
-                                    <input 
-                                      type="text" 
-                                      placeholder="e.g. Electrical"
-                                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#006838]/20"
-                                      value={addForm.category}
-                                      onChange={e => setAddForm({...addForm, category: e.target.value})}
-                                    />
-                                  </div>
-                                  {flow.unitId && flow.unitId.includes(',') && (
-                                    <div className="lg:col-span-1">
-                                      <label className="block text-xs font-bold text-gray-700 mb-1">Select Unit</label>
-                                      <select 
-                                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#006838]/20"
-                                        value={addForm.forUnit || flow.unitId.split(',')[0].trim()}
-                                        onChange={e => setAddForm({...addForm, forUnit: e.target.value})}
-                                      >
-                                        {flow.unitId.split(',').map(u => <option key={u.trim()} value={u.trim()}>{u.trim()}</option>)}
-                                      </select>
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                                  {(() => {
+                                    const catalog = flow.project?.extraWorkCatalog || [];
+                                    const catalogCategories = Array.from(new Set(catalog.map(item => item.category)));
+                                    const subCategories = addForm.category ? catalog.filter(item => item.category === addForm.category) : [];
+
+                                    return (
+                                      <>
+                                        <div className="lg:col-span-1">
+                                          <label className="block text-xs font-bold text-gray-700 mb-1">Category <span className="text-red-500">*</span></label>
+                                          <select
+                                            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#006838]/20"
+                                            value={addForm.category}
+                                            onChange={e => setAddForm({...addForm, category: e.target.value, name: '', unit: 'Unit'})}
+                                          >
+                                            <option value="">Select Category...</option>
+                                            {catalogCategories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                                          </select>
+                                        </div>
+                                        <div className="lg:col-span-2">
+                                          <label className="block text-xs font-bold text-gray-700 mb-1">Sub Category (Name) <span className="text-red-500">*</span></label>
+                                          <select
+                                            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#006838]/20"
+                                            value={addForm.name}
+                                            onChange={e => {
+                                              const selectedItem = subCategories.find(item => item.name === e.target.value);
+                                              setAddForm({...addForm, name: e.target.value, unit: selectedItem ? selectedItem.unit : 'Unit', rate: selectedItem ? selectedItem.rate : 0});
+                                            }}
+                                            disabled={!addForm.category}
+                                          >
+                                            <option value="">Select Sub Category...</option>
+                                            {subCategories.map(sub => <option key={sub._id || sub.name} value={sub.name}>{sub.name}</option>)}
+                                          </select>
+                                        </div>
+                                        {flow.unitId && flow.unitId.includes(',') && (
+                                          <div className="lg:col-span-1">
+                                            <label className="block text-xs font-bold text-gray-700 mb-1">Select Unit</label>
+                                            <select 
+                                              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#006838]/20"
+                                              value={addForm.forUnit || flow.unitId.split(',')[0].trim()}
+                                              onChange={e => setAddForm({...addForm, forUnit: e.target.value})}
+                                            >
+                                              {flow.unitId.split(',').map(u => <option key={u.trim()} value={u.trim()}>{u.trim()}</option>)}
+                                            </select>
+                                          </div>
+                                        )}
+                                        <div className="lg:col-span-1 flex gap-2">
+                                          <div className="flex-1">
+                                            <label className="block text-xs font-bold text-gray-700 mb-1">Qty <span className="text-red-500">*</span></label>
+                                            <input 
+                                              type="number" min="1"
+                                              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#006838]/20"
+                                              value={addForm.quantity}
+                                              onChange={e => setAddForm({...addForm, quantity: e.target.value})}
+                                            />
+                                          </div>
+                                          <div className="flex-1">
+                                            <label className="block text-xs font-bold text-gray-700 mb-1">Unit</label>
+                                            <input 
+                                              type="text" placeholder="No" disabled
+                                              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-100 cursor-not-allowed focus:outline-none"
+                                              value={addForm.unit}
+                                            />
+                                          </div>
+                                        </div>
+                                      </>
+                                    );
+                                  })()}
+                                  {addedWorks.length > 0 && (
+                                    <div className="mt-4 mb-4 lg:col-span-5">
+                                      <h4 className="text-xs font-bold text-gray-700 mb-2 uppercase tracking-wider">Works to be added ({addedWorks.length})</h4>
+                                      <div className="bg-gray-50 border border-gray-200 rounded-lg overflow-hidden">
+                                        <table className="min-w-full divide-y divide-gray-200">
+                                          <thead className="bg-gray-100">
+                                            <tr>
+                                              <th className="px-3 py-2 text-left text-[10px] font-bold text-gray-500 uppercase">Category</th>
+                                              <th className="px-3 py-2 text-left text-[10px] font-bold text-gray-500 uppercase">Sub Category</th>
+                                              <th className="px-3 py-2 text-center text-[10px] font-bold text-gray-500 uppercase">Qty</th>
+                                              <th className="px-3 py-2 text-right text-[10px] font-bold text-gray-500 uppercase">Rate</th>
+                                              <th className="px-3 py-2 text-right text-[10px] font-bold text-gray-500 uppercase">Amount</th>
+                                              <th className="px-3 py-2 text-center text-[10px] font-bold text-gray-500 uppercase">Action</th>
+                                            </tr>
+                                          </thead>
+                                          <tbody className="divide-y divide-gray-200 bg-white">
+                                            {addedWorks.map((w, idx) => (
+                                              <tr key={idx}>
+                                                <td className="px-3 py-2 text-xs font-medium text-gray-900">{w.category}</td>
+                                                <td className="px-3 py-2 text-xs text-gray-500">{w.name}</td>
+                                                <td className="px-3 py-2 text-xs text-center text-gray-500">{w.quantity} {w.unit}</td>
+                                                <td className="px-3 py-2 text-xs text-right text-gray-500">Rs. {w.rate?.toLocaleString()}</td>
+                                                <td className="px-3 py-2 text-xs text-right font-bold text-[#006838]">Rs. {(w.quantity * w.rate)?.toLocaleString()}</td>
+                                                <td className="px-3 py-2 text-center">
+                                                  <button onClick={() => setAddedWorks(prev => prev.filter((_, i) => i !== idx))} className="text-red-500 hover:text-red-700">
+                                                    <X className="w-4 h-4 mx-auto" />
+                                                  </button>
+                                                </td>
+                                              </tr>
+                                            ))}
+                                          </tbody>
+                                        </table>
+                                      </div>
                                     </div>
                                   )}
-                                  <div className="lg:col-span-2">
-                                    <label className="block text-xs font-bold text-gray-700 mb-1">Sub Category (Name) <span className="text-red-500">*</span></label>
-                                    <input 
-                                      type="text" 
-                                      placeholder="e.g. Extra Switch Board"
-                                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#006838]/20"
-                                      value={addForm.name}
-                                      onChange={e => setAddForm({...addForm, name: e.target.value})}
-                                    />
-                                  </div>
-                                  <div className="lg:col-span-1 flex gap-2">
-                                    <div className="flex-1">
-                                      <label className="block text-xs font-bold text-gray-700 mb-1">Qty</label>
-                                      <input 
-                                        type="number" min="1"
-                                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#006838]/20"
-                                        value={addForm.quantity}
-                                        onChange={e => setAddForm({...addForm, quantity: e.target.value})}
-                                      />
-                                    </div>
-                                    <div className="flex-1">
-                                      <label className="block text-xs font-bold text-gray-700 mb-1">Unit</label>
-                                      <input 
-                                        type="text" placeholder="No"
-                                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#006838]/20"
-                                        value={addForm.unit}
-                                        onChange={e => setAddForm({...addForm, unit: e.target.value})}
-                                      />
-                                    </div>
-                                  </div>
-                                  <div className="lg:col-span-1">
-                                    <label className="block text-xs font-bold text-gray-700 mb-1">Rate (Optional)</label>
-                                    <input 
-                                      type="number" min="0"
-                                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#006838]/20"
-                                      value={addForm.rate}
-                                      onChange={e => setAddForm({...addForm, rate: e.target.value})}
-                                    />
-                                  </div>
                                 </div>
-                                <div className="mt-4 flex justify-end">
+                                <div className="mt-4 flex justify-between items-center">
+                                  <button
+                                    onClick={handleAddToList}
+                                    className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold rounded-lg transition-colors flex items-center gap-2 text-sm"
+                                  >
+                                    <Plus className="w-4 h-4" /> Add to List
+                                  </button>
                                   <button 
-                                    onClick={() => handleAddExtraWork(flow._id)}
-                                    disabled={isAddingWork}
+                                    onClick={() => handleAddExtraWork(flow)}
+                                    disabled={isAddingWork || (addedWorks.length === 0 && !addForm.name.trim())}
                                     className="px-5 py-2.5 bg-[#006838] hover:bg-[#00522a] text-white font-bold rounded-lg transition-colors flex items-center gap-2 disabled:opacity-50"
                                   >
                                     {isAddingWork ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
@@ -723,7 +806,7 @@ const handleRateChange = (workId, value) => {
                                             const selectableWorks = [];
                                             flow.stages.forEach(s => {
                                               s.extraWorks?.forEach(w => {
-                                                if (activeTab === 'crd' && (w.status === 'Pending' || w.status === 'Client Approved' || w.status === 'Added to CRD')) selectableWorks.push(w._id);
+                                                if (activeTab === 'crd' && (w.status === 'Pending' || w.status === 'Returned to CRD' || w.status === 'Client Approved' || w.status === 'Added to CRD')) selectableWorks.push(w._id);
                                                 if (activeTab === 'ped' && w.status === 'PED Approved') selectableWorks.push(w._id);
                                                 if (activeTab === 'accounts' && w.status === 'Sent to Accounts') selectableWorks.push(w._id);
                                               });
@@ -873,7 +956,7 @@ const handleRateChange = (workId, value) => {
                                         {expandedReqIds[group.ewId] && group.items.map((work, wIdx) => (
                                           <tr key={work._id} className="bg-gray-50/50 hover:bg-white transition border-l-4 border-[#006838]">
                                             <td className="p-4 align-middle text-center flex items-center justify-center gap-2">
-                                              {((activeTab === 'crd' && (work.status === 'Pending' || work.status === 'Client Approved' || work.status === 'Added to CRD')) ||
+                                              {((activeTab === 'crd' && (work.status === 'Pending' || work.status === 'Returned to CRD' || work.status === 'Client Approved' || work.status === 'Added to CRD')) ||
                                                 (activeTab === 'ped' && work.status === 'PED Approved') ||
                                                 (activeTab === 'accounts' && work.status === 'Sent to Accounts')) && (
                                                 <input 
@@ -892,6 +975,12 @@ const handleRateChange = (workId, value) => {
                                               <div className="font-bold text-gray-700 flex flex-col gap-1 text-xs whitespace-normal max-w-[200px]">
                                                 <span>↳ {work.name || '-'}</span>
                                                 <span className="text-[10px] text-gray-500 font-normal">Qty: {work.quantity || 1} {work.unit ? `x ${work.unit}` : ''} @ Rs. {work.rate || 0}</span>
+                                                {work.clientNotes && (
+                                                  <span className="text-[10px] text-blue-600 bg-blue-50 p-1.5 rounded mt-1 border border-blue-100 inline-block w-full">
+                                                    <strong className="block mb-0.5 text-[9px] uppercase tracking-wider text-blue-400">Client Review Note:</strong> 
+                                                    {work.clientNotes}
+                                                  </span>
+                                                )}
                                               </div>
                                             </td>
                                             <td className="p-4 align-middle text-center text-[11px] text-gray-500">
@@ -957,9 +1046,26 @@ const handleRateChange = (workId, value) => {
                                                         <option value="Completed">Completed</option>
                                                       </select>
                                                   )}
+                                                  {(user?.role === 'Admin' || user?.role === 'Manager') && !['Removed by Client', 'Rejected', 'Completed', 'Cancelled by Admin', 'Added to CRD'].includes(work.status) && (
+                                                    <button
+                                                      onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        if(window.confirm('Are you sure you want to cancel this extra work request?')) {
+                                                          handleCancelExtraWork(flow._id, work.stageIdx, work._id);
+                                                        }
+                                                      }}
+                                                      disabled={submitting === work._id}
+                                                      className="px-2 py-1 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 rounded text-[10px] font-bold"
+                                                    >
+                                                      Cancel
+                                                    </button>
+                                                  )}
                                                   {(() => {
                                                     if (work.status === 'Removed by Client') {
                                                       return <span className="text-[9px] font-bold text-red-500 uppercase flex items-center gap-1"><X className="w-3 h-3" /> Removed by Client</span>;
+                                                    }
+                                                    if (work.status === 'Cancelled by Admin') {
+                                                      return <span className="text-[9px] font-bold text-red-500 uppercase flex items-center gap-1"><X className="w-3 h-3" /> Cancelled by Admin</span>;
                                                     }
                                                     if (work.status === 'Rejected') {
                                                       return <span className="text-[9px] font-bold text-red-500 uppercase flex items-center gap-1"><X className="w-3 h-3" /> Rejected</span>;
@@ -968,8 +1074,14 @@ const handleRateChange = (workId, value) => {
                                                       return <span className="text-[9px] font-bold text-green-500 uppercase flex items-center gap-1"><CheckCircle className="w-3 h-3" /> Completed</span>;
                                                     }
                                                     if (activeTab === 'crd') {
-                                                      if (['Sent to PED', 'PED Approved', 'Sent to Customer'].includes(work.status)) {
+                                                      if (['Sent to PED', 'PED Approved'].includes(work.status)) {
                                                         return <span className="text-[9px] font-bold text-gray-400 uppercase flex items-center gap-1"><CheckCircle className="w-3 h-3 text-emerald-500" /> Sent to PED Team</span>;
+                                                      }
+                                                      if (['Returned to CRD'].includes(work.status)) {
+                                                        return <span className="text-[9px] font-bold text-gray-400 uppercase flex items-center gap-1"><CheckCircle className="w-3 h-3 text-emerald-500" /> Returned by PED (Priced)</span>;
+                                                      }
+                                                      if (['Sent to Customer'].includes(work.status)) {
+                                                        return <span className="text-[9px] font-bold text-gray-400 uppercase flex items-center gap-1"><CheckCircle className="w-3 h-3 text-emerald-500" /> Sent to Client</span>;
                                                       }
                                                       if (['Sent to Accounts'].includes(work.status)) {
                                                         return <span className="text-[9px] font-bold text-gray-400 uppercase flex items-center gap-1"><CheckCircle className="w-3 h-3 text-emerald-500" /> Sent to Accounts</span>;
@@ -982,8 +1094,8 @@ const handleRateChange = (workId, value) => {
                                                       }
                                                     }
                                                     if (activeTab === 'ped') {
-                                                      if (['Sent to Customer', 'Client Approved', 'Sent to Accounts', 'Added to CRD'].includes(work.status)) {
-                                                        return <span className="text-[9px] font-bold text-gray-400 uppercase flex items-center gap-1"><CheckCircle className="w-3 h-3 text-emerald-500" /> Sent to Client</span>;
+                                                      if (['Returned to CRD', 'Sent to Customer', 'Client Approved', 'Sent to Accounts', 'Added to CRD', 'Execution Sent to PED', 'Start Work', 'In Progress', 'Completed'].includes(work.status)) {
+                                                        return <span className="text-[9px] font-bold text-gray-400 uppercase flex items-center gap-1"><CheckCircle className="w-3 h-3 text-emerald-500" /> Returned to CRD</span>;
                                                       }
                                                     }
                                                     if (activeTab === 'client') {
@@ -1003,6 +1115,149 @@ const handleRateChange = (workId, value) => {
                                             </td>
                                           </tr>
                                         ))}
+                                        {expandedReqIds[group.ewId] && (
+                                          <tr className="bg-gray-50 border-l-4 border-[#006838]">
+                                            <td colSpan="9" className="p-4">
+                                              {addingGroupWork === group.ewId ? (
+                                                <div className="bg-white p-4 rounded-xl border border-emerald-200 shadow-sm animate-fade-in-up">
+                                                  <div className="flex justify-between items-center mb-3">
+                                                    <h4 className="text-xs font-black text-emerald-900 uppercase tracking-wider">Add Extra Work to {group.displayId}</h4>
+                                                    <button onClick={() => setAddingGroupWork(null)} className="text-gray-400 hover:text-gray-600">
+                                                      <X className="w-4 h-4" />
+                                                    </button>
+                                                  </div>
+                                                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                                                    {(() => {
+                                                      const catalog = flow.project?.extraWorkCatalog || [];
+                                                      const catalogCategories = Array.from(new Set(catalog.map(item => item.category)));
+                                                      const subCategories = addForm.category ? catalog.filter(item => item.category === addForm.category) : [];
+
+                                                      return (
+                                                        <>
+                                                          <div className="lg:col-span-1">
+                                                            <label className="block text-xs font-bold text-gray-700 mb-1">Category <span className="text-red-500">*</span></label>
+                                                            <select
+                                                              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#006838]/20"
+                                                              value={addForm.category}
+                                                              onChange={e => setAddForm({...addForm, category: e.target.value, name: '', unit: 'Unit'})}
+                                                            >
+                                                              <option value="">Select Category...</option>
+                                                              {catalogCategories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                                                            </select>
+                                                          </div>
+                                                          <div className="lg:col-span-2">
+                                                            <label className="block text-xs font-bold text-gray-700 mb-1">Sub Category (Name) <span className="text-red-500">*</span></label>
+                                                            <select
+                                                              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#006838]/20"
+                                                              value={addForm.name}
+                                                              onChange={e => {
+                                                                const selectedItem = subCategories.find(item => item.name === e.target.value);
+                                                                setAddForm({...addForm, name: e.target.value, unit: selectedItem ? selectedItem.unit : 'Unit', rate: selectedItem ? selectedItem.rate : 0});
+                                                              }}
+                                                              disabled={!addForm.category}
+                                                            >
+                                                              <option value="">Select Sub Category...</option>
+                                                              {subCategories.map(sub => <option key={sub._id || sub.name} value={sub.name}>{sub.name}</option>)}
+                                                            </select>
+                                                          </div>
+                                                          {flow.unitId && flow.unitId.includes(',') && (
+                                                            <div className="lg:col-span-1">
+                                                              <label className="block text-xs font-bold text-gray-700 mb-1">Select Unit</label>
+                                                              <select 
+                                                                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#006838]/20"
+                                                                value={addForm.forUnit || flow.unitId.split(',')[0].trim()}
+                                                                onChange={e => setAddForm({...addForm, forUnit: e.target.value})}
+                                                              >
+                                                                {flow.unitId.split(',').map(u => <option key={u.trim()} value={u.trim()}>{u.trim()}</option>)}
+                                                              </select>
+                                                            </div>
+                                                          )}
+                                                          <div className="lg:col-span-1 flex gap-2">
+                                                            <div className="flex-1">
+                                                              <label className="block text-xs font-bold text-gray-700 mb-1">Qty <span className="text-red-500">*</span></label>
+                                                              <input 
+                                                                type="number" min="1"
+                                                                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#006838]/20"
+                                                                value={addForm.quantity}
+                                                                onChange={e => setAddForm({...addForm, quantity: e.target.value})}
+                                                              />
+                                                            </div>
+                                                            <div className="flex-1">
+                                                              <label className="block text-xs font-bold text-gray-700 mb-1">Unit</label>
+                                                              <input 
+                                                                type="text" placeholder="No" disabled
+                                                                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-100 cursor-not-allowed focus:outline-none"
+                                                                value={addForm.unit}
+                                                              />
+                                                            </div>
+                                                          </div>
+                                                        </>
+                                                      );
+                                                    })()}
+                                                  {addedWorks.length > 0 && (
+                                                    <div className="mt-4 mb-4 lg:col-span-5">
+                                                      <h4 className="text-xs font-bold text-gray-700 mb-2 uppercase tracking-wider">Works to be added ({addedWorks.length})</h4>
+                                                      <div className="bg-gray-50 border border-gray-200 rounded-lg overflow-hidden">
+                                                        <table className="min-w-full divide-y divide-gray-200">
+                                                          <thead className="bg-gray-100">
+                                                            <tr>
+                                                              <th className="px-3 py-2 text-left text-[10px] font-bold text-gray-500 uppercase">Sub Category</th>
+                                                              <th className="px-3 py-2 text-center text-[10px] font-bold text-gray-500 uppercase">Qty</th>
+                                                              <th className="px-3 py-2 text-right text-[10px] font-bold text-gray-500 uppercase">Amount</th>
+                                                              <th className="px-3 py-2 text-center text-[10px] font-bold text-gray-500 uppercase">Action</th>
+                                                            </tr>
+                                                          </thead>
+                                                          <tbody className="divide-y divide-gray-200 bg-white">
+                                                            {addedWorks.map((w, idx) => (
+                                                              <tr key={idx}>
+                                                                <td className="px-3 py-2 text-[11px] text-gray-700">{w.name}</td>
+                                                                <td className="px-3 py-2 text-[11px] text-center text-gray-500">{w.quantity} {w.unit}</td>
+                                                                <td className="px-3 py-2 text-[11px] text-right font-bold text-[#006838]">Rs. {(w.quantity * w.rate)?.toLocaleString()}</td>
+                                                                <td className="px-3 py-2 text-center">
+                                                                  <button onClick={() => setAddedWorks(prev => prev.filter((_, i) => i !== idx))} className="text-red-500 hover:text-red-700">
+                                                                    <X className="w-3 h-3 mx-auto" />
+                                                                  </button>
+                                                                </td>
+                                                              </tr>
+                                                            ))}
+                                                          </tbody>
+                                                        </table>
+                                                      </div>
+                                                    </div>
+                                                  )}
+                                                  </div>
+                                                  <div className="mt-4 flex justify-between items-center">
+                                                    <button
+                                                      onClick={handleAddToList}
+                                                      className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold rounded transition-colors flex items-center gap-1 text-xs"
+                                                    >
+                                                      <Plus className="w-3 h-3" /> Add to List
+                                                    </button>
+                                                    <button 
+                                                      onClick={() => handleAddExtraWork(flow, group.ewId)}
+                                                      disabled={isAddingWork || (addedWorks.length === 0 && !addForm.name.trim())}
+                                                      className="px-5 py-2 bg-[#006838] hover:bg-[#00522a] text-white font-bold rounded-lg transition-colors flex items-center gap-2 disabled:opacity-50 text-xs"
+                                                    >
+                                                      {isAddingWork ? <Loader2 className="w-3 h-3 animate-spin" /> : <CheckCircle className="w-3 h-3" />}
+                                                      Save to {group.displayId}
+                                                    </button>
+                                                  </div>
+                                                </div>
+                                              ) : (
+                                                <button 
+                                                  onClick={() => {
+                                                    setAddingGroupWork(group.ewId);
+                                                    setAddedWorks([]);
+                                                    setAddForm({ stageId: '', name: '', category: '', unit: 'Unit', quantity: 1, rate: 0, forUnit: '' });
+                                                  }}
+                                                  className="flex items-center gap-2 text-emerald-600 hover:text-emerald-800 font-bold text-xs"
+                                                >
+                                                  <Plus className="w-3 h-3" /> Add Extra Work to {group.displayId}
+                                                </button>
+                                              )}
+                                            </td>
+                                          </tr>
+                                        )}
                                       </React.Fragment>
                                     ));
                                   })()}
@@ -1013,11 +1268,12 @@ const handleRateChange = (workId, value) => {
                             {(() => {
                               if (activeTab === 'crd') {
                                 const hasPending = flow.stages.some(s => s.extraWorks?.some(w => w.status === 'Pending'));
+                                const hasReturnedToCRD = flow.stages.some(s => s.extraWorks?.some(w => w.status === 'Returned to CRD'));
                                 const hasClientApproved = flow.stages.some(s => s.extraWorks?.some(w => w.status === 'Client Approved'));
                                 const hasAddedToCRD = flow.stages.some(s => s.extraWorks?.some(w => w.status === 'Added to CRD'));
-                                if (!hasPending && !hasClientApproved && !hasAddedToCRD) return null;
+                                if (!hasPending && !hasReturnedToCRD && !hasClientApproved && !hasAddedToCRD) return null;
                                 return (
-                                  <div className="mt-4 flex flex-col sm:flex-row justify-end gap-3">
+                                  <div className="mt-4 flex flex-wrap justify-end gap-3">
                                     {hasPending && (
                                       <button
                                         onClick={async () => {
@@ -1046,6 +1302,36 @@ const handleRateChange = (workId, value) => {
                                         className="px-6 py-2 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition flex items-center justify-center gap-2 shadow-sm disabled:opacity-50"
                                       >
                                         {submitting === 'bulk-crd' ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Send className="w-4 h-4" /> Share Selected to PED</>}
+                                      </button>
+                                    )}
+                                    {hasReturnedToCRD && (
+                                      <button
+                                        onClick={async () => {
+                                          setSubmitting('bulk-crd-client');
+                                          try {
+                                            const works = [];
+                                            flow.stages.forEach((s, sIdx) => s.extraWorks?.forEach(w => {
+                                              if (w.status === 'Returned to CRD' && selectedWorks.includes(w._id)) works.push({sIdx, wId: w._id});
+                                            }));
+                                            for (const work of works) {
+                                              await fetch(`${API_URL}/extra-works/${flow._id}/${work.sIdx}/${work.wId}/send`, {
+                                                method: 'PUT', headers: { Authorization: `Bearer ${token}` }
+                                              });
+                                            }
+                                            setSelectedWorks([]);
+                                            await fetchFlows();
+                                          } finally {
+                                            setSubmitting(null);
+                                          }
+                                        }}
+                                        disabled={submitting === 'bulk-crd-client' || !selectedWorks.some(id => {
+                                          let isReturned = false;
+                                          flow.stages.forEach(s => s.extraWorks?.forEach(w => { if (w._id === id && w.status === 'Returned to CRD') isReturned = true; }));
+                                          return isReturned;
+                                        })}
+                                        className="px-6 py-2 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 transition flex items-center justify-center gap-2 shadow-sm disabled:opacity-50"
+                                      >
+                                        {submitting === 'bulk-crd-client' ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Send className="w-4 h-4" /> Share Selected to Client</>}
                                       </button>
                                     )}
                                     {hasClientApproved && (
@@ -1126,7 +1412,7 @@ const handleRateChange = (workId, value) => {
                                             if (w.status === 'PED Approved' && selectedWorks.includes(w._id)) works.push({sIdx, wId: w._id});
                                           }));
                                           for (const work of works) {
-                                            await fetch(`${API_URL}/extra-works/${flow._id}/${work.sIdx}/${work.wId}/send`, {
+                                            await fetch(`${API_URL}/extra-works/${flow._id}/${work.sIdx}/${work.wId}/return-to-crd`, {
                                               method: 'PUT', headers: { Authorization: `Bearer ${token}` }
                                             });
                                           }
@@ -1139,7 +1425,7 @@ const handleRateChange = (workId, value) => {
                                       disabled={submitting === 'bulk-ped' || selectedWorks.length === 0}
                                       className="px-6 py-2 bg-[#006838] text-white font-bold rounded-xl hover:bg-[#00512c] transition flex items-center gap-2 shadow-sm disabled:opacity-50"
                                     >
-                                      {submitting === 'bulk-ped' ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Send className="w-4 h-4" /> Share Selected to Client ({selectedWorks.length})</>}
+                                      {submitting === 'bulk-ped' ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Send className="w-4 h-4" /> Share Selected to CRD ({selectedWorks.length})</>}
                                     </button>
                                   </div>
                                 );
