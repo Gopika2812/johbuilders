@@ -2495,9 +2495,11 @@ const LeadsDirectory = () => {
                     className="w-full px-4 py-3 bg-black-55 border border-black-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-600 text-sm cursor-pointer appearance-none"
                     style={{ backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 16px center', backgroundSize: '16px' }}
                   >
-                    {LEAD_STATUSES.map(status => (
-                      <option key={status} value={status}>{status}</option>
-                    ))}
+                    {LEAD_STATUSES.map((status, idx) => {
+                      const currentIdx = selectedLeadForEdit ? LEAD_STATUSES.indexOf(selectedLeadForEdit.status) : 0;
+                      if (idx < currentIdx && currentIdx !== -1) return null;
+                      return <option key={status} value={status}>{status}</option>;
+                    })}
                   </select>
                 </div>
 
