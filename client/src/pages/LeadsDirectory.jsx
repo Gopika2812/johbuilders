@@ -266,6 +266,7 @@ const LeadsDirectory = () => {
   const [editProjectLocation, setEditProjectLocation] = useState('');
   const [editActiveAds, setEditActiveAds] = useState([]);
   const [editStatus, setEditStatus] = useState('New');
+  const [editLeadCategory, setEditLeadCategory] = useState('Cold');
 
   // Booked & Quotation Modal States
   const [BookedModalOpen, setBookedModalOpen] = useState(false);
@@ -319,6 +320,7 @@ const LeadsDirectory = () => {
 
   // Duplicate Check Warning State
   const [duplicateWarning, setDuplicateWarning] = useState(null);
+  const [fetchedDuplicateLeads, setFetchedDuplicateLeads] = useState([]);
 
   // Custom Dropdown Open State
   const [openDropdownLeadId, setOpenDropdownLeadId] = useState(null);
@@ -452,6 +454,7 @@ const LeadsDirectory = () => {
     setEditBankLoan(lead.bankLoan || 'No');
     setEditLeadCost(String(lead.leadCost || '0'));
     setEditProjectLocation(lead.projectLocation || '');
+    setEditLeadCategory(lead.leadCategory || 'Cold');
 
     // Prepopulate ad id if matches ad name
     const proj = projects.find(p => p._id === (lead.project?._id || lead.project));
@@ -481,7 +484,6 @@ const LeadsDirectory = () => {
     const editPhone = editPhoneCountryCode === '+' ? `+${editPhoneLocal}` : `${editPhoneCountryCode}${editPhoneLocal}`;
 
     const adObj = editAdId ? editActiveAds.find(a => a.id === editAdId) : null;
-    const isStatusChanged = editStatus !== selectedLeadForEdit.status;
 
     setIsSubmitting(true);
     const payload = {
@@ -492,9 +494,10 @@ const LeadsDirectory = () => {
       bankLoan: editBankLoan,
       project: editProjectId || undefined,
       assignedTo: editAssignedToId || '',
-      status: isStatusChanged ? selectedLeadForEdit.status : editStatus,
+      status: editStatus,
       leadCost: Number(editLeadCost) || 0,
       leadSource: editLeadSource,
+      leadCategory: editLeadCategory,
       activeAd: editLeadType === 'Lead' && adObj ? { name: adObj.name, link: adObj.link } : { name: '', link: '' }
     };
 
@@ -513,10 +516,6 @@ const LeadsDirectory = () => {
         setEditModalOpen(false);
         fetchLeads();
         setTimeout(() => setSuccessMsg(''), 3000);
-
-        if (isStatusChanged) {
-          handleStatusChange(selectedLeadForEdit._id, editStatus);
-        }
       } else {
         const data = await res.json();
         setError(data.message || 'Failed to update lead');
@@ -664,19 +663,34 @@ const LeadsDirectory = () => {
     setCreatePhoneErr('');
     const phone = phoneCountryCode === '+' ? `+${phoneLocal}` : `${phoneCountryCode}${phoneLocal}`;
     try {
-      const res = await fetch(`${API_URL}/leads/phone/${phone}`, {
+      const res = await fetch(`${API_URL}/leads/phone/${encodeURIComponent(phone)}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (res.ok) {
-        const existingLead = await res.json();
-        if (existingLead) {
-          setDuplicateWarning(existingLead);
-        } else {
-          setDuplicateWarning(null);
-        }
+        const leads = await res.json();
+        setFetchedDuplicateLeads(leads || []);
       }
     } catch (err) {}
   };
+
+  useEffect(() => {
+    if (fetchedDuplicateLeads.length > 0 && selectedProjectId) {
+      let lead = fetchedDuplicateLeads.find(l => l.project && (l.project._id || l.project).toString() === selectedProjectId.toString());
+      if (lead) {
+        const allowedStatuses = ['Lost', 'Cancelled', 'Booking', 'Won'];
+        let isAllowedToReopen = allowedStatuses.includes(lead.status);
+        if (!isAllowedToReopen) {
+          setDuplicateWarning(lead);
+        } else {
+          setDuplicateWarning(null);
+        }
+      } else {
+        setDuplicateWarning(null);
+      }
+    } else {
+      setDuplicateWarning(null);
+    }
+  }, [fetchedDuplicateLeads, selectedProjectId]);
 
   const handleCreateLead = async (e) => {
     e.preventDefault();
@@ -716,6 +730,7 @@ const LeadsDirectory = () => {
       assignedTo: (user?.role === 'Admin' || user?.role === 'Manager') ? assignedToId : user?._id,
       leadCost: Number(leadCost) || 0,
       leadSource: leadSource,
+      leadCategory: leadCategory,
       activeAd: leadType === 'Lead' && adObj ? { name: adObj.name, link: adObj.link } : undefined
     };
 
@@ -745,7 +760,11 @@ const LeadsDirectory = () => {
         fetchLeads();
         setTimeout(() => setSuccessMsg(''), 4000);
       } else {
-        setError(data.message || 'Failed to submit lead registration');
+        if (data.existingLead) {
+          setDuplicateWarning(data.existingLead);
+        } else {
+          setError(data.message || 'Failed to submit lead registration');
+        }
       }
     } catch (err) {
       setError('Connection error saving lead record');
@@ -1317,6 +1336,7 @@ const LeadsDirectory = () => {
     setFetchedAdLink('');
     setProjectLocation('');
     setDuplicateWarning(null);
+    setFetchedDuplicateLeads([]);
     setLeadCost('0');
     const now = new Date();
     const year = now.getFullYear();
@@ -1326,15 +1346,9 @@ const LeadsDirectory = () => {
     setDirectFollowRemarks('');
   };
 
-  // Filter list matching Search & Date & Tab & Advanced Filters
-  const getFilteredLeads = () => {
+  // Filter list matching Search & Date & Advanced Filters (excluding Tab)
+  const getBaseFilteredLeads = () => {
     return leads.filter(lead => {
-      let matchesTab = true;
-      if (activeTab === 'Lost') {
-        matchesTab = lead.status === 'Lost' || (lead.isClosed && lead.status !== 'Won');
-      } else if (activeTab !== 'All') {
-        matchesTab = lead.status === activeTab && !lead.isClosed;
-      }
       const matchesStatus = !statusFilter || lead.status === statusFilter;
       
       const matchesSearch = !searchTerm || 
@@ -1366,8 +1380,23 @@ const LeadsDirectory = () => {
         matchesState = lead.isReopened === true || (lead.history && lead.history.some(h => h.note && h.note.toLowerCase().includes('reopened')));
       }
 
-      return matchesTab && matchesStatus && matchesSearch && matchesStartDate && matchesEndDate &&
+      return matchesStatus && matchesSearch && matchesStartDate && matchesEndDate &&
              matchesAssigned && matchesCampaign && matchesCategory && matchesLocation && matchesBankLoan && matchesState && matchesProject;
+    });
+  };
+
+  const baseFilteredLeads = getBaseFilteredLeads();
+
+  // Apply Tab Filter
+  const getFilteredLeads = () => {
+    return baseFilteredLeads.filter(lead => {
+      let matchesTab = true;
+      if (activeTab === 'Lost') {
+        matchesTab = lead.status === 'Lost' || (lead.isClosed && lead.status !== 'Won');
+      } else if (activeTab !== 'All') {
+        matchesTab = lead.status === activeTab && !lead.isClosed;
+      }
+      return matchesTab;
     });
   };
 
@@ -1555,14 +1584,14 @@ const LeadsDirectory = () => {
                 : 'text-black-500 hover:bg-black-50 hover:text-black-800'
             }`}
           >
-            All Leads ({leads.length})
+            All Leads ({baseFilteredLeads.length})
           </button>
           {LEAD_STATUSES.map(st => {
             let count = 0;
             if (st === 'Lost') {
-              count = leads.filter(l => l.status === 'Lost' || (l.isClosed && l.status !== 'Won')).length;
+              count = baseFilteredLeads.filter(l => l.status === 'Lost' || (l.isClosed && l.status !== 'Won')).length;
             } else {
-              count = leads.filter(l => l.status === st && !l.isClosed).length;
+              count = baseFilteredLeads.filter(l => l.status === st && !l.isClosed).length;
             }
             return (
               <button
@@ -1755,27 +1784,11 @@ const LeadsDirectory = () => {
                         );
                       })()}
                     </div>
-                  ) : activeTab === 'All' ? (
+                  ) : (
                     <div className="flex flex-col items-start gap-1">
                       <span className={`px-3 py-1.5 text-[12px] font-extrabold uppercase tracking-wider`}>
                         {lead.status === 'Booking' ? 'Booked' : lead.status}
                       </span>
-                    </div>
-                  ) : (
-                    <div className="relative inline-block text-left group">
-                      <select
-                        value={lead.status}
-                        onChange={(e) => handleStatusChange(lead._id, e.target.value)}
-                        disabled={statusChangingId === lead._id}
-                        className={`appearance-none cursor-pointer flex items-center justify-between gap-1.5 pl-3 pr-7 py-1.5 text-[12px] font-extrabold uppercase tracking-wider bg-transparent outline-none disabled:opacity-50 text-inherit border-none`}
-                      >
-                        {LEAD_STATUSES.map(status => (
-                          <option key={status} value={status}>
-                            {status === 'Booking' ? 'Booked' : status}
-                          </option>
-                        ))}
-                      </select>
-                      <ChevronDown className={`w-3.5 h-3.5 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none opacity-70 text-inherit`} />
                     </div>
                   )}
                 </td>
@@ -2019,19 +2032,6 @@ const LeadsDirectory = () => {
                 </div>
               </div>
 
-              {/* Duplicate check warning */}
-              {duplicateWarning && (
-                <div className="bg-red-50 border border-red-200 p-4 rounded-xl flex items-start gap-2.5 animate-bounce">
-                  <AlertCircle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
-                  <div className="text-xs text-red-800 leading-normal">
-                    <strong>Registration Blocked:</strong> A lead with this phone number already exists: 
-                    <br />
-                    <span className="font-semibold">{duplicateWarning.name} (Status: {duplicateWarning.status})</span>. 
-                    <br />
-                    You cannot re-register this lead directly. Please request Super Admin permission to reassign this lead to yourself.
-                  </div>
-                </div>
-              )}
 
               {/* Address & Location */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -2212,27 +2212,43 @@ const LeadsDirectory = () => {
                 >
                   Cancel
                 </button>
-                {duplicateWarning ? (
-                  <button
-                    type="button"
-                    onClick={handleRequestReregistration}
-                    disabled={isSubmitting}
-                    className="flex-1 py-3 bg-red-600 text-white rounded-xl text-xs font-bold hover:bg-red-700 transition shadow-md flex items-center justify-center gap-2 disabled:opacity-50"
-                  >
-                    {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <AlertCircle className="w-4 h-4" />}
-                    {isSubmitting ? 'Requesting...' : 'Request Admin Permission'}
-                  </button>
-                ) : (
-                  <button
-                    type="submit"
-                    disabled={isSubmitting}
-                    className="flex-1 py-3 bg-[#0e623a] text-white rounded-xl text-xs font-bold hover:bg-[#0b4d2d] transition shadow-md disabled:opacity-50 flex items-center justify-center gap-2"
-                  >
-                    {isSubmitting ? <><Loader2 className="w-4 h-4 animate-spin" /> Processing...</> : 'Save Lead Record'}
-                  </button>
-                )}
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="flex-1 py-3 bg-[#0e623a] text-white rounded-xl text-xs font-bold hover:bg-[#0b4d2d] transition shadow-md disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {isSubmitting ? <><Loader2 className="w-4 h-4 animate-spin" /> Processing...</> : 'Save Lead Record'}
+                </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* 🛑 Duplicate Check Warning Modal */}
+      {duplicateWarning && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl max-w-sm w-full overflow-hidden shadow-2xl border border-black-100 text-center p-6 animate-in zoom-in-95 duration-200">
+            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <AlertCircle className="w-8 h-8 text-red-600" />
+            </div>
+            <h3 className="text-xl font-bold text-black-800 mb-2">Registration Blocked</h3>
+            <p className="text-sm text-black-600 mb-6 leading-relaxed">
+              Cannot create this lead. This lead was assigned to <strong className="text-black-800">{duplicateWarning.assignedTo?.name || duplicateWarning.assignedTo || 'someone'}</strong>.<br/>This was in <strong className="text-black-800">{duplicateWarning.status}</strong> stage.
+            </p>
+            <div className="flex justify-center mt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setDuplicateWarning(null);
+                  setFetchedDuplicateLeads([]);
+                  setPhoneLocal('');
+                }}
+                className="w-full py-3 border border-black-200 rounded-xl text-sm font-bold text-black-600 hover:bg-black-50 transition cursor-pointer"
+              >
+                Close
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -2465,19 +2481,39 @@ const LeadsDirectory = () => {
                 </div>
               )}
 
-              {/* Workflow Status */}
-              <div className="flex flex-col text-left">
-                <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Workflow Status</label>
-                <select
-                  value={editStatus}
-                  onChange={(e) => setEditStatus(e.target.value)}
-                  className="w-full px-4 py-3 bg-black-55 border border-black-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-600 text-sm cursor-pointer appearance-none"
-                  style={{ backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 16px center', backgroundSize: '16px' }}
-                >
-                  {LEAD_STATUSES.map(status => (
-                    <option key={status} value={status}>{status}</option>
-                  ))}
-                </select>
+              {/* Workflow Status & Lead Category */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-left">
+                <div className="flex flex-col">
+                  <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Workflow Status</label>
+                  <select
+                    value={editStatus}
+                    onChange={(e) => {
+                      const newStatus = e.target.value;
+                      setEditModalOpen(false); // Close edit modal
+                      handleStatusChange(selectedLeadForEdit._id, newStatus);
+                    }}
+                    className="w-full px-4 py-3 bg-black-55 border border-black-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-600 text-sm cursor-pointer appearance-none"
+                    style={{ backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 16px center', backgroundSize: '16px' }}
+                  >
+                    {LEAD_STATUSES.map(status => (
+                      <option key={status} value={status}>{status}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="flex flex-col">
+                  <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Lead Category</label>
+                  <select
+                    value={editLeadCategory}
+                    onChange={(e) => setEditLeadCategory(e.target.value)}
+                    className="w-full px-4 py-3 bg-black-55 border border-black-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-600 text-sm cursor-pointer appearance-none"
+                    style={{ backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 16px center', backgroundSize: '16px' }}
+                  >
+                    <option value="Hot">Hot</option>
+                    <option value="Warm">Warm</option>
+                    <option value="Cold">Cold</option>
+                  </select>
+                </div>
               </div>
 
               {/* Submit Buttons */}
@@ -2523,7 +2559,7 @@ const LeadsDirectory = () => {
             <div className="p-6 space-y-4 max-h-[50vh] overflow-y-auto">
               {selectedLeadForHistory.history?.length > 0 ? (
                 <div className="relative border-l border-black-200 ml-3 space-y-6">
-                  {selectedLeadForHistory.history.map((hist, idx) => (
+                  {[...selectedLeadForHistory.history].reverse().map((hist, idx) => (
                     <div key={idx} className="relative pl-6">
                       {/* Timeline dot */}
                       <span className="absolute -left-[5px] top-1.5 w-2.5 h-2.5 rounded-full bg-[#0e623a] border-2 border-white ring-4 ring-[#f0f9f4]"></span>
@@ -2543,7 +2579,7 @@ const LeadsDirectory = () => {
                         Action performed by: {hist.updatedBy?.name || 'System'} ({hist.updatedBy?.role || 'User'})
                       </div>
                       {hist.note && (
-                        <div className="mt-2 text-xs bg-black-50 border p-2 rounded-lg text-black-600">
+                        <div className="mt-2 text-xs bg-green-50 border border-green-200 p-2 rounded-lg text-green-800 font-medium shadow-sm">
                           {hist.note}
                         </div>
                       )}
@@ -2652,17 +2688,30 @@ const LeadsDirectory = () => {
                     >
                       Schedule Follow-up
                     </button>
-                    <button
-                      type="button"
-                      onClick={() => setFollowMode('SiteVisit')}
-                      className={`py-3 rounded-xl text-xs font-bold transition ${
-                        followMode === 'SiteVisit'
-                          ? 'bg-yellow-600 text-white shadow'
-                          : 'bg-black-100 text-black-500 hover:bg-black-200'
-                      }`}
-                    >
-                      Move to Site Visit
-                    </button>
+                    {followTargetStatus === 'Site Visit' ? (
+                      <button
+                        type="button"
+                        onClick={() => setFollowMode('SiteVisit')}
+                        className={`py-3 rounded-xl text-xs font-bold transition ${
+                          followMode === 'SiteVisit'
+                            ? 'bg-yellow-600 text-white shadow'
+                            : 'bg-black-100 text-black-500 hover:bg-black-200'
+                        }`}
+                      >
+                        Move to Site Visit
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setFollowModalOpen(false);
+                          initiateBooked(selectedLeadForFollow);
+                        }}
+                        className="py-3 rounded-xl text-xs font-bold transition bg-blue-600 text-white shadow hover:bg-blue-700"
+                      >
+                        Move to Booking
+                      </button>
+                    )}
                     <button
                       type="button"
                       onClick={() => setFollowMode('Completed')}

@@ -55,6 +55,12 @@ router.get('/project-stats/:month', protect, async (req, res) => {
       stats[projId].enquiries.actual += 1;
       stats[projId].enquiries[week] += 1;
 
+      // 1.5. Hot Leads means leads that have leadCategory as 'Hot'
+      if (lead.leadCategory === 'Hot') {
+        stats[projId].hotlist.actual += 1;
+        stats[projId].hotlist[week] += 1;
+      }
+
       // 2. Site visits means leads that are in 'Site Visit' or 'Site Visit Follow-up' status
       if (status === 'Site Visit' || status === 'Site Visit Follow-up') {
         stats[projId].sitevisits.actual += 1;

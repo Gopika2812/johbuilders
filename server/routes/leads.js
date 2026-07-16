@@ -115,14 +115,11 @@ router.get('/due-followups', protect, async (req, res) => {
 // @desc    Check for existing lead by phone
 router.get('/phone/:phone', protect, async (req, res) => {
   try {
-    const lead = await Lead.findOne({ phone: req.params.phone })
+    const leads = await Lead.find({ phone: req.params.phone })
       .sort({ createdAt: -1 })
       .populate('project', 'name code')
       .populate('assignedTo', 'name role');
-    if (lead) {
-      return res.json(lead);
-    }
-    res.json(null);
+    res.json(leads);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -131,7 +128,7 @@ router.get('/phone/:phone', protect, async (req, res) => {
 // @route   POST /api/leads
 // @desc    Create a new lead (or reopen existing if duplicate phone)
 router.post('/', protect, async (req, res) => {
-  const { leadType, name, phone, address, profession, email, location, bankLoan, leadSource, activeAd, projectLocation, project, assignedTo, leadCost, followUpInfo } = req.body;
+  const { leadType, name, phone, address, profession, email, location, bankLoan, leadSource, activeAd, projectLocation, project, assignedTo, leadCost, followUpInfo, leadCategory } = req.body;
 
   try {
     // 1. Phone number tracking for duplicate checks / reopening
@@ -173,7 +170,8 @@ router.post('/', protect, async (req, res) => {
       if (!isAllowedToReopen) {
         const assignedName = lead.assignedTo ? lead.assignedTo.name : 'someone';
         return res.status(400).json({ 
-          message: `This lead is currently assigned to ${assignedName} and is in '${lead.status}' stage for this project. You can only register with this number again for the same project if the lead is Lost, Cancelled, or Booked.` 
+          message: `This lead is currently assigned to ${assignedName} and is in '${lead.status}' stage for this project. You can only register with this number again for the same project if the lead is Lost, Cancelled, or Booked.`,
+          existingLead: lead
         });
       }
 
@@ -195,6 +193,7 @@ router.post('/', protect, async (req, res) => {
       lead.isClosed = false;
       lead.isReopened = true;
       lead.leadCost = Number(leadCost) || 0;
+      if (leadCategory) lead.leadCategory = leadCategory;
       
       if (leadType === 'Lead') {
         lead.leadSource = leadSource || '';
@@ -249,7 +248,8 @@ router.post('/', protect, async (req, res) => {
       assignedTo: (finalAssignedTo && finalAssignedTo.toString().trim() !== '') ? finalAssignedTo : undefined,
       assignedBy: (finalAssignedTo && finalAssignedTo.toString().trim() !== '') ? req.user._id : undefined,
       status: defaultStatus,
-      leadCost: Number(leadCost) || 0
+      leadCost: Number(leadCost) || 0,
+      leadCategory: leadCategory || 'Cold'
     });
 
     if (leadType === 'Lead') {
