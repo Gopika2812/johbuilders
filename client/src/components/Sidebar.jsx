@@ -173,7 +173,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
                   </Link>
                 )}
 
-                {hasPermission('crd_flow') && (
+                {hasPermission('complaints_flow') && (
                   <Link
                     to="/crd-flow/complaints"
                     className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs transition ${

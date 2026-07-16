@@ -7,6 +7,7 @@ const defaultPages = [
   { pageId: 'leads', pageName: 'Leads Directory' },
   { pageId: 'quotations', pageName: 'Quotation Records' },
   { pageId: 'crd_flow', pageName: 'CRD Flow' },
+  { pageId: 'complaints_flow', pageName: 'Complaints Flow' },
   { pageId: 'extra_works', pageName: 'Extra Works Flow' },
   { pageId: 'extra_works_crd', pageName: 'Extra Works - CRD Team' },
   { pageId: 'extra_works_ped', pageName: 'Extra Works - PED Team' },

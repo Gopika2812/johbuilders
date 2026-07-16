@@ -1121,8 +1121,11 @@ const handleRateChange = (workId, value) => {
                                                       if (work.status === 'Added to CRD') {
                                                         return <span className="text-[9px] font-bold text-gray-400 uppercase flex items-center gap-1"><CheckCircle className="w-3 h-3 text-emerald-500" /> Work Order Created</span>;
                                                       }
-                                                      if (['Execution Sent to PED', 'Start Work', 'In Progress'].includes(work.status)) {
+                                                      if (work.status === 'Execution Sent to PED') {
                                                         return <span className="text-[9px] font-bold text-gray-400 uppercase flex items-center gap-1"><CheckCircle className="w-3 h-3 text-teal-500" /> PED Executing</span>;
+                                                      }
+                                                      if (['Start Work', 'In Progress', 'Completed'].includes(work.status)) {
+                                                        return <span className="text-[9px] font-bold text-gray-400 uppercase flex items-center gap-1"><CheckCircle className="w-3 h-3 text-teal-500" /> {work.status}</span>;
                                                       }
                                                     }
                                                     if (activeTab === 'ped') {
