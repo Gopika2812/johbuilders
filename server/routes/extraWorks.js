@@ -138,7 +138,40 @@ router.put('/:flowId/:stageIdx/:workId/send', protect, authorize('Admin'), async
     res.status(500).json({ message: err.message });
   }
 });
+// @route   PUT /api/extra-works/:flowId/:stageIdx/:workId/send-to-accounts
+// @desc    CRD team sends Client Approved work to Accounts team
+router.put('/:flowId/:stageIdx/:workId/send-to-accounts', protect, authorize('Admin'), async (req, res) => {
+  const { flowId, stageIdx, workId } = req.params;
 
+  try {
+    const flow = await CRDFlow.findById(flowId);
+    if (!flow) return res.status(404).json({ message: 'CRD Flow not found' });
+
+    const stage = flow.stages[stageIdx];
+    if (!stage) return res.status(404).json({ message: 'Stage not found' });
+
+    const extraWork = stage.extraWorks.id(workId);
+    if (!extraWork) return res.status(404).json({ message: 'Extra work not found' });
+
+    if (extraWork.status !== 'Client Approved') {
+      return res.status(400).json({ message: 'Work must be Client Approved first' });
+    }
+
+    extraWork.status = 'Sent to Accounts';
+    extraWork.sentToAccountsDate = new Date();
+
+    flow.history.push({
+      action: 'Sent to Accounts Team',
+      notes: `Sent extra work: ${extraWork.name} to Accounts team for work order creation`,
+      user: 'Admin'
+    });
+
+    await flow.save();
+    res.json(flow);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
 // @route   PUT /api/extra-works/:flowId/:stageIdx/:workId/add-to-crd
 // @desc    Accounts Team adds the Client Approved extra work to the flow/stage and creates WO
 router.put('/:flowId/:stageIdx/:workId/add-to-crd', protect, authorize('Admin'), async (req, res) => {
@@ -154,8 +187,8 @@ router.put('/:flowId/:stageIdx/:workId/add-to-crd', protect, authorize('Admin'),
     const extraWork = stage.extraWorks.id(workId);
     if (!extraWork) return res.status(404).json({ message: 'Extra work not found' });
 
-    if (extraWork.status !== 'Client Approved') {
-      return res.status(400).json({ message: 'Work must be Client Approved first' });
+    if (extraWork.status !== 'Sent to Accounts') {
+      return res.status(400).json({ message: 'Work must be Sent to Accounts first' });
     }
 
     // Add amount to stage and flow
@@ -167,20 +200,79 @@ router.put('/:flowId/:stageIdx/:workId/add-to-crd', protect, authorize('Admin'),
     extraWork.status = 'Added to CRD';
     extraWork.crdAddedDate = new Date();
 
-    // Generate woId
-    let totalWoCount = 0;
-    flow.stages.forEach(s => {
-      s.extraWorks.forEach(ew => {
-        if (ew.woId) totalWoCount++;
-      });
-    });
-    const projectCode = flow.project && flow.project.code ? flow.project.code : 'PRJ';
-    const woId = `${projectCode}WO${String(totalWoCount + 1).padStart(3, '0')}`;
-    extraWork.woId = woId;
-
     flow.history.push({
       action: 'Work Order Created',
-      notes: `Created Work Order ${woId} for extra work: ${extraWork.name} (Rs. ${extraWork.amount})`,
+      notes: `Created Work Order for extra work: ${extraWork.name} (Rs. ${extraWork.amount})`,
+      user: 'Admin'
+    });
+
+    await flow.save();
+    res.json(flow);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// @route   PUT /api/extra-works/:flowId/:stageIdx/:workId/send-to-ped-execution
+// @desc    CRD team sends work order to PED team for execution
+router.put('/:flowId/:stageIdx/:workId/send-to-ped-execution', protect, authorize('Admin'), async (req, res) => {
+  const { flowId, stageIdx, workId } = req.params;
+
+  try {
+    const flow = await CRDFlow.findById(flowId);
+    if (!flow) return res.status(404).json({ message: 'CRD Flow not found' });
+
+    const stage = flow.stages[stageIdx];
+    if (!stage) return res.status(404).json({ message: 'Stage not found' });
+
+    const extraWork = stage.extraWorks.id(workId);
+    if (!extraWork) return res.status(404).json({ message: 'Extra work not found' });
+
+    if (extraWork.status !== 'Added to CRD') {
+      return res.status(400).json({ message: 'Work must be Added to CRD first' });
+    }
+
+    extraWork.status = 'Execution Sent to PED';
+
+    flow.history.push({
+      action: 'Sent to PED for Execution',
+      notes: `Sent extra work: ${extraWork.name} to PED team for execution`,
+      user: 'Admin'
+    });
+
+    await flow.save();
+    res.json(flow);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// @route   PUT /api/extra-works/:flowId/:stageIdx/:workId/update-status
+// @desc    Update execution status (Start Work, In Progress, Completed)
+router.put('/:flowId/:stageIdx/:workId/update-status', protect, authorize('Admin'), async (req, res) => {
+  const { flowId, stageIdx, workId } = req.params;
+  const { status } = req.body;
+
+  try {
+    const flow = await CRDFlow.findById(flowId);
+    if (!flow) return res.status(404).json({ message: 'CRD Flow not found' });
+
+    const stage = flow.stages[stageIdx];
+    if (!stage) return res.status(404).json({ message: 'Stage not found' });
+
+    const extraWork = stage.extraWorks.id(workId);
+    if (!extraWork) return res.status(404).json({ message: 'Extra work not found' });
+
+    const validStatuses = ['Start Work', 'In Progress', 'Completed'];
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({ message: 'Invalid status' });
+    }
+
+    extraWork.status = status;
+
+    flow.history.push({
+      action: `Status Updated to ${status}`,
+      notes: `Extra work: ${extraWork.name} status updated to ${status}`,
       user: 'Admin'
     });
 

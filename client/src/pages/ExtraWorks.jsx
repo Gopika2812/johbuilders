@@ -248,7 +248,12 @@ const handleRateChange = (workId, value) => {
       case 'PED Approved': return <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs font-bold">Priced (Ready to Send)</span>;
       case 'Sent to Customer': return <span className="px-2 py-1 bg-purple-100 text-purple-800 rounded text-xs font-bold">Sent to Customer</span>;
       case 'Client Approved': return <span className="px-2 py-1 bg-emerald-100 text-emerald-800 rounded text-xs font-bold">Client Approved</span>;
+      case 'Sent to Accounts': return <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs font-bold">Sent to Accounts</span>;
       case 'Added to CRD': return <span className="px-2 py-1 bg-gray-100 text-gray-800 rounded text-xs font-bold">Added to CRD</span>;
+      case 'Execution Sent to PED': return <span className="px-2 py-1 bg-teal-100 text-teal-800 rounded text-xs font-bold">Execution Sent to PED</span>;
+      case 'Start Work': return <span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded text-xs font-bold">Start Work</span>;
+      case 'In Progress': return <span className="px-2 py-1 bg-orange-100 text-orange-800 rounded text-xs font-bold">In Progress</span>;
+      case 'Completed': return <span className="px-2 py-1 bg-green-100 text-green-800 rounded text-xs font-bold">Completed</span>;
       case 'Removed by Client': return <span className="px-2 py-1 bg-red-100 text-red-800 rounded text-xs font-bold">Removed by Client</span>;
       default: return <span className="px-2 py-1 bg-gray-100 text-gray-800 rounded text-xs font-bold">{status}</span>;
     }
@@ -257,11 +262,11 @@ const handleRateChange = (workId, value) => {
   // Filter flows based on active tab requirements
   const getTabStatuses = () => {
     switch(activeTab) {
-      case 'crd': return ['Pending', 'Sent to PED', 'PED Approved', 'Sent to Customer', 'Client Approved', 'Added to CRD', 'Rejected', 'Removed by Client'];
-      case 'ped': return ['Sent to PED', 'PED Approved', 'Sent to Customer', 'Client Approved', 'Added to CRD', 'Rejected', 'Removed by Client'];
-      case 'client': return ['Sent to Customer', 'Client Approved', 'Added to CRD', 'Rejected', 'Removed by Client'];
-      case 'accounts': return ['Client Approved', 'Added to CRD'];
-      case 'work-orders': return ['Added to CRD'];
+      case 'crd': return ['Pending', 'Sent to PED', 'PED Approved', 'Sent to Customer', 'Client Approved', 'Sent to Accounts', 'Added to CRD', 'Execution Sent to PED', 'Start Work', 'In Progress', 'Completed', 'Rejected', 'Removed by Client'];
+      case 'ped': return ['Sent to PED', 'PED Approved', 'Sent to Customer', 'Client Approved', 'Sent to Accounts', 'Added to CRD', 'Execution Sent to PED', 'Start Work', 'In Progress', 'Completed', 'Rejected', 'Removed by Client'];
+      case 'client': return ['Sent to Customer', 'Client Approved', 'Sent to Accounts', 'Added to CRD', 'Execution Sent to PED', 'Start Work', 'In Progress', 'Completed', 'Rejected', 'Removed by Client'];
+      case 'accounts': return ['Sent to Accounts', 'Added to CRD', 'Execution Sent to PED', 'Start Work', 'In Progress', 'Completed'];
+      case 'work-orders': return ['Added to CRD', 'Execution Sent to PED', 'Start Work', 'In Progress', 'Completed'];
       default: return [];
     }
   };
@@ -718,9 +723,9 @@ const handleRateChange = (workId, value) => {
                                             const selectableWorks = [];
                                             flow.stages.forEach(s => {
                                               s.extraWorks?.forEach(w => {
-                                                if (activeTab === 'crd' && w.status === 'Pending') selectableWorks.push(w._id);
+                                                if (activeTab === 'crd' && (w.status === 'Pending' || w.status === 'Client Approved' || w.status === 'Added to CRD')) selectableWorks.push(w._id);
                                                 if (activeTab === 'ped' && w.status === 'PED Approved') selectableWorks.push(w._id);
-                                                if (activeTab === 'accounts' && w.status === 'Client Approved') selectableWorks.push(w._id);
+                                                if (activeTab === 'accounts' && w.status === 'Sent to Accounts') selectableWorks.push(w._id);
                                               });
                                             });
                                             const allSelected = selectableWorks.length > 0 && selectableWorks.every(id => selectedWorks.includes(id));
@@ -734,9 +739,9 @@ const handleRateChange = (workId, value) => {
                                             let selectable = 0;
                                             let selected = 0;
                                             flow.stages.forEach(s => s.extraWorks?.forEach(w => {
-                                              if ((activeTab === 'crd' && w.status === 'Pending') ||
+                                              if ((activeTab === 'crd' && (w.status === 'Pending' || w.status === 'Client Approved' || w.status === 'Added to CRD')) ||
                                                   (activeTab === 'ped' && w.status === 'PED Approved') ||
-                                                  (activeTab === 'accounts' && w.status === 'Client Approved')) {
+                                                  (activeTab === 'accounts' && w.status === 'Sent to Accounts')) {
                                                 selectable++;
                                                 if (selectedWorks.includes(w._id)) selected++;
                                               }
@@ -764,9 +769,9 @@ const handleRateChange = (workId, value) => {
                                         stage.extraWorks.forEach(work => {
                                           const isValid = (() => {
                                             if (activeTab === 'crd') return true; // all
-                                            if (activeTab === 'ped') return ['Sent to PED', 'PED Approved', 'Sent to Customer', 'Client Approved', 'Added to CRD', 'Rejected', 'Removed by Client'].includes(work.status);
-                                            if (activeTab === 'client') return ['Sent to Customer', 'Client Approved', 'Added to CRD', 'Rejected', 'Removed by Client'].includes(work.status);
-                                            if (activeTab === 'accounts') return ['Client Approved', 'Added to CRD'].includes(work.status);
+                                            if (activeTab === 'ped') return ['Sent to PED', 'PED Approved', 'Sent to Customer', 'Client Approved', 'Sent to Accounts', 'Added to CRD', 'Rejected', 'Removed by Client'].includes(work.status);
+                                            if (activeTab === 'client') return ['Sent to Customer', 'Client Approved', 'Sent to Accounts', 'Added to CRD', 'Rejected', 'Removed by Client'].includes(work.status);
+                                            if (activeTab === 'accounts') return ['Sent to Accounts', 'Added to CRD'].includes(work.status);
                                             if (activeTab === 'work-orders') return ['Added to CRD'].includes(work.status);
                                             return false;
                                           })();
@@ -788,9 +793,8 @@ const handleRateChange = (workId, value) => {
                                           pricingDate: work.pricingDate,
                                           sentToPedDate: work.sentToPedDate,
                                           customerApprovalDate: work.customerApprovalDate,
+                                          sentToAccountsDate: work.sentToAccountsDate,
                                           crdAddedDate: work.crdAddedDate,
-                                          workOrderDate: work.workOrderDate,
-                                          woId: work.woId,
                                           addedAt: work.addedAt
                                         };
                                       }
@@ -805,8 +809,39 @@ const handleRateChange = (workId, value) => {
                                           className="hover:bg-emerald-50/30 transition-colors cursor-pointer bg-white"
                                           onClick={() => setExpandedReqIds(prev => ({ ...prev, [group.ewId]: !prev[group.ewId] }))}
                                         >
-                                          <td className="p-4 align-middle text-center">
-                                            {expandedReqIds[group.ewId] ? <ChevronUp className="w-4 h-4 mx-auto text-emerald-600" /> : <ChevronDown className="w-4 h-4 mx-auto text-gray-400" />}
+                                          <td className="p-4 align-middle text-center flex items-center justify-center gap-2">
+                                            {(() => {
+                                              if (['crd', 'ped', 'accounts'].includes(activeTab)) {
+                                                const selectableWorksInGroup = group.items.filter(work => {
+                                                  if (activeTab === 'crd' && (work.status === 'Pending' || work.status === 'Client Approved' || work.status === 'Added to CRD')) return true;
+                                                  if (activeTab === 'ped' && work.status === 'PED Approved') return true;
+                                                  if (activeTab === 'accounts' && work.status === 'Sent to Accounts') return true;
+                                                  return false;
+                                                });
+                                                if (selectableWorksInGroup.length > 0) {
+                                                  const isAllSelected = selectableWorksInGroup.every(w => selectedWorks.includes(w._id));
+                                                  return (
+                                                    <input 
+                                                      type="checkbox"
+                                                      className="w-4 h-4 rounded border-gray-300 text-[#006838] focus:ring-[#006838]"
+                                                      checked={isAllSelected}
+                                                      onClick={(e) => e.stopPropagation()}
+                                                      onChange={(e) => {
+                                                        e.stopPropagation();
+                                                        if (isAllSelected) {
+                                                          setSelectedWorks(prev => prev.filter(id => !selectableWorksInGroup.find(w => w._id === id)));
+                                                        } else {
+                                                          const idsToAdd = selectableWorksInGroup.map(w => w._id);
+                                                          setSelectedWorks(prev => [...new Set([...prev, ...idsToAdd])]);
+                                                        }
+                                                      }}
+                                                    />
+                                                  );
+                                                }
+                                              }
+                                              return null;
+                                            })()}
+                                            {expandedReqIds[group.ewId] ? <ChevronUp className="w-4 h-4 text-emerald-600" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
                                           </td>
                                           <td className="p-4 align-middle">
                                             <span className="font-mono text-[#006838] font-bold">
@@ -832,15 +867,15 @@ const handleRateChange = (workId, value) => {
                                             {group.crdAddedDate ? new Date(group.crdAddedDate).toLocaleDateString('en-GB') : '-'}
                                           </td>
                                           <td className="p-4 align-middle text-center text-sm text-purple-700 font-medium">
-                                            {group.woId || (group.crdAddedDate ? new Date(group.crdAddedDate).toLocaleDateString('en-GB') : '-')}
+                                            {group.crdAddedDate ? new Date(group.crdAddedDate).toLocaleDateString('en-GB') : '-'}
                                           </td>
                                         </tr>
                                         {expandedReqIds[group.ewId] && group.items.map((work, wIdx) => (
                                           <tr key={work._id} className="bg-gray-50/50 hover:bg-white transition border-l-4 border-[#006838]">
                                             <td className="p-4 align-middle text-center flex items-center justify-center gap-2">
-                                              {((activeTab === 'crd' && work.status === 'Pending') ||
+                                              {((activeTab === 'crd' && (work.status === 'Pending' || work.status === 'Client Approved' || work.status === 'Added to CRD')) ||
                                                 (activeTab === 'ped' && work.status === 'PED Approved') ||
-                                                (activeTab === 'accounts' && work.status === 'Client Approved')) && (
+                                                (activeTab === 'accounts' && work.status === 'Sent to Accounts')) && (
                                                 <input 
                                                   type="checkbox"
                                                   className="w-4 h-4 rounded border-gray-300 text-[#006838] focus:ring-[#006838]"
@@ -853,19 +888,35 @@ const handleRateChange = (workId, value) => {
                                               )}
                                               <span className="text-xs text-gray-400 font-bold">{gIdx + 1}.{wIdx + 1}</span>
                                             </td>
-                                            <td className="p-4 align-middle" colSpan="3">
-                                              <span className="font-bold text-gray-700 flex items-center gap-1 text-xs whitespace-normal max-w-[400px]">
-                                                ↳ {work.name || '-'}
-                                              </span>
+                                            <td className="p-4 align-middle">
+                                              <div className="font-bold text-gray-700 flex flex-col gap-1 text-xs whitespace-normal max-w-[200px]">
+                                                <span>↳ {work.name || '-'}</span>
+                                                <span className="text-[10px] text-gray-500 font-normal">Qty: {work.quantity || 1} {work.unit ? `x ${work.unit}` : ''} @ Rs. {work.rate || 0}</span>
+                                              </div>
+                                            </td>
+                                            <td className="p-4 align-middle text-center text-[11px] text-gray-500">
+                                              {work.addedAt ? new Date(work.addedAt).toLocaleDateString('en-GB') : '-'}
+                                            </td>
+                                            <td className="p-4 align-middle text-center text-[11px] text-gray-500">
+                                              {work.sentToPedDate ? new Date(work.sentToPedDate).toLocaleDateString('en-GB') : '-'}
                                             </td>
                                             <td className="p-4 align-middle text-right font-bold text-[#006838]">
                                               Rs. {(work.amount || 0).toLocaleString()}
                                             </td>
-                                            <td colSpan="4" className="p-4 align-middle">
-                                              <div className="flex items-center justify-between gap-4">
-                                                <div className="text-[10px] text-gray-500 uppercase tracking-wider text-left">
-                                                  Qty: {work.quantity || 1} {work.unit ? `x ${work.unit}` : ''} @ Rs. {work.rate || 0} | Status: {work.status}
-                                                </div>
+                                            <td className="p-4 align-middle text-center text-[11px] text-gray-500">
+                                              {work.pricingDate ? new Date(work.pricingDate).toLocaleDateString('en-GB') : '-'}
+                                            </td>
+                                            <td className="p-4 align-middle text-center text-[11px] text-emerald-600 font-medium">
+                                              {work.customerApprovalDate ? new Date(work.customerApprovalDate).toLocaleDateString('en-GB') : '-'}
+                                            </td>
+                                            <td className="p-4 align-middle text-center text-[11px] text-blue-600 font-medium">
+                                              {work.sentToAccountsDate ? new Date(work.sentToAccountsDate).toLocaleDateString('en-GB') : '-'}
+                                            </td>
+                                            <td className="p-4 align-middle">
+                                              <div className="flex flex-col items-center justify-center gap-2">
+                                                <span className="text-[11px] text-purple-700 font-medium">
+                                                  {work.crdAddedDate ? new Date(work.crdAddedDate).toLocaleDateString('en-GB') : '-'}
+                                                </span>
                                                 <div className="flex items-center gap-2">
                                                   {activeTab === 'ped' && (work.status === 'Sent to PED' || work.status === 'PED Approved') && (
                                                       <input
@@ -882,6 +933,71 @@ const handleRateChange = (workId, value) => {
                                                         onClick={(e) => e.stopPropagation()}
                                                       />
                                                   )}
+                                                  {activeTab === 'ped' && ['Execution Sent to PED', 'Start Work', 'In Progress'].includes(work.status) && (
+                                                      <select
+                                                        value={work.status}
+                                                        onChange={async (e) => {
+                                                          try {
+                                                            await fetch(`${API_URL}/extra-works/${flow._id}/${work.stageIdx}/${work._id}/update-status`, {
+                                                              method: 'PUT',
+                                                              headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                                                              body: JSON.stringify({ status: e.target.value })
+                                                            });
+                                                            await fetchFlows();
+                                                          } catch (err) {
+                                                            alert(err.message);
+                                                          }
+                                                        }}
+                                                        onClick={(e) => e.stopPropagation()}
+                                                        className="px-2 py-1 bg-white border border-gray-200 rounded text-[10px] font-bold focus:outline-none focus:ring-1 focus:ring-[#006838]"
+                                                      >
+                                                        <option value="Execution Sent to PED" disabled>Execution Sent to PED</option>
+                                                        <option value="Start Work">Start Work</option>
+                                                        <option value="In Progress">In Progress</option>
+                                                        <option value="Completed">Completed</option>
+                                                      </select>
+                                                  )}
+                                                  {(() => {
+                                                    if (work.status === 'Removed by Client') {
+                                                      return <span className="text-[9px] font-bold text-red-500 uppercase flex items-center gap-1"><X className="w-3 h-3" /> Removed by Client</span>;
+                                                    }
+                                                    if (work.status === 'Rejected') {
+                                                      return <span className="text-[9px] font-bold text-red-500 uppercase flex items-center gap-1"><X className="w-3 h-3" /> Rejected</span>;
+                                                    }
+                                                    if (work.status === 'Completed') {
+                                                      return <span className="text-[9px] font-bold text-green-500 uppercase flex items-center gap-1"><CheckCircle className="w-3 h-3" /> Completed</span>;
+                                                    }
+                                                    if (activeTab === 'crd') {
+                                                      if (['Sent to PED', 'PED Approved', 'Sent to Customer'].includes(work.status)) {
+                                                        return <span className="text-[9px] font-bold text-gray-400 uppercase flex items-center gap-1"><CheckCircle className="w-3 h-3 text-emerald-500" /> Sent to PED Team</span>;
+                                                      }
+                                                      if (['Sent to Accounts'].includes(work.status)) {
+                                                        return <span className="text-[9px] font-bold text-gray-400 uppercase flex items-center gap-1"><CheckCircle className="w-3 h-3 text-emerald-500" /> Sent to Accounts</span>;
+                                                      }
+                                                      if (work.status === 'Added to CRD') {
+                                                        return <span className="text-[9px] font-bold text-gray-400 uppercase flex items-center gap-1"><CheckCircle className="w-3 h-3 text-emerald-500" /> Work Order Created</span>;
+                                                      }
+                                                      if (['Execution Sent to PED', 'Start Work', 'In Progress'].includes(work.status)) {
+                                                        return <span className="text-[9px] font-bold text-gray-400 uppercase flex items-center gap-1"><CheckCircle className="w-3 h-3 text-teal-500" /> PED Executing</span>;
+                                                      }
+                                                    }
+                                                    if (activeTab === 'ped') {
+                                                      if (['Sent to Customer', 'Client Approved', 'Sent to Accounts', 'Added to CRD'].includes(work.status)) {
+                                                        return <span className="text-[9px] font-bold text-gray-400 uppercase flex items-center gap-1"><CheckCircle className="w-3 h-3 text-emerald-500" /> Sent to Client</span>;
+                                                      }
+                                                    }
+                                                    if (activeTab === 'client') {
+                                                      if (['Client Approved', 'Sent to Accounts', 'Added to CRD', 'Execution Sent to PED', 'Start Work', 'In Progress'].includes(work.status)) {
+                                                        return <span className="text-[9px] font-bold text-gray-400 uppercase flex items-center gap-1"><CheckCircle className="w-3 h-3 text-emerald-500" /> Client Approved</span>;
+                                                      }
+                                                    }
+                                                    if (activeTab === 'accounts') {
+                                                      if (['Added to CRD', 'Execution Sent to PED', 'Start Work', 'In Progress'].includes(work.status)) {
+                                                        return <span className="text-[9px] font-bold text-gray-400 uppercase flex items-center gap-1"><CheckCircle className="w-3 h-3 text-emerald-500" /> Work Order Created</span>;
+                                                      }
+                                                    }
+                                                    return null;
+                                                  })()}
                                                 </div>
                                               </div>
                                             </td>
@@ -897,33 +1013,101 @@ const handleRateChange = (workId, value) => {
                             {(() => {
                               if (activeTab === 'crd') {
                                 const hasPending = flow.stages.some(s => s.extraWorks?.some(w => w.status === 'Pending'));
-                                if (!hasPending) return null;
+                                const hasClientApproved = flow.stages.some(s => s.extraWorks?.some(w => w.status === 'Client Approved'));
+                                const hasAddedToCRD = flow.stages.some(s => s.extraWorks?.some(w => w.status === 'Added to CRD'));
+                                if (!hasPending && !hasClientApproved && !hasAddedToCRD) return null;
                                 return (
-                                  <div className="mt-4 flex justify-end">
-                                    <button
-                                      onClick={async () => {
-                                        setSubmitting('bulk-crd');
-                                        try {
-                                          const works = [];
-                                          flow.stages.forEach((s, sIdx) => s.extraWorks?.forEach(w => {
-                                            if (w.status === 'Pending' && selectedWorks.includes(w._id)) works.push({sIdx, wId: w._id});
-                                          }));
-                                          for (const work of works) {
-                                            await fetch(`${API_URL}/extra-works/${flow._id}/${work.sIdx}/${work.wId}/send-to-ped`, {
-                                              method: 'PUT', headers: { Authorization: `Bearer ${token}` }
-                                            });
+                                  <div className="mt-4 flex flex-col sm:flex-row justify-end gap-3">
+                                    {hasPending && (
+                                      <button
+                                        onClick={async () => {
+                                          setSubmitting('bulk-crd');
+                                          try {
+                                            const works = [];
+                                            flow.stages.forEach((s, sIdx) => s.extraWorks?.forEach(w => {
+                                              if (w.status === 'Pending' && selectedWorks.includes(w._id)) works.push({sIdx, wId: w._id});
+                                            }));
+                                            for (const work of works) {
+                                              await fetch(`${API_URL}/extra-works/${flow._id}/${work.sIdx}/${work.wId}/send-to-ped`, {
+                                                method: 'PUT', headers: { Authorization: `Bearer ${token}` }
+                                              });
+                                            }
+                                            setSelectedWorks([]);
+                                            await fetchFlows();
+                                          } finally {
+                                            setSubmitting(null);
                                           }
-                                          setSelectedWorks([]);
-                                          await fetchFlows();
-                                        } finally {
-                                          setSubmitting(null);
-                                        }
-                                      }}
-                                      disabled={submitting === 'bulk-crd' || selectedWorks.length === 0}
-                                      className="px-6 py-2 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition flex items-center gap-2 shadow-sm disabled:opacity-50"
-                                    >
-                                      {submitting === 'bulk-crd' ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Send className="w-4 h-4" /> Share Selected to PED ({selectedWorks.length})</>}
-                                    </button>
+                                        }}
+                                        disabled={submitting === 'bulk-crd' || !selectedWorks.some(id => {
+                                          let isPending = false;
+                                          flow.stages.forEach(s => s.extraWorks?.forEach(w => { if (w._id === id && w.status === 'Pending') isPending = true; }));
+                                          return isPending;
+                                        })}
+                                        className="px-6 py-2 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition flex items-center justify-center gap-2 shadow-sm disabled:opacity-50"
+                                      >
+                                        {submitting === 'bulk-crd' ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Send className="w-4 h-4" /> Share Selected to PED</>}
+                                      </button>
+                                    )}
+                                    {hasClientApproved && (
+                                      <button
+                                        onClick={async () => {
+                                          setSubmitting('bulk-crd-accounts');
+                                          try {
+                                            const works = [];
+                                            flow.stages.forEach((s, sIdx) => s.extraWorks?.forEach(w => {
+                                              if (w.status === 'Client Approved' && selectedWorks.includes(w._id)) works.push({sIdx, wId: w._id});
+                                            }));
+                                            for (const work of works) {
+                                              await fetch(`${API_URL}/extra-works/${flow._id}/${work.sIdx}/${work.wId}/send-to-accounts`, {
+                                                method: 'PUT', headers: { Authorization: `Bearer ${token}` }
+                                              });
+                                            }
+                                            setSelectedWorks([]);
+                                            await fetchFlows();
+                                          } finally {
+                                            setSubmitting(null);
+                                          }
+                                        }}
+                                        disabled={submitting === 'bulk-crd-accounts' || !selectedWorks.some(id => {
+                                          let isApproved = false;
+                                          flow.stages.forEach(s => s.extraWorks?.forEach(w => { if (w._id === id && w.status === 'Client Approved') isApproved = true; }));
+                                          return isApproved;
+                                        })}
+                                        className="px-6 py-2 bg-purple-600 text-white font-bold rounded-xl hover:bg-purple-700 transition flex items-center justify-center gap-2 shadow-sm disabled:opacity-50"
+                                      >
+                                        {submitting === 'bulk-crd-accounts' ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Building className="w-4 h-4" /> Share Selected to Accounts</>}
+                                      </button>
+                                    )}
+                                    {hasAddedToCRD && (
+                                      <button
+                                        onClick={async () => {
+                                          setSubmitting('bulk-crd-execution');
+                                          try {
+                                            const works = [];
+                                            flow.stages.forEach((s, sIdx) => s.extraWorks?.forEach(w => {
+                                              if (w.status === 'Added to CRD' && selectedWorks.includes(w._id)) works.push({sIdx, wId: w._id});
+                                            }));
+                                            for (const work of works) {
+                                              await fetch(`${API_URL}/extra-works/${flow._id}/${work.sIdx}/${work.wId}/send-to-ped-execution`, {
+                                                method: 'PUT', headers: { Authorization: `Bearer ${token}` }
+                                              });
+                                            }
+                                            setSelectedWorks([]);
+                                            await fetchFlows();
+                                          } finally {
+                                            setSubmitting(null);
+                                          }
+                                        }}
+                                        disabled={submitting === 'bulk-crd-execution' || !selectedWorks.some(id => {
+                                          let isAdded = false;
+                                          flow.stages.forEach(s => s.extraWorks?.forEach(w => { if (w._id === id && w.status === 'Added to CRD') isAdded = true; }));
+                                          return isAdded;
+                                        })}
+                                        className="px-6 py-2 bg-teal-600 text-white font-bold rounded-xl hover:bg-teal-700 transition flex items-center justify-center gap-2 shadow-sm disabled:opacity-50"
+                                      >
+                                        {submitting === 'bulk-crd-execution' ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Send className="w-4 h-4" /> Send to PED for Execution</>}
+                                      </button>
+                                    )}
                                   </div>
                                 );
                               }
@@ -962,8 +1146,8 @@ const handleRateChange = (workId, value) => {
                               }
 
                               if (activeTab === 'accounts') {
-                                const hasClientApproved = flow.stages.some(s => s.extraWorks?.some(w => w.status === 'Client Approved'));
-                                if (!hasClientApproved) return null;
+                                const hasSentToAccounts = flow.stages.some(s => s.extraWorks?.some(w => w.status === 'Sent to Accounts'));
+                                if (!hasSentToAccounts) return null;
                                 return (
                                   <div className="mt-4 flex justify-end">
                                     <button
@@ -972,7 +1156,7 @@ const handleRateChange = (workId, value) => {
                                         try {
                                           const works = [];
                                           flow.stages.forEach((s, sIdx) => s.extraWorks?.forEach(w => {
-                                            if (w.status === 'Client Approved' && selectedWorks.includes(w._id)) works.push({sIdx, wId: w._id});
+                                            if (w.status === 'Sent to Accounts' && selectedWorks.includes(w._id)) works.push({sIdx, wId: w._id});
                                           }));
                                           for (const work of works) {
                                             await fetch(`${API_URL}/extra-works/${flow._id}/${work.sIdx}/${work.wId}/add-to-crd`, {
