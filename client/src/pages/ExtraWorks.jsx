@@ -18,17 +18,49 @@ import {
 } from 'lucide-react';
 
 const ExtraWorks = () => {
-  const { token, user } = useAuth();
+  const { token, user, hasPermission, isAdmin } = useAuth();
   const [flows, setFlows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [expandedFlow, setExpandedFlow] = useState(null);
   const [rates, setRates] = useState({});
   const [submitting, setSubmitting] = useState(null); // id of work being submitted
-  const [activeTab, setActiveTab] = useState('crd');
+  const [activeTab, setActiveTab] = useState('');
   const [selectedWorks, setSelectedWorks] = useState([]); // crd, ped, client, accounts, work-orders
   const [extraWorkDetailsModal, setExtraWorkDetailsModal] = useState(null);
   const [expandedReqIds, setExpandedReqIds] = useState({});
+
+  const tabs = [
+    { id: 'crd', label: 'CRD Team', permissionId: 'extra_works_crd' },
+    { id: 'ped', label: 'PED Team', permissionId: 'extra_works_ped' },
+    { id: 'client', label: 'Client Approved', permissionId: 'extra_works_client' },
+    { id: 'accounts', label: 'Accounts Team', permissionId: 'extra_works_accounts' },
+    { id: 'work-orders', label: 'Work Orders', permissionId: 'extra_works_work_orders' }
+  ];
+
+  const allowedTabs = tabs.filter(tab => isAdmin || hasPermission(tab.permissionId));
+
+  const canEditTab = (tabId) => {
+    if (isAdmin) return true;
+    if (!user || !user.permissions) return false;
+    const tabPermissionMap = {
+      'crd': 'extra_works_crd',
+      'ped': 'extra_works_ped',
+      'client': 'extra_works_client',
+      'accounts': 'extra_works_accounts',
+      'work-orders': 'extra_works_work_orders'
+    };
+    const permId = tabPermissionMap[tabId];
+    if (!permId) return false;
+    const perm = user.permissions.find(p => p.pageId === permId);
+    return perm ? perm.canEdit : false;
+  };
+
+  useEffect(() => {
+    if (allowedTabs.length > 0 && !allowedTabs.find(t => t.id === activeTab)) {
+      setActiveTab(allowedTabs[0].id);
+    }
+  }, [user, activeTab]);
 
   // Filters
   const [searchTerm, setSearchTerm] = useState('');
@@ -411,6 +443,9 @@ const handleRateChange = (workId, value) => {
 
   if (loading) return <div className="p-8 flex justify-center"><Loader2 className="w-8 h-8 animate-spin text-emerald-600" /></div>;
   if (error) return <div className="p-8 text-red-500">{error}</div>;
+  if (!loading && allowedTabs.length === 0) {
+    return <div className="p-8 text-center text-red-500 font-bold">Access Denied. You do not have permission to view any of the Extra Works tabs.</div>;
+  }
 
   return (
     <div className="p-6 md:p-8 w-full mx-auto space-y-6 animate-fade-in">
@@ -422,13 +457,7 @@ const handleRateChange = (workId, value) => {
       </div>
 
       <div className="bg-white/60 backdrop-blur-xl border border-white/60 p-1.5 rounded-2xl flex flex-wrap gap-2 shadow-sm">
-        {[
-          { id: 'crd', label: 'CRD Team' },
-          { id: 'ped', label: 'PED Team' },
-          { id: 'client', label: 'Client Approved' },
-          { id: 'accounts', label: 'Accounts Team' },
-          { id: 'work-orders', label: 'Work Orders' }
-        ].map(tab => (
+        {allowedTabs.map(tab => (
           <button
             key={tab.id}
             onClick={() => { setActiveTab(tab.id); setSelectedWorks([]); }}
@@ -608,7 +637,7 @@ const handleRateChange = (workId, value) => {
                           <div className="p-6">
                             <div className="flex justify-between items-center mb-4">
                               <h3 className="font-bold text-gray-800 text-lg">Extra Works Timeline</h3>
-                              {(user?.role === 'Admin' || user?.role === 'Manager') && (
+                              {(isAdmin || canEditTab('crd')) && (
                                 <button 
                                   onClick={() => setShowAddForm(!showAddForm)} 
                                   className="flex items-center gap-2 px-4 py-2 bg-[#006838] text-white font-bold rounded-xl hover:bg-[#00512c] transition-colors shadow-sm text-sm"
@@ -715,7 +744,7 @@ const handleRateChange = (workId, value) => {
                                 <thead className="bg-[#006838] text-white">
                                   <tr>
                                     <th className="p-4 w-12 text-center">
-                                      {(activeTab === 'crd' || activeTab === 'ped' || activeTab === 'accounts') && (
+                                      {(activeTab === 'crd' || activeTab === 'ped' || activeTab === 'accounts') && (isAdmin || canEditTab(activeTab)) && (
                                         <input 
                                           type="checkbox"
                                           className="w-4 h-4 rounded border-gray-300 text-[#006838] focus:ring-[#006838]"
@@ -811,7 +840,7 @@ const handleRateChange = (workId, value) => {
                                         >
                                           <td className="p-4 align-middle text-center flex items-center justify-center gap-2">
                                             {(() => {
-                                              if (['crd', 'ped', 'accounts'].includes(activeTab)) {
+                                              if (['crd', 'ped', 'accounts'].includes(activeTab) && (isAdmin || canEditTab(activeTab))) {
                                                 const selectableWorksInGroup = group.items.filter(work => {
                                                   if (activeTab === 'crd' && (work.status === 'Pending' || work.status === 'Client Approved' || work.status === 'Added to CRD')) return true;
                                                   if (activeTab === 'ped' && work.status === 'PED Approved') return true;
@@ -864,7 +893,7 @@ const handleRateChange = (workId, value) => {
                                             {group.customerApprovalDate ? new Date(group.customerApprovalDate).toLocaleDateString('en-GB') : '-'}
                                           </td>
                                           <td className="p-4 align-middle text-center text-sm text-blue-700 font-medium">
-                                            {group.crdAddedDate ? new Date(group.crdAddedDate).toLocaleDateString('en-GB') : '-'}
+                                            {group.sentToAccountsDate ? new Date(group.sentToAccountsDate).toLocaleDateString('en-GB') : '-'}
                                           </td>
                                           <td className="p-4 align-middle text-center text-sm text-purple-700 font-medium">
                                             {group.crdAddedDate ? new Date(group.crdAddedDate).toLocaleDateString('en-GB') : '-'}
@@ -875,7 +904,7 @@ const handleRateChange = (workId, value) => {
                                             <td className="p-4 align-middle text-center flex items-center justify-center gap-2">
                                               {((activeTab === 'crd' && (work.status === 'Pending' || work.status === 'Client Approved' || work.status === 'Added to CRD')) ||
                                                 (activeTab === 'ped' && work.status === 'PED Approved') ||
-                                                (activeTab === 'accounts' && work.status === 'Sent to Accounts')) && (
+                                                (activeTab === 'accounts' && work.status === 'Sent to Accounts')) && (isAdmin || canEditTab(activeTab)) && (
                                                 <input 
                                                   type="checkbox"
                                                   className="w-4 h-4 rounded border-gray-300 text-[#006838] focus:ring-[#006838]"
@@ -913,14 +942,15 @@ const handleRateChange = (workId, value) => {
                                               {work.sentToAccountsDate ? new Date(work.sentToAccountsDate).toLocaleDateString('en-GB') : '-'}
                                             </td>
                                             <td className="p-4 align-middle">
-                                              <div className="flex flex-col items-center justify-center gap-2">
+                                          <div className="flex flex-col items-center justify-center gap-2">
                                                 <span className="text-[11px] text-purple-700 font-medium">
                                                   {work.crdAddedDate ? new Date(work.crdAddedDate).toLocaleDateString('en-GB') : '-'}
                                                 </span>
                                                 <div className="flex items-center gap-2">
-                                                  {activeTab === 'ped' && (work.status === 'Sent to PED' || work.status === 'PED Approved') && (
+                                                  {activeTab === 'ped' && ['Sent to PED', 'PED Approved', 'Sent to Customer', 'Client Approved', 'Sent to Accounts'].includes(work.status) && (
                                                       <input
                                                         type="number"
+                                                        disabled={!(isAdmin || canEditTab('ped'))}
                                                         value={rates[work._id] ?? work.rate ?? ''}
                                                         onChange={(e) => handleRateChange(work._id, e.target.value)}
                                                         onBlur={(e) => {
@@ -928,7 +958,7 @@ const handleRateChange = (workId, value) => {
                                                             handleSavePrice(flow._id, work.stageIdx, work._id);
                                                           }
                                                         }}
-                                                        className="w-20 px-2 py-1 bg-white border border-gray-200 rounded text-xs focus:outline-none focus:ring-1 focus:ring-[#006838]"
+                                                        className="w-20 px-2 py-1 bg-white border border-gray-200 rounded text-xs focus:outline-none focus:ring-1 focus:ring-[#006838] disabled:bg-gray-100 disabled:cursor-not-allowed"
                                                         placeholder="Rate"
                                                         onClick={(e) => e.stopPropagation()}
                                                       />
@@ -936,6 +966,7 @@ const handleRateChange = (workId, value) => {
                                                   {activeTab === 'ped' && ['Execution Sent to PED', 'Start Work', 'In Progress'].includes(work.status) && (
                                                       <select
                                                         value={work.status}
+                                                        disabled={!(isAdmin || canEditTab('ped'))}
                                                         onChange={async (e) => {
                                                           try {
                                                             await fetch(`${API_URL}/extra-works/${flow._id}/${work.stageIdx}/${work._id}/update-status`, {
@@ -949,7 +980,7 @@ const handleRateChange = (workId, value) => {
                                                           }
                                                         }}
                                                         onClick={(e) => e.stopPropagation()}
-                                                        className="px-2 py-1 bg-white border border-gray-200 rounded text-[10px] font-bold focus:outline-none focus:ring-1 focus:ring-[#006838]"
+                                                        className="px-2 py-1 bg-white border border-gray-200 rounded text-[10px] font-bold focus:outline-none focus:ring-1 focus:ring-[#006838] disabled:bg-gray-100 disabled:cursor-not-allowed"
                                                       >
                                                         <option value="Execution Sent to PED" disabled>Execution Sent to PED</option>
                                                         <option value="Start Work">Start Work</option>
@@ -1012,6 +1043,7 @@ const handleRateChange = (workId, value) => {
 
                             {(() => {
                               if (activeTab === 'crd') {
+                                if (!(isAdmin || canEditTab('crd'))) return null;
                                 const hasPending = flow.stages.some(s => s.extraWorks?.some(w => w.status === 'Pending'));
                                 const hasClientApproved = flow.stages.some(s => s.extraWorks?.some(w => w.status === 'Client Approved'));
                                 const hasAddedToCRD = flow.stages.some(s => s.extraWorks?.some(w => w.status === 'Added to CRD'));
@@ -1113,6 +1145,7 @@ const handleRateChange = (workId, value) => {
                               }
 
                               if (activeTab === 'ped') {
+                                if (!(isAdmin || canEditTab('ped'))) return null;
                                 const hasReadyToShare = flow.stages.some(s => s.extraWorks?.some(w => w.status === 'PED Approved'));
                                 if (!hasReadyToShare) return null;
                                 return (
@@ -1146,6 +1179,7 @@ const handleRateChange = (workId, value) => {
                               }
 
                               if (activeTab === 'accounts') {
+                                if (!(isAdmin || canEditTab('accounts'))) return null;
                                 const hasSentToAccounts = flow.stages.some(s => s.extraWorks?.some(w => w.status === 'Sent to Accounts'));
                                 if (!hasSentToAccounts) return null;
                                 return (

@@ -2489,6 +2489,14 @@ const LeadsDirectory = () => {
                     value={editStatus}
                     onChange={(e) => {
                       const newStatus = e.target.value;
+                      if (newStatus === 'Schedule Follow-up') {
+                        setEditModalOpen(false); // Close edit modal
+                        const lead = leads.find(l => l._id === selectedLeadForEdit._id);
+                        if (lead) {
+                          initiateFollowUpOrComplete(lead, lead.status);
+                        }
+                        return;
+                      }
                       setEditModalOpen(false); // Close edit modal
                       handleStatusChange(selectedLeadForEdit._id, newStatus);
                     }}
@@ -2500,6 +2508,9 @@ const LeadsDirectory = () => {
                       if (idx < currentIdx && currentIdx !== -1) return null;
                       return <option key={status} value={status}>{status}</option>;
                     })}
+                    {selectedLeadForEdit && (
+                      <option value="Schedule Follow-up">Schedule Follow-up ({selectedLeadForEdit.status})</option>
+                    )}
                   </select>
                 </div>
 
