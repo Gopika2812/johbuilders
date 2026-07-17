@@ -1618,7 +1618,16 @@ const CustomerDashboard = () => {
                             filteredComplaints.map((comp, idx) => (
                               <tr key={idx} className="hover:bg-emerald-50/50 transition-colors cursor-pointer" onClick={() => setSelectedComplaint(comp)}>
                                 <td className="px-6 py-4 text-center text-gray-400 font-bold">{idx + 1}</td>
-                                <td className="px-6 py-4 font-mono font-bold text-[#006838]">{comp.token || '-'}</td>
+                                <td className="px-6 py-4 font-mono font-bold text-[#006838]">
+                                  <button
+                                    onClick={(e) => { e.stopPropagation(); setSelectedComplaint(comp); }}
+                                    className="flex items-center gap-1.5 px-2 py-1 bg-emerald-50 text-emerald-700 rounded text-xs font-bold hover:bg-emerald-100 transition-colors border border-emerald-100 shadow-sm"
+                                    title="View Details & History"
+                                  >
+                                    <Activity className="w-3.5 h-3.5" />
+                                    {comp.token || '-'}
+                                  </button>
+                                </td>
                                 <td className="px-6 py-4 font-medium text-gray-900">{new Date(comp.reportedAt).toLocaleDateString()}</td>
                                 <td className="px-6 py-4 font-medium text-gray-900">{flow.project?.name || 'N/A'}</td>
                                 <td className="px-6 py-4 font-bold text-emerald-600">{flow.unitId}</td>
@@ -1961,12 +1970,12 @@ const CustomerDashboard = () => {
       {/* Selected Complaint Details Modal */}
       {selectedComplaint && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-[60] flex items-center justify-center p-4" onClick={() => setSelectedComplaint(null)}>
-          <div className="bg-white rounded-[2rem] w-full max-w-2xl overflow-hidden shadow-2xl animate-fade-in-up" onClick={e => e.stopPropagation()}>
-            <div className="p-6 flex justify-between items-center border-b border-gray-100">
+          <div className="bg-white rounded-[2rem] w-full max-w-2xl overflow-hidden shadow-2xl animate-fade-in-up flex flex-col max-h-[90vh]" onClick={e => e.stopPropagation()}>
+            <div className="p-6 flex justify-between items-center border-b border-gray-100 shrink-0">
               <h3 className="font-bold text-xl text-gray-900">Complaint Details</h3>
               <button onClick={() => setSelectedComplaint(null)} className="text-gray-400 hover:text-gray-900 bg-gray-50 hover:bg-gray-100 p-2 rounded-full transition"><X className="w-5 h-5" /></button>
             </div>
-            <div className="p-8">
+            <div className="p-8 overflow-y-auto">
               <div className="mb-6">
                 <span className={`inline-flex px-3 py-1 text-[10px] font-bold uppercase tracking-widest rounded-lg border mb-4 ${
                   selectedComplaint.status === 'Resolved' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
@@ -2006,7 +2015,19 @@ const CustomerDashboard = () => {
               <div>
                 <p className="text-gray-400 font-bold uppercase text-[10px] tracking-wider mb-3">Activity History</p>
                 {(() => {
-                  const compHistory = flow?.history?.filter(h => h.notes && h.notes.includes(selectedComplaint.token)) || [];
+                  const hiddenActions = [
+                    'Sent to PED',
+                    'Sent to Customer',
+                    'Complaint Assigned',
+                    'Execution Sent to PED',
+                    'Execution Status Updated'
+                  ];
+                  const compHistory = flow?.history?.filter(h => 
+                    h.notes && 
+                    h.notes.includes(selectedComplaint.token) &&
+                    !hiddenActions.some(hidden => h.action.includes(hidden))
+                  ) || [];
+                  
                   if (compHistory.length === 0) return <p className="text-sm text-gray-500 italic">No activity yet.</p>;
                   return (
                     <div className="relative border-l-2 border-emerald-200 ml-2 space-y-4">
@@ -2015,7 +2036,9 @@ const CustomerDashboard = () => {
                           <div className="absolute -left-[9px] top-1 w-4 h-4 rounded-full bg-[#006838] border-4 border-white shadow-sm" />
                           <div className="bg-gray-50 p-3 rounded-xl border border-gray-100">
                             <div className="flex justify-between items-start mb-1">
-                              <span className="font-bold text-gray-800 text-sm">{h.action}</span>
+                              <span className="font-bold text-gray-800 text-sm">
+                                {h.action === 'PED Pricing Updated' ? 'Price Quoted / Updated' : h.action}
+                              </span>
                               <span className="text-[10px] font-bold text-gray-500 bg-white px-2 py-0.5 rounded-full border border-gray-200">
                                 {new Date(h.timestamp || h.date).toLocaleString('en-GB', {
                                   day: '2-digit', month: '2-digit', year: 'numeric',
@@ -2023,7 +2046,11 @@ const CustomerDashboard = () => {
                                 })}
                               </span>
                             </div>
-                            <p className="text-xs text-gray-600 mt-1 leading-relaxed whitespace-pre-wrap">{h.notes}</p>
+                            <p className="text-xs text-gray-600 mt-1 leading-relaxed whitespace-pre-wrap">
+                              {h.action === 'PED Pricing Updated' ? 
+                                h.notes.replace(/PED team updated price/i, 'Team updated price') : 
+                                h.notes}
+                            </p>
                           </div>
                         </div>
                       ))}
