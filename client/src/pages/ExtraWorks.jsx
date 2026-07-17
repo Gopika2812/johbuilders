@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import ExcelJS from 'exceljs';
+
 import { saveAs } from 'file-saver';
 import { useAuth, API_URL } from '../context/AuthContext';
 import { 
@@ -14,10 +14,39 @@ import {
   Search,
   Download,
   X,
-  FileText
+  FileText,
+  Activity
 } from 'lucide-react';
 
-const ExtraWorks = () => {
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null, errorInfo: null };
+  }
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+  componentDidCatch(error, errorInfo) {
+    console.error("ErrorBoundary caught an error", error, errorInfo);
+    this.setState({ errorInfo });
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ padding: '2rem', background: '#fee2e2', color: '#991b1b', borderRadius: '1rem', margin: '2rem' }}>
+          <h2>Something went wrong in ExtraWorks.</h2>
+          <pre style={{ whiteSpace: 'pre-wrap' }}>{this.state.error && this.state.error.toString()}</pre>
+          <pre style={{ whiteSpace: 'pre-wrap', fontSize: '0.8rem', marginTop: '1rem' }}>
+            {this.state.errorInfo && this.state.errorInfo.componentStack}
+          </pre>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+const ExtraWorksInner = () => {
   const { token, user, hasPermission, isAdmin } = useAuth();
   const [flows, setFlows] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -25,20 +54,10 @@ const ExtraWorks = () => {
   const [expandedFlow, setExpandedFlow] = useState(null);
   const [rates, setRates] = useState({});
   const [submitting, setSubmitting] = useState(null); // id of work being submitted
-  const [activeTab, setActiveTab] = useState('');
-  const [selectedWorks, setSelectedWorks] = useState([]); // crd, ped, client, accounts, work-orders
+  const [selectedWorks, setSelectedWorks] = useState([]);
   const [extraWorkDetailsModal, setExtraWorkDetailsModal] = useState(null);
+  const [flowMapModal, setFlowMapModal] = useState(null);
   const [expandedReqIds, setExpandedReqIds] = useState({});
-
-  const tabs = [
-    { id: 'crd', label: 'CRD Team', permissionId: 'extra_works_crd' },
-    { id: 'ped', label: 'PED Team', permissionId: 'extra_works_ped' },
-    { id: 'client', label: 'Client Approved', permissionId: 'extra_works_client' },
-    { id: 'accounts', label: 'Accounts Team', permissionId: 'extra_works_accounts' },
-    { id: 'work-orders', label: 'Work Orders', permissionId: 'extra_works_work_orders' }
-  ];
-
-  const allowedTabs = tabs.filter(tab => isAdmin || hasPermission(tab.permissionId));
 
   const canEditTab = (tabId) => {
     if (isAdmin) return true;
@@ -56,11 +75,7 @@ const ExtraWorks = () => {
     return perm ? perm.canEdit : false;
   };
 
-  useEffect(() => {
-    if (allowedTabs.length > 0 && !allowedTabs.find(t => t.id === activeTab)) {
-      setActiveTab(allowedTabs[0].id);
-    }
-  }, [user, activeTab]);
+  const hasAnyPermission = isAdmin || (user?.permissions && user.permissions.some(p => p.pageId?.startsWith('extra_works_')));
 
   // Filters
   const [searchTerm, setSearchTerm] = useState('');
@@ -112,23 +127,8 @@ const ExtraWorks = () => {
     );
   };
 
-  const toggleSelectAll = (flow, activeTab) => {
-    const selectableWorks = [];
-    flow.stages.forEach(s => {
-      s.extraWorks?.forEach(w => {
-        if (activeTab === 'crd' && w.status === 'Pending') selectableWorks.push(w._id);
-        if (activeTab === 'ped' && w.status === 'PED Approved') selectableWorks.push(w._id);
-        if (activeTab === 'accounts' && w.status === 'Client Approved') selectableWorks.push(w._id);
-      });
-    });
-    
-    const allSelected = selectableWorks.length > 0 && selectableWorks.every(id => selectedWorks.includes(id));
-    
-    if (allSelected) {
-      setSelectedWorks(prev => prev.filter(id => !selectableWorks.includes(id)));
-    } else {
-      setSelectedWorks(prev => [...new Set([...prev, ...selectableWorks])]);
-    }
+  const toggleSelectAll = (flow) => {
+    // Legacy function, kept for safety
   };
 
 const handleRateChange = (workId, value) => {
@@ -331,28 +331,39 @@ const handleRateChange = (workId, value) => {
       case 'In Progress': return <span className="px-2 py-1 bg-orange-100 text-orange-800 rounded text-xs font-bold">In Progress</span>;
       case 'Completed': return <span className="px-2 py-1 bg-green-100 text-green-800 rounded text-xs font-bold">Completed</span>;
       case 'Removed by Client': return <span className="px-2 py-1 bg-red-100 text-red-800 rounded text-xs font-bold">Removed by Client</span>;
-      case 'Cancelled by Admin': return <span className="px-2 py-1 bg-red-100 text-red-800 rounded text-xs font-bold">Cancelled by Admin</span>;
+      case 'Cancelled by Superadmin': return <span className="px-2 py-1 bg-red-100 text-red-800 rounded text-xs font-bold">Cancelled by Superadmin</span>;
       default: return <span className="px-2 py-1 bg-gray-100 text-gray-800 rounded text-xs font-bold">{status}</span>;
     }
   };
 
-  // Filter flows based on active tab requirements
-  const getTabStatuses = () => {
-    switch(activeTab) {
-      case 'crd': return ['Pending', 'Sent to PED', 'PED Approved', 'Sent to Customer', 'Client Approved', 'Sent to Accounts', 'Added to CRD', 'Execution Sent to PED', 'Start Work', 'In Progress', 'Completed', 'Rejected', 'Removed by Client'];
-      case 'ped': return ['Sent to PED', 'PED Approved', 'Sent to Customer', 'Client Approved', 'Sent to Accounts', 'Added to CRD', 'Execution Sent to PED', 'Start Work', 'In Progress', 'Completed', 'Rejected', 'Removed by Client'];
-      case 'client': return ['Sent to Customer', 'Client Approved', 'Sent to Accounts', 'Added to CRD', 'Execution Sent to PED', 'Start Work', 'In Progress', 'Completed', 'Rejected', 'Removed by Client'];
-      case 'accounts': return ['Sent to Accounts', 'Added to CRD', 'Execution Sent to PED', 'Start Work', 'In Progress', 'Completed'];
-      case 'work-orders': return ['Added to CRD', 'Execution Sent to PED', 'Start Work', 'In Progress', 'Completed'];
-      default: return [];
+  const isWorkVisible = (work) => {
+    if (isAdmin) return true;
+    
+    const status = work.status;
+    
+    if (canEditTab('crd') && ['Pending', 'Returned to CRD', 'Client Approved', 'Added to CRD'].includes(status)) {
+      return true;
     }
+    
+    if (canEditTab('ped') && ['Sent to PED', 'PED Approved', 'Execution Sent to PED', 'Start Work', 'In Progress', 'Completed'].includes(status)) {
+      return true;
+    }
+
+    if (canEditTab('client') && ['Sent to Customer', 'Removed by Client', 'Rejected'].includes(status)) {
+      return true;
+    }
+
+    if (canEditTab('accounts') && ['Sent to Accounts'].includes(status)) {
+      return true;
+    }
+
+    return false;
   };
 
   const filteredFlows = flows.filter(flow => {
-    // 1. Must have at least one extra work in the valid statuses for the active tab
-    const validStatuses = getTabStatuses();
+    // 1. Must have at least one visible extra work
     const hasValidWork = flow.stages.some(stage => 
-      stage.extraWorks && stage.extraWorks.some(work => validStatuses.includes(work.status))
+      stage.extraWorks && stage.extraWorks.some(work => isWorkVisible(work))
     );
     if (!hasValidWork) return false;
 
@@ -381,6 +392,7 @@ const handleRateChange = (workId, value) => {
   const exportToExcel = async () => {
     try {
       setExporting(true);
+      const ExcelJS = (await import('exceljs')).default || (await import('exceljs'));
       const workbook = new ExcelJS.Workbook();
       const sheet = workbook.addWorksheet('Extra Works Report');
 
@@ -488,8 +500,8 @@ const handleRateChange = (workId, value) => {
 
   if (loading) return <div className="p-8 flex justify-center"><Loader2 className="w-8 h-8 animate-spin text-emerald-600" /></div>;
   if (error) return <div className="p-8 text-red-500">{error}</div>;
-  if (!loading && allowedTabs.length === 0) {
-    return <div className="p-8 text-center text-red-500 font-bold">Access Denied. You do not have permission to view any of the Extra Works tabs.</div>;
+  if (!loading && !hasAnyPermission) {
+    return <div className="p-8 text-center text-red-500 font-bold">Access Denied. You do not have permission to view Extra Works.</div>;
   }
 
   return (
@@ -501,21 +513,7 @@ const handleRateChange = (workId, value) => {
         </div>
       </div>
 
-      <div className="bg-white/60 backdrop-blur-xl border border-white/60 p-1.5 rounded-2xl flex flex-wrap gap-2 shadow-sm">
-        {allowedTabs.map(tab => (
-          <button
-            key={tab.id}
-            onClick={() => { setActiveTab(tab.id); setSelectedWorks([]); }}
-            className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${
-              activeTab === tab.id
-                ? 'bg-[#006838] text-white shadow-md'
-                : 'text-gray-600 hover:bg-emerald-50 hover:text-emerald-700'
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
+
 
       <div className="bg-white/60 backdrop-blur-xl border border-white/60 rounded-[2rem] shadow-sm overflow-hidden p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="relative w-full md:w-72">
@@ -827,41 +825,38 @@ const handleRateChange = (workId, value) => {
                                 <thead className="bg-[#006838] text-white">
                                   <tr>
                                     <th className="p-4 w-12 text-center">
-                                      {(activeTab === 'crd' || activeTab === 'ped' || activeTab === 'accounts') && (isAdmin || canEditTab(activeTab)) && (
-                                        <input 
-                                          type="checkbox"
-                                          className="w-4 h-4 rounded border-gray-300 text-[#006838] focus:ring-[#006838]"
-                                          onChange={() => {
-                                            const selectableWorks = [];
-                                            flow.stages.forEach(s => {
-                                              s.extraWorks?.forEach(w => {
-                                                if (activeTab === 'crd' && (w.status === 'Pending' || w.status === 'Returned to CRD' || w.status === 'Client Approved' || w.status === 'Added to CRD')) selectableWorks.push(w._id);
-                                                if (activeTab === 'ped' && w.status === 'PED Approved') selectableWorks.push(w._id);
-                                                if (activeTab === 'accounts' && w.status === 'Sent to Accounts') selectableWorks.push(w._id);
-                                              });
+                                      {(() => {
+                                        const getSelectableWorks = () => {
+                                          const works = [];
+                                          flow.stages.forEach(s => {
+                                            s.extraWorks?.forEach(w => {
+                                              const canSelectAsCrd = (isAdmin || canEditTab('crd')) && ['Pending', 'Returned to CRD', 'Client Approved', 'Added to CRD'].includes(w.status);
+                                              const canSelectAsPed = (isAdmin || canEditTab('ped')) && w.status === 'PED Approved';
+                                              const canSelectAsAccounts = (isAdmin || canEditTab('accounts')) && w.status === 'Sent to Accounts';
+                                              if (canSelectAsCrd || canSelectAsPed || canSelectAsAccounts) works.push(w._id);
                                             });
-                                            const allSelected = selectableWorks.length > 0 && selectableWorks.every(id => selectedWorks.includes(id));
-                                            if (allSelected) {
-                                              setSelectedWorks(prev => prev.filter(id => !selectableWorks.includes(id)));
-                                            } else {
-                                              setSelectedWorks(prev => [...new Set([...prev, ...selectableWorks])]);
-                                            }
-                                          }}
-                                          checked={(() => {
-                                            let selectable = 0;
-                                            let selected = 0;
-                                            flow.stages.forEach(s => s.extraWorks?.forEach(w => {
-                                              if ((activeTab === 'crd' && (w.status === 'Pending' || w.status === 'Client Approved' || w.status === 'Added to CRD')) ||
-                                                  (activeTab === 'ped' && w.status === 'PED Approved') ||
-                                                  (activeTab === 'accounts' && w.status === 'Sent to Accounts')) {
-                                                selectable++;
-                                                if (selectedWorks.includes(w._id)) selected++;
+                                          });
+                                          return works;
+                                        };
+                                        const selectableWorks = getSelectableWorks();
+                                        if (selectableWorks.length === 0) return null;
+                                        const allSelected = selectableWorks.every(id => selectedWorks.includes(id));
+                                        
+                                        return (
+                                          <input 
+                                            type="checkbox"
+                                            className="w-4 h-4 rounded border-gray-300 text-[#006838] focus:ring-[#006838]"
+                                            onChange={() => {
+                                              if (allSelected) {
+                                                setSelectedWorks(prev => prev.filter(id => !selectableWorks.includes(id)));
+                                              } else {
+                                                setSelectedWorks(prev => [...new Set([...prev, ...selectableWorks])]);
                                               }
-                                            }));
-                                            return selectable > 0 && selected === selectable;
-                                          })()}
-                                        />
-                                      )}
+                                            }}
+                                            checked={allSelected}
+                                          />
+                                        );
+                                      })()}
                                     </th>
                                     <th className="p-4 font-bold text-[11px] uppercase tracking-wider">Req ID</th>
                                     <th className="p-4 font-bold text-[11px] uppercase tracking-wider text-center">Requested on</th>
@@ -879,15 +874,7 @@ const handleRateChange = (workId, value) => {
                                     flow.stages.forEach((stage, sIdx) => {
                                       if (stage.extraWorks && stage.extraWorks.length > 0) {
                                         stage.extraWorks.forEach(work => {
-                                          const isValid = (() => {
-                                            if (activeTab === 'crd') return true; // all
-                                            if (activeTab === 'ped') return ['Sent to PED', 'PED Approved', 'Returned to CRD', 'Sent to Customer', 'Client Approved', 'Sent to Accounts', 'Added to CRD', 'Execution Sent to PED', 'Start Work', 'In Progress', 'Completed', 'Rejected', 'Removed by Client'].includes(work.status);
-                                            if (activeTab === 'client') return ['Sent to Customer', 'Client Approved', 'Sent to Accounts', 'Added to CRD', 'Execution Sent to PED', 'Start Work', 'In Progress', 'Completed', 'Rejected', 'Removed by Client'].includes(work.status);
-                                            if (activeTab === 'accounts') return ['Sent to Accounts', 'Added to CRD', 'Execution Sent to PED', 'Start Work', 'In Progress', 'Completed'].includes(work.status);
-                                            if (activeTab === 'work-orders') return ['Added to CRD', 'Execution Sent to PED', 'Start Work', 'In Progress', 'Completed'].includes(work.status);
-                                            return false;
-                                          })();
-                                          if (isValid) {
+                                          if (isWorkVisible(work)) {
                                             filteredFlowWorks.push({ ...work, stageIdx: sIdx, originalWork: work });
                                           }
                                         });
@@ -923,42 +910,45 @@ const handleRateChange = (workId, value) => {
                                         >
                                           <td className="p-4 align-middle text-center flex items-center justify-center gap-2">
                                             {(() => {
-                                              if (['crd', 'ped', 'accounts'].includes(activeTab) && (isAdmin || canEditTab(activeTab))) {
-                                                const selectableWorksInGroup = group.items.filter(work => {
-                                                  if (activeTab === 'crd' && (work.status === 'Pending' || work.status === 'Client Approved' || work.status === 'Added to CRD')) return true;
-                                                  if (activeTab === 'ped' && work.status === 'PED Approved') return true;
-                                                  if (activeTab === 'accounts' && work.status === 'Sent to Accounts') return true;
-                                                  return false;
-                                                });
-                                                if (selectableWorksInGroup.length > 0) {
-                                                  const isAllSelected = selectableWorksInGroup.every(w => selectedWorks.includes(w._id));
-                                                  return (
-                                                    <input 
-                                                      type="checkbox"
-                                                      className="w-4 h-4 rounded border-gray-300 text-[#006838] focus:ring-[#006838]"
-                                                      checked={isAllSelected}
-                                                      onClick={(e) => e.stopPropagation()}
-                                                      onChange={(e) => {
-                                                        e.stopPropagation();
-                                                        if (isAllSelected) {
-                                                          setSelectedWorks(prev => prev.filter(id => !selectableWorksInGroup.find(w => w._id === id)));
-                                                        } else {
-                                                          const idsToAdd = selectableWorksInGroup.map(w => w._id);
-                                                          setSelectedWorks(prev => [...new Set([...prev, ...idsToAdd])]);
-                                                        }
-                                                      }}
-                                                    />
-                                                  );
-                                                }
+                                              const selectableWorksInGroup = group.items.filter(work => {
+                                                const canSelectAsCrd = (isAdmin || canEditTab('crd')) && ['Pending', 'Client Approved', 'Added to CRD'].includes(work.status);
+                                                const canSelectAsPed = (isAdmin || canEditTab('ped')) && work.status === 'PED Approved';
+                                                const canSelectAsAccounts = (isAdmin || canEditTab('accounts')) && work.status === 'Sent to Accounts';
+                                                return canSelectAsCrd || canSelectAsPed || canSelectAsAccounts;
+                                              });
+                                              if (selectableWorksInGroup.length > 0) {
+                                                const isAllSelected = selectableWorksInGroup.every(w => selectedWorks.includes(w._id));
+                                                return (
+                                                  <input 
+                                                    type="checkbox"
+                                                    className="w-4 h-4 rounded border-gray-300 text-[#006838] focus:ring-[#006838]"
+                                                    checked={isAllSelected}
+                                                    onClick={(e) => e.stopPropagation()}
+                                                    onChange={(e) => {
+                                                      e.stopPropagation();
+                                                      if (isAllSelected) {
+                                                        setSelectedWorks(prev => prev.filter(id => !selectableWorksInGroup.find(w => w._id === id)));
+                                                      } else {
+                                                        const idsToAdd = selectableWorksInGroup.map(w => w._id);
+                                                        setSelectedWorks(prev => [...new Set([...prev, ...idsToAdd])]);
+                                                      }
+                                                    }}
+                                                  />
+                                                );
                                               }
                                               return null;
                                             })()}
                                             {expandedReqIds[group.ewId] ? <ChevronUp className="w-4 h-4 text-emerald-600" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
                                           </td>
                                           <td className="p-4 align-middle">
-                                            <span className="font-mono text-[#006838] font-bold">
+                                            <button 
+                                              onClick={(e) => { e.stopPropagation(); setFlowMapModal({ work: group.items[0], flow }); }}
+                                              className="font-mono text-[#006838] font-bold hover:underline transition-colors flex items-center gap-1"
+                                              title="View Flow Map"
+                                            >
+                                              <Activity className="w-3.5 h-3.5" />
                                               {group.displayId || '-'}
-                                            </span>
+                                            </button>
                                           </td>
                                           <td className="p-4 align-middle text-center text-sm text-gray-600">
                                             {group.addedAt ? new Date(group.addedAt).toLocaleDateString('en-GB') : '-'}
@@ -985,9 +975,9 @@ const handleRateChange = (workId, value) => {
                                         {expandedReqIds[group.ewId] && group.items.map((work, wIdx) => (
                                           <tr key={work._id} className="bg-gray-50/50 hover:bg-white transition border-l-4 border-[#006838]">
                                             <td className="p-4 align-middle text-center flex items-center justify-center gap-2">
-                                              {((activeTab === 'crd' && (work.status === 'Pending' || work.status === 'Returned to CRD' || work.status === 'Client Approved' || work.status === 'Added to CRD')) ||
-                                                (activeTab === 'ped' && work.status === 'PED Approved') ||
-                                                (activeTab === 'accounts' && work.status === 'Sent to Accounts')) && (isAdmin || canEditTab(activeTab)) && (
+                                              {(((isAdmin || canEditTab('crd')) && ['Pending', 'Returned to CRD', 'Client Approved', 'Added to CRD'].includes(work.status)) ||
+                                                ((isAdmin || canEditTab('ped')) && work.status === 'PED Approved') ||
+                                                ((isAdmin || canEditTab('accounts')) && work.status === 'Sent to Accounts')) && (
                                                 <input 
                                                   type="checkbox"
                                                   className="w-4 h-4 rounded border-gray-300 text-[#006838] focus:ring-[#006838]"
@@ -1036,7 +1026,7 @@ const handleRateChange = (workId, value) => {
                                                   {work.crdAddedDate ? new Date(work.crdAddedDate).toLocaleDateString('en-GB') : '-'}
                                                 </span>
                                                 <div className="flex items-center gap-2">
-                                                  {activeTab === 'ped' && ['Sent to PED', 'PED Approved', 'Sent to Customer', 'Client Approved', 'Sent to Accounts'].includes(work.status) && (
+                                                  {['Sent to PED', 'PED Approved', 'Sent to Customer', 'Client Approved', 'Sent to Accounts'].includes(work.status) && (
                                                       <input
                                                         type="number"
                                                         disabled={!(isAdmin || canEditTab('ped'))}
@@ -1052,7 +1042,7 @@ const handleRateChange = (workId, value) => {
                                                         onClick={(e) => e.stopPropagation()}
                                                       />
                                                   )}
-                                                  {activeTab === 'ped' && ['Added to CRD', 'Execution Sent to PED', 'Start Work', 'In Progress'].includes(work.status) && (
+                                                  {['Added to CRD', 'Execution Sent to PED', 'Start Work', 'In Progress'].includes(work.status) && (
                                                       <select
                                                         value={work.status}
                                                         disabled={!(isAdmin || canEditTab('ped'))}
@@ -1078,7 +1068,7 @@ const handleRateChange = (workId, value) => {
                                                         <option value="Completed">Completed</option>
                                                       </select>
                                                   )}
-                                                  {(user?.role === 'Admin' || user?.role === 'Manager') && !['Removed by Client', 'Rejected', 'Completed', 'Cancelled by Admin', 'Added to CRD'].includes(work.status) && (
+                                                  {(user?.role === 'Superadmin' || user?.role === 'Crd team') && !['Removed by Client', 'Rejected', 'Completed', 'Cancelled by Superadmin', 'Added to CRD'].includes(work.status) && (
                                                     <button
                                                       onClick={(e) => {
                                                         e.stopPropagation();
@@ -1093,57 +1083,7 @@ const handleRateChange = (workId, value) => {
                                                     </button>
                                                   )}
                                                   {(() => {
-                                                    if (work.status === 'Removed by Client') {
-                                                      return <span className="text-[9px] font-bold text-red-500 uppercase flex items-center gap-1"><X className="w-3 h-3" /> Removed by Client</span>;
-                                                    }
-                                                    if (work.status === 'Cancelled by Admin') {
-                                                      return <span className="text-[9px] font-bold text-red-500 uppercase flex items-center gap-1"><X className="w-3 h-3" /> Cancelled by Admin</span>;
-                                                    }
-                                                    if (work.status === 'Rejected') {
-                                                      return <span className="text-[9px] font-bold text-red-500 uppercase flex items-center gap-1"><X className="w-3 h-3" /> Rejected</span>;
-                                                    }
-                                                    if (work.status === 'Completed') {
-                                                      return <span className="text-[9px] font-bold text-green-500 uppercase flex items-center gap-1"><CheckCircle className="w-3 h-3" /> Completed</span>;
-                                                    }
-                                                    if (activeTab === 'crd') {
-                                                      if (['Sent to PED', 'PED Approved'].includes(work.status)) {
-                                                        return <span className="text-[9px] font-bold text-gray-400 uppercase flex items-center gap-1"><CheckCircle className="w-3 h-3 text-emerald-500" /> Sent to PED Team</span>;
-                                                      }
-                                                      if (['Returned to CRD'].includes(work.status)) {
-                                                        return <span className="text-[9px] font-bold text-gray-400 uppercase flex items-center gap-1"><CheckCircle className="w-3 h-3 text-emerald-500" /> Returned by PED (Priced)</span>;
-                                                      }
-                                                      if (['Sent to Customer'].includes(work.status)) {
-                                                        return <span className="text-[9px] font-bold text-gray-400 uppercase flex items-center gap-1"><CheckCircle className="w-3 h-3 text-emerald-500" /> Sent to Client</span>;
-                                                      }
-                                                      if (['Sent to Accounts'].includes(work.status)) {
-                                                        return <span className="text-[9px] font-bold text-gray-400 uppercase flex items-center gap-1"><CheckCircle className="w-3 h-3 text-emerald-500" /> Sent to Accounts</span>;
-                                                      }
-                                                      if (work.status === 'Added to CRD') {
-                                                        return <span className="text-[9px] font-bold text-gray-400 uppercase flex items-center gap-1"><CheckCircle className="w-3 h-3 text-emerald-500" /> Work Order Created</span>;
-                                                      }
-                                                      if (work.status === 'Execution Sent to PED') {
-                                                        return <span className="text-[9px] font-bold text-gray-400 uppercase flex items-center gap-1"><CheckCircle className="w-3 h-3 text-teal-500" /> PED Executing</span>;
-                                                      }
-                                                      if (['Start Work', 'In Progress', 'Completed'].includes(work.status)) {
-                                                        return <span className="text-[9px] font-bold text-gray-400 uppercase flex items-center gap-1"><CheckCircle className="w-3 h-3 text-teal-500" /> {work.status}</span>;
-                                                      }
-                                                    }
-                                                    if (activeTab === 'ped') {
-                                                      if (['Returned to CRD', 'Sent to Customer', 'Client Approved', 'Sent to Accounts', 'Added to CRD', 'Execution Sent to PED', 'Start Work', 'In Progress', 'Completed'].includes(work.status)) {
-                                                        return <span className="text-[9px] font-bold text-gray-400 uppercase flex items-center gap-1"><CheckCircle className="w-3 h-3 text-emerald-500" /> Returned to CRD</span>;
-                                                      }
-                                                    }
-                                                    if (activeTab === 'client') {
-                                                      if (['Client Approved', 'Sent to Accounts', 'Added to CRD', 'Execution Sent to PED', 'Start Work', 'In Progress'].includes(work.status)) {
-                                                        return <span className="text-[9px] font-bold text-gray-400 uppercase flex items-center gap-1"><CheckCircle className="w-3 h-3 text-emerald-500" /> Client Approved</span>;
-                                                      }
-                                                    }
-                                                    if (activeTab === 'accounts') {
-                                                      if (['Added to CRD', 'Execution Sent to PED', 'Start Work', 'In Progress'].includes(work.status)) {
-                                                        return <span className="text-[9px] font-bold text-gray-400 uppercase flex items-center gap-1"><CheckCircle className="w-3 h-3 text-emerald-500" /> Work Order Created</span>;
-                                                      }
-                                                    }
-                                                    return null;
+                                                    return <div className="mt-1">{getStatusBadge(work.status)}</div>;
                                                   })()}
                                                 </div>
                                               </div>
@@ -1301,145 +1241,147 @@ const handleRateChange = (workId, value) => {
                             </div>
 
                             {(() => {
-                              if (activeTab === 'crd') {
-                                if (!(isAdmin || canEditTab('crd'))) return null;
-                                const hasPending = flow.stages.some(s => s.extraWorks?.some(w => w.status === 'Pending'));
-                                const hasReturnedToCRD = flow.stages.some(s => s.extraWorks?.some(w => w.status === 'Returned to CRD'));
-                                const hasClientApproved = flow.stages.some(s => s.extraWorks?.some(w => w.status === 'Client Approved'));
-                                const hasAddedToCRD = flow.stages.some(s => s.extraWorks?.some(w => w.status === 'Added to CRD'));
-                                if (!hasPending && !hasReturnedToCRD && !hasClientApproved && !hasAddedToCRD) return null;
-                                return (
-                                  <div className="mt-4 flex flex-wrap justify-end gap-3">
-                                    {(hasPending || hasReturnedToCRD) && (
-                                      <button
-                                        onClick={async () => {
-                                          setSubmitting('bulk-crd');
-                                          try {
-                                            const works = [];
-                                            flow.stages.forEach((s, sIdx) => s.extraWorks?.forEach(w => {
-                                              if ((w.status === 'Pending' || w.status === 'Returned to CRD') && selectedWorks.includes(w._id)) works.push({sIdx, wId: w._id});
-                                            }));
-                                            for (const work of works) {
-                                              await fetch(`${API_URL}/extra-works/${flow._id}/${work.sIdx}/${work.wId}/send-to-ped`, {
-                                                method: 'PUT', headers: { Authorization: `Bearer ${token}` }
-                                              });
-                                            }
-                                            setSelectedWorks([]);
-                                            await fetchFlows();
-                                          } finally {
-                                            setSubmitting(null);
-                                          }
-                                        }}
-                                        disabled={submitting === 'bulk-crd' || !selectedWorks.some(id => {
-                                          let isPendingOrReturned = false;
-                                          flow.stages.forEach(s => s.extraWorks?.forEach(w => { if (w._id === id && (w.status === 'Pending' || w.status === 'Returned to CRD')) isPendingOrReturned = true; }));
-                                          return isPendingOrReturned;
-                                        })}
-                                        className="px-6 py-2 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition flex items-center justify-center gap-2 shadow-sm disabled:opacity-50"
-                                      >
-                                        {submitting === 'bulk-crd' ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Send className="w-4 h-4" /> Share Selected to PED</>}
-                                      </button>
-                                    )}
-                                    {hasReturnedToCRD && (
-                                      <button
-                                        onClick={async () => {
-                                          setSubmitting('bulk-crd-client');
-                                          try {
-                                            const works = [];
-                                            flow.stages.forEach((s, sIdx) => s.extraWorks?.forEach(w => {
-                                              if (w.status === 'Returned to CRD' && selectedWorks.includes(w._id)) works.push({sIdx, wId: w._id});
-                                            }));
-                                            for (const work of works) {
-                                              await fetch(`${API_URL}/extra-works/${flow._id}/${work.sIdx}/${work.wId}/send`, {
-                                                method: 'PUT', headers: { Authorization: `Bearer ${token}` }
-                                              });
-                                            }
-                                            setSelectedWorks([]);
-                                            await fetchFlows();
-                                          } finally {
-                                            setSubmitting(null);
-                                          }
-                                        }}
-                                        disabled={submitting === 'bulk-crd-client' || !selectedWorks.some(id => {
-                                          let isReturned = false;
-                                          flow.stages.forEach(s => s.extraWorks?.forEach(w => { if (w._id === id && w.status === 'Returned to CRD') isReturned = true; }));
-                                          return isReturned;
-                                        })}
-                                        className="px-6 py-2 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 transition flex items-center justify-center gap-2 shadow-sm disabled:opacity-50"
-                                      >
-                                        {submitting === 'bulk-crd-client' ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Send className="w-4 h-4" /> Share Selected to Client</>}
-                                      </button>
-                                    )}
-                                    {hasClientApproved && (
-                                      <button
-                                        onClick={async () => {
-                                          setSubmitting('bulk-crd-accounts');
-                                          try {
-                                            const works = [];
-                                            flow.stages.forEach((s, sIdx) => s.extraWorks?.forEach(w => {
-                                              if (w.status === 'Client Approved' && selectedWorks.includes(w._id)) works.push({sIdx, wId: w._id});
-                                            }));
-                                            for (const work of works) {
-                                              await fetch(`${API_URL}/extra-works/${flow._id}/${work.sIdx}/${work.wId}/send-to-accounts`, {
-                                                method: 'PUT', headers: { Authorization: `Bearer ${token}` }
-                                              });
-                                            }
-                                            setSelectedWorks([]);
-                                            await fetchFlows();
-                                          } finally {
-                                            setSubmitting(null);
-                                          }
-                                        }}
-                                        disabled={submitting === 'bulk-crd-accounts' || !selectedWorks.some(id => {
-                                          let isApproved = false;
-                                          flow.stages.forEach(s => s.extraWorks?.forEach(w => { if (w._id === id && w.status === 'Client Approved') isApproved = true; }));
-                                          return isApproved;
-                                        })}
-                                        className="px-6 py-2 bg-purple-600 text-white font-bold rounded-xl hover:bg-purple-700 transition flex items-center justify-center gap-2 shadow-sm disabled:opacity-50"
-                                      >
-                                        {submitting === 'bulk-crd-accounts' ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Building className="w-4 h-4" /> Share Selected to Accounts</>}
-                                      </button>
-                                    )}
-                                    {hasAddedToCRD && (
-                                      <button
-                                        onClick={async () => {
-                                          setSubmitting('bulk-crd-execution');
-                                          try {
-                                            const works = [];
-                                            flow.stages.forEach((s, sIdx) => s.extraWorks?.forEach(w => {
-                                              if (w.status === 'Added to CRD' && selectedWorks.includes(w._id)) works.push({sIdx, wId: w._id});
-                                            }));
-                                            for (const work of works) {
-                                              await fetch(`${API_URL}/extra-works/${flow._id}/${work.sIdx}/${work.wId}/send-to-ped-execution`, {
-                                                method: 'PUT', headers: { Authorization: `Bearer ${token}` }
-                                              });
-                                            }
-                                            setSelectedWorks([]);
-                                            await fetchFlows();
-                                          } finally {
-                                            setSubmitting(null);
-                                          }
-                                        }}
-                                        disabled={submitting === 'bulk-crd-execution' || !selectedWorks.some(id => {
-                                          let isAdded = false;
-                                          flow.stages.forEach(s => s.extraWorks?.forEach(w => { if (w._id === id && w.status === 'Added to CRD') isAdded = true; }));
-                                          return isAdded;
-                                        })}
-                                        className="px-6 py-2 bg-teal-600 text-white font-bold rounded-xl hover:bg-teal-700 transition flex items-center justify-center gap-2 shadow-sm disabled:opacity-50"
-                                      >
-                                        {submitting === 'bulk-crd-execution' ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Send className="w-4 h-4" /> Send to PED for Execution</>}
-                                      </button>
-                                    )}
-                                  </div>
-                                );
-                              }
+                              const canCrd = isAdmin || canEditTab('crd');
+                              const canPed = isAdmin || canEditTab('ped');
+                              const canAccounts = isAdmin || canEditTab('accounts');
+                              
+                              const hasPending = flow.stages.some(s => s.extraWorks?.some(w => w.status === 'Pending'));
+                              const hasReturnedToCRD = flow.stages.some(s => s.extraWorks?.some(w => w.status === 'Returned to CRD'));
+                              const hasClientApproved = flow.stages.some(s => s.extraWorks?.some(w => w.status === 'Client Approved'));
+                              const hasAddedToCRD = flow.stages.some(s => s.extraWorks?.some(w => w.status === 'Added to CRD'));
+                              
+                              const hasReadyToShare = flow.stages.some(s => s.extraWorks?.some(w => w.status === 'PED Approved'));
+                              const hasSentToAccounts = flow.stages.some(s => s.extraWorks?.some(w => w.status === 'Sent to Accounts'));
 
-                              if (activeTab === 'ped') {
-                                if (!(isAdmin || canEditTab('ped'))) return null;
-                                const hasReadyToShare = flow.stages.some(s => s.extraWorks?.some(w => w.status === 'PED Approved'));
-                                if (!hasReadyToShare) return null;
-                                return (
-                                  <div className="mt-4 flex justify-end">
+                              return (
+                                <div className="mt-4 flex flex-wrap justify-end gap-3">
+                                  {/* CRD Actions */}
+                                  {canCrd && (hasPending || hasReturnedToCRD) && (
+                                    <button
+                                      onClick={async () => {
+                                        setSubmitting('bulk-crd');
+                                        try {
+                                          const works = [];
+                                          flow.stages.forEach((s, sIdx) => s.extraWorks?.forEach(w => {
+                                            if ((w.status === 'Pending' || w.status === 'Returned to CRD') && selectedWorks.includes(w._id)) works.push({sIdx, wId: w._id});
+                                          }));
+                                          for (const work of works) {
+                                            await fetch(`${API_URL}/extra-works/${flow._id}/${work.sIdx}/${work.wId}/send-to-ped`, {
+                                              method: 'PUT', headers: { Authorization: `Bearer ${token}` }
+                                            });
+                                          }
+                                          setSelectedWorks([]);
+                                          await fetchFlows();
+                                        } finally {
+                                          setSubmitting(null);
+                                        }
+                                      }}
+                                      disabled={submitting === 'bulk-crd' || !selectedWorks.some(id => {
+                                        let isPendingOrReturned = false;
+                                        flow.stages.forEach(s => s.extraWorks?.forEach(w => { if (w._id === id && (w.status === 'Pending' || w.status === 'Returned to CRD')) isPendingOrReturned = true; }));
+                                        return isPendingOrReturned;
+                                      })}
+                                      className="px-6 py-2 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition flex items-center justify-center gap-2 shadow-sm disabled:opacity-50"
+                                    >
+                                      {submitting === 'bulk-crd' ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Send className="w-4 h-4" /> Share Selected to PED</>}
+                                    </button>
+                                  )}
+                                  
+                                  {canCrd && hasReturnedToCRD && (
+                                    <button
+                                      onClick={async () => {
+                                        setSubmitting('bulk-crd-client');
+                                        try {
+                                          const works = [];
+                                          flow.stages.forEach((s, sIdx) => s.extraWorks?.forEach(w => {
+                                            if (w.status === 'Returned to CRD' && selectedWorks.includes(w._id)) works.push({sIdx, wId: w._id});
+                                          }));
+                                          for (const work of works) {
+                                            await fetch(`${API_URL}/extra-works/${flow._id}/${work.sIdx}/${work.wId}/send`, {
+                                              method: 'PUT', headers: { Authorization: `Bearer ${token}` }
+                                            });
+                                          }
+                                          setSelectedWorks([]);
+                                          await fetchFlows();
+                                        } finally {
+                                          setSubmitting(null);
+                                        }
+                                      }}
+                                      disabled={submitting === 'bulk-crd-client' || !selectedWorks.some(id => {
+                                        let isReturned = false;
+                                        flow.stages.forEach(s => s.extraWorks?.forEach(w => { if (w._id === id && w.status === 'Returned to CRD') isReturned = true; }));
+                                        return isReturned;
+                                      })}
+                                      className="px-6 py-2 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 transition flex items-center justify-center gap-2 shadow-sm disabled:opacity-50"
+                                    >
+                                      {submitting === 'bulk-crd-client' ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Send className="w-4 h-4" /> Share Selected to Client</>}
+                                    </button>
+                                  )}
+                                  
+                                  {canCrd && hasClientApproved && (
+                                    <button
+                                      onClick={async () => {
+                                        setSubmitting('bulk-crd-accounts');
+                                        try {
+                                          const works = [];
+                                          flow.stages.forEach((s, sIdx) => s.extraWorks?.forEach(w => {
+                                            if (w.status === 'Client Approved' && selectedWorks.includes(w._id)) works.push({sIdx, wId: w._id});
+                                          }));
+                                          for (const work of works) {
+                                            await fetch(`${API_URL}/extra-works/${flow._id}/${work.sIdx}/${work.wId}/send-to-accounts`, {
+                                              method: 'PUT', headers: { Authorization: `Bearer ${token}` }
+                                            });
+                                          }
+                                          setSelectedWorks([]);
+                                          await fetchFlows();
+                                        } finally {
+                                          setSubmitting(null);
+                                        }
+                                      }}
+                                      disabled={submitting === 'bulk-crd-accounts' || !selectedWorks.some(id => {
+                                        let isApproved = false;
+                                        flow.stages.forEach(s => s.extraWorks?.forEach(w => { if (w._id === id && w.status === 'Client Approved') isApproved = true; }));
+                                        return isApproved;
+                                      })}
+                                      className="px-6 py-2 bg-purple-600 text-white font-bold rounded-xl hover:bg-purple-700 transition flex items-center justify-center gap-2 shadow-sm disabled:opacity-50"
+                                    >
+                                      {submitting === 'bulk-crd-accounts' ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Building className="w-4 h-4" /> Share Selected to Accounts</>}
+                                    </button>
+                                  )}
+                                  
+                                  {canCrd && hasAddedToCRD && (
+                                    <button
+                                      onClick={async () => {
+                                        setSubmitting('bulk-crd-execution');
+                                        try {
+                                          const works = [];
+                                          flow.stages.forEach((s, sIdx) => s.extraWorks?.forEach(w => {
+                                            if (w.status === 'Added to CRD' && selectedWorks.includes(w._id)) works.push({sIdx, wId: w._id});
+                                          }));
+                                          for (const work of works) {
+                                            await fetch(`${API_URL}/extra-works/${flow._id}/${work.sIdx}/${work.wId}/send-to-ped-execution`, {
+                                              method: 'PUT', headers: { Authorization: `Bearer ${token}` }
+                                            });
+                                          }
+                                          setSelectedWorks([]);
+                                          await fetchFlows();
+                                        } finally {
+                                          setSubmitting(null);
+                                        }
+                                      }}
+                                      disabled={submitting === 'bulk-crd-execution' || !selectedWorks.some(id => {
+                                        let isAdded = false;
+                                        flow.stages.forEach(s => s.extraWorks?.forEach(w => { if (w._id === id && w.status === 'Added to CRD') isAdded = true; }));
+                                        return isAdded;
+                                      })}
+                                      className="px-6 py-2 bg-teal-600 text-white font-bold rounded-xl hover:bg-teal-700 transition flex items-center justify-center gap-2 shadow-sm disabled:opacity-50"
+                                    >
+                                      {submitting === 'bulk-crd-execution' ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Send className="w-4 h-4" /> Send to PED for Execution</>}
+                                    </button>
+                                  )}
+
+                                  {/* PED Actions */}
+                                  {canPed && hasReadyToShare && (
                                     <button
                                       onClick={async () => {
                                         setSubmitting('bulk-ped');
@@ -1464,16 +1406,10 @@ const handleRateChange = (workId, value) => {
                                     >
                                       {submitting === 'bulk-ped' ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Send className="w-4 h-4" /> Share Selected to CRD ({selectedWorks.length})</>}
                                     </button>
-                                  </div>
-                                );
-                              }
+                                  )}
 
-                              if (activeTab === 'accounts') {
-                                if (!(isAdmin || canEditTab('accounts'))) return null;
-                                const hasSentToAccounts = flow.stages.some(s => s.extraWorks?.some(w => w.status === 'Sent to Accounts'));
-                                if (!hasSentToAccounts) return null;
-                                return (
-                                  <div className="mt-4 flex justify-end">
+                                  {/* Accounts Actions */}
+                                  {canAccounts && hasSentToAccounts && (
                                     <button
                                       onClick={async () => {
                                         setSubmitting('bulk-accounts');
@@ -1498,10 +1434,9 @@ const handleRateChange = (workId, value) => {
                                     >
                                       {submitting === 'bulk-accounts' ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Plus className="w-4 h-4" /> Create Work Orders for Selected ({selectedWorks.length})</>}
                                     </button>
-                                  </div>
-                                );
-                              }
-                              return null;
+                                  )}
+                                </div>
+                              );
                             })()}
 
                           </div>
@@ -1592,10 +1527,10 @@ const handleRateChange = (workId, value) => {
                       <strong className="text-gray-800">{extraWorkDetailsModal.work?.quantity}</strong> <span className="text-gray-500 text-xs">{extraWorkDetailsModal.work?.unit}</span>
                     </td>
                     <td className="px-6 py-4 text-right">
-                      {activeTab !== 'crd' ? (
+                      {['Sent to PED', 'PED Approved', 'Sent to Customer', 'Client Approved', 'Sent to Accounts'].includes(extraWorkDetailsModal.work?.status) ? (
                         <input
                           type="number"
-                          disabled={activeTab !== 'ped' || (extraWorkDetailsModal.work?.status !== 'Sent to PED' && extraWorkDetailsModal.work?.status !== 'PED Approved')}
+                          disabled={!(isAdmin || canEditTab('ped'))}
                           value={rates[extraWorkDetailsModal.work?._id] ?? extraWorkDetailsModal.work?.rate ?? ''}
                           onChange={(e) => handleRateChange(extraWorkDetailsModal.work?._id, e.target.value)}
                           className="w-24 px-2 py-1 bg-gray-50 border border-gray-200 rounded text-sm font-bold focus:outline-none focus:ring-1 focus:ring-[#006838] disabled:opacity-50 inline-block text-right"
@@ -1615,7 +1550,7 @@ const handleRateChange = (workId, value) => {
                       </span>
                     </td>
                     <td className="px-6 py-4 text-center">
-                      {activeTab === 'crd' && extraWorkDetailsModal.work?.status === 'Pending' && (
+                      {(isAdmin || canEditTab('crd')) && extraWorkDetailsModal.work?.status === 'Pending' && (
                         <button
                           onClick={() => {
                             handleSendToPED(extraWorkDetailsModal.flow._id, extraWorkDetailsModal.stageIdx, extraWorkDetailsModal.work._id);
@@ -1627,7 +1562,7 @@ const handleRateChange = (workId, value) => {
                           {submitting === extraWorkDetailsModal.work?._id ? <Loader2 className="w-3 h-3 animate-spin mx-auto" /> : 'Share to PED'}
                         </button>
                       )}
-                      {activeTab === 'ped' && (
+                      {(isAdmin || canEditTab('ped')) && ['Sent to PED', 'PED Approved'].includes(extraWorkDetailsModal.work?.status) && (
                         <div className="flex gap-2 justify-center">
                           <button
                             onClick={() => {
@@ -1651,7 +1586,7 @@ const handleRateChange = (workId, value) => {
                           </button>
                         </div>
                       )}
-                      {activeTab === 'accounts' && extraWorkDetailsModal.work?.status === 'Client Approved' && (
+                      {(isAdmin || canEditTab('accounts')) && extraWorkDetailsModal.work?.status === 'Client Approved' && (
                         <button
                           onClick={() => {
                             handleAddToCRD(extraWorkDetailsModal.flow._id, extraWorkDetailsModal.stageIdx, extraWorkDetailsModal.work._id);
@@ -1671,8 +1606,193 @@ const handleRateChange = (workId, value) => {
           </div>
         </div>
       )}
+      {/* Flow Map Modal */}
+      {flowMapModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden animate-fade-in-up">
+            <div className="bg-[#0e623a] p-5 text-white flex justify-between items-center">
+              <h3 className="font-bold text-lg flex items-center gap-2">
+                <Activity className="w-5 h-5 text-emerald-300" /> 
+                Extra Work Lifecycle map
+              </h3>
+              <button onClick={() => setFlowMapModal(null)} className="text-white/80 hover:text-white transition">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-8 bg-gray-50 max-h-[70vh] overflow-y-auto">
+              {(() => {
+                const { work, flow } = flowMapModal;
+                const isNew = !work.sentToPedDate;
+                
+                const steps = [
+                  {
+                    id: 1,
+                    title: 'CRD Team (Initiation)',
+                    description: 'Client raised extra work',
+                    activeStatuses: ['Pending'],
+                    completedStatuses: ['Sent to PED', 'PED Approved', 'Returned to CRD', 'Sent to Customer', 'Client Approved', 'Sent to Accounts', 'Added to CRD', 'Execution Sent to PED', 'Start Work', 'In Progress', 'Completed']
+                  },
+                  {
+                    id: 2,
+                    title: 'PED Team (Pricing)',
+                    description: 'PED updates the price',
+                    activeStatuses: ['Sent to PED', 'PED Approved', 'Returned to CRD'],
+                    completedStatuses: ['Sent to Customer', 'Client Approved', 'Sent to Accounts', 'Added to CRD', 'Execution Sent to PED', 'Start Work', 'In Progress', 'Completed']
+                  },
+                  {
+                    id: 3,
+                    title: 'Client Approval',
+                    description: 'Client reviews and approves/negotiates',
+                    activeStatuses: ['Sent to Customer', 'Removed by Client', 'Rejected'],
+                    completedStatuses: ['Client Approved', 'Sent to Accounts', 'Added to CRD', 'Execution Sent to PED', 'Start Work', 'In Progress', 'Completed']
+                  },
+                  {
+                    id: 4,
+                    title: 'Accounts Team',
+                    description: 'Creating Work Order',
+                    activeStatuses: ['Client Approved', 'Sent to Accounts', 'Added to CRD'],
+                    completedStatuses: ['Execution Sent to PED', 'Start Work', 'In Progress', 'Completed']
+                  },
+                  {
+                    id: 5,
+                    title: 'PED Execution',
+                    description: 'PED starts the works',
+                    activeStatuses: ['Execution Sent to PED', 'Start Work', 'In Progress', 'Completed'],
+                    completedStatuses: []
+                  }
+                ];
+
+                const getStepStatus = (step) => {
+                  if (step.activeStatuses.includes(work.status)) return 'active';
+                  if (step.completedStatuses.includes(work.status)) return 'completed';
+                  return 'pending';
+                };
+
+                const getStepDate = (step) => {
+                  const formatDate = (dateStr) => {
+                    if (!dateStr) return null;
+                    const d = new Date(dateStr);
+                    return d.toLocaleString('en-GB', { 
+                      day: '2-digit', month: 'short', year: 'numeric', 
+                      hour: '2-digit', minute: '2-digit', hour12: true 
+                    });
+                  };
+
+                  let dateVal = null;
+                  const history = flow?.history || [];
+                  const wName = work.name || '';
+
+                  // Look through history from latest to oldest
+                  const findHistoryDate = (matchFn) => {
+                    for (let i = history.length - 1; i >= 0; i--) {
+                      if (matchFn(history[i])) return history[i].date;
+                    }
+                    return null;
+                  };
+
+                  switch(step.id) {
+                    case 1:
+                      dateVal = work.addedAt;
+                      break;
+                    case 2:
+                      dateVal = work.pricingDate || work.sentToPedDate;
+                      if (!dateVal) {
+                        dateVal = findHistoryDate(h => h.notes?.includes(wName) && (h.action === 'Pricing Updated' || h.action === 'Sent to PED'));
+                      }
+                      break;
+                    case 3:
+                      dateVal = work.customerApprovalDate;
+                      if (!dateVal) {
+                        dateVal = findHistoryDate(h => h.notes?.includes(wName) && (h.action === 'Sent to Customer' || h.notes.includes('approved by client')));
+                      }
+                      break;
+                    case 4:
+                      dateVal = work.sentToAccountsDate || work.crdAddedDate;
+                      if (!dateVal) {
+                        dateVal = findHistoryDate(h => h.notes?.includes(wName) && (h.action === 'Sent to Accounts' || h.action === 'Added to CRD'));
+                      }
+                      break;
+                    case 5:
+                      dateVal = findHistoryDate(h => h.notes?.includes(wName) && h.action === 'Execution Sent to PED');
+                      break;
+                  }
+                  
+                  return formatDate(dateVal);
+                };
+
+                return (
+                  <div className="relative border-l-2 border-gray-200 ml-4 space-y-8">
+                    {steps.map((step) => {
+                      const status = getStepStatus(step);
+                      let dotColor = 'bg-gray-300';
+                      let textColor = 'text-gray-400';
+                      
+                      if (status === 'completed') {
+                        dotColor = 'bg-[#0e623a] border-[#0e623a]';
+                        textColor = 'text-[#0e623a]';
+                      } else if (status === 'active') {
+                        if (step.id === 1) {
+                          dotColor = isNew ? 'bg-yellow-400 border-yellow-400' : 'bg-rose-900 border-rose-900'; // Maroon is rose-900
+                          textColor = isNew ? 'text-yellow-600' : 'text-rose-900';
+                        } else if (step.id === 5 && work.status === 'Completed') {
+                          dotColor = 'bg-[#0e623a] border-[#0e623a]';
+                          textColor = 'text-[#0e623a]';
+                        } else {
+                          dotColor = 'bg-blue-500 border-blue-500';
+                          textColor = 'text-blue-700';
+                        }
+                      }
+
+                      const stepDateStr = getStepDate(step);
+
+                      return (
+                        <div key={step.id} className="relative pl-8">
+                          <div className={`absolute -left-[9px] top-1 w-4 h-4 rounded-full border-2 border-white shadow-md ${dotColor}`}>
+                             {status === 'active' && work.status !== 'Completed' && (
+                               <div className="absolute inset-0 rounded-full animate-ping opacity-60 bg-inherit" />
+                             )}
+                          </div>
+                          <div>
+                            <div className="flex justify-between items-start">
+                              <h4 className={`text-sm font-black ${textColor}`}>{step.title}</h4>
+                              {stepDateStr && (
+                                <span className="text-[10px] font-bold text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full ml-2 shrink-0">
+                                  {stepDateStr}
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-xs text-gray-500 mt-1 font-medium">{step.description}</p>
+                            
+                            {/* Price negotiation / Client Feedback visualization */}
+                            {step.id === 3 && status === 'active' && work.clientNotes && (
+                              <div className="mt-3 p-3 bg-red-50 border border-red-100 rounded-xl text-xs shadow-sm">
+                                <strong className="text-red-700 block mb-1">Price Negotiation:</strong>
+                                <span className="text-red-600 font-medium">{work.clientNotes}</span>
+                                <div className="mt-2 text-[10px] text-gray-500 font-bold tracking-wider uppercase border-t border-red-100 pt-2 flex items-center gap-2">
+                                  <span>Client</span> <span>↔</span> <span>CRD</span> <span>↔</span> <span>PED</span>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };
+
+const ExtraWorks = (props) => (
+  <ErrorBoundary>
+    <ExtraWorksInner {...props} />
+  </ErrorBoundary>
+);
 
 export default ExtraWorks;

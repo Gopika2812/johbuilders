@@ -23,7 +23,7 @@ import {
 } from 'lucide-react';
 
 const ProjectsDictionary = () => {
-  const { token } = useAuth();
+  const { token, hasColumnPermission } = useAuth();
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -386,16 +386,16 @@ const ProjectsDictionary = () => {
             <table className="w-full text-left border-collapse text-xs">
               <thead>
                 <tr className="bg-black-50 border-b border-black-150 text-[11px] font-bold text-black-500 uppercase tracking-wider">
-                  <th className="p-4">Project Name</th>
-                  <th className="p-4 w-28">Code</th>
-                  <th className="p-4 w-32">Type</th>
-                  <th className="p-4 w-28">Map Layout</th>
-                  <th className="p-4">Location</th>
-                  <th className="p-4 w-36">Total Land Area (sq.ft)</th>
-                  <th className="p-4 w-36">Price / sq.ft</th>
-                  <th className="p-4 w-28 text-center">Total Units</th>
-                  <th className="p-4 w-36 text-right">Valuation</th>
-                  <th className="p-4 w-44 text-right">Actions</th>
+                  {hasColumnPermission('projects', 'projectName') && <th className="p-4">Project Name</th>}
+                  {hasColumnPermission('projects', 'code') && <th className="p-4 w-28">Code</th>}
+                  {hasColumnPermission('projects', 'type') && <th className="p-4 w-32">Type</th>}
+                  {hasColumnPermission('projects', 'mapLayout') && <th className="p-4 w-28">Map Layout</th>}
+                  {hasColumnPermission('projects', 'location') && <th className="p-4">Location</th>}
+                  {hasColumnPermission('projects', 'totalLandArea') && <th className="p-4 w-36">Total Land Area (sq.ft)</th>}
+                  {hasColumnPermission('projects', 'pricePerSqFt') && <th className="p-4 w-36">Price / sq.ft</th>}
+                  {hasColumnPermission('projects', 'totalUnits') && <th className="p-4 w-28 text-center">Total Units</th>}
+                  {hasColumnPermission('projects', 'valuation') && <th className="p-4 w-36 text-right">Valuation</th>}
+                  {hasColumnPermission('projects', 'actions') && <th className="p-4 w-44 text-right">Actions</th>}
                 </tr>
               </thead>
               <tbody className="divide-y divide-black-100 font-sans">
@@ -403,157 +403,171 @@ const ProjectsDictionary = () => {
                   const isEditing = editingProjectId === project._id;
                   return (
                     <tr key={project._id} className="hover:bg-emerald-50/10 transition align-middle">
-                      <td className="p-4">
-                        {isEditing ? (
-                          <input
-                            type="text"
-                            value={editForm.name}
-                            onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
-                            className="px-2.5 py-1.5 bg-black-50 border border-black-250 rounded focus:ring-1 focus:ring-[#0e623a] focus:outline-none w-full font-bold text-xs"
-                          />
-                        ) : (
-                          <Link to={`/projects/${project._id}`} className="font-extrabold text-[#0e623a] hover:underline text-sm block">
-                            {project.name}
-                          </Link>
-                        )}
-                      </td>
-                      <td className="p-4 font-mono font-bold text-black-650">{project.code}</td>
-                      <td className="p-4">
-                        <span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full border ${getTypeBadgeStyle(project.projectType)}`}>
-                          {displayProjectType(project.projectType)}
-                        </span>
-                      </td>
-                      <td className="p-4">
-                        {isEditing ? (
-                          <div className="flex flex-col gap-1 w-24">
-                            <input 
-                              type="file" 
-                              id={`edit-file-${project._id}`}
-                              accept="image/*"
-                              onChange={(e) => {
-                                const file = e.target.files[0];
-                                if (file) {
-                                  const reader = new FileReader();
-                                  reader.onloadend = () => {
-                                    setEditForm({ ...editForm, layoutPlanImage: reader.result });
-                                  };
-                                  reader.readAsDataURL(file);
-                                }
-                              }}
-                              className="hidden"
-                            />
-                            <button
-                              type="button"
-                              onClick={() => document.getElementById(`edit-file-${project._id}`).click()}
-                              className="px-2 py-1 bg-[#0e623a]/10 hover:bg-[#0e623a]/20 text-[#0e623a] text-[11px] font-bold rounded-lg border border-[#bce2cb]"
-                            >
-                              Upload File
-                            </button>
-                            {editForm.layoutPlanImage && (
-                              <img 
-                                src={editForm.layoutPlanImage} 
-                                alt="Thumb" 
-                                className="w-10 h-10 object-cover rounded border"
-                              />
-                            )}
-                          </div>
-                        ) : (
-                          project.layoutPlanImage ? (
-                            <img 
-                              src={project.layoutPlanImage} 
-                              alt="Map Layout" 
-                              className="w-10 h-10 object-cover rounded border cursor-pointer hover:opacity-80 transition"
-                              onClick={() => window.open(project.layoutPlanImage, '_blank')}
-                            />
-                          ) : (
-                            <span className="text-black-400 italic text-[11px]">No Layout</span>
-                          )
-                        )}
-                      </td>
-                      <td className="p-4">
-                        {isEditing ? (
-                          <input
-                            type="text"
-                            value={editForm.location}
-                            onChange={(e) => setEditForm({ ...editForm, location: e.target.value })}
-                            className="px-2.5 py-1.5 bg-black-50 border border-black-250 rounded focus:ring-1 focus:ring-[#0e623a] focus:outline-none w-full text-xs"
-                          />
-                        ) : (
-                          <span className="text-black-650 font-semibold">{project.location}</span>
-                        )}
-                      </td>
-                      <td className="p-4 font-semibold text-black-700">
-                        {isEditing ? (
-                          <input
-                            type="number"
-                            value={editForm.totalLandArea}
-                            onChange={(e) => setEditForm({ ...editForm, totalLandArea: e.target.value })}
-                            className="px-2.5 py-1.5 bg-black-50 border border-black-250 rounded focus:ring-1 focus:ring-[#0e623a] focus:outline-none w-full text-xs font-semibold"
-                          />
-                        ) : (
-                          <span>{project.totalLandArea?.toLocaleString()} sq.ft</span>
-                        )}
-                      </td>
-                      <td className="p-4 font-semibold text-black-700">
-                        {isEditing ? (
-                          <input
-                            type="number"
-                            value={editForm.pricePerSqFt}
-                            onChange={(e) => setEditForm({ ...editForm, pricePerSqFt: e.target.value })}
-                            className="px-2.5 py-1.5 bg-black-50 border border-black-250 rounded focus:ring-1 focus:ring-[#0e623a] focus:outline-none w-full text-xs font-semibold"
-                          />
-                        ) : (
-                          <span>${project.pricePerSqFt} / sq.ft</span>
-                        )}
-                      </td>
-                      <td className="p-4 text-center font-bold text-black-600">{project.units?.length || 0}</td>
-                      <td className="p-4 text-right font-extrabold text-[#0e623a]">${project.totalValuation?.toLocaleString()}</td>
-                      <td className="p-4 text-right">
-                        <div className="flex items-center justify-end gap-2">
+                      {hasColumnPermission('projects', 'projectName') && (
+                        <td className="p-4">
                           {isEditing ? (
-                            <>
-                              <button
-                                onClick={() => handleSaveEdit(project._id)}
-                                disabled={isSavingId === project._id}
-                                className="px-3 py-1.5 bg-[#0e623a] text-white text-xs font-bold rounded-lg hover:bg-[#0b4d2d] transition flex items-center gap-1 disabled:opacity-50"
-                              >
-                                {isSavingId === project._id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 'Save'}
-                              </button>
-                              <button
-                                onClick={handleCancelEdit}
-                                className="px-3 py-1.5 bg-black-100 text-black-700 text-xs font-bold rounded-lg hover:bg-black-200 transition"
-                              >
-                                Cancel
-                              </button>
-                            </>
+                            <input
+                              type="text"
+                              value={editForm.name}
+                              onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                              className="px-2.5 py-1.5 bg-black-50 border border-black-250 rounded focus:ring-1 focus:ring-[#0e623a] focus:outline-none w-full font-bold text-xs"
+                            />
                           ) : (
-                            <>
-                              <button
-                                onClick={() => handleStartEdit(project)}
-                                className="p-1.5 text-black-555 hover:text-[#0e623a] hover:bg-black-55 rounded-lg transition"
-                                title="Edit Project details inline"
-                              >
-                                <Edit className="w-4 h-4" />
-                              </button>
+                            <Link to={`/projects/${project._id}`} className="font-extrabold text-[#0e623a] hover:underline text-sm block">
+                              {project.name}
+                            </Link>
+                          )}
+                        </td>
+                      )}
+                      {hasColumnPermission('projects', 'code') && <td className="p-4 font-mono font-bold text-black-650">{project.code}</td>}
+                      {hasColumnPermission('projects', 'type') && (
+                        <td className="p-4">
+                          <span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full border ${getTypeBadgeStyle(project.projectType)}`}>
+                            {displayProjectType(project.projectType)}
+                          </span>
+                        </td>
+                      )}
+                      {hasColumnPermission('projects', 'mapLayout') && (
+                        <td className="p-4">
+                          {isEditing ? (
+                            <div className="flex flex-col gap-1 w-24">
+                              <input 
+                                type="file" 
+                                id={`edit-file-${project._id}`}
+                                accept="image/*"
+                                onChange={(e) => {
+                                  const file = e.target.files[0];
+                                  if (file) {
+                                    const reader = new FileReader();
+                                    reader.onloadend = () => {
+                                      setEditForm({ ...editForm, layoutPlanImage: reader.result });
+                                    };
+                                    reader.readAsDataURL(file);
+                                  }
+                                }}
+                                className="hidden"
+                              />
                               <button
                                 type="button"
-                                onClick={() => handleDeleteProject(project._id, project.name)}
-                                disabled={isDeletingId === project._id}
-                                className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition disabled:opacity-50 flex items-center justify-center"
-                                title="Delete Project permanently"
+                                onClick={() => document.getElementById(`edit-file-${project._id}`).click()}
+                                className="px-2 py-1 bg-[#0e623a]/10 hover:bg-[#0e623a]/20 text-[#0e623a] text-[11px] font-bold rounded-lg border border-[#bce2cb]"
                               >
-                                {isDeletingId === project._id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                                Upload File
                               </button>
-                              <Link
-                                to={`/projects/${project._id}`}
-                                className="px-3 py-1.5 border border-black-255 rounded-lg text-xs font-bold text-[#0e623a] hover:bg-[#0e623a]/5 transition"
-                              >
-                                Manage
-                              </Link>
-                            </>
+                              {editForm.layoutPlanImage && (
+                                <img 
+                                  src={editForm.layoutPlanImage} 
+                                  alt="Thumb" 
+                                  className="w-10 h-10 object-cover rounded border"
+                                />
+                              )}
+                            </div>
+                          ) : (
+                            project.layoutPlanImage ? (
+                              <img 
+                                src={project.layoutPlanImage} 
+                                alt="Map Layout" 
+                                className="w-10 h-10 object-cover rounded border cursor-pointer hover:opacity-80 transition"
+                                onClick={() => window.open(project.layoutPlanImage, '_blank')}
+                              />
+                            ) : (
+                              <span className="text-black-400 italic text-[11px]">No Layout</span>
+                            )
                           )}
-                        </div>
-                      </td>
+                        </td>
+                      )}
+                      {hasColumnPermission('projects', 'location') && (
+                        <td className="p-4">
+                          {isEditing ? (
+                            <input
+                              type="text"
+                              value={editForm.location}
+                              onChange={(e) => setEditForm({ ...editForm, location: e.target.value })}
+                              className="px-2.5 py-1.5 bg-black-50 border border-black-250 rounded focus:ring-1 focus:ring-[#0e623a] focus:outline-none w-full text-xs"
+                            />
+                          ) : (
+                            <span className="text-black-650 font-semibold">{project.location}</span>
+                          )}
+                        </td>
+                      )}
+                      {hasColumnPermission('projects', 'totalLandArea') && (
+                        <td className="p-4 font-semibold text-black-700">
+                          {isEditing ? (
+                            <input
+                              type="number"
+                              value={editForm.totalLandArea}
+                              onChange={(e) => setEditForm({ ...editForm, totalLandArea: e.target.value })}
+                              className="px-2.5 py-1.5 bg-black-50 border border-black-250 rounded focus:ring-1 focus:ring-[#0e623a] focus:outline-none w-full text-xs font-semibold"
+                            />
+                          ) : (
+                            <span>{project.totalLandArea?.toLocaleString()} sq.ft</span>
+                          )}
+                        </td>
+                      )}
+                      {hasColumnPermission('projects', 'pricePerSqFt') && (
+                        <td className="p-4 font-semibold text-black-700">
+                          {isEditing ? (
+                            <input
+                              type="number"
+                              value={editForm.pricePerSqFt}
+                              onChange={(e) => setEditForm({ ...editForm, pricePerSqFt: e.target.value })}
+                              className="px-2.5 py-1.5 bg-black-50 border border-black-250 rounded focus:ring-1 focus:ring-[#0e623a] focus:outline-none w-full text-xs font-semibold"
+                            />
+                          ) : (
+                            <span>${project.pricePerSqFt} / sq.ft</span>
+                          )}
+                        </td>
+                      )}
+                      {hasColumnPermission('projects', 'totalUnits') && <td className="p-4 text-center font-bold text-black-600">{project.units?.length || 0}</td>}
+                      {hasColumnPermission('projects', 'valuation') && <td className="p-4 text-right font-extrabold text-[#0e623a]">${project.totalValuation?.toLocaleString()}</td>}
+                      {hasColumnPermission('projects', 'actions') && (
+                        <td className="p-4 text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            {isEditing ? (
+                              <>
+                                <button
+                                  onClick={() => handleSaveEdit(project._id)}
+                                  disabled={isSavingId === project._id}
+                                  className="px-3 py-1.5 bg-[#0e623a] text-white text-xs font-bold rounded-lg hover:bg-[#0b4d2d] transition flex items-center gap-1 disabled:opacity-50"
+                                >
+                                  {isSavingId === project._id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 'Save'}
+                                </button>
+                                <button
+                                  onClick={handleCancelEdit}
+                                  className="px-3 py-1.5 bg-black-100 text-black-700 text-xs font-bold rounded-lg hover:bg-black-200 transition"
+                                >
+                                  Cancel
+                                </button>
+                              </>
+                            ) : (
+                              <>
+                                <button
+                                  onClick={() => handleStartEdit(project)}
+                                  className="p-1.5 text-black-555 hover:text-[#0e623a] hover:bg-black-55 rounded-lg transition"
+                                  title="Edit Project details inline"
+                                >
+                                  <Edit className="w-4 h-4" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteProject(project._id, project.name)}
+                                  disabled={isDeletingId === project._id}
+                                  className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition disabled:opacity-50 flex items-center justify-center"
+                                  title="Delete Project permanently"
+                                >
+                                  {isDeletingId === project._id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                                </button>
+                                <Link
+                                  to={`/projects/${project._id}`}
+                                  className="px-3 py-1.5 border border-black-255 rounded-lg text-xs font-bold text-[#0e623a] hover:bg-[#0e623a]/5 transition"
+                                >
+                                  Manage
+                                </Link>
+                              </>
+                            )}
+                          </div>
+                        </td>
+                      )}
                     </tr>
                   );
                 })}

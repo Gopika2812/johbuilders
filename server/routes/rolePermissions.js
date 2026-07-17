@@ -10,7 +10,7 @@ router.get('/', protect, async (req, res) => {
     let configs = await RolePermission.find({});
     
     // Seed default permissions for any missing roles
-    const roles = ['Admin', 'Manager', 'Sales Executive', 'Site Engineer'];
+    const roles = ['Superadmin', 'Crd team', 'sales person', 'ped team', 'accounts team'];
     const defaultPages = [
       { pageId: 'dashboard', pageName: 'Dashboard' },
       { pageId: 'projects', pageName: 'Project Master' },
@@ -25,12 +25,12 @@ router.get('/', protect, async (req, res) => {
     for (let role of roles) {
       let config = configs.find(c => c.role === role);
       if (!config) {
-        // Admin gets all by default, others get view-only or partial
+        // Superadmin gets all by default, others get view-only or partial
         const permissions = defaultPages.map(page => ({
           pageId: page.pageId,
           pageName: page.pageName,
-          canView: role === 'Admin' || page.pageId === 'dashboard',
-          canEdit: role === 'Admin'
+          canView: role === 'Superadmin' || page.pageId === 'dashboard',
+          canEdit: role === 'Superadmin'
         }));
         
         config = { role, permissions };

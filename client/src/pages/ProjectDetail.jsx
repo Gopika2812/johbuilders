@@ -626,7 +626,7 @@ const ProjectDetail = () => {
             ) : (
               <div className="flex items-center gap-1">
                 <span className="text-sm font-extrabold text-[#0e623a]">Rs. {project.pricePerSqFt.toLocaleString()}</span>
-                {(user.role === 'Admin' || user.role === 'Manager') && (
+                {(user.role === 'Superadmin' || user.role === 'Crd team') && (
                   <button
                     onClick={() => setPriceEditing(true)}
                     className="p-0.5 hover:bg-black-100 rounded text-black-400 hover:text-[#0e623a]"
@@ -899,7 +899,7 @@ const ProjectDetail = () => {
                         Booking Details
                       </button>
 
-                      {(user.role === 'Admin' || user.role === 'Manager') && (
+                      {(user.role === 'Superadmin' || user.role === 'Crd team') && (
                         <button
                           onClick={() => {
                             setResizePlot(unit);
@@ -965,7 +965,7 @@ const ProjectDetail = () => {
                           >
                             Edit Status
                           </button>
-                          {(user.role === 'Admin' || user.role === 'Manager') && (
+                          {(user.role === 'Superadmin' || user.role === 'Crd team') && (
                             <button
                               onClick={() => {
                                 setResizePlot(unit);
@@ -1630,7 +1630,7 @@ const ProjectDetail = () => {
                   <option value="Under Construction">Under Construction</option>
                   <option value="Sold Out">Sold Out</option>
                 </select>
-                {user.role === 'Site Engineer' && (
+                {user.role === 'ped team' && (
                   <span className="text-[11px] text-red-500 mt-1 block">
                     * Site Engineers cannot change status to Booked or Sold Out.
                   </span>

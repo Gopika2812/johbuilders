@@ -17,6 +17,7 @@ router.get('/', protect, async (req, res) => {
       finalConfigs.push({
         userId: user._id,
         userName: user.name,
+        userRole: user.role,
         permissions
       });
     }

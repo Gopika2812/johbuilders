@@ -78,8 +78,8 @@ const checkPermission = (pageId, action) => {
         return res.status(401).json({ message: 'Not authenticated' });
       }
       
-      // Admin bypasses all checks
-      if (req.user.role === 'Admin') {
+      // Superadmin bypasses all checks
+      if (req.user.role === 'Superadmin') {
         return next();
       }
       

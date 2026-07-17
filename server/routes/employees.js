@@ -17,7 +17,7 @@ router.get('/', protect, async (req, res) => {
 
 // @route   PUT /api/employees/:id/approve
 // @desc    Approve/Reject employee access
-router.put('/:id/approve', protect, authorize('Admin'), async (req, res) => {
+router.put('/:id/approve', protect, authorize('Superadmin'), async (req, res) => {
   const { isApproved } = req.body;
 
   try {
@@ -45,10 +45,10 @@ router.put('/:id/approve', protect, authorize('Admin'), async (req, res) => {
 
 // @route   PUT /api/employees/:id/role
 // @desc    Change employee role (RBAC assignment)
-router.put('/:id/role', protect, authorize('Admin'), async (req, res) => {
+router.put('/:id/role', protect, authorize('Superadmin'), async (req, res) => {
   const { role } = req.body;
 
-  if (!['Admin', 'Manager', 'Sales Executive', 'Site Engineer'].includes(role)) {
+  if (!['Superadmin', 'Crd team', 'sales person', 'ped team', 'accounts team'].includes(role)) {
     return res.status(400).json({ message: 'Invalid role' });
   }
 

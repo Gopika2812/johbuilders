@@ -342,12 +342,12 @@ const KPIInsights = () => {
   const [toDate, setToDate] = useState(() => new Date().toISOString().split('T')[0]);
 
   const [selectedUser, setSelectedUser] = useState(() => {
-    const isPrivileged = user?.role === 'Super Admin' || user?.role === 'Admin';
+    const isPrivileged = user?.role === 'Superadmin' || user?.role === 'Superadmin';
     return isPrivileged ? '' : (user?._id || '');
   });
   
   useEffect(() => {
-    if (user && user.role !== 'Super Admin' && user.role !== 'Admin') {
+    if (user && user.role !== 'Superadmin' && user.role !== 'Superadmin') {
       setSelectedUser(user._id);
     }
   }, [user]);
@@ -605,7 +605,7 @@ const KPIInsights = () => {
             <th>Project</th>
             <th>Place</th>
             <th>Lead Status</th>
-            <th>Sales Executive Remarks</th>
+            <th>sales person Remarks</th>
           </tr>
         `;
 
@@ -2760,7 +2760,7 @@ const KPIInsights = () => {
         {/* Filters Panel */}
         <div className="flex flex-wrap items-center gap-4 bg-white p-3 rounded-2xl border border-black-150 shadow-xs">
           {/* User Select */}
-          {(user?.role === 'Super Admin' || user?.role === 'Admin') && (
+          {(user?.role === 'Superadmin' || user?.role === 'Superadmin') && (
             <div className="flex items-center gap-1">
               <User className="w-3.5 h-3.5 text-black-400" />
               <select

@@ -26,8 +26,8 @@ router.get('/', protect, async (req, res) => {
   }
 });
 
-// PUT settings (restricted to Admin/Manager)
-router.put('/', protect, authorize('Admin', 'Manager'), async (req, res) => {
+// PUT settings (restricted to Superadmin/Crd team)
+router.put('/', protect, authorize('Superadmin', 'Crd team'), async (req, res) => {
   try {
     let settings = await SystemSettings.findOne({ key: 'global' });
     if (!settings) {

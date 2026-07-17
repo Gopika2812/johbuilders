@@ -309,12 +309,12 @@ const ExportReports = () => {
   const [toDate, setToDate] = useState(() => new Date().toISOString().split('T')[0]);
 
   const [selectedUser, setSelectedUser] = useState(() => {
-    const isPrivileged = user?.role === 'Super Admin' || user?.role === 'Admin';
+    const isPrivileged = user?.role === 'Superadmin' || user?.role === 'Superadmin';
     return isPrivileged ? '' : (user?._id || '');
   });
   
   useEffect(() => {
-    if (user && user.role !== 'Super Admin' && user.role !== 'Admin') {
+    if (user && user.role !== 'Superadmin' && user.role !== 'Superadmin') {
       setSelectedUser(user._id);
     }
   }, [user]);
@@ -625,7 +625,7 @@ const ExportReports = () => {
             <th>Project</th>
             <th>Place</th>
             <th>Lead Status</th>
-            <th>Sales Executive Remarks</th>
+            <th>sales person Remarks</th>
           </tr>
         `;
 
@@ -642,7 +642,7 @@ const ExportReports = () => {
           if (remarksStr.match(/\[Lost at (.*?) stage\]/)) remarksStr = remarksStr.replace(/\[Lost at .*? stage\]( - )?/, '');
           const rowClass = idx % 2 === 1 ? 'class="even-row"' : '';
           
-          const assignerStr = lead.assignedBy?.name || 'Admin';
+          const assignerStr = lead.assignedBy?.name || 'Superadmin';
 
           html += `
             <tr ${rowClass}>
@@ -2720,7 +2720,7 @@ const ExportReports = () => {
 
         <div className="flex flex-wrap items-center gap-3 relative z-10">
           {/* User Filter */}
-          {(user?.role === 'Admin' || user?.role === 'Super Admin') && (
+          {(user?.role === 'Superadmin' || user?.role === 'Superadmin') && (
             <div className="flex items-center bg-black-50 border border-black-200 rounded-xl px-3 py-2">
               <User className="w-4 h-4 text-black-400 mr-2" />
               <select

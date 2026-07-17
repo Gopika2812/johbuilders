@@ -9,8 +9,81 @@ import {
   CheckSquare, 
   Square,
   Loader2,
-  Search
+  Search,
+  ChevronDown,
+  ChevronRight
 } from 'lucide-react';
+
+const PAGE_COLUMNS = {
+  quotations: [
+    { key: 'customerDetails', label: 'Customer Details' },
+    { key: 'project', label: 'Project' },
+    { key: 'quotedUnits', label: 'Quoted Units' },
+    { key: 'totalValue', label: 'Total Value' },
+    { key: 'preparedBy', label: 'Prepared By' },
+    { key: 'createdDate', label: 'Created Date' },
+    { key: 'crdPerson', label: 'CRD Person' },
+    { key: 'actions', label: 'Actions' }
+  ],
+  projects: [
+    { key: 'projectName', label: 'Project Name' },
+    { key: 'code', label: 'Code' },
+    { key: 'type', label: 'Type' },
+    { key: 'mapLayout', label: 'Map Layout' },
+    { key: 'location', label: 'Location' },
+    { key: 'totalLandArea', label: 'Total Land Area' },
+    { key: 'pricePerSqFt', label: 'Price / sq.ft' },
+    { key: 'totalUnits', label: 'Total Units' },
+    { key: 'valuation', label: 'Valuation' },
+    { key: 'actions', label: 'Actions' }
+  ],
+  leads: [
+    { key: 'sno', label: 'S.No' },
+    { key: 'date', label: 'Date' },
+    { key: 'customerName', label: 'Customer Name' },
+    { key: 'phoneNumber', label: 'Phone Number' },
+    { key: 'sourceDetails', label: 'Source Details' },
+    { key: 'project', label: 'Project' },
+    { key: 'category', label: 'Category' },
+    { key: 'assignedBy', label: 'Assigned By' },
+    { key: 'assignedTo', label: 'Assigned To' },
+    { key: 'leadStatus', label: 'Lead Status' },
+    { key: 'nextFollowup', label: 'Next Followup' },
+    { key: 'actions', label: 'Actions' }
+  ],
+  customers: [
+    { key: 'customerName', label: 'Customer Name' },
+    { key: 'phoneNumber', label: 'Phone Number' },
+    { key: 'project', label: 'Project' },
+    { key: 'unitPlot', label: 'Unit / Plot' },
+    { key: 'complaints', label: 'Complaints' },
+    { key: 'actions', label: 'Actions' }
+  ],
+  crdFlow: [
+    { key: 'sno', label: 'S.No' },
+    { key: 'bookingDate', label: 'Booking Date' },
+    { key: 'customerName', label: 'Customer Name' },
+    { key: 'phoneNumber', label: 'Phone Number' },
+    { key: 'project', label: 'Project' },
+    { key: 'units', label: 'Units' },
+    { key: 'finalValue', label: 'Final Quotation Value' },
+    { key: 'receivedValue', label: 'Received Value' },
+    { key: 'pendingValue', label: 'Pending Value' },
+    { key: 'assignedPerson', label: 'Assigned Person' },
+    { key: 'crdPerson', label: 'CRD Person' },
+    { key: 'actions', label: 'Quick Actions' }
+  ],
+  complaintsFlow: [
+    { key: 'sno', label: 'S.No' },
+    { key: 'raisedOn', label: 'Raised On' },
+    { key: 'tokenId', label: 'Token ID' },
+    { key: 'scope', label: 'Scope' },
+    { key: 'sentToPed', label: 'Sent to PED' },
+    { key: 'status', label: 'Status' },
+    { key: 'completedOn', label: 'Completed On' },
+    { key: 'actions', label: 'Action' }
+  ]
+};
 
 const AccessControl = () => {
   const { token } = useAuth();
@@ -22,6 +95,7 @@ const AccessControl = () => {
   const [userConfigs, setUserConfigs] = useState([]);
   const [activeUserId, setActiveUserId] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [expandedPageId, setExpandedPageId] = useState(null);
 
   useEffect(() => {
     fetchPermissions();
@@ -66,6 +140,33 @@ const AccessControl = () => {
     );
   };
 
+  const handleToggleColumnPermission = (userId, pageId, columnKey) => {
+    setUserConfigs(prev => 
+      prev.map(config => {
+        if (config.userId !== userId) return config;
+        
+        return {
+          ...config,
+          permissions: config.permissions.map(p => {
+            if (p.pageId !== pageId) return p;
+            
+            const currentColumns = p.columns || {};
+            // Default to true if undefined, otherwise toggle
+            const isEnabled = currentColumns[columnKey] !== undefined ? currentColumns[columnKey] : true;
+            
+            return {
+              ...p,
+              columns: {
+                ...currentColumns,
+                [columnKey]: !isEnabled
+              }
+            };
+          })
+        };
+      })
+    );
+  };
+
   const handleSavePermissions = async () => {
     const activeConfig = userConfigs.find(c => c.userId === activeUserId);
     if (!activeConfig) return;
@@ -103,7 +204,7 @@ const AccessControl = () => {
   const currentPermissions = userConfigs.find(c => c.userId === activeUserId)?.permissions || [];
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6 text-left animate-fadeIn">
+    <div className="w-full mx-auto space-y-6 text-left animate-fadeIn">
       
       {/* Top Header Panel */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-white p-6 border border-black-100 shadow-sm rounded-3xl">
@@ -140,7 +241,7 @@ const AccessControl = () => {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
           
           {/* Left panel - User Selection List */}
-          <div className="lg:col-span-4 bg-white border border-black-100 p-5 rounded-3xl shadow-sm flex flex-col max-h-[800px]">
+          <div className="lg:col-span-3 bg-white border border-black-100 p-5 rounded-3xl shadow-sm flex flex-col max-h-[800px]">
             <div className="mb-4 space-y-3">
               <h3 className="text-xs font-extrabold text-black-450 uppercase tracking-wider block">Select User</h3>
               <div className="relative">
@@ -170,9 +271,9 @@ const AccessControl = () => {
                     <div className={`p-2 rounded-xl ${isActive ? 'bg-[#0e623a]/10' : 'bg-black-50'}`}>
                       <UserCheck className="w-4 h-4" />
                     </div>
-                    <div>
+                    <div className="w-full text-left">
                       <h4 className="text-xs font-bold">{config.userName}</h4>
-                      {/* <p className="text-[11px] text-black-400 mt-0.5 font-medium">Configure page access privileges</p> */}
+                      <p className="text-[10px] text-emerald-600 mt-0.5 font-bold uppercase tracking-wider">{config.userRole}</p>
                     </div>
                   </button>
                 );
@@ -181,7 +282,7 @@ const AccessControl = () => {
           </div>
 
           {/* Right panel - Page by Page Interactive Matrix */}
-          <div className="lg:col-span-8 bg-white border border-black-100 p-6 rounded-3xl shadow-sm space-y-6">
+          <div className="lg:col-span-9 bg-white border border-black-100 p-6 rounded-3xl shadow-sm space-y-6">
             <div className="flex items-center justify-between border-b border-black-100 pb-4">
               <div>
                 <h3 className="text-sm font-extrabold text-black-800 uppercase tracking-wide">
@@ -203,41 +304,90 @@ const AccessControl = () => {
                 </thead>
                 <tbody className="divide-y divide-black-100 font-sans text-xs">
                   {currentPermissions.map((permission, idx) => (
-                    <tr key={permission.pageId} className="hover:bg-black-50/50 transition">
-                      <td className="p-4 text-center font-bold text-black-400">{idx + 1}</td>
-                      <td className="p-4 font-bold text-black-750 uppercase">{permission.pageName}</td>
+                    <React.Fragment key={permission.pageId}>
+                      <tr className="hover:bg-black-50/50 transition">
+                        <td className="p-4 text-center font-bold text-black-400">{idx + 1}</td>
+                        <td className="p-4 font-bold text-black-750 uppercase">
+                          <div className="flex items-center gap-2">
+                            {PAGE_COLUMNS[permission.pageId] && (
+                              <button 
+                                onClick={() => setExpandedPageId(expandedPageId === permission.pageId ? null : permission.pageId)}
+                                className="p-1 hover:bg-black-100 rounded text-black-500 transition"
+                              >
+                                {expandedPageId === permission.pageId ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                              </button>
+                            )}
+                            {permission.pageName}
+                          </div>
+                        </td>
+                        
+                        {/* Can View checkbox */}
+                        <td className="p-4 text-center">
+                          <button
+                            type="button"
+                            onClick={() => handleTogglePermission(activeUserId, permission.pageId, 'canView')}
+                            className={`mx-auto p-1.5 rounded-lg border transition-all ${
+                              permission.canView 
+                                ? 'bg-emerald-50 border-emerald-200 text-emerald-600'
+                                : 'bg-black-50 border-black-200 text-black-400'
+                            }`}
+                          >
+                            <Eye className="w-4 h-4" />
+                          </button>
+                        </td>
+
+                        {/* Can Edit checkbox */}
+                        <td className="p-4 text-center">
+                          <button
+                            type="button"
+                            onClick={() => handleTogglePermission(activeUserId, permission.pageId, 'canEdit')}
+                            className={`mx-auto p-1.5 rounded-lg border transition-all ${
+                              permission.canEdit
+                                ? 'bg-emerald-50 border-emerald-200 text-emerald-600'
+                                : 'bg-black-50 border-black-200 text-black-400'
+                            }`}
+                          >
+                            <Edit3 className="w-4 h-4" />
+                          </button>
+                        </td>
+                      </tr>
                       
-                      {/* Can View checkbox */}
-                      <td className="p-4 text-center">
-                        <button
-                          type="button"
-                          onClick={() => handleTogglePermission(activeUserId, permission.pageId, 'canView')}
-                          className={`mx-auto p-1.5 rounded-lg border transition-all ${
-                            permission.canView 
-                              ? 'bg-emerald-50 border-emerald-200 text-emerald-600'
-                              : 'bg-black-50 border-black-200 text-black-400'
-                          }`}
-                        >
-                          <Eye className="w-4 h-4" />
-                        </button>
-                      </td>
-
-                      {/* Can Edit checkbox */}
-                      <td className="p-4 text-center">
-                        <button
-                          type="button"
-                          onClick={() => handleTogglePermission(activeUserId, permission.pageId, 'canEdit')}
-                          className={`mx-auto p-1.5 rounded-lg border transition-all ${
-                            permission.canEdit
-                              ? 'bg-emerald-50 border-emerald-200 text-emerald-600'
-                              : 'bg-black-50 border-black-200 text-black-400'
-                          }`}
-                        >
-                          <Edit3 className="w-4 h-4" />
-                        </button>
-                      </td>
-
-                    </tr>
+                      {/* Expanded Columns row */}
+                      {expandedPageId === permission.pageId && PAGE_COLUMNS[permission.pageId] && (
+                        <tr className="bg-black-50/30">
+                          <td colSpan="4" className="p-4">
+                            <div className="bg-white border border-black-150 rounded-2xl p-5 shadow-sm ml-8">
+                              <h4 className="text-[11px] font-extrabold text-black-450 uppercase tracking-wider mb-4 border-b border-black-100 pb-2">
+                                Column Level Access for {permission.pageName}
+                              </h4>
+                              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                                {PAGE_COLUMNS[permission.pageId].map(col => {
+                                  const isEnabled = permission.columns?.[col.key] !== undefined ? permission.columns[col.key] : true;
+                                  return (
+                                    <button
+                                      key={col.key}
+                                      onClick={() => handleToggleColumnPermission(activeUserId, permission.pageId, col.key)}
+                                      className={`flex items-center gap-3 p-3 rounded-xl border text-left transition-all ${
+                                        isEnabled 
+                                          ? 'border-[#0e623a] bg-emerald-50/20 shadow-sm'
+                                          : 'border-black-200 bg-black-50 opacity-60 hover:opacity-100'
+                                      }`}
+                                    >
+                                      <div className={`p-1 rounded ${isEnabled ? 'bg-[#0e623a] text-white' : 'bg-black-200 text-black-500'}`}>
+                                        {isEnabled ? <CheckSquare className="w-3.5 h-3.5" /> : <Square className="w-3.5 h-3.5" />}
+                                      </div>
+                                      <span className={`text-[11px] font-bold ${isEnabled ? 'text-black-800' : 'text-black-500'}`}>
+                                        {col.label}
+                                      </span>
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
                   ))}
                 </tbody>
               </table>

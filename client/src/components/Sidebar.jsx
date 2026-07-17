@@ -406,7 +406,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
           </div>
         )}
 
-        {/* Access Control (Admin Only) */}
+        {/* Access Control (Superadmin Only) */}
         {isAdmin && (
           <>
             <Link

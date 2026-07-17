@@ -130,7 +130,7 @@ const EmployeesDirectory = () => {
                 <th className="p-5">Registered On</th>
                 <th className="p-5">Active Role</th>
                 <th className="p-5">Access Status</th>
-                {user.role === 'Admin' && <th className="p-5 text-right">Administrative Actions</th>}
+                {user.role === 'Superadmin' && <th className="p-5 text-right">Administrative Actions</th>}
               </tr>
             </thead>
             <tbody className="divide-y divide-black-50 text-sm">
@@ -140,16 +140,17 @@ const EmployeesDirectory = () => {
                   <td className="p-5 text-black-600">{emp.email}</td>
                   <td className="p-5 text-black-500">{new Date(emp.createdAt).toLocaleDateString()}</td>
                   <td className="p-5">
-                    {user.role === 'Admin' ? (
+                    {user.role === 'Superadmin' ? (
                       <select
                         value={emp.role}
                         onChange={(e) => handleRoleChange(emp._id, e.target.value)}
                         className="px-2.5 py-1.5 bg-black-50 border border-black-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#0e623a] font-medium"
                       >
-                        <option value="Admin">Admin</option>
-                        <option value="Manager">Manager</option>
-                        <option value="Sales Executive">Sales Executive</option>
-                        <option value="Site Engineer">Site Engineer</option>
+                        <option value="Superadmin">Superadmin</option>
+                        <option value="Crd team">Crd team</option>
+                        <option value="sales person">sales person</option>
+                        <option value="ped team">ped team</option>
+                        <option value="accounts team">accounts team</option>
                       </select>
                     ) : (
                       <span className="font-semibold text-black-700 bg-black-100 px-2.5 py-1 rounded-full text-xs">
@@ -176,7 +177,7 @@ const EmployeesDirectory = () => {
                       )}
                     </span>
                   </td>
-                  {user.role === 'Admin' && (
+                  {user.role === 'Superadmin' && (
                     <td className="p-5 text-right">
                       {emp._id === user._id ? (
                         <span className="text-xs text-black-400 italic font-light pr-4">Self account</span>

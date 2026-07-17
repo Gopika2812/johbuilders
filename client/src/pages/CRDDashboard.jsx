@@ -457,12 +457,12 @@ const CRDDashboard = () => {
 
   // User and Project filters
   const [selectedUser, setSelectedUser] = useState(() => {
-    const isPrivileged = user?.role === 'Super Admin' || user?.role === 'Admin';
+    const isPrivileged = user?.role === 'Superadmin' || user?.role === 'Superadmin';
     return isPrivileged ? '' : (user?._id || '');
   });
   
   useEffect(() => {
-    if (user && user.role !== 'Super Admin' && user.role !== 'Admin') {
+    if (user && user.role !== 'Superadmin' && user.role !== 'Superadmin') {
       setSelectedUser(user._id);
     }
   }, [user]);
@@ -1531,7 +1531,7 @@ const CRDDashboard = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4 items-end">
           
           {/* User Select */}
-          {(user?.role === 'Super Admin' || user?.role === 'Admin') ? (
+          {(user?.role === 'Superadmin' || user?.role === 'Superadmin') ? (
             <div className="flex flex-col gap-1 w-full">
               <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Filtered User</label>
               <div className="flex items-center gap-2 bg-transparent border-none px-3 py-1.5 rounded-xl">

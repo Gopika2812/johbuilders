@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 
 const RolePermissionSchema = new mongoose.Schema({
   role: {
-    type: String, // e.g. "Admin", "Manager", "Sales Executive", "Site Engineer"
+    type: String, // e.g. "Superadmin", "Crd team", "sales person", "ped team"
     required: true,
     unique: true
   },

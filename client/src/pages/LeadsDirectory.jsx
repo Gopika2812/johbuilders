@@ -155,7 +155,7 @@ const getContrastClass = (hex) => {
 };
 
 const LeadsDirectory = () => {
-  const { token, user } = useAuth();
+  const { token, user, hasColumnPermission } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const [leads, setLeads] = useState([]);
@@ -701,7 +701,7 @@ const LeadsDirectory = () => {
       setError('Please fill in all mandatory fields.');
       return;
     }
-    if ((user?.role === 'Admin' || user?.role === 'Manager') && !assignedToId) {
+    if ((user?.role === 'Superadmin' || user?.role === 'Crd team') && !assignedToId) {
       setError('Please select an assigned executive.');
       return;
     }
@@ -727,7 +727,7 @@ const LeadsDirectory = () => {
       phone,
       address,
       project: selectedProjectId,
-      assignedTo: (user?.role === 'Admin' || user?.role === 'Manager') ? assignedToId : user?._id,
+      assignedTo: (user?.role === 'Superadmin' || user?.role === 'Crd team') ? assignedToId : user?._id,
       leadCost: Number(leadCost) || 0,
       leadSource: leadSource,
       leadCategory: leadCategory,
@@ -794,7 +794,7 @@ const LeadsDirectory = () => {
 
       const data = await res.json();
       if (res.ok) {
-        setSuccessMsg('Approval request sent to Super Admin successfully!');
+        setSuccessMsg('Approval request sent to Superadmin successfully!');
         setCreateModalOpen(false);
         resetForm();
         setTimeout(() => setSuccessMsg(''), 4000);
@@ -1494,7 +1494,7 @@ const LeadsDirectory = () => {
         <div className="bg-white p-4 border border-black-150 shadow-sm rounded-3xl grid grid-cols-2 lg:grid-cols-5 gap-4 items-end">
           {/* Assigned Executive */}
           <div className="space-y-1">
-          {(user?.role === 'Admin' || user?.role === 'Manager') && (
+          {(user?.role === 'Superadmin' || user?.role === 'Crd team') && (
             <div className="space-y-1">
               <label className="text-[11px] font-bold text-black-400 uppercase tracking-wider block">Assigned Executive</label>
               <select
@@ -1616,18 +1616,18 @@ const LeadsDirectory = () => {
           <table className="w-full text-left border-collapse min-w-[900px]">
           <thead>
             <tr className="bg-black-50 border-b border-black-150 text-[11px] font-bold text-black-500 uppercase tracking-wider">
-              <th className="px-3 py-2 w-10 text-center">S.No</th>
-              <th className="px-3 py-2">Date</th>
-              <th className="px-3 py-2">Customer Name</th>
-              <th className="px-3 py-2">Phone Number</th>
-              <th className="px-3 py-2">Source Details</th>
-              <th className="px-3 py-2">Project</th>
-              <th className="px-3 py-2 text-center">Category</th>
-              <th className="px-3 py-2">Assigned By</th>
-              <th className="px-3 py-2">Assigned To</th>
-              <th className="px-3 py-2">Lead Status</th>
-              <th className="px-3 py-2 text-center">Next Followup</th>
-              <th className="px-3 py-2 text-center">Actions</th>
+              {hasColumnPermission('leads', 'sno') && <th className="px-3 py-2 w-10 text-center">S.No</th>}
+              {hasColumnPermission('leads', 'date') && <th className="px-3 py-2">Date</th>}
+              {hasColumnPermission('leads', 'customerName') && <th className="px-3 py-2">Customer Name</th>}
+              {hasColumnPermission('leads', 'phoneNumber') && <th className="px-3 py-2">Phone Number</th>}
+              {hasColumnPermission('leads', 'sourceDetails') && <th className="px-3 py-2">Source Details</th>}
+              {hasColumnPermission('leads', 'project') && <th className="px-3 py-2">Project</th>}
+              {hasColumnPermission('leads', 'category') && <th className="px-3 py-2 text-center">Category</th>}
+              {hasColumnPermission('leads', 'assignedBy') && <th className="px-3 py-2">Assigned By</th>}
+              {hasColumnPermission('leads', 'assignedTo') && <th className="px-3 py-2">Assigned To</th>}
+              {hasColumnPermission('leads', 'leadStatus') && <th className="px-3 py-2">Lead Status</th>}
+              {hasColumnPermission('leads', 'nextFollowup') && <th className="px-3 py-2 text-center">Next Followup</th>}
+              {hasColumnPermission('leads', 'actions') && <th className="px-3 py-2 text-center">Actions</th>}
             </tr>
           </thead>
           <tbody className="divide-y divide-black-100 text-sm">
@@ -1653,193 +1653,217 @@ const LeadsDirectory = () => {
                   style={{ backgroundColor: rowColor, color: rowTextColor }}
                 >
                 {/* S.No */}
-                <td className="px-3 py-1.5 border-b border-black-100 text-center">
-                  <div className="text-[11px] font-bold text-black-500">
-                    {(currentPage - 1) * itemsPerPage + index + 1}
-                  </div>
-                </td>
+                {hasColumnPermission('leads', 'sno') && (
+                  <td className="px-3 py-1.5 border-b border-black-100 text-center">
+                    <div className="text-[11px] font-bold text-black-500">
+                      {(currentPage - 1) * itemsPerPage + index + 1}
+                    </div>
+                  </td>
+                )}
 
                 {/* Date */}
-                <td className="px-3 py-1.5 border-b border-black-100">
-                  <div className="text-[11px] font-semibold text-black-700 whitespace-nowrap">
-                    {lead.createdAt ? new Date(lead.createdAt).toLocaleDateString('en-GB') : '—'}
-                  </div>
-                </td>
+                {hasColumnPermission('leads', 'date') && (
+                  <td className="px-3 py-1.5 border-b border-black-100">
+                    <div className="text-[11px] font-semibold text-black-700 whitespace-nowrap">
+                      {lead.createdAt ? new Date(lead.createdAt).toLocaleDateString('en-GB') : '—'}
+                    </div>
+                  </td>
+                )}
 
                 {/* Customer */}
-                <td className="px-3 py-1.5 border-b border-black-100">
-                  <div className="flex items-center gap-2">
-                    <span className="font-bold text-black-800 text-xs">{lead.name}</span>
-                    {(lead.isReopened === true || (lead.history && lead.history.some(h => h.note && h.note.toLowerCase().includes('reopened')))) && (
-                      <span className="bg-amber-600 border border-amber-700 text-[10px] font-extrabold px-1.5 py-0.5 rounded-full uppercase tracking-wider shrink-0 shadow-sm animate-pulse">
-                        Reopened
-                      </span>
-                    )}
-                  </div>
-                </td>
+                {hasColumnPermission('leads', 'customerName') && (
+                  <td className="px-3 py-1.5 border-b border-black-100">
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-black-800 text-xs">{lead.name}</span>
+                      {(lead.isReopened === true || (lead.history && lead.history.some(h => h.note && h.note.toLowerCase().includes('reopened')))) && (
+                        <span className="bg-amber-600 border border-amber-700 text-[10px] font-extrabold px-1.5 py-0.5 rounded-full uppercase tracking-wider shrink-0 shadow-sm animate-pulse">
+                          Reopened
+                        </span>
+                      )}
+                    </div>
+                  </td>
+                )}
 
                 {/* Phone Number */}
-                <td className="px-3 py-1.5 border-b border-black-100">
-                  <div className="flex flex-col gap-1 text-[11px] text-black-500">
-                    <div className="flex items-center gap-1 font-semibold">
-                      <Phone className="w-3 h-3 text-black-300" />
-                      <span>{lead.phone}</span>
+                {hasColumnPermission('leads', 'phoneNumber') && (
+                  <td className="px-3 py-1.5 border-b border-black-100">
+                    <div className="flex flex-col gap-1 text-[11px] text-black-500">
+                      <div className="flex items-center gap-1 font-semibold">
+                        <Phone className="w-3 h-3 text-black-300" />
+                        <span>{lead.phone}</span>
+                      </div>
                     </div>
-                  </div>
-                </td>
+                  </td>
+                )}
  
                 {/* Source Details */}
-                <td className="px-3 py-1.5 border-b border-black-100">
-                  <div className="space-y-0.5">
-                    <div className="text-[11px] font-semibold text-black-700">{lead.leadSource || (lead.leadType === 'Direct Visit' ? 'Direct Visit' : '—')}</div>
-                    {lead.leadType === 'Lead' && lead.activeAd?.name && (
-                      <div className="text-[11px] text-black-500 flex flex-col gap-0.5">
-                        <div className="flex items-center gap-1">
-                          <span className="truncate max-w-[120px]">Ad: {lead.activeAd.name}</span>
-                          {lead.activeAd.link && (
-                            <a href={lead.activeAd.link} target="_blank" rel="noopener noreferrer" className="text-[#0e623a] hover:underline shrink-0">
-                              <ExternalLink className="w-2.5 h-2.5 inline" />
-                            </a>
+                {hasColumnPermission('leads', 'sourceDetails') && (
+                  <td className="px-3 py-1.5 border-b border-black-100">
+                    <div className="space-y-0.5">
+                      <div className="text-[11px] font-semibold text-black-700">{lead.leadSource || (lead.leadType === 'Direct Visit' ? 'Direct Visit' : '—')}</div>
+                      {lead.leadType === 'Lead' && lead.activeAd?.name && (
+                        <div className="text-[11px] text-black-500 flex flex-col gap-0.5">
+                          <div className="flex items-center gap-1">
+                            <span className="truncate max-w-[120px]">Ad: {lead.activeAd.name}</span>
+                            {lead.activeAd.link && (
+                              <a href={lead.activeAd.link} target="_blank" rel="noopener noreferrer" className="text-[#0e623a] hover:underline shrink-0">
+                                <ExternalLink className="w-2.5 h-2.5 inline" />
+                              </a>
+                            )}
+                          </div>
+                          {lead.leadCost > 0 && (
+                            <span className="text-[10px] font-extrabold bg-[#0e623a] border border-[#0a4c2c] px-1.5 py-0.5 rounded w-fit">
+                              Cost: ₹{lead.leadCost}
+                            </span>
                           )}
                         </div>
-                        {lead.leadCost > 0 && (
-                          <span className="text-[10px] font-extrabold bg-[#0e623a] border border-[#0a4c2c] px-1.5 py-0.5 rounded w-fit">
-                            Cost: ₹{lead.leadCost}
-                          </span>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </td>
+                      )}
+                    </div>
+                  </td>
+                )}
  
                 {/* Project */}
-                <td className="px-3 py-1.5 border-b border-black-100">
-                  <div className="text-[11px] font-semibold text-black-700">
-                    {projects.find(p => p._id === (lead.project?._id || lead.project))?.code || '—'}
-                  </div>
-                </td>
+                {hasColumnPermission('leads', 'project') && (
+                  <td className="px-3 py-1.5 border-b border-black-100">
+                    <div className="text-[11px] font-semibold text-black-700">
+                      {projects.find(p => p._id === (lead.project?._id || lead.project))?.code || '—'}
+                    </div>
+                  </td>
+                )}
  
                 {/* Lead Category */}
-                <td className="px-3 py-1.5 border-b border-black-100 text-center">
-                  <span className={`px-2 py-1 text-[11px] font-extrabold uppercase tracking-wider`}>{lead.leadCategory || 'Cold'}</span>
-                </td>
+                {hasColumnPermission('leads', 'category') && (
+                  <td className="px-3 py-1.5 border-b border-black-100 text-center">
+                    <span className={`px-2 py-1 text-[11px] font-extrabold uppercase tracking-wider`}>{lead.leadCategory || 'Cold'}</span>
+                  </td>
+                )}
 
                 {/* Assigned By */}
-                <td className="px-3 py-1.5 border-b border-black-100">
-                  <div className="text-[11px] font-semibold text-black-600">
-                    {lead.assignedBy?.name || 'Admin'}
-                  </div>
-                </td>
+                {hasColumnPermission('leads', 'assignedBy') && (
+                  <td className="px-3 py-1.5 border-b border-black-100">
+                    <div className="text-[11px] font-semibold text-black-600">
+                      {lead.assignedBy?.name || 'Superadmin'}
+                    </div>
+                  </td>
+                )}
 
                 {/* Assigned To */}
-                <td className="px-3 py-1.5 border-b border-black-100">
-                  <div className="text-[11px] font-semibold text-black-800">
-                    {lead.assignedTo?.name || 'Unassigned'}
-                  </div>
-                </td>
+                {hasColumnPermission('leads', 'assignedTo') && (
+                  <td className="px-3 py-1.5 border-b border-black-100">
+                    <div className="text-[11px] font-semibold text-black-800">
+                      {lead.assignedTo?.name || 'Unassigned'}
+                    </div>
+                  </td>
+                )}
  
                 {/* Workflow Status Dropdown */}
-                <td className="px-3 py-1.5 border-b border-black-100">
-                  {lead.isClosed ? (
-                    <div className="flex flex-col gap-1 items-start">
-                      {(() => {
-                        const match = lead.closeRemarks?.match(/\[Lost at (.*?) stage\]/);
-                        const lostStage = match ? match[1] : null;
-                        const displayRemarks = match ? lead.closeRemarks.replace(/\[Lost at .*? stage\] - /, '') : lead.closeRemarks;
-                        const isSiteVisit = lostStage === 'Site Visit';
-                        const isFollowUp = lostStage === 'Follow-Up' || lostStage === 'Assigned';
-                        const isBooking = lostStage === 'Booking';
-                        const isHidden = isSiteVisit || isFollowUp || isBooking;
-                        return (
-                          <>
-                            <span className="px-3 py-1.5 text-[12px] font-extrabold uppercase tracking-wider">
-                              {lostStage ? (
-                                isBooking ? 'Booking - Cancelled' :
-                                isSiteVisit ? 'Site Visit - Closed' :
-                                isFollowUp ? 'Follow-Up - Closed' :
-                                `${lostStage} - Completed`
-                              ) : 'Closed (Completed)'}
-                            </span>
-                            {displayRemarks && !isHidden && (
-                              <div className="text-[11px] text-black-400 italic max-w-[150px] truncate" title={displayRemarks}>
-                                "{displayRemarks}"
-                              </div>
-                            )}
-                          </>
-                        );
-                      })()}
-                      {(() => {
-                        const match = lead.closeRemarks?.match(/\[Lost at (.*?) stage\]/);
-                        const lostStage = match ? match[1] : null;
-                        if (lostStage === 'Site Visit' || lostStage === 'Follow-Up' || lostStage === 'Assigned') return null; // Don't show reopen option
-                        return (
-                          <button
-                            onClick={() => handleReopenClosedLead(lead)}
-                            disabled={reopeningId === lead._id}
-                            className="text-[11px] font-bold text-[#0e623a] hover:underline flex items-center gap-1 disabled:opacity-50"
-                          >
-                            {reopeningId === lead._id && <Loader2 className="w-3 h-3 animate-spin" />}
-                            Reopen Lead
-                          </button>
-                        );
-                      })()}
-                    </div>
-                  ) : (
-                    <div className="flex flex-col items-start gap-1">
-                      <span className={`px-3 py-1.5 text-[12px] font-extrabold uppercase tracking-wider`}>
-                        {lead.status === 'Booking' ? 'Booked' : lead.status}
-                      </span>
-                    </div>
-                  )}
-                </td>
+                {hasColumnPermission('leads', 'leadStatus') && (
+                  <td className="px-3 py-1.5 border-b border-black-100">
+                    {lead.isClosed ? (
+                      <div className="flex flex-col gap-1 items-start">
+                        {(() => {
+                          const match = lead.closeRemarks?.match(/\[Lost at (.*?) stage\]/);
+                          const lostStage = match ? match[1] : null;
+                          const displayRemarks = match ? lead.closeRemarks.replace(/\[Lost at .*? stage\] - /, '') : lead.closeRemarks;
+                          const isSiteVisit = lostStage === 'Site Visit';
+                          const isFollowUp = lostStage === 'Follow-Up' || lostStage === 'Assigned';
+                          const isBooking = lostStage === 'Booking';
+                          const isHidden = isSiteVisit || isFollowUp || isBooking;
+                          return (
+                            <>
+                              <span className="px-3 py-1.5 text-[12px] font-extrabold uppercase tracking-wider">
+                                {lostStage ? (
+                                  isBooking ? 'Booking - Cancelled' :
+                                  isSiteVisit ? 'Site Visit - Closed' :
+                                  isFollowUp ? 'Follow-Up - Closed' :
+                                  `${lostStage} - Completed`
+                                ) : 'Closed (Completed)'}
+                              </span>
+                              {displayRemarks && !isHidden && (
+                                <div className="text-[11px] text-black-400 italic max-w-[150px] truncate" title={displayRemarks}>
+                                  "{displayRemarks}"
+                                </div>
+                              )}
+                            </>
+                          );
+                        })()}
+                        {(() => {
+                          const match = lead.closeRemarks?.match(/\[Lost at (.*?) stage\]/);
+                          const lostStage = match ? match[1] : null;
+                          if (lostStage === 'Site Visit' || lostStage === 'Follow-Up' || lostStage === 'Assigned') return null; // Don't show reopen option
+                          return (
+                            <button
+                              onClick={() => handleReopenClosedLead(lead)}
+                              disabled={reopeningId === lead._id}
+                              className="text-[11px] font-bold text-[#0e623a] hover:underline flex items-center gap-1 disabled:opacity-50"
+                            >
+                              {reopeningId === lead._id && <Loader2 className="w-3 h-3 animate-spin" />}
+                              Reopen Lead
+                            </button>
+                          );
+                        })()}
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-start gap-1">
+                        <span className={`px-3 py-1.5 text-[12px] font-extrabold uppercase tracking-wider`}>
+                          {lead.status === 'Booking' ? 'Booked' : lead.status}
+                        </span>
+                      </div>
+                    )}
+                  </td>
+                )}
 
                  {/* Next Followup Date */}
-                 <td className="px-3 py-1.5 border-b border-black-100 text-center">
-                   <div className="text-[11px] font-semibold text-black-700">
-                     {lead.followUpInfo?.nextFollowUpDate 
-                       ? new Date(lead.followUpInfo.nextFollowUpDate).toLocaleString('en-GB', { dateStyle: 'short'}) 
-                       : '—'}
-                   </div>
-                 </td>
+                 {hasColumnPermission('leads', 'nextFollowup') && (
+                   <td className="px-3 py-1.5 border-b border-black-100 text-center">
+                     <div className="text-[11px] font-semibold text-black-700">
+                       {lead.followUpInfo?.nextFollowUpDate 
+                         ? new Date(lead.followUpInfo.nextFollowUpDate).toLocaleString('en-GB', { dateStyle: 'short'}) 
+                         : '—'}
+                     </div>
+                   </td>
+                 )}
 
                  {/* Action Triggers: History, Edit & Delete */}
-                 <td className="px-3 py-1.5 border-b border-black-100 text-center">
-                   <div className="relative group inline-block text-left">
-                     <button className="p-1.5 text-black-500 hover:bg-black-100 rounded-full transition">
-                       <MoreVertical className="w-4 h-4" />
-                     </button>
-                     <div className="absolute right-6 top-0 mt-0 w-32 bg-white border border-black-150 rounded-xl shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 py-1 dropdown-menu">
-                       <button
-                         onClick={() => {
-                           setSelectedLeadForHistory(lead);
-                           setHistoryModalOpen(true);
-                         }}
-                         className="w-full text-left px-4 py-2 text-[11px] font-bold hover:bg-gray-100 flex items-center gap-2"
-                         style={{ color: '#374151' }}
-                       >
-                         <History className="w-3.5 h-3.5" /> History
+                 {hasColumnPermission('leads', 'actions') && (
+                   <td className="px-3 py-1.5 border-b border-black-100 text-center">
+                     <div className="relative group inline-block text-left">
+                       <button className="p-1.5 text-black-500 hover:bg-black-100 rounded-full transition">
+                         <MoreVertical className="w-4 h-4" />
                        </button>
-                       <button
-                         onClick={() => handleOpenEditModal(lead)}
-                         className="w-full text-left px-4 py-2 text-[11px] font-bold hover:bg-amber-50 flex items-center gap-2"
-                         style={{ color: '#d97706' }}
-                       >
-                         <Edit2 className="w-3.5 h-3.5" /> Edit
-                       </button>
-                       {lead.status === 'Booking' && !lead.isClosed && (
+                       <div className="absolute right-6 top-0 mt-0 w-32 bg-white border border-black-150 rounded-xl shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 py-1 dropdown-menu">
                          <button
-                           onClick={() => handleCancelBooking(lead)}
-                           disabled={statusChangingId === lead._id}
-                           className="w-full text-left px-4 py-2 text-[11px] font-bold hover:bg-red-50 flex items-center gap-2 disabled:opacity-50"
-                           style={{ color: '#dc2626' }}
+                           onClick={() => {
+                             setSelectedLeadForHistory(lead);
+                             setHistoryModalOpen(true);
+                           }}
+                           className="w-full text-left px-4 py-2 text-[11px] font-bold hover:bg-gray-100 flex items-center gap-2"
+                           style={{ color: '#374151' }}
                          >
-                           {statusChangingId === lead._id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <XCircle className="w-3.5 h-3.5" />}
-                           Cancel
+                           <History className="w-3.5 h-3.5" /> History
                          </button>
-                       )}
+                         <button
+                           onClick={() => handleOpenEditModal(lead)}
+                           className="w-full text-left px-4 py-2 text-[11px] font-bold hover:bg-amber-50 flex items-center gap-2"
+                           style={{ color: '#d97706' }}
+                         >
+                           <Edit2 className="w-3.5 h-3.5" /> Edit
+                         </button>
+                         {lead.status === 'Booking' && !lead.isClosed && (
+                           <button
+                             onClick={() => handleCancelBooking(lead)}
+                             disabled={statusChangingId === lead._id}
+                             className="w-full text-left px-4 py-2 text-[11px] font-bold hover:bg-red-50 flex items-center gap-2 disabled:opacity-50"
+                             style={{ color: '#dc2626' }}
+                           >
+                             {statusChangingId === lead._id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <XCircle className="w-3.5 h-3.5" />}
+                             Cancel
+                           </button>
+                         )}
+                       </div>
                      </div>
-                   </div>
-                 </td>
+                   </td>
+                 )}
               </tr>
             );
           })}
@@ -2191,7 +2215,7 @@ const LeadsDirectory = () => {
               )}
 
               {/* Assigned Executive */}
-              {(user?.role === 'Admin' || user?.role === 'Manager') && (
+              {(user?.role === 'Superadmin' || user?.role === 'Crd team') && (
                 <div className="flex flex-col">
                   <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Assigned Executive / Member <span className="text-red-500">*</span></label>
                   <SearchableSelect
@@ -2469,7 +2493,7 @@ const LeadsDirectory = () => {
               </div>
 
               {/* Assigned Executive */}
-              {(user?.role === 'Admin' || user?.role === 'Manager') && (
+              {(user?.role === 'Superadmin' || user?.role === 'Crd team') && (
                 <div className="flex flex-col text-left">
                   <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Assigned Executive / Member</label>
                   <SearchableSelect

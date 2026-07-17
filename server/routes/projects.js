@@ -404,8 +404,8 @@ router.put('/:id/unit-status', protect, async (req, res) => {
     }
 
     // RBAC: site engineer can only update status to construction related, etc.
-    // Sales Executive and manager can approve bookings.
-    if (req.user.role === 'Site Engineer' && (status === 'Booked' || status === 'Sold Out')) {
+    // sales person and manager can approve bookings.
+    if (req.user.role === 'ped team' && (status === 'Booked' || status === 'Sold Out')) {
       return res.status(403).json({ message: 'Site Engineers cannot approve bookings or sell units' });
     }
 

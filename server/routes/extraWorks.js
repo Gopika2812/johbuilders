@@ -62,7 +62,7 @@ router.put('/:flowId/:stageIdx/:workId/send-to-ped', protect, checkPermission('e
     flow.history.push({
       action: 'Sent to PED',
       notes: `Forwarded extra work: ${extraWork.name} to PED team for pricing`,
-      user: 'Admin'
+      user: 'Superadmin'
     });
 
     await flow.save();
@@ -98,7 +98,7 @@ router.put('/:flowId/:stageIdx/:workId/price', protect, checkPermission('extra_w
     flow.history.push({
       action: 'PED Priced Extra Work',
       notes: `Priced extra work: ${extraWork.name} at Rs. ${rate}`,
-      user: 'Admin'
+      user: 'Superadmin'
     });
 
     await flow.save();
@@ -109,7 +109,7 @@ router.put('/:flowId/:stageIdx/:workId/price', protect, checkPermission('extra_w
 });
 
 // @route   PUT /api/extra-works/:flowId/:stageIdx/:workId/send
-// @desc    Admin sends priced extra work to customer
+// @desc    Superadmin sends priced extra work to customer
 router.put('/:flowId/:stageIdx/:workId/send', protect, checkPermission('extra_works_ped', 'edit'), async (req, res) => {
 
   const { flowId, stageIdx, workId } = req.params;
@@ -133,7 +133,7 @@ router.put('/:flowId/:stageIdx/:workId/send', protect, checkPermission('extra_wo
     flow.history.push({
       action: 'Returned to CRD',
       notes: `Returned extra work: ${extraWork.name} to CRD team after pricing`,
-      user: 'Admin'
+      user: 'Superadmin'
     });
 
     await flow.save();
@@ -145,7 +145,7 @@ router.put('/:flowId/:stageIdx/:workId/send', protect, checkPermission('extra_wo
 
 // @route   PUT /api/extra-works/:flowId/:stageIdx/:workId/send
 // @desc    CRD team sends priced extra work to customer
-router.put('/:flowId/:stageIdx/:workId/send', protect, authorize('Admin', 'Super Admin'), async (req, res) => {
+router.put('/:flowId/:stageIdx/:workId/send', protect, authorize('Superadmin', 'Superadmin'), async (req, res) => {
   const { flowId, stageIdx, workId } = req.params;
 
   try {
@@ -167,7 +167,7 @@ router.put('/:flowId/:stageIdx/:workId/send', protect, authorize('Admin', 'Super
     flow.history.push({
       action: 'Sent Extra Work to Customer',
       notes: `Sent extra work: ${extraWork.name} to customer for approval`,
-      user: 'Admin'
+      user: 'Superadmin'
     });
 
     await flow.save();
@@ -202,7 +202,7 @@ router.put('/:flowId/:stageIdx/:workId/send-to-accounts', protect, checkPermissi
     flow.history.push({
       action: 'Sent to Accounts Team',
       notes: `Sent extra work: ${extraWork.name} to Accounts team for work order creation`,
-      user: 'Admin'
+      user: 'Superadmin'
     });
 
     await flow.save();
@@ -243,7 +243,7 @@ router.put('/:flowId/:stageIdx/:workId/add-to-crd', protect, checkPermission('ex
     flow.history.push({
       action: 'Work Order Created',
       notes: `Created Work Order for extra work: ${extraWork.name} (Rs. ${extraWork.amount})`,
-      user: 'Admin'
+      user: 'Superadmin'
     });
 
     await flow.save();
@@ -278,7 +278,7 @@ router.put('/:flowId/:stageIdx/:workId/send-to-ped-execution', protect, checkPer
     flow.history.push({
       action: 'Sent to PED for Execution',
       notes: `Sent extra work: ${extraWork.name} to PED team for execution`,
-      user: 'Admin'
+      user: 'Superadmin'
     });
 
     await flow.save();
@@ -315,7 +315,7 @@ router.put('/:flowId/:stageIdx/:workId/update-status', protect, checkPermission(
     flow.history.push({
       action: `Status Updated to ${status}`,
       notes: `Extra work: ${extraWork.name} status updated to ${status}`,
-      user: 'Admin'
+      user: 'Superadmin'
     });
 
     await flow.save();
@@ -326,7 +326,7 @@ router.put('/:flowId/:stageIdx/:workId/update-status', protect, checkPermission(
 });
 
 // @route   POST /api/extra-works/:flowId/add
-// @desc    Admin adds a new extra work directly
+// @desc    Superadmin adds a new extra work directly
 router.post('/:flowId/add', protect, checkPermission('extra_works_crd', 'edit'), async (req, res) => {
 
   const { flowId } = req.params;
@@ -395,9 +395,9 @@ router.post('/:flowId/add', protect, checkPermission('extra_works_crd', 'edit'),
     }
     
     flow.history.push({
-      action: 'Admin Added Extra Work',
+      action: 'Superadmin Added Extra Work',
       notes: `Added extra works: ${addedNames.join(', ')} to Stage ${stage.name}`,
-      user: req.user ? req.user.name : 'Admin'
+      user: req.user ? req.user.name : 'Superadmin'
     });
 
     await flow.save();
@@ -408,8 +408,8 @@ router.post('/:flowId/add', protect, checkPermission('extra_works_crd', 'edit'),
 });
 
 // @route   PUT /api/extra-works/:flowId/:stageIdx/:workId/cancel
-// @desc    Admin cancels an extra work request
-router.put('/:flowId/:stageIdx/:workId/cancel', protect, authorize('Admin', 'Super Admin'), async (req, res) => {
+// @desc    Superadmin cancels an extra work request
+router.put('/:flowId/:stageIdx/:workId/cancel', protect, authorize('Superadmin', 'Superadmin'), async (req, res) => {
   const { flowId, stageIdx, workId } = req.params;
 
   try {
@@ -422,12 +422,12 @@ router.put('/:flowId/:stageIdx/:workId/cancel', protect, authorize('Admin', 'Sup
     const extraWork = stage.extraWorks.id(workId);
     if (!extraWork) return res.status(404).json({ message: 'Extra work not found' });
 
-    extraWork.status = 'Cancelled by Admin';
+    extraWork.status = 'Cancelled by Superadmin';
 
     flow.history.push({
-      action: 'Admin Cancelled Extra Work',
+      action: 'Superadmin Cancelled Extra Work',
       notes: `Cancelled extra work: ${extraWork.name}`,
-      user: req.user ? req.user.name : 'Admin'
+      user: req.user ? req.user.name : 'Superadmin'
     });
 
     await flow.save();

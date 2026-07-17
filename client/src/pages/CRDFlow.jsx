@@ -60,7 +60,7 @@ function numberToWords(num) {
 }
 
 const CRDFlow = () => {
-  const { token, user } = useAuth();
+  const { token, user, hasColumnPermission } = useAuth();
   const navigate = useNavigate();
   const [projects, setProjects] = useState([]);
   const [bookings, setBookings] = useState([]);
@@ -846,7 +846,7 @@ const CRDFlow = () => {
         <div>
           <h1 className="text-xl font-bold text-black-800 flex items-center gap-2">
             <BookOpen className="w-5 h-5 text-[#0e623a]" />
-            <span>CRD Flow: Milestone Payment Manager</span>
+            <span>CRD Flow: Milestone Payment Crd team</span>
           </h1>
          
         </div>
@@ -928,18 +928,18 @@ const CRDFlow = () => {
           <table className="w-full text-xs text-left">
             <thead className="bg-black-50 text-black-500 font-bold uppercase tracking-wider border-b">
               <tr>
-                <th className="p-4">S.No</th>
-                <th className="p-4">Booking Date</th>
-                <th className="p-4">Customer Name</th>
-                <th className="p-4">Phone Number</th>
-                <th className="p-4">Project</th>
-                <th className="p-4">Units</th>
-                <th className="p-4">Final Quotation Value</th>
-                <th className="p-4">Received Value</th>
-                <th className="p-4">Pending Value</th>
-                <th className="p-4">Assigned Person</th>
-                <th className="p-4">CRD Person</th>
-                <th className="p-4 text-center">Quick Actions</th>
+                {hasColumnPermission('crdFlow', 'sno') && <th className="p-4">S.No</th>}
+                {hasColumnPermission('crdFlow', 'bookingDate') && <th className="p-4">Booking Date</th>}
+                {hasColumnPermission('crdFlow', 'customerName') && <th className="p-4">Customer Name</th>}
+                {hasColumnPermission('crdFlow', 'phoneNumber') && <th className="p-4">Phone Number</th>}
+                {hasColumnPermission('crdFlow', 'project') && <th className="p-4">Project</th>}
+                {hasColumnPermission('crdFlow', 'units') && <th className="p-4">Units</th>}
+                {hasColumnPermission('crdFlow', 'finalValue') && <th className="p-4">Final Quotation Value</th>}
+                {hasColumnPermission('crdFlow', 'receivedValue') && <th className="p-4">Received Value</th>}
+                {hasColumnPermission('crdFlow', 'pendingValue') && <th className="p-4">Pending Value</th>}
+                {hasColumnPermission('crdFlow', 'assignedPerson') && <th className="p-4">Assigned Person</th>}
+                {hasColumnPermission('crdFlow', 'crdPerson') && <th className="p-4">CRD Person</th>}
+                {hasColumnPermission('crdFlow', 'actions') && <th className="p-4 text-center">Quick Actions</th>}
               </tr>
             </thead>
             <tbody className="divide-y divide-black-50">
@@ -949,7 +949,7 @@ const CRDFlow = () => {
                   const bookingStr = new Date(lead.bookingInfo?.bookingDate || lead.createdAt).toLocaleDateString('en-CA');
                   if (filterFromDate && bookingStr < filterFromDate) return false;
                   if (filterToDate && bookingStr > filterToDate) return false;
-                  if (user?.role !== 'Admin' && user?.role !== 'Manager') {
+                  if (user?.role !== 'Superadmin' && user?.role !== 'Crd team') {
                     const quot = quotations.find(q => (q.lead?._id || q.lead) === lead._id);
                     if (quot?.crdPerson?.name !== user.name && quot?.crdPerson?._id !== user.name && quot?.crdPerson?._id !== user._id) {
                       return false;
@@ -983,171 +983,193 @@ const CRDFlow = () => {
                           }
                         }}
                       >
-                        <td className="p-4">{index + 1}</td>
-                        <td className="p-4 text-black-600">
-                          {new Date(lead.bookingInfo?.bookingDate || lead.createdAt).toLocaleDateString('en-GB')}
-                        </td>
-                        <td className="p-4">
-                          <div className="font-bold text-black-800">{lead.name}</div>
-                        </td>
-                        <td className="p-4">
-                          <div className="font-semibold text-black-700">{lead.phone}</div>
-                        </td>
-                        <td className="p-4">
-                          <div className="font-semibold text-black-700">
-                            {lead.project?.name || lead.project?.code || 'N/A'}
-                          </div>
-                        </td>
-                        <td className="p-4">
-                          <div className="text-[11px] text-emerald-800 font-bold bg-emerald-50 px-2 py-0.5 rounded inline-block">
-                            {lead.bookingInfo?.selectedUnits?.join(', ') || 'N/A'}
-                          </div>
-                        </td>
-                        <td className="p-4">
-                          {value !== null ? (
-                            <div className="text-blue-800 font-black text-sm">
-                              Rs. {value.toLocaleString()}
+                        {hasColumnPermission('crdFlow', 'sno') && <td className="p-4">{index + 1}</td>}
+                        {hasColumnPermission('crdFlow', 'bookingDate') && (
+                          <td className="p-4 text-black-600">
+                            {new Date(lead.bookingInfo?.bookingDate || lead.createdAt).toLocaleDateString('en-GB')}
+                          </td>
+                        )}
+                        {hasColumnPermission('crdFlow', 'customerName') && (
+                          <td className="p-4">
+                            <div className="font-bold text-black-800">{lead.name}</div>
+                          </td>
+                        )}
+                        {hasColumnPermission('crdFlow', 'phoneNumber') && (
+                          <td className="p-4">
+                            <div className="font-semibold text-black-700">{lead.phone}</div>
+                          </td>
+                        )}
+                        {hasColumnPermission('crdFlow', 'project') && (
+                          <td className="p-4">
+                            <div className="font-semibold text-black-700">
+                              {lead.project?.name || lead.project?.code || 'N/A'}
                             </div>
-                          ) : (
-                            <span className="text-black-400 text-sm">N/A</span>
-                          )}
-                        </td>
-                        <td className="p-4">
-                          {value !== null ? (
-                            <div className="text-emerald-800 font-black text-sm">
-                              Rs. {received.toLocaleString()}
+                          </td>
+                        )}
+                        {hasColumnPermission('crdFlow', 'units') && (
+                          <td className="p-4">
+                            <div className="text-[11px] text-emerald-800 font-bold bg-emerald-50 px-2 py-0.5 rounded inline-block">
+                              {lead.bookingInfo?.selectedUnits?.join(', ') || 'N/A'}
                             </div>
-                          ) : (
-                            <span className="text-black-400 text-sm">N/A</span>
-                          )}
-                        </td>
-                        <td className="p-4">
-                          {value !== null ? (
-                            <div className="text-rose-800 font-black text-sm">
-                              Rs. {(pending || 0).toLocaleString()}
+                          </td>
+                        )}
+                        {hasColumnPermission('crdFlow', 'finalValue') && (
+                          <td className="p-4">
+                            {value !== null ? (
+                              <div className="text-blue-800 font-black text-sm">
+                                Rs. {value.toLocaleString()}
+                              </div>
+                            ) : (
+                              <span className="text-black-400 text-sm">N/A</span>
+                            )}
+                          </td>
+                        )}
+                        {hasColumnPermission('crdFlow', 'receivedValue') && (
+                          <td className="p-4">
+                            {value !== null ? (
+                              <div className="text-emerald-800 font-black text-sm">
+                                Rs. {received.toLocaleString()}
+                              </div>
+                            ) : (
+                              <span className="text-black-400 text-sm">N/A</span>
+                            )}
+                          </td>
+                        )}
+                        {hasColumnPermission('crdFlow', 'pendingValue') && (
+                          <td className="p-4">
+                            {value !== null ? (
+                              <div className="text-rose-800 font-black text-sm">
+                                Rs. {(pending || 0).toLocaleString()}
+                              </div>
+                            ) : (
+                              <span className="text-black-400 text-sm">N/A</span>
+                            )}
+                          </td>
+                        )}
+                        {hasColumnPermission('crdFlow', 'assignedPerson') && (
+                          <td className="p-4">
+                            <div className="font-semibold text-black-800 text-xs">
+                              {lead.assignedTo?.name || (typeof lead.assignedTo === 'string' ? users.find(u => u._id === lead.assignedTo)?.name : null) || 'Unassigned'}
                             </div>
-                          ) : (
-                            <span className="text-black-400 text-sm">N/A</span>
-                          )}
-                        </td>
-                        <td className="p-4">
-                          <div className="font-semibold text-black-800 text-xs">
-                            {lead.assignedTo?.name || (typeof lead.assignedTo === 'string' ? users.find(u => u._id === lead.assignedTo)?.name : null) || 'Unassigned'}
-                          </div>
-                        </td>
-                        <td className="p-4">
-                          <div className="font-semibold text-[#0e623a] text-xs">
-                            {quot?.crdPerson?.name || 'Unassigned'}
-                          </div>
-                        </td>
-                        <td className="p-4 text-center" onClick={(e) => e.stopPropagation()}>
-                          <div className="relative inline-block text-left">
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                if (actionMenuId === lead._id) {
-                                  setActionMenuId(null);
-                                } else {
-                                  setActionMenuId(lead._id);
-                                }
-                              }}
-                              className="p-1.5 text-black-500 hover:text-emerald-700 bg-black-50 hover:bg-emerald-50 rounded transition cursor-pointer"
-                              title="Quick Actions"
-                            >
-                              <MoreVertical className="w-4 h-4" />
-                            </button>
-                            
-                            {actionMenuId === lead._id && (() => {
-                              const menuFlow = flows.find(f => (f.lead?._id || f.lead) === lead._id);
+                          </td>
+                        )}
+                        {hasColumnPermission('crdFlow', 'crdPerson') && (
+                          <td className="p-4">
+                            <div className="font-semibold text-[#0e623a] text-xs">
+                              {quot?.crdPerson?.name || 'Unassigned'}
+                            </div>
+                          </td>
+                        )}
+                        {hasColumnPermission('crdFlow', 'actions') && (
+                          <td className="p-4 text-center" onClick={(e) => e.stopPropagation()}>
+                            <div className="relative inline-block text-left">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (actionMenuId === lead._id) {
+                                    setActionMenuId(null);
+                                  } else {
+                                    setActionMenuId(lead._id);
+                                  }
+                                }}
+                                className="p-1.5 text-black-500 hover:text-emerald-700 bg-black-50 hover:bg-emerald-50 rounded transition cursor-pointer"
+                                title="Quick Actions"
+                              >
+                                <MoreVertical className="w-4 h-4" />
+                              </button>
                               
-                              return (
-                                <div 
-                                  className="absolute right-8 top-1/2 -translate-y-1/2 w-48 bg-white border border-black-200 shadow-xl z-50 rounded-xl flex flex-col p-1 text-left"
-                                  onClick={(e) => e.stopPropagation()}
-                                >
-                                  {/* View Payment */}
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setActionMenuId(null);
-                                      if (selectedBookingId !== lead._id) {
-                                        handleBookingSelect(lead._id);
-                                      }
-                                    }}
-                                    className="flex items-center gap-2 px-3 py-2 text-xs font-bold text-black-700 hover:bg-emerald-50 hover:text-emerald-800 rounded-lg transition"
+                              {actionMenuId === lead._id && (() => {
+                                const menuFlow = flows.find(f => (f.lead?._id || f.lead) === lead._id);
+                                
+                                return (
+                                  <div 
+                                    className="absolute right-8 top-1/2 -translate-y-1/2 w-48 bg-white border border-black-200 shadow-xl z-50 rounded-xl flex flex-col p-1 text-left"
+                                    onClick={(e) => e.stopPropagation()}
                                   >
-                                    <Layers className="w-4 h-4" /> View Payment
-                                  </button>
-
-                                  {/* Get Payment */}
-                                  {menuFlow && (
+                                    {/* View Payment */}
                                     <button
                                       onClick={(e) => {
                                         e.stopPropagation();
-                                        setActiveFlow(menuFlow);
-                                        const firstUncompletedIdx = menuFlow.stages.findIndex(s => !(s.isCompleted || getStagePaid(s) >= getStageTotal(s)));
-                                        const idx = firstUncompletedIdx >= 0 ? firstUncompletedIdx : 0;
-                                        setPaymentStageIdx(idx);
-                                        const thisStagePending = Math.max(0, getStageTotal(menuFlow.stages[idx]) - getStagePaid(menuFlow.stages[idx]));
-                                        const arrears = menuFlow.stages.slice(0, idx).reduce((sum, s) => sum + Math.max(0, getStageTotal(s) - getStagePaid(s)), 0);
-                                        setPaymentAmount((thisStagePending + arrears).toString());
-                                        setPaymentMethod(lead.bookingInfo?.bankLoan === 'Yes' ? 'Bank Loan' : 'Bank Transfer');
                                         setActionMenuId(null);
+                                        if (selectedBookingId !== lead._id) {
+                                          handleBookingSelect(lead._id);
+                                        }
                                       }}
                                       className="flex items-center gap-2 px-3 py-2 text-xs font-bold text-black-700 hover:bg-emerald-50 hover:text-emerald-800 rounded-lg transition"
                                     >
-                                      <DollarSign className="w-4 h-4" /> Get Payment
+                                      <Layers className="w-4 h-4" /> View Payment
                                     </button>
-                                  )}
-                                  
-                                  {/* Demand Letter */}
-                                  {menuFlow && (
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        setActiveFlow(menuFlow);
-                                        setDemandLetterStageIdx(0);
-                                        setActionMenuId(null);
-                                      }}
-                                      className="flex items-center gap-2 px-3 py-2 text-xs font-bold text-black-700 hover:bg-blue-50 hover:text-blue-800 rounded-lg transition"
-                                    >
-                                      <Printer className="w-4 h-4" /> Demand Letter
-                                    </button>
-                                  )}
 
-                                  {/* Cancel Lead */}
-                                  {menuFlow && menuFlow.status === 'Active' && (
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        setActiveFlow(menuFlow);
-                                        setCancelModalOpen(true);
-                                        setActionMenuId(null);
-                                      }}
-                                      className="flex items-center gap-2 px-3 py-2 text-xs font-bold text-red-600 hover:bg-red-50 hover:text-red-800 rounded-lg transition"
-                                    >
-                                      <Trash className="w-4 h-4" /> Cancel Lead
-                                    </button>
-                                  )}
+                                    {/* Get Payment */}
+                                    {menuFlow && (
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setActiveFlow(menuFlow);
+                                          const firstUncompletedIdx = menuFlow.stages.findIndex(s => !(s.isCompleted || getStagePaid(s) >= getStageTotal(s)));
+                                          const idx = firstUncompletedIdx >= 0 ? firstUncompletedIdx : 0;
+                                          setPaymentStageIdx(idx);
+                                          const thisStagePending = Math.max(0, getStageTotal(menuFlow.stages[idx]) - getStagePaid(menuFlow.stages[idx]));
+                                          const arrears = menuFlow.stages.slice(0, idx).reduce((sum, s) => sum + Math.max(0, getStageTotal(s) - getStagePaid(s)), 0);
+                                          setPaymentAmount((thisStagePending + arrears).toString());
+                                          setPaymentMethod(lead.bookingInfo?.bankLoan === 'Yes' ? 'Bank Loan' : 'Bank Transfer');
+                                          setActionMenuId(null);
+                                        }}
+                                        className="flex items-center gap-2 px-3 py-2 text-xs font-bold text-black-700 hover:bg-emerald-50 hover:text-emerald-800 rounded-lg transition"
+                                      >
+                                        <DollarSign className="w-4 h-4" /> Get Payment
+                                      </button>
+                                    )}
+                                    
+                                    {/* Demand Letter */}
+                                    {menuFlow && (
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setActiveFlow(menuFlow);
+                                          setDemandLetterStageIdx(0);
+                                          setActionMenuId(null);
+                                        }}
+                                        className="flex items-center gap-2 px-3 py-2 text-xs font-bold text-black-700 hover:bg-blue-50 hover:text-blue-800 rounded-lg transition"
+                                      >
+                                        <Printer className="w-4 h-4" /> Demand Letter
+                                      </button>
+                                    )}
 
-                                  {selectedBookingId === lead._id && (
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        setSelectedBookingId(null);
-                                        setActiveFlow(null);
-                                        setActionMenuId(null);
-                                      }}
-                                      className="flex items-center gap-2 px-3 py-2 text-xs font-bold text-black-500 hover:bg-black-100 hover:text-black-800 rounded-lg transition border-t border-black-100 mt-1 pt-2"
-                                    >
-                                      <ChevronUp className="w-4 h-4" /> Close Details
-                                    </button>
-                                  )}
-                                </div>
-                              );
-                            })()}
-                          </div>
-                        </td>
+                                    {/* Cancel Lead */}
+                                    {menuFlow && menuFlow.status === 'Active' && (
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setActiveFlow(menuFlow);
+                                          setCancelModalOpen(true);
+                                          setActionMenuId(null);
+                                        }}
+                                        className="flex items-center gap-2 px-3 py-2 text-xs font-bold text-red-600 hover:bg-red-50 hover:text-red-800 rounded-lg transition"
+                                      >
+                                        <Trash className="w-4 h-4" /> Cancel Lead
+                                      </button>
+                                    )}
+
+                                    {selectedBookingId === lead._id && (
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setSelectedBookingId(null);
+                                          setActiveFlow(null);
+                                          setActionMenuId(null);
+                                        }}
+                                        className="flex items-center gap-2 px-3 py-2 text-xs font-bold text-black-500 hover:bg-black-100 hover:text-black-800 rounded-lg transition border-t border-black-100 mt-1 pt-2"
+                                      >
+                                        <ChevronUp className="w-4 h-4" /> Close Details
+                                      </button>
+                                    )}
+                                  </div>
+                                );
+                              })()}
+                            </div>
+                          </td>
+                        )}
                       </tr>
                       
 
@@ -1160,7 +1182,7 @@ const CRDFlow = () => {
                 const bookingStr = new Date(lead.bookingInfo?.bookingDate || lead.createdAt).toLocaleDateString('en-CA');
                 if (filterFromDate && bookingStr < filterFromDate) return false;
                 if (filterToDate && bookingStr > filterToDate) return false;
-                if (user?.role !== 'Admin' && user?.role !== 'Manager') {
+                if (user?.role !== 'Superadmin' && user?.role !== 'Crd team') {
                   const quot = quotations.find(q => (q.lead?._id || q.lead) === lead._id);
                   if (quot?.crdPerson?.name !== user.name && quot?.crdPerson?._id !== user._id) {
                     return false;
@@ -1760,7 +1782,7 @@ const CRDFlow = () => {
                 <div className="flex justify-between items-end pt-4 font-sans text-[11px]">
                   <div>
                     <div className="text-black-400 uppercase font-bold text-[9px]">Prepared By</div>
-                    <div className="font-bold text-black-700 mt-4">Customer Relation Manager</div>
+                    <div className="font-bold text-black-700 mt-4">Customer Relation Crd team</div>
                     <div className="text-black-400 italic mt-0.5">(Mrs. J. Mary)</div>
                   </div>
                   <div className="text-right">
@@ -1865,7 +1887,7 @@ const CRDFlow = () => {
                     </p>
                     <p className="font-bold text-black-800 uppercase text-[11px] tracking-wider">TERMS AND CONDITIONS:</p>
                     <ol className="list-decimal pl-5 space-y-2 font-sans text-[11px]">
-                      <li>The Purchaser shall pay the balance payment in accordance with the construction stages and payment schedules initialized in the CRD Flow Manager.</li>
+                      <li>The Purchaser shall pay the balance payment in accordance with the construction stages and payment schedules initialized in the CRD Flow Crd team.</li>
                       <li>The possession of the unit will be handed over to the Purchaser only upon complete settlement of all dues including core value and additional extra work adjustments.</li>
                       <li>Registration fees, stamp duty, and legal document charges are entirely payable by the Purchaser.</li>
                     </ol>
@@ -2059,7 +2081,7 @@ const CRDFlow = () => {
             <div className="flex justify-between items-end pt-8 font-sans text-xs">
               <div>
                 <div className="text-black-400 uppercase font-bold text-[10px]">Prepared By</div>
-                <div className="font-bold text-black-700 mt-4">Customer Relation Manager</div>
+                <div className="font-bold text-black-700 mt-4">Customer Relation Crd team</div>
                 <div className="text-black-400 italic mt-0.5">(Mrs. J. Mary)</div>
               </div>
               <div className="text-right">
@@ -2178,7 +2200,7 @@ const CRDFlow = () => {
             <h2 className="text-xl font-bold text-red-700 mb-4 flex items-center gap-2">
               <AlertCircle className="w-5 h-5" /> Cancel CRD Plan
             </h2>
-            <p className="text-sm text-black-600 mb-4">This will send a cancellation request to the Super Admin. Please provide a detailed narration.</p>
+            <p className="text-sm text-black-600 mb-4">This will send a cancellation request to the Superadmin. Please provide a detailed narration.</p>
             <textarea
               className="w-full border border-red-300 rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-red-600 bg-red-50"
               rows="4"

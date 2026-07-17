@@ -209,7 +209,7 @@ router.put('/:id/stage/:stageIndex/complete', protect, async (req, res) => {
 });
 
 // @route   POST /api/crd-flows/:id/extra-work
-// @desc    Add extra work directly by PED/CRD Admin
+// @desc    Add extra work directly by PED/CRD Superadmin
 router.post('/:id/extra-work', protect, async (req, res) => {
   const { stageId, name, amount, forUnit } = req.body;
   try {

@@ -124,7 +124,7 @@ const TasksBoard = () => {
             />
           </div>
 
-          {(user?.role === 'Admin' || user?.role === 'Super Admin') && (
+          {(user?.role === 'Superadmin' || user?.role === 'Superadmin') && (
             <div className="flex items-center gap-2 w-full lg:w-auto">
               <input
                 type="date"
@@ -161,7 +161,7 @@ const TasksBoard = () => {
                   <th className="p-4">Assigned Date</th>
                   <th className="p-4">Customer Details</th>
                   <th className="p-4">Task Description</th>
-                  {(user?.role === 'Admin' || user?.role === 'Super Admin') && <th className="p-4">Assigned To</th>}
+                  {(user?.role === 'Superadmin' || user?.role === 'Superadmin') && <th className="p-4">Assigned To</th>}
                   <th className="p-4">Risk Level</th>
                   <th className="p-4 text-center">Status Action</th>
                 </tr>
@@ -190,7 +190,7 @@ const TasksBoard = () => {
                       <td className="p-4">
                         <p className="font-semibold text-gray-800 max-w-xs">{task.description}</p>
                       </td>
-                      {(user?.role === 'Admin' || user?.role === 'Super Admin') && (
+                      {(user?.role === 'Superadmin' || user?.role === 'Superadmin') && (
                         <td className="p-4">
                           {task.assignedPersonName ? (
                             <span className="font-bold text-gray-700">{task.assignedPersonName}</span>

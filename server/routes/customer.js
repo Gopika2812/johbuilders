@@ -291,4 +291,87 @@ router.post('/extra-work/:stageIdx/:workId/review', protectCustomer, async (req,
   }
 });
 
+// @route   POST /api/customer/complaint/:complaintId/approve
+// @desc    Customer approves priced complaint
+router.post('/complaint/:complaintId/approve', protectCustomer, async (req, res) => {
+  const { complaintId } = req.params;
+  try {
+    const flow = req.customerFlow;
+    
+    const complaint = flow.complaints.id(complaintId);
+    if (!complaint) return res.status(404).json({ message: 'Complaint not found' });
+
+    if (complaint.status !== 'Sent to Customer') {
+      return res.status(400).json({ message: 'Complaint not ready for approval' });
+    }
+
+    complaint.status = 'Client Approved';
+    complaint.customerApprovalDate = new Date();
+
+    flow.history.push({
+      action: 'Customer Approved Complaint',
+      notes: `Approved complaint: ${complaint.title} (Token: ${complaint.token}) for Rs. ${complaint.pedPrice}`,
+      user: 'Customer'
+    });
+
+    await flow.save();
+    res.json(flow);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// @route   POST /api/customer/complaint/:complaintId/remove
+// @desc    Customer rejects priced complaint
+router.post('/complaint/:complaintId/remove', protectCustomer, async (req, res) => {
+  const { complaintId } = req.params;
+  try {
+    const flow = req.customerFlow;
+    
+    const complaint = flow.complaints.id(complaintId);
+    if (!complaint) return res.status(404).json({ message: 'Complaint not found' });
+
+    complaint.status = 'Rejected';
+
+    flow.history.push({
+      action: 'Customer Rejected Complaint',
+      notes: `Rejected complaint: ${complaint.title} (Token: ${complaint.token}) (was Rs. ${complaint.pedPrice})`,
+      user: 'Customer'
+    });
+
+    await flow.save();
+    res.json(flow);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// @route   POST /api/customer/complaint/:complaintId/review
+// @desc    Customer requests review / negotiation for complaint
+router.post('/complaint/:complaintId/review', protectCustomer, async (req, res) => {
+  const { complaintId } = req.params;
+  const { notes } = req.body;
+  
+  try {
+    const flow = req.customerFlow;
+    
+    const complaint = flow.complaints.id(complaintId);
+    if (!complaint) return res.status(404).json({ message: 'Complaint not found' });
+
+    complaint.status = 'Returned to CRD';
+    complaint.clientNotes = notes;
+
+    flow.history.push({
+      action: 'Customer Requested Review for Complaint',
+      notes: `Requested review for complaint: ${complaint.title} (Token: ${complaint.token}). Notes: ${notes}`,
+      user: 'Customer'
+    });
+
+    await flow.save();
+    res.json(flow);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 module.exports = router;

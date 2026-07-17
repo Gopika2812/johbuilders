@@ -302,7 +302,7 @@ const RegisterProject = () => {
     setLoading(true);
 
     const projectPermission = user?.permissions?.find(p => p.pageId === 'projects');
-    const canEdit = user?.role === 'Admin' || projectPermission?.canEdit;
+    const canEdit = user?.role === 'Superadmin' || projectPermission?.canEdit;
 
     if (!canEdit) {
       setError('Unauthorized. You do not have edit access to Register Projects.');

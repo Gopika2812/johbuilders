@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 
 const Customers = () => {
-  const { token, user } = useAuth();
+  const { token, user, hasColumnPermission } = useAuth();
   const [flows, setFlows] = useState([]);
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -41,7 +41,7 @@ const Customers = () => {
 
   useEffect(() => {
     fetchFlows();
-    if (user?.role === 'Admin' || user?.role === 'Super Admin') {
+    if (user?.role === 'Superadmin' || user?.role === 'Superadmin') {
       fetchEmployees();
     }
   }, [token]);
@@ -248,12 +248,12 @@ const Customers = () => {
             <table className="w-full text-left text-xs">
               <thead className="bg-black-50 text-black-500 font-bold uppercase tracking-wider border-b">
                 <tr>
-                  <th className="p-4">Customer Name</th>
-                  <th className="p-4">Phone Number</th>
-                  <th className="p-4">Project</th>
-                  <th className="p-4">Unit / Plot</th>
-                  <th className="p-4 text-center">Complaints</th>
-                  <th className="p-4 text-center">Actions</th>
+                  {hasColumnPermission('customers', 'customerName') && <th className="p-4">Customer Name</th>}
+                  {hasColumnPermission('customers', 'phoneNumber') && <th className="p-4">Phone Number</th>}
+                  {hasColumnPermission('customers', 'project') && <th className="p-4">Project</th>}
+                  {hasColumnPermission('customers', 'unitPlot') && <th className="p-4">Unit / Plot</th>}
+                  {hasColumnPermission('customers', 'complaints') && <th className="p-4 text-center">Complaints</th>}
+                  {hasColumnPermission('customers', 'actions') && <th className="p-4 text-center">Actions</th>}
                 </tr>
               </thead>
               <tbody className="divide-y divide-black-50">
@@ -274,30 +274,38 @@ const Customers = () => {
                           }
                         }}
                       >
-                        <td className="p-4 font-extrabold text-black-800 text-[13px]">{flow.lead?.name || 'N/A'}</td>
-                        <td className="p-4 text-black-600 font-semibold">{flow.lead?.phone || 'N/A'}</td>
-                        <td className="p-4">
-                          <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-emerald-100/70 border border-emerald-200 text-emerald-800 uppercase tracking-wide">
-                            {flow.project?.code || 'PROJECT'}
-                          </span>
-                        </td>
-                        <td className="p-4 font-semibold text-black-700">
-                          {flow.unitId} <span className="text-black-400 font-normal">({flow.project?.projectType || 'Land'})</span>
-                        </td>
-                        <td className="p-4 text-center">
-                          <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${
-                            (flow.complaints?.length || 0) > 0 
-                              ? 'bg-amber-50 text-amber-800 border border-amber-200' 
-                              : 'bg-black-50 text-black-500 border border-black-200'
-                          }`}>
-                            {flow.complaints?.length || 0}
-                          </span>
-                        </td>
-                        <td className="p-4 text-center">
-                          <button className="px-3 py-1.5 bg-emerald-50 text-[#0e623a] hover:bg-emerald-100 transition font-bold rounded-lg border border-emerald-200 text-[11px]">
-                            {isExpanded ? 'Close' : 'View Details'}
-                          </button>
-                        </td>
+                        {hasColumnPermission('customers', 'customerName') && <td className="p-4 font-extrabold text-black-800 text-[13px]">{flow.lead?.name || 'N/A'}</td>}
+                        {hasColumnPermission('customers', 'phoneNumber') && <td className="p-4 text-black-600 font-semibold">{flow.lead?.phone || 'N/A'}</td>}
+                        {hasColumnPermission('customers', 'project') && (
+                          <td className="p-4">
+                            <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-emerald-100/70 border border-emerald-200 text-emerald-800 uppercase tracking-wide">
+                              {flow.project?.code || 'PROJECT'}
+                            </span>
+                          </td>
+                        )}
+                        {hasColumnPermission('customers', 'unitPlot') && (
+                          <td className="p-4 font-semibold text-black-700">
+                            {flow.unitId} <span className="text-black-400 font-normal">({flow.project?.projectType || 'Land'})</span>
+                          </td>
+                        )}
+                        {hasColumnPermission('customers', 'complaints') && (
+                          <td className="p-4 text-center">
+                            <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${
+                              (flow.complaints?.length || 0) > 0 
+                                ? 'bg-amber-50 text-amber-800 border border-amber-200' 
+                                : 'bg-black-50 text-black-500 border border-black-200'
+                            }`}>
+                              {flow.complaints?.length || 0}
+                            </span>
+                          </td>
+                        )}
+                        {hasColumnPermission('customers', 'actions') && (
+                          <td className="p-4 text-center">
+                            <button className="px-3 py-1.5 bg-emerald-50 text-[#0e623a] hover:bg-emerald-100 transition font-bold rounded-lg border border-emerald-200 text-[11px]">
+                              {isExpanded ? 'Close' : 'View Details'}
+                            </button>
+                          </td>
+                        )}
                       </tr>
                       
                       {isExpanded && (
@@ -501,7 +509,7 @@ const Customers = () => {
                                                     </span>
                                                   </td>
                                                   <td className="p-3 text-center">
-                                                    {(user?.role === 'Admin' || user?.role === 'Super Admin') && !comp.assignedTo && (
+                                                    {(user?.role === 'Superadmin' || user?.role === 'Superadmin') && !comp.assignedTo && (
                                                       <div className="flex flex-col gap-1 items-end">
                                                         <select
                                                           className="w-full text-[10px] border rounded p-1 font-semibold text-black-600 bg-black-50 outline-none"
@@ -528,7 +536,7 @@ const Customers = () => {
                                                     )}
                                                     
                                                     {/* Allow changing status if already assigned */}
-                                                    {(user?.role === 'Admin' || user?.role === 'Super Admin') && comp.assignedTo && (
+                                                    {(user?.role === 'Superadmin' || user?.role === 'Superadmin') && comp.assignedTo && (
                                                       <select
                                                         value={comp.status}
                                                         onChange={(e) => handleUpdateComplaintStatus(comp._id, e.target.value)}

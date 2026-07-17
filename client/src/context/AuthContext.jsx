@@ -112,16 +112,41 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
   };
 
-  const isAdmin = user?.role === 'Admin';
-  const isManager = user?.role === 'Manager';
-  const isSales = user?.role === 'Sales Executive';
-  const isSiteEngineer = user?.role === 'Site Engineer';
+  const isAdmin = user?.role === 'Superadmin';
+  const isManager = user?.role === 'Crd team';
+  const isSales = user?.role === 'sales person';
+  const isSiteEngineer = user?.role === 'ped team';
 
   const hasPermission = (pageId) => {
     if (isAdmin) return true; // Admins see everything
     if (!user || !user.permissions) return false;
-    const perm = user.permissions.find(p => p.pageId === pageId);
+    let perm = user.permissions.find(p => p.pageId === pageId);
+    
+    // Fallback for complaintsFlow to use extraWorks permissions if missing
+    if (!perm && pageId === 'complaintsFlow') {
+      perm = user.permissions.find(p => p.pageId === 'extraWorks');
+    }
+    
     return perm ? perm.canView : false;
+  };
+
+  const hasColumnPermission = (pageId, columnKey) => {
+    if (isAdmin) return true; // Admins see all columns
+    if (!user || !user.permissions) return false;
+    let perm = user.permissions.find(p => p.pageId === pageId);
+    
+    // Fallback for complaintsFlow to use extraWorks permissions if missing
+    if (!perm && pageId === 'complaintsFlow') {
+      perm = user.permissions.find(p => p.pageId === 'extraWorks');
+    }
+    
+    if (!perm) return false;
+    
+    // If columns config doesn't exist or is empty, assume true
+    if (!perm.columns) return true;
+    
+    // If the specific column is undefined in the config, default to true, else return its value
+    return perm.columns[columnKey] !== undefined ? perm.columns[columnKey] : true;
   };
 
   const value = {
@@ -136,7 +161,8 @@ export const AuthProvider = ({ children }) => {
     isSales,
     isSiteEngineer,
     isAuthenticated: !!user,
-    hasPermission
+    hasPermission,
+    hasColumnPermission
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -39,8 +39,8 @@ const getMergedPermissions = async (user) => {
     permissions = defaultPages.map(page => ({
       pageId: page.pageId,
       pageName: page.pageName,
-      canView: user.role === 'Admin' || page.pageId === 'dashboard',
-      canEdit: user.role === 'Admin'
+      canView: user.role === 'Superadmin' || page.pageId === 'dashboard',
+      canEdit: user.role === 'Superadmin'
     }));
   } else {
     permissions = userPerm.permissions.map(p => p.toObject ? p.toObject() : p);
@@ -50,8 +50,8 @@ const getMergedPermissions = async (user) => {
         permissions.push({
           pageId: dp.pageId,
           pageName: dp.pageName,
-          canView: user.role === 'Admin',
-          canEdit: user.role === 'Admin'
+          canView: user.role === 'Superadmin',
+          canEdit: user.role === 'Superadmin'
         });
       }
     });

@@ -33,13 +33,13 @@ connectDB().then(async () => {
     const adminExists = await User.findOne({ email: 'admin@builders.com' });
     if (!adminExists) {
       await User.create({
-        name: 'Super Admin',
+        name: 'Superadmin',
         email: 'admin@builders.com',
         password: 'adminpassword123', // Will be hashed automatically by pre-save hook
-        role: 'Admin',
+        role: 'Superadmin',
         isApproved: true
       });
-      console.log('Seeded default Super Admin: admin@builders.com / adminpassword123');
+      console.log('Seeded default Superadmin: admin@builders.com / adminpassword123');
     }
   } catch (err) {
     console.error('Error seeding superadmin:', err.message);

@@ -98,6 +98,8 @@ const CustomerDashboard = () => {
   const [complaintsView, setComplaintsView] = useState('table');
   const [copiedToken, setCopiedToken] = useState(false);
   const [complaintSuccessToken, setComplaintSuccessToken] = useState(null);
+  const [complaintReviewModal, setComplaintReviewModal] = useState({ open: false, complaintId: null });
+  const [complaintReviewNote, setComplaintReviewNote] = useState('');
   
   // Form State
   const [extraName, setExtraName] = useState('');
@@ -442,6 +444,63 @@ const CustomerDashboard = () => {
       setComplaintDesc('');
       setComplaintImages([]);
       setFlow(updatedFlow);
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleComplaintReview = async (e) => {
+    e.preventDefault();
+    if (!complaintReviewNote.trim()) return;
+    try {
+      setSubmitting(true);
+      const token = localStorage.getItem('customerToken');
+      const res = await fetch(`${API_URL}/customer/complaint/${complaintReviewModal.complaintId}/review`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ notes: complaintReviewNote })
+      });
+      if (!res.ok) throw new Error('Failed to submit review');
+      setComplaintReviewModal({ open: false, complaintId: null });
+      setComplaintReviewNote('');
+      await fetchFlow();
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleComplaintApprove = async (complaintId) => {
+    try {
+      setSubmitting(true);
+      const token = localStorage.getItem('customerToken');
+      const res = await fetch(`${API_URL}/customer/complaint/${complaintId}/approve`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (!res.ok) throw new Error('Failed to approve complaint');
+      await fetchFlow();
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleComplaintRemove = async (complaintId) => {
+    if (!window.confirm('Are you sure you want to reject this complaint price?')) return;
+    try {
+      setSubmitting(true);
+      const token = localStorage.getItem('customerToken');
+      const res = await fetch(`${API_URL}/customer/complaint/${complaintId}/remove`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (!res.ok) throw new Error('Failed to reject complaint');
+      await fetchFlow();
     } catch (err) {
       alert(err.message);
     } finally {
@@ -1162,13 +1221,13 @@ const CustomerDashboard = () => {
             {activeTab === 'requestedworks' && (() => {
               const filteredRequestedWorks = allExtraWorks.filter(ew => {
                 if (requestedWorksTab === 'new') {
-                  if (['Client Approved', 'Added to CRD', 'Rejected', 'Removed by Client', 'Cancelled by Admin'].includes(ew.status)) return false;
+                  if (['Client Approved', 'Added to CRD', 'Rejected', 'Removed by Client', 'Cancelled by Superadmin'].includes(ew.status)) return false;
                 }
                 if (requestedWorksTab === 'agreed') {
                   if (!['Client Approved', 'Added to CRD'].includes(ew.status)) return false;
                 }
                 if (requestedWorksTab === 'cancelled') {
-                  if (!['Rejected', 'Removed by Client', 'Cancelled by Admin'].includes(ew.status)) return false;
+                  if (!['Rejected', 'Removed by Client', 'Cancelled by Superadmin'].includes(ew.status)) return false;
                 }
                 if (requestedWorksTab === 'history') {
                   // Show all in history, no status filter
@@ -1544,13 +1603,14 @@ const CustomerDashboard = () => {
                             <th className="px-6 py-4 font-bold text-xs uppercase tracking-wider">Project</th>
                             <th className="px-6 py-4 font-bold text-xs uppercase tracking-wider">Units</th>
                             <th className="px-6 py-4 font-bold text-xs uppercase tracking-wider">Complaints</th>
-                            <th className="px-6 py-4 font-bold text-xs uppercase tracking-wider text-center">Status</th>
+                            <th className="px-6 py-4 text-right font-bold text-xs uppercase tracking-wider">Est. Amount</th>
+                            <th className="px-6 py-4 font-bold text-xs uppercase tracking-wider text-center">Status / Action</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-emerald-50">
                           {filteredComplaints.length === 0 ? (
                             <tr>
-                              <td colSpan="7" className="px-6 py-12 text-center text-gray-500 font-medium">
+                              <td colSpan="8" className="px-6 py-12 text-center text-gray-500 font-medium">
                                 {flow.complaints?.length === 0 ? "You haven't reported any issues. We're glad everything is perfect!" : "No complaints found for the selected date range."}
                               </td>
                             </tr>
@@ -1566,14 +1626,48 @@ const CustomerDashboard = () => {
                                   <div className="font-bold mb-1">{comp.title || 'Complaint'}</div>
                                   <div>{comp.description}</div>
                                 </td>
+                                <td className="px-6 py-4 text-right font-black text-[#006838]">
+                                  {comp.pedPrice > 0 ? `Rs. ${comp.pedPrice.toLocaleString()}` : (['Pending', 'Sent to PED'].includes(comp.status) ? 'TBD' : 'Rs. 0')}
+                                </td>
                                 <td className="px-6 py-4 text-center">
-                                  <span className={`inline-flex px-3 py-1 text-[10px] font-bold uppercase tracking-widest rounded-lg border ${
-                                    comp.status === 'Resolved' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
-                                    comp.status === 'In Progress' ? 'bg-amber-50 text-amber-600 border-amber-100' :
-                                    'bg-gray-100 text-gray-600 border-gray-200'
-                                  }`}>
-                                    {comp.status || 'Pending'}
-                                  </span>
+                                  {comp.status === 'Sent to Customer' ? (
+                                    <div className="flex items-center justify-center gap-2" onClick={(e) => e.stopPropagation()}>
+                                      <button
+                                        onClick={() => handleComplaintApprove(comp._id)}
+                                        disabled={submitting}
+                                        title="I Agree"
+                                        className="p-1.5 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-500 hover:text-white transition-colors disabled:opacity-50 border border-emerald-100 shadow-sm"
+                                      >
+                                        <CheckCircle className="w-4 h-4" />
+                                      </button>
+                                      <button
+                                        onClick={() => setComplaintReviewModal({ open: true, complaintId: comp._id })}
+                                        disabled={submitting}
+                                        title="Review / Negotiate Price"
+                                        className="p-1.5 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-500 hover:text-white transition-colors disabled:opacity-50 border border-blue-100 shadow-sm"
+                                      >
+                                        <MessageSquare className="w-4 h-4" />
+                                      </button>
+                                      <button
+                                        onClick={() => handleComplaintRemove(comp._id)}
+                                        disabled={submitting}
+                                        title="Reject"
+                                        className="p-1.5 rounded-lg bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-colors disabled:opacity-50 border border-red-100 shadow-sm"
+                                      >
+                                        <X className="w-4 h-4" />
+                                      </button>
+                                    </div>
+                                  ) : (
+                                    <span className={`inline-flex px-3 py-1 text-[10px] font-bold uppercase tracking-widest rounded-lg border ${
+                                      ['Completed', 'Client Approved', 'Feedback Received'].includes(comp.status) ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
+                                      comp.status === 'Sent to Client (Completed)' ? 'bg-blue-50 text-blue-600 border-blue-100' :
+                                      ['In Progress', 'Start Work', 'Execution Sent to PED', 'Returned to CRD'].includes(comp.status) ? 'bg-amber-50 text-amber-600 border-amber-100' :
+                                      ['Rejected', 'Removed by Client'].includes(comp.status) ? 'bg-red-50 text-red-600 border-red-100' :
+                                      'bg-gray-100 text-gray-600 border-gray-200'
+                                    }`}>
+                                      {comp.status === 'Client Approved' ? 'I Agreed' : comp.status || 'Pending'}
+                                    </span>
+                                  )}
                                 </td>
                               </tr>
                             ))
@@ -1597,16 +1691,44 @@ const CustomerDashboard = () => {
                           
                           <div className="p-6 pb-0 flex items-center justify-between relative z-10">
                             <span className="text-[10px] font-black text-gray-500 tracking-widest uppercase">#{String(idx + 1).padStart(3, '0')}</span>
-                            <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest rounded-xl border shadow-sm ${
-                              comp.status === 'Resolved' ? 'bg-[#006838]/20 text-emerald-400 border-emerald-500/30' :
-                              comp.status === 'In Progress' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' :
-                              'bg-white/5 text-gray-400 border-white/10'
-                            }`}>
-                              {comp.status === 'Resolved' && <CheckCircle className="w-3 h-3" />}
-                              {comp.status === 'In Progress' && <Loader2 className="w-3 h-3 animate-spin" />}
-                              {(comp.status === 'Pending' || !comp.status) && <Clock className="w-3 h-3" />}
-                              {comp.status || 'Pending'}
-                            </span>
+                            {comp.status === 'Sent to Customer' ? (
+                              <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                                <button
+                                  onClick={() => handleComplaintApprove(comp._id)}
+                                  disabled={submitting}
+                                  title="I Agree"
+                                  className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500 hover:text-white transition-colors disabled:opacity-50 border border-emerald-500/30 shadow-sm"
+                                >
+                                  <CheckCircle className="w-4 h-4" />
+                                </button>
+                                <button
+                                  onClick={() => setComplaintReviewModal({ open: true, complaintId: comp._id })}
+                                  disabled={submitting}
+                                  title="Review / Negotiate Price"
+                                  className="p-1.5 rounded-lg bg-blue-500/10 text-blue-400 hover:bg-blue-500 hover:text-white transition-colors disabled:opacity-50 border border-blue-500/30 shadow-sm"
+                                >
+                                  <MessageSquare className="w-4 h-4" />
+                                </button>
+                                <button
+                                  onClick={() => handleComplaintRemove(comp._id)}
+                                  disabled={submitting}
+                                  title="Reject"
+                                  className="p-1.5 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white transition-colors disabled:opacity-50 border border-red-500/30 shadow-sm"
+                                >
+                                  <X className="w-4 h-4" />
+                                </button>
+                              </div>
+                            ) : (
+                              <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest rounded-xl border shadow-sm ${
+                                ['Completed', 'Client Approved', 'Feedback Received'].includes(comp.status) ? 'bg-[#006838]/20 text-emerald-400 border-emerald-500/30' :
+                                ['In Progress', 'Start Work', 'Execution Sent to PED', 'Returned to CRD'].includes(comp.status) ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' :
+                                comp.status === 'Sent to Client (Completed)' ? 'bg-blue-500/10 text-blue-400 border-blue-500/30' :
+                                ['Rejected', 'Removed by Client'].includes(comp.status) ? 'bg-red-500/10 text-red-400 border-red-500/30' :
+                                'bg-white/5 text-gray-400 border-white/10'
+                              }`}>
+                                {comp.status === 'Client Approved' ? 'I Agreed' : comp.status || 'Pending'}
+                              </span>
+                            )}
                           </div>
                           
                           <div className="p-6 relative z-10 flex-1 flex flex-col">
@@ -1622,6 +1744,13 @@ const CustomerDashboard = () => {
                                 <Building className="w-3.5 h-3.5 text-gray-500" />
                                 Unit {flow.unitId}
                               </div>
+                            </div>
+                            
+                            <div className="mt-4 pt-4 border-t border-white/5 flex items-center justify-between text-white">
+                              <span className="text-xs text-gray-400 font-bold uppercase tracking-widest">Est. Amount</span>
+                              <span className="font-bold text-emerald-400">
+                                {comp.pedPrice > 0 ? `Rs. ${comp.pedPrice.toLocaleString()}` : (['Pending', 'Sent to PED'].includes(comp.status) ? 'TBD' : 'Rs. 0')}
+                              </span>
                             </div>
                           </div>
 
@@ -1702,7 +1831,28 @@ const CustomerDashboard = () => {
         </div>
       )}
 
-      
+      {/* Complaint Review / Negotiate Modal */}
+      {complaintReviewModal.open && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-[60] flex items-center justify-center p-4">
+          <div className="bg-white rounded-[2rem] w-full max-w-md overflow-hidden shadow-2xl animate-fade-in-up">
+            <div className="p-6 flex justify-between items-center border-b border-gray-100">
+              <h3 className="font-bold text-lg text-gray-900">Add Notes for Review</h3>
+              <button onClick={() => setComplaintReviewModal({ open: false, complaintId: null })} className="text-gray-400 hover:text-gray-900 bg-gray-50 hover:bg-gray-100 p-2 rounded-full transition"><X className="w-5 h-5" /></button>
+            </div>
+            <form onSubmit={handleComplaintReview} className="p-8 space-y-5">
+              <p className="text-sm text-gray-500 mb-6 bg-gray-50 p-4 rounded-xl border border-gray-100">Ask questions or request price negotiation for this complaint.</p>
+              <div>
+                <label className="text-[11px] font-bold text-gray-400 uppercase tracking-widest block mb-1.5">Your Notes <span className="text-red-500">*</span></label>
+                <textarea required value={complaintReviewNote} onChange={e => setComplaintReviewNote(e.target.value)} placeholder="e.g., Can we fix this for free?" rows="4" className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm font-medium text-gray-900 focus:border-[#006838] focus:ring-2 focus:ring-[#006838]/10 transition shadow-sm resize-none"></textarea>
+              </div>
+              <button type="submit" disabled={submitting} className="w-full py-4 mt-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-sm tracking-wide transition shadow-lg shadow-blue-600/30 flex justify-center">
+                {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Send Review Request'}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* Complaint Success Modal */}
       {complaintSuccessToken && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-[70] flex items-center justify-center p-4">
@@ -1841,7 +1991,7 @@ const CustomerDashboard = () => {
               </div>
               
               {selectedComplaint.images && selectedComplaint.images.length > 0 && (
-                <div>
+                <div className="mb-6">
                   <p className="text-gray-400 font-bold uppercase text-[10px] tracking-wider mb-3">Attached Images</p>
                   <div className="flex gap-4 overflow-x-auto pb-4">
                     {selectedComplaint.images.map((imgUrl, i) => (
@@ -1852,6 +2002,35 @@ const CustomerDashboard = () => {
                   </div>
                 </div>
               )}
+              
+              <div>
+                <p className="text-gray-400 font-bold uppercase text-[10px] tracking-wider mb-3">Activity History</p>
+                {(() => {
+                  const compHistory = flow?.history?.filter(h => h.notes && h.notes.includes(selectedComplaint.token)) || [];
+                  if (compHistory.length === 0) return <p className="text-sm text-gray-500 italic">No activity yet.</p>;
+                  return (
+                    <div className="relative border-l-2 border-emerald-200 ml-2 space-y-4">
+                      {compHistory.map((h, i) => (
+                        <div key={i} className="relative pl-5">
+                          <div className="absolute -left-[9px] top-1 w-4 h-4 rounded-full bg-[#006838] border-4 border-white shadow-sm" />
+                          <div className="bg-gray-50 p-3 rounded-xl border border-gray-100">
+                            <div className="flex justify-between items-start mb-1">
+                              <span className="font-bold text-gray-800 text-sm">{h.action}</span>
+                              <span className="text-[10px] font-bold text-gray-500 bg-white px-2 py-0.5 rounded-full border border-gray-200">
+                                {new Date(h.timestamp || h.date).toLocaleString('en-GB', {
+                                  day: '2-digit', month: '2-digit', year: 'numeric',
+                                  hour: '2-digit', minute: '2-digit', hour12: true
+                                })}
+                              </span>
+                            </div>
+                            <p className="text-xs text-gray-600 mt-1 leading-relaxed whitespace-pre-wrap">{h.notes}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
+              </div>
             </div>
           </div>
         </div>

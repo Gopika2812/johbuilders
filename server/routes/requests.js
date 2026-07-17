@@ -7,7 +7,7 @@ const Lead = require('../models/Lead');
 const { protect } = require('../middleware/auth');
 
 // @route   GET /api/requests
-// @desc    Get all pending requests (Super Admin only typically)
+// @desc    Get all pending requests (Superadmin only typically)
 // @access  Private
 router.get('/', protect, async (req, res) => {
   try {

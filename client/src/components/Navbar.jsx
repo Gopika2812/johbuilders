@@ -135,13 +135,13 @@ const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
 
   const getRoleBadgeStyle = (role) => {
     switch (role) {
-      case 'Admin':
+      case 'Superadmin':
         return 'bg-red-50 text-red-700 border-red-200';
-      case 'Manager':
+      case 'Crd team':
         return 'bg-blue-50 text-blue-700 border-blue-200';
-      case 'Sales Executive':
+      case 'sales person':
         return 'bg-emerald-50 text-emerald-700 border-emerald-200';
-      case 'Site Engineer':
+      case 'ped team':
         return 'bg-purple-50 text-purple-700 border-purple-200';
       default:
         return 'bg-gray-50 text-gray-700 border-gray-200';
@@ -210,7 +210,7 @@ const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
                         </div>
                         <div className="text-[11px] text-gray-500 flex justify-between">
                           <span>{lead.leadSource ? `Source: ${lead.leadSource}` : `Next Follow-Up: ${new Date(lead.followUpInfo?.nextFollowUpDate).toLocaleString()}`}</span>
-                          {(user?.role === 'Admin' || user?.role === 'Manager' || user?.role === 'Super Admin') && (
+                          {(user?.role === 'Superadmin' || user?.role === 'Crd team' || user?.role === 'Superadmin') && (
                             <span className="font-semibold text-gray-650">Executive: {lead.assignedTo?.name || 'Unassigned'}</span>
                           )}
                         </div>
@@ -265,7 +265,7 @@ const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
                   </div>
                   <div className="text-[11px] text-gray-500 flex justify-between">
                     <span>Phone: {lead.phone}</span>
-                    {(user?.role === 'Admin' || user?.role === 'Manager' || user?.role === 'Super Admin') && (
+                    {(user?.role === 'Superadmin' || user?.role === 'Crd team' || user?.role === 'Superadmin') && (
                       <span className="font-semibold text-gray-650">Assigned To: {lead.assignedTo?.name || 'Unassigned'}</span>
                     )}
                   </div>

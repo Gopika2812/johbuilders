@@ -10,7 +10,7 @@ const ExtraWorkSchema = new mongoose.Schema({
   quantity: { type: Number, default: 1 },
   rate: { type: Number, default: 0 },
   amount: { type: Number, required: true }, // total amount (quantity * rate)
-  status: { type: String, enum: ['Pending', 'Sent to PED', 'PED Approved', 'Returned to CRD', 'Sent to Customer', 'Client Approved', 'Sent to Accounts', 'Added to CRD', 'Execution Sent to PED', 'Start Work', 'In Progress', 'Completed', 'Rejected', 'Removed by Client', 'Cancelled by Admin'], default: 'Pending' },
+  status: { type: String, enum: ['Pending', 'Sent to PED', 'PED Approved', 'Returned to CRD', 'Sent to Customer', 'Client Approved', 'Sent to Accounts', 'Added to CRD', 'Execution Sent to PED', 'Start Work', 'In Progress', 'Completed', 'Rejected', 'Removed by Client', 'Cancelled by Superadmin'], default: 'Pending' },
   addedAt: { type: Date, default: Date.now },
   sentToPedDate: { type: Date },
   pricingDate: { type: Date },
@@ -55,7 +55,7 @@ const ComplaintSchema = new mongoose.Schema({
   title: { type: String, default: 'Untitled Complaint' },
   description: { type: String, required: true },
   images: [{ type: String }], // Array of Cloudinary image URLs
-  status: { type: String, enum: ['Pending', 'Start Work', 'In Progress', 'Resolved', 'Completed'], default: 'Pending' },
+  status: { type: String, enum: ['Pending', 'Sent to PED', 'Returned to CRD', 'Sent to Customer', 'Client Approved', 'Rejected', 'Removed by Client', 'Execution Sent to PED', 'Start Work', 'In Progress', 'Completed', 'Sent to Client (Completed)', 'Feedback Received'], default: 'Pending' },
   reportedAt: { type: Date, default: Date.now },
   resolvedAt: { type: Date },
   assignedTo: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
@@ -64,6 +64,14 @@ const ComplaintSchema = new mongoose.Schema({
   taskBoardVisible: { type: Boolean, default: true },
   scope: { type: String, enum: ['Company', 'Customer'] },
   sentToPedAt: { type: Date },
+  pricingDate: { type: Date },
+  customerSentDate: { type: Date },
+  customerApprovalDate: { type: Date },
+  executionSentDate: { type: Date },
+  feedbackDate: { type: Date },
+  clientFeedback: { type: String, default: '' },
+  clientRating: { type: Number, default: 0 },
+  clientNotes: { type: String, default: '' },
   pedPrice: { type: Number, default: 0 }
 });
 

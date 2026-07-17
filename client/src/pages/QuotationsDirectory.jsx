@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 
 const QuotationsDirectory = () => {
-  const { token } = useAuth();
+  const { token, hasColumnPermission } = useAuth();
   const [quotations, setQuotations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -169,112 +169,128 @@ const QuotationsDirectory = () => {
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-black-50 border-b border-black-150 text-xs font-bold text-black-500 uppercase tracking-wider">
-                  <th className="p-4">Customer Details</th>
-                  <th className="p-4">Project</th>
-                  <th className="p-4">Quoted Units</th>
-                  <th className="p-4">Total Value</th>
-                  <th className="p-4">Prepared By</th>
-                  <th className="p-4">Created Date</th>
-                  <th className="p-4">CRD Person</th>
-                  <th className="p-4 text-center">Actions</th>
+                  {hasColumnPermission('quotations', 'customerDetails') && <th className="p-4">Customer Details</th>}
+                  {hasColumnPermission('quotations', 'project') && <th className="p-4">Project</th>}
+                  {hasColumnPermission('quotations', 'quotedUnits') && <th className="p-4">Quoted Units</th>}
+                  {hasColumnPermission('quotations', 'totalValue') && <th className="p-4">Total Value</th>}
+                  {hasColumnPermission('quotations', 'preparedBy') && <th className="p-4">Prepared By</th>}
+                  {hasColumnPermission('quotations', 'createdDate') && <th className="p-4">Created Date</th>}
+                  {hasColumnPermission('quotations', 'crdPerson') && <th className="p-4">CRD Person</th>}
+                  {hasColumnPermission('quotations', 'actions') && <th className="p-4 text-center">Actions</th>}
                 </tr>
               </thead>
               <tbody className="divide-y divide-black-100 text-sm">
                 {filteredQuotations.map(q => (
                   <tr key={q._id} className="hover:bg-black-50/50 transition duration-150">
                     {/* Customer */}
-                    <td className="p-4">
-                      <div className="font-bold text-black-800">{q.customerName}</div>
-                      <div className="flex items-center gap-1 text-[11px] text-black-400 mt-1">
-                        <Phone className="w-3 h-3 text-black-300" />
-                        <span>{q.customerPhone}</span>
-                      </div>
-                    </td>
+                    {hasColumnPermission('quotations', 'customerDetails') && (
+                      <td className="p-4">
+                        <div className="font-bold text-black-800">{q.customerName}</div>
+                        <div className="flex items-center gap-1 text-[11px] text-black-400 mt-1">
+                          <Phone className="w-3 h-3 text-black-300" />
+                          <span>{q.customerPhone}</span>
+                        </div>
+                      </td>
+                    )}
 
                     {/* Project */}
-                    <td className="p-4">
-                      <div className="font-bold text-black-700 flex items-center gap-1">
-                        <Building className="w-3.5 h-3.5 text-[#0e623a]/75" />
-                        <span>{q.project?.code || 'N/A'}</span>
-                      </div>
-                      <div className="text-[11px] text-black-400 mt-0.5">{q.project?.name || ''}</div>
-                    </td>
+                    {hasColumnPermission('quotations', 'project') && (
+                      <td className="p-4">
+                        <div className="font-bold text-black-700 flex items-center gap-1">
+                          <Building className="w-3.5 h-3.5 text-[#0e623a]/75" />
+                          <span>{q.project?.code || 'N/A'}</span>
+                        </div>
+                        <div className="text-[11px] text-black-400 mt-0.5">{q.project?.name || ''}</div>
+                      </td>
+                    )}
 
                     {/* Quoted Units */}
-                    <td className="p-4">
-                      <div className="flex flex-wrap gap-1">
-                        {q.selectedUnits.map(unit => (
-                          <span key={unit} className="px-2 py-0.5 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded text-[11px] font-bold">
-                            {unit}
-                          </span>
-                        ))}
-                      </div>
-                      <div className="text-[10px] text-black-400 mt-1">
-                        Type: {q.projectType} • Total Area: {q.totalArea} Sq.Ft
-                      </div>
-                    </td>
+                    {hasColumnPermission('quotations', 'quotedUnits') && (
+                      <td className="p-4">
+                        <div className="flex flex-wrap gap-1">
+                          {q.selectedUnits.map(unit => (
+                            <span key={unit} className="px-2 py-0.5 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded text-[11px] font-bold">
+                              {unit}
+                            </span>
+                          ))}
+                        </div>
+                        <div className="text-[10px] text-black-400 mt-1">
+                          Type: {q.projectType} • Total Area: {q.totalArea} Sq.Ft
+                        </div>
+                      </td>
+                    )}
 
                     {/* Total Value */}
-                    <td className="p-4">
-                      <div className="font-extrabold text-black-800">Rs. {q.totalValue.toLocaleString()}</div>
-                      <div className="text-[10px] text-black-400 mt-0.5">Rate: Rs. {q.pricePerSqFt}/Sq.Ft</div>
-                    </td>
+                    {hasColumnPermission('quotations', 'totalValue') && (
+                      <td className="p-4">
+                        <div className="font-extrabold text-black-800">Rs. {q.totalValue.toLocaleString()}</div>
+                        <div className="text-[10px] text-black-400 mt-0.5">Rate: Rs. {q.pricePerSqFt}/Sq.Ft</div>
+                      </td>
+                    )}
 
                     {/* Prepared By */}
-                    <td className="p-4">
-                      <div className="font-semibold text-black-700">{q.createdBy?.name || 'System'}</div>
-                      <div className="text-[11px] text-black-400">{q.createdBy?.role || 'User'}</div>
-                    </td>
+                    {hasColumnPermission('quotations', 'preparedBy') && (
+                      <td className="p-4">
+                        <div className="font-semibold text-black-700">{q.createdBy?.name || 'System'}</div>
+                        <div className="text-[11px] text-black-400">{q.createdBy?.role || 'User'}</div>
+                      </td>
+                    )}
 
                     {/* Created Date */}
-                    <td className="p-4">
-                      <div className="text-xs text-black-600 flex items-center gap-1">
-                        <Calendar className="w-3.5 h-3.5 text-black-300" />
-                        <span>{new Date(q.createdAt).toLocaleDateString()}</span>
-                      </div>
-                    </td>
+                    {hasColumnPermission('quotations', 'createdDate') && (
+                      <td className="p-4">
+                        <div className="text-xs text-black-600 flex items-center gap-1">
+                          <Calendar className="w-3.5 h-3.5 text-black-300" />
+                          <span>{new Date(q.createdAt).toLocaleDateString()}</span>
+                        </div>
+                      </td>
+                    )}
 
                     {/* CRD Person */}
-                    <td className="p-4">
-                      <select
-                        value={q.crdPerson?._id || q.crdPerson || ''}
-                        onChange={(e) => updateCrdPerson(q._id, e.target.value)}
-                        className="w-full text-[11px] bg-black-50 border border-black-200 rounded-lg px-2 py-1.5 focus:outline-none focus:border-[#0e623a] font-bold text-black-700 cursor-pointer"
-                      >
-                        <option value="">Select Person...</option>
-                        {users.map(u => (
-                          <option key={u._id} value={u._id}>{u.name}</option>
-                        ))}
-                      </select>
-                    </td>
+                    {hasColumnPermission('quotations', 'crdPerson') && (
+                      <td className="p-4">
+                        <select
+                          value={q.crdPerson?._id || q.crdPerson || ''}
+                          onChange={(e) => updateCrdPerson(q._id, e.target.value)}
+                          className="w-full text-[11px] bg-black-50 border border-black-200 rounded-lg px-2 py-1.5 focus:outline-none focus:border-[#0e623a] font-bold text-black-700 cursor-pointer"
+                        >
+                          <option value="">Select Person...</option>
+                          {users.map(u => (
+                            <option key={u._id} value={u._id}>{u.name}</option>
+                          ))}
+                        </select>
+                      </td>
+                    )}
 
                     {/* Action buttons */}
-                    <td className="p-4 text-center">
-                      <div className="flex items-center justify-center gap-1.5">
-                        <Link
-                          to={`/quotations/${q._id}`}
-                          className="p-2 text-black-500 hover:text-[#0e623a] hover:bg-[#0e623a]/5 rounded-xl transition"
-                          title="View & Print Quotation"
-                        >
-                          <Eye className="w-4 h-4" />
-                        </Link>
-                        <Link
-                          to={`/quotations/${q._id}/edit`}
-                          className="p-2 text-black-500 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition"
-                          title="Edit Quotation"
-                        >
-                          <Edit3 className="w-4 h-4" />
-                        </Link>
-                        <button
-                          onClick={() => handleDelete(q._id)}
-                          disabled={deletingId === q._id}
-                          className="p-2 text-black-500 hover:text-red-600 hover:bg-red-50 rounded-xl transition disabled:opacity-50"
-                          title="Delete Record"
-                        >
-                          {deletingId === q._id ? <Loader2 className="w-4 h-4 animate-spin text-red-500" /> : <Trash2 className="w-4 h-4" />}
-                        </button>
-                      </div>
-                    </td>
+                    {hasColumnPermission('quotations', 'actions') && (
+                      <td className="p-4 text-center">
+                        <div className="flex items-center justify-center gap-1.5">
+                          <Link
+                            to={`/quotations/${q._id}`}
+                            className="p-2 text-black-500 hover:text-[#0e623a] hover:bg-[#0e623a]/5 rounded-xl transition"
+                            title="View & Print Quotation"
+                          >
+                            <Eye className="w-4 h-4" />
+                          </Link>
+                          <Link
+                            to={`/quotations/${q._id}/edit`}
+                            className="p-2 text-black-500 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition"
+                            title="Edit Quotation"
+                          >
+                            <Edit3 className="w-4 h-4" />
+                          </Link>
+                          <button
+                            onClick={() => handleDelete(q._id)}
+                            disabled={deletingId === q._id}
+                            className="p-2 text-black-500 hover:text-red-600 hover:bg-red-50 rounded-xl transition disabled:opacity-50"
+                            title="Delete Record"
+                          >
+                            {deletingId === q._id ? <Loader2 className="w-4 h-4 animate-spin text-red-500" /> : <Trash2 className="w-4 h-4" />}
+                          </button>
+                        </div>
+                      </td>
+                    )}
                   </tr>
                 ))}
 

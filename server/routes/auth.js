@@ -31,7 +31,7 @@ router.post('/register', async (req, res) => {
       name,
       email,
       password,
-      role: isFirstUser ? 'Admin' : 'Sales Executive',
+      role: isFirstUser ? 'Superadmin' : 'sales person',
       isApproved: isFirstUser ? true : false
     });
 
@@ -41,7 +41,7 @@ router.post('/register', async (req, res) => {
       userName: user.name,
       userRole: user.role,
       action: 'Register',
-      description: `Registered user ${user.name} (${user.email}). ${isFirstUser ? 'First user auto-promoted to Admin.' : 'Awaiting approval.'}`
+      description: `Registered user ${user.name} (${user.email}). ${isFirstUser ? 'First user auto-promoted to Superadmin.' : 'Awaiting approval.'}`
     });
 
     const permissions = await getMergedPermissions(user);

@@ -87,7 +87,7 @@ function App() {
           <Route path="/portal" element={<LandingPage />} />
           <Route path="/portal/dashboard" element={<CustomerDashboard />} />
 
-          {/* Public Admin/ERP Login Pages */}
+          {/* Public Superadmin/ERP Login Pages */}
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
 
