@@ -1988,7 +1988,7 @@ const CustomerDashboard = () => {
                 <p className="text-gray-600 leading-relaxed bg-gray-50 p-4 rounded-xl border border-gray-100">{selectedComplaint.description}</p>
               </div>
               
-              <div className="grid grid-cols-2 gap-4 text-sm mb-6">
+              <div className="grid grid-cols-2 gap-4 text-sm mb-4">
                 <div>
                   <p className="text-gray-400 font-bold uppercase text-[10px] tracking-wider mb-1">Token</p>
                   <p className="font-mono font-bold text-[#006838]">{selectedComplaint.token || '-'}</p>
@@ -1997,6 +1997,13 @@ const CustomerDashboard = () => {
                   <p className="text-gray-400 font-bold uppercase text-[10px] tracking-wider mb-1">Date Reported</p>
                   <p className="font-semibold text-gray-900">{new Date(selectedComplaint.reportedAt).toLocaleDateString()}</p>
                 </div>
+              </div>
+
+              <div className="mb-6 bg-emerald-50/50 p-4 rounded-xl border border-emerald-100 flex justify-between items-center">
+                <span className="text-emerald-800 font-bold uppercase text-[10px] tracking-wider">Finalized Amount</span>
+                <span className="font-bold text-emerald-700 text-lg">
+                  {selectedComplaint.pedPrice > 0 ? `Rs. ${selectedComplaint.pedPrice.toLocaleString()}` : (['Pending', 'Sent to PED'].includes(selectedComplaint.status) ? 'To Be Decided' : 'Rs. 0')}
+                </span>
               </div>
               
               {selectedComplaint.images && selectedComplaint.images.length > 0 && (

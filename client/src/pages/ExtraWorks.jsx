@@ -468,6 +468,7 @@ const handleRateChange = (workId, value) => {
 
       // Data
       filteredFlows.forEach(flow => {
+        const activeExtraWorksTotal = calculateActiveExtraWorksTotal(flow);
         const row = sheet.addRow([
           new Date(flow.createdAt).toLocaleDateString(),
           flow.lead?.name || '',
@@ -476,8 +477,8 @@ const handleRateChange = (workId, value) => {
           flow.project?.name || '',
           flow.unitId || '',
           flow.totalOriginalValue || 0,
-          flow.totalExtraWorksValue || 0,
-          flow.totalCurrentValue || 0
+          activeExtraWorksTotal,
+          (flow.totalOriginalValue || 0) + activeExtraWorksTotal
         ]);
         
         row.getCell(3).numFmt = '@'; // Force phone as text
@@ -503,6 +504,23 @@ const handleRateChange = (workId, value) => {
   if (!loading && !hasAnyPermission) {
     return <div className="p-8 text-center text-red-500 font-bold">Access Denied. You do not have permission to view Extra Works.</div>;
   }
+
+  const calculateActiveExtraWorksTotal = (flow) => {
+    let total = 0;
+    if (flow.stages) {
+      flow.stages.forEach(stage => {
+        if (stage.extraWorks) {
+          stage.extraWorks.forEach(work => {
+            if (!['Rejected', 'Removed by Client', 'Cancelled by Superadmin'].includes(work.status)) {
+              total += (work.amount || 0);
+            }
+          });
+        }
+      });
+    }
+    return total;
+  };
+
 
   return (
     <div className="p-6 md:p-8 w-full mx-auto space-y-6 animate-fade-in">
@@ -598,8 +616,8 @@ const handleRateChange = (workId, value) => {
                           <td className="px-4 py-3 font-medium text-gray-900">{flow.project?.name}</td>
                           <td className="px-4 py-3 font-bold text-emerald-600">{flow.unitId}</td>
                           <td className="px-4 py-3 text-right font-semibold text-gray-900">₹{flow.totalOriginalValue?.toLocaleString()}</td>
-                          <td className="px-4 py-3 text-right font-bold text-amber-600">₹{flow.totalExtraWorksValue?.toLocaleString()}</td>
-                          <td className="px-4 py-3 text-right font-black text-emerald-600">₹{flow.totalCurrentValue?.toLocaleString()}</td>
+                          <td className="px-4 py-3 text-right font-bold text-amber-600">₹{calculateActiveExtraWorksTotal(flow).toLocaleString()}</td>
+                          <td className="px-4 py-3 text-right font-black text-emerald-600">₹{(flow.totalOriginalValue + calculateActiveExtraWorksTotal(flow)).toLocaleString()}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -668,8 +686,8 @@ const handleRateChange = (workId, value) => {
                       <td className="px-6 py-4 font-medium text-gray-900">{flow.project?.name}</td>
                       <td className="px-6 py-4 text-emerald-600 font-bold">{flow.unitId}</td>
                       <td className="px-6 py-4 text-right font-bold text-gray-900">Rs. {flow.totalOriginalValue?.toLocaleString()}</td>
-                      <td className="px-6 py-4 text-right font-bold text-amber-600">Rs. {flow.totalExtraWorksValue?.toLocaleString()}</td>
-                      <td className="px-6 py-4 text-right font-black text-emerald-600">Rs. {flow.totalCurrentValue?.toLocaleString()}</td>
+                      <td className="px-6 py-4 text-right font-bold text-amber-600">Rs. {calculateActiveExtraWorksTotal(flow).toLocaleString()}</td>
+                      <td className="px-6 py-4 text-right font-black text-emerald-600">Rs. {(flow.totalOriginalValue + calculateActiveExtraWorksTotal(flow)).toLocaleString()}</td>
                       <td className="px-6 py-4 text-right text-emerald-600 font-bold hover:underline">
                         {isExpanded ? 'Close Details' : 'View Details'}
                       </td>
@@ -1009,7 +1027,31 @@ const handleRateChange = (workId, value) => {
                                               {work.sentToPedDate ? new Date(work.sentToPedDate).toLocaleDateString('en-GB') : '-'}
                                             </td>
                                             <td className="p-4 align-middle text-right font-bold text-[#006838]">
-                                              Rs. {(work.amount || 0).toLocaleString()}
+                                              {['Sent to PED', 'PED Approved', 'Sent to Customer', 'Client Approved', 'Sent to Accounts'].includes(work.status) && (isAdmin || canEditTab('ped')) ? (
+                                                <div className="flex flex-col items-end gap-1">
+                                                  <div className="flex items-center gap-1 justify-end">
+                                                    <span className="text-[11px] text-gray-500 font-normal">Rs.</span>
+                                                    <input
+                                                      type="number"
+                                                      value={rates[work._id] ?? work.rate ?? ''}
+                                                      onChange={(e) => handleRateChange(work._id, e.target.value)}
+                                                      onBlur={(e) => {
+                                                        if (rates[work._id] !== undefined && Number(rates[work._id]) !== Number(work.rate)) {
+                                                          handleSavePrice(flow._id, work.stageIdx, work._id);
+                                                        }
+                                                      }}
+                                                      className="w-20 px-2 py-1 bg-white border border-gray-300 rounded text-xs focus:outline-none focus:ring-1 focus:ring-[#006838] text-right"
+                                                      placeholder="Rate"
+                                                      onClick={(e) => e.stopPropagation()}
+                                                    />
+                                                  </div>
+                                                  {work.quantity > 1 && (
+                                                    <span className="text-[9px] text-gray-400 font-medium">Total: Rs. {(work.amount || 0).toLocaleString()}</span>
+                                                  )}
+                                                </div>
+                                              ) : (
+                                                `Rs. ${(work.amount || 0).toLocaleString()}`
+                                              )}
                                             </td>
                                             <td className="p-4 align-middle text-center text-[11px] text-gray-500">
                                               {work.pricingDate ? new Date(work.pricingDate).toLocaleDateString('en-GB') : '-'}
@@ -1026,22 +1068,7 @@ const handleRateChange = (workId, value) => {
                                                   {work.crdAddedDate ? new Date(work.crdAddedDate).toLocaleDateString('en-GB') : '-'}
                                                 </span>
                                                 <div className="flex items-center gap-2">
-                                                  {['Sent to PED', 'PED Approved', 'Sent to Customer', 'Client Approved', 'Sent to Accounts'].includes(work.status) && (
-                                                      <input
-                                                        type="number"
-                                                        disabled={!(isAdmin || canEditTab('ped'))}
-                                                        value={rates[work._id] ?? work.rate ?? ''}
-                                                        onChange={(e) => handleRateChange(work._id, e.target.value)}
-                                                        onBlur={(e) => {
-                                                          if (rates[work._id] !== undefined && Number(rates[work._id]) !== Number(work.rate)) {
-                                                            handleSavePrice(flow._id, work.stageIdx, work._id);
-                                                          }
-                                                        }}
-                                                        className="w-20 px-2 py-1 bg-white border border-gray-200 rounded text-xs focus:outline-none focus:ring-1 focus:ring-[#006838] disabled:bg-gray-100 disabled:cursor-not-allowed"
-                                                        placeholder="Rate"
-                                                        onClick={(e) => e.stopPropagation()}
-                                                      />
-                                                  )}
+
                                                   {['Added to CRD', 'Execution Sent to PED', 'Start Work', 'In Progress'].includes(work.status) && (
                                                       <select
                                                         value={work.status}
