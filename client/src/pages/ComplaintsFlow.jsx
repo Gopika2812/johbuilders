@@ -269,15 +269,7 @@ const ComplaintsFlow = () => {
         return <span className="text-gray-400 text-xs italic font-medium whitespace-nowrap">Shared to CRD (from PED)</span>;
       }
     } else if (t.status === 'Sent to Client (Completed)') {
-      if (isClient) {
-        actions.push(
-          <button key="client-feedback" onClick={() => setFeedbackModal(t)} className="px-3 py-1.5 bg-amber-500 text-white text-xs font-bold rounded-lg hover:bg-amber-600 flex items-center gap-1 shadow-sm">
-            <Star className="w-3.5 h-3.5" /> Submit Feedback
-          </button>
-        );
-      } else {
-        return <span className="text-gray-400 text-xs italic font-medium whitespace-nowrap">Shared to Client (Feedback)</span>;
-      }
+      return <span className="text-gray-400 text-xs italic font-medium whitespace-nowrap">Shared to Client (Feedback)</span>;
     } else if (t.status === 'Feedback Received' || t.status === 'Resolved') {
       return <span className="text-emerald-600 text-xs font-bold">Resolved</span>;
     } else if (t.status === 'Rejected') {
@@ -414,67 +406,6 @@ const ComplaintsFlow = () => {
           </table>
         </div>
       </div>
-
-      {/* Feedback Modal */}
-      {feedbackModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="bg-white rounded-3xl w-full max-w-sm shadow-2xl overflow-hidden animate-fade-in-up">
-            <div className="bg-gradient-to-r from-amber-400 to-amber-500 p-6 text-white text-center">
-              <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-3 backdrop-blur-md">
-                <Star className="w-8 h-8 text-white fill-white" />
-              </div>
-              <h3 className="font-bold text-xl">Rate Your Experience</h3>
-              <p className="text-amber-50 text-sm mt-1">We value your feedback!</p>
-            </div>
-            <div className="p-6">
-              <div className="flex justify-center gap-2 mb-6">
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <button
-                    key={star}
-                    type="button"
-                    className="focus:outline-none hover:scale-110 transition-transform"
-                    onMouseEnter={() => setHoverRating(star)}
-                    onMouseLeave={() => setHoverRating(0)}
-                    onClick={() => setFeedbackForm({ ...feedbackForm, rating: star })}
-                  >
-                    <Star
-                      className={`w-8 h-8 transition-colors ${
-                        star <= (hoverRating || feedbackForm.rating)
-                          ? 'fill-amber-400 text-amber-400 drop-shadow-sm'
-                          : 'fill-gray-100 text-gray-300'
-                      }`}
-                    />
-                  </button>
-                ))}
-              </div>
-              
-              <div className="mb-6 relative">
-                <MessageSquare className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
-                <textarea
-                  placeholder="Tell us what you loved or what we can improve..."
-                  className="w-full pl-9 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-400 focus:bg-white transition-all outline-none min-h-[100px] resize-none"
-                  value={feedbackForm.feedback}
-                  onChange={(e) => setFeedbackForm({ ...feedbackForm, feedback: e.target.value })}
-                />
-              </div>
-
-              <div className="flex gap-3">
-                  <button
-                    onClick={() => {
-                      handleAction(feedbackModal.complaintId, () => apiCall(`${API_URL}/tasks/${feedbackModal.flowId}/${feedbackModal.complaintId}/feedback`, 'PUT', feedbackForm));
-                      setFeedbackModal(null);
-                      setFeedbackForm({ rating: 0, feedback: '' });
-                    }}
-                    disabled={!feedbackForm.rating}
-                    className="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-3 px-4 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-md shadow-amber-500/20"
-                  >
-                    {actionLoading === feedbackModal.complaintId ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : 'Submit Feedback'}
-                  </button>
-                </div>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* History Modal */}
       {historyModal && (

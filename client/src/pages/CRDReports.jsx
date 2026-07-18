@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth, API_URL } from '../context/AuthContext';
 import * as XLSX from 'xlsx-js-style';
 import { htmlToStyledSheet } from '../utils/htmlToSheet';
+import { LOGO_BASE64 } from '../utils/logoBase64';
 import { 
   TrendingUp, 
   Calendar, 
@@ -51,15 +52,20 @@ const getExcelStyles = (titleBg, monthBg, headerBg, execBg) => {
 };
 
 const getExcelHeader = (titleText, monthTitle, totalColumns, themeColor, logoPath) => {
-    const safeCols = Math.max(4, totalColumns);
-    const logoCols = 3;
-    const textCols = safeCols - logoCols;
+    const safeCols = Math.max(3, totalColumns);
+    const webLogo = LOGO_BASE64;
+    const excelLogo = "file:///E:/builders/client/public/jb_logo.jpg";
     return `
-      <tr style="height: 80px;">
-        <td colspan="${logoCols}" class="title-row" style="border: 1px solid #000000; border-right: none; vertical-align:middle; text-align:center; height: 80px;">
-          <img src="${logoPath}" width="200" height="70" style="vertical-align: middle;" />
+      <tr style="height: 60px;">
+        <td colspan="2" class="title-row" style="background-color: #FFFFFF; border: 1px solid #000000; border-right: none; vertical-align:middle; text-align:center; height: 60px;">
+          <!--[if gte mso 9]>
+            <img src="${excelLogo}" width="150" height="52" style="vertical-align: middle;" />
+          <![endif]-->
+          <!--[if !mso]><!-->
+            <img src="${webLogo}" width="150" height="52" style="vertical-align: middle;" />
+          <!--<![endif]-->
         </td>
-        <td colspan="${textCols}" class="title-row" style="border: 1px solid #000000; border-left: none; vertical-align:middle; text-align:left; padding-left: 20px; font-size: 14pt; font-weight: bold; color: #000000; height: 80px;">
+        <td colspan="${safeCols - 2}" class="title-row text-center" style="background-color: #FCE4D6; color: #000000; border: 1px solid #000000; border-left: none; vertical-align:middle; text-align:center; font-size: 14pt; font-weight: bold; height: 60px;">
           ${titleText}
         </td>
       </tr>
@@ -308,7 +314,8 @@ const ObservedBarChart = ({ dataArray, xKey, yKey, barColor, isPercent = false }
 
 const KPIInsights = () => {
   const { token, user } = useAuth();
-  const logoPath = window.location.origin + "/jb_logo.jpg";
+  // Use the absolute local file path provided by the user so Excel can render it locally
+  const logoPath = "file:///E:/builders/client/public/jb_logo.jpg";
   
   // Date filters - default to current month
   const [fromDate, setFromDate] = useState(() => new Date().toISOString().split('T')[0]);
@@ -457,6 +464,7 @@ const KPIInsights = () => {
             }
             
             if (allClass.includes('text-left')) cell.s.alignment.horizontal = 'left';
+            if (allClass.includes('text-center')) cell.s.alignment.horizontal = 'center';
             if (allClass.includes('text-right')) cell.s.alignment.horizontal = 'right';
             if (allClass.includes('font-bold')) cell.s.font.bold = true;
           }
@@ -2898,88 +2906,129 @@ const KPIInsights = () => {
     }
   };
 
-  const handleExportParameterReport = (options = {}) => {
+  const handleExportParameterReport = async (options = {}) => {
     try {
       setLoading(true);
 
       const dateForMonth = fromDate ? new Date(fromDate) : new Date();
       const monthNames = ["JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE", "JULY", "AUGUST", "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER"];
-      const monthYearTitle = `COLLECTION PARAMETER REPORT ${monthNames[dateForMonth.getMonth()]} - ${dateForMonth.getFullYear()}`;
+      const monthStr = `${dateForMonth.getFullYear()}-${String(dateForMonth.getMonth() + 1).padStart(2, '0')}`;
+      
+      const res = await fetch(`${API_URL}/parameter-plans/${monthStr}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (!res.ok) throw new Error('Failed to fetch parameter data');
+      const data = await res.json();
 
-      const ws = XLSX.utils.aoa_to_sheet([]);
-
-      const data = [
-        [monthYearTitle, "", "", "", "", "", "", "", "", "", "", ""],
-        ["", "", "", "", "", "", "", "Week 1", "Week 2", "Week 3", "Week 4", "Week 5"],
-        ["S NO", "COLLECTIONS", "TOTAL", "Unit", "TARGET", "ACTUAL", "%", "ACTUAL", "ACTUAL", "ACTUAL", "ACTUAL", "ACTUAL"],
-        [1, "No.of Registrations ( 45 days)", 30, "Nos", 13, 0, "0%", 0, "", "", "", ""],
-        [2, "No.of Key Handover", 16, "Nos", 6, 0, "0%", 0, "", "", "", ""],
-        [3, "Total Debtors", 15.14, "Cr", 5.53, 0.90, "16%", 0.90, "", "", "", ""],
-        [4, "Collection Amount (<60 Days)", 8.36, "Cr", 1.03, 0.61, "59%", 0.61, "", "", "", ""],
-        [5, "NPA Value (>60 Days)", 6.78, "Cr", 4.5, 0.29, "6%", 0.29, "", "", "", ""],
-        [6, "Bank Loans (15 Days)", 8, "Nos", 5, 0, "0%", 0, "", "", "", ""],
-        [7, "Critical Customers Issues fixed", 5, "Nos", 0, 0, "#DIV/0!", 0, "", "", "", ""],
-        [8, "Customer Compliants (15 Days)", 12, "Nos", 6, 0, "0%", 0, 0, "", "", ""],
-        [9, "Additional Work Approvals (15 days)", 12, "Nos", 8, 6, "75%", 3, 3, "", "", ""],
-        [10, "To Do tasks", 24, "Nos", 18, 9, "50%", 3, 6, "", "", ""],
-        ["", "", "", "", "", "", "", "", "", "", "", ""],
-        ["", "Over all Percentage", "", "", "", "", "#DIV/0!", "", "", "", "", ""]
-      ];
-
-      XLSX.utils.sheet_add_aoa(ws, data, { origin: "A1" });
-
-      ws['!merges'] = [
-        { s: { r: 0, c: 0 }, e: { r: 0, c: 11 } }
-      ];
-
-      ws['!cols'] = [
-        { wch: 8 },  { wch: 35 }, { wch: 10 }, { wch: 8 },  
-        { wch: 10 }, { wch: 10 }, { wch: 8 },  { wch: 10 }, 
-        { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 10 }
-      ];
-
-      const headerBorder = {
-        top: { style: 'thin', color: { rgb: "000000" } },
-        bottom: { style: 'thin', color: { rgb: "000000" } },
-        left: { style: 'thin', color: { rgb: "000000" } },
-        right: { style: 'thin', color: { rgb: "000000" } }
+      const fmt = (val, isFloat) => {
+          if (val === undefined || val === null) return 0;
+          return isFloat ? Number(val).toFixed(2) : Math.round(val);
+      };
+      
+      const calculatePercentage = (actual, target) => {
+        if (!target || target <= 0) return '0%';
+        const pct = (actual / target) * 100;
+        return `${pct.toFixed(0)}%`;
       };
 
-      for (let R = 0; R < data.length; R++) {
-        for (let C = 0; C < 12; C++) {
-          const address = XLSX.utils.encode_cell({ r: R, c: C });
-          if (!ws[address]) ws[address] = { v: '', t: 's' };
-          
-          let cellStyle = {
-            border: headerBorder,
-            alignment: { horizontal: "center", vertical: "center" },
-            font: { name: "Arial", sz: 10, color: { rgb: "000000" } }
-          };
+      const rows = [
+        { label: 'No.of Registrations ( 45 days)', key: 'registrationsTarget', actKey: 'registrations', unit: 'Nos', isFloat: false },
+        { label: 'No.of Key Handover', key: 'keyHandoverTarget', actKey: 'keyHandover', unit: 'Nos', isFloat: false },
+        { label: 'Total Debtors', key: 'totalDebtorsTarget', actKey: 'totalDebtors', unit: 'Cr', isFloat: true },
+        { label: 'Collection Amount (<60 Days)', key: 'collectionAmountTarget', actKey: 'collectionAmount', unit: 'Cr', isFloat: true },
+        { label: 'NPA Value (>60 Days)', key: 'npaValueTarget', actKey: 'npaValue', unit: 'Cr', isFloat: true },
+        { label: 'Bank Loans (15 Days)', key: 'bankLoansTarget', actKey: 'bankLoans', unit: 'Nos', isFloat: false },
+        { label: 'Critical Customers Issues fixed', key: 'criticalIssuesTarget', actKey: 'criticalIssues', unit: 'Nos', isFloat: false },
+        { label: 'Customer Complaints (15 Days)', key: 'customerComplaintsTarget', actKey: 'customerComplaints', unit: 'Nos', isFloat: false },
+        { label: 'Additional Work Approvals (15 days)', key: 'extraWorksTarget', actKey: 'extraWorks', unit: 'Nos', isFloat: false }
+      ];
 
-          if (R === 0) {
-            cellStyle.fill = { fgColor: { rgb: "FFFF00" } };
-            cellStyle.font = { name: "Arial", sz: 12, bold: true, color: { rgb: "FF0000" } };
-          } else if (R === 1) {
-            if (C >= 7) {
-              cellStyle.fill = { fgColor: { rgb: "92D050" } };
-              cellStyle.font = { name: "Arial", sz: 10, bold: true, color: { rgb: "FF0000" } };
-            } else {
-              cellStyle.fill = { fgColor: { rgb: "92D050" } };
-            }
-          } else if (R === 2) {
-            cellStyle.fill = { fgColor: { rgb: "A64040" } };
-            cellStyle.font = { name: "Arial", sz: 10, bold: true, color: { rgb: "FFFFFF" } };
-          } else {
-            if (C === 1 && R !== 14) cellStyle.alignment.horizontal = "left";
-          }
-          
-          ws[address].s = cellStyle;
+      const monthYearTitle = `COLLECTION PARAMETER REPORT ${monthNames[dateForMonth.getMonth()]} - ${dateForMonth.getFullYear()}`;
+      
+      let html = `
+        <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+        <head>
+          <meta charset="utf-8">
+          ${getExcelStyles("#FCE4D6", "#DDEBF7", "#FCE4D6", "#DDEBF7")}
+        </head>
+        <body>
+          <table>
+            ${getExcelHeader("JB - COLLECTION PARAMETER REPORT", monthYearTitle, 12, "#16a34a", logoPath)}
+            
+            <tr class="table-headers">
+              <th colspan="7"></th>
+              <th class="bg-header-green">Week 1</th>
+              <th class="bg-header-green">Week 2</th>
+              <th class="bg-header-green">Week 3</th>
+              <th class="bg-header-green">Week 4</th>
+              <th class="bg-header-green">Week 5</th>
+            </tr>
+            <tr class="table-headers" style="background-color: #A64040; color: white;">
+              <th>S NO</th>
+              <th>COLLECTIONS</th>
+              <th>TOTAL</th>
+              <th>Unit</th>
+              <th>TARGET</th>
+              <th>ACTUAL</th>
+              <th>%</th>
+              <th>ACTUAL</th>
+              <th>ACTUAL</th>
+              <th>ACTUAL</th>
+              <th>ACTUAL</th>
+              <th>ACTUAL</th>
+            </tr>
+      `;
+
+      let totalPct = 0;
+      let validRows = 0;
+
+      rows.forEach((row, index) => {
+        const targetVal = data.target?.[row.key] || 0;
+        const actObj = data.actuals?.[row.actKey] || { actual: 0, total: 0, w1: 0, w2: 0, w3: 0, w4: 0, w5: 0 };
+        
+        if (targetVal > 0) {
+          totalPct += (actObj.actual / targetVal) * 100;
+          validRows++;
         }
+
+        const rowClass = index % 2 === 1 ? 'class="even-row"' : '';
+        html += `
+          <tr ${rowClass}>
+            <td style="text-align: center">${index + 1}</td>
+            <td style="text-align: left; font-weight: bold">${row.label}</td>
+            <td style="text-align: center; font-weight: bold">${fmt(actObj.total, row.isFloat)}</td>
+            <td style="text-align: center">${row.unit}</td>
+            <td style="text-align: center">${targetVal}</td>
+            <td style="text-align: center; font-weight: bold; color: #006838">${fmt(actObj.actual, row.isFloat)}</td>
+            <td style="text-align: center; font-weight: bold">${calculatePercentage(actObj.actual, targetVal)}</td>
+            <td style="text-align: center">${fmt(actObj.w1, row.isFloat)}</td>
+            <td style="text-align: center">${fmt(actObj.w2, row.isFloat)}</td>
+            <td style="text-align: center">${fmt(actObj.w3, row.isFloat)}</td>
+            <td style="text-align: center">${fmt(actObj.w4, row.isFloat)}</td>
+            <td style="text-align: center">${fmt(actObj.w5, row.isFloat)}</td>
+          </tr>
+        `;
+      });
+
+      const overallPerformance = validRows === 0 ? '0%' : `${(totalPct / validRows).toFixed(0)}%`;
+
+      html += `
+          <tr class="bg-black-row">
+            <td colspan="2"></td>
+            <td colspan="4" style="text-align: right; font-weight: bold">Over all Percentage</td>
+            <td style="text-align: center; font-weight: bold; background-color: #C6E0B4">${overallPerformance}</td>
+            <td colspan="5"></td>
+          </tr>
+        </table>
+      </body>
+      </html>
+      `;
+
+      if (options.returnWorksheet) {
+        return htmlToStyledSheet(html, XLSX);
       }
-
-      if (options.returnWorksheet) return ws;
-
-      handlePreview(ws, COLLECTION_PARAMETER_REPORT__.xlsx, true);
+      
+      handlePreview(html, `JB_PARAMETER_REPORT_${dateForMonth.getFullYear()}_${dateForMonth.getMonth() + 1}.xls`);
     } catch (err) {
       console.error(err);
       alert('Error exporting Parameter Report');
@@ -3048,21 +3097,30 @@ const KPIInsights = () => {
           }
       };
 
-      await convertHtmlToSheet(handleExportParameterReport, 'Parameter Report', true);
-      await convertHtmlToSheet(handleExportRegistrationReport, 'Registration Report');
-      await convertHtmlToSheet(handleExportKeyHandoverReport, 'Key Handover Report');
-      await convertHtmlToSheet(handleExportCollectionReport, 'Collection Report');
-      await convertHtmlToSheet(handleExportNPAReport, 'NPA Collected Reports', true);
-      await convertHtmlToSheet(handleExportComplaintsReport, 'Complaints Report');
-      await convertHtmlToSheet(handleExportBankLoanReport, 'Bank Loan Report');
-      await convertHtmlToSheet(handleExportExtraWorksReport, 'Extra Works Report');
+      const tryConvert = async (func, name, isWs) => {
+        try {
+          await convertHtmlToSheet(func, name, isWs);
+        } catch(e) {
+          console.error(`Error in ${name}:`, e);
+          alert(`Error in ${name}: ${e.message}`);
+        }
+      };
+
+      await tryConvert(handleExportParameterReport, 'Parameter Report', true);
+      await tryConvert(handleExportRegistrationReport, 'Registration Report');
+      await tryConvert(handleExportKeyHandoverReport, 'Key Handover Report');
+      await tryConvert(handleExportCollectionReport, 'Collection Report');
+      await tryConvert(handleExportNPAReport, 'NPA Collected Reports', true);
+      await tryConvert(handleExportComplaintsReport, 'Complaints Report');
+      await tryConvert(handleExportBankLoanReport, 'Bank Loan Report');
+      await tryConvert(handleExportExtraWorksReport, 'Extra Works Report');
       
       if (allSheets.length > 0) {
         setPreviewSheets(allSheets);
         setCurrentSheetIndex(0);
         setPreviewHtml(allSheets[0].html);
         if (allSheets[0].originalWs) setPreviewOriginalWs(allSheets[0].originalWs);
-        setPreviewFilename(`ALL_CRD_REPORTS_${new Date().toLocaleDateString('en-GB').replace(/\\//g, '-')}.xlsx`);
+        setPreviewFilename(`ALL_CRD_REPORTS_${new Date().toLocaleDateString('en-GB').replace(/\//g, '-')}.xlsx`);
         setPreviewModalOpen(true);
       }
     } catch (err) {

@@ -31,6 +31,7 @@ import OverallReport from './pages/OverallReport';
 import BudgetPlanning from './pages/BudgetPlanning';
 import LeadTargetPlanning from './pages/LeadTargetPlanning';
 import SummaryPlanning from './pages/SummaryPlanning';
+import ParameterPlanning from './pages/ParameterPlanning';
 import KPIInsights from './pages/KPIInsights';
 import Customers from './pages/Customers';
 import ExportReports from './pages/ExportReports';
@@ -137,6 +138,7 @@ function App() {
             <Route path="/finance/budget-planning" element={<Layout><BudgetPlanning /></Layout>} />
             <Route path="/finance/lead-target-planning" element={<Layout><LeadTargetPlanning /></Layout>} />
             <Route path="/finance/summary-planning" element={<Layout><SummaryPlanning /></Layout>} />
+            <Route path="/finance/parameter-planning" element={<Layout><ParameterPlanning /></Layout>} />
 
             {/* Administration / Utilities */}
             <Route path="/access-control" element={<Layout><AccessControl /></Layout>} />

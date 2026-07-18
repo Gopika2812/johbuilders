@@ -401,6 +401,18 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
                     <span className={isExpanded ? "block truncate" : "hidden"}>Summary Planning</span>
                   </Link>
                 )}
+                {hasPermission('Finance & Accounts', 'read') && (
+                  <Link
+                    to="/finance/parameter-planning"
+                    className={`block px-4 py-2.5 text-sm transition-all duration-200 rounded-lg ${
+                      isActive('/finance/parameter-planning')
+                        ? 'text-emerald-400 font-extrabold pl-2'
+                        : 'text-white hover:text-emerald-400 hover:bg-white/5'
+                    }`}
+                  >
+                    <span className={isExpanded ? "block truncate" : "hidden"}>Parameter Planning</span>
+                  </Link>
+                )}
               </div>
             )}
           </div>

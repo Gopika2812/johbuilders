@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import XLSX from 'xlsx-js-style';
+import { htmlToStyledSheet } from '../utils/htmlToSheet';
+import { LOGO_BASE64 } from '../utils/logoBase64';
 import { useAuth, API_URL } from '../context/AuthContext';
 import { TrendingUp, Download, Calendar, MapPin,   DollarSign, 
   Target,
@@ -32,28 +34,30 @@ const getExcelStyles = (titleBg, monthBg, headerBg, execBg) => {
       .title-row { font-size: 11pt; font-weight: bold; color: #000000; background-color: ${titleBg || '#FCE4D6'}; text-align: center; }
       .month-header { height: 22px; vertical-align: middle; font-size: 10pt; font-weight: bold; background-color: ${monthBg || '#DDEBF7'}; border: 1px solid #000000; text-align: center; text-transform: uppercase; }
       .exec-banner { background-color: ${execBg || '#DDEBF7'}; font-weight: bold; text-align: left; }
-      .bg-header-blue { background-color: #5B9BD5 !important; color: #000000 !important; font-weight: bold; text-align: center; }
+      .bg-header-blue { background-color: #9BC2E6 !important; color: #000000 !important; font-weight: bold; text-align: center; }
       .bg-header-green { background-color: #C6E0B4 !important; color: #000000 !important; font-weight: bold; text-align: center; }
       .bg-black-row { background-color: #D9D9D9 !important; color: #000000 !important; }
-      .bg-orange-pct { background-color: #F8CBAD !important; color: #000000 !important; font-weight: bold; text-align: center; }
+      .bg-orange-pct { background-color: #F4B084 !important; color: #000000 !important; font-weight: bold; text-align: center; }
+      .bg-light-green { background-color: #E2EFDA !important; }
       
       .font-bold { font-weight: bold; color: #000000; }
       .text-left { text-align: left; }
       .text-right { text-align: right; }
+      .text-center { text-align: center; }
     </style>
   `;
 };
 
-const getExcelHeader = (titleText, monthTitle, totalColumns, themeColor, logoPath) => {
-    const safeCols = Math.max(4, totalColumns);
-    const logoCols = 3;
-    const textCols = safeCols - logoCols;
+const getExcelHeader = (titleText, monthTitle, totalColumns, themeColor) => {
+    const safeCols = Math.max(1, totalColumns);
     return `
-      <tr style="height: 80px;">
-        <td colspan="${logoCols}" class="title-row" style="border: 1px solid #000000; border-right: none; vertical-align:middle; text-align:center; height: 80px;">
-          <img src="${logoPath}" width="200" height="70" style="vertical-align: middle;" />
+      <tr style="height: 60px;">
+        <td colspan="${safeCols}" class="title-row" style="border: 1px solid #000000; border-bottom: none; vertical-align:middle; text-align:center; height: 60px;">
+          <img src="${LOGO_BASE64}" width="150" height="52" style="vertical-align: middle;" />
         </td>
-        <td colspan="${textCols}" class="title-row" style="border: 1px solid #000000; border-left: none; vertical-align:middle; text-align:left; padding-left: 20px; font-size: 14pt; font-weight: bold; color: #000000; height: 80px;">
+      </tr>
+      <tr style="height: 40px;">
+        <td colspan="${safeCols}" class="title-row" style="border: 1px solid #000000; border-top: none; vertical-align:middle; text-align:center; font-size: 14pt; font-weight: bold; color: #000000; height: 40px;">
           ${titleText}
         </td>
       </tr>
@@ -63,7 +67,7 @@ const getExcelHeader = (titleText, monthTitle, totalColumns, themeColor, logoPat
           ${monthTitle}
         </td>
       </tr>` : ''}
-
+      <tr><td colspan="${safeCols}" style="border:none; height: 15px;"></td></tr>
     `;
   };
 
@@ -302,7 +306,6 @@ const ObservedBarChart = ({ dataArray, xKey, yKey, barColor, isPercent = false }
 
 const ExportReports = () => {
   const { token, user } = useAuth();
-  const logoPath = window.location.origin + "/jb_logo.jpg";
   
   // Date filters - default to current month
   const [fromDate, setFromDate] = useState(() => new Date().toISOString().split('T')[0]);
@@ -366,6 +369,27 @@ const ExportReports = () => {
              }
           }
 
+          const cellMatrix = [];
+          for (let r = 0; r < table.rows.length; r++) {
+            cellMatrix[r] = cellMatrix[r] || [];
+            let cExcel = 0;
+            for (let cHtml = 0; cHtml < table.rows[r].cells.length; cHtml++) {
+              const htmlCell = table.rows[r].cells[cHtml];
+              while (cellMatrix[r][cExcel]) {
+                cExcel++;
+              }
+              const rowSpan = parseInt(htmlCell.getAttribute('rowspan') || '1');
+              const colSpan = parseInt(htmlCell.getAttribute('colspan') || '1');
+              for (let rs = 0; rs < rowSpan; rs++) {
+                for (let cs = 0; cs < colSpan; cs++) {
+                  cellMatrix[r + rs] = cellMatrix[r + rs] || [];
+                  cellMatrix[r + rs][cExcel + cs] = htmlCell;
+                }
+              }
+              cExcel += colSpan;
+            }
+          }
+
           const ws = XLSX.utils.table_to_sheet(table, { raw: true });
           const borderStyle = { style: 'thin', color: { rgb: '000000' } };
           const border = { top: borderStyle, bottom: borderStyle, left: borderStyle, right: borderStyle };
@@ -384,7 +408,8 @@ const ExportReports = () => {
 
             const tr = table.rows[rowNum];
             if (!tr) continue;
-            const cellClasses = table.rows[rowNum].cells[coord.c]?.className || '';
+            const htmlCell = cellMatrix[rowNum] ? cellMatrix[rowNum][coord.c] : null;
+            const cellClasses = htmlCell ? htmlCell.className : '';
             const rowClasses = tr.className || '';
             const allClass = cellClasses + ' ' + rowClasses;
 
@@ -416,9 +441,10 @@ const ExportReports = () => {
               cell.s.fill = { fgColor: { rgb: execBg } };
               cell.s.font.bold = true;
               cell.s.alignment.horizontal = 'left';
+              if (allClass.includes('text-red')) cell.s.font.color = { rgb: 'FF0000' };
             }
             else if (allClass.includes('bg-header-blue')) {
-              cell.s.fill = { fgColor: { rgb: '5B9BD5' } };
+              cell.s.fill = { fgColor: { rgb: '9BC2E6' } };
               cell.s.font.bold = true;
             }
             else if (allClass.includes('bg-header-green')) {
@@ -429,12 +455,16 @@ const ExportReports = () => {
               cell.s.fill = { fgColor: { rgb: 'D9D9D9' } };
             }
             else if (allClass.includes('bg-orange-pct')) {
-               cell.s.fill = { fgColor: { rgb: 'F8CBAD' } };
+               cell.s.fill = { fgColor: { rgb: 'F4B084' } };
                cell.s.font.bold = true;
+            }
+            else if (allClass.includes('bg-light-green')) {
+               cell.s.fill = { fgColor: { rgb: 'E2EFDA' } };
             }
             
             if (allClass.includes('text-left')) cell.s.alignment.horizontal = 'left';
             if (allClass.includes('text-right')) cell.s.alignment.horizontal = 'right';
+            if (allClass.includes('text-center')) cell.s.alignment.horizontal = 'center';
             if (allClass.includes('font-bold')) cell.s.font.bold = true;
           }
 
@@ -583,18 +613,30 @@ const ExportReports = () => {
         
       const monthNames = ["JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE", "JULY", "AUGUST", "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER"];
       const dateForMonth = fromDate ? new Date(fromDate) : new Date();
-      const monthTitle = `MONTH OF ${monthNames[dateForMonth.getMonth()]} - ${dateForMonth.getFullYear()}`;
-
       // Build HTML
+      const monthTitle = `MONTH OF ${monthNames[dateForMonth.getMonth()]}- ${dateForMonth.getFullYear()}`;
       let html = `
         <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
         <head>
           <meta charset="utf-8">
-          ${getExcelStyles("#FCE4D6", "#DDEBF7", "#FCE4D6", "#DDEBF7")}
+          ${getExcelStyles("#FCE4D6", "#DDEBF7", "#FADADD", "#00B0F0")}
         </head>
         <body>
           <table>
-            ${getExcelHeader(titleText, monthTitle, 11, "#16a34a", logoPath)}
+            ${getExcelHeader(titleText, monthTitle, 10, "#FCE4D6")}
+          <!-- Table Headers -->
+          <tr class="table-headers">
+            <th>S.No</th>
+            <th>Enquirydate</th>
+            <th>LeadName</th>
+            <th>ContactNumber</th>
+            <th>AssignedTo</th>
+            <th>EnquiryMode</th>
+            <th>Project</th>
+            <th>Place</th>
+            <th>LeadStatus</th>
+            <th>SalesExecutiveRemarks</th>
+          </tr>
       `;
 
       // Group leads by assigned executive to insert executive banner row (as seen in screenshot: "Veni" blue banner stretching across!)
@@ -611,21 +653,16 @@ const ExportReports = () => {
         // Executive banner row
         html += `
           <tr>
-            <td colspan="11" class="exec-banner">${execName.toUpperCase()}</td>
-          </tr>
-          <!-- Table Headers -->
-          <tr class="table-headers">
-            <th>S.No</th>
-            <th>Enquiry date</th>
-            <th>Lead Name</th>
-            <th>Contact Number</th>
-            <th>Assigned By</th>
-            <th>Assigned To</th>
-            <th>Enquiry Mode</th>
-            <th>Project</th>
-            <th>Place</th>
-            <th>Lead Status</th>
-            <th>sales person Remarks</th>
+            <td class="exec-banner"></td>
+            <td class="exec-banner"></td>
+            <td class="exec-banner"></td>
+            <td class="exec-banner"></td>
+            <td class="exec-banner"></td>
+            <td class="exec-banner text-red"><span style="color: red; font-weight: bold;">${execName}</span></td>
+            <td class="exec-banner"></td>
+            <td class="exec-banner"></td>
+            <td class="exec-banner"></td>
+            <td class="exec-banner"></td>
           </tr>
         `;
 
@@ -646,16 +683,15 @@ const ExportReports = () => {
 
           html += `
             <tr ${rowClass}>
-              <td>${globalSNo++}</td>
-              <td>${dateStr}</td>
+              <td class="text-center">${globalSNo++}</td>
+              <td class="text-left">${dateStr}</td>
               <td class="text-left bold-label">${lead.name || ''}</td>
-              <td>${phoneStr}</td>
-              <td>${assignerStr}</td>
-              <td>${execName.toUpperCase()}</td>
-              <td>${sourceStr}</td>
-              <td>${projectStr}</td>
-              <td>${placeStr}</td>
-              <td>${statusStr}</td>
+              <td class="text-left">${phoneStr}</td>
+              <td class="text-left">${execName.toUpperCase()}</td>
+              <td class="text-left">${sourceStr}</td>
+              <td class="text-left">${projectStr}</td>
+              <td class="text-left">${placeStr}</td>
+              <td class="text-left">${statusStr}</td>
               <td class="text-left">${remarksStr}</td>
             </tr>
           `;
@@ -743,7 +779,7 @@ const ExportReports = () => {
         </head>
         <body>
           <table>
-            ${getExcelHeader(titleText, monthTitle, 9, "#2563eb", logoPath)}
+            ${getExcelHeader(titleText, monthTitle, 9, "#2563eb")}
       `;
 
       // Group leads by assigned executive
@@ -886,7 +922,7 @@ const ExportReports = () => {
         </head>
         <body>
           <table>
-            ${getExcelHeader(titleText, monthTitle, 7, "#ea580c", logoPath)}
+            ${getExcelHeader(titleText, monthTitle, 7, "#ea580c")}
       `;
 
       // Group leads by assigned executive
@@ -1036,7 +1072,7 @@ const ExportReports = () => {
         </head>
         <body>
           <table>
-            ${getExcelHeader(titleText, monthTitle, 8, "#15803d", logoPath)}
+            ${getExcelHeader(titleText, monthTitle, 8, "#15803d")}
             <!-- Table Headers -->
             <tr class="table-headers">
               <th>S.NO.</th>
@@ -1201,11 +1237,12 @@ const ExportReports = () => {
       const marketingRowsList = [];
       let mSNo = 1;
       Object.keys(marketingStatsData.groups || {}).forEach(name => {
+        if (name.toLowerCase() === 'direct') return; // Filter out direct
         const statsObj = marketingStatsData.groups[name];
         const targetVal = marketingTargetsMap[name] || 0;
         marketingRowsList.push({
           sNo: mSNo++,
-          name: name,
+          name: name.toUpperCase(),
           target: targetVal,
           actual: statsObj.actual,
           w1: statsObj.w1,
@@ -1264,57 +1301,61 @@ const ExportReports = () => {
         <body>
           <table>
             <!-- PHASE 1: Turnover Plan Table -->
-            <thead>
               <tr style="height: 80px;">
-                <td colspan="2" class="bg-header-blue" style="height: 80px; text-align: center; vertical-align: middle;">
-      <img src="${logoPath}" width="200" height="70" style="vertical-align: middle;" />
-   </td>
-   <td colspan="8" class="bg-header-blue font-bold" style="font-size: 14pt; font-weight: bold; height: 80px; text-align: left; padding-left: 20px; vertical-align: middle;">
-      SALES PARAMETER REPORT
-   </td>
+                <td colspan="2" class="bg-header-blue" style="height: 80px; text-align: center; vertical-align: middle; border: 1px solid #000000; border-right: none;">
+                  <!--[if gte mso 9]>
+                    <img src="file:///E:/builders/client/public/jb_logo.jpg" width="150" height="52" style="vertical-align: middle;" />
+                  <![endif]-->
+                  <!--[if !mso]><!-->
+                    <img src="${LOGO_BASE64}" width="150" height="52" style="vertical-align: middle;" />
+                  <!--<![endif]-->
+                </td>
+                <td colspan="8" class="bg-header-blue font-bold" style="font-size: 14pt; font-weight: bold; height: 80px; text-align: center; vertical-align: middle; border: 1px solid #000000; border-left: none;">
+                  JB ${projCode.toUpperCase()} SALES PARAMETER REPORT
+                </td>
               </tr>
               <tr>
-                <th class="bg-header-green" style="width: 50px;">S.No</th>
-                <th class="bg-header-green" style="width: 250px;">TOTAL SALES PROJECTION ${dateForMonth.getFullYear() - 1} - ${dateForMonth.getFullYear().toString().substring(2)}</th>
-                <th class="bg-header-green" style="width: 180px;">TOTAL</th>
-                <th class="bg-header-green" style="width: 80px;">UNIT</th>
-                <th class="bg-header-green" style="width: 100px;">ACHIEVED</th>
-                <th class="bg-header-green" style="width: 100px;">BALANCE</th>
-                <th class="bg-header-green" style="width: 130px;">LAST MONTH ACHIEVED</th>
-                <th colspan="3" rowspan="3" class="bg-header-green font-bold" style="font-size: 11pt; vertical-align: middle; text-align: center;">
+                <td class="bg-header-green font-bold text-center" style="width: 50px;">S.No</td>
+                <td colspan="2" class="bg-header-green font-bold text-center" style="width: 250px;">TOTAL SALES PROJECTION ${dateForMonth.getFullYear() - 1} - ${dateForMonth.getFullYear().toString().substring(2)}</td>
+                <td class="bg-header-green font-bold text-center" style="width: 180px;">TOTAL</td>
+                <td class="bg-header-green font-bold text-center" style="width: 80px;">UNIT</td>
+                <td class="bg-header-green font-bold text-center" style="width: 100px;">ACHIEVED</td>
+                <td class="bg-header-green font-bold text-center" style="width: 100px;">BALANCE</td>
+                <td class="bg-header-green font-bold text-center" style="width: 130px;">LAST MONTH ACHIEVED</td>
+                <td colspan="2" class="bg-header-green font-bold" style="font-size: 11pt; vertical-align: middle; text-align: center;">
                   ${shortMonthHeader}
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td>1</td>
-                <td class="text-left font-bold">Overall Sales Target</td>
-                <td class="text-right font-bold">${sTarget}</td>
-                <td>Crores</td>
-                <td class="text-right">${currentAchieved.salesValue.toFixed(2)}</td>
-                <td class="text-right">${Math.max(0, sTarget - currentAchieved.salesValue).toFixed(2)}</td>
-                <td class="text-right">${lastMonthAchieved.salesValue.toFixed(2)}</td>
+                </td>
               </tr>
               <tr>
-                <td>2</td>
-                <td class="text-left font-bold">Total Houses to be Sold</td>
-                <td class="text-right font-bold">${hTarget}</td>
-                <td>Units</td>
-                <td class="text-right">${currentAchieved.villasCount}</td>
-                <td class="text-right">${Math.max(0, hTarget - currentAchieved.villasCount)}</td>
-                <td class="text-right">${lastMonthAchieved.villasCount}</td>
+                <td class="text-center">1</td>
+                <td colspan="2" class="text-left font-bold">Overall Sales Target</td>
+                <td class="text-center font-bold">${sTarget}</td>
+                <td class="text-center">Crores</td>
+                <td class="text-center">${currentAchieved.salesValue.toFixed(2)}</td>
+                <td class="text-center">${Math.max(0, sTarget - currentAchieved.salesValue).toFixed(2)}</td>
+                <td class="text-center">${lastMonthAchieved.salesValue.toFixed(2)}</td>
+                <td colspan="2" class="bg-header-green" style="border: 1px solid #000000; border-bottom: none; border-top: none;"></td>
               </tr>
               <tr>
-                <td>3</td>
-                <td class="text-left font-bold">Total Plots to be Sold</td>
-                <td class="text-right font-bold">${pTarget}</td>
-                <td>Units</td>
-                <td class="text-right">${currentAchieved.plotsCount}</td>
-                <td class="text-right">${Math.max(0, pTarget - currentAchieved.plotsCount)}</td>
-                <td class="text-right">${lastMonthAchieved.plotsCount}</td>
-                <td colspan="2" class="font-bold bg-header-green" style="font-size: 10pt;">DATE:</td>
-                <td class="bg-header-green" style="font-size: 10pt;">${todayFormatted}</td>
+                <td class="text-center">2</td>
+                <td colspan="2" class="text-left font-bold">Total Houses to be Sold</td>
+                <td class="text-center font-bold">${hTarget}</td>
+                <td class="text-center">Units</td>
+                <td class="text-center">${currentAchieved.villasCount}</td>
+                <td class="text-center">${Math.max(0, hTarget - currentAchieved.villasCount)}</td>
+                <td class="text-center">${lastMonthAchieved.villasCount}</td>
+                <td colspan="2" class="bg-header-green" style="border: 1px solid #000000; border-top: none; border-bottom: none;"></td>
+              </tr>
+              <tr>
+                <td class="text-center">3</td>
+                <td colspan="2" class="text-left font-bold">Total Plots to be Sold</td>
+                <td class="text-center font-bold">${pTarget}</td>
+                <td class="text-center">Units</td>
+                <td class="text-center">${currentAchieved.plotsCount}</td>
+                <td class="text-center">${Math.max(0, pTarget - currentAchieved.plotsCount)}</td>
+                <td class="text-center">${lastMonthAchieved.plotsCount}</td>
+                <td colspan="1" class="font-bold bg-header-green text-center" style="font-size: 10pt;">DATE:</td>
+                <td class="bg-header-green text-center" style="font-size: 10pt;">${todayFormatted}</td>
               </tr>
 
               <!-- Spacing row -->
@@ -1322,16 +1363,16 @@ const ExportReports = () => {
 
               <!-- PHASE 2: Project wise Report Headers -->
               <tr>
-                <th class="bg-header-blue">S.NO.</th>
-                <th class="bg-header-blue">PROJECT</th>
-                <th class="bg-header-blue">DESCRIPTION</th>
-                <th class="bg-header-blue">TARGET</th>
-                <th class="bg-header-blue">ACTUAL</th>
-                <th class="bg-header-blue">% ACHIEVED</th>
-                <th class="bg-header-blue">1st Week Actual</th>
-                <th class="bg-header-blue">2nd Week Actual</th>
-                <th class="bg-header-blue">3rd Week Actual</th>
-                <th class="bg-header-blue">4th Week Actual</th>
+                <td class="bg-header-blue font-bold text-center">S.NO.</td>
+                <td class="bg-header-blue font-bold text-center">PROJECT</td>
+                <td class="bg-header-blue font-bold text-center">DESCRIPTION</td>
+                <td class="bg-header-blue font-bold text-center">TARGET</td>
+                <td class="bg-header-blue font-bold text-center">ACTUAL</td>
+                <td class="bg-header-blue font-bold text-center">% ACHIEVED</td>
+                <td class="bg-header-blue font-bold text-center">1st Week Actual</td>
+                <td class="bg-header-blue font-bold text-center">2nd Week Actual</td>
+                <td class="bg-header-blue font-bold text-center">3rd Week Actual</td>
+                <td class="bg-header-blue font-bold text-center">4th Week Actual</td>
               </tr>
       `;
 
@@ -1346,83 +1387,103 @@ const ExportReports = () => {
 
         const rows = [
           { label: 'Total Enquiries', target: targets.enquiries, actual: proj.enquiries.actual, w1: proj.enquiries.w1, w2: proj.enquiries.w2, w3: proj.enquiries.w3, w4: proj.enquiries.w4 },
+          { label: 'Hot list', target: targets.hotlist, actual: proj.hotlist.actual, w1: proj.hotlist.w1, w2: proj.hotlist.w2, w3: proj.hotlist.w3, w4: proj.hotlist.w4 },
           { label: 'Site Visits', target: targets.sitevisits, actual: proj.sitevisits.actual, w1: proj.sitevisits.w1, w2: proj.sitevisits.w2, w3: proj.sitevisits.w3, w4: proj.sitevisits.w4 },
           { label: 'Booked Units', target: targets.booked, actual: proj.bookedUnits.actual, w1: proj.bookedUnits.w1, w2: proj.bookedUnits.w2, w3: proj.bookedUnits.w3, w4: proj.bookedUnits.w4 },
           { label: 'Booking Value', target: targets.value, actual: proj.bookingValue.actual, w1: proj.bookingValue.w1, w2: proj.bookingValue.w2, w3: proj.bookingValue.w3, w4: proj.bookingValue.w4, isFloat: true }
         ];
 
+        let projTotalPct = 0;
+        let projTotalRows = 0;
+
         rows.forEach((row, rIdx) => {
           const pctText = getPct(row.actual, row.target);
-          pTotalPct += getPctVal(row.actual, row.target);
-          pTotalRows += 1;
+          projTotalPct += getPctVal(row.actual, row.target);
+          projTotalRows += 1;
 
+          const bgDescTarget = 'bg-light-green';
+          
           html += `
             <tr>
-              ${rIdx === 0 ? `<td rowspan="4" style="vertical-align: middle;">${index + 1}</td><td rowspan="4" class="font-bold" style="vertical-align: middle;">${proj.code || proj.name}</td>` : ''}
-              <td class="text-left">${row.label}</td>
-              <td class="text-right">${row.target}${row.isFloat ? ' Cr' : ''}</td>
-              <td class="text-right">${row.isFloat ? row.actual.toFixed(2) : row.actual}</td>
-              <td class="font-bold">${pctText}</td>
-              <td class="text-right">${row.isFloat ? row.w1.toFixed(2) : row.w1}</td>
-              <td class="text-right">${row.isFloat ? row.w2.toFixed(2) : row.w2}</td>
-              <td class="text-right">${row.isFloat ? row.w3.toFixed(2) : row.w3}</td>
-              <td class="text-right">${row.isFloat ? row.w4.toFixed(2) : row.w4}</td>
+              <td class="bg-light-green text-center" style="vertical-align: middle;">${rIdx + 1}</td>
+              ${rIdx === 0 ? `<td rowspan="5" class="bg-light-green font-bold text-center" style="vertical-align: middle;">${proj.code || proj.name}</td>` : ''}
+              <td class="text-left ${bgDescTarget}">${row.label}</td>
+              <td class="text-center ${bgDescTarget}">${row.target}${row.isFloat ? ' Cr' : ''}</td>
+              <td class="text-center bg-light-green">${row.isFloat ? row.actual.toFixed(2) : row.actual}</td>
+              <td class="font-bold text-right" style="background-color: #FFFFFF;">${pctText}</td>
+              <td class="text-center bg-light-green">${row.isFloat ? row.w1.toFixed(2) : row.w1}</td>
+              <td class="text-center bg-light-green">${row.isFloat ? row.w2.toFixed(2) : row.w2}</td>
+              <td class="text-center bg-light-green">${row.isFloat ? row.w3.toFixed(2) : row.w3}</td>
+              <td class="text-center bg-light-green">${row.isFloat ? row.w4.toFixed(2) : row.w4}</td>
             </tr>
           `;
         });
-      });
 
-      const projectPerformanceText = pTotalRows > 0 ? `${(pTotalPct / pTotalRows).toFixed(2)}%` : '0.00%';
+        const projPerformanceText = projTotalRows > 0 ? `${(projTotalPct / projTotalRows).toFixed(2)}%` : '0.00%';
 
-      html += `
-            <!-- Phase 2 Overall Average achieved -->
+        html += `
             <tr class="bg-black-row">
               <td class="bg-black-row"></td><td class="bg-black-row"></td><td class="bg-black-row"></td><td class="bg-black-row"></td><td class="bg-black-row"></td>
-              <td class="bg-orange-pct" style="font-size: 10pt; font-weight: bold; border: 1px solid #000000; text-align: center; vertical-align: middle;">${projectPerformanceText}</td>
+              <td class="bg-orange-pct" style="font-size: 10pt; font-weight: bold; border: 1px solid #000000; text-align: center; vertical-align: middle;">${projPerformanceText}</td>
               <td class="bg-black-row"></td><td class="bg-black-row"></td><td class="bg-black-row"></td><td class="bg-black-row"></td>
             </tr>
+        `;
+      });
 
+      html += `
             <!-- Spacing row -->
             <tr><td colspan="10" style="border: none; height: 15px;"></td></tr>
 
             <!-- PHASE 3: Marketing Plan Table -->
             <tr style="height: 80px;">
-              <td colspan="2" class="bg-header-blue" style="height: 80px; text-align: center; vertical-align: middle;">
-      <img src="${logoPath}" width="200" height="70" style="vertical-align: middle;" />
-   </td>
-   <td colspan="8" class="bg-header-blue font-bold" style="font-size: 14pt; font-weight: bold; height: 80px; text-align: left; padding-left: 20px; vertical-align: middle;">
-      JB MARKETING PARAMETER REPORT
-   </td>
+              <td colspan="2" class="bg-header-blue" style="height: 80px; text-align: center; vertical-align: middle; border: 1px solid #000000; border-right: none;">
+                <!--[if gte mso 9]>
+                  <img src="file:///E:/builders/client/public/jb_logo.jpg" width="150" height="52" style="vertical-align: middle;" />
+                <![endif]-->
+                <!--[if !mso]><!-->
+                  <img src="${LOGO_BASE64}" width="150" height="52" style="vertical-align: middle;" />
+                <!--<![endif]-->
+              </td>
+              <td colspan="8" class="bg-header-blue font-bold" style="font-size: 14pt; font-weight: bold; height: 80px; text-align: center; vertical-align: middle; border: 1px solid #000000; border-left: none;">
+                JB MARKETING PARAMETER REPORT
+              </td>
             </tr>
             <tr style="height: 22px;">
               <td colspan="10" class="bg-header-green font-bold" style="font-size: 10pt; height: 22px; text-align: center; vertical-align: middle; text-transform: uppercase;">MONTH OF ${monthNames[dateForMonth.getMonth()].toUpperCase()} ${dateForMonth.getFullYear()}</td>
             </tr>
             <tr>
-              <th class="bg-header-blue">S.NO.</th>
-              <th colspan="2" class="bg-header-blue">DESCRIPTION</th>
-              <th class="bg-header-blue">BUDGET/ TARGET</th>
-              <th class="bg-header-blue">ACTUAL</th>
-              <th class="bg-header-blue">% ACHIEVED</th>
-              <th class="bg-header-blue">1st Week Actual</th>
-              <th class="bg-header-blue">2nd Week Actual</th>
-              <th class="bg-header-blue">3rd Week Actual</th>
-              <th class="bg-header-blue">4th Week Actual</th>
+              <td class="bg-header-blue font-bold text-center">S.NO.</td>
+              <td colspan="2" class="bg-header-blue font-bold text-center">DESCRIPTION</td>
+              <td class="bg-header-blue font-bold text-center">BUDGET/ TARGET</td>
+              <td class="bg-header-blue font-bold text-center">ACTUAL</td>
+              <td class="bg-header-blue font-bold text-center">% ACHIEVED</td>
+              <td class="bg-header-blue font-bold text-center">1st Week Actual</td>
+              <td class="bg-header-blue font-bold text-center">2nd Week Actual</td>
+              <td class="bg-header-blue font-bold text-center">3rd Week Actual</td>
+              <td class="bg-header-blue font-bold text-center">4th Week Actual</td>
             </tr>
       `;
 
       marketingRowsList.forEach((row) => {
         const pctText = getPct(row.actual, row.target);
+        
+        const formatVal = (val, isCurrency) => {
+          if (!isCurrency) return val;
+          const formatted = Number(val).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+          return `<div style="display: flex; justify-content: space-between;"><span>₹ </span><span>${formatted}</span></div>`;
+        };
+
         html += `
           <tr>
-            <td>${row.sNo}</td>
+            <td class="text-center">${row.sNo}</td>
             <td colspan="2" class="text-left font-bold">${row.name}</td>
-            <td class="text-right">${row.isFloat ? '₹ ' : ''}${row.target.toLocaleString()}</td>
-            <td class="text-right">${row.isFloat ? '₹ ' : ''}${row.isFloat ? row.actual.toFixed(2) : row.actual}</td>
-            <td class="font-bold">${pctText}</td>
-            <td class="text-right">${row.isFloat ? '₹ ' : ''}${row.isFloat ? row.w1.toFixed(2) : row.w1}</td>
-            <td class="text-right">${row.isFloat ? '₹ ' : ''}${row.isFloat ? row.w2.toFixed(2) : row.w2}</td>
-            <td class="text-right">${row.isFloat ? '₹ ' : ''}${row.isFloat ? row.w3.toFixed(2) : row.w3}</td>
-            <td class="text-right">${row.isFloat ? '₹ ' : ''}${row.isFloat ? row.w4.toFixed(2) : row.w4}</td>
+            <td class="text-right" style="padding: 0 4px;">${formatVal(row.target, row.isFloat)}</td>
+            <td class="text-right" style="padding: 0 4px;">${formatVal(row.actual, row.isFloat)}</td>
+            <td class="font-bold text-right bg-light-green">${pctText}</td>
+            <td class="text-right" style="padding: 0 4px;">${formatVal(row.w1, row.isFloat)}</td>
+            <td class="text-right" style="padding: 0 4px;">${formatVal(row.w2, row.isFloat)}</td>
+            <td class="text-right" style="padding: 0 4px;">${formatVal(row.w3, row.isFloat)}</td>
+            <td class="text-right" style="padding: 0 4px;">${formatVal(row.w4, row.isFloat)}</td>
           </tr>
         `;
       });
@@ -1433,14 +1494,13 @@ const ExportReports = () => {
               <td class="bg-orange-pct" style="font-size: 10pt; font-weight: bold; border: 1px solid #000000; text-align: center; vertical-align: middle;">${marketingPerformanceText}</td>
               <td class="bg-black-row"></td><td class="bg-black-row"></td><td class="bg-black-row"></td><td class="bg-black-row"></td>
             </tr>
-          </tbody>
           </table>
         </body>
         </html>
       `;
 
       // Trigger download
-      handlePreview(html, `JB_SUMMARY_OF_REPORT_${dateForMonth.getFullYear()}_${dateForMonth.getMonth() + 1}.xls`);
+      handlePreview(html, `JB_ABSTRACT_OF_REPORT_${dateForMonth.getFullYear()}_${dateForMonth.getMonth() + 1}.xls`);
 
     } catch (err) {
       console.error(err);
@@ -1482,7 +1542,7 @@ const ExportReports = () => {
         </head>
         <body>
           <table>
-            ${getExcelHeader(titleText, monthTitle, 7, "#1d4ed8", logoPath)}
+            ${getExcelHeader(titleText, monthTitle, 7, "#1d4ed8")}
             <!-- Table Headers -->
             <tr class="table-headers">
               <th>S.No</th>
@@ -1648,7 +1708,7 @@ const ExportReports = () => {
         </head>
         <body>
           <table>
-            ${getExcelHeader("JB - LEAD SOURCES PERFORMANCE REPORT", monthTitle, 5, "#0d9488", logoPath)}
+            ${getExcelHeader("JB - LEAD SOURCES PERFORMANCE REPORT", monthTitle, 5, "#0d9488")}
             <!-- Table Headers -->
             <tr class="table-headers">
               <th>S.No</th>
@@ -1866,7 +1926,7 @@ const ExportReports = () => {
         </head>
         <body>
           <table>
-            ${getExcelHeader(titleText, monthTitle, 7, "#7c3aed", logoPath)}
+            ${getExcelHeader(titleText, monthTitle, 7, "#7c3aed")}
             
             <!-- Table Headers -->
             <tr class="table-headers">
@@ -1988,7 +2048,7 @@ const ExportReports = () => {
         </head>
         <body>
           <table>
-            ${getExcelHeader("KEY HANDOVER THIS MONTH TARGET", monthTitle, 6, "#7c3aed", logoPath)}
+            ${getExcelHeader("KEY HANDOVER THIS MONTH TARGET", monthTitle, 6, "#7c3aed")}
             <tr class="table-headers">
               <th>S No</th>
               <th>Adv Date</th>
@@ -2180,7 +2240,7 @@ const ExportReports = () => {
         </head>
         <body>
           <table>
-            ${getExcelHeader(titleText, "", 8, "#7c3aed", logoPath)}
+            ${getExcelHeader(titleText, "", 8, "#7c3aed")}
             <!-- Table Headers -->
             <tr class="table-headers">
               <th>S No</th>
@@ -2313,7 +2373,7 @@ const ExportReports = () => {
         </head>
         <body>
           <table>
-            ${getExcelHeader(titleText, "", 8, "#7c3aed", logoPath)}
+            ${getExcelHeader(titleText, "", 8, "#7c3aed")}
             <!-- Table Headers -->
             <tr class="table-headers">
               <th>S No</th>
@@ -2446,7 +2506,7 @@ const ExportReports = () => {
         </head>
         <body>
           <table>
-            ${getExcelHeader(titleText, "", 7, "#7c3aed", logoPath)}
+            ${getExcelHeader(titleText, "", 7, "#7c3aed")}
             <!-- Table Headers -->
             <tr class="table-headers">
               <th>S No</th>
@@ -2572,7 +2632,7 @@ const ExportReports = () => {
         </head>
         <body>
           <table>
-            ${getExcelHeader(titleText, "", 7, "#7c3aed", logoPath)}
+            ${getExcelHeader(titleText, "", 7, "#7c3aed")}
             <!-- Table Headers -->
             <tr class="table-headers">
               <th>S No</th>
@@ -2636,7 +2696,7 @@ const ExportReports = () => {
           allSheets.push({ name: sheetName, html: htmlString });
       };
 
-      await convertHtmlToSheet(handleExportSummaryReport, 'Summary');
+      await convertHtmlToSheet(handleExportSummaryReport, 'Abstract');
       await convertHtmlToSheet(handleExportEnquiriesExcel, 'Enquiries');
       await convertHtmlToSheet(handleExportSiteVisitsExcel, 'Site Visits');
       await convertHtmlToSheet(handleExportHotListExcel, 'Hot List');
@@ -2793,7 +2853,7 @@ const ExportReports = () => {
           <div className="p-4 bg-indigo-100 text-indigo-600 rounded-2xl">
             <FolderOpen className="w-8 h-8" />
           </div>
-          <h3 className="text-sm font-black text-indigo-800 uppercase tracking-wide">Summary of Report</h3>
+          <h3 className="text-sm font-black text-indigo-800 uppercase tracking-wide">Abstract of Report</h3>
           {/* <p className="text-[11px] text-indigo-500 font-semibold">Complete overview of all leads, statuses, and values.</p> */}
         </div>
 

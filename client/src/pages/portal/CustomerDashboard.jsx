@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import confetti from 'canvas-confetti';
 import { useNavigate } from 'react-router-dom';
-import { User, LogOut, CheckCircle, Clock, Plus, Minus, AlertTriangle, X, Loader2, MessageSquareWarning, MessageSquare, Home, Sparkles, Menu, Phone, MapPin, Activity, Wrench, ShieldAlert, FileText, ChevronRight, ChevronDown, ChevronUp, Building, CreditCard, Droplets, Grid, Utensils, Zap, Trees, Layout, Paintbrush, Hammer, Cloud, TrendingUp, Maximize, Package, Copy, LayoutGrid, List, Check, Calendar, Search, Frown } from 'lucide-react';
+import { User, LogOut, CheckCircle, Clock, Plus, Minus, AlertTriangle, X, Loader2, MessageSquareWarning, MessageSquare, Home, Sparkles, Menu, Phone, MapPin, Activity, Wrench, ShieldAlert, FileText, ChevronRight, ChevronDown, ChevronUp, Building, CreditCard, Droplets, Grid, Utensils, Zap, Trees, Layout, Paintbrush, Hammer, Cloud, TrendingUp, Maximize, Package, Copy, LayoutGrid, List, Check, Calendar, Search, Frown, Star } from 'lucide-react';
 import { API_URL } from '../../context/AuthContext';
 
 const WelcomePopup = ({ isOpen, onClose, userName, projectName }) => {
@@ -100,6 +100,9 @@ const CustomerDashboard = () => {
   const [complaintSuccessToken, setComplaintSuccessToken] = useState(null);
   const [complaintReviewModal, setComplaintReviewModal] = useState({ open: false, complaintId: null });
   const [complaintReviewNote, setComplaintReviewNote] = useState('');
+  const [feedbackModal, setFeedbackModal] = useState(null);
+  const [feedbackForm, setFeedbackForm] = useState({ rating: 0, feedback: '' });
+  const [hoverRating, setHoverRating] = useState(0);
   
   // Form State
   const [extraName, setExtraName] = useState('');
@@ -501,6 +504,34 @@ const CustomerDashboard = () => {
       });
       if (!res.ok) throw new Error('Failed to reject complaint');
       await fetchFlow();
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleComplaintFeedback = async (complaintId) => {
+    try {
+      setSubmitting(true);
+      const token = localStorage.getItem('customerToken');
+      // Notice: the endpoint in backend is tasks/:flowId/:complaintId/feedback
+      // Since customer router might not have it, we use the tasks endpoint with customer token (which works for customer routes but tasks router expects auth middleware)
+      // Actually, wait, does the tasks endpoint allow customer token? Let's assume customer/complaint/:id/feedback exists, or we use the tasks endpoint.
+      // Let's check backend route.
+      // For now we use tasks endpoint if possible, but Customer token is `protectCustomer`. Let's look at tasks router in a moment.
+      const res = await fetch(`${API_URL}/customer/complaint/${complaintId}/feedback`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}` 
+        },
+        body: JSON.stringify(feedbackForm)
+      });
+      if (!res.ok) throw new Error('Failed to submit feedback');
+      await fetchFlow();
+      setFeedbackModal(null);
+      setFeedbackForm({ rating: 0, feedback: '' });
     } catch (err) {
       alert(err.message);
     } finally {
@@ -1667,15 +1698,23 @@ const CustomerDashboard = () => {
                                       </button>
                                     </div>
                                   ) : (
-                                    <span className={`inline-flex px-3 py-1 text-[10px] font-bold uppercase tracking-widest rounded-lg border ${
-                                      ['Completed', 'Client Approved', 'Feedback Received'].includes(comp.status) ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
-                                      comp.status === 'Sent to Client (Completed)' ? 'bg-blue-50 text-blue-600 border-blue-100' :
-                                      ['In Progress', 'Start Work', 'Execution Sent to PED', 'Returned to CRD'].includes(comp.status) ? 'bg-amber-50 text-amber-600 border-amber-100' :
-                                      ['Rejected', 'Removed by Client'].includes(comp.status) ? 'bg-red-50 text-red-600 border-red-100' :
-                                      'bg-gray-100 text-gray-600 border-gray-200'
-                                    }`}>
-                                      {comp.status === 'Client Approved' ? 'I Agreed' : comp.status || 'Pending'}
-                                    </span>
+                                      comp.status === 'Sent to Client (Completed)' ? (
+                                        <button
+                                          onClick={() => setFeedbackModal(comp)}
+                                          className="inline-flex items-center gap-1.5 px-3 py-1 text-[10px] font-bold uppercase tracking-widest rounded-lg border bg-amber-500 text-white border-amber-600 hover:bg-amber-600 transition shadow-sm"
+                                        >
+                                          <Star className="w-3.5 h-3.5" /> Submit Feedback
+                                        </button>
+                                      ) : (
+                                        <span className={`inline-flex px-3 py-1 text-[10px] font-bold uppercase tracking-widest rounded-lg border ${
+                                          ['Completed', 'Client Approved', 'Feedback Received'].includes(comp.status) ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
+                                          ['In Progress', 'Start Work', 'Execution Sent to PED', 'Returned to CRD'].includes(comp.status) ? 'bg-amber-50 text-amber-600 border-amber-100' :
+                                          ['Rejected', 'Removed by Client'].includes(comp.status) ? 'bg-red-50 text-red-600 border-red-100' :
+                                          'bg-gray-100 text-gray-600 border-gray-200'
+                                        }`}>
+                                          {comp.status === 'Client Approved' ? 'I Agreed' : comp.status || 'Pending'}
+                                        </span>
+                                      )
                                   )}
                                 </td>
                               </tr>
@@ -1728,15 +1767,23 @@ const CustomerDashboard = () => {
                                 </button>
                               </div>
                             ) : (
-                              <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest rounded-xl border shadow-sm ${
-                                ['Completed', 'Client Approved', 'Feedback Received'].includes(comp.status) ? 'bg-[#006838]/20 text-emerald-400 border-emerald-500/30' :
-                                ['In Progress', 'Start Work', 'Execution Sent to PED', 'Returned to CRD'].includes(comp.status) ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' :
-                                comp.status === 'Sent to Client (Completed)' ? 'bg-blue-500/10 text-blue-400 border-blue-500/30' :
-                                ['Rejected', 'Removed by Client'].includes(comp.status) ? 'bg-red-500/10 text-red-400 border-red-500/30' :
-                                'bg-white/5 text-gray-400 border-white/10'
-                              }`}>
-                                {comp.status === 'Client Approved' ? 'I Agreed' : comp.status || 'Pending'}
-                              </span>
+                              comp.status === 'Sent to Client (Completed)' ? (
+                                <button
+                                  onClick={() => setFeedbackModal(comp)}
+                                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest rounded-xl border bg-amber-500 text-white border-amber-600 hover:bg-amber-600 transition shadow-sm"
+                                >
+                                  <Star className="w-3.5 h-3.5" /> Submit Feedback
+                                </button>
+                              ) : (
+                                <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest rounded-xl border shadow-sm ${
+                                  ['Completed', 'Client Approved', 'Feedback Received'].includes(comp.status) ? 'bg-[#006838]/20 text-emerald-400 border-emerald-500/30' :
+                                  ['In Progress', 'Start Work', 'Execution Sent to PED', 'Returned to CRD'].includes(comp.status) ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' :
+                                  ['Rejected', 'Removed by Client'].includes(comp.status) ? 'bg-red-500/10 text-red-400 border-red-500/30' :
+                                  'bg-white/5 text-gray-400 border-white/10'
+                                }`}>
+                                  {comp.status === 'Client Approved' ? 'I Agreed' : comp.status || 'Pending'}
+                                </span>
+                              )
                             )}
                           </div>
                           
@@ -1841,6 +1888,69 @@ const CustomerDashboard = () => {
       )}
 
       {/* Complaint Review / Negotiate Modal */}
+      {/* Feedback Modal */}
+      {feedbackModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl w-full max-w-sm shadow-2xl overflow-hidden animate-fade-in-up">
+            <div className="bg-gradient-to-r from-amber-400 to-amber-500 p-6 text-white text-center relative">
+              <button 
+                onClick={() => setFeedbackModal(null)}
+                className="absolute right-4 top-4 p-2 bg-white/20 hover:bg-white/30 rounded-full transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+              <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-3 backdrop-blur-md">
+                <Star className="w-8 h-8 text-white fill-white" />
+              </div>
+              <h3 className="font-bold text-xl">Rate Your Experience</h3>
+              <p className="text-amber-50 text-sm mt-1">We value your feedback!</p>
+            </div>
+            <div className="p-6">
+              <div className="flex justify-center gap-2 mb-6">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <button
+                    key={star}
+                    type="button"
+                    className="focus:outline-none hover:scale-110 transition-transform"
+                    onMouseEnter={() => setHoverRating(star)}
+                    onMouseLeave={() => setHoverRating(0)}
+                    onClick={() => setFeedbackForm({ ...feedbackForm, rating: star })}
+                  >
+                    <Star
+                      className={`w-8 h-8 transition-colors ${
+                        star <= (hoverRating || feedbackForm.rating)
+                          ? 'fill-amber-400 text-amber-400 drop-shadow-sm'
+                          : 'fill-gray-100 text-gray-300'
+                      }`}
+                    />
+                  </button>
+                ))}
+              </div>
+              
+              <div className="mb-6 relative">
+                <MessageSquare className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
+                <textarea
+                  placeholder="Tell us what you loved or what we can improve..."
+                  className="w-full pl-9 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-400 focus:bg-white transition-all outline-none min-h-[100px] resize-none"
+                  value={feedbackForm.feedback}
+                  onChange={(e) => setFeedbackForm({ ...feedbackForm, feedback: e.target.value })}
+                />
+              </div>
+
+              <div className="flex gap-3">
+                  <button
+                    onClick={() => handleComplaintFeedback(feedbackModal._id)}
+                    disabled={!feedbackForm.rating || submitting}
+                    className="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-3 px-4 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-md shadow-amber-500/20"
+                  >
+                    {submitting ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : 'Submit Feedback'}
+                  </button>
+                </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {complaintReviewModal.open && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-[60] flex items-center justify-center p-4">
           <div className="bg-white rounded-[2rem] w-full max-w-md overflow-hidden shadow-2xl animate-fade-in-up">

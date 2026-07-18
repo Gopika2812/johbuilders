@@ -78,15 +78,15 @@ const getExcelStyles = (titleBg, monthBg, headerBg, execBg) => {
 };
 
 const getExcelHeader = (titleText, monthTitle, totalColumns, themeColor, logoPath) => {
-    const safeCols = Math.max(4, totalColumns);
-    const logoCols = 3;
-    const textCols = safeCols - logoCols;
+    const safeCols = Math.max(1, totalColumns);
     return `
-      <tr style="height: 80px;">
-        <td colspan="${logoCols}" class="title-row" style="border: 1px solid #000000; border-right: none; vertical-align:middle; text-align:center; height: 80px;">
-          <img src="${logoPath}" width="200" height="70" style="vertical-align: middle;" />
+      <tr style="height: 60px;">
+        <td colspan="${safeCols}" class="title-row" style="border: 1px solid #000000; border-bottom: none; vertical-align:middle; text-align:center; height: 60px;">
+          <img src="${logoPath}" width="150" height="52" style="vertical-align: middle;" />
         </td>
-        <td colspan="${textCols}" class="title-row" style="border: 1px solid #000000; border-left: none; vertical-align:middle; text-align:left; padding-left: 20px; font-size: 14pt; font-weight: bold; color: #000000; height: 80px;">
+      </tr>
+      <tr style="height: 40px;">
+        <td colspan="${safeCols}" class="title-row" style="border: 1px solid #000000; border-top: none; vertical-align:middle; text-align:center; font-size: 14pt; font-weight: bold; color: #000000; height: 40px;">
           ${titleText}
         </td>
       </tr>
