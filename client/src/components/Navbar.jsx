@@ -13,6 +13,7 @@ const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
   const [showPopup, setShowPopup] = useState(false);
   const [popupLeads, setPopupLeads] = useState([]);
   const dropdownRef = useRef(null);
+  const [ignoredLeads, setIgnoredLeads] = useState([]);
 
   useEffect(() => {
     if (!token) return;
@@ -30,7 +31,7 @@ const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
     // Poll every 60 seconds
     const interval = setInterval(fetchNotifications, 60000);
     return () => clearInterval(interval);
-  }, [token]);
+  }, [token, ignoredLeads]);
 
   const fetchNotifications = async () => {
     try {
@@ -59,7 +60,18 @@ const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
       setNotifications(uniqueData);
 
       // Check ignored leads
-      const ignoredIds = JSON.parse(sessionStorage.getItem('ignored_assignments') || '[]');
+      let ignoredIds = [...ignoredLeads];
+      try {
+        const stored = sessionStorage.getItem('ignored_assignments');
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed)) {
+            ignoredIds = Array.from(new Set([...ignoredIds, ...parsed]));
+          }
+        }
+      } catch (e) {
+        console.warn('sessionStorage is not accessible', e);
+      }
       const newLeads = uniqueData.filter(lead => !ignoredIds.includes(lead._id));
 
       if (newLeads.length > 0) {
@@ -100,13 +112,29 @@ const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
   };
 
   const handleIgnorePopup = () => {
-    const ignoredIds = JSON.parse(sessionStorage.getItem('ignored_assignments') || '[]');
+    let ignoredIds = [...ignoredLeads];
+    try {
+      const stored = sessionStorage.getItem('ignored_assignments');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed)) {
+          ignoredIds = Array.from(new Set([...ignoredIds, ...parsed]));
+        }
+      }
+    } catch (e) {
+      console.warn('sessionStorage is not accessible', e);
+    }
     popupLeads.forEach(lead => {
       if (!ignoredIds.includes(lead._id)) {
         ignoredIds.push(lead._id);
       }
     });
-    sessionStorage.setItem('ignored_assignments', JSON.stringify(ignoredIds));
+    setIgnoredLeads(ignoredIds);
+    try {
+      sessionStorage.setItem('ignored_assignments', JSON.stringify(ignoredIds));
+    } catch (e) {
+      console.warn('sessionStorage is not accessible', e);
+    }
     setShowPopup(false);
   };
 

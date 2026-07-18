@@ -391,6 +391,20 @@ const ExportReports = () => {
           }
 
           const ws = XLSX.utils.table_to_sheet(table, { raw: true });
+
+          // Initialize/fill all cells within bounds to ensure merged range cells and empty cells exist
+          if (ws['!ref']) {
+            const rangeObj = XLSX.utils.decode_range(ws['!ref']);
+            for (let r = rangeObj.s.r; r <= rangeObj.e.r; r++) {
+              for (let c = rangeObj.s.c; c <= rangeObj.e.c; c++) {
+                const cellRef = XLSX.utils.encode_cell({ r, c });
+                if (!ws[cellRef]) {
+                  ws[cellRef] = { t: 'z', v: '' };
+                }
+              }
+            }
+          }
+
           const borderStyle = { style: 'thin', color: { rgb: '000000' } };
           const border = { top: borderStyle, bottom: borderStyle, left: borderStyle, right: borderStyle };
           
@@ -653,29 +667,29 @@ const ExportReports = () => {
         // Executive banner row
         html += `
           <tr>
-            <td class="exec-banner"></td>
-            <td class="exec-banner"></td>
-            <td class="exec-banner"></td>
-            <td class="exec-banner"></td>
-            <td class="exec-banner"></td>
+            <td class="exec-banner">&nbsp;</td>
+            <td class="exec-banner">&nbsp;</td>
+            <td class="exec-banner">&nbsp;</td>
+            <td class="exec-banner">&nbsp;</td>
+            <td class="exec-banner">&nbsp;</td>
             <td class="exec-banner text-red"><span style="color: red; font-weight: bold;">${execName}</span></td>
-            <td class="exec-banner"></td>
-            <td class="exec-banner"></td>
-            <td class="exec-banner"></td>
-            <td class="exec-banner"></td>
+            <td class="exec-banner">&nbsp;</td>
+            <td class="exec-banner">&nbsp;</td>
+            <td class="exec-banner">&nbsp;</td>
+            <td class="exec-banner">&nbsp;</td>
           </tr>
         `;
 
         // Lead rows
         groupedByExec[execName].forEach((lead, idx) => {
           const dateStr = new Date(lead.createdAt).toLocaleDateString('en-GB').replace(/\//g, '.');
-          const phoneStr = lead.phone || '';
-          const sourceStr = lead.leadSource || '';
-          const projectStr = lead.project?.code || '';
-          const placeStr = lead.address ? lead.address.split(',')[0] : '';
+          const phoneStr = lead.phone || '&nbsp;';
+          const sourceStr = lead.leadSource || '&nbsp;';
+          const projectStr = lead.project?.code || '&nbsp;';
+          const placeStr = lead.address ? lead.address.split(',')[0] : '&nbsp;';
           const isLeadClosed = lead.status === 'Lost' || lead.status === 'Closed' || lead.isClosed;
-          const statusStr = isLeadClosed ? 'completed' : (lead.status || '').toLowerCase().replace('-', '');
-          let remarksStr = lead.followUpInfo?.remarks || lead.closeRemarks || '';
+          const statusStr = isLeadClosed ? 'completed' : (lead.status || '&nbsp;').toLowerCase().replace('-', '');
+          let remarksStr = lead.followUpInfo?.remarks || lead.closeRemarks || '&nbsp;';
           if (remarksStr.match(/\[Lost at (.*?) stage\]/)) remarksStr = remarksStr.replace(/\[Lost at .*? stage\]( - )?/, '');
           const rowClass = idx % 2 === 1 ? 'class="even-row"' : '';
           
@@ -685,7 +699,7 @@ const ExportReports = () => {
             <tr ${rowClass}>
               <td class="text-center">${globalSNo++}</td>
               <td class="text-left">${dateStr}</td>
-              <td class="text-left bold-label">${lead.name || ''}</td>
+              <td class="text-left bold-label">${lead.name || '&nbsp;'}</td>
               <td class="text-left">${phoneStr}</td>
               <td class="text-left">${execName.toUpperCase()}</td>
               <td class="text-left">${sourceStr}</td>
@@ -815,23 +829,23 @@ const ExportReports = () => {
         // Lead rows
         groupedByExec[execName].forEach((lead, idx) => {
           const dateStr = new Date(lead.createdAt).toLocaleDateString('en-GB').replace(/\//g, '.');
-          const phoneStr = lead.phone || '';
-          const placeStr = lead.address ? lead.address.split(',')[0] : '';
+          const phoneStr = lead.phone || '&nbsp;';
+          const placeStr = lead.address ? lead.address.split(',')[0] : '&nbsp;';
           const visitedBy = execName;
           
           // Enquiry Status column is completed/followup (or lead.status lowercase)
           const isLeadClosed = lead.status === 'Lost' || lead.status === 'Closed' || lead.isClosed;
           const statusStr = isLeadClosed ? 'completed' : (lead.status === 'Site Visit Follow-up' ? 'followup' : 'completed');
-          let remarksStr = lead.followUpInfo?.remarks || lead.closeRemarks || '';
+          let remarksStr = lead.followUpInfo?.remarks || lead.closeRemarks || '&nbsp;';
           if (remarksStr.match(/\[Lost at (.*?) stage\]/)) remarksStr = remarksStr.replace(/\[Lost at .*? stage\]( - )?/, '');
-          const sourceStr = lead.leadSource || '';
+          const sourceStr = lead.leadSource || '&nbsp;';
           const rowClass = idx % 2 === 1 ? 'class="even-row"' : '';
 
           html += `
             <tr ${rowClass}>
               <td>${globalSNo++}</td>
               <td>${dateStr}</td>
-              <td class="text-left bold-label">${lead.name || ''}</td>
+              <td class="text-left bold-label">${lead.name || '&nbsp;'}</td>
               <td>${phoneStr}</td>
               <td>${visitedBy}</td>
               <td>${placeStr}</td>
@@ -1296,7 +1310,7 @@ const ExportReports = () => {
         <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
         <head>
           <meta charset="utf-8">
-          ${getExcelStyles("#4f46e5", "#e0e7ff", "#3730a3", "#c7d2fe")}
+          ${getExcelStyles("#9BC2E6", "#e0e7ff", "#9BC2E6", "#c7d2fe")}
         </head>
         <body>
           <table>
@@ -1334,7 +1348,7 @@ const ExportReports = () => {
                 <td class="text-center">${currentAchieved.salesValue.toFixed(2)}</td>
                 <td class="text-center">${Math.max(0, sTarget - currentAchieved.salesValue).toFixed(2)}</td>
                 <td class="text-center">${lastMonthAchieved.salesValue.toFixed(2)}</td>
-                <td colspan="2" class="bg-header-green" style="border: 1px solid #000000; border-bottom: none; border-top: none;"></td>
+                <td colspan="2" class="bg-header-green" style="border: 1px solid #000000; border-bottom: none; border-top: none;">&nbsp;</td>
               </tr>
               <tr>
                 <td class="text-center">2</td>
@@ -1344,7 +1358,7 @@ const ExportReports = () => {
                 <td class="text-center">${currentAchieved.villasCount}</td>
                 <td class="text-center">${Math.max(0, hTarget - currentAchieved.villasCount)}</td>
                 <td class="text-center">${lastMonthAchieved.villasCount}</td>
-                <td colspan="2" class="bg-header-green" style="border: 1px solid #000000; border-top: none; border-bottom: none;"></td>
+                <td colspan="2" class="bg-header-green" style="border: 1px solid #000000; border-top: none; border-bottom: none;">&nbsp;</td>
               </tr>
               <tr>
                 <td class="text-center">3</td>
@@ -1423,9 +1437,9 @@ const ExportReports = () => {
 
         html += `
             <tr class="bg-black-row">
-              <td class="bg-black-row"></td><td class="bg-black-row"></td><td class="bg-black-row"></td><td class="bg-black-row"></td><td class="bg-black-row"></td>
+              <td class="bg-black-row">&nbsp;</td><td class="bg-black-row">&nbsp;</td><td class="bg-black-row">&nbsp;</td><td class="bg-black-row">&nbsp;</td><td class="bg-black-row">&nbsp;</td>
               <td class="bg-orange-pct" style="font-size: 10pt; font-weight: bold; border: 1px solid #000000; text-align: center; vertical-align: middle;">${projPerformanceText}</td>
-              <td class="bg-black-row"></td><td class="bg-black-row"></td><td class="bg-black-row"></td><td class="bg-black-row"></td>
+              <td class="bg-black-row">&nbsp;</td><td class="bg-black-row">&nbsp;</td><td class="bg-black-row">&nbsp;</td><td class="bg-black-row">&nbsp;</td>
             </tr>
         `;
       });
@@ -1490,9 +1504,9 @@ const ExportReports = () => {
 
       html += `
             <tr class="bg-black-row">
-              <td class="bg-black-row"></td><td class="bg-black-row"></td><td class="bg-black-row"></td><td class="bg-black-row"></td><td class="bg-black-row"></td>
+              <td class="bg-black-row">&nbsp;</td><td class="bg-black-row">&nbsp;</td><td class="bg-black-row">&nbsp;</td><td class="bg-black-row">&nbsp;</td><td class="bg-black-row">&nbsp;</td>
               <td class="bg-orange-pct" style="font-size: 10pt; font-weight: bold; border: 1px solid #000000; text-align: center; vertical-align: middle;">${marketingPerformanceText}</td>
-              <td class="bg-black-row"></td><td class="bg-black-row"></td><td class="bg-black-row"></td><td class="bg-black-row"></td>
+              <td class="bg-black-row">&nbsp;</td><td class="bg-black-row">&nbsp;</td><td class="bg-black-row">&nbsp;</td><td class="bg-black-row">&nbsp;</td>
             </tr>
           </table>
         </body>
@@ -1739,9 +1753,9 @@ const ExportReports = () => {
             <tr>
               <td>${globalSNo++}</td>
               <td class="text-left font-bold" style="text-transform: capitalize;">${src}</td>
-              <td>${targetVal || ''}</td>
-              <td>${actualVal || ''}</td>
-              <td>${convVal || ''}</td>
+              <td>${targetVal || '&nbsp;'}</td>
+              <td>${actualVal || '&nbsp;'}</td>
+              <td>${convVal || '&nbsp;'}</td>
             </tr>
           `;
         });

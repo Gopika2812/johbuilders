@@ -1285,15 +1285,15 @@ const LeadsDirectory = () => {
         html += `
           <tr ${rowClass}>
             <td class="text-center">${index + 1}</td>
-            <td class="text-center">${regDate}</td>
-            <td class="text-left bold-label">${custName}</td>
-            <td class="text-center">'${contactNo}</td>
-            <td class="text-left">${sourceStr}</td>
-            <td class="text-center bold-label">${projectStr}</td>
-            <td class="text-left">${execName}</td>
-            <td class="text-left">${assignerName}</td>
-            <td class="text-center" style="${STATUS_EXCEL_STYLES[wStatus] || ''}">${wStatus}</td>
-            <td class="text-left">${remarksStr}</td>
+            <td class="text-center">${regDate || '&nbsp;'}</td>
+            <td class="text-left bold-label">${custName || '&nbsp;'}</td>
+            <td class="text-center">${contactNo ? "'" + contactNo : '&nbsp;'}</td>
+            <td class="text-left">${sourceStr || '&nbsp;'}</td>
+            <td class="text-center bold-label">${projectStr || '&nbsp;'}</td>
+            <td class="text-left">${execName || '&nbsp;'}</td>
+            <td class="text-left">${assignerName || '&nbsp;'}</td>
+            <td class="text-center" style="${STATUS_EXCEL_STYLES[wStatus] || ''}">${wStatus || '&nbsp;'}</td>
+            <td class="text-left">${remarksStr || '&nbsp;'}</td>
           </tr>
         `;
       });

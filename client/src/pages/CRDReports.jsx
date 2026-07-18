@@ -39,7 +39,7 @@ const getExcelStyles = (titleBg, monthBg, headerBg, execBg) => {
       .title-row { font-size: 11pt; font-weight: bold; color: #000000; background-color: ${titleBg || '#FCE4D6'}; text-align: center; }
       .month-header { height: 22px; vertical-align: middle; font-size: 10pt; font-weight: bold; background-color: ${monthBg || '#DDEBF7'}; border: 1px solid #000000; text-align: center; text-transform: uppercase; }
       .exec-banner { background-color: ${execBg || '#DDEBF7'}; font-weight: bold; text-align: left; }
-      .bg-header-blue { background-color: #5B9BD5 !important; color: #000000 !important; font-weight: bold; text-align: center; }
+      .bg-header-blue { background-color: #9BC2E6 !important; color: #000000 !important; font-weight: bold; text-align: center; }
       .bg-header-green { background-color: #C6E0B4 !important; color: #000000 !important; font-weight: bold; text-align: center; }
       .bg-black-row { background-color: #D9D9D9 !important; color: #000000 !important; }
       .bg-orange-pct { background-color: #F8CBAD !important; color: #000000 !important; font-weight: bold; text-align: center; }
@@ -396,7 +396,42 @@ const KPIInsights = () => {
              }
           }
 
+          const cellMatrix = [];
+          for (let r = 0; r < table.rows.length; r++) {
+            cellMatrix[r] = cellMatrix[r] || [];
+            let cExcel = 0;
+            for (let cHtml = 0; cHtml < table.rows[r].cells.length; cHtml++) {
+              const htmlCell = table.rows[r].cells[cHtml];
+              while (cellMatrix[r][cExcel]) {
+                cExcel++;
+              }
+              const rowSpan = parseInt(htmlCell.getAttribute('rowspan') || '1');
+              const colSpan = parseInt(htmlCell.getAttribute('colspan') || '1');
+              for (let rs = 0; rs < rowSpan; rs++) {
+                for (let cs = 0; cs < colSpan; cs++) {
+                  cellMatrix[r + rs] = cellMatrix[r + rs] || [];
+                  cellMatrix[r + rs][cExcel + cs] = htmlCell;
+                }
+              }
+              cExcel += colSpan;
+            }
+          }
+
           const ws = XLSX.utils.table_to_sheet(table, { raw: true });
+
+          // Initialize/fill all cells within bounds to ensure merged range cells and empty cells exist
+          if (ws['!ref']) {
+            const rangeObj = XLSX.utils.decode_range(ws['!ref']);
+            for (let r = rangeObj.s.r; r <= rangeObj.e.r; r++) {
+              for (let c = rangeObj.s.c; c <= rangeObj.e.c; c++) {
+                const cellRef = XLSX.utils.encode_cell({ r, c });
+                if (!ws[cellRef]) {
+                  ws[cellRef] = { t: 'z', v: '' };
+                }
+              }
+            }
+          }
+
           const borderStyle = { style: 'thin', color: { rgb: '000000' } };
           const border = { top: borderStyle, bottom: borderStyle, left: borderStyle, right: borderStyle };
           
@@ -414,7 +449,8 @@ const KPIInsights = () => {
 
             const tr = table.rows[rowNum];
             if (!tr) continue;
-            const cellClasses = table.rows[rowNum].cells[coord.c]?.className || '';
+            const htmlCell = cellMatrix[rowNum] ? cellMatrix[rowNum][coord.c] : null;
+            const cellClasses = htmlCell ? htmlCell.className : '';
             const rowClasses = tr.className || '';
             const allClass = cellClasses + ' ' + rowClasses;
 
@@ -448,7 +484,7 @@ const KPIInsights = () => {
               cell.s.alignment.horizontal = 'left';
             }
             else if (allClass.includes('bg-header-blue')) {
-              cell.s.fill = { fgColor: { rgb: '5B9BD5' } };
+              cell.s.fill = { fgColor: { rgb: '9BC2E6' } };
               cell.s.font.bold = true;
             }
             else if (allClass.includes('bg-header-green')) {
@@ -663,19 +699,19 @@ const KPIInsights = () => {
         // Lead rows
         groupedByExec[execName].forEach((lead, idx) => {
           const dateStr = new Date(lead.createdAt).toLocaleDateString('en-GB').replace(/\//g, '.');
-          const phoneStr = lead.phone || '';
-          const sourceStr = lead.leadSource || '';
-          const projectStr = lead.project?.code || '';
-          const placeStr = lead.address ? lead.address.split(',')[0] : '';
-          const statusStr = (lead.status || '').toLowerCase().replace('-', '');
-          const remarksStr = lead.followUpInfo?.remarks || lead.closeRemarks || '';
+          const phoneStr = lead.phone || '&nbsp;';
+          const sourceStr = lead.leadSource || '&nbsp;';
+          const projectStr = lead.project?.code || '&nbsp;';
+          const placeStr = lead.address ? lead.address.split(',')[0] : '&nbsp;';
+          const statusStr = (lead.status || '&nbsp;').toLowerCase().replace('-', '');
+          const remarksStr = lead.followUpInfo?.remarks || lead.closeRemarks || '&nbsp;';
           const rowClass = idx % 2 === 1 ? 'class="even-row"' : '';
 
           html += `
             <tr ${rowClass}>
               <td>${globalSNo++}</td>
               <td>${dateStr}</td>
-              <td class="text-left bold-label">${lead.name || ''}</td>
+              <td class="text-left bold-label">${lead.name || '&nbsp;'}</td>
               <td>${phoneStr}</td>
               <td>${execName.toUpperCase()}</td>
               <td>${sourceStr}</td>
@@ -803,21 +839,21 @@ const KPIInsights = () => {
         // Lead rows
         groupedByExec[execName].forEach((lead, idx) => {
           const dateStr = new Date(lead.createdAt).toLocaleDateString('en-GB').replace(/\//g, '.');
-          const phoneStr = lead.phone || '';
-          const placeStr = lead.address ? lead.address.split(',')[0] : '';
+          const phoneStr = lead.phone || '&nbsp;';
+          const placeStr = lead.address ? lead.address.split(',')[0] : '&nbsp;';
           const visitedBy = execName;
           
           // Enquiry Status column is completed/followup (or lead.status lowercase)
           const statusStr = lead.status === 'Site Visit Follow-up' ? 'followup' : 'completed';
-          const remarksStr = lead.followUpInfo?.remarks || lead.closeRemarks || '';
-          const sourceStr = lead.leadSource || '';
+          const remarksStr = lead.followUpInfo?.remarks || lead.closeRemarks || '&nbsp;';
+          const sourceStr = lead.leadSource || '&nbsp;';
           const rowClass = idx % 2 === 1 ? 'class="even-row"' : '';
 
           html += `
             <tr ${rowClass}>
               <td>${globalSNo++}</td>
               <td>${dateStr}</td>
-              <td class="text-left bold-label">${lead.name || ''}</td>
+              <td class="text-left bold-label">${lead.name || '&nbsp;'}</td>
               <td>${phoneStr}</td>
               <td>${visitedBy}</td>
               <td>${placeStr}</td>
@@ -1269,7 +1305,7 @@ const KPIInsights = () => {
         <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
         <head>
           <meta charset="utf-8">
-          ${getExcelStyles("#002060", "#d9e1f2", "#002060", "#b4c6e7")}
+          ${getExcelStyles("#9BC2E6", "#d9e1f2", "#9BC2E6", "#b4c6e7")}
         </head>
         <body>
           <table>
@@ -1384,9 +1420,9 @@ const KPIInsights = () => {
       html += `
             <!-- Phase 2 Overall Average achieved -->
             <tr>
-              <td class="bg-black-row"></td><td class="bg-black-row"></td><td class="bg-black-row"></td><td class="bg-black-row"></td><td class="bg-black-row"></td>
+              <td class="bg-black-row">&nbsp;</td><td class="bg-black-row">&nbsp;</td><td class="bg-black-row">&nbsp;</td><td class="bg-black-row">&nbsp;</td><td class="bg-black-row">&nbsp;</td>
               <td class="bg-orange-pct" style="font-size: 10pt; font-weight: bold; border: 1px solid #000000; text-align: center; vertical-align: middle;">${projectPerformanceText}</td>
-              <td class="bg-black-row"></td><td class="bg-black-row"></td><td class="bg-black-row"></td><td class="bg-black-row"></td>
+              <td class="bg-black-row">&nbsp;</td><td class="bg-black-row">&nbsp;</td><td class="bg-black-row">&nbsp;</td><td class="bg-black-row">&nbsp;</td>
             </tr>
 
             <!-- Spacing row -->
@@ -1434,9 +1470,9 @@ const KPIInsights = () => {
 
       html += `
             <tr>
-              <td class="bg-black-row"></td><td class="bg-black-row"></td><td class="bg-black-row"></td><td class="bg-black-row"></td><td class="bg-black-row"></td>
+              <td class="bg-black-row">&nbsp;</td><td class="bg-black-row">&nbsp;</td><td class="bg-black-row">&nbsp;</td><td class="bg-black-row">&nbsp;</td><td class="bg-black-row">&nbsp;</td>
               <td class="bg-orange-pct" style="font-size: 10pt; font-weight: bold; border: 1px solid #000000; text-align: center; vertical-align: middle;">${marketingPerformanceText}</td>
-              <td class="bg-black-row"></td><td class="bg-black-row"></td><td class="bg-black-row"></td><td class="bg-black-row"></td>
+              <td class="bg-black-row">&nbsp;</td><td class="bg-black-row">&nbsp;</td><td class="bg-black-row">&nbsp;</td><td class="bg-black-row">&nbsp;</td>
             </tr>
           </tbody>
           </table>
@@ -1684,9 +1720,9 @@ const KPIInsights = () => {
             <tr>
               <td>${globalSNo++}</td>
               <td class="text-left font-bold" style="text-transform: capitalize;">${src}</td>
-              <td>${targetVal || ''}</td>
-              <td>${actualVal || ''}</td>
-              <td>${convVal || ''}</td>
+              <td>${targetVal || '&nbsp;'}</td>
+              <td>${actualVal || '&nbsp;'}</td>
+              <td>${convVal || '&nbsp;'}</td>
             </tr>
           `;
         });

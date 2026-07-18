@@ -65,7 +65,7 @@ const getExcelStyles = (titleBg, monthBg, headerBg, execBg) => {
       .title-row { font-size: 11pt; font-weight: bold; color: #000000; background-color: ${titleBg || '#FCE4D6'}; text-align: center; }
       .month-header { height: 22px; vertical-align: middle; font-size: 10pt; font-weight: bold; background-color: ${monthBg || '#DDEBF7'}; border: 1px solid #000000; text-align: center; text-transform: uppercase; }
       .exec-banner { background-color: ${execBg || '#DDEBF7'}; font-weight: bold; text-align: left; }
-      .bg-header-blue { background-color: #5B9BD5 !important; color: #000000 !important; font-weight: bold; text-align: center; }
+      .bg-header-blue { background-color: #9BC2E6 !important; color: #000000 !important; font-weight: bold; text-align: center; }
       .bg-header-green { background-color: #C6E0B4 !important; color: #000000 !important; font-weight: bold; text-align: center; }
       .bg-black-row { background-color: #D9D9D9 !important; color: #000000 !important; }
       .bg-orange-pct { background-color: #F8CBAD !important; color: #000000 !important; font-weight: bold; text-align: center; }
@@ -1253,7 +1253,7 @@ const KPIInsights = () => {
         <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
         <head>
           <meta charset="utf-8">
-          ${getExcelStyles("#002060", "#d9e1f2", "#002060", "#b4c6e7")}
+          ${getExcelStyles("#9BC2E6", "#d9e1f2", "#9BC2E6", "#b4c6e7")}
         </head>
         <body>
           <table>
@@ -1685,9 +1685,9 @@ const KPIInsights = () => {
             <tr>
               <td>${globalSNo++}</td>
               <td class="text-left font-bold" style="text-transform: capitalize;">${src}</td>
-              <td>${targetVal || ''}</td>
-              <td>${actualVal || ''}</td>
-              <td>${convVal || ''}</td>
+              <td>${targetVal || '&nbsp;'}</td>
+              <td>${actualVal || '&nbsp;'}</td>
+              <td>${convVal || '&nbsp;'}</td>
             </tr>
           `;
         });
