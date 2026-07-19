@@ -16,12 +16,16 @@ const generateToken = (id) => {
 // @route   POST /api/auth/register
 // @desc    Register a new user
 router.post('/register', async (req, res) => {
-  const { name, email, password } = req.body;
+  const { name, email, password, phone } = req.body;
 
   try {
-    const userExists = await User.findOne({ email });
-    if (userExists) {
-      return res.status(400).json({ message: 'User already exists with this email' });
+    if (!phone) {
+      return res.status(400).json({ message: 'Phone number is required' });
+    }
+
+    const phoneExists = await User.findOne({ phone });
+    if (phoneExists) {
+      return res.status(400).json({ message: 'A user is already registered with this phone number' });
     }
 
     // Check if this is the first user
@@ -30,6 +34,7 @@ router.post('/register', async (req, res) => {
     const user = await User.create({
       name,
       email,
+      phone,
       password,
       role: isFirstUser ? 'Superadmin' : 'sales person',
       isApproved: isFirstUser ? true : false
@@ -41,7 +46,7 @@ router.post('/register', async (req, res) => {
       userName: user.name,
       userRole: user.role,
       action: 'Register',
-      description: `Registered user ${user.name} (${user.email}). ${isFirstUser ? 'First user auto-promoted to Superadmin.' : 'Awaiting approval.'}`
+      description: `Registered user ${user.name} (${user.email}, ${user.phone}). ${isFirstUser ? 'First user auto-promoted to Superadmin.' : 'Awaiting approval.'}`
     });
 
     const permissions = await getMergedPermissions(user);
@@ -50,6 +55,7 @@ router.post('/register', async (req, res) => {
       _id: user._id,
       name: user.name,
       email: user.email,
+      phone: user.phone,
       role: user.role,
       isApproved: user.isApproved,
       token: generateToken(user._id),
@@ -69,16 +75,17 @@ router.post('/login', async (req, res) => {
     const user = await User.findOne({ 
       $or: [
         { name: name },
-        { email: name }
+        { email: name },
+        { phone: name }
       ]
     });
     if (!user) {
-      return res.status(401).json({ message: 'Invalid name/email or password' });
+      return res.status(401).json({ message: 'Invalid name/email/phone or password' });
     }
 
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
-      return res.status(401).json({ message: 'Invalid name/email or password' });
+      return res.status(401).json({ message: 'Invalid name/email/phone or password' });
     }
 
     if (!user.isApproved) {
@@ -100,6 +107,7 @@ router.post('/login', async (req, res) => {
       _id: user._id,
       name: user.name,
       email: user.email,
+      phone: user.phone,
       role: user.role,
       isApproved: user.isApproved,
       token: generateToken(user._id),

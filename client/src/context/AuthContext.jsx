@@ -64,6 +64,7 @@ export const AuthProvider = ({ children }) => {
         _id: data._id,
         name: data.name,
         email: data.email,
+        phone: data.phone,
         role: data.role,
         isApproved: data.isApproved,
         permissions: data.permissions || []
@@ -74,7 +75,7 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const register = async (name, email, password) => {
+  const register = async (name, email, password, phone) => {
     setLoading(true);
     try {
       const response = await fetch(`${API_URL}/auth/register`, {
@@ -82,7 +83,7 @@ export const AuthProvider = ({ children }) => {
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ name, email, password })
+        body: JSON.stringify({ name, email, password, phone })
       });
 
       const data = await response.json();
@@ -96,6 +97,7 @@ export const AuthProvider = ({ children }) => {
         _id: data._id,
         name: data.name,
         email: data.email,
+        phone: data.phone,
         role: data.role,
         isApproved: data.isApproved,
         permissions: data.permissions || []

@@ -28,6 +28,15 @@ const app = express();
 
 // Connect Database
 connectDB().then(async () => {
+  // Drop unique index on email if exists
+  try {
+    const User = require('./models/User');
+    await User.collection.dropIndex('email_1');
+    console.log('Successfully dropped unique index email_1');
+  } catch (err) {
+    // If the index does not exist, MongoDB throws an error which we can ignore
+  }
+
   // Seed default superadmin if not exists
   try {
     const User = require('./models/User');
@@ -36,6 +45,7 @@ connectDB().then(async () => {
       await User.create({
         name: 'Superadmin',
         email: 'admin@builders.com',
+        phone: '9999999999',
         password: 'adminpassword123', // Will be hashed automatically by pre-save hook
         role: 'Superadmin',
         isApproved: true
@@ -44,6 +54,24 @@ connectDB().then(async () => {
     }
   } catch (err) {
     console.error('Error seeding superadmin:', err.message);
+  }
+
+  // Migration: Add placeholder phone numbers to existing users without one to prevent validation errors
+  try {
+    const User = require('./models/User');
+    const usersWithoutPhone = await User.find({ phone: { $exists: false } });
+    for (const u of usersWithoutPhone) {
+      if (u.email === 'admin@builders.com') {
+        u.phone = '9999999999';
+      } else {
+        const randomSuffix = Math.floor(100000 + Math.random() * 900000);
+        u.phone = `999${randomSuffix}`;
+      }
+      await u.save();
+      console.log(`Migrated user ${u.email} with placeholder phone ${u.phone}`);
+    }
+  } catch (err) {
+    console.error('Error migrating user phone numbers:', err.message);
   }
 
   // Sync booked units from leads and quotations

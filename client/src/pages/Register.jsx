@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Building2, Lock, Mail, User, Eye, EyeOff, Loader2 } from 'lucide-react';
+import { Building2, Lock, Mail, User, Eye, EyeOff, Loader2, Phone } from 'lucide-react';
 
 const Register = () => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -16,7 +17,7 @@ const Register = () => {
     e.preventDefault();
     setError('');
     try {
-      await register(name, email, password);
+      await register(name, email, password, phone);
       // Automatically navigates to dashboard. If not approved, guard displays pending screen.
       navigate('/');
     } catch (err) {
@@ -94,6 +95,23 @@ const Register = () => {
                   value={email}
                   onChange={e => setEmail(e.target.value)}
                   placeholder="john.doe@example.com"
+                  className="w-full pl-12 pr-4 py-4 bg-black/40 border border-white/5 text-white placeholder-gray-600 rounded-2xl focus:outline-none focus:border-emerald-500/50 focus:bg-black/60 focus:ring-1 focus:ring-emerald-500/50 transition-all duration-300 text-sm"
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] ml-2">Mobile Number</label>
+              <div className="relative group/input">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-500 group-focus-within/input:text-emerald-400 transition-colors">
+                  <Phone className="w-5 h-5" />
+                </div>
+                <input 
+                  type="tel" 
+                  value={phone}
+                  onChange={e => setPhone(e.target.value)}
+                  placeholder="9876543210"
                   className="w-full pl-12 pr-4 py-4 bg-black/40 border border-white/5 text-white placeholder-gray-600 rounded-2xl focus:outline-none focus:border-emerald-500/50 focus:bg-black/60 focus:ring-1 focus:ring-emerald-500/50 transition-all duration-300 text-sm"
                   required
                 />
