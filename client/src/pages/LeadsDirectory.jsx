@@ -480,6 +480,19 @@ const LeadsDirectory = () => {
     setError('');
     setSuccessMsg('');
 
+    if (!editName || !editPhoneLocal || !editAddress || !editLeadSource || !editProjectId) {
+      setError('Please fill in all mandatory fields.');
+      return;
+    }
+    if ((user?.role === 'Superadmin' || user?.role === 'Crd team') && !editAssignedToId) {
+      setError('Please select an assigned executive.');
+      return;
+    }
+    if (editBankLoan === 'Yes' && (!editBankLoanPercentage || Number(editBankLoanPercentage) <= 0)) {
+      setError('Bank Loan Percentage must be a number greater than 0.');
+      return;
+    }
+
     const phoneError = validatePhone(editPhoneCountryCode, editPhoneLocal, 'Phone number');
     if (phoneError) {
       setError(phoneError);
