@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth, API_URL } from '../context/AuthContext';
 import SearchableSelect from '../components/SearchableSelect';
+import { sendLeadAssignmentEmail } from '../utils/emailService';
 import { 
   Users, 
   Plus, 
@@ -519,6 +520,23 @@ const LeadsDirectory = () => {
         setSuccessMsg('Lead updated successfully!');
         setEditModalOpen(false);
         fetchLeads();
+
+        // Send EmailJS notification on employee assignment update
+        const prevAssigneeId = selectedLeadForEdit.assignedTo?._id || selectedLeadForEdit.assignedTo || '';
+        const newAssigneeId = editAssignedToId || '';
+        if (newAssigneeId && newAssigneeId !== prevAssigneeId) {
+          const matchedEmployee = employees.find(emp => emp._id === newAssigneeId);
+          if (matchedEmployee && matchedEmployee.email) {
+            const proj = projects.find(p => p._id === editProjectId);
+            sendLeadAssignmentEmail(
+              matchedEmployee, 
+              { name: editName, phone: editPhoneCountryCode + editPhoneLocal, projectCode: proj ? proj.code : 'N/A' },
+              user.name || 'System Admin',
+              user.email
+            ).catch(e => console.error("EmailJS Error:", e));
+          }
+        }
+
         setTimeout(() => setSuccessMsg(''), 3000);
       } else {
         const data = await res.json();
@@ -764,6 +782,22 @@ const LeadsDirectory = () => {
       if (res.ok) {
         setSuccessMsg(data.message);
         setCreateModalOpen(false);
+
+        // Send EmailJS notification on lead creation assignment
+        const assignedId = payload.assignedTo || '';
+        if (assignedId) {
+          const matchedEmployee = employees.find(emp => emp._id === assignedId);
+          if (matchedEmployee && matchedEmployee.email) {
+            const proj = projects.find(p => p._id === selectedProjectId);
+            sendLeadAssignmentEmail(
+              matchedEmployee, 
+              { name: payload.name, phone: payload.phone, projectCode: proj ? proj.code : 'N/A' },
+              user.name || 'System Admin',
+              user.email
+            ).catch(e => console.error("EmailJS Error:", e));
+          }
+        }
+
         resetForm();
         fetchLeads();
         setTimeout(() => setSuccessMsg(''), 4000);
