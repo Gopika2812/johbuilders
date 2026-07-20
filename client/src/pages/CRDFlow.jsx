@@ -756,17 +756,6 @@ const CRDFlow = () => {
       });
 
       if (res.ok) {
-        if (paymentStageIdx === 1 && pdfFiles.some(f => f.trim() !== '')) {
-          await fetch(`${API_URL}/crd-flow/${activeFlow._id}/stage/${paymentStageIdx}/complete`, {
-            method: 'PUT',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify({ uploadedPdfs: pdfFiles, completionNotes: 'Auto-completed via payment submission.' })
-          });
-        }
-        
         const updatedRes = await fetch(`${API_URL}/crd-flow/booking/${selectedBookingId}`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
@@ -1258,9 +1247,11 @@ const CRDFlow = () => {
                             const arrears = getPendingPreviousStages(0).reduce((sum, s) => sum + s.pending, 0);
                             const totalAmt = thisStagePending + arrears;
                             setPaymentAmount(totalAmt.toString());
-                            const half = Math.round(totalAmt / 2);
-                            setDualTransferAmount(half.toString());
-                            setDualLoanAmount((totalAmt - half).toString());
+                            const pct = activeFlow?.lead?.bankLoanPercentage || selectedBookingDetails?.bankLoanPercentage || 50;
+                            const loanAmt = Math.round(totalAmt * (pct / 100));
+                            const transferAmt = totalAmt - loanAmt;
+                            setDualTransferAmount(transferAmt.toString());
+                            setDualLoanAmount(loanAmt.toString());
                             setPaymentMethod(hasBankLoanSelected ? 'Bank Loan' : 'Customer Transfer');
                           }}
                           className="px-4 py-2 bg-[#0e623a] text-white font-bold text-[11px] rounded-xl hover:bg-[#0b4d2d] transition shadow cursor-pointer flex items-center gap-1"
@@ -1343,9 +1334,11 @@ const CRDFlow = () => {
                                           const arrears = getPendingPreviousStages(idx).reduce((sum, s) => sum + s.pending, 0);
                                           const totalAmt = thisStagePending + arrears;
                                           setPaymentAmount(totalAmt.toString());
-                                          const half = Math.round(totalAmt / 2);
-                                          setDualTransferAmount(half.toString());
-                                          setDualLoanAmount((totalAmt - half).toString());
+                                          const pct = activeFlow?.lead?.bankLoanPercentage || selectedBookingDetails?.bankLoanPercentage || 50;
+                                          const loanAmt = Math.round(totalAmt * (pct / 100));
+                                          const transferAmt = totalAmt - loanAmt;
+                                          setDualTransferAmount(transferAmt.toString());
+                                          setDualLoanAmount(loanAmt.toString());
                                           setPaymentMethod(hasBankLoanSelected ? 'Bank Loan' : 'Customer Transfer');
                                         }}
                                         className="px-3 py-1.5 rounded-lg text-[11px] font-bold transition w-24 bg-blue-50 text-blue-700 hover:bg-blue-100 cursor-pointer border border-blue-200"
@@ -1543,9 +1536,11 @@ const CRDFlow = () => {
                       setPaymentAmount(totalAmt.toString());
                       
                       if (paymentMethod === 'Dual Mode') {
-                        const half = Math.round(totalAmt / 2);
-                        setDualTransferAmount(half.toString());
-                        setDualLoanAmount((totalAmt - half).toString());
+                        const pct = activeFlow?.lead?.bankLoanPercentage || selectedBookingDetails?.bankLoanPercentage || 50;
+                        const loanAmt = Math.round(totalAmt * (pct / 100));
+                        const transferAmt = totalAmt - loanAmt;
+                        setDualTransferAmount(transferAmt.toString());
+                        setDualLoanAmount(loanAmt.toString());
                       }
                     }}
                     className="w-full px-4 py-2.5 bg-black-50 border border-black-250 rounded-xl text-sm font-semibold text-black-800"
@@ -1573,9 +1568,11 @@ const CRDFlow = () => {
                           setPaymentAmount(totalAmt.toString());
                           
                           if (paymentMethod === 'Dual Mode') {
-                            const half = Math.round(totalAmt / 2);
-                            setDualTransferAmount(half.toString());
-                            setDualLoanAmount((totalAmt - half).toString());
+                            const pct = activeFlow?.lead?.bankLoanPercentage || selectedBookingDetails?.bankLoanPercentage || 50;
+                            const loanAmt = Math.round(totalAmt * (pct / 100));
+                            const transferAmt = totalAmt - loanAmt;
+                            setDualTransferAmount(transferAmt.toString());
+                            setDualLoanAmount(loanAmt.toString());
                           }
                         }}
                         className="text-[11px] text-purple-600 font-bold hover:text-purple-800 flex items-center gap-1 transition cursor-pointer bg-purple-50 px-2 py-1 rounded"
@@ -1614,9 +1611,11 @@ const CRDFlow = () => {
                       onClick={() => {
                         setPaymentMethod('Dual Mode');
                         const totalAmt = Number(paymentAmount) || 0;
-                        const half = Math.round(totalAmt / 2);
-                        setDualTransferAmount(half.toString());
-                        setDualLoanAmount((totalAmt - half).toString());
+                        const pct = activeFlow?.lead?.bankLoanPercentage || selectedBookingDetails?.bankLoanPercentage || 50;
+                        const loanAmt = Math.round(totalAmt * (pct / 100));
+                        const transferAmt = totalAmt - loanAmt;
+                        setDualTransferAmount(transferAmt.toString());
+                        setDualLoanAmount(loanAmt.toString());
                       }}
                       className={`py-2.5 rounded-xl text-[11px] font-bold transition cursor-pointer text-center ${
                         paymentMethod === 'Dual Mode'
