@@ -137,8 +137,20 @@ const CRDFlow = () => {
     setExpandedStages(prev => ({ ...prev, [idx]: !prev[idx] }));
   };
 
+  const activeFlowRef = React.useRef(activeFlow);
   useEffect(() => {
+    activeFlowRef.current = activeFlow;
+  }, [activeFlow]);
+
+  useEffect(() => {
+    if (!token) return;
     fetchProjectsAndBookings();
+
+    const intervalId = setInterval(() => {
+      fetchProjectsAndBookings(true);
+    }, 5000);
+
+    return () => clearInterval(intervalId);
   }, [token]);
 
   useEffect(() => {
@@ -155,9 +167,9 @@ const CRDFlow = () => {
     }
   }, [activeFlow]);
 
-  const fetchProjectsAndBookings = async () => {
+  const fetchProjectsAndBookings = async (isSilent = false) => {
     try {
-      setLoading(true);
+      if (!isSilent) setLoading(true);
       const projRes = await fetch(`${API_URL}/projects`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -187,15 +199,21 @@ const CRDFlow = () => {
       if (flowsRes.ok) {
         const flowsData = await flowsRes.json();
         setFlows(flowsData);
+        if (activeFlowRef.current) {
+          const freshFlow = flowsData.find(f => f._id === activeFlowRef.current._id);
+          if (freshFlow) {
+            setActiveFlow(freshFlow);
+          }
+        }
       }
       if (quotRes.ok) {
         const quotData = await quotRes.json();
         setQuotations(quotData);
       }
     } catch (err) {
-      setError('Connection error fetching master items');
+      if (!isSilent) setError('Connection error fetching master items');
     } finally {
-      setLoading(false);
+      if (!isSilent) setLoading(false);
     }
   };
 
@@ -776,7 +794,8 @@ const CRDFlow = () => {
   };
 
   const getStageTotal = (stage) => {
-    return stage.amount;
+    const extraTotal = stage.extraWorks?.reduce((sum, ew) => sum + (Number(ew.amount) || 0), 0) || 0;
+    return stage.amount + extraTotal;
   };
 
   const getStagePaid = (stage) => {
@@ -788,7 +807,7 @@ const CRDFlow = () => {
     if (!activeFlow) return pendingStages;
     for (let j = 0; j < idx; j++) {
       const stage = activeFlow.stages[j];
-      const due = stage.amount;
+      const due = getStageTotal(stage);
       const paid = stage.payments?.reduce((sum, p) => sum + p.amount, 0) || 0;
       const pending = due - paid;
       if (pending > 0) {
@@ -1279,7 +1298,7 @@ const CRDFlow = () => {
                           {activeFlow.stages.map((stage, idx) => {
                             const stageTotal = getStageTotal(stage);
                             const stagePaid = getStagePaid(stage);
-                            const isPaidInFull = stagePaid >= stageTotal;
+                            const isPaidInFull = stageTotal > 0 && stagePaid >= stageTotal;
 
                             return (
                               <React.Fragment key={idx}>
@@ -1321,7 +1340,11 @@ const CRDFlow = () => {
                                     Rs. {Math.max(0, stageTotal - stagePaid).toLocaleString()}
                                   </td>
                                   <td className="p-4 text-center">
-                                    {isPaidInFull ? (
+                                    {stageTotal === 0 ? (
+                                      <span className="px-2.5 py-1 rounded-lg bg-gray-100 text-gray-500 text-[11px] font-bold uppercase border border-gray-200 shadow-sm inline-block w-24">
+                                        N/A
+                                      </span>
+                                    ) : isPaidInFull ? (
                                       <span className="px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-800 text-[11px] font-extrabold uppercase border border-emerald-200 shadow-sm inline-block w-24">
                                         Paid
                                       </span>

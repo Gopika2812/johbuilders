@@ -65,7 +65,7 @@ const Login = () => {
             )}
             
             <div className="space-y-2">
-              <label className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] ml-2">Email or Full Name</label>
+              <label className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] ml-2">Username</label>
               <div className="relative group/input">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-500 group-focus-within/input:text-emerald-400 transition-colors">
                   <User className="w-5 h-5" />
@@ -74,7 +74,7 @@ const Login = () => {
                   type="text" 
                   value={name}
                   onChange={e => setName(e.target.value)}
-                  placeholder="john.doe@example.com"
+                  placeholder="Username"
                   className="w-full pl-12 pr-4 py-4 bg-black/40 border border-white/5 text-white placeholder-gray-600 rounded-2xl focus:outline-none focus:border-emerald-500/50 focus:bg-black/60 focus:ring-1 focus:ring-emerald-500/50 transition-all duration-300 text-sm"
                   required
                 />

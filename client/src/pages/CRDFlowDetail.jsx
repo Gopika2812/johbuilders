@@ -147,7 +147,7 @@ const CRDFlowDetail = () => {
               const total = original + extra;
               const paid = getStagePaid(stage);
               const pending = Math.max(0, total - paid);
-              const isDone = stage.isCompleted || paid >= total;
+              const isDone = stage.isCompleted || (total > 0 && paid >= total);
 
               return (
                 <tr key={idx} className="hover:bg-gray-50/50 transition">

@@ -785,7 +785,7 @@ const CustomerDashboard = () => {
                         {flow.stages?.map((stage, idx) => {
                           const stagePaid = stage.payments?.reduce((sum, p) => sum + (Number(p.amount) || 0), 0) || 0;
                           const totalAmt = stage.amount + (stage.extraWorks?.reduce((s, e) => s + e.amount, 0) || 0);
-                          const isCompleted = stage.isCompleted || stagePaid >= totalAmt;
+                          const isCompleted = stage.isCompleted || (totalAmt > 0 && stagePaid >= totalAmt);
 
                           return (
                             <tr key={idx} className="hover:bg-white transition bg-white/40">
@@ -803,7 +803,7 @@ const CustomerDashboard = () => {
                                   : '--'}
                               </td>
                               <td className="p-4 text-center">
-                                {stagePaid >= totalAmt ? (
+                                {isCompleted ? (
                                   <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 text-[#006838] text-[10px] font-bold uppercase tracking-wider border border-emerald-100">
                                     <CheckCircle className="w-3.5 h-3.5" /> Completed
                                   </span>
