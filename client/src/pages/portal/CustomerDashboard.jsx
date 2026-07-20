@@ -1390,8 +1390,6 @@ const CustomerDashboard = () => {
                             <th className="p-4 w-16 text-center font-bold uppercase">S.No</th>
                             <th className="p-4 font-bold uppercase">Req ID</th>
                             <th className="p-4 font-bold uppercase">Date</th>
-                            <th className="p-4 font-bold uppercase">Project</th>
-                            <th className="p-4 font-bold uppercase">Unit No</th>
                             <th className="p-4 font-bold uppercase">Category</th>
                             <th className="p-4 font-bold uppercase">Extra Work</th>
                             <th className="p-4 text-right font-bold uppercase">Est. Amount</th>
@@ -1411,11 +1409,6 @@ const CustomerDashboard = () => {
                                 </td>
                                 <td className="p-4 text-xs font-bold text-[#006838]">{group.displayId || '-'}</td>
                                 <td className="p-4 text-xs font-bold text-gray-600">{new Date(group.addedAt).toLocaleDateString()}</td>
-                                <td className="p-4">
-                                  <div className="font-bold text-gray-900">{flow.project?.code || '-'}</div>
-                                  <div className="text-[10px] text-gray-500 uppercase">{flow.project?.projectType || '-'}</div>
-                                </td>
-                                <td className="p-4 text-xs font-bold text-emerald-600">{flow.unitId || '-'}</td>
                                 <td className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider">{group.items.length === 1 ? group.items[0].category : 'Multiple'}</td>
                                 <td className="p-4"><div className="font-bold text-gray-900">{group.items.length} Items Requested</div></td>
                                 <td className="p-4 text-right font-black text-[#006838]">Rs. {group.totalAmount.toLocaleString()}</td>
@@ -1430,8 +1423,6 @@ const CustomerDashboard = () => {
                                   <td className="p-4 text-center text-gray-400 font-bold text-xs">{idx + 1}.{childIdx + 1}</td>
                                   <td className="p-4 text-xs font-bold text-[#006838]/50">↳ {ew.ewId || '-'}</td>
                                   <td className="p-4 text-xs font-bold text-gray-400">{new Date(ew.addedAt).toLocaleDateString()}</td>
-                                  <td className="p-4"></td>
-                                  <td className="p-4"></td>
                                   <td className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider">{ew.category || 'General'}</td>
                                   <td className="p-4">
                                     <div className="font-bold text-gray-900">{ew.name}</div>

@@ -109,9 +109,8 @@ router.put('/:flowId/:stageIdx/:workId/price', protect, checkPermission('extra_w
 });
 
 // @route   PUT /api/extra-works/:flowId/:stageIdx/:workId/send
-// @desc    Superadmin sends priced extra work to customer
-router.put('/:flowId/:stageIdx/:workId/send', protect, checkPermission('extra_works_ped', 'edit'), async (req, res) => {
-
+// @desc    Send priced extra work to CRD (from PED) or customer (from CRD)
+router.put('/:flowId/:stageIdx/:workId/send', protect, async (req, res) => {
   const { flowId, stageIdx, workId } = req.params;
 
   try {
@@ -124,51 +123,40 @@ router.put('/:flowId/:stageIdx/:workId/send', protect, checkPermission('extra_wo
     const extraWork = stage.extraWorks.id(workId);
     if (!extraWork) return res.status(404).json({ message: 'Extra work not found' });
 
-    if (extraWork.status !== 'PED Approved') {
-      return res.status(400).json({ message: 'Work must be PED Approved first' });
+    const { getMergedPermissions } = require('../utils/permissionHelper');
+    const permissions = req.user.role === 'Superadmin' ? [] : await getMergedPermissions(req.user);
+
+    if (extraWork.status === 'PED Approved') {
+      // Must have PED edit permission or be Superadmin
+      const hasPedPermission = req.user.role === 'Superadmin' || permissions.some(p => p.pageId === 'extra_works_ped' && p.canEdit);
+      if (!hasPedPermission) {
+        return res.status(403).json({ message: `Access denied. User '${req.user.name}' does not have edit permission for 'extra_works_ped'.` });
+      }
+
+      extraWork.status = 'Returned to CRD';
+
+      flow.history.push({
+        action: 'Returned to CRD',
+        notes: `Returned extra work: ${extraWork.name} to CRD team after pricing`,
+        user: req.user ? req.user.name : 'Superadmin'
+      });
+    } else if (extraWork.status === 'Returned to CRD') {
+      // Must have CRD edit permission or be Superadmin
+      const hasCrdPermission = req.user.role === 'Superadmin' || permissions.some(p => p.pageId === 'extra_works_crd' && p.canEdit);
+      if (!hasCrdPermission) {
+        return res.status(403).json({ message: `Access denied. User '${req.user.name}' does not have edit permission for 'extra_works_crd'.` });
+      }
+
+      extraWork.status = 'Sent to Customer';
+
+      flow.history.push({
+        action: 'Sent Extra Work to Customer',
+        notes: `Sent extra work: ${extraWork.name} to customer for approval`,
+        user: req.user ? req.user.name : 'Superadmin'
+      });
+    } else {
+      return res.status(400).json({ message: `Invalid transition for send action. Current status is '${extraWork.status}'.` });
     }
-
-    extraWork.status = 'Returned to CRD';
-
-    flow.history.push({
-      action: 'Returned to CRD',
-      notes: `Returned extra work: ${extraWork.name} to CRD team after pricing`,
-      user: 'Superadmin'
-    });
-
-    await flow.save();
-    res.json(flow);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-});
-
-// @route   PUT /api/extra-works/:flowId/:stageIdx/:workId/send
-// @desc    CRD team sends priced extra work to customer
-router.put('/:flowId/:stageIdx/:workId/send', protect, authorize('Superadmin', 'Superadmin'), async (req, res) => {
-  const { flowId, stageIdx, workId } = req.params;
-
-  try {
-    const flow = await CRDFlow.findById(flowId);
-    if (!flow) return res.status(404).json({ message: 'CRD Flow not found' });
-
-    const stage = flow.stages[stageIdx];
-    if (!stage) return res.status(404).json({ message: 'Stage not found' });
-
-    const extraWork = stage.extraWorks.id(workId);
-    if (!extraWork) return res.status(404).json({ message: 'Extra work not found' });
-
-    if (extraWork.status !== 'Returned to CRD') {
-      return res.status(400).json({ message: 'Work must be Returned to CRD first' });
-    }
-
-    extraWork.status = 'Sent to Customer';
-
-    flow.history.push({
-      action: 'Sent Extra Work to Customer',
-      notes: `Sent extra work: ${extraWork.name} to customer for approval`,
-      user: 'Superadmin'
-    });
 
     await flow.save();
     res.json(flow);

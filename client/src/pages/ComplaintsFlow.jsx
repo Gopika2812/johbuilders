@@ -49,7 +49,7 @@ const ComplaintsFlow = () => {
       if (!res.ok) throw new Error('Failed to fetch complaints');
       const data = await res.json();
       setTasks(data);
-      
+
       const prices = {};
       data.forEach(t => {
         if (t.pedPrice) prices[t.complaintId] = t.pedPrice;
@@ -107,11 +107,11 @@ const ComplaintsFlow = () => {
     doc.text(`Project: ${task.projectName}`, 20, 70);
     doc.text(`Unit: ${task.unitId}`, 20, 80);
     doc.text(`Customer Name: ${task.customerName}`, 20, 90);
-    
+
     const tableData = [
       ['1', task.title || 'Complaint Repair', task.description, `Rs. ${Number(pedPrices[task.complaintId] || task.pedPrice || 0).toLocaleString()}`]
     ];
-    
+
     doc.autoTable({
       startY: 100,
       head: [['S.No', 'Title', 'Description', 'Total Price']],
@@ -119,7 +119,7 @@ const ComplaintsFlow = () => {
       theme: 'grid',
       headStyles: { fillColor: [0, 104, 56] }
     });
-    
+
     const finalY = doc.lastAutoTable.finalY || 130;
     doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
@@ -132,11 +132,11 @@ const ComplaintsFlow = () => {
   };
 
   const getStatusBadge = (t) => {
-    switch(t.status) {
+    switch (t.status) {
       case 'Pending': return <span className="px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs font-bold w-max">Pending (CRD)</span>;
       case 'Sent to PED': return <span className="px-3 py-1 bg-indigo-100 text-indigo-800 rounded-full text-xs font-bold w-max">Sent to PED</span>;
-      case 'Returned to CRD': 
-        if (t.clientNotes) return <span className="px-3 py-1 bg-pink-100 text-pink-800 rounded-full text-xs font-bold w-max flex items-center gap-1"><MessageSquare className="w-3 h-3"/> Client Review</span>;
+      case 'Returned to CRD':
+        if (t.clientNotes) return <span className="px-3 py-1 bg-pink-100 text-pink-800 rounded-full text-xs font-bold w-max flex items-center gap-1"><MessageSquare className="w-3 h-3" /> Client Review</span>;
         return <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-bold w-max">Priced (CRD)</span>;
       case 'Sent to Customer': return <span className="px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-xs font-bold w-max">Sent to Customer</span>;
       case 'Client Approved': return <span className="px-3 py-1 bg-emerald-100 text-emerald-800 rounded-full text-xs font-bold w-max">Client Approved</span>;
@@ -166,7 +166,7 @@ const ComplaintsFlow = () => {
           </button>
         );
       } else {
-        return <span className="text-gray-400 text-xs italic font-medium whitespace-nowrap">Shared to CRD (from Client)</span>;
+        return <span className="text-gray-400 text-xs italic font-medium whitespace-nowrap">Sent to CRD (from Client)</span>;
       }
     } else if (t.status === 'Returned to CRD') {
       if (isCRD) {
@@ -184,7 +184,7 @@ const ComplaintsFlow = () => {
           );
         }
       } else {
-        return <span className="text-gray-400 text-xs italic font-medium whitespace-nowrap">Shared to CRD (from PED)</span>;
+        return <span className="text-gray-400 text-xs italic font-medium whitespace-nowrap">Sent to CRD (from PED)</span>;
       }
     } else if (t.status === 'Sent to PED') {
       if (isPED) {
@@ -195,7 +195,7 @@ const ComplaintsFlow = () => {
               <input
                 type="number"
                 value={pedPrices[t.complaintId] || ''}
-                onChange={(e) => setPedPrices({...pedPrices, [t.complaintId]: e.target.value})}
+                onChange={(e) => setPedPrices({ ...pedPrices, [t.complaintId]: e.target.value })}
                 placeholder="Price"
                 className="w-24 pl-7 pr-2 py-1.5 border border-gray-200 rounded-lg text-xs focus:ring-2 focus:ring-[#006838] outline-none"
               />
@@ -209,7 +209,7 @@ const ComplaintsFlow = () => {
           </React.Fragment>
         );
       } else {
-        return <span className="text-gray-400 text-xs italic font-medium whitespace-nowrap">Shared to PED (from CRD)</span>;
+        return <span className="text-gray-400 text-xs italic font-medium whitespace-nowrap">Sent to PED (from CRD)</span>;
       }
     } else if (t.status === 'Sent to Customer') {
       if (isClient) {
@@ -224,7 +224,7 @@ const ComplaintsFlow = () => {
           </React.Fragment>
         );
       } else {
-        return <span className="text-gray-400 text-xs italic font-medium whitespace-nowrap">Shared to Client (from CRD)</span>;
+        return <span className="text-gray-400 text-xs italic font-medium whitespace-nowrap">Sent to Client (from CRD)</span>;
       }
     } else if (t.status === 'Client Approved') {
       if (isCRD) {
@@ -234,12 +234,12 @@ const ComplaintsFlow = () => {
           </button>
         );
       } else {
-        return <span className="text-gray-400 text-xs italic font-medium whitespace-nowrap">Shared to CRD (from Client)</span>;
+        return <span className="text-gray-400 text-xs italic font-medium whitespace-nowrap">Sent to CRD (from Client)</span>;
       }
     } else if (['Execution Sent to PED', 'Start Work', 'In Progress'].includes(t.status)) {
       if (isPED) {
         actions.push(
-          <select 
+          <select
             key="ped-execution"
             value={t.status}
             onChange={(e) => {
@@ -256,7 +256,7 @@ const ComplaintsFlow = () => {
           </select>
         );
       } else {
-        return <span className="text-gray-400 text-xs italic font-medium whitespace-nowrap">Shared to PED (Execution)</span>;
+        return <span className="text-gray-400 text-xs italic font-medium whitespace-nowrap">Sent to PED (Execution)</span>;
       }
     } else if (t.status === 'Completed') {
       if (isCRD) {
@@ -266,10 +266,10 @@ const ComplaintsFlow = () => {
           </button>
         );
       } else {
-        return <span className="text-gray-400 text-xs italic font-medium whitespace-nowrap">Shared to CRD (from PED)</span>;
+        return <span className="text-gray-400 text-xs italic font-medium whitespace-nowrap">Sent to CRD (from PED)</span>;
       }
     } else if (t.status === 'Sent to Client (Completed)') {
-      return <span className="text-gray-400 text-xs italic font-medium whitespace-nowrap">Shared to Client (Feedback)</span>;
+      return <span className="text-gray-400 text-xs italic font-medium whitespace-nowrap">Sent to Client (Feedback)</span>;
     } else if (t.status === 'Feedback Received' || t.status === 'Resolved') {
       return <span className="text-emerald-600 text-xs font-bold">Resolved</span>;
     } else if (t.status === 'Rejected') {
@@ -279,11 +279,19 @@ const ComplaintsFlow = () => {
     if (actions.length > 0) {
       return <div className="flex flex-wrap items-center justify-end gap-2">{actions}</div>;
     }
-    
+
     return <span className="text-gray-400 text-xs italic font-medium">-</span>;
   };
 
-  const filteredTasks = tasks.filter(t => isComplaintVisible(t));
+  const filteredTasks = tasks
+    .filter(t => isComplaintVisible(t))
+    .sort((a, b) => {
+      const aNew = a.status === 'Pending';
+      const bNew = b.status === 'Pending';
+      if (aNew && !bNew) return -1;
+      if (!aNew && bNew) return 1;
+      return new Date(b.reportedAt) - new Date(a.reportedAt);
+    });
 
   return (
     <div className="p-6 md:p-8 w-full mx-auto space-y-6 animate-fade-in pb-24">
@@ -299,6 +307,7 @@ const ComplaintsFlow = () => {
                 <th className="px-6 py-4 font-bold text-xs uppercase tracking-wider w-16">S.No</th>
                 <th className="px-6 py-4 font-bold text-xs uppercase tracking-wider">Raised On</th>
                 <th className="px-6 py-4 font-bold text-xs uppercase tracking-wider">Token ID</th>
+                <th className="px-6 py-4 font-bold text-xs uppercase tracking-wider">Status</th>
                 <th className="px-6 py-4 font-bold text-xs uppercase tracking-wider">Scope</th>
                 <th className="px-6 py-4 font-bold text-xs uppercase tracking-wider">Details</th>
                 <th className="px-6 py-4 font-bold text-xs uppercase tracking-wider">Price (Rs.)</th>
@@ -310,96 +319,103 @@ const ComplaintsFlow = () => {
             <tbody className="divide-y divide-emerald-50">
               {loading ? (
                 <tr>
-                  <td colSpan="7" className="p-8 text-center text-gray-500">
+                  <td colSpan="10" className="p-8 text-center text-gray-500">
                     <Loader2 className="w-8 h-8 animate-spin mx-auto text-[#006838]" />
                     <p className="mt-2 text-sm font-medium">Loading Complaints...</p>
                   </td>
                 </tr>
               ) : filteredTasks.length === 0 ? (
                 <tr>
-                  <td colSpan="7" className="p-8 text-center text-gray-500 font-medium">
+                  <td colSpan="10" className="p-8 text-center text-gray-500 font-medium">
                     No complaints found.
                   </td>
                 </tr>
               ) : filteredTasks.map((t, idx) => (
                 <React.Fragment key={t.complaintId}>
-                <tr className="hover:bg-emerald-50/50 transition-colors cursor-pointer bg-white">
-                  <td className="px-6 py-4 font-bold text-gray-900">{idx + 1}</td>
-                  <td className="px-6 py-4 text-gray-600">
-                    {new Date(t.reportedAt).toLocaleDateString('en-GB')}
-                  </td>
-                  <td className="px-6 py-4 font-mono text-xs text-gray-500">
-                    <button 
-                      onClick={(e) => { e.stopPropagation(); setHistoryModal(t); }} 
-                      className="flex items-center gap-1.5 px-2 py-1 bg-emerald-50 text-emerald-700 rounded text-xs font-bold hover:bg-emerald-100 transition-colors border border-emerald-100 shadow-sm"
-                      title="View Activity History"
-                    >
-                      <Activity className="w-3.5 h-3.5" />
-                      {t.token}
-                    </button>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className={`px-2.5 py-1 rounded-md text-[11px] font-bold tracking-wide uppercase ${t.scope === 'Customer' ? 'bg-purple-50 text-purple-700 border border-purple-200' : 'bg-blue-50 text-blue-700 border border-blue-200'}`}>
-                      {t.scope || 'Company'}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-gray-800 whitespace-normal min-w-[200px]">
-                    <div className="font-bold mb-1">{t.title || 'Complaint'}</div>
-                    <div className="text-xs text-gray-600 line-clamp-2" title={t.description}>{t.description}</div>
-                  </td>
-                  <td className="px-6 py-4 font-black text-[#006838]">
-                    {t.pedPrice > 0 ? `Rs. ${t.pedPrice.toLocaleString()}` : '-'}
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex flex-col gap-1 items-start">
-                      {getStatusBadge(t)}
-                      {t.clientNotes && (t.status === 'Returned to CRD' || t.status === 'Sent to PED') && (
-                        <button 
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setExpandedNotes(prev => ({...prev, [t.complaintId]: !prev[t.complaintId]}));
-                          }}
-                          className="flex items-center gap-1 text-[10px] font-bold text-pink-600 hover:text-pink-800 transition-colors bg-pink-50 px-2 py-1 rounded-full border border-pink-100"
-                        >
-                          {expandedNotes[t.complaintId] ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-                          {expandedNotes[t.complaintId] ? 'Hide Note' : 'View Note'}
-                        </button>
+                  <tr className="hover:bg-emerald-50/50 transition-colors cursor-pointer bg-white">
+                    <td className="px-6 py-4 font-bold text-gray-900">{idx + 1}</td>
+                    <td className="px-6 py-4 text-gray-600">
+                      {new Date(t.reportedAt).toLocaleDateString('en-GB')}
+                    </td>
+                    <td className="px-6 py-4 font-mono text-xs text-gray-500">
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setHistoryModal(t); }}
+                        className="flex items-center gap-1.5 px-2 py-1 bg-emerald-50 text-emerald-700 rounded text-xs font-bold hover:bg-emerald-100 transition-colors border border-emerald-100 shadow-sm"
+                        title="View Activity History"
+                      >
+                        <Activity className="w-3.5 h-3.5" />
+                        {t.token}
+                      </button>
+                    </td>
+                    <td className="px-6 py-4 text-center">
+                      {t.status === 'Pending' ? (
+                        <span className="px-2.5 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full text-[11px] font-bold">New</span>
+                      ) : (
+                        <span className="px-2.5 py-1 bg-slate-100 text-slate-700 border border-slate-200 rounded-full text-[11px] font-bold">Old</span>
                       )}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    {t.clientRating > 0 ? (
-                      <div className="flex flex-col gap-1">
-                        <div className="flex">
-                          {[1,2,3,4,5].map(s => (
-                            <Star key={s} className={`w-3.5 h-3.5 ${s <= t.clientRating ? 'fill-amber-400 text-amber-400' : 'text-gray-300'}`} />
-                          ))}
-                        </div>
-                        {t.clientFeedback && <p className="text-xs text-gray-500 italic max-w-[200px] truncate" title={t.clientFeedback}>"{t.clientFeedback}"</p>}
-                      </div>
-                    ) : (
-                      <span className="text-xs text-gray-400">-</span>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    {renderActionButtons(t)}
-                  </td>
-                </tr>
-                {t.clientNotes && (t.status === 'Returned to CRD' || t.status === 'Sent to PED') && expandedNotes[t.complaintId] && (
-                  <tr className="bg-pink-50/40 border-t border-pink-100">
-                    <td colSpan="9" className="px-6 py-3">
-                      <div className="flex items-start gap-3">
-                        <div className="p-1.5 bg-pink-100 text-pink-600 rounded-md">
-                          <MessageSquare className="w-4 h-4" />
-                        </div>
-                        <div>
-                          <span className="font-bold text-[10px] uppercase tracking-widest text-pink-800 block mb-0.5">Client Review Note</span>
-                          <span className="text-sm text-pink-950 font-medium whitespace-pre-wrap">{t.clientNotes}</span>
-                        </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className={`px-2.5 py-1 rounded-md text-[11px] font-bold tracking-wide uppercase ${t.scope === 'Customer' ? 'bg-purple-50 text-purple-700 border border-purple-200' : 'bg-blue-50 text-blue-700 border border-blue-200'}`}>
+                        {t.scope || 'Company'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-gray-800 whitespace-normal min-w-[200px]">
+                      <div className="font-bold mb-1">{t.title || 'Complaint'}</div>
+                      <div className="text-xs text-gray-600 line-clamp-2" title={t.description}>{t.description}</div>
+                    </td>
+                    <td className="px-6 py-4 font-black text-[#006838]">
+                      {t.pedPrice > 0 ? `Rs. ${t.pedPrice.toLocaleString()}` : '-'}
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex flex-col gap-1 items-start">
+                        {getStatusBadge(t)}
+                        {t.clientNotes && (t.status === 'Returned to CRD' || t.status === 'Sent to PED') && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setExpandedNotes(prev => ({ ...prev, [t.complaintId]: !prev[t.complaintId] }));
+                            }}
+                            className="flex items-center gap-1 text-[10px] font-bold text-pink-600 hover:text-pink-800 transition-colors bg-pink-50 px-2 py-1 rounded-full border border-pink-100"
+                          >
+                            {expandedNotes[t.complaintId] ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                            {expandedNotes[t.complaintId] ? 'Hide Note' : 'View Note'}
+                          </button>
+                        )}
                       </div>
                     </td>
+                    <td className="px-6 py-4">
+                      {t.clientRating > 0 ? (
+                        <div className="flex flex-col gap-1">
+                          <div className="flex">
+                            {[1, 2, 3, 4, 5].map(s => (
+                              <Star key={s} className={`w-3.5 h-3.5 ${s <= t.clientRating ? 'fill-amber-400 text-amber-400' : 'text-gray-300'}`} />
+                            ))}
+                          </div>
+                          {t.clientFeedback && <p className="text-xs text-gray-500 italic max-w-[200px] truncate" title={t.clientFeedback}>"{t.clientFeedback}"</p>}
+                        </div>
+                      ) : (
+                        <span className="text-xs text-gray-400">-</span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      {renderActionButtons(t)}
+                    </td>
                   </tr>
-                )}
+                  {t.clientNotes && (t.status === 'Returned to CRD' || t.status === 'Sent to PED') && expandedNotes[t.complaintId] && (
+                    <tr className="bg-pink-50/40 border-t border-pink-100">
+                      <td colSpan="10" className="px-6 py-3">
+                        <div className="flex items-start gap-3">
+                          <div className="p-1.5 bg-pink-100 text-pink-600 rounded-md">
+                            <MessageSquare className="w-4 h-4" />
+                          </div>
+                          <div>
+                            <span className="font-bold text-[10px] uppercase tracking-widest text-pink-800 block mb-0.5">Client Review Note</span>
+                            <span className="text-sm text-pink-950 font-medium whitespace-pre-wrap">{t.clientNotes}</span>
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
                 </React.Fragment>
               ))}
             </tbody>
@@ -423,7 +439,7 @@ const ComplaintsFlow = () => {
                 <X className="w-5 h-5" />
               </button>
             </div>
-            
+
             <div className="p-6 overflow-y-auto flex-1 bg-gray-50/50">
               {historyModal.history && historyModal.history.length > 0 ? (
                 <div className="relative border-l-2 border-emerald-200 ml-3 space-y-6">

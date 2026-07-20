@@ -2,10 +2,10 @@ import React, { useState, useEffect } from 'react';
 
 import { saveAs } from 'file-saver';
 import { useAuth, API_URL } from '../context/AuthContext';
-import { 
-  Building, 
-  ChevronDown, 
-  ChevronUp, 
+import {
+  Building,
+  ChevronDown,
+  ChevronUp,
   CheckCircle,
   Clock,
   Loader2,
@@ -121,8 +121,8 @@ const ExtraWorksInner = () => {
     fetchFlows();
   }, [token]);
 
-    const toggleWorkSelection = (workId) => {
-    setSelectedWorks(prev => 
+  const toggleWorkSelection = (workId) => {
+    setSelectedWorks(prev =>
       prev.includes(workId) ? prev.filter(id => id !== workId) : [...prev, workId]
     );
   };
@@ -131,7 +131,7 @@ const ExtraWorksInner = () => {
     // Legacy function, kept for safety
   };
 
-const handleRateChange = (workId, value) => {
+  const handleRateChange = (workId, value) => {
     setRates(prev => ({ ...prev, [workId]: value }));
   };
 
@@ -160,7 +160,7 @@ const handleRateChange = (workId, value) => {
     try {
       setSubmitting(workId);
       const rate = Number(rates[workId] || 0);
-      
+
       // 1. Save the price
       let res = await fetch(`${API_URL}/extra-works/${flowId}/${stageIdx}/${workId}/price`, {
         method: 'PUT',
@@ -257,13 +257,13 @@ const handleRateChange = (workId, value) => {
       alert("No stages found in this project to add work to!");
       return;
     }
-    
+
     // If they filled the form but forgot to click Add to List
     let worksToSubmit = [...addedWorks];
     if (addForm.name.trim()) {
       worksToSubmit.push(addForm);
     }
-    
+
     if (worksToSubmit.length === 0) {
       alert("Please add at least one extra work!");
       return;
@@ -280,7 +280,7 @@ const handleRateChange = (workId, value) => {
         body: JSON.stringify({ works: worksToSubmit, stageId, ewId: ewId || addForm.ewId, forUnit: addForm.forUnit })
       });
       if (!res.ok) throw new Error('Failed to add extra works');
-      
+
       setAddForm({
         stageId: '',
         name: '',
@@ -318,7 +318,7 @@ const handleRateChange = (workId, value) => {
   };
 
   const getStatusBadge = (status) => {
-    switch(status) {
+    switch (status) {
       case 'Pending': return <span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded text-xs font-bold">Pending (CRD)</span>;
       case 'Sent to PED': return <span className="px-2 py-1 bg-indigo-100 text-indigo-800 rounded text-xs font-bold">Sent to PED</span>;
       case 'PED Approved': return <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs font-bold">Priced (Ready to Send)</span>;
@@ -338,13 +338,13 @@ const handleRateChange = (workId, value) => {
 
   const isWorkVisible = (work) => {
     if (isAdmin) return true;
-    
+
     const status = work.status;
-    
+
     if (canEditTab('crd') && ['Pending', 'Returned to CRD', 'Client Approved', 'Added to CRD'].includes(status)) {
       return true;
     }
-    
+
     if (canEditTab('ped') && ['Sent to PED', 'PED Approved', 'Execution Sent to PED', 'Start Work', 'In Progress', 'Completed'].includes(status)) {
       return true;
     }
@@ -362,7 +362,7 @@ const handleRateChange = (workId, value) => {
 
   const filteredFlows = flows.filter(flow => {
     // 1. Must have at least one visible extra work
-    const hasValidWork = flow.stages.some(stage => 
+    const hasValidWork = flow.stages.some(stage =>
       stage.extraWorks && stage.extraWorks.some(work => isWorkVisible(work))
     );
     if (!hasValidWork) return false;
@@ -370,7 +370,7 @@ const handleRateChange = (workId, value) => {
     let matchesSearch = true;
     if (searchTerm) {
       const search = searchTerm.toLowerCase();
-      matchesSearch = 
+      matchesSearch =
         (flow.lead?.name || '').toLowerCase().includes(search) ||
         (flow.lead?.phone || '').toLowerCase().includes(search) ||
         (flow.project?.name || '').toLowerCase().includes(search) ||
@@ -401,7 +401,7 @@ const handleRateChange = (workId, value) => {
       try {
         const logoRes = await fetch('/jb_logo.jpg');
         const logoBlob = await logoRes.blob();
-        
+
         // Convert blob to base64 and strip the data URI prefix
         const base64data = await new Promise((resolve) => {
           const reader = new FileReader();
@@ -411,7 +411,7 @@ const handleRateChange = (workId, value) => {
             resolve(base64String);
           };
         });
-        
+
         logoId = workbook.addImage({
           base64: base64data,
           extension: 'jpeg',
@@ -446,10 +446,10 @@ const handleRateChange = (workId, value) => {
         cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF006838' } };
         cell.alignment = { vertical: 'middle', horizontal: 'center' };
         cell.border = {
-          top: {style:'thin', color: {argb:'FFFFFFFF'}},
-          left: {style:'thin', color: {argb:'FFFFFFFF'}},
-          bottom: {style:'thin', color: {argb:'FFFFFFFF'}},
-          right: {style:'thin', color: {argb:'FFFFFFFF'}}
+          top: { style: 'thin', color: { argb: 'FFFFFFFF' } },
+          left: { style: 'thin', color: { argb: 'FFFFFFFF' } },
+          bottom: { style: 'thin', color: { argb: 'FFFFFFFF' } },
+          right: { style: 'thin', color: { argb: 'FFFFFFFF' } }
         };
       });
 
@@ -480,7 +480,7 @@ const handleRateChange = (workId, value) => {
           activeExtraWorksTotal,
           (flow.totalOriginalValue || 0) + activeExtraWorksTotal
         ]);
-        
+
         row.getCell(3).numFmt = '@'; // Force phone as text
         row.getCell(7).numFmt = '₹#,##0.00';
         row.getCell(8).numFmt = '₹#,##0.00';
@@ -489,7 +489,7 @@ const handleRateChange = (workId, value) => {
 
       const buffer = await workbook.xlsx.writeBuffer();
       saveAs(new Blob([buffer]), 'Extra_Works_Report.xlsx');
-      
+
       setShowExportModal(false);
     } catch (err) {
       console.error(err);
@@ -527,7 +527,7 @@ const handleRateChange = (workId, value) => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">Extra Works Management</h1>
-        
+
         </div>
       </div>
 
@@ -544,7 +544,7 @@ const handleRateChange = (workId, value) => {
             className="w-full pl-9 pr-4 py-2 bg-white/50 border border-emerald-100 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500"
           />
         </div>
-        
+
         <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
           <div className="flex items-center gap-2">
             <input
@@ -561,7 +561,7 @@ const handleRateChange = (workId, value) => {
               className="px-3 py-2 bg-white/50 border border-emerald-100 rounded-xl text-sm text-gray-700 focus:outline-none focus:ring-1 focus:ring-emerald-500"
             />
           </div>
-          
+
           <button
             onClick={() => setShowExportModal(true)}
             className="w-full sm:w-auto px-4 py-2 bg-emerald-50 text-emerald-700 font-bold rounded-xl flex items-center justify-center gap-2 hover:bg-emerald-100 transition-colors"
@@ -581,7 +581,7 @@ const handleRateChange = (workId, value) => {
                 <X className="w-6 h-6" />
               </button>
             </div>
-            
+
             <div className="p-6 overflow-y-auto flex-1 bg-gray-50">
               <div className="bg-white border border-emerald-100 rounded-2xl shadow-sm overflow-hidden">
                 <div className="bg-[#006838] p-4 flex items-center gap-4 text-white">
@@ -627,13 +627,13 @@ const handleRateChange = (workId, value) => {
             </div>
 
             <div className="p-6 border-t border-gray-100 bg-white rounded-b-[2rem] flex justify-end gap-3">
-              <button 
+              <button
                 onClick={() => setShowExportModal(false)}
                 className="px-6 py-2.5 rounded-xl font-bold text-gray-600 hover:bg-gray-100 transition"
               >
                 Cancel
               </button>
-              <button 
+              <button
                 onClick={exportToExcel}
                 disabled={exporting}
                 className="px-8 py-2.5 bg-[#006838] text-white font-bold rounded-xl flex items-center gap-2 hover:bg-[#00522c] transition shadow-lg shadow-emerald-600/20 disabled:opacity-50"
@@ -671,10 +671,10 @@ const handleRateChange = (workId, value) => {
                 </tr>
               ) : filteredFlows.map((flow, idx) => {
                 const isExpanded = expandedFlow === flow._id;
-                
+
                 return (
                   <React.Fragment key={flow._id}>
-                    <tr 
+                    <tr
                       className="hover:bg-emerald-50/50 transition-colors cursor-pointer"
                       onClick={() => setExpandedFlow(isExpanded ? null : flow._id)}
                     >
@@ -699,12 +699,12 @@ const handleRateChange = (workId, value) => {
                             <div className="flex justify-between items-center mb-4">
                               <h3 className="font-bold text-gray-800 text-lg">Extra Works Timeline</h3>
                               {(isAdmin || canEditTab('crd')) && (
-                                <button 
+                                <button
                                   onClick={() => {
                                     setShowAddForm(!showAddForm);
                                     setAddedWorks([]);
                                     setAddForm({ stageId: '', name: '', category: '', unit: 'Unit', quantity: 1, rate: 0, forUnit: '' });
-                                  }} 
+                                  }}
                                   className="flex items-center gap-2 px-4 py-2 bg-[#006838] text-white font-bold rounded-xl hover:bg-[#00512c] transition-colors shadow-sm text-sm"
                                 >
                                   <Plus className="w-4 h-4" /> Add Extra Work
@@ -728,7 +728,7 @@ const handleRateChange = (workId, value) => {
                                           <select
                                             className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#006838]/20"
                                             value={addForm.category}
-                                            onChange={e => setAddForm({...addForm, category: e.target.value, name: '', unit: 'Unit'})}
+                                            onChange={e => setAddForm({ ...addForm, category: e.target.value, name: '', unit: 'Unit' })}
                                           >
                                             <option value="">Select Category...</option>
                                             {catalogCategories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
@@ -741,7 +741,7 @@ const handleRateChange = (workId, value) => {
                                             value={addForm.name}
                                             onChange={e => {
                                               const selectedItem = subCategories.find(item => item.name === e.target.value);
-                                              setAddForm({...addForm, name: e.target.value, unit: selectedItem ? selectedItem.unit : 'Unit', rate: selectedItem ? selectedItem.rate : 0});
+                                              setAddForm({ ...addForm, name: e.target.value, unit: selectedItem ? selectedItem.unit : 'Unit', rate: selectedItem ? selectedItem.rate : 0 });
                                             }}
                                             disabled={!addForm.category}
                                           >
@@ -752,10 +752,10 @@ const handleRateChange = (workId, value) => {
                                         {flow.unitId && flow.unitId.includes(',') && (
                                           <div className="lg:col-span-1">
                                             <label className="block text-xs font-bold text-gray-700 mb-1">Select Unit</label>
-                                            <select 
+                                            <select
                                               className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#006838]/20"
                                               value={addForm.forUnit || flow.unitId.split(',')[0].trim()}
-                                              onChange={e => setAddForm({...addForm, forUnit: e.target.value})}
+                                              onChange={e => setAddForm({ ...addForm, forUnit: e.target.value })}
                                             >
                                               {flow.unitId.split(',').map(u => <option key={u.trim()} value={u.trim()}>{u.trim()}</option>)}
                                             </select>
@@ -764,16 +764,16 @@ const handleRateChange = (workId, value) => {
                                         <div className="lg:col-span-1 flex gap-2">
                                           <div className="flex-1">
                                             <label className="block text-xs font-bold text-gray-700 mb-1">Qty <span className="text-red-500">*</span></label>
-                                            <input 
+                                            <input
                                               type="number" min="1"
                                               className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#006838]/20"
                                               value={addForm.quantity}
-                                              onChange={e => setAddForm({...addForm, quantity: e.target.value})}
+                                              onChange={e => setAddForm({ ...addForm, quantity: e.target.value })}
                                             />
                                           </div>
                                           <div className="flex-1">
                                             <label className="block text-xs font-bold text-gray-700 mb-1">Unit</label>
-                                            <input 
+                                            <input
                                               type="text" placeholder="No" disabled
                                               className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-100 cursor-not-allowed focus:outline-none"
                                               value={addForm.unit}
@@ -826,7 +826,7 @@ const handleRateChange = (workId, value) => {
                                   >
                                     <Plus className="w-4 h-4" /> Add to List
                                   </button>
-                                  <button 
+                                  <button
                                     onClick={() => handleAddExtraWork(flow)}
                                     disabled={isAddingWork || (addedWorks.length === 0 && !addForm.name.trim())}
                                     className="px-5 py-2.5 bg-[#006838] hover:bg-[#00522a] text-white font-bold rounded-lg transition-colors flex items-center gap-2 disabled:opacity-50"
@@ -849,7 +849,7 @@ const handleRateChange = (workId, value) => {
                                           flow.stages.forEach(s => {
                                             s.extraWorks?.forEach(w => {
                                               const canSelectAsCrd = (isAdmin || canEditTab('crd')) && ['Pending', 'Returned to CRD', 'Client Approved', 'Added to CRD'].includes(w.status);
-                                              const canSelectAsPed = (isAdmin || canEditTab('ped')) && w.status === 'PED Approved';
+                                              const canSelectAsPed = (isAdmin || canEditTab('ped')) && ['Sent to PED', 'PED Approved'].includes(w.status);
                                               const canSelectAsAccounts = (isAdmin || canEditTab('accounts')) && w.status === 'Sent to Accounts';
                                               if (canSelectAsCrd || canSelectAsPed || canSelectAsAccounts) works.push(w._id);
                                             });
@@ -859,9 +859,9 @@ const handleRateChange = (workId, value) => {
                                         const selectableWorks = getSelectableWorks();
                                         if (selectableWorks.length === 0) return null;
                                         const allSelected = selectableWorks.every(id => selectedWorks.includes(id));
-                                        
+
                                         return (
-                                          <input 
+                                          <input
                                             type="checkbox"
                                             className="w-4 h-4 rounded border-gray-300 text-[#006838] focus:ring-[#006838]"
                                             onChange={() => {
@@ -877,7 +877,9 @@ const handleRateChange = (workId, value) => {
                                       })()}
                                     </th>
                                     <th className="p-4 font-bold text-[11px] uppercase tracking-wider">Req ID</th>
+                                    <th className="p-4 font-bold text-[11px] uppercase tracking-wider text-center">Qty / Unit</th>
                                     <th className="p-4 font-bold text-[11px] uppercase tracking-wider text-center">Requested on</th>
+                                    <th className="p-4 font-bold text-[11px] uppercase tracking-wider text-center">Status</th>
                                     <th className="p-4 font-bold text-[11px] uppercase tracking-wider text-center">Sent to PED Date on</th>
                                     <th className="p-4 font-bold text-[11px] uppercase tracking-wider text-right">Estimated Value</th>
                                     <th className="p-4 font-bold text-[11px] uppercase tracking-wider text-center">Estimated Date on</th>
@@ -918,11 +920,17 @@ const handleRateChange = (workId, value) => {
                                       acc[id].items.push(work);
                                       acc[id].totalAmount += (work.amount || 0);
                                       return acc;
-                                    }, {}));
+                                    }, {})).sort((a, b) => {
+                                      const aNew = !a.sentToPedDate && !a.items.some(w => w.sentToPedDate || w.status !== 'Pending');
+                                      const bNew = !b.sentToPedDate && !b.items.some(w => w.sentToPedDate || w.status !== 'Pending');
+                                      if (aNew && !bNew) return -1;
+                                      if (!aNew && bNew) return 1;
+                                      return new Date(b.addedAt || 0) - new Date(a.addedAt || 0);
+                                    });
 
                                     return groupedFlowWorks.map((group, gIdx) => (
                                       <React.Fragment key={group.ewId || gIdx}>
-                                        <tr 
+                                        <tr
                                           className="hover:bg-emerald-50/30 transition-colors cursor-pointer bg-white"
                                           onClick={() => setExpandedReqIds(prev => ({ ...prev, [group.ewId]: !prev[group.ewId] }))}
                                         >
@@ -930,14 +938,14 @@ const handleRateChange = (workId, value) => {
                                             {(() => {
                                               const selectableWorksInGroup = group.items.filter(work => {
                                                 const canSelectAsCrd = (isAdmin || canEditTab('crd')) && ['Pending', 'Client Approved', 'Added to CRD'].includes(work.status);
-                                                const canSelectAsPed = (isAdmin || canEditTab('ped')) && work.status === 'PED Approved';
+                                                const canSelectAsPed = (isAdmin || canEditTab('ped')) && ['Sent to PED', 'PED Approved'].includes(work.status);
                                                 const canSelectAsAccounts = (isAdmin || canEditTab('accounts')) && work.status === 'Sent to Accounts';
                                                 return canSelectAsCrd || canSelectAsPed || canSelectAsAccounts;
                                               });
                                               if (selectableWorksInGroup.length > 0) {
                                                 const isAllSelected = selectableWorksInGroup.every(w => selectedWorks.includes(w._id));
                                                 return (
-                                                  <input 
+                                                  <input
                                                     type="checkbox"
                                                     className="w-4 h-4 rounded border-gray-300 text-[#006838] focus:ring-[#006838]"
                                                     checked={isAllSelected}
@@ -959,7 +967,7 @@ const handleRateChange = (workId, value) => {
                                             {expandedReqIds[group.ewId] ? <ChevronUp className="w-4 h-4 text-emerald-600" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
                                           </td>
                                           <td className="p-4 align-middle">
-                                            <button 
+                                            <button
                                               onClick={(e) => { e.stopPropagation(); setFlowMapModal({ work: group.items[0], flow }); }}
                                               className="font-mono text-[#006838] font-bold hover:underline transition-colors flex items-center gap-1"
                                               title="View Flow Map"
@@ -968,8 +976,18 @@ const handleRateChange = (workId, value) => {
                                               {group.displayId || '-'}
                                             </button>
                                           </td>
+                                          <td className="p-4 align-middle text-center text-sm text-gray-400 font-medium">
+                                            -
+                                          </td>
                                           <td className="p-4 align-middle text-center text-sm text-gray-600">
                                             {group.addedAt ? new Date(group.addedAt).toLocaleDateString('en-GB') : '-'}
+                                          </td>
+                                          <td className="p-4 align-middle text-center">
+                                            {(group.sentToPedDate || group.items.some(w => w.sentToPedDate || w.status !== 'Pending')) ? (
+                                              <span className="px-2.5 py-1 bg-slate-100 text-slate-700 border border-slate-200 rounded-full text-[10px] font-bold">Old</span>
+                                            ) : (
+                                              <span className="px-2.5 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full text-[10px] font-bold">New</span>
+                                            )}
                                           </td>
                                           <td className="p-4 align-middle text-center text-sm text-gray-600">
                                             {group.sentToPedDate ? new Date(group.sentToPedDate).toLocaleDateString('en-GB') : '-'}
@@ -994,34 +1012,43 @@ const handleRateChange = (workId, value) => {
                                           <tr key={work._id} className="bg-gray-50/50 hover:bg-white transition border-l-4 border-[#006838]">
                                             <td className="p-4 align-middle text-center flex items-center justify-center gap-2">
                                               {(((isAdmin || canEditTab('crd')) && ['Pending', 'Returned to CRD', 'Client Approved', 'Added to CRD'].includes(work.status)) ||
-                                                ((isAdmin || canEditTab('ped')) && work.status === 'PED Approved') ||
+                                                ((isAdmin || canEditTab('ped')) && ['Sent to PED', 'PED Approved'].includes(work.status)) ||
                                                 ((isAdmin || canEditTab('accounts')) && work.status === 'Sent to Accounts')) && (
-                                                <input 
-                                                  type="checkbox"
-                                                  className="w-4 h-4 rounded border-gray-300 text-[#006838] focus:ring-[#006838]"
-                                                  checked={selectedWorks.includes(work._id)}
-                                                  onChange={(e) => {
-                                                    e.stopPropagation();
-                                                    setSelectedWorks(prev => prev.includes(work._id) ? prev.filter(id => id !== work._id) : [...prev, work._id]);
-                                                  }}
-                                                />
-                                              )}
+                                                  <input
+                                                    type="checkbox"
+                                                    className="w-4 h-4 rounded border-gray-300 text-[#006838] focus:ring-[#006838]"
+                                                    checked={selectedWorks.includes(work._id)}
+                                                    onChange={(e) => {
+                                                      e.stopPropagation();
+                                                      setSelectedWorks(prev => prev.includes(work._id) ? prev.filter(id => id !== work._id) : [...prev, work._id]);
+                                                    }}
+                                                  />
+                                                )}
                                               <span className="text-xs text-gray-400 font-bold">{gIdx + 1}.{wIdx + 1}</span>
                                             </td>
                                             <td className="p-4 align-middle">
                                               <div className="font-bold text-gray-700 flex flex-col gap-1 text-xs whitespace-normal max-w-[200px]">
                                                 <span>↳ {work.name || '-'}</span>
-                                                <span className="text-[10px] text-gray-500 font-normal">Qty: {work.quantity || 1} {work.unit ? `x ${work.unit}` : ''} @ Rs. {work.rate || 0}</span>
                                                 {work.clientNotes && (
                                                   <span className="text-[10px] text-blue-600 bg-blue-50 p-1.5 rounded mt-1 border border-blue-100 inline-block w-full">
-                                                    <strong className="block mb-0.5 text-[9px] uppercase tracking-wider text-blue-400">Client Review Note:</strong> 
+                                                    <strong className="block mb-0.5 text-[9px] uppercase tracking-wider text-blue-400">Client Review Note:</strong>
                                                     {work.clientNotes}
                                                   </span>
                                                 )}
                                               </div>
                                             </td>
+                                            <td className="p-4 align-middle text-center text-xs text-gray-700 font-medium whitespace-nowrap">
+                                              {work.quantity || 1} {work.unit || 'No'}
+                                            </td>
                                             <td className="p-4 align-middle text-center text-[11px] text-gray-500">
                                               {work.addedAt ? new Date(work.addedAt).toLocaleDateString('en-GB') : '-'}
+                                            </td>
+                                            <td className="p-4 align-middle text-center">
+                                              {work.sentToPedDate || work.status !== 'Pending' ? (
+                                                <span className="px-2.5 py-1 bg-slate-100 text-slate-700 border border-slate-200 rounded-full text-[10px] font-bold">Old</span>
+                                              ) : (
+                                                <span className="px-2.5 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full text-[10px] font-bold">New</span>
+                                              )}
                                             </td>
                                             <td className="p-4 align-middle text-center text-[11px] text-gray-500">
                                               {work.sentToPedDate ? new Date(work.sentToPedDate).toLocaleDateString('en-GB') : '-'}
@@ -1035,11 +1062,6 @@ const handleRateChange = (workId, value) => {
                                                       type="number"
                                                       value={rates[work._id] ?? work.rate ?? ''}
                                                       onChange={(e) => handleRateChange(work._id, e.target.value)}
-                                                      onBlur={(e) => {
-                                                        if (rates[work._id] !== undefined && Number(rates[work._id]) !== Number(work.rate)) {
-                                                          handleSavePrice(flow._id, work.stageIdx, work._id);
-                                                        }
-                                                      }}
                                                       className="w-20 px-2 py-1 bg-white border border-gray-300 rounded text-xs focus:outline-none focus:ring-1 focus:ring-[#006838] text-right"
                                                       placeholder="Rate"
                                                       onClick={(e) => e.stopPropagation()}
@@ -1063,43 +1085,43 @@ const handleRateChange = (workId, value) => {
                                               {work.sentToAccountsDate ? new Date(work.sentToAccountsDate).toLocaleDateString('en-GB') : '-'}
                                             </td>
                                             <td className="p-4 align-middle">
-                                          <div className="flex flex-col items-center justify-center gap-2">
+                                              <div className="flex flex-col items-center justify-center gap-2">
                                                 <span className="text-[11px] text-purple-700 font-medium">
                                                   {work.crdAddedDate ? new Date(work.crdAddedDate).toLocaleDateString('en-GB') : '-'}
                                                 </span>
                                                 <div className="flex items-center gap-2">
 
                                                   {['Added to CRD', 'Execution Sent to PED', 'Start Work', 'In Progress'].includes(work.status) && (
-                                                      <select
-                                                        value={work.status}
-                                                        disabled={!(isAdmin || canEditTab('ped'))}
-                                                        onChange={async (e) => {
-                                                          try {
-                                                            await fetch(`${API_URL}/extra-works/${flow._id}/${work.stageIdx}/${work._id}/update-status`, {
-                                                              method: 'PUT',
-                                                              headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-                                                              body: JSON.stringify({ status: e.target.value })
-                                                            });
-                                                            await fetchFlows();
-                                                          } catch (err) {
-                                                            alert(err.message);
-                                                          }
-                                                        }}
-                                                        onClick={(e) => e.stopPropagation()}
-                                                        className="px-2 py-1 bg-white border border-gray-200 rounded text-[10px] font-bold focus:outline-none focus:ring-1 focus:ring-[#006838] disabled:bg-gray-100 disabled:cursor-not-allowed"
-                                                      >
-                                                        <option value="Added to CRD" disabled>Ready for Execution</option>
-                                                        <option value="Execution Sent to PED" disabled>Execution Sent to PED</option>
-                                                        <option value="Start Work">Start Work</option>
-                                                        <option value="In Progress">In Progress</option>
-                                                        <option value="Completed">Completed</option>
-                                                      </select>
+                                                    <select
+                                                      value={work.status}
+                                                      disabled={!(isAdmin || canEditTab('ped'))}
+                                                      onChange={async (e) => {
+                                                        try {
+                                                          await fetch(`${API_URL}/extra-works/${flow._id}/${work.stageIdx}/${work._id}/update-status`, {
+                                                            method: 'PUT',
+                                                            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                                                            body: JSON.stringify({ status: e.target.value })
+                                                          });
+                                                          await fetchFlows();
+                                                        } catch (err) {
+                                                          alert(err.message);
+                                                        }
+                                                      }}
+                                                      onClick={(e) => e.stopPropagation()}
+                                                      className="px-2 py-1 bg-white border border-gray-200 rounded text-[10px] font-bold focus:outline-none focus:ring-1 focus:ring-[#006838] disabled:bg-gray-100 disabled:cursor-not-allowed"
+                                                    >
+                                                      <option value="Added to CRD" disabled>Ready for Execution</option>
+                                                      <option value="Execution Sent to PED" disabled>Execution Sent to PED</option>
+                                                      <option value="Start Work">Start Work</option>
+                                                      <option value="In Progress">In Progress</option>
+                                                      <option value="Completed">Completed</option>
+                                                    </select>
                                                   )}
                                                   {(user?.role === 'Superadmin' || user?.role === 'Crd team') && !['Removed by Client', 'Rejected', 'Completed', 'Cancelled by Superadmin', 'Added to CRD'].includes(work.status) && (
                                                     <button
                                                       onClick={(e) => {
                                                         e.stopPropagation();
-                                                        if(window.confirm('Are you sure you want to cancel this extra work request?')) {
+                                                        if (window.confirm('Are you sure you want to cancel this extra work request?')) {
                                                           handleCancelExtraWork(flow._id, work.stageIdx, work._id);
                                                         }
                                                       }}
@@ -1119,7 +1141,7 @@ const handleRateChange = (workId, value) => {
                                         ))}
                                         {expandedReqIds[group.ewId] && (
                                           <tr className="bg-gray-50 border-l-4 border-[#006838]">
-                                            <td colSpan="9" className="p-4">
+                                            <td colSpan="11" className="p-4">
                                               {addingGroupWork === group.ewId ? (
                                                 <div className="bg-white p-4 rounded-xl border border-emerald-200 shadow-sm animate-fade-in-up">
                                                   <div className="flex justify-between items-center mb-3">
@@ -1141,7 +1163,7 @@ const handleRateChange = (workId, value) => {
                                                             <select
                                                               className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#006838]/20"
                                                               value={addForm.category}
-                                                              onChange={e => setAddForm({...addForm, category: e.target.value, name: '', unit: 'Unit'})}
+                                                              onChange={e => setAddForm({ ...addForm, category: e.target.value, name: '', unit: 'Unit' })}
                                                             >
                                                               <option value="">Select Category...</option>
                                                               {catalogCategories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
@@ -1154,7 +1176,7 @@ const handleRateChange = (workId, value) => {
                                                               value={addForm.name}
                                                               onChange={e => {
                                                                 const selectedItem = subCategories.find(item => item.name === e.target.value);
-                                                                setAddForm({...addForm, name: e.target.value, unit: selectedItem ? selectedItem.unit : 'Unit', rate: selectedItem ? selectedItem.rate : 0});
+                                                                setAddForm({ ...addForm, name: e.target.value, unit: selectedItem ? selectedItem.unit : 'Unit', rate: selectedItem ? selectedItem.rate : 0 });
                                                               }}
                                                               disabled={!addForm.category}
                                                             >
@@ -1165,10 +1187,10 @@ const handleRateChange = (workId, value) => {
                                                           {flow.unitId && flow.unitId.includes(',') && (
                                                             <div className="lg:col-span-1">
                                                               <label className="block text-xs font-bold text-gray-700 mb-1">Select Unit</label>
-                                                              <select 
+                                                              <select
                                                                 className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#006838]/20"
                                                                 value={addForm.forUnit || flow.unitId.split(',')[0].trim()}
-                                                                onChange={e => setAddForm({...addForm, forUnit: e.target.value})}
+                                                                onChange={e => setAddForm({ ...addForm, forUnit: e.target.value })}
                                                               >
                                                                 {flow.unitId.split(',').map(u => <option key={u.trim()} value={u.trim()}>{u.trim()}</option>)}
                                                               </select>
@@ -1177,16 +1199,16 @@ const handleRateChange = (workId, value) => {
                                                           <div className="lg:col-span-1 flex gap-2">
                                                             <div className="flex-1">
                                                               <label className="block text-xs font-bold text-gray-700 mb-1">Qty <span className="text-red-500">*</span></label>
-                                                              <input 
+                                                              <input
                                                                 type="number" min="1"
                                                                 className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#006838]/20"
                                                                 value={addForm.quantity}
-                                                                onChange={e => setAddForm({...addForm, quantity: e.target.value})}
+                                                                onChange={e => setAddForm({ ...addForm, quantity: e.target.value })}
                                                               />
                                                             </div>
                                                             <div className="flex-1">
                                                               <label className="block text-xs font-bold text-gray-700 mb-1">Unit</label>
-                                                              <input 
+                                                              <input
                                                                 type="text" placeholder="No" disabled
                                                                 className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-100 cursor-not-allowed focus:outline-none"
                                                                 value={addForm.unit}
@@ -1196,37 +1218,37 @@ const handleRateChange = (workId, value) => {
                                                         </>
                                                       );
                                                     })()}
-                                                  {addedWorks.length > 0 && (
-                                                    <div className="mt-4 mb-4 lg:col-span-5">
-                                                      <h4 className="text-xs font-bold text-gray-700 mb-2 uppercase tracking-wider">Works to be added ({addedWorks.length})</h4>
-                                                      <div className="bg-gray-50 border border-gray-200 rounded-lg overflow-hidden">
-                                                        <table className="min-w-full divide-y divide-gray-200">
-                                                          <thead className="bg-gray-100">
-                                                            <tr>
-                                                              <th className="px-3 py-2 text-left text-[10px] font-bold text-gray-500 uppercase">Sub Category</th>
-                                                              <th className="px-3 py-2 text-center text-[10px] font-bold text-gray-500 uppercase">Qty</th>
-                                                              <th className="px-3 py-2 text-right text-[10px] font-bold text-gray-500 uppercase">Amount</th>
-                                                              <th className="px-3 py-2 text-center text-[10px] font-bold text-gray-500 uppercase">Action</th>
-                                                            </tr>
-                                                          </thead>
-                                                          <tbody className="divide-y divide-gray-200 bg-white">
-                                                            {addedWorks.map((w, idx) => (
-                                                              <tr key={idx}>
-                                                                <td className="px-3 py-2 text-[11px] text-gray-700">{w.name}</td>
-                                                                <td className="px-3 py-2 text-[11px] text-center text-gray-500">{w.quantity} {w.unit}</td>
-                                                                <td className="px-3 py-2 text-[11px] text-right font-bold text-[#006838]">Rs. {(w.quantity * w.rate)?.toLocaleString()}</td>
-                                                                <td className="px-3 py-2 text-center">
-                                                                  <button onClick={() => setAddedWorks(prev => prev.filter((_, i) => i !== idx))} className="text-red-500 hover:text-red-700">
-                                                                    <X className="w-3 h-3 mx-auto" />
-                                                                  </button>
-                                                                </td>
+                                                    {addedWorks.length > 0 && (
+                                                      <div className="mt-4 mb-4 lg:col-span-5">
+                                                        <h4 className="text-xs font-bold text-gray-700 mb-2 uppercase tracking-wider">Works to be added ({addedWorks.length})</h4>
+                                                        <div className="bg-gray-50 border border-gray-200 rounded-lg overflow-hidden">
+                                                          <table className="min-w-full divide-y divide-gray-200">
+                                                            <thead className="bg-gray-100">
+                                                              <tr>
+                                                                <th className="px-3 py-2 text-left text-[10px] font-bold text-gray-500 uppercase">Sub Category</th>
+                                                                <th className="px-3 py-2 text-center text-[10px] font-bold text-gray-500 uppercase">Qty</th>
+                                                                <th className="px-3 py-2 text-right text-[10px] font-bold text-gray-500 uppercase">Amount</th>
+                                                                <th className="px-3 py-2 text-center text-[10px] font-bold text-gray-500 uppercase">Action</th>
                                                               </tr>
-                                                            ))}
-                                                          </tbody>
-                                                        </table>
+                                                            </thead>
+                                                            <tbody className="divide-y divide-gray-200 bg-white">
+                                                              {addedWorks.map((w, idx) => (
+                                                                <tr key={idx}>
+                                                                  <td className="px-3 py-2 text-[11px] text-gray-700">{w.name}</td>
+                                                                  <td className="px-3 py-2 text-[11px] text-center text-gray-500">{w.quantity} {w.unit}</td>
+                                                                  <td className="px-3 py-2 text-[11px] text-right font-bold text-[#006838]">Rs. {(w.quantity * w.rate)?.toLocaleString()}</td>
+                                                                  <td className="px-3 py-2 text-center">
+                                                                    <button onClick={() => setAddedWorks(prev => prev.filter((_, i) => i !== idx))} className="text-red-500 hover:text-red-700">
+                                                                      <X className="w-3 h-3 mx-auto" />
+                                                                    </button>
+                                                                  </td>
+                                                                </tr>
+                                                              ))}
+                                                            </tbody>
+                                                          </table>
+                                                        </div>
                                                       </div>
-                                                    </div>
-                                                  )}
+                                                    )}
                                                   </div>
                                                   <div className="mt-4 flex justify-between items-center">
                                                     <button
@@ -1235,7 +1257,7 @@ const handleRateChange = (workId, value) => {
                                                     >
                                                       <Plus className="w-3 h-3" /> Add to List
                                                     </button>
-                                                    <button 
+                                                    <button
                                                       onClick={() => handleAddExtraWork(flow, group.ewId)}
                                                       disabled={isAddingWork || (addedWorks.length === 0 && !addForm.name.trim())}
                                                       className="px-5 py-2 bg-[#006838] hover:bg-[#00522a] text-white font-bold rounded-lg transition-colors flex items-center gap-2 disabled:opacity-50 text-xs"
@@ -1246,7 +1268,7 @@ const handleRateChange = (workId, value) => {
                                                   </div>
                                                 </div>
                                               ) : (
-                                                <button 
+                                                <button
                                                   onClick={() => {
                                                     setAddingGroupWork(group.ewId);
                                                     setAddedWorks([]);
@@ -1271,13 +1293,13 @@ const handleRateChange = (workId, value) => {
                               const canCrd = isAdmin || canEditTab('crd');
                               const canPed = isAdmin || canEditTab('ped');
                               const canAccounts = isAdmin || canEditTab('accounts');
-                              
+
                               const hasPending = flow.stages.some(s => s.extraWorks?.some(w => w.status === 'Pending'));
                               const hasReturnedToCRD = flow.stages.some(s => s.extraWorks?.some(w => w.status === 'Returned to CRD'));
                               const hasClientApproved = flow.stages.some(s => s.extraWorks?.some(w => w.status === 'Client Approved'));
                               const hasAddedToCRD = flow.stages.some(s => s.extraWorks?.some(w => w.status === 'Added to CRD'));
-                              
-                              const hasReadyToShare = flow.stages.some(s => s.extraWorks?.some(w => w.status === 'PED Approved'));
+
+                              const hasReadyToShare = flow.stages.some(s => s.extraWorks?.some(w => ['Sent to PED', 'PED Approved'].includes(w.status)));
                               const hasSentToAccounts = flow.stages.some(s => s.extraWorks?.some(w => w.status === 'Sent to Accounts'));
 
                               return (
@@ -1290,7 +1312,7 @@ const handleRateChange = (workId, value) => {
                                         try {
                                           const works = [];
                                           flow.stages.forEach((s, sIdx) => s.extraWorks?.forEach(w => {
-                                            if ((w.status === 'Pending' || w.status === 'Returned to CRD') && selectedWorks.includes(w._id)) works.push({sIdx, wId: w._id});
+                                            if ((w.status === 'Pending' || w.status === 'Returned to CRD') && selectedWorks.includes(w._id)) works.push({ sIdx, wId: w._id });
                                           }));
                                           for (const work of works) {
                                             await fetch(`${API_URL}/extra-works/${flow._id}/${work.sIdx}/${work.wId}/send-to-ped`, {
@@ -1310,10 +1332,10 @@ const handleRateChange = (workId, value) => {
                                       })}
                                       className="px-6 py-2 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition flex items-center justify-center gap-2 shadow-sm disabled:opacity-50"
                                     >
-                                      {submitting === 'bulk-crd' ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Send className="w-4 h-4" /> Share Selected to PED</>}
+                                      {submitting === 'bulk-crd' ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Send className="w-4 h-4" /> Extra Work Send to PED</>}
                                     </button>
                                   )}
-                                  
+
                                   {canCrd && hasReturnedToCRD && (
                                     <button
                                       onClick={async () => {
@@ -1321,7 +1343,7 @@ const handleRateChange = (workId, value) => {
                                         try {
                                           const works = [];
                                           flow.stages.forEach((s, sIdx) => s.extraWorks?.forEach(w => {
-                                            if (w.status === 'Returned to CRD' && selectedWorks.includes(w._id)) works.push({sIdx, wId: w._id});
+                                            if (w.status === 'Returned to CRD' && selectedWorks.includes(w._id)) works.push({ sIdx, wId: w._id });
                                           }));
                                           for (const work of works) {
                                             await fetch(`${API_URL}/extra-works/${flow._id}/${work.sIdx}/${work.wId}/send`, {
@@ -1341,10 +1363,10 @@ const handleRateChange = (workId, value) => {
                                       })}
                                       className="px-6 py-2 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 transition flex items-center justify-center gap-2 shadow-sm disabled:opacity-50"
                                     >
-                                      {submitting === 'bulk-crd-client' ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Send className="w-4 h-4" /> Share Selected to Client</>}
+                                      {submitting === 'bulk-crd-client' ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Send className="w-4 h-4" /> Extra Work Send to Client</>}
                                     </button>
                                   )}
-                                  
+
                                   {canCrd && hasClientApproved && (
                                     <button
                                       onClick={async () => {
@@ -1352,7 +1374,7 @@ const handleRateChange = (workId, value) => {
                                         try {
                                           const works = [];
                                           flow.stages.forEach((s, sIdx) => s.extraWorks?.forEach(w => {
-                                            if (w.status === 'Client Approved' && selectedWorks.includes(w._id)) works.push({sIdx, wId: w._id});
+                                            if (w.status === 'Client Approved' && selectedWorks.includes(w._id)) works.push({ sIdx, wId: w._id });
                                           }));
                                           for (const work of works) {
                                             await fetch(`${API_URL}/extra-works/${flow._id}/${work.sIdx}/${work.wId}/send-to-accounts`, {
@@ -1372,10 +1394,10 @@ const handleRateChange = (workId, value) => {
                                       })}
                                       className="px-6 py-2 bg-purple-600 text-white font-bold rounded-xl hover:bg-purple-700 transition flex items-center justify-center gap-2 shadow-sm disabled:opacity-50"
                                     >
-                                      {submitting === 'bulk-crd-accounts' ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Building className="w-4 h-4" /> Share Selected to Accounts</>}
+                                      {submitting === 'bulk-crd-accounts' ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Building className="w-4 h-4" /> Extra Work Send to Accounts</>}
                                     </button>
                                   )}
-                                  
+
                                   {canCrd && hasAddedToCRD && (
                                     <button
                                       onClick={async () => {
@@ -1383,7 +1405,7 @@ const handleRateChange = (workId, value) => {
                                         try {
                                           const works = [];
                                           flow.stages.forEach((s, sIdx) => s.extraWorks?.forEach(w => {
-                                            if (w.status === 'Added to CRD' && selectedWorks.includes(w._id)) works.push({sIdx, wId: w._id});
+                                            if (w.status === 'Added to CRD' && selectedWorks.includes(w._id)) works.push({ sIdx, wId: w._id });
                                           }));
                                           for (const work of works) {
                                             await fetch(`${API_URL}/extra-works/${flow._id}/${work.sIdx}/${work.wId}/send-to-ped-execution`, {
@@ -1415,15 +1437,44 @@ const handleRateChange = (workId, value) => {
                                         try {
                                           const works = [];
                                           flow.stages.forEach((s, sIdx) => s.extraWorks?.forEach(w => {
-                                            if (w.status === 'PED Approved' && selectedWorks.includes(w._id)) works.push({sIdx, wId: w._id});
+                                            if (['Sent to PED', 'PED Approved'].includes(w.status) && selectedWorks.includes(w._id)) {
+                                              works.push({ sIdx, work: w });
+                                            }
                                           }));
-                                          for (const work of works) {
-                                            await fetch(`${API_URL}/extra-works/${flow._id}/${work.sIdx}/${work.wId}/return-to-crd`, {
+
+                                          // Validate rates: each selected item must have a rate > 0
+                                          for (const item of works) {
+                                            const rate = rates[item.work._id] !== undefined ? Number(rates[item.work._id]) : item.work.rate;
+                                            if (!rate || rate <= 0) {
+                                              alert(`Please enter a valid rate (> 0) for "${item.work.name}" before sending.`);
+                                              return;
+                                            }
+                                          }
+
+                                          // Save price for each selected work first
+                                          for (const item of works) {
+                                            const newRate = rates[item.work._id] !== undefined ? Number(rates[item.work._id]) : item.work.rate;
+                                            await fetch(`${API_URL}/extra-works/${flow._id}/${item.sIdx}/${item.work._id}/price`, {
+                                              method: 'PUT',
+                                              headers: {
+                                                'Content-Type': 'application/json',
+                                                Authorization: `Bearer ${token}`
+                                              },
+                                              body: JSON.stringify({ rate: newRate })
+                                            });
+                                          }
+
+                                          // Send each selected work to CRD
+                                          for (const item of works) {
+                                            await fetch(`${API_URL}/extra-works/${flow._id}/${item.sIdx}/${item.work._id}/send`, {
                                               method: 'PUT', headers: { Authorization: `Bearer ${token}` }
                                             });
                                           }
+
                                           setSelectedWorks([]);
                                           await fetchFlows();
+                                        } catch (err) {
+                                          alert(err.message);
                                         } finally {
                                           setSubmitting(null);
                                         }
@@ -1431,7 +1482,7 @@ const handleRateChange = (workId, value) => {
                                       disabled={submitting === 'bulk-ped' || selectedWorks.length === 0}
                                       className="px-6 py-2 bg-[#006838] text-white font-bold rounded-xl hover:bg-[#00512c] transition flex items-center gap-2 shadow-sm disabled:opacity-50"
                                     >
-                                      {submitting === 'bulk-ped' ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Send className="w-4 h-4" /> Share Selected to CRD ({selectedWorks.length})</>}
+                                      {submitting === 'bulk-ped' ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Send className="w-4 h-4" /> Save & Send to CRD ({selectedWorks.length})</>}
                                     </button>
                                   )}
 
@@ -1443,7 +1494,7 @@ const handleRateChange = (workId, value) => {
                                         try {
                                           const works = [];
                                           flow.stages.forEach((s, sIdx) => s.extraWorks?.forEach(w => {
-                                            if (w.status === 'Sent to Accounts' && selectedWorks.includes(w._id)) works.push({sIdx, wId: w._id});
+                                            if (w.status === 'Sent to Accounts' && selectedWorks.includes(w._id)) works.push({ sIdx, wId: w._id });
                                           }));
                                           for (const work of works) {
                                             await fetch(`${API_URL}/extra-works/${flow._id}/${work.sIdx}/${work.wId}/add-to-crd`, {
@@ -1483,8 +1534,8 @@ const handleRateChange = (workId, value) => {
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
           <div className="bg-white rounded-3xl max-w-5xl w-full overflow-hidden shadow-2xl border border-black-100">
             <div className="bg-[#006838] p-6 text-white relative">
-              <button 
-                type="button" 
+              <button
+                type="button"
                 onClick={() => setExtraWorkDetailsModal(null)}
                 className="absolute top-4 right-4 text-emerald-100 hover:text-white transition cursor-pointer"
               >
@@ -1495,7 +1546,7 @@ const handleRateChange = (workId, value) => {
                 <span>Extra Work Details</span>
               </h3>
             </div>
-            
+
             <div className="bg-emerald-50/50 p-4 md:px-6 border-b border-emerald-100 flex flex-wrap gap-x-8 gap-y-4 text-sm">
               <div>
                 <div className="text-[10px] text-gray-500 font-bold uppercase tracking-wider mb-1">Customer Name</div>
@@ -1570,9 +1621,9 @@ const handleRateChange = (workId, value) => {
                     <td className="px-6 py-4 text-center">
                       <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider
                         ${extraWorkDetailsModal.work?.status === 'Pending' ? 'bg-amber-100 text-amber-700' :
-                        extraWorkDetailsModal.work?.status === 'Client Approved' ? 'bg-emerald-100 text-emerald-700' :
-                        extraWorkDetailsModal.work?.status === 'Added to CRD' ? 'bg-blue-100 text-blue-700' :
-                        'bg-gray-200 text-gray-700'}`}>
+                          extraWorkDetailsModal.work?.status === 'Client Approved' ? 'bg-emerald-100 text-emerald-700' :
+                            extraWorkDetailsModal.work?.status === 'Added to CRD' ? 'bg-blue-100 text-blue-700' :
+                              'bg-gray-200 text-gray-700'}`}>
                         {extraWorkDetailsModal.work?.status}
                       </span>
                     </td>
@@ -1586,7 +1637,7 @@ const handleRateChange = (workId, value) => {
                           disabled={submitting === extraWorkDetailsModal.work?._id}
                           className="px-4 py-2 bg-blue-50 text-blue-600 font-bold text-xs rounded-lg hover:bg-blue-600 hover:text-white transition disabled:opacity-50 whitespace-nowrap shadow-sm"
                         >
-                          {submitting === extraWorkDetailsModal.work?._id ? <Loader2 className="w-3 h-3 animate-spin mx-auto" /> : 'Share to PED'}
+                          {submitting === extraWorkDetailsModal.work?._id ? <Loader2 className="w-3 h-3 animate-spin mx-auto" /> : 'Send to PED'}
                         </button>
                       )}
                       {(isAdmin || canEditTab('ped')) && ['Sent to PED', 'PED Approved'].includes(extraWorkDetailsModal.work?.status) && (
@@ -1639,7 +1690,7 @@ const handleRateChange = (workId, value) => {
           <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden animate-fade-in-up">
             <div className="bg-[#0e623a] p-5 text-white flex justify-between items-center">
               <h3 className="font-bold text-lg flex items-center gap-2">
-                <Activity className="w-5 h-5 text-emerald-300" /> 
+                <Activity className="w-5 h-5 text-emerald-300" />
                 Extra Work Lifecycle map
               </h3>
               <button onClick={() => setFlowMapModal(null)} className="text-white/80 hover:text-white transition">
@@ -1650,7 +1701,7 @@ const handleRateChange = (workId, value) => {
               {(() => {
                 const { work, flow } = flowMapModal;
                 const isNew = !work.sentToPedDate;
-                
+
                 const steps = [
                   {
                     id: 1,
@@ -1699,9 +1750,9 @@ const handleRateChange = (workId, value) => {
                   const formatDate = (dateStr) => {
                     if (!dateStr) return null;
                     const d = new Date(dateStr);
-                    return d.toLocaleString('en-GB', { 
-                      day: '2-digit', month: 'short', year: 'numeric', 
-                      hour: '2-digit', minute: '2-digit', hour12: true 
+                    return d.toLocaleString('en-GB', {
+                      day: '2-digit', month: 'short', year: 'numeric',
+                      hour: '2-digit', minute: '2-digit', hour12: true
                     });
                   };
 
@@ -1717,7 +1768,7 @@ const handleRateChange = (workId, value) => {
                     return null;
                   };
 
-                  switch(step.id) {
+                  switch (step.id) {
                     case 1:
                       dateVal = work.addedAt;
                       break;
@@ -1743,7 +1794,7 @@ const handleRateChange = (workId, value) => {
                       dateVal = findHistoryDate(h => h.notes?.includes(wName) && h.action === 'Execution Sent to PED');
                       break;
                   }
-                  
+
                   return formatDate(dateVal);
                 };
 
@@ -1753,7 +1804,7 @@ const handleRateChange = (workId, value) => {
                       const status = getStepStatus(step);
                       let dotColor = 'bg-gray-300';
                       let textColor = 'text-gray-400';
-                      
+
                       if (status === 'completed') {
                         dotColor = 'bg-[#0e623a] border-[#0e623a]';
                         textColor = 'text-[#0e623a]';
@@ -1775,9 +1826,9 @@ const handleRateChange = (workId, value) => {
                       return (
                         <div key={step.id} className="relative pl-8">
                           <div className={`absolute -left-[9px] top-1 w-4 h-4 rounded-full border-2 border-white shadow-md ${dotColor}`}>
-                             {status === 'active' && work.status !== 'Completed' && (
-                               <div className="absolute inset-0 rounded-full animate-ping opacity-60 bg-inherit" />
-                             )}
+                            {status === 'active' && work.status !== 'Completed' && (
+                              <div className="absolute inset-0 rounded-full animate-ping opacity-60 bg-inherit" />
+                            )}
                           </div>
                           <div>
                             <div className="flex justify-between items-start">
@@ -1789,7 +1840,7 @@ const handleRateChange = (workId, value) => {
                               )}
                             </div>
                             <p className="text-xs text-gray-500 mt-1 font-medium">{step.description}</p>
-                            
+
                             {/* Price negotiation / Client Feedback visualization */}
                             {step.id === 3 && status === 'active' && work.clientNotes && (
                               <div className="mt-3 p-3 bg-red-50 border border-red-100 rounded-xl text-xs shadow-sm">
