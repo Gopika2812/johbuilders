@@ -13,7 +13,7 @@ router.get('/', protect, async (req, res) => {
   try {
     let flows = await CRDFlow.find({})
       .populate('project', 'name code location projectType')
-      .populate('lead', 'name phone bankLoan bookingInfo')
+      .populate('lead', 'name phone bankLoan bookingInfo bankLoanPercentage')
       .sort({ updatedAt: -1 });
       
     // Filter out orphaned flows where lead was deleted
