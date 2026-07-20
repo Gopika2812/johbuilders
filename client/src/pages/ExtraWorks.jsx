@@ -101,6 +101,23 @@ const ExtraWorksInner = () => {
     forUnit: ''
   });
 
+  // Global Add Extra Work Modal Form
+  const [showGlobalModal, setShowGlobalModal] = useState(false);
+  const [allBookedFlows, setAllBookedFlows] = useState([]);
+  const [isSubmittingGlobal, setIsSubmittingGlobal] = useState(false);
+  const [globalAddedWorks, setGlobalAddedWorks] = useState([]);
+  const [globalForm, setGlobalForm] = useState({
+    flowId: '',
+    stageId: '',
+    category: '',
+    name: '',
+    unit: 'Unit',
+    quantity: 1,
+    rate: 0,
+    forUnit: '',
+    ewId: ''
+  });
+
   const fetchFlows = async () => {
     try {
       setLoading(true);
@@ -117,8 +134,22 @@ const ExtraWorksInner = () => {
     }
   };
 
+  const fetchAllBookedFlows = async () => {
+    try {
+      const res = await fetch(`${API_URL}/crd-flow`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (!res.ok) throw new Error('Failed to fetch booked customer flows');
+      const data = await res.json();
+      setAllBookedFlows(data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   useEffect(() => {
     fetchFlows();
+    fetchAllBookedFlows();
   }, [token]);
 
   const toggleWorkSelection = (workId) => {
@@ -568,6 +599,29 @@ const ExtraWorksInner = () => {
           >
             <Download className="w-4 h-4" /> Export
           </button>
+
+          {(isAdmin || canEditTab('crd')) && (
+            <button
+              onClick={() => {
+                setShowGlobalModal(true);
+                setGlobalAddedWorks([]);
+                setGlobalForm({
+                  flowId: '',
+                  stageId: '',
+                  category: '',
+                  name: '',
+                  unit: 'Unit',
+                  quantity: 1,
+                  rate: 0,
+                  forUnit: '',
+                  ewId: ''
+                });
+              }}
+              className="w-full sm:w-auto px-4 py-2 bg-[#006838] text-white font-bold rounded-xl flex items-center justify-center gap-2 hover:bg-[#00512c] transition-colors shadow-sm"
+            >
+              <Plus className="w-4 h-4" /> Add Extra Work
+            </button>
+          )}
         </div>
       </div>
 
@@ -1858,6 +1912,304 @@ const ExtraWorksInner = () => {
                   </div>
                 );
               })()}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Global Add Extra Work Modal */}
+      {showGlobalModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-[2rem] w-full max-w-4xl max-h-[90vh] flex flex-col shadow-2xl animate-fade-in-up">
+            <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-[#006838] text-white rounded-t-[2rem]">
+              <h2 className="text-xl font-bold flex items-center gap-2"><Plus className="w-5 h-5" /> Add Extra Work for Booked Customer</h2>
+              <button 
+                onClick={() => setShowGlobalModal(false)} 
+                className="text-white/80 hover:text-white transition"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            <div className="p-6 overflow-y-auto flex-1 bg-gray-50 space-y-6">
+              {/* Form Input fields */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-white p-5 rounded-2xl border border-emerald-100 shadow-sm">
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">SELECT BOOKED CUSTOMER <span className="text-red-500">*</span></label>
+                  <select
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#006838]/20"
+                    value={globalForm.flowId}
+                    onChange={e => {
+                      const flowId = e.target.value;
+                      const selectedFlow = allBookedFlows.find(f => f._id === flowId);
+                      let defaultStageId = '';
+                      if (selectedFlow && selectedFlow.stages) {
+                        const ewStage = selectedFlow.stages.find(s => s.name?.toLowerCase().includes('extra work'));
+                        if (ewStage) {
+                          defaultStageId = ewStage._id;
+                        }
+                      }
+                      setGlobalForm(prev => ({
+                        ...prev,
+                        flowId,
+                        stageId: defaultStageId,
+                        category: '',
+                        name: '',
+                        unit: 'Unit',
+                        rate: 0,
+                        forUnit: selectedFlow?.unitId && !selectedFlow.unitId.includes(',') ? selectedFlow.unitId.trim() : ''
+                      }));
+                      setGlobalAddedWorks([]);
+                    }}
+                  >
+                    <option value="">Search customer name...</option>
+                    {allBookedFlows.map(flow => (
+                      <option key={flow._id} value={flow._id}>
+                        {flow.lead?.name || 'Unknown'} ({flow.project?.name || 'N/A'}{flow.unitId ? ` - ${flow.unitId}` : ''})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {(() => {
+                  const selectedFlow = allBookedFlows.find(f => f._id === globalForm.flowId);
+                  const stages = selectedFlow?.stages || [];
+
+                  return (
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 mb-1">SELECT STAGE / MILESTONE <span className="text-red-500">*</span></label>
+                      <select
+                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#006838]/20"
+                        value={globalForm.stageId}
+                        onChange={e => setGlobalForm({ ...globalForm, stageId: e.target.value })}
+                        disabled={!globalForm.flowId}
+                      >
+                        <option value="">Select Stage...</option>
+                        {stages.map(stg => (
+                          <option key={stg._id} value={stg._id}>
+                            {stg.name} ({stg.percentage}%)
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  );
+                })()}
+              </div>
+
+              {/* Catalog Input Selection - Only visible when flow and stage are selected */}
+              {globalForm.flowId && globalForm.stageId && (
+                <div className="bg-white p-5 rounded-2xl border border-emerald-100 shadow-sm space-y-4">
+                  <h3 className="text-xs font-black text-emerald-900 uppercase tracking-wider">Extra Work Item Details</h3>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                    {(() => {
+                      const selectedFlow = allBookedFlows.find(f => f._id === globalForm.flowId);
+                      const catalog = selectedFlow?.project?.extraWorkCatalog || [];
+                      const catalogCategories = Array.from(new Set(catalog.map(item => item.category)));
+                      const subCategories = globalForm.category ? catalog.filter(item => item.category === globalForm.category) : [];
+
+                      return (
+                        <>
+                          <div className="lg:col-span-1">
+                            <label className="block text-xs font-bold text-gray-700 mb-1">Category <span className="text-red-500">*</span></label>
+                            <select
+                              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#006838]/20"
+                              value={globalForm.category}
+                              onChange={e => setGlobalForm({ ...globalForm, category: e.target.value, name: '', unit: 'Unit', rate: 0 })}
+                            >
+                              <option value="">Select Category...</option>
+                              {catalogCategories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                            </select>
+                          </div>
+                          
+                          <div className="lg:col-span-2">
+                            <label className="block text-xs font-bold text-gray-700 mb-1">Sub Category (Name) <span className="text-red-500">*</span></label>
+                            <select
+                              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#006838]/20"
+                              value={globalForm.name}
+                              onChange={e => {
+                                const selectedItem = subCategories.find(item => item.name === e.target.value);
+                                setGlobalForm({
+                                  ...globalForm,
+                                  name: e.target.value,
+                                  unit: selectedItem ? selectedItem.unit : 'Unit',
+                                  rate: selectedItem ? selectedItem.rate : 0
+                                });
+                              }}
+                              disabled={!globalForm.category}
+                            >
+                              <option value="">Select Sub Category...</option>
+                              {subCategories.map(sub => <option key={sub._id || sub.name} value={sub.name}>{sub.name}</option>)}
+                            </select>
+                          </div>
+
+                          {selectedFlow.unitId && selectedFlow.unitId.includes(',') && (
+                            <div className="lg:col-span-1">
+                              <label className="block text-xs font-bold text-gray-700 mb-1">Select Unit</label>
+                              <select
+                                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#006838]/20"
+                                value={globalForm.forUnit || selectedFlow.unitId.split(',')[0].trim()}
+                                onChange={e => setGlobalForm({ ...globalForm, forUnit: e.target.value })}
+                              >
+                                <option value="">Select Unit...</option>
+                                {selectedFlow.unitId.split(',').map(u => <option key={u.trim()} value={u.trim()}>{u.trim()}</option>)}
+                              </select>
+                            </div>
+                          )}
+
+                          <div className="lg:col-span-1 flex gap-2">
+                            <div className="flex-1">
+                              <label className="block text-xs font-bold text-gray-700 mb-1">Qty <span className="text-red-500">*</span></label>
+                              <input
+                                type="number" min="1"
+                                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#006838]/20"
+                                value={globalForm.quantity}
+                                onChange={e => setGlobalForm({ ...globalForm, quantity: Number(e.target.value) || 1 })}
+                              />
+                            </div>
+                            <div className="flex-1">
+                              <label className="block text-xs font-bold text-gray-700 mb-1">Unit</label>
+                              <input
+                                type="text" disabled
+                                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-100 cursor-not-allowed focus:outline-none"
+                                value={globalForm.unit}
+                              />
+                            </div>
+                          </div>
+                        </>
+                      );
+                    })()}
+                  </div>
+
+                  <div className="flex justify-start">
+                    <button
+                      onClick={() => {
+                        if (!globalForm.name.trim()) {
+                          alert("Please select a sub category/item name!");
+                          return;
+                        }
+                        setGlobalAddedWorks(prev => [...prev, { ...globalForm }]);
+                        setGlobalForm({
+                          ...globalForm,
+                          name: '',
+                          category: '',
+                          unit: 'Unit',
+                          quantity: 1,
+                          rate: 0
+                        });
+                      }}
+                      className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold rounded-lg transition-colors flex items-center gap-2 text-xs"
+                    >
+                      <Plus className="w-4 h-4" /> Add to List
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Added works preview list */}
+              {globalAddedWorks.length > 0 && (
+                <div className="bg-white p-5 rounded-2xl border border-emerald-100 shadow-sm">
+                  <h4 className="text-xs font-bold text-gray-700 mb-2 uppercase tracking-wider">Works to be added ({globalAddedWorks.length})</h4>
+                  <div className="bg-gray-50 border border-gray-250 rounded-lg overflow-hidden">
+                    <table className="min-w-full divide-y divide-gray-200">
+                      <thead className="bg-gray-100">
+                        <tr>
+                          <th className="px-3 py-2 text-left text-[10px] font-bold text-gray-500 uppercase">Category</th>
+                          <th className="px-3 py-2 text-left text-[10px] font-bold text-gray-500 uppercase">Sub Category</th>
+                          <th className="px-3 py-2 text-center text-[10px] font-bold text-gray-500 uppercase">Qty</th>
+                          <th className="px-3 py-2 text-right text-[10px] font-bold text-gray-500 uppercase">Rate</th>
+                          <th className="px-3 py-2 text-right text-[10px] font-bold text-gray-500 uppercase">Amount</th>
+                          <th className="px-3 py-2 text-center text-[10px] font-bold text-gray-500 uppercase">Action</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-200 bg-white">
+                        {globalAddedWorks.map((w, idx) => (
+                          <tr key={idx}>
+                            <td className="px-3 py-2 text-xs font-medium text-gray-900">{w.category}</td>
+                            <td className="px-3 py-2 text-xs text-gray-500">{w.name} {w.forUnit ? `(Unit ${w.forUnit})` : ''}</td>
+                            <td className="px-3 py-2 text-xs text-center text-gray-500">{w.quantity} {w.unit}</td>
+                            <td className="px-3 py-2 text-xs text-right text-gray-500">Rs. {w.rate?.toLocaleString()}</td>
+                            <td className="px-3 py-2 text-xs text-right font-bold text-[#006838]">Rs. {(w.quantity * w.rate)?.toLocaleString()}</td>
+                            <td className="px-3 py-2 text-center">
+                              <button onClick={() => setGlobalAddedWorks(prev => prev.filter((_, i) => i !== idx))} className="text-red-500 hover:text-red-700">
+                                <X className="w-4 h-4 mx-auto" />
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="p-6 border-t border-gray-100 bg-white rounded-b-[2rem] flex justify-end gap-3">
+              <button
+                onClick={() => setShowGlobalModal(false)}
+                className="px-6 py-2.5 rounded-xl font-bold text-gray-600 hover:bg-gray-100 transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={async () => {
+                  let worksToSubmit = [...globalAddedWorks];
+                  // If they filled out the form fields but didn't click "Add to List"
+                  if (globalForm.name.trim()) {
+                    worksToSubmit.push({ ...globalForm });
+                  }
+
+                  if (worksToSubmit.length === 0) {
+                    alert("Please add at least one extra work item!");
+                    return;
+                  }
+
+                  try {
+                    setIsSubmittingGlobal(true);
+                    const selectedFlow = allBookedFlows.find(f => f._id === globalForm.flowId);
+                    
+                    const res = await fetch(`${API_URL}/extra-works/${globalForm.flowId}/add`, {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                        Authorization: `Bearer ${token}`
+                      },
+                      body: JSON.stringify({
+                        works: worksToSubmit,
+                        stageId: globalForm.stageId,
+                        forUnit: globalForm.forUnit || (selectedFlow?.unitId?.includes(',') ? undefined : selectedFlow?.unitId)
+                      })
+                    });
+
+                    if (!res.ok) throw new Error('Failed to add global extra works');
+
+                    setGlobalForm({
+                      flowId: '',
+                      stageId: '',
+                      category: '',
+                      name: '',
+                      unit: 'Unit',
+                      quantity: 1,
+                      rate: 0,
+                      forUnit: '',
+                      ewId: ''
+                    });
+                    setGlobalAddedWorks([]);
+                    setShowGlobalModal(false);
+                    await fetchFlows();
+                    await fetchAllBookedFlows();
+                  } catch (err) {
+                    alert(err.message);
+                  } finally {
+                    setIsSubmittingGlobal(false);
+                  }
+                }}
+                disabled={isSubmittingGlobal || (globalAddedWorks.length === 0 && !globalForm.name.trim())}
+                className="px-8 py-2.5 bg-[#006838] text-white font-bold rounded-xl flex items-center gap-2 hover:bg-[#00522c] transition shadow-lg shadow-emerald-600/20 disabled:opacity-50"
+              >
+                {isSubmittingGlobal ? <Loader2 className="w-5 h-5 animate-spin" /> : <CheckCircle className="w-5 h-5" />}
+                Save Extra Work
+              </button>
             </div>
           </div>
         </div>

@@ -480,7 +480,7 @@ const LeadsDirectory = () => {
     setError('');
     setSuccessMsg('');
 
-    if (!editName || !editPhoneLocal || !editAddress || !editLeadSource || !editProjectId) {
+    if (!editName || !editPhoneLocal || !editAddress || !editLeadSource || !editProjectId || !editStatus || !editLeadCategory) {
       setError('Please fill in all mandatory fields.');
       return;
     }
@@ -2397,7 +2397,7 @@ const LeadsDirectory = () => {
               {/* Name & Phone */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-left">
                 <div>
-                  <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Lead / Customer Name</label>
+                  <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Lead / Customer Name <span className="text-red-500">*</span></label>
                   <input
                     type="text"
                     required
@@ -2408,7 +2408,7 @@ const LeadsDirectory = () => {
                   />
                 </div>
                 <div>
-                  <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Phone Number</label>
+                  <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Phone Number <span className="text-red-500">*</span></label>
                   <div className={`flex items-center bg-black-55 border rounded-xl focus-within:ring-2 transition-all overflow-hidden ${editPhoneErr ? 'border-red-500 focus-within:ring-red-500' : 'border-black-200 focus-within:ring-amber-600 focus-within:border-transparent'}`}>
                     <select
                       value={editPhoneCountryCode}
@@ -2451,7 +2451,7 @@ const LeadsDirectory = () => {
 
               {/* Address */}
               <div className="text-left">
-                <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Customer Address</label>
+                <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Customer Address <span className="text-red-500">*</span></label>
                 <textarea
                   required
                   rows="2"
@@ -2468,7 +2468,7 @@ const LeadsDirectory = () => {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-left">
                     {/* Lead Source */}
                     <div className="flex flex-col">
-                      <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Lead Source</label>
+                      <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Lead Source <span className="text-red-500">*</span></label>
                       <SearchableSelect
                         options={SOURCE_TYPES}
                         value={editLeadSource}
@@ -2479,7 +2479,7 @@ const LeadsDirectory = () => {
 
                     {/* Project Code selection */}
                     <div className="flex flex-col">
-                      <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Project Code</label>
+                      <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Project Code <span className="text-red-500">*</span></label>
                       <SearchableSelect
                         options={projects.map(p => ({ value: p._id, label: `${p.code} - ${p.name} (${p.projectType})` }))}
                         value={editProjectId}
@@ -2509,7 +2509,7 @@ const LeadsDirectory = () => {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-left">
                     {/* Lead Source */}
                     <div className="flex flex-col">
-                      <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Lead Source</label>
+                      <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Lead Source <span className="text-red-500">*</span></label>
                       <SearchableSelect
                         options={SOURCE_TYPES}
                         value={editLeadSource}
@@ -2520,7 +2520,7 @@ const LeadsDirectory = () => {
 
                     {/* Project Code selection */}
                     <div className="flex flex-col">
-                      <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Project Code</label>
+                      <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Project Code <span className="text-red-500">*</span></label>
                       <SearchableSelect
                         options={projects.map(p => ({ value: p._id, label: `${p.code} - ${p.name} (${p.projectType})` }))}
                         value={editProjectId}
@@ -2567,7 +2567,7 @@ const LeadsDirectory = () => {
 
                 {editBankLoan === 'Yes' && (
                   <div className="pt-2 border-t border-black-200/50">
-                    <label className="text-xs font-semibold text-[#4b5563] block mb-1">Bank Loan Percentage (%)</label>
+                    <label className="text-xs font-semibold text-[#4b5563] block mb-1">Bank Loan Percentage (%) <span className="text-red-500">*</span></label>
                     <input
                       type="number"
                       placeholder="e.g. 30"
@@ -2591,7 +2591,7 @@ const LeadsDirectory = () => {
               {/* Assigned Executive */}
               {(user?.role === 'Superadmin' || user?.role === 'Crd team') && (
                 <div className="flex flex-col text-left">
-                  <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Assigned Executive / Member</label>
+                  <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Assigned Executive / Member <span className="text-red-500">*</span></label>
                   <SearchableSelect
                     options={employees.map(emp => ({ value: emp._id, label: `${emp.name} (${emp.role})` }))}
                     value={editAssignedToId}
@@ -2604,7 +2604,7 @@ const LeadsDirectory = () => {
               {/* Workflow Status & Lead Category */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-left">
                 <div className="flex flex-col">
-                  <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Workflow Status</label>
+                  <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Workflow Status <span className="text-red-500">*</span></label>
                   <select
                     value={editStatus}
                     onChange={(e) => {
@@ -2620,7 +2620,7 @@ const LeadsDirectory = () => {
                       setEditModalOpen(false); // Close edit modal
                       handleStatusChange(selectedLeadForEdit._id, newStatus);
                     }}
-                    className="w-full px-4 py-3 bg-black-55 border border-black-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-600 text-sm cursor-pointer appearance-none"
+                    className="w-full px-4 py-3 bg-black-55 border border-[#d1d5db] rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-600 text-sm cursor-pointer appearance-none"
                     style={{ backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 16px center', backgroundSize: '16px' }}
                   >
                     {LEAD_STATUSES.map((status, idx) => {
@@ -2635,7 +2635,7 @@ const LeadsDirectory = () => {
                 </div>
 
                 <div className="flex flex-col">
-                  <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Lead Category</label>
+                  <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Lead Category <span className="text-red-500">*</span></label>
                   <select
                     value={editLeadCategory}
                     onChange={(e) => setEditLeadCategory(e.target.value)}

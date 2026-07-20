@@ -12,7 +12,7 @@ const { protect } = require('../middleware/auth');
 router.get('/', protect, async (req, res) => {
   try {
     let flows = await CRDFlow.find({})
-      .populate('project', 'name code location projectType')
+      .populate('project', 'name code location projectType extraWorkCatalog')
       .populate('lead', 'name phone bankLoan bookingInfo bankLoanPercentage')
       .sort({ updatedAt: -1 });
       
