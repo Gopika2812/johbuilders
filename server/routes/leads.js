@@ -147,9 +147,15 @@ router.get('/phone/:phone', protect, async (req, res) => {
 // @route   POST /api/leads
 // @desc    Create a new lead (or reopen existing if duplicate phone)
 router.post('/', protect, async (req, res) => {
-  const { leadType, name, phone, address, profession, email, location, bankLoan, leadSource, activeAd, projectLocation, project, assignedTo, leadCost, followUpInfo, leadCategory } = req.body;
+  const { leadType, name, phone, address, profession, email, location, bankLoan, bankLoanPercentage, leadSource, activeAd, projectLocation, project, assignedTo, leadCost, followUpInfo, leadCategory } = req.body;
 
   try {
+    if (leadType === 'Direct Visit') {
+      if (!followUpInfo || !followUpInfo.remarks || !followUpInfo.remarks.trim()) {
+        return res.status(400).json({ message: 'Notes (Narration) is required for Direct Visit.' });
+      }
+    }
+
     // 1. Phone number tracking for duplicate checks / reopening
     let existingLeads = await Lead.find({ phone }).populate('assignedTo', 'name').sort({ createdAt: -1 });
 
@@ -203,6 +209,7 @@ router.post('/', protect, async (req, res) => {
       lead.location = location || lead.location;
       lead.address = address;
       lead.bankLoan = bankLoan || 'No';
+      lead.bankLoanPercentage = Number(bankLoanPercentage) || 0;
       lead.project = project;
       if (finalAssignedTo && finalAssignedTo.toString().trim() !== '') {
         lead.assignedBy = req.user._id;
@@ -263,6 +270,7 @@ router.post('/', protect, async (req, res) => {
       phone,
       address,
       bankLoan: bankLoan || 'No',
+      bankLoanPercentage: Number(bankLoanPercentage) || 0,
       project,
       assignedTo: (finalAssignedTo && finalAssignedTo.toString().trim() !== '') ? finalAssignedTo : undefined,
       assignedBy: (finalAssignedTo && finalAssignedTo.toString().trim() !== '') ? req.user._id : undefined,
@@ -314,7 +322,7 @@ router.post('/', protect, async (req, res) => {
 // @route   PUT /api/leads/:id
 // @desc    Update lead details (status, assignment)
 router.put('/:id', protect, async (req, res) => {
-  const { status, assignedTo, name, phone, leadType, leadCost, address, profession, email, location, bankLoan, leadSource, activeAd, projectLocation, project, bookingInfo, followUpInfo, isClosed, closeRemarks, isRevert, leadCategory } = req.body;
+  const { status, assignedTo, name, phone, leadType, leadCost, address, profession, email, location, bankLoan, bankLoanPercentage, leadSource, activeAd, projectLocation, project, bookingInfo, followUpInfo, isClosed, closeRemarks, isRevert, leadCategory } = req.body;
 
   try {
     const lead = await Lead.findById(req.params.id);
@@ -328,6 +336,21 @@ router.put('/:id', protect, async (req, res) => {
     // Check if status or assigned executive changed
     let statusChanged = status && status !== lead.status;
     let assignmentChanged = assignedTo && assignedTo !== prevAssigned;
+
+    if (!isRevert) {
+      if (followUpInfo !== undefined) {
+        if (!followUpInfo.remarks || !followUpInfo.remarks.trim()) {
+          return res.status(400).json({ message: 'Follow-up remarks/notes are required.' });
+        }
+      }
+      if (statusChanged && !['Booking', 'Won'].includes(status)) {
+        if (!followUpInfo) {
+          if (!closeRemarks || !closeRemarks.trim()) {
+            return res.status(400).json({ message: 'Transition / closing remarks are required.' });
+          }
+        }
+      }
+    }
 
     if (statusChanged) {
       const LEAD_STATUSES = [
@@ -364,6 +387,7 @@ router.put('/:id', protect, async (req, res) => {
     if (email) lead.email = email;
     if (location) lead.location = location;
     if (bankLoan) lead.bankLoan = bankLoan;
+    if (bankLoanPercentage !== undefined) lead.bankLoanPercentage = Number(bankLoanPercentage) || 0;
     if (project) lead.project = project;
     if (leadCategory) lead.leadCategory = leadCategory;
 

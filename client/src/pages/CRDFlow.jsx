@@ -90,7 +90,7 @@ const CRDFlow = () => {
   
   // Payment split input
   const [paymentStageIdx, setPaymentStageIdx] = useState(null);
-  const [paymentMethod, setPaymentMethod] = useState('Bank Transfer');
+  const [paymentMethod, setPaymentMethod] = useState('Customer Transfer');
   const [paymentAmount, setPaymentAmount] = useState('');
   
   // Bank details input
@@ -732,7 +732,7 @@ const CRDFlow = () => {
     if (paymentMethod === 'Dual Mode') {
       payload = {
         payments: [
-          { method: 'Bank Transfer', amount: Number(dualTransferAmount), details: {} },
+          { method: 'Customer Transfer', amount: Number(dualTransferAmount), details: {} },
           { method: 'Bank Loan', amount: Number(dualLoanAmount), details: {} }
         ]
       };
@@ -822,6 +822,7 @@ const CRDFlow = () => {
   const filteredBookings = bookings.filter(b => !selectedProjectId || (b.project?._id || b.project) === selectedProjectId);
 
   const selectedBookingDetails = bookings.find(b => b._id === selectedBookingId);
+  const hasBankLoanSelected = selectedBookingDetails && (selectedBookingDetails.bankLoan === 'Yes' || selectedBookingDetails.bookingInfo?.bankLoan === 'Yes' || selectedBookingDetails.bookingInfo?.hasLoan === 'Yes');
   
   const totalReceived = activeFlow
     ? activeFlow.stages.reduce((sum, stage) => sum + (stage.payments?.reduce((pSum, p) => pSum + p.amount, 0) || 0), 0)
@@ -1112,7 +1113,8 @@ const CRDFlow = () => {
                                           const thisStagePending = Math.max(0, getStageTotal(menuFlow.stages[idx]) - getStagePaid(menuFlow.stages[idx]));
                                           const arrears = menuFlow.stages.slice(0, idx).reduce((sum, s) => sum + Math.max(0, getStageTotal(s) - getStagePaid(s)), 0);
                                           setPaymentAmount((thisStagePending + arrears).toString());
-                                          setPaymentMethod(lead.bookingInfo?.bankLoan === 'Yes' ? 'Bank Loan' : 'Bank Transfer');
+                                          const hasBankLoanMenu = lead.bankLoan === 'Yes' || lead.bookingInfo?.bankLoan === 'Yes' || lead.bookingInfo?.hasLoan === 'Yes';
+                                          setPaymentMethod(hasBankLoanMenu ? 'Bank Loan' : 'Customer Transfer');
                                           setActionMenuId(null);
                                         }}
                                         className="flex items-center gap-2 px-3 py-2 text-xs font-bold text-black-700 hover:bg-emerald-50 hover:text-emerald-800 rounded-lg transition"
@@ -1259,6 +1261,7 @@ const CRDFlow = () => {
                             const half = Math.round(totalAmt / 2);
                             setDualTransferAmount(half.toString());
                             setDualLoanAmount((totalAmt - half).toString());
+                            setPaymentMethod(hasBankLoanSelected ? 'Bank Loan' : 'Customer Transfer');
                           }}
                           className="px-4 py-2 bg-[#0e623a] text-white font-bold text-[11px] rounded-xl hover:bg-[#0b4d2d] transition shadow cursor-pointer flex items-center gap-1"
                         >
@@ -1277,7 +1280,8 @@ const CRDFlow = () => {
                             <th className="p-4 text-center">Status</th>
                             <th className="p-4 text-right">Received</th>
                             <th className="p-4 text-right">Pending</th>
-                            <th className="p-4 text-center">Action</th>
+                            <th className="p-4 text-center">Payment Action</th>
+                            <th className="p-4 text-center">Stage Action</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-black-100">
@@ -1297,7 +1301,11 @@ const CRDFlow = () => {
                                         expandedStages[idx] ? <ChevronDown className="w-4 h-4 text-black-400 group-hover:text-black-600" /> : <ChevronRight className="w-4 h-4 text-black-400 group-hover:text-black-600" />
                                       )}
                                     </div>
-                                    <div className="text-[11px] text-black-400">{stage.percentage}% of total value</div>
+                                    <div className="text-[11px] text-black-400">
+                                      {stage.percentage === 5 
+                                        ? 'Token advance + 5% of total value' 
+                                        : `${stage.percentage}% of total value`}
+                                    </div>
                                   </td>
                                   <td className="p-4 text-right font-semibold text-black-700">
                                     Rs. {stageTotal.toLocaleString()}
@@ -1311,7 +1319,7 @@ const CRDFlow = () => {
                                         {isPaidInFull ? 'Paid' : 'Partial'}
                                       </span>
                                     )}
-                                    <span className={`block ${stagePaid > 0 ? 'mt-1.5' : ''} px-2 py-1 rounded text-[11px] font-bold uppercase ${stage.isCompleted ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>
+                                    <span className={`block ${stagePaid > 0 ? 'mt-1.5' : ''} px-2 py-1 rounded text-[11px] font-bold uppercase ${stage.isCompleted ? 'bg-emerald-100 text-[#0e623a]' : 'bg-amber-100 text-amber-800'}`}>
                                       {stage.isCompleted ? 'Completed' : 'In Progress'}
                                     </span>
                                   </td>
@@ -1321,29 +1329,45 @@ const CRDFlow = () => {
                                   <td className="p-4 text-right font-bold text-rose-600">
                                     Rs. {Math.max(0, stageTotal - stagePaid).toLocaleString()}
                                   </td>
-                                  <td className="p-4 text-center flex flex-col gap-1.5 items-center justify-center">
-                                    <button
-                                      onClick={() => {
-                                        setPaymentStageIdx(idx);
-                                        const thisStagePending = Math.max(0, getStageTotal(stage) - getStagePaid(stage));
-                                        const arrears = getPendingPreviousStages(idx).reduce((sum, s) => sum + s.pending, 0);
-                                        const totalAmt = thisStagePending + arrears;
-                                        setPaymentAmount(totalAmt.toString());
-                                        const half = Math.round(totalAmt / 2);
-                                        setDualTransferAmount(half.toString());
-                                        setDualLoanAmount((totalAmt - half).toString());
-                                      }}
-                                      disabled={isPaidInFull}
-                                      className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition w-full ${isPaidInFull ? 'bg-black-100 text-black-400 cursor-not-allowed' : 'bg-blue-50 text-blue-700 hover:bg-blue-100 cursor-pointer border border-blue-200'}`}
-                                    >
-                                      {isPaidInFull ? 'Payment Completed' : 'Pay Now'}
-                                    </button>
-                                    <button
-                                      onClick={() => handleToggleStageCompletion(idx, stage.isCompleted)}
-                                      className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition w-full cursor-pointer border ${stage.isCompleted ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border-emerald-200' : 'bg-amber-50 text-amber-700 hover:bg-amber-100 border-amber-200'}`}
-                                    >
-                                      {stage.isCompleted ? 'Stage Completed' : 'Complete'}
-                                    </button>
+                                  <td className="p-4 text-center">
+                                    {isPaidInFull ? (
+                                      <span className="px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-800 text-[11px] font-extrabold uppercase border border-emerald-200 shadow-sm inline-block w-24">
+                                        Paid
+                                      </span>
+                                    ) : (
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          setPaymentStageIdx(idx);
+                                          const thisStagePending = Math.max(0, getStageTotal(stage) - getStagePaid(stage));
+                                          const arrears = getPendingPreviousStages(idx).reduce((sum, s) => sum + s.pending, 0);
+                                          const totalAmt = thisStagePending + arrears;
+                                          setPaymentAmount(totalAmt.toString());
+                                          const half = Math.round(totalAmt / 2);
+                                          setDualTransferAmount(half.toString());
+                                          setDualLoanAmount((totalAmt - half).toString());
+                                          setPaymentMethod(hasBankLoanSelected ? 'Bank Loan' : 'Customer Transfer');
+                                        }}
+                                        className="px-3 py-1.5 rounded-lg text-[11px] font-bold transition w-24 bg-blue-50 text-blue-700 hover:bg-blue-100 cursor-pointer border border-blue-200"
+                                      >
+                                        Pay
+                                      </button>
+                                    )}
+                                  </td>
+                                  <td className="p-4 text-center">
+                                    {stage.isCompleted ? (
+                                      <span className="px-2.5 py-1 rounded-lg bg-emerald-50 text-[#0e623a] text-[11px] font-extrabold uppercase border border-emerald-200 shadow-sm inline-block w-24">
+                                        Completed
+                                      </span>
+                                    ) : (
+                                      <button
+                                        type="button"
+                                        onClick={() => handleToggleStageCompletion(idx, stage.isCompleted)}
+                                        className="px-3 py-1.5 rounded-lg text-[11px] font-bold transition w-24 cursor-pointer border bg-amber-50 text-amber-700 hover:bg-amber-100 border-amber-200"
+                                      >
+                                        Complete
+                                      </button>
+                                    )}
                                   </td>
                                 </tr>
                                 {/* Extra works rows if any */}
@@ -1358,14 +1382,14 @@ const CRDFlow = () => {
                                       <span className="font-bold border-l pl-2 border-black-200">{ew.name}</span>
                                     </td>
                                     <td className="p-2 text-right text-[11px] font-semibold text-black-700">Rs. {ew.amount.toLocaleString()}</td>
-                                    <td colSpan="4"></td>
+                                    <td colSpan="5"></td>
                                   </tr>
                                 ))}
                                 {/* Payments breakdown if any */}
                                 {stage.payments && stage.payments.length > 0 && (
                                   <tr className="bg-black-50/50">
                                     <td></td>
-                                    <td colSpan="6" className="p-2">
+                                    <td colSpan="7" className="p-2">
                                       <div className="flex flex-wrap gap-2">
                                         {stage.payments.map((p, pIdx) => (
                                           <div key={`p-${idx}-${pIdx}`} className="flex items-center gap-1.5 bg-white border border-black-200 px-2 py-1 rounded text-[10px] shadow-sm">
@@ -1390,7 +1414,7 @@ const CRDFlow = () => {
                               const totalWithExtra = activeFlow.stages.reduce((sum, s) => sum + getStageTotal(s), 0);
                               return totalWithExtra.toLocaleString();
                             })()}</td>
-                            <td colSpan="4"></td>
+                            <td colSpan="5"></td>
                           </tr>
                         </tfoot>
                       </table>
@@ -1500,7 +1524,7 @@ const CRDFlow = () => {
                 <CreditCard className="w-5 h-5 text-emerald-300" />
                 <span>Submit Milestone Split Payment</span>
               </h3>
-              <p className="text-emerald-100 text-xs mt-1">Register bank transfers or loan payments</p>
+              <p className="text-emerald-100 text-xs mt-1">Register customer transfers or loan payments</p>
             </div>
 
             <form onSubmit={handleMakePayment} className="flex flex-col flex-1 overflow-hidden">
@@ -1561,47 +1585,59 @@ const CRDFlow = () => {
                     </div>
                   )}
                 </div>
-                <div className="grid grid-cols-3 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setPaymentMethod('Bank Transfer')}
-                    className={`py-2.5 rounded-xl text-[11px] font-bold transition cursor-pointer text-center ${
-                      paymentMethod === 'Bank Transfer'
-                        ? 'bg-[#0e623a] text-white shadow'
-                        : 'bg-black-100 text-black-500 hover:bg-black-200'
-                    }`}
-                  >
-                    Bank Transfer
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setPaymentMethod('Bank Loan')}
-                    className={`py-2.5 rounded-xl text-[11px] font-bold transition cursor-pointer text-center ${
-                      paymentMethod === 'Bank Loan'
-                        ? 'bg-[#0e623a] text-white shadow'
-                        : 'bg-black-100 text-black-500 hover:bg-black-200'
-                    }`}
-                  >
-                    Bank Loan
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setPaymentMethod('Dual Mode');
-                      const totalAmt = Number(paymentAmount) || 0;
-                      const half = Math.round(totalAmt / 2);
-                      setDualTransferAmount(half.toString());
-                      setDualLoanAmount((totalAmt - half).toString());
-                    }}
-                    className={`py-2.5 rounded-xl text-[11px] font-bold transition cursor-pointer text-center ${
-                      paymentMethod === 'Dual Mode'
-                        ? 'bg-[#0e623a] text-white shadow'
-                        : 'bg-black-100 text-black-500 hover:bg-black-200'
-                    }`}
-                  >
-                    Dual Mode
-                  </button>
-                </div>
+                {hasBankLoanSelected ? (
+                  <div className="grid grid-cols-3 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setPaymentMethod('Customer Transfer')}
+                      className={`py-2.5 rounded-xl text-[11px] font-bold transition cursor-pointer text-center ${
+                        paymentMethod === 'Customer Transfer'
+                          ? 'bg-[#0e623a] text-white shadow'
+                          : 'bg-black-100 text-black-500 hover:bg-black-200'
+                      }`}
+                    >
+                      Customer Transfer
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPaymentMethod('Bank Loan')}
+                      className={`py-2.5 rounded-xl text-[11px] font-bold transition cursor-pointer text-center ${
+                        paymentMethod === 'Bank Loan'
+                          ? 'bg-[#0e623a] text-white shadow'
+                          : 'bg-black-100 text-black-500 hover:bg-black-200'
+                      }`}
+                    >
+                      Bank Loan
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPaymentMethod('Dual Mode');
+                        const totalAmt = Number(paymentAmount) || 0;
+                        const half = Math.round(totalAmt / 2);
+                        setDualTransferAmount(half.toString());
+                        setDualLoanAmount((totalAmt - half).toString());
+                      }}
+                      className={`py-2.5 rounded-xl text-[11px] font-bold transition cursor-pointer text-center ${
+                        paymentMethod === 'Dual Mode'
+                          ? 'bg-[#0e623a] text-white shadow'
+                          : 'bg-black-100 text-black-500 hover:bg-black-200'
+                      }`}
+                    >
+                      Dual Mode
+                    </button>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 flex items-center justify-center">
+                    <button
+                      type="button"
+                      disabled
+                      className="py-2.5 w-full rounded-xl text-[11px] font-bold transition text-center bg-[#0e623a] text-white shadow cursor-default"
+                    >
+                      Customer Transfer
+                    </button>
+                  </div>
+                )}
 
                 {paymentMethod !== 'Dual Mode' ? (
                   <div>
@@ -1618,7 +1654,7 @@ const CRDFlow = () => {
                 ) : (
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="text-xs font-bold text-black-770 block mb-1">Bank Transfer Amt (Rs)</label>
+                      <label className="text-xs font-bold text-black-770 block mb-1">Customer Transfer Amt (Rs)</label>
                       <input
                         type="number"
                         required

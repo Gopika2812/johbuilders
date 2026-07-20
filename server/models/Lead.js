@@ -39,6 +39,10 @@ const LeadSchema = new mongoose.Schema({
     enum: ['Yes', 'No'],
     default: 'No'
   },
+  bankLoanPercentage: {
+    type: Number,
+    default: 0
+  },
   // fields for Lead Type
   leadSource: {
     type: String,

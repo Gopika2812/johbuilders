@@ -432,7 +432,6 @@ router.put('/:id/stage/:stageIndex/payment', protect, async (req, res) => {
               amount: stagePending,
               details: p.details
             });
-            stage.isCompleted = true;
             remainingAmount -= stagePending;
           } else {
             // Partially pay this stage
@@ -454,7 +453,6 @@ router.put('/:id/stage/:stageIndex/payment', protect, async (req, res) => {
           amount: remainingAmount,
           details: p.details
         });
-        flow.stages[idx].isCompleted = true;
       }
     }
 

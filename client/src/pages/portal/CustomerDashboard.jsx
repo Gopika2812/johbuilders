@@ -791,7 +791,11 @@ const CustomerDashboard = () => {
                             <tr key={idx} className="hover:bg-white transition bg-white/40">
                               <td className="p-4 md:px-8">
                                 <div className="font-bold text-gray-900">{stage.name}</div>
-                                <div className="text-xs text-gray-500 mt-0.5">{stage.percentage}% of total value</div>
+                                <div className="text-xs text-gray-500 mt-0.5">
+                                  {stage.percentage === 5 
+                                    ? 'Token advance + 5% of total value' 
+                                    : `${stage.percentage}% of total value`}
+                                </div>
                               </td>
                               <td className="p-4 text-center text-sm font-medium text-gray-600">
                                 {stage.payments?.length > 0 

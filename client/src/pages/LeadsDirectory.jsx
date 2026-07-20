@@ -262,6 +262,7 @@ const LeadsDirectory = () => {
   const [editLeadSource, setEditLeadSource] = useState('');
   const [editAdId, setEditAdId] = useState('');
   const [editBankLoan, setEditBankLoan] = useState('No');
+  const [editBankLoanPercentage, setEditBankLoanPercentage] = useState(0);
   const [editLeadCost, setEditLeadCost] = useState('0');
   const [editProjectLocation, setEditProjectLocation] = useState('');
   const [editActiveAds, setEditActiveAds] = useState([]);
@@ -278,6 +279,7 @@ const LeadsDirectory = () => {
   const [BookedAadhar, setBookedAadhar] = useState('');
   const [BookedPan, setBookedPan] = useState('');
   const [BookedHasLoan, setBookedHasLoan] = useState('No');
+  const [loanPercentage, setLoanPercentage] = useState(0);
   const [loanAmount, setLoanAmount] = useState(0);
   const [loanBank, setLoanBank] = useState('');
   const [loanAccountNumber, setLoanAccountNumber] = useState('');
@@ -452,6 +454,7 @@ const LeadsDirectory = () => {
     setEditStatus(lead.status || 'New');
     setEditLeadSource(lead.leadSource || '');
     setEditBankLoan(lead.bankLoan || 'No');
+    setEditBankLoanPercentage(lead.bankLoanPercentage || 0);
     setEditLeadCost(String(lead.leadCost || '0'));
     setEditProjectLocation(lead.projectLocation || '');
     setEditLeadCategory(lead.leadCategory || 'Cold');
@@ -492,6 +495,7 @@ const LeadsDirectory = () => {
       phone: editPhone,
       address: editAddress,
       bankLoan: editBankLoan,
+      bankLoanPercentage: Number(editBankLoanPercentage) || 0,
       project: editProjectId || undefined,
       assignedTo: editAssignedToId || '',
       status: editStatus,
@@ -701,6 +705,10 @@ const LeadsDirectory = () => {
       setError('Please fill in all mandatory fields.');
       return;
     }
+    if (leadType === 'Direct Visit' && (!directFollowRemarks || !directFollowRemarks.trim())) {
+      setError('Notes (Narration) is required for Direct Visit.');
+      return;
+    }
     if ((user?.role === 'Superadmin' || user?.role === 'Crd team') && !assignedToId) {
       setError('Please select an assigned executive.');
       return;
@@ -820,6 +828,7 @@ const LeadsDirectory = () => {
     setBookedAadhar('');
     setBookedPan('');
     setBookedHasLoan(lead.bankLoan || 'No');
+    setLoanPercentage(lead.bankLoanPercentage || 0);
     setLeadCategory(lead.leadCategory || 'Cold');
     setLoanAmount(0);
     setLoanBank('');
@@ -901,6 +910,7 @@ const LeadsDirectory = () => {
       aadharNumber: BookedAadhar,
       panNumber: BookedPan,
       bankLoanRequired: BookedHasLoan,
+      bankLoanPercentage: Number(loanPercentage),
       loanAmount: Number(loanAmount),
       preferredBank: loanBank,
       accountNumber: loanAccountNumber
@@ -909,6 +919,8 @@ const LeadsDirectory = () => {
     const payload = {
       status: 'Booking',
       leadCategory: leadCategory,
+      bankLoan: BookedHasLoan,
+      bankLoanPercentage: Number(loanPercentage),
       bookingInfo: {
         selectedUnits: selectedBookedUnits,
         alternativePhone: BookedAltPhone,
@@ -1030,6 +1042,11 @@ const LeadsDirectory = () => {
         return;
       }
 
+      if (!followRemarks || !followRemarks.trim()) {
+        alert('Follow-up remarks are required!');
+        return;
+      }
+
       let finalStatus = followTargetStatus;
       if (followMode === 'SiteVisit') {
         finalStatus = 'Site Visit';
@@ -1048,6 +1065,10 @@ const LeadsDirectory = () => {
         leadCategory
       };
     } else {
+      if (!closeRemarks || !closeRemarks.trim()) {
+        alert('Transition / Closing Remarks are required!');
+        return;
+      }
       payload = {
         status: 'Lost',
         isClosed: true,
@@ -2202,8 +2223,9 @@ const LeadsDirectory = () => {
                     </div>
                   </div>
                   <div>
-                    <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Notes (Narration)</label>
+                    <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Notes (Narration) <span className="text-red-500">*</span></label>
                     <textarea
+                      required
                       rows="2"
                       placeholder="Interaction notes..."
                       value={directFollowRemarks}
@@ -2464,32 +2486,59 @@ const LeadsDirectory = () => {
               )}
 
               {/* Bank Loan Selection */}
-              <div className="bg-black-50 p-4 rounded-2xl border border-black-150 text-left">
-                <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-2">Requires Bank Loan?</label>
-                <div className="flex gap-6">
-                  <label className="flex items-center gap-2 text-sm font-semibold text-black-700 cursor-pointer">
-                    <input
-                      type="radio"
-                      name="editBankLoan"
-                      value="Yes"
-                      checked={editBankLoan === 'Yes'}
-                      onChange={() => setEditBankLoan('Yes')}
-                      className="text-amber-600 focus:ring-amber-600 w-4 h-4"
-                    />
-                    <span>Yes</span>
-                  </label>
-                  <label className="flex items-center gap-2 text-sm font-semibold text-black-700 cursor-pointer">
-                    <input
-                      type="radio"
-                      name="editBankLoan"
-                      value="No"
-                      checked={editBankLoan === 'No'}
-                      onChange={() => setEditBankLoan('No')}
-                      className="text-amber-600 focus:ring-amber-600 w-4 h-4"
-                    />
-                    <span>No</span>
-                  </label>
+              <div className="bg-black-50 p-4 rounded-2xl border border-black-150 text-left space-y-3">
+                <div>
+                  <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-2">Requires Bank Loan?</label>
+                  <div className="flex gap-6">
+                    <label className="flex items-center gap-2 text-sm font-semibold text-black-700 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="editBankLoan"
+                        value="Yes"
+                        checked={editBankLoan === 'Yes'}
+                        onChange={() => setEditBankLoan('Yes')}
+                        className="text-amber-600 focus:ring-amber-600 w-4 h-4"
+                      />
+                      <span>Yes</span>
+                    </label>
+                    <label className="flex items-center gap-2 text-sm font-semibold text-black-700 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="editBankLoan"
+                        value="No"
+                        checked={editBankLoan === 'No'}
+                        onChange={() => {
+                          setEditBankLoan('No');
+                          setEditBankLoanPercentage(0);
+                        }}
+                        className="text-amber-600 focus:ring-amber-600 w-4 h-4"
+                      />
+                      <span>No</span>
+                    </label>
+                  </div>
                 </div>
+
+                {editBankLoan === 'Yes' && (
+                  <div className="pt-2 border-t border-black-200/50">
+                    <label className="text-xs font-semibold text-[#4b5563] block mb-1">Bank Loan Percentage (%)</label>
+                    <input
+                      type="number"
+                      placeholder="e.g. 30"
+                      value={editBankLoanPercentage}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (val === '') {
+                          setEditBankLoanPercentage('');
+                        } else {
+                          const num = Number(val);
+                          if (num >= 0 && num <= 100) setEditBankLoanPercentage(num);
+                        }
+                      }}
+                      onBlur={() => setEditBankLoanPercentage(prev => prev === '' ? 0 : Number(prev))}
+                      className="w-full px-3 py-2 bg-white border border-[#d1d5db] rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-600 text-sm"
+                    />
+                  </div>
+                )}
               </div>
 
               {/* Assigned Executive */}
@@ -2815,8 +2864,9 @@ const LeadsDirectory = () => {
                     </div>
 
                     <div>
-                      <label className="text-xs font-semibold text-black-600 block mb-1">Follow-up Remarks</label>
+                      <label className="text-xs font-semibold text-black-600 block mb-1">Follow-up Remarks <span className="text-red-500">*</span></label>
                       <textarea
+                        required
                         rows="3"
                         value={followRemarks}
                         onChange={(e) => setFollowRemarks(e.target.value)}
@@ -2830,12 +2880,12 @@ const LeadsDirectory = () => {
                     <div>
                       <label className="text-xs font-semibold text-black-600 block mb-1">
                         {!hasFollowUpOptions
-                          ? `Remarks / Notes for transitioning to ${followTargetStatus} (Optional)`
-                          : 'Closing Remarks'}
+                          ? `Remarks / Notes for transitioning to ${followTargetStatus}`
+                          : 'Closing Remarks'} <span className="text-red-500">*</span>
                       </label>
                       <textarea
                         rows="4"
-                        required={['Lost', 'Follow-Up', 'Site Visit', 'Future Follow-up'].includes(followTargetStatus)}
+                        required
                         value={closeRemarks}
                         onChange={(e) => setCloseRemarks(e.target.value)}
                         placeholder={
@@ -3142,7 +3192,26 @@ const LeadsDirectory = () => {
                   </div>
 
                   {BookedHasLoan === 'Yes' && (
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2 border-t border-black-200">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-black-200">
+                      <div>
+                        <label className="text-[11px] font-semibold text-black-500 block mb-1">Bank Loan Percentage (%)</label>
+                        <input
+                          type="number"
+                          placeholder="e.g. 30"
+                          value={loanPercentage}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            if (val === '') {
+                              setLoanPercentage('');
+                            } else {
+                              const num = Number(val);
+                              if (num >= 0 && num <= 100) setLoanPercentage(num);
+                            }
+                          }}
+                          onBlur={() => setLoanPercentage(prev => prev === '' ? 0 : Number(prev))}
+                          className="w-full px-3 py-2 bg-white border border-black-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-xs"
+                        />
+                      </div>
                       <div>
                         <label className="text-[11px] font-semibold text-black-500 block mb-1">Loan Amount Required (Rs.)</label>
                         <input
@@ -3174,7 +3243,6 @@ const LeadsDirectory = () => {
                           className="w-full px-3 py-2 bg-white border border-black-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-xs"
                         />
                       </div>
-                      
                     </div>
                   )}
                 </div>

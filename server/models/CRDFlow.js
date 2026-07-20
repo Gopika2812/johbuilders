@@ -21,7 +21,7 @@ const ExtraWorkSchema = new mongoose.Schema({
 });
 
 const PaymentSplitSchema = new mongoose.Schema({
-  method: { type: String, enum: ['Bank Transfer', 'Bank Loan'], required: true },
+  method: { type: String, enum: ['Bank Transfer', 'Bank Loan', 'Customer Transfer'], required: true },
   amount: { type: Number, required: true },
   date: { type: Date, default: Date.now },
   details: {

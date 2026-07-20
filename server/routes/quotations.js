@@ -120,6 +120,10 @@ router.post('/', protect, async (req, res) => {
 // @route   PUT /api/quotations/:id
 // @desc    Update an existing quotation
 router.put('/:id', protect, async (req, res) => {
+  if (req.body.crdPerson !== undefined && req.user.role !== 'Superadmin') {
+    return res.status(403).json({ message: 'Only Superadmin is allowed to assign or edit CRD Person.' });
+  }
+
   try {
     const quotation = await Quotation.findById(req.params.id);
     if (!quotation) {
