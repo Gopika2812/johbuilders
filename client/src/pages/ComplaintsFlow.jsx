@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '../context/AuthContext';
+import { useAuth, API_URL } from '../context/AuthContext';
 import { AlertCircle, Clock, CheckCircle2, FileText, Send, Loader2, Star, MessageSquare, ChevronDown, ChevronUp, Activity, X } from 'lucide-react';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
@@ -15,8 +15,6 @@ const ComplaintsFlow = () => {
   const [expandedNotes, setExpandedNotes] = useState({});
   const [feedbackForm, setFeedbackForm] = useState({ rating: 0, feedback: '' });
   const [hoverRating, setHoverRating] = useState(0);
-
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
   const canEditTab = (tabId) => {
     if (isAdmin) return true;

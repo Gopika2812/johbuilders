@@ -958,7 +958,7 @@ const CRDFlow = () => {
                   const bookingStr = new Date(lead.bookingInfo?.bookingDate || lead.createdAt).toLocaleDateString('en-CA');
                   if (filterFromDate && bookingStr < filterFromDate) return false;
                   if (filterToDate && bookingStr > filterToDate) return false;
-                  if (user?.role !== 'Superadmin' && user?.role !== 'Crd team') {
+                  if (user?.role !== 'Superadmin') {
                     const quot = quotations.find(q => (q.lead?._id || q.lead) === lead._id);
                     if (quot?.crdPerson?.name !== user.name && quot?.crdPerson?._id !== user.name && quot?.crdPerson?._id !== user._id) {
                       return false;
@@ -1192,7 +1192,7 @@ const CRDFlow = () => {
                 const bookingStr = new Date(lead.bookingInfo?.bookingDate || lead.createdAt).toLocaleDateString('en-CA');
                 if (filterFromDate && bookingStr < filterFromDate) return false;
                 if (filterToDate && bookingStr > filterToDate) return false;
-                if (user?.role !== 'Superadmin' && user?.role !== 'Crd team') {
+                if (user?.role !== 'Superadmin') {
                   const quot = quotations.find(q => (q.lead?._id || q.lead) === lead._id);
                   if (quot?.crdPerson?.name !== user.name && quot?.crdPerson?._id !== user._id) {
                     return false;

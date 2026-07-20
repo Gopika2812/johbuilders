@@ -7,11 +7,52 @@ const AuditLog = require('../models/AuditLog');
 const ApprovalRequest = require('../models/ApprovalRequest');
 const { protect } = require('../middleware/auth');
 
+const checkFlowAccess = async (flowId, req) => {
+  if (req.user.role === 'Superadmin') {
+    return true;
+  }
+  const flow = await CRDFlow.findById(flowId).populate('lead');
+  if (!flow) return false;
+  const lead = flow.lead;
+  const isAssigned = lead ? (lead.assignedTo?.toString() === req.user._id.toString()) : false;
+  
+  const Quotation = require('../models/Quotation');
+  const quotation = await Quotation.findOne({ lead: flow.lead?._id }, 'crdPerson');
+  const isCrdPerson = quotation && quotation.crdPerson ? (quotation.crdPerson.toString() === req.user._id.toString()) : false;
+  
+  return isAssigned || isCrdPerson;
+};
+
+const validateFlowAccess = async (req, res, next) => {
+  try {
+    const isAuthorized = await checkFlowAccess(req.params.id, req);
+    if (!isAuthorized) {
+      return res.status(403).json({ message: 'You are not authorized to view or modify this construction flow' });
+    }
+    next();
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
 // @route   GET /api/crd-flow
 // @desc    Get all active CRD flows
 router.get('/', protect, async (req, res) => {
   try {
-    let flows = await CRDFlow.find({})
+    let query = {};
+    if (req.user.role !== 'Superadmin') {
+      const userLeads = await Lead.find({ assignedTo: req.user._id }, '_id');
+      const leadIds = userLeads.map(l => l._id);
+      
+      const Quotation = require('../models/Quotation');
+      const userQuotations = await Quotation.find({ crdPerson: req.user._id }, 'lead');
+      const quotationLeadIds = userQuotations.map(q => q.lead);
+      
+      const authorizedLeadIds = [...new Set([...leadIds, ...quotationLeadIds])];
+      query = { lead: { $in: authorizedLeadIds } };
+    }
+
+    let flows = await CRDFlow.find(query)
       .populate('project', 'name code location projectType extraWorkCatalog')
       .populate('lead', 'name phone bankLoan bookingInfo bankLoanPercentage')
       .sort({ updatedAt: -1 });
@@ -29,6 +70,19 @@ router.get('/', protect, async (req, res) => {
 // @desc    Get CRD flow for a specific booking
 router.get('/booking/:leadId', protect, async (req, res) => {
   try {
+    if (req.user.role !== 'Superadmin') {
+      const lead = await Lead.findById(req.params.leadId);
+      const isAssigned = lead ? (lead.assignedTo?.toString() === req.user._id.toString()) : false;
+
+      const Quotation = require('../models/Quotation');
+      const quotation = await Quotation.findOne({ lead: req.params.leadId }, 'crdPerson');
+      const isCrdPerson = quotation && quotation.crdPerson ? (quotation.crdPerson.toString() === req.user._id.toString()) : false;
+
+      if (!isAssigned && !isCrdPerson) {
+        return res.status(403).json({ message: 'You are not authorized to view this construction flow' });
+      }
+    }
+
     const flow = await CRDFlow.findOne({ lead: req.params.leadId })
       .populate('project')
       .populate('lead');
@@ -51,7 +105,7 @@ router.get('/booking/:leadId', protect, async (req, res) => {
 
 // @route   GET /api/crd-flow/:id
 // @desc    Get a single CRD flow by ID
-router.get('/:id', protect, async (req, res) => {
+router.get('/:id', protect, validateFlowAccess, async (req, res) => {
   try {
     const flow = await CRDFlow.findById(req.params.id)
       .populate('project')
@@ -82,6 +136,18 @@ router.post('/', protect, async (req, res) => {
   const { leadId, projectId, unitId, stages, totalOriginalValue } = req.body;
 
   try {
+    if (req.user.role !== 'Superadmin') {
+      const lead = await Lead.findById(leadId);
+      const isAssigned = lead ? (lead.assignedTo?.toString() === req.user._id.toString()) : false;
+      
+      const Quotation = require('../models/Quotation');
+      const quotation = await Quotation.findOne({ lead: leadId }, 'crdPerson');
+      const isCrdPerson = quotation && quotation.crdPerson ? (quotation.crdPerson.toString() === req.user._id.toString()) : false;
+
+      if (!isAssigned && !isCrdPerson) {
+        return res.status(403).json({ message: 'You are not authorized to initialize a construction flow for this lead' });
+      }
+    }
     // Check if flow already exists
     let existingFlow = await CRDFlow.findOne({ lead: leadId });
     if (existingFlow) {
@@ -131,7 +197,7 @@ router.post('/', protect, async (req, res) => {
 
 // @route   PUT /api/crd-flow/:id/stage/:stageIndex/complete
 // @desc    Complete a stage & verify document uploads if required
-router.put('/:id/stage/:stageIndex/complete', protect, async (req, res) => {
+router.put('/:id/stage/:stageIndex/complete', protect, validateFlowAccess, async (req, res) => {
   const { uploadedPdfs, completionNotes, isCompleted } = req.body;
   try {
     const flow = await CRDFlow.findById(req.params.id);
@@ -210,7 +276,7 @@ router.put('/:id/stage/:stageIndex/complete', protect, async (req, res) => {
 
 // @route   POST /api/crd-flows/:id/extra-work
 // @desc    Add extra work directly by PED/CRD Superadmin
-router.post('/:id/extra-work', protect, async (req, res) => {
+router.post('/:id/extra-work', protect, validateFlowAccess, async (req, res) => {
   const { stageId, name, amount, forUnit } = req.body;
   try {
     const flow = await CRDFlow.findById(req.params.id);
@@ -270,7 +336,7 @@ router.post('/:id/extra-work', protect, async (req, res) => {
 
 // @route   PUT /api/crd-flow/:id/stage/:stageIndex/extra-work
 // @desc    Add extra work to a stage
-router.put('/:id/stage/:stageIndex/extra-work', protect, async (req, res) => {
+router.put('/:id/stage/:stageIndex/extra-work', protect, validateFlowAccess, async (req, res) => {
   const { name, amount, forUnit } = req.body;
   try {
     const flow = await CRDFlow.findById(req.params.id);
@@ -335,7 +401,7 @@ router.put('/:id/stage/:stageIndex/extra-work', protect, async (req, res) => {
 
 // @route   DELETE /api/crd-flow/:id/stage/:stageIndex/extra-work/:workId
 // @desc    Revert/Delete an extra work item and deduct its split values
-router.delete('/:id/stage/:stageIndex/extra-work/:workId', protect, async (req, res) => {
+router.delete('/:id/stage/:stageIndex/extra-work/:workId', protect, validateFlowAccess, async (req, res) => {
   try {
     const flow = await CRDFlow.findById(req.params.id);
     if (!flow) return res.status(404).json({ message: 'Flow record not found' });
@@ -387,7 +453,7 @@ router.delete('/:id/stage/:stageIndex/extra-work/:workId', protect, async (req, 
 
 // @route   PUT /api/crd-flow/:id/stage/:stageIndex/payment
 // @desc    Submit split payment for a stage
-router.put('/:id/stage/:stageIndex/payment', protect, async (req, res) => {
+router.put('/:id/stage/:stageIndex/payment', protect, validateFlowAccess, async (req, res) => {
   const { method, amount, details, payments } = req.body;
   try {
     const flow = await CRDFlow.findById(req.params.id);
@@ -467,7 +533,7 @@ router.put('/:id/stage/:stageIndex/payment', protect, async (req, res) => {
 
 // @route   POST /api/crd-flow/:id/complaints
 // @desc    Add a customer complaint
-router.post('/:id/complaints', protect, async (req, res) => {
+router.post('/:id/complaints', protect, validateFlowAccess, async (req, res) => {
   const { description } = req.body;
   try {
     const flow = await CRDFlow.findById(req.params.id);
@@ -500,7 +566,7 @@ router.post('/:id/complaints', protect, async (req, res) => {
 
 // @route   PUT /api/crd-flow/:id/complaints/:complaintId
 // @desc    Update complaint status or resolve
-router.put('/:id/complaints/:complaintId', protect, async (req, res) => {
+router.put('/:id/complaints/:complaintId', protect, validateFlowAccess, async (req, res) => {
   const { status } = req.body;
   try {
     const flow = await CRDFlow.findById(req.params.id);
@@ -526,7 +592,7 @@ router.put('/:id/complaints/:complaintId', protect, async (req, res) => {
 
 // @route   PUT /api/crd-flow/:id/cancel-request
 // @desc    Submit a request to cancel the CRD flow
-router.put('/:id/cancel-request', protect, async (req, res) => {
+router.put('/:id/cancel-request', protect, validateFlowAccess, async (req, res) => {
   const { narration } = req.body;
   if (!narration) return res.status(400).json({ message: 'Narration is required' });
 
@@ -563,7 +629,7 @@ router.put('/:id/cancel-request', protect, async (req, res) => {
 
 // @route   PUT /api/crd-flow/:id/return-payment
 // @desc    Return payment for a cancelled flow, set lead to Cancelled, unit to New
-router.put('/:id/return-payment', protect, async (req, res) => {
+router.put('/:id/return-payment', protect, validateFlowAccess, async (req, res) => {
   try {
     const flow = await CRDFlow.findById(req.params.id);
     if (!flow) return res.status(404).json({ message: 'Flow record not found' });
@@ -626,7 +692,7 @@ router.put('/:id/return-payment', protect, async (req, res) => {
 
 // @route   PUT /api/crd-flow/:id/editable-amounts
 // @desc    Update debtors and target amounts
-router.put('/:id/editable-amounts', protect, async (req, res) => {
+router.put('/:id/editable-amounts', protect, validateFlowAccess, async (req, res) => {
   const { debtorsAmount, targetAmount } = req.body;
   try {
     const flow = await CRDFlow.findById(req.params.id);

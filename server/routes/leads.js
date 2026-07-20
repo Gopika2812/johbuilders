@@ -30,7 +30,7 @@ router.get('/', protect, async (req, res) => {
   }
 
   // Restrict to assigned leads for Sales Executives and Site Engineers (non-Superadmin/non-Crd team)
-  if (req.user.role !== 'Superadmin' && req.user.role !== 'Crd team') {
+  if (req.user.role !== 'Superadmin') {
     if (crdView === 'true') {
       const Quotation = require('../models/Quotation');
       const userQuotations = await Quotation.find({ crdPerson: req.user._id }, 'lead');
@@ -77,7 +77,7 @@ router.get('/today-assigned', protect, async (req, res) => {
     todayEnd.setHours(23, 59, 59, 999);
 
     let query = {};
-    if (req.user.role !== 'Superadmin' && req.user.role !== 'Crd team' && req.user.role !== 'Superadmin') {
+    if (req.user.role !== 'Superadmin') {
       query.assignedTo = req.user._id;
     }
 
@@ -115,7 +115,7 @@ router.get('/due-followups', protect, async (req, res) => {
       'followUpInfo.nextFollowUpDate': { $lte: new Date() }
     };
 
-    if (req.user.role !== 'Superadmin' && req.user.role !== 'Crd team' && req.user.role !== 'Superadmin') {
+    if (req.user.role !== 'Superadmin') {
       query.assignedTo = req.user._id;
     }
 

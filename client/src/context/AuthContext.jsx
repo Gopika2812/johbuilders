@@ -122,11 +122,17 @@ export const AuthProvider = ({ children }) => {
   const hasPermission = (pageId) => {
     if (isAdmin) return true; // Admins see everything
     if (!user || !user.permissions) return false;
-    let perm = user.permissions.find(p => p.pageId === pageId);
     
-    // Fallback for complaintsFlow to use extraWorks permissions if missing
-    if (!perm && pageId === 'complaintsFlow') {
-      perm = user.permissions.find(p => p.pageId === 'extraWorks');
+    let targetPageId = pageId;
+    if (pageId === 'crdFlow') targetPageId = 'crd_flow';
+    if (pageId === 'complaintsFlow') targetPageId = 'complaints_flow';
+    if (pageId === 'extraWorks') targetPageId = 'extra_works';
+
+    let perm = user.permissions.find(p => p.pageId === targetPageId);
+    
+    // Fallback for complaints_flow / complaintsFlow to use extra_works permissions if missing
+    if (!perm && (targetPageId === 'complaints_flow' || targetPageId === 'complaintsFlow')) {
+      perm = user.permissions.find(p => p.pageId === 'extra_works');
     }
     
     return perm ? perm.canView : false;
@@ -135,11 +141,17 @@ export const AuthProvider = ({ children }) => {
   const hasColumnPermission = (pageId, columnKey) => {
     if (isAdmin) return true; // Admins see all columns
     if (!user || !user.permissions) return false;
-    let perm = user.permissions.find(p => p.pageId === pageId);
     
-    // Fallback for complaintsFlow to use extraWorks permissions if missing
-    if (!perm && pageId === 'complaintsFlow') {
-      perm = user.permissions.find(p => p.pageId === 'extraWorks');
+    let targetPageId = pageId;
+    if (pageId === 'crdFlow') targetPageId = 'crd_flow';
+    if (pageId === 'complaintsFlow') targetPageId = 'complaints_flow';
+    if (pageId === 'extraWorks') targetPageId = 'extra_works';
+
+    let perm = user.permissions.find(p => p.pageId === targetPageId);
+    
+    // Fallback for complaints_flow / complaintsFlow to use extra_works permissions if missing
+    if (!perm && (targetPageId === 'complaints_flow' || targetPageId === 'complaintsFlow')) {
+      perm = user.permissions.find(p => p.pageId === 'extra_works');
     }
     
     if (!perm) return false;

@@ -2,14 +2,55 @@ const express = require('express');
 const router = express.Router();
 const CRDFlow = require('../models/CRDFlow');
 const Project = require('../models/Project');
+const Lead = require('../models/Lead');
 const { protect, authorize, checkPermission } = require('../middleware/auth');
+
+router.param('flowId', async (req, res, next, id) => {
+  if (req.user && req.user.role === 'Superadmin') {
+    return next();
+  }
+  try {
+    const flow = await CRDFlow.findById(id).populate('lead');
+    if (!flow) {
+      return res.status(404).json({ message: 'CRD Flow not found' });
+    }
+    if (!req.user) {
+      return next();
+    }
+    const lead = flow.lead;
+    const isAssigned = lead ? (lead.assignedTo?.toString() === req.user._id.toString()) : false;
+    
+    const Quotation = require('../models/Quotation');
+    const quotation = await Quotation.findOne({ lead: flow.lead?._id }, 'crdPerson');
+    const isCrdPerson = quotation && quotation.crdPerson ? (quotation.crdPerson.toString() === req.user._id.toString()) : false;
+    
+    if (!isAssigned && !isCrdPerson) {
+      return res.status(403).json({ message: 'You are not authorized to view or modify this construction flow' });
+    }
+    next();
+  } catch (err) {
+    next(err);
+  }
+});
 
 // @route   GET /api/extra-works
 // @desc    Get all CRD flows that have extra works
 router.get('/', protect, checkPermission('extra_works', 'view'), async (req, res) => {
-
   try {
-    const flows = await CRDFlow.find()
+    let query = {};
+    if (req.user.role !== 'Superadmin') {
+      const userLeads = await Lead.find({ assignedTo: req.user._id }, '_id');
+      const leadIds = userLeads.map(l => l._id);
+      
+      const Quotation = require('../models/Quotation');
+      const userQuotations = await Quotation.find({ crdPerson: req.user._id }, 'lead');
+      const quotationLeadIds = userQuotations.map(q => q.lead);
+      
+      const authorizedLeadIds = [...new Set([...leadIds, ...quotationLeadIds])];
+      query = { lead: { $in: authorizedLeadIds } };
+    }
+
+    const flows = await CRDFlow.find(query)
       .populate('project')
       .populate('lead')
       .lean();

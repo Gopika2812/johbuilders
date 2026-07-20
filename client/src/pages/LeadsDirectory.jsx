@@ -1140,7 +1140,7 @@ const LeadsDirectory = () => {
         if (followMode === 'FollowUp') {
           setSuccessMsg(`Follow-up scheduled successfully for ${new Date(nextFollowDate).toLocaleDateString()}!`);
         } else {
-          setSuccessMsg('Lead has been closed successfully.');
+          setSuccessMsg('Lead has been marked as Lost successfully.');
         }
         fetchLeads();
         setTimeout(() => setSuccessMsg(''), 4000);
@@ -1842,10 +1842,10 @@ const LeadsDirectory = () => {
                               <span className="px-3 py-1.5 text-[12px] font-extrabold uppercase tracking-wider">
                                 {lostStage ? (
                                   isBooking ? 'Booking - Cancelled' :
-                                  isSiteVisit ? 'Site Visit - Closed' :
-                                  isFollowUp ? 'Follow-Up - Closed' :
-                                  `${lostStage} - Completed`
-                                ) : 'Closed (Completed)'}
+                                  isSiteVisit ? 'Site Visit - Lost' :
+                                  isFollowUp ? 'Follow-Up - Lost' :
+                                  `${lostStage} - Lost`
+                                ) : 'Lost'}
                               </span>
                               {displayRemarks && !isHidden && (
                                 <div className="text-[11px] text-black-400 italic max-w-[150px] truncate" title={displayRemarks}>

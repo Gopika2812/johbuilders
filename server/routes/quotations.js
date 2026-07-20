@@ -9,9 +9,22 @@ const { protect } = require('../middleware/auth');
 // @desc    Get all quotations
 router.get('/', protect, async (req, res) => {
   try {
-    let quotations = await Quotation.find({})
+    let query = {};
+    if (req.user.role !== 'Superadmin') {
+      const userLeads = await Lead.find({ assignedTo: req.user._id }, '_id');
+      const leadIds = userLeads.map(l => l._id);
+      query = {
+        $or: [
+          { createdBy: req.user._id },
+          { crdPerson: req.user._id },
+          { lead: { $in: leadIds } }
+        ]
+      };
+    }
+
+    let quotations = await Quotation.find(query)
       .populate('project', 'name code')
-      .populate('lead', 'name phone')
+      .populate('lead', 'name phone assignedTo')
       .populate('createdBy', 'name role')
       .populate('crdPerson', 'name role')
       .sort({ createdAt: -1 });
@@ -37,6 +50,17 @@ router.get('/:id', protect, async (req, res) => {
     if (!quotation) {
       return res.status(404).json({ message: 'Quotation not found' });
     }
+
+    if (req.user.role !== 'Superadmin') {
+      const isCreator = quotation.createdBy && quotation.createdBy._id.toString() === req.user._id.toString();
+      const isCrdPerson = quotation.crdPerson && quotation.crdPerson._id.toString() === req.user._id.toString();
+      const leadAssignedTo = quotation.lead && (quotation.lead.assignedTo?._id || quotation.lead.assignedTo);
+      const isAssigned = leadAssignedTo && leadAssignedTo.toString() === req.user._id.toString();
+      if (!isCreator && !isCrdPerson && !isAssigned) {
+        return res.status(403).json({ message: 'You are not authorized to view this quotation' });
+      }
+    }
+
     res.json(quotation);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -130,6 +154,16 @@ router.put('/:id', protect, async (req, res) => {
       return res.status(404).json({ message: 'Quotation not found' });
     }
 
+    if (req.user.role !== 'Superadmin') {
+      const lead = await Lead.findById(quotation.lead);
+      const isCreator = quotation.createdBy && quotation.createdBy.toString() === req.user._id.toString();
+      const isCrdPerson = quotation.crdPerson && quotation.crdPerson.toString() === req.user._id.toString();
+      const isAssigned = lead && lead.assignedTo && lead.assignedTo.toString() === req.user._id.toString();
+      if (!isCreator && !isCrdPerson && !isAssigned) {
+        return res.status(403).json({ message: 'You are not authorized to modify this quotation' });
+      }
+    }
+
     const prevData = quotation.toObject();
     const changedFields = [];
     const fieldsToTrack = [
@@ -192,7 +226,14 @@ router.put('/:id', protect, async (req, res) => {
       metadata: changedFields.length > 0 ? { changedFields } : null
     });
 
-    res.json(quotation);
+    // Populate returned quotation to prevent N/A and System User on frontend table state update
+    const updatedQuotation = await Quotation.findById(quotation._id)
+      .populate('project', 'name code')
+      .populate('lead', 'name phone')
+      .populate('createdBy', 'name role')
+      .populate('crdPerson', 'name role');
+
+    res.json(updatedQuotation);
   } catch (err) {
     res.status(400).json({ message: err.message });
   }
@@ -205,6 +246,16 @@ router.delete('/:id', protect, async (req, res) => {
     const quotation = await Quotation.findById(req.params.id);
     if (!quotation) {
       return res.status(404).json({ message: 'Quotation not found' });
+    }
+
+    if (req.user.role !== 'Superadmin') {
+      const lead = await Lead.findById(quotation.lead);
+      const isCreator = quotation.createdBy && quotation.createdBy.toString() === req.user._id.toString();
+      const isCrdPerson = quotation.crdPerson && quotation.crdPerson.toString() === req.user._id.toString();
+      const isAssigned = lead && lead.assignedTo && lead.assignedTo.toString() === req.user._id.toString();
+      if (!isCreator && !isCrdPerson && !isAssigned) {
+        return res.status(403).json({ message: 'You are not authorized to delete this quotation' });
+      }
     }
 
     // Log in Lead History
