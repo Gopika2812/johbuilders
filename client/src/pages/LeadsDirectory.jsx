@@ -540,10 +540,13 @@ const LeadsDirectory = () => {
         // Send EmailJS notification on employee assignment update
         const prevAssigneeId = selectedLeadForEdit.assignedTo?._id || selectedLeadForEdit.assignedTo || '';
         const newAssigneeId = editAssignedToId || '';
+        console.log("Email Notification Check (Update):", { prevAssigneeId, newAssigneeId, emailTriggerEnabled: newAssigneeId && newAssigneeId !== prevAssigneeId });
         if (newAssigneeId && newAssigneeId !== prevAssigneeId) {
           const matchedEmployee = employees.find(emp => emp._id === newAssigneeId);
+          console.log("Email Notification Employee (Update):", { employeeFound: !!matchedEmployee, employeeEmail: matchedEmployee?.email });
           if (matchedEmployee && matchedEmployee.email) {
             const proj = projects.find(p => p._id === editProjectId);
+            console.log("Triggering EmailJS lead assignment email (Update)...");
             sendLeadAssignmentEmail(
               matchedEmployee,
               { name: editName, phone: editPhoneCountryCode + editPhoneLocal, projectCode: proj ? proj.code : 'N/A' },
@@ -801,10 +804,13 @@ const LeadsDirectory = () => {
 
         // Send EmailJS notification on lead creation assignment
         const assignedId = payload.assignedTo || '';
+        console.log("Email Notification Check (Create):", { assignedId });
         if (assignedId) {
           const matchedEmployee = employees.find(emp => emp._id === assignedId);
+          console.log("Email Notification Employee (Create):", { employeeFound: !!matchedEmployee, employeeEmail: matchedEmployee?.email });
           if (matchedEmployee && matchedEmployee.email) {
             const proj = projects.find(p => p._id === selectedProjectId);
+            console.log("Triggering EmailJS lead assignment email (Create)...");
             sendLeadAssignmentEmail(
               matchedEmployee,
               { name: payload.name, phone: payload.phone, projectCode: proj ? proj.code : 'N/A' },
@@ -1650,8 +1656,8 @@ const LeadsDirectory = () => {
           <button
             onClick={() => setActiveTab('All')}
             className={`px-4 py-2 text-xs font-bold rounded-xl transition ${activeTab === 'All'
-                ? 'bg-[#0e623a] text-white shadow-sm'
-                : 'text-black-500 hover:bg-black-50 hover:text-black-800'
+              ? 'bg-[#0e623a] text-white shadow-sm'
+              : 'text-black-500 hover:bg-black-50 hover:text-black-800'
               }`}
           >
             All Leads ({baseFilteredLeads.length})
@@ -1668,8 +1674,8 @@ const LeadsDirectory = () => {
                 key={st}
                 onClick={() => setActiveTab(st)}
                 className={`px-4 py-2 text-xs font-bold rounded-xl transition ${activeTab === st
-                    ? 'bg-[#0e623a] text-white shadow-sm'
-                    : 'text-black-500 hover:bg-black-50 hover:text-black-800'
+                  ? 'bg-[#0e623a] text-white shadow-sm'
+                  : 'text-black-500 hover:bg-black-50 hover:text-black-800'
                   }`}
               >
                 {st === 'Booking' ? 'Booked' : st} ({count})
@@ -2835,8 +2841,8 @@ const LeadsDirectory = () => {
                       type="button"
                       onClick={() => setFollowMode('FollowUp')}
                       className={`py-3 rounded-xl text-xs font-bold transition ${followMode === 'FollowUp'
-                          ? 'bg-[#0e623a] text-white shadow'
-                          : 'bg-black-100 text-black-500 hover:bg-black-200'
+                        ? 'bg-[#0e623a] text-white shadow'
+                        : 'bg-black-100 text-black-500 hover:bg-black-200'
                         }`}
                     >
                       Schedule Follow-up
@@ -2846,8 +2852,8 @@ const LeadsDirectory = () => {
                         type="button"
                         onClick={() => setFollowMode('SiteVisit')}
                         className={`py-3 rounded-xl text-xs font-bold transition ${followMode === 'SiteVisit'
-                            ? 'bg-yellow-600 text-white shadow'
-                            : 'bg-black-100 text-black-500 hover:bg-black-200'
+                          ? 'bg-yellow-600 text-white shadow'
+                          : 'bg-black-100 text-black-500 hover:bg-black-200'
                           }`}
                       >
                         Move to Site Visit
@@ -2868,8 +2874,8 @@ const LeadsDirectory = () => {
                       type="button"
                       onClick={() => setFollowMode('Completed')}
                       className={`py-3 rounded-xl text-xs font-bold transition ${followMode === 'Completed'
-                          ? 'bg-red-600 text-white shadow'
-                          : 'bg-black-100 text-black-500 hover:bg-black-200'
+                        ? 'bg-red-600 text-white shadow'
+                        : 'bg-black-100 text-black-500 hover:bg-black-200'
                         }`}
                     >
                       Close Lead (Lost)

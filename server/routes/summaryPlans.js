@@ -116,7 +116,7 @@ router.get('/marketing-stats/:month', protect, async (req, res) => {
     const endDate = new Date(year, monthNum, 1);
 
     const groups = await LeadGroup.find({});
-    
+
     const groupStats = {};
     groups.forEach(g => {
       groupStats[g.name] = {
@@ -140,13 +140,30 @@ router.get('/marketing-stats/:month', protect, async (req, res) => {
 
     leads.forEach(lead => {
       const week = getWeekBucket(lead.createdAt);
-      const status = lead.status;
       // 2. LEADS GENERATED means total lead count (unconditional)
       staticStats.leadsGenerated.actual += 1;
       staticStats.leadsGenerated[week] += 1;
+    });
 
-      // 3. SITE VISIT CONVERSIONS means booking count
-      if (status === 'Booking') {
+    // 3. SITE VISIT CONVERSIONS means leads of type 'Lead' that transitioned to 'Site Visit' status during the selected month
+    const conversionLeads = await Lead.find({
+      leadType: 'Lead',
+      history: {
+        $elemMatch: {
+          status: 'Site Visit',
+          timestamp: { $gte: startDate, $lt: endDate }
+        }
+      }
+    });
+
+    conversionLeads.forEach(lead => {
+      const match = lead.history.find(h =>
+        h.status === 'Site Visit' &&
+        h.timestamp >= startDate &&
+        h.timestamp < endDate
+      );
+      if (match) {
+        const week = getWeekBucket(match.timestamp);
         staticStats.conversions.actual += 1;
         staticStats.conversions[week] += 1;
       }

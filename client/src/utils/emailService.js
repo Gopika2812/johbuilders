@@ -29,12 +29,19 @@ export const sendLeadAssignmentEmail = async (executive, lead, assignedByName, s
     reply_to_email: senderEmail || 'admin@builders.com'
   };
 
+  console.log('Attempting to send EmailJS assignment notification with config:', {
+    serviceId,
+    templateId,
+    publicKey,
+    templateParams
+  });
+
   try {
     const response = await emailjs.send(serviceId, templateId, templateParams, publicKey);
     console.log('Lead assignment notification email sent successfully!', response.status, response.text);
     return response;
   } catch (error) {
-    console.error('Failed to send lead assignment notification email:', error);
+    console.error('Failed to send lead assignment notification email. Check your EmailJS Key/Template settings on your EmailJS dashboard:', error);
     throw error;
   }
 };
