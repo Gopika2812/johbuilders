@@ -2599,6 +2599,7 @@ const Dashboard = () => {
                         <th className="pb-3">Lead Name</th>
                         <th className="pb-3">Lead Source</th>
                         <th className="pb-3">Project Details</th>
+                        <th className="pb-3">Stage</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-black-50 text-xs font-semibold text-black-700">
@@ -2617,6 +2618,35 @@ const Dashboard = () => {
                                 Type: {Array.isArray(lead.projectType) ? lead.projectType.join(', ') : lead.projectType}
                               </span>
                             </div>
+                          </td>
+                          <td className="py-3.5">
+                            {(() => {
+                              const s = lead.status || 'New';
+                              let badgeClass = 'bg-blue-50 text-blue-700 border-blue-200';
+                              let displayStatus = s;
+                              
+                              if (s === 'Contacted' || s === 'Follow-Up' || s === 'Followup') {
+                                badgeClass = 'bg-orange-50 text-orange-700 border border-orange-200';
+                              } else if (s === 'Site Visit' || s === 'Site Visit Follow-up') {
+                                badgeClass = 'bg-yellow-50 text-yellow-805 border border-yellow-200';
+                              } else if (s === 'Booking' || s === 'Booked') {
+                                badgeClass = 'bg-[#f0fbf4] text-[#0e623a] border border-[#bce2cb]';
+                                displayStatus = 'Booked';
+                              } else if (s === 'Won') {
+                                badgeClass = 'bg-emerald-50 text-emerald-700 border border-emerald-200';
+                                displayStatus = 'Won';
+                              } else if (s === 'Lost') {
+                                badgeClass = 'bg-red-50 text-red-700 border border-red-200';
+                              } else if (s === 'Assigned') {
+                                badgeClass = 'bg-purple-50 text-purple-700 border border-purple-200';
+                              }
+                              
+                              return (
+                                <span className={`px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider ${badgeClass}`}>
+                                  {displayStatus}
+                                </span>
+                              );
+                            })()}
                           </td>
                         </tr>
                       ))}

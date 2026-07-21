@@ -3,18 +3,18 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth, API_URL } from '../context/AuthContext';
 import SearchableSelect from '../components/SearchableSelect';
 import { sendLeadAssignmentEmail } from '../utils/emailService';
-import { 
-  Users, 
-  Plus, 
-  Search, 
-  MapPin, 
-  Phone, 
-  User, 
-  Building, 
-  Calendar, 
-  History, 
-  CheckCircle2, 
-  AlertCircle, 
+import {
+  Users,
+  Plus,
+  Search,
+  MapPin,
+  Phone,
+  User,
+  Building,
+  Calendar,
+  History,
+  CheckCircle2,
+  AlertCircle,
   ExternalLink,
   ChevronDown,
   SlidersHorizontal,
@@ -230,7 +230,7 @@ const LeadsDirectory = () => {
   const [leadLocation, setLeadLocation] = useState('');
   const [selectedProjectId, setSelectedProjectId] = useState('');
   const [assignedToId, setAssignedToId] = useState('');
-  
+
   // Lead-specific fields
   const [leadSource, setLeadSource] = useState('');
   const [activeAds, setActiveAds] = useState([]); // List of active ads from selected project
@@ -324,6 +324,9 @@ const LeadsDirectory = () => {
   // Duplicate Check Warning State
   const [duplicateWarning, setDuplicateWarning] = useState(null);
   const [fetchedDuplicateLeads, setFetchedDuplicateLeads] = useState([]);
+
+  // Extract previously assigned sales representative if present in matching phone numbers
+  const previouslyAssignedExecutive = fetchedDuplicateLeads.find(l => l.assignedTo && typeof l.assignedTo === 'object')?.assignedTo;
 
   // Custom Dropdown Open State
   const [openDropdownLeadId, setOpenDropdownLeadId] = useState(null);
@@ -542,7 +545,7 @@ const LeadsDirectory = () => {
           if (matchedEmployee && matchedEmployee.email) {
             const proj = projects.find(p => p._id === editProjectId);
             sendLeadAssignmentEmail(
-              matchedEmployee, 
+              matchedEmployee,
               { name: editName, phone: editPhoneCountryCode + editPhoneLocal, projectCode: proj ? proj.code : 'N/A' },
               user.name || 'System Admin',
               user.email
@@ -657,7 +660,7 @@ const LeadsDirectory = () => {
         const locs = Array.from(new Set(data.map(p => p.location))).filter(Boolean);
         setLocations(locs);
       }
-    } catch (err) {}
+    } catch (err) { }
   };
 
   const fetchEmployees = async () => {
@@ -670,7 +673,7 @@ const LeadsDirectory = () => {
         // Only show approved employees
         setEmployees(data.filter(emp => emp.isApproved));
       }
-    } catch (err) {}
+    } catch (err) { }
   };
 
   const fetchQuotations = async () => {
@@ -682,7 +685,7 @@ const LeadsDirectory = () => {
         const data = await res.json();
         setQuotations(data);
       }
-    } catch (err) {}
+    } catch (err) { }
   };
 
   const handlePhoneBlur = async () => {
@@ -705,7 +708,7 @@ const LeadsDirectory = () => {
         const leads = await res.json();
         setFetchedDuplicateLeads(leads || []);
       }
-    } catch (err) {}
+    } catch (err) { }
   };
 
   useEffect(() => {
@@ -766,7 +769,7 @@ const LeadsDirectory = () => {
       phone,
       address,
       project: selectedProjectId,
-      assignedTo: (user?.role === 'Superadmin' || user?.role === 'Crd team') ? assignedToId : user?._id,
+      assignedTo: previouslyAssignedExecutive ? previouslyAssignedExecutive._id : ((user?.role === 'Superadmin' || user?.role === 'Crd team') ? assignedToId : user?._id),
       leadCost: Number(leadCost) || 0,
       leadSource: leadSource,
       leadCategory: leadCategory,
@@ -803,7 +806,7 @@ const LeadsDirectory = () => {
           if (matchedEmployee && matchedEmployee.email) {
             const proj = projects.find(p => p._id === selectedProjectId);
             sendLeadAssignmentEmail(
-              matchedEmployee, 
+              matchedEmployee,
               { name: payload.name, phone: payload.phone, projectCode: proj ? proj.code : 'N/A' },
               user.name || 'System Admin',
               user.email
@@ -867,7 +870,7 @@ const LeadsDirectory = () => {
     setSelectedLeadForBooked(lead);
     setBookedLoading(true);
     setBookedModalOpen(true);
-    
+
     // Prepopulate base fields
     const parsed = parsePhoneDetails(lead.BookedInfo?.alternativePhone || '');
     setBookedAltCountryCode(parsed.countryCode);
@@ -917,12 +920,12 @@ const LeadsDirectory = () => {
       }
     }
     const BookedAltPhone = BookedAltLocal ? (BookedAltCountryCode === '+' ? `+${BookedAltLocal}` : `${BookedAltCountryCode}${BookedAltLocal}`) : '';
-    
+
     const selectedUnitsData = BookedProjectDetails.units.filter(u => selectedBookedUnits.includes(u.unitId));
-    
+
     const totalArea = selectedUnitsData.reduce((sum, u) => {
-       const size = editedUnitSizes[u.unitId] !== undefined ? editedUnitSizes[u.unitId] : u.size;
-       return sum + (Number(size) || 0);
+      const size = editedUnitSizes[u.unitId] !== undefined ? editedUnitSizes[u.unitId] : u.size;
+      return sum + (Number(size) || 0);
     }, 0);
 
     const calculatedValue = totalArea * (BookedProjectDetails.pricePerSqFt || 1);
@@ -932,8 +935,8 @@ const LeadsDirectory = () => {
     const unitUpdates = selectedUnitsData.map(u => {
       const editedSize = editedUnitSizes[u.unitId];
       const finalSize = editedSize !== undefined ? Number(editedSize) : u.size;
-      return { 
-        unitId: u.unitId, 
+      return {
+        unitId: u.unitId,
         size: finalSize,
         ratePerUom: effectiveRate,
         soldRatePerUom: effectiveRate
@@ -1041,9 +1044,9 @@ const LeadsDirectory = () => {
   const initiateFollowUpOrComplete = (lead, targetStatus) => {
     setSelectedLeadForFollow(lead);
     setFollowTargetStatus(targetStatus);
-    
+
     const hasFollowUp = ['Follow-Up', 'Site Visit', 'Future Follow-up'].includes(targetStatus);
-    
+
     let initialMode = 'Completed';
     if (targetStatus === 'Site Visit') {
       initialMode = 'SiteVisit';
@@ -1051,7 +1054,7 @@ const LeadsDirectory = () => {
       initialMode = 'FollowUp';
     }
     setFollowMode(initialMode);
-    
+
     const now = new Date();
     const year = now.getFullYear();
     const month = String(now.getMonth() + 1).padStart(2, '0');
@@ -1079,7 +1082,7 @@ const LeadsDirectory = () => {
         alert('Please select the next date!');
         return;
       }
-      
+
       const selectedDate = new Date(nextFollowDate);
       selectedDate.setHours(0, 0, 0, 0);
       const currentDate = new Date();
@@ -1198,7 +1201,7 @@ const LeadsDirectory = () => {
         return;
       }
     }
-    
+
     setStatusChangingId(leadId);
     try {
       const res = await fetch(`${API_URL}/leads/${leadId}`, {
@@ -1269,7 +1272,7 @@ const LeadsDirectory = () => {
       }
 
       const logoPath = window.location.origin + "/jb_logo.jpg";
- 
+
       // Generate styled HTML sheet
       let html = `
         <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
@@ -1325,7 +1328,7 @@ const LeadsDirectory = () => {
               <th>Remarks / Notes</th>
             </tr>
       `;
- 
+
       const STATUS_EXCEL_STYLES = {
         'New': 'background-color: #eff6ff; color: #1e40af; font-weight: bold;',
         'Assigned': 'background-color: #f3e8ff; color: #6b21a8; font-weight: bold;',
@@ -1345,11 +1348,11 @@ const LeadsDirectory = () => {
         const execName = lead.assignedTo?.name || 'UNASSIGNED';
         const assignerName = lead.assignedBy?.name || '—';
         const wStatus = lead.status || '';
-        
+
         const regDate = lead.createdAt ? new Date(lead.createdAt).toLocaleDateString('en-GB').replace(/\//g, '.') : '';
         const remarksStr = [lead.followUpInfo?.remarks, lead.closeRemarks].filter(Boolean).join(' / ') || '';
         const rowClass = index % 2 === 1 ? 'class="even-row"' : '';
- 
+
         html += `
           <tr ${rowClass}>
             <td class="text-center">${index + 1}</td>
@@ -1365,7 +1368,7 @@ const LeadsDirectory = () => {
           </tr>
         `;
       });
- 
+
       html += `
           </table>
         </body>
@@ -1418,17 +1421,17 @@ const LeadsDirectory = () => {
   const getBaseFilteredLeads = () => {
     return leads.filter(lead => {
       const matchesStatus = !statusFilter || lead.status === statusFilter;
-      
-      const matchesSearch = !searchTerm || 
-        lead.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+
+      const matchesSearch = !searchTerm ||
+        lead.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         lead.phone?.includes(searchTerm) ||
         lead.project?.code?.toLowerCase().includes(searchTerm.toLowerCase());
-      
+
       const itemDate = new Date(lead.updatedAt || lead.createdAt);
-      const itemTime = itemDate.setHours(0,0,0,0);
-      const startTime = startDate ? new Date(startDate).setHours(0,0,0,0) : null;
-      const endTime = endDate ? new Date(endDate).setHours(23,59,59,999) : null;
-      
+      const itemTime = itemDate.setHours(0, 0, 0, 0);
+      const startTime = startDate ? new Date(startDate).setHours(0, 0, 0, 0) : null;
+      const endTime = endDate ? new Date(endDate).setHours(23, 59, 59, 999) : null;
+
       const matchesStartDate = !startTime || itemTime >= startTime;
       const matchesEndDate = !endTime || itemTime <= endTime;
 
@@ -1449,7 +1452,7 @@ const LeadsDirectory = () => {
       }
 
       return matchesStatus && matchesSearch && matchesStartDate && matchesEndDate &&
-             matchesAssigned && matchesCampaign && matchesCategory && matchesLocation && matchesBankLoan && matchesState && matchesProject;
+        matchesAssigned && matchesCampaign && matchesCategory && matchesLocation && matchesBankLoan && matchesState && matchesProject;
     });
   };
 
@@ -1493,7 +1496,7 @@ const LeadsDirectory = () => {
             <FileSpreadsheet className="w-4 h-4 text-emerald-700" />
             <span>Export Excel</span>
           </button>
-          
+
           <button
             onClick={() => {
               resetForm();
@@ -1562,21 +1565,21 @@ const LeadsDirectory = () => {
         <div className="bg-white p-4 border border-black-150 shadow-sm rounded-3xl grid grid-cols-2 lg:grid-cols-5 gap-4 items-end">
           {/* Assigned Executive */}
           <div className="space-y-1">
-          {(user?.role === 'Superadmin' || user?.role === 'Crd team') && (
-            <div className="space-y-1">
-              <label className="text-[11px] font-bold text-black-400 uppercase tracking-wider block">Assigned Executive</label>
-              <select
-                value={assignedFilter}
-                onChange={(e) => setAssignedFilter(e.target.value)}
-                className="w-full max-w-full truncate px-3 py-2 bg-black-50 border border-black-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-xs font-bold text-black-700"
-              >
-                <option value="">All Executives</option>
-                {employees.map(emp => (
-                  <option key={emp._id} value={emp._id}>{emp.name}</option>
-                ))}
-              </select>
-            </div>
-          )}
+            {(user?.role === 'Superadmin' || user?.role === 'Crd team') && (
+              <div className="space-y-1">
+                <label className="text-[11px] font-bold text-black-400 uppercase tracking-wider block">Assigned Executive</label>
+                <select
+                  value={assignedFilter}
+                  onChange={(e) => setAssignedFilter(e.target.value)}
+                  className="w-full max-w-full truncate px-3 py-2 bg-black-50 border border-black-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-xs font-bold text-black-700"
+                >
+                  <option value="">All Executives</option>
+                  {employees.map(emp => (
+                    <option key={emp._id} value={emp._id}>{emp.name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
           </div>
 
           {/* Workflow Status */}
@@ -1646,11 +1649,10 @@ const LeadsDirectory = () => {
         <div className="flex gap-1 min-w-max">
           <button
             onClick={() => setActiveTab('All')}
-            className={`px-4 py-2 text-xs font-bold rounded-xl transition ${
-              activeTab === 'All'
+            className={`px-4 py-2 text-xs font-bold rounded-xl transition ${activeTab === 'All'
                 ? 'bg-[#0e623a] text-white shadow-sm'
                 : 'text-black-500 hover:bg-black-50 hover:text-black-800'
-            }`}
+              }`}
           >
             All Leads ({baseFilteredLeads.length})
           </button>
@@ -1665,11 +1667,10 @@ const LeadsDirectory = () => {
               <button
                 key={st}
                 onClick={() => setActiveTab(st)}
-                className={`px-4 py-2 text-xs font-bold rounded-xl transition ${
-                  activeTab === st
+                className={`px-4 py-2 text-xs font-bold rounded-xl transition ${activeTab === st
                     ? 'bg-[#0e623a] text-white shadow-sm'
                     : 'text-black-500 hover:bg-black-50 hover:text-black-800'
-                }`}
+                  }`}
               >
                 {st === 'Booking' ? 'Booked' : st} ({count})
               </button>
@@ -1682,268 +1683,268 @@ const LeadsDirectory = () => {
       <div className="bg-white border border-black-150 shadow-sm rounded-3xl overflow-visible">
         <div className="overflow-x-auto w-full min-h-[350px]">
           <table className="w-full text-left border-collapse min-w-[900px]">
-          <thead>
-            <tr className="bg-black-50 border-b border-black-150 text-[11px] font-bold text-black-500 uppercase tracking-wider">
-              {hasColumnPermission('leads', 'sno') && <th className="px-3 py-2 w-10 text-center">S.No</th>}
-              {hasColumnPermission('leads', 'date') && <th className="px-3 py-2">Date</th>}
-              {hasColumnPermission('leads', 'customerName') && <th className="px-3 py-2">Customer Name</th>}
-              {hasColumnPermission('leads', 'phoneNumber') && <th className="px-3 py-2">Phone Number</th>}
-              {hasColumnPermission('leads', 'sourceDetails') && <th className="px-3 py-2">Source Details</th>}
-              {hasColumnPermission('leads', 'project') && <th className="px-3 py-2">Project</th>}
-              {hasColumnPermission('leads', 'category') && <th className="px-3 py-2 text-center">Category</th>}
-              {hasColumnPermission('leads', 'assignedBy') && <th className="px-3 py-2">Assigned By</th>}
-              {hasColumnPermission('leads', 'assignedTo') && <th className="px-3 py-2">Assigned To</th>}
-              {hasColumnPermission('leads', 'leadStatus') && <th className="px-3 py-2">Lead Status</th>}
-              {hasColumnPermission('leads', 'nextFollowup') && <th className="px-3 py-2 text-center">Next Followup</th>}
-              {hasColumnPermission('leads', 'actions') && <th className="px-3 py-2 text-center">Actions</th>}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-black-100 text-sm">
-            {paginatedLeadsList.map((lead, index) => {
-              const rowColor = lead.isClosed && stageColors['Lost'] && stageColors['Lost'] !== '#ffffff'
-                ? stageColors['Lost']
-                : lead.status === 'Booking'
-                  ? stageColors['Booking']
-                  : stageColors[lead.leadCategory] || '#ffffff';
-                  
-              const rowTextColor = lead.isClosed && stageTextColors['Lost']
-                ? stageTextColors['Lost']
-                : lead.status === 'Booking'
-                  ? stageTextColors['Booking']
-                  : stageTextColors[lead.leadCategory] || '#000000';
-                  
-              const contrastClass = getContrastClass(rowColor);
-              
-              return (
-                <tr 
-                  key={lead._id} 
-                  className={`transition duration-150 border-b border-black-100 custom-text-row hover:opacity-90`}
-                  style={{ backgroundColor: rowColor, color: rowTextColor }}
-                >
-                {/* S.No */}
-                {hasColumnPermission('leads', 'sno') && (
-                  <td className="px-3 py-1.5 border-b border-black-100 text-center">
-                    <div className="text-[11px] font-bold text-black-500">
-                      {(currentPage - 1) * itemsPerPage + index + 1}
-                    </div>
-                  </td>
-                )}
+            <thead>
+              <tr className="bg-black-50 border-b border-black-150 text-[11px] font-bold text-black-500 uppercase tracking-wider">
+                {hasColumnPermission('leads', 'sno') && <th className="px-3 py-2 w-10 text-center">S.No</th>}
+                {hasColumnPermission('leads', 'date') && <th className="px-3 py-2">Date</th>}
+                {hasColumnPermission('leads', 'customerName') && <th className="px-3 py-2">Customer Name</th>}
+                {hasColumnPermission('leads', 'phoneNumber') && <th className="px-3 py-2">Phone Number</th>}
+                {hasColumnPermission('leads', 'sourceDetails') && <th className="px-3 py-2">Source Details</th>}
+                {hasColumnPermission('leads', 'project') && <th className="px-3 py-2">Project</th>}
+                {hasColumnPermission('leads', 'category') && <th className="px-3 py-2 text-center">Category</th>}
+                {hasColumnPermission('leads', 'assignedBy') && <th className="px-3 py-2">Assigned By</th>}
+                {hasColumnPermission('leads', 'assignedTo') && <th className="px-3 py-2">Assigned To</th>}
+                {hasColumnPermission('leads', 'leadStatus') && <th className="px-3 py-2">Lead Status</th>}
+                {hasColumnPermission('leads', 'nextFollowup') && <th className="px-3 py-2 text-center">Next Followup</th>}
+                {hasColumnPermission('leads', 'actions') && <th className="px-3 py-2 text-center">Actions</th>}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-black-100 text-sm">
+              {paginatedLeadsList.map((lead, index) => {
+                const rowColor = lead.isClosed && stageColors['Lost'] && stageColors['Lost'] !== '#ffffff'
+                  ? stageColors['Lost']
+                  : lead.status === 'Booking'
+                    ? stageColors['Booking']
+                    : stageColors[lead.leadCategory] || '#ffffff';
 
-                {/* Date */}
-                {hasColumnPermission('leads', 'date') && (
-                  <td className="px-3 py-1.5 border-b border-black-100">
-                    <div className="text-[11px] font-semibold text-black-700 whitespace-nowrap">
-                      {lead.createdAt ? new Date(lead.createdAt).toLocaleDateString('en-GB') : '—'}
-                    </div>
-                  </td>
-                )}
+                const rowTextColor = lead.isClosed && stageTextColors['Lost']
+                  ? stageTextColors['Lost']
+                  : lead.status === 'Booking'
+                    ? stageTextColors['Booking']
+                    : stageTextColors[lead.leadCategory] || '#000000';
 
-                {/* Customer */}
-                {hasColumnPermission('leads', 'customerName') && (
-                  <td className="px-3 py-1.5 border-b border-black-100">
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold text-black-800 text-xs">{lead.name}</span>
-                      {(lead.isReopened === true || (lead.history && lead.history.some(h => h.note && h.note.toLowerCase().includes('reopened')))) && (
-                        <span className="bg-amber-600 border border-amber-700 text-[10px] font-extrabold px-1.5 py-0.5 rounded-full uppercase tracking-wider shrink-0 shadow-sm animate-pulse">
-                          Reopened
-                        </span>
-                      )}
-                    </div>
-                  </td>
-                )}
+                const contrastClass = getContrastClass(rowColor);
 
-                {/* Phone Number */}
-                {hasColumnPermission('leads', 'phoneNumber') && (
-                  <td className="px-3 py-1.5 border-b border-black-100">
-                    <div className="flex flex-col gap-1 text-[11px] text-black-500">
-                      <div className="flex items-center gap-1 font-semibold">
-                        <Phone className="w-3 h-3 text-black-300" />
-                        <span>{lead.phone}</span>
-                      </div>
-                    </div>
-                  </td>
-                )}
- 
-                {/* Source Details */}
-                {hasColumnPermission('leads', 'sourceDetails') && (
-                  <td className="px-3 py-1.5 border-b border-black-100">
-                    <div className="space-y-0.5">
-                      <div className="text-[11px] font-semibold text-black-700">{lead.leadSource || (lead.leadType === 'Direct Visit' ? 'Direct Visit' : '—')}</div>
-                      {lead.leadType === 'Lead' && lead.activeAd?.name && (
-                        <div className="text-[11px] text-black-500 flex flex-col gap-0.5">
-                          <div className="flex items-center gap-1">
-                            <span className="truncate max-w-[120px]">Ad: {lead.activeAd.name}</span>
-                            {lead.activeAd.link && (
-                              <a href={lead.activeAd.link} target="_blank" rel="noopener noreferrer" className="text-[#0e623a] hover:underline shrink-0">
-                                <ExternalLink className="w-2.5 h-2.5 inline" />
-                              </a>
-                            )}
-                          </div>
-                          {lead.leadCost > 0 && (
-                            <span className="text-[10px] font-extrabold bg-[#0e623a] border border-[#0a4c2c] px-1.5 py-0.5 rounded w-fit">
-                              Cost: ₹{lead.leadCost}
+                return (
+                  <tr
+                    key={lead._id}
+                    className={`transition duration-150 border-b border-black-100 custom-text-row hover:opacity-90`}
+                    style={{ backgroundColor: rowColor, color: rowTextColor }}
+                  >
+                    {/* S.No */}
+                    {hasColumnPermission('leads', 'sno') && (
+                      <td className="px-3 py-1.5 border-b border-black-100 text-center">
+                        <div className="text-[11px] font-bold text-black-500">
+                          {(currentPage - 1) * itemsPerPage + index + 1}
+                        </div>
+                      </td>
+                    )}
+
+                    {/* Date */}
+                    {hasColumnPermission('leads', 'date') && (
+                      <td className="px-3 py-1.5 border-b border-black-100">
+                        <div className="text-[11px] font-semibold text-black-700 whitespace-nowrap">
+                          {lead.createdAt ? new Date(lead.createdAt).toLocaleDateString('en-GB') : '—'}
+                        </div>
+                      </td>
+                    )}
+
+                    {/* Customer */}
+                    {hasColumnPermission('leads', 'customerName') && (
+                      <td className="px-3 py-1.5 border-b border-black-100">
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-black-800 text-xs">{lead.name}</span>
+                          {(lead.isReopened === true || (lead.history && lead.history.some(h => h.note && h.note.toLowerCase().includes('reopened')))) && (
+                            <span className="bg-amber-600 border border-amber-700 text-[10px] font-extrabold px-1.5 py-0.5 rounded-full uppercase tracking-wider shrink-0 shadow-sm animate-pulse">
+                              Reopened
                             </span>
                           )}
                         </div>
-                      )}
-                    </div>
-                  </td>
-                )}
- 
-                {/* Project */}
-                {hasColumnPermission('leads', 'project') && (
-                  <td className="px-3 py-1.5 border-b border-black-100">
-                    <div className="text-[11px] font-semibold text-black-700">
-                      {projects.find(p => p._id === (lead.project?._id || lead.project))?.code || '—'}
-                    </div>
-                  </td>
-                )}
- 
-                {/* Lead Category */}
-                {hasColumnPermission('leads', 'category') && (
-                  <td className="px-3 py-1.5 border-b border-black-100 text-center">
-                    <span className={`px-2 py-1 text-[11px] font-extrabold uppercase tracking-wider`}>{lead.leadCategory || 'Cold'}</span>
-                  </td>
-                )}
-
-                {/* Assigned By */}
-                {hasColumnPermission('leads', 'assignedBy') && (
-                  <td className="px-3 py-1.5 border-b border-black-100">
-                    <div className="text-[11px] font-semibold text-black-600">
-                      {lead.assignedBy?.name || 'Superadmin'}
-                    </div>
-                  </td>
-                )}
-
-                {/* Assigned To */}
-                {hasColumnPermission('leads', 'assignedTo') && (
-                  <td className="px-3 py-1.5 border-b border-black-100">
-                    <div className="text-[11px] font-semibold text-black-800">
-                      {lead.assignedTo?.name || 'Unassigned'}
-                    </div>
-                  </td>
-                )}
- 
-                {/* Workflow Status Dropdown */}
-                {hasColumnPermission('leads', 'leadStatus') && (
-                  <td className="px-3 py-1.5 border-b border-black-100">
-                    {lead.isClosed ? (
-                      <div className="flex flex-col gap-1 items-start">
-                        {(() => {
-                          const match = lead.closeRemarks?.match(/\[Lost at (.*?) stage\]/);
-                          const lostStage = match ? match[1] : null;
-                          const displayRemarks = match ? lead.closeRemarks.replace(/\[Lost at .*? stage\] - /, '') : lead.closeRemarks;
-                          const isSiteVisit = lostStage === 'Site Visit';
-                          const isFollowUp = lostStage === 'Follow-Up' || lostStage === 'Assigned';
-                          const isBooking = lostStage === 'Booking';
-                          const isHidden = isSiteVisit || isFollowUp || isBooking;
-                          return (
-                            <>
-                              <span className="px-3 py-1.5 text-[12px] font-extrabold uppercase tracking-wider">
-                                {lostStage ? (
-                                  isBooking ? 'Booking - Cancelled' :
-                                  isSiteVisit ? 'Site Visit - Lost' :
-                                  isFollowUp ? 'Follow-Up - Lost' :
-                                  `${lostStage} - Lost`
-                                ) : 'Lost'}
-                              </span>
-                              {displayRemarks && !isHidden && (
-                                <div className="text-[11px] text-black-400 italic max-w-[150px] truncate" title={displayRemarks}>
-                                  "{displayRemarks}"
-                                </div>
-                              )}
-                            </>
-                          );
-                        })()}
-                        {(() => {
-                          const match = lead.closeRemarks?.match(/\[Lost at (.*?) stage\]/);
-                          const lostStage = match ? match[1] : null;
-                          if (lostStage === 'Site Visit' || lostStage === 'Follow-Up' || lostStage === 'Assigned') return null; // Don't show reopen option
-                          return (
-                            <button
-                              onClick={() => handleReopenClosedLead(lead)}
-                              disabled={reopeningId === lead._id}
-                              className="text-[11px] font-bold text-[#0e623a] hover:underline flex items-center gap-1 disabled:opacity-50"
-                            >
-                              {reopeningId === lead._id && <Loader2 className="w-3 h-3 animate-spin" />}
-                              Reopen Lead
-                            </button>
-                          );
-                        })()}
-                      </div>
-                    ) : (
-                      <div className="flex flex-col items-start gap-1">
-                        <span className={`px-3 py-1.5 text-[12px] font-extrabold uppercase tracking-wider`}>
-                          {lead.status === 'Booking' ? 'Booked' : lead.status}
-                        </span>
-                      </div>
+                      </td>
                     )}
+
+                    {/* Phone Number */}
+                    {hasColumnPermission('leads', 'phoneNumber') && (
+                      <td className="px-3 py-1.5 border-b border-black-100">
+                        <div className="flex flex-col gap-1 text-[11px] text-black-500">
+                          <div className="flex items-center gap-1 font-semibold">
+                            <Phone className="w-3 h-3 text-black-300" />
+                            <span>{lead.phone}</span>
+                          </div>
+                        </div>
+                      </td>
+                    )}
+
+                    {/* Source Details */}
+                    {hasColumnPermission('leads', 'sourceDetails') && (
+                      <td className="px-3 py-1.5 border-b border-black-100">
+                        <div className="space-y-0.5">
+                          <div className="text-[11px] font-semibold text-black-700">{lead.leadSource || (lead.leadType === 'Direct Visit' ? 'Direct Visit' : '—')}</div>
+                          {lead.leadType === 'Lead' && lead.activeAd?.name && (
+                            <div className="text-[11px] text-black-500 flex flex-col gap-0.5">
+                              <div className="flex items-center gap-1">
+                                <span className="truncate max-w-[120px]">Ad: {lead.activeAd.name}</span>
+                                {lead.activeAd.link && (
+                                  <a href={lead.activeAd.link} target="_blank" rel="noopener noreferrer" className="text-[#0e623a] hover:underline shrink-0">
+                                    <ExternalLink className="w-2.5 h-2.5 inline" />
+                                  </a>
+                                )}
+                              </div>
+                              {lead.leadCost > 0 && (
+                                <span className="text-[10px] font-extrabold bg-[#0e623a] border border-[#0a4c2c] px-1.5 py-0.5 rounded w-fit">
+                                  Cost: ₹{lead.leadCost}
+                                </span>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </td>
+                    )}
+
+                    {/* Project */}
+                    {hasColumnPermission('leads', 'project') && (
+                      <td className="px-3 py-1.5 border-b border-black-100">
+                        <div className="text-[11px] font-semibold text-black-700">
+                          {projects.find(p => p._id === (lead.project?._id || lead.project))?.code || '—'}
+                        </div>
+                      </td>
+                    )}
+
+                    {/* Lead Category */}
+                    {hasColumnPermission('leads', 'category') && (
+                      <td className="px-3 py-1.5 border-b border-black-100 text-center">
+                        <span className={`px-2 py-1 text-[11px] font-extrabold uppercase tracking-wider`}>{lead.leadCategory || 'Cold'}</span>
+                      </td>
+                    )}
+
+                    {/* Assigned By */}
+                    {hasColumnPermission('leads', 'assignedBy') && (
+                      <td className="px-3 py-1.5 border-b border-black-100">
+                        <div className="text-[11px] font-semibold text-black-600">
+                          {lead.assignedBy?.name || 'Superadmin'}
+                        </div>
+                      </td>
+                    )}
+
+                    {/* Assigned To */}
+                    {hasColumnPermission('leads', 'assignedTo') && (
+                      <td className="px-3 py-1.5 border-b border-black-100">
+                        <div className="text-[11px] font-semibold text-black-800">
+                          {lead.assignedTo?.name || 'Unassigned'}
+                        </div>
+                      </td>
+                    )}
+
+                    {/* Workflow Status Dropdown */}
+                    {hasColumnPermission('leads', 'leadStatus') && (
+                      <td className="px-3 py-1.5 border-b border-black-100">
+                        {lead.isClosed ? (
+                          <div className="flex flex-col gap-1 items-start">
+                            {(() => {
+                              const match = lead.closeRemarks?.match(/\[Lost at (.*?) stage\]/);
+                              const lostStage = match ? match[1] : null;
+                              const displayRemarks = match ? lead.closeRemarks.replace(/\[Lost at .*? stage\] - /, '') : lead.closeRemarks;
+                              const isSiteVisit = lostStage === 'Site Visit';
+                              const isFollowUp = lostStage === 'Follow-Up' || lostStage === 'Assigned';
+                              const isBooking = lostStage === 'Booking';
+                              const isHidden = isSiteVisit || isFollowUp || isBooking;
+                              return (
+                                <>
+                                  <span className="px-3 py-1.5 text-[12px] font-extrabold uppercase tracking-wider">
+                                    {lostStage ? (
+                                      isBooking ? 'Booking - Cancelled' :
+                                        isSiteVisit ? 'Site Visit - Lost' :
+                                          isFollowUp ? 'Follow-Up - Lost' :
+                                            `${lostStage} - Lost`
+                                    ) : 'Lost'}
+                                  </span>
+                                  {displayRemarks && !isHidden && (
+                                    <div className="text-[11px] text-black-400 italic max-w-[150px] truncate" title={displayRemarks}>
+                                      "{displayRemarks}"
+                                    </div>
+                                  )}
+                                </>
+                              );
+                            })()}
+                            {(() => {
+                              const match = lead.closeRemarks?.match(/\[Lost at (.*?) stage\]/);
+                              const lostStage = match ? match[1] : null;
+                              if (lostStage === 'Site Visit' || lostStage === 'Follow-Up' || lostStage === 'Assigned') return null; // Don't show reopen option
+                              return (
+                                <button
+                                  onClick={() => handleReopenClosedLead(lead)}
+                                  disabled={reopeningId === lead._id}
+                                  className="text-[11px] font-bold text-[#0e623a] hover:underline flex items-center gap-1 disabled:opacity-50"
+                                >
+                                  {reopeningId === lead._id && <Loader2 className="w-3 h-3 animate-spin" />}
+                                  Reopen Lead
+                                </button>
+                              );
+                            })()}
+                          </div>
+                        ) : (
+                          <div className="flex flex-col items-start gap-1">
+                            <span className={`px-3 py-1.5 text-[12px] font-extrabold uppercase tracking-wider`}>
+                              {lead.status === 'Booking' ? 'Booked' : lead.status}
+                            </span>
+                          </div>
+                        )}
+                      </td>
+                    )}
+
+                    {/* Next Followup Date */}
+                    {hasColumnPermission('leads', 'nextFollowup') && (
+                      <td className="px-3 py-1.5 border-b border-black-100 text-center">
+                        <div className="text-[11px] font-semibold text-black-700">
+                          {lead.followUpInfo?.nextFollowUpDate
+                            ? new Date(lead.followUpInfo.nextFollowUpDate).toLocaleString('en-GB', { dateStyle: 'short' })
+                            : '—'}
+                        </div>
+                      </td>
+                    )}
+
+                    {/* Action Triggers: History, Edit & Delete */}
+                    {hasColumnPermission('leads', 'actions') && (
+                      <td className="px-3 py-1.5 border-b border-black-100 text-center">
+                        <div className="relative group inline-block text-left">
+                          <button className="p-1.5 text-black-500 hover:bg-black-100 rounded-full transition">
+                            <MoreVertical className="w-4 h-4" />
+                          </button>
+                          <div className="absolute right-6 top-0 mt-0 w-32 bg-white border border-black-150 rounded-xl shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 py-1 dropdown-menu">
+                            <button
+                              onClick={() => {
+                                setSelectedLeadForHistory(lead);
+                                setHistoryModalOpen(true);
+                              }}
+                              className="w-full text-left px-4 py-2 text-[11px] font-bold hover:bg-gray-100 flex items-center gap-2"
+                              style={{ color: '#374151' }}
+                            >
+                              <History className="w-3.5 h-3.5" /> History
+                            </button>
+                            <button
+                              onClick={() => handleOpenEditModal(lead)}
+                              className="w-full text-left px-4 py-2 text-[11px] font-bold hover:bg-amber-50 flex items-center gap-2"
+                              style={{ color: '#d97706' }}
+                            >
+                              <Edit2 className="w-3.5 h-3.5" /> Edit
+                            </button>
+                            {lead.status === 'Booking' && !lead.isClosed && (
+                              <button
+                                onClick={() => handleCancelBooking(lead)}
+                                disabled={statusChangingId === lead._id}
+                                className="w-full text-left px-4 py-2 text-[11px] font-bold hover:bg-red-50 flex items-center gap-2 disabled:opacity-50"
+                                style={{ color: '#dc2626' }}
+                              >
+                                {statusChangingId === lead._id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <XCircle className="w-3.5 h-3.5" />}
+                                Cancel
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      </td>
+                    )}
+                  </tr>
+                );
+              })}
+              {filteredLeadsList.length === 0 && (
+                <tr>
+                  <td colSpan="8" className="p-8 text-center text-black-400 text-xs">
+                    No lead records found matching selected filters.
                   </td>
-                )}
-
-                 {/* Next Followup Date */}
-                 {hasColumnPermission('leads', 'nextFollowup') && (
-                   <td className="px-3 py-1.5 border-b border-black-100 text-center">
-                     <div className="text-[11px] font-semibold text-black-700">
-                       {lead.followUpInfo?.nextFollowUpDate 
-                         ? new Date(lead.followUpInfo.nextFollowUpDate).toLocaleString('en-GB', { dateStyle: 'short'}) 
-                         : '—'}
-                     </div>
-                   </td>
-                 )}
-
-                 {/* Action Triggers: History, Edit & Delete */}
-                 {hasColumnPermission('leads', 'actions') && (
-                   <td className="px-3 py-1.5 border-b border-black-100 text-center">
-                     <div className="relative group inline-block text-left">
-                       <button className="p-1.5 text-black-500 hover:bg-black-100 rounded-full transition">
-                         <MoreVertical className="w-4 h-4" />
-                       </button>
-                       <div className="absolute right-6 top-0 mt-0 w-32 bg-white border border-black-150 rounded-xl shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 py-1 dropdown-menu">
-                         <button
-                           onClick={() => {
-                             setSelectedLeadForHistory(lead);
-                             setHistoryModalOpen(true);
-                           }}
-                           className="w-full text-left px-4 py-2 text-[11px] font-bold hover:bg-gray-100 flex items-center gap-2"
-                           style={{ color: '#374151' }}
-                         >
-                           <History className="w-3.5 h-3.5" /> History
-                         </button>
-                         <button
-                           onClick={() => handleOpenEditModal(lead)}
-                           className="w-full text-left px-4 py-2 text-[11px] font-bold hover:bg-amber-50 flex items-center gap-2"
-                           style={{ color: '#d97706' }}
-                         >
-                           <Edit2 className="w-3.5 h-3.5" /> Edit
-                         </button>
-                         {lead.status === 'Booking' && !lead.isClosed && (
-                           <button
-                             onClick={() => handleCancelBooking(lead)}
-                             disabled={statusChangingId === lead._id}
-                             className="w-full text-left px-4 py-2 text-[11px] font-bold hover:bg-red-50 flex items-center gap-2 disabled:opacity-50"
-                             style={{ color: '#dc2626' }}
-                           >
-                             {statusChangingId === lead._id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <XCircle className="w-3.5 h-3.5" />}
-                             Cancel
-                           </button>
-                         )}
-                       </div>
-                     </div>
-                   </td>
-                 )}
-              </tr>
-            );
-          })}
-            {filteredLeadsList.length === 0 && (
-              <tr>
-                <td colSpan="8" className="p-8 text-center text-black-400 text-xs">
-                  No lead records found matching selected filters.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
 
         {/* Pagination Controls */}
@@ -1964,11 +1965,11 @@ const LeadsDirectory = () => {
               <option value={100}>100</option>
             </select>
           </div>
-          
+
           <div className="text-xs text-black-500 font-bold">
             Showing {filteredLeadsList.length > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0} to {Math.min(currentPage * itemsPerPage, totalItems)} of {totalItems} entries
           </div>
-          
+
           <div className="flex gap-1.5">
             <button
               disabled={currentPage === 1}
@@ -1999,9 +2000,9 @@ const LeadsDirectory = () => {
             <div className="bg-[#0e623a] p-6 text-white flex justify-between items-start">
               <div>
                 <h3 className="text-lg font-bold">New Lead Entries</h3>
-               
+
               </div>
-              <button 
+              <button
                 onClick={() => setCreateModalOpen(false)}
                 className="text-emerald-100 hover:text-white transition cursor-pointer"
                 title="Close"
@@ -2193,7 +2194,7 @@ const LeadsDirectory = () => {
                           * Displays only active reels/posters for the selected project code.
                         </span>
                       </div>
-                      
+
                       {fetchedAdLink && (
                         <div className="text-xs text-[#0e623a] flex items-center gap-1.5 font-medium">
                           <span>Auto-fetched Link:</span>
@@ -2283,16 +2284,36 @@ const LeadsDirectory = () => {
                 </div>
               )}
 
+              {/* Previously Assigned Executive Warning Banner */}
+              {previouslyAssignedExecutive && (
+                <div className="mb-4 p-4 bg-amber-50 border border-amber-200 rounded-2xl flex items-start gap-3">
+                  <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                  <div>
+                    <h4 className="text-xs font-bold text-amber-800 uppercase tracking-wider mb-1">Previous Relationship Detected</h4>
+                    <p className="text-xs text-amber-900 leading-relaxed font-semibold">
+                      This customer is already associated with our sales executive <strong className="text-black-800">{previouslyAssignedExecutive.name}</strong>.
+                      To maintain relationship consistency, this lead will be automatically assigned to them.
+                    </p>
+                  </div>
+                </div>
+              )}
+
               {/* Assigned Executive */}
               {(user?.role === 'Superadmin' || user?.role === 'Crd team') && (
                 <div className="flex flex-col">
                   <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Assigned Executive / Member <span className="text-red-500">*</span></label>
-                  <SearchableSelect
-                    options={employees.map(emp => ({ value: emp._id, label: `${emp.name} (${emp.role})` }))}
-                    value={assignedToId}
-                    onChange={setAssignedToId}
-                    placeholder="Select Executive"
-                  />
+                  {previouslyAssignedExecutive ? (
+                    <div className="px-4 py-3 bg-black-50 border border-black-200 rounded-xl text-xs font-bold text-black-700">
+                      {previouslyAssignedExecutive.name} ({previouslyAssignedExecutive.role}) [LOCKED]
+                    </div>
+                  ) : (
+                    <SearchableSelect
+                      options={employees.map(emp => ({ value: emp._id, label: `${emp.name} (${emp.role})` }))}
+                      value={assignedToId}
+                      onChange={setAssignedToId}
+                      placeholder="Select Executive"
+                    />
+                  )}
                 </div>
               )}
 
@@ -2325,9 +2346,9 @@ const LeadsDirectory = () => {
             <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <AlertCircle className="w-8 h-8 text-red-600" />
             </div>
-            <h3 className="text-xl font-bold text-black-800 mb-2">Registration Blocked</h3>
+            <h3 className="text-xl font-bold text-black-800 mb-2">Lead Entry Blocked</h3>
             <p className="text-sm text-black-600 mb-6 leading-relaxed">
-              Cannot create this lead. This lead was assigned to <strong className="text-black-800">{duplicateWarning.assignedTo?.name || duplicateWarning.assignedTo || 'someone'}</strong>.<br/>This was in <strong className="text-black-800">{duplicateWarning.status}</strong> stage.
+              Cannot create this lead. This lead was assigned to <strong className="text-black-800">{duplicateWarning.assignedTo?.name || duplicateWarning.assignedTo || 'someone'}</strong>.<br />This was in <strong className="text-black-800">{duplicateWarning.status}</strong> stage.
             </p>
             <div className="flex justify-center mt-2">
               <button
@@ -2355,7 +2376,7 @@ const LeadsDirectory = () => {
                 <h3 className="text-lg font-bold">Edit Lead Information</h3>
                 <p className="text-amber-100 text-xs mt-1">Modify details for: {selectedLeadForEdit.name}</p>
               </div>
-              <button 
+              <button
                 onClick={() => setEditModalOpen(false)}
                 className="text-amber-100 hover:text-white transition cursor-pointer"
                 title="Close"
@@ -2367,27 +2388,27 @@ const LeadsDirectory = () => {
             <form onSubmit={handleUpdateLead} className="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
               {/* Lead Type Radio Group */}
               <div className="bg-black-50 p-4 rounded-2xl border border-black-150">
-                <label className="text-[11px] font-bold text-black-400 uppercase tracking-wider block mb-2">Lead Record Category</label>
+                <label className="text-[11px] font-bold text-black-400 uppercase tracking-wider block mb-2 font-extrabold text-[#0e623a]">Lead Record Category [LOCKED]</label>
                 <div className="flex gap-6">
-                  <label className="flex items-center gap-2 text-sm font-semibold text-black-700 cursor-pointer">
+                  <label className="flex items-center gap-2 text-sm font-semibold text-black-700 cursor-not-allowed opacity-70">
                     <input
                       type="radio"
                       name="editLeadType"
                       value="Lead"
                       checked={editLeadType === 'Lead'}
-                      onChange={() => setEditLeadType('Lead')}
-                      className="text-amber-600 focus:ring-amber-600 w-4 h-4"
+                      disabled
+                      className="text-amber-600 focus:ring-amber-600 w-4 h-4 cursor-not-allowed"
                     />
                     <span>Lead (Campaigns & Referrals)</span>
                   </label>
-                  <label className="flex items-center gap-2 text-sm font-semibold text-black-700 cursor-pointer">
+                  <label className="flex items-center gap-2 text-sm font-semibold text-black-700 cursor-not-allowed opacity-70">
                     <input
                       type="radio"
                       name="editLeadType"
                       value="Direct Visit"
                       checked={editLeadType === 'Direct Visit'}
-                      onChange={() => setEditLeadType('Direct Visit')}
-                      className="text-amber-600 focus:ring-amber-600 w-4 h-4"
+                      disabled
+                      className="text-amber-600 focus:ring-amber-600 w-4 h-4 cursor-not-allowed"
                     />
                     <span>Direct Visit</span>
                   </label>
@@ -2670,7 +2691,7 @@ const LeadsDirectory = () => {
           </div>
         </div>
       )}
-      
+
       {/* 🔐 MODAL: View History Logs */}
       {historyModalOpen && selectedLeadForHistory && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
@@ -2696,7 +2717,7 @@ const LeadsDirectory = () => {
                     <div key={idx} className="relative pl-6">
                       {/* Timeline dot */}
                       <span className="absolute -left-[5px] top-1.5 w-2.5 h-2.5 rounded-full bg-[#0e623a] border-2 border-white ring-4 ring-[#f0f9f4]"></span>
-                      
+
                       <div className="text-xs text-black-400">
                         {hist.timestamp ? new Date(hist.timestamp).toLocaleString() : 'Date unavailable'}
                       </div>
@@ -2760,7 +2781,7 @@ const LeadsDirectory = () => {
               <p className="text-xs text-black-500 font-semibold leading-relaxed">
                 Have you already prepared and finalized a quotation estimate for <strong className="text-black-700">{pendingLeadForBooked.name}</strong>?
               </p>
-              
+
               <div className="flex flex-col gap-2 pt-2">
                 <button
                   type="button"
@@ -2807,17 +2828,16 @@ const LeadsDirectory = () => {
               </div>
 
               <form onSubmit={handleFollowSubmit} className="p-6 space-y-4">
-                
+
                 {hasFollowUpOptions && (
                   <div className="grid grid-cols-3 gap-3">
                     <button
                       type="button"
                       onClick={() => setFollowMode('FollowUp')}
-                      className={`py-3 rounded-xl text-xs font-bold transition ${
-                        followMode === 'FollowUp'
+                      className={`py-3 rounded-xl text-xs font-bold transition ${followMode === 'FollowUp'
                           ? 'bg-[#0e623a] text-white shadow'
                           : 'bg-black-100 text-black-500 hover:bg-black-200'
-                      }`}
+                        }`}
                     >
                       Schedule Follow-up
                     </button>
@@ -2825,11 +2845,10 @@ const LeadsDirectory = () => {
                       <button
                         type="button"
                         onClick={() => setFollowMode('SiteVisit')}
-                        className={`py-3 rounded-xl text-xs font-bold transition ${
-                          followMode === 'SiteVisit'
+                        className={`py-3 rounded-xl text-xs font-bold transition ${followMode === 'SiteVisit'
                             ? 'bg-yellow-600 text-white shadow'
                             : 'bg-black-100 text-black-500 hover:bg-black-200'
-                        }`}
+                          }`}
                       >
                         Move to Site Visit
                       </button>
@@ -2848,11 +2867,10 @@ const LeadsDirectory = () => {
                     <button
                       type="button"
                       onClick={() => setFollowMode('Completed')}
-                      className={`py-3 rounded-xl text-xs font-bold transition ${
-                        followMode === 'Completed'
+                      className={`py-3 rounded-xl text-xs font-bold transition ${followMode === 'Completed'
                           ? 'bg-red-600 text-white shadow'
                           : 'bg-black-100 text-black-500 hover:bg-black-200'
-                      }`}
+                        }`}
                     >
                       Close Lead (Lost)
                     </button>
@@ -2946,28 +2964,27 @@ const LeadsDirectory = () => {
                   </div>
                 )}
 
-              {/* Action Buttons */}
-              <div className="flex items-center gap-3 pt-3 border-t">
-                <button
-                  type="button"
-                  onClick={() => setFollowModalOpen(false)}
-                  className="flex-1 py-2.5 border border-black-200 rounded-xl text-xs font-bold text-black-500 hover:bg-black-50 transition"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className={`flex-1 py-2.5 text-white rounded-xl text-xs font-bold transition shadow flex items-center justify-center gap-2 disabled:opacity-50 ${
-                    followMode === 'FollowUp' ? 'bg-[#0e623a] hover:bg-[#0b4d2d]' : 'bg-red-600 hover:bg-red-700'
-                  }`}
-                >
-                  {isSubmitting ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving...</> : 'Save Action'}
-                </button>
-              </div>
-            </form>
+                {/* Action Buttons */}
+                <div className="flex items-center gap-3 pt-3 border-t">
+                  <button
+                    type="button"
+                    onClick={() => setFollowModalOpen(false)}
+                    className="flex-1 py-2.5 border border-black-200 rounded-xl text-xs font-bold text-black-500 hover:bg-black-50 transition"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className={`flex-1 py-2.5 text-white rounded-xl text-xs font-bold transition shadow flex items-center justify-center gap-2 disabled:opacity-50 ${followMode === 'FollowUp' ? 'bg-[#0e623a] hover:bg-[#0b4d2d]' : 'bg-red-600 hover:bg-red-700'
+                      }`}
+                  >
+                    {isSubmitting ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving...</> : 'Save Action'}
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
-        </div>
         );
       })()}
       {/* 🔐 MODAL: Booked & Quotation Creation Wizard */}
@@ -2983,26 +3000,26 @@ const LeadsDirectory = () => {
             </div>
 
             <form onSubmit={handleBookedSubmit} className="p-6 space-y-6 max-h-[80vh] overflow-y-auto">
-              
+
               {/* Dropdown Unit Selection */}
               <div className="space-y-2 relative">
                 <label className="text-xs font-bold text-black-700 uppercase tracking-wider block">
                   Select {BookedProjectDetails?.projectType || 'Unit'} Numbers
                 </label>
-                
+
                 <div className="relative">
-                  <div 
+                  <div
                     onClick={() => setUnitDropdownOpen(!unitDropdownOpen)}
                     className="w-full px-3 py-2 bg-black-50 border border-black-200 rounded-xl cursor-pointer flex justify-between items-center text-sm text-black-800 focus:outline-none focus:ring-1 focus:ring-[#0e623a]"
                   >
                     <span className={selectedBookedUnits.length > 0 ? "font-bold text-[#0e623a]" : "text-black-400"}>
-                      {selectedBookedUnits.length > 0 
-                        ? selectedBookedUnits.join(', ') 
+                      {selectedBookedUnits.length > 0
+                        ? selectedBookedUnits.join(', ')
                         : 'Select available units...'}
                     </span>
                     <ChevronDown className={`w-4 h-4 text-black-500 transition-transform ${unitDropdownOpen ? 'rotate-180' : ''}`} />
                   </div>
-                  
+
                   {unitDropdownOpen && (
                     <div className="absolute z-10 w-full mt-1 bg-white border border-black-200 rounded-xl shadow-lg max-h-64 flex flex-col overflow-hidden">
                       <div className="p-2 border-b border-black-100 bg-black-50">
@@ -3062,10 +3079,10 @@ const LeadsDirectory = () => {
                             const totalArea = BookedProjectDetails.units
                               ?.filter(u => selectedBookedUnits.includes(u.unitId))
                               .reduce((sum, u) => {
-                                 const size = editedUnitSizes[u.unitId] !== undefined ? editedUnitSizes[u.unitId] : u.size;
-                                 return sum + (Number(size) || 0);
+                                const size = editedUnitSizes[u.unitId] !== undefined ? editedUnitSizes[u.unitId] : u.size;
+                                return sum + (Number(size) || 0);
                               }, 0);
-                            
+
                             if (totalArea && customBookedAmount) {
                               const dynamicRate = Number(customBookedAmount) / totalArea;
                               if (!isNaN(dynamicRate)) {
@@ -3077,7 +3094,7 @@ const LeadsDirectory = () => {
                         }
                       </span>
                     </div>
-                    
+
                     {/* Unit Size Editable List */}
                     <div className="py-2 space-y-2 border-b border-black-150">
                       <span className="text-[10px] font-bold text-black-500 uppercase tracking-wide">Selected Units Area (Editable)</span>
@@ -3085,13 +3102,13 @@ const LeadsDirectory = () => {
                         {selectedBookedUnits.map(unitId => {
                           const originalUnit = BookedProjectDetails.units?.find(u => u.unitId === unitId);
                           const currentSize = editedUnitSizes[unitId] !== undefined ? editedUnitSizes[unitId] : (originalUnit?.size || 0);
-                          
+
                           return (
                             <div key={unitId} className="flex justify-between items-center bg-white px-2 py-1.5 rounded-lg border border-black-200 shadow-sm">
                               <span className="font-bold text-[#0e623a]">{unitId}</span>
                               <div className="flex items-center gap-1.5 bg-black-50 px-2 py-1 rounded">
-                                <input 
-                                  type="number" 
+                                <input
+                                  type="number"
                                   value={currentSize}
                                   onChange={(e) => {
                                     const val = parseFloat(e.target.value);
@@ -3116,8 +3133,8 @@ const LeadsDirectory = () => {
                         {BookedProjectDetails.units
                           ?.filter(u => selectedBookedUnits.includes(u.unitId))
                           .reduce((sum, u) => {
-                             const size = editedUnitSizes[u.unitId] !== undefined ? editedUnitSizes[u.unitId] : u.size;
-                             return sum + (Number(size) || 0);
+                            const size = editedUnitSizes[u.unitId] !== undefined ? editedUnitSizes[u.unitId] : u.size;
+                            return sum + (Number(size) || 0);
                           }, 0).toFixed(2)} Sq.Ft
                       </span>
                     </div>
@@ -3140,7 +3157,7 @@ const LeadsDirectory = () => {
               {/* Customer Basic Details Forms */}
               <div className="space-y-4">
                 <h4 className="text-xs font-bold text-black-700 uppercase tracking-wider border-b pb-1.5">Booked Customer Information</h4>
-                
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   <div>
                     <label className="text-xs font-semibold text-black-600 block mb-1">Alternative Contact</label>

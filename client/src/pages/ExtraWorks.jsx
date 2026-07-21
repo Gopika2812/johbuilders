@@ -15,7 +15,8 @@ import {
   Download,
   X,
   FileText,
-  Activity
+  Activity,
+  MoreVertical
 } from 'lucide-react';
 
 class ErrorBoundary extends React.Component {
@@ -151,6 +152,27 @@ const ExtraWorksInner = () => {
     fetchFlows();
     fetchAllBookedFlows();
   }, [token]);
+
+  useEffect(() => {
+    if (flows.length > 0) {
+      const selectableIds = [];
+      flows.forEach(flow => {
+        flow.stages?.forEach(s => {
+          s.extraWorks?.forEach(w => {
+            const canSelectAsCrd = (isAdmin || canEditTab('crd')) && ['Pending', 'Returned to CRD', 'Client Approved', 'Added to CRD'].includes(w.status);
+            const canSelectAsPed = (isAdmin || canEditTab('ped')) && ['Sent to PED', 'PED Approved'].includes(w.status);
+            const canSelectAsAccounts = (isAdmin || canEditTab('accounts')) && w.status === 'Sent to Accounts';
+            if (canSelectAsCrd || canSelectAsPed || canSelectAsAccounts) {
+              selectableIds.push(w._id);
+            }
+          });
+        });
+      });
+      setSelectedWorks(selectableIds);
+    } else {
+      setSelectedWorks([]);
+    }
+  }, [flows, isAdmin, user]);
 
   const toggleWorkSelection = (workId) => {
     setSelectedWorks(prev =>
@@ -470,7 +492,7 @@ const ExtraWorksInner = () => {
       sheet.addRow([]);
 
       // Headers
-      const headers = ['Date', 'Customer Name', 'Phone', 'CRD Person', 'Project', 'Units', 'Quotation Value', 'Extra Works', 'Final Value'];
+      const headers = ['Date', 'Customer Name', 'Status', 'Phone', 'CRD Person', 'Project', 'Units', 'Quotation Value', 'Extra Works', 'Final Value'];
       const headerRow = sheet.addRow(headers);
       headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 11 };
       headerRow.eachCell(cell => {
@@ -488,6 +510,7 @@ const ExtraWorksInner = () => {
       sheet.columns = [
         { width: 15 }, // Date
         { width: 25 }, // Customer
+        { width: 12 }, // Status
         { width: 20 }, // Phone
         { width: 25 }, // CRD Person
         { width: 20 }, // Project
@@ -500,9 +523,13 @@ const ExtraWorksInner = () => {
       // Data
       filteredFlows.forEach(flow => {
         const activeExtraWorksTotal = calculateActiveExtraWorksTotal(flow);
+        const isOld = flow.stages?.some(s =>
+          s.extraWorks?.some(w => w.sentToPedDate || w.status !== 'Pending')
+        );
         const row = sheet.addRow([
           new Date(flow.createdAt).toLocaleDateString(),
           flow.lead?.name || '',
+          isOld ? 'Old' : 'New',
           (flow.lead?.phone || '').toString(),
           flow.crdPersonName || 'Unassigned',
           flow.project?.name || '',
@@ -512,10 +539,10 @@ const ExtraWorksInner = () => {
           (flow.totalOriginalValue || 0) + activeExtraWorksTotal
         ]);
 
-        row.getCell(3).numFmt = '@'; // Force phone as text
-        row.getCell(7).numFmt = '₹#,##0.00';
+        row.getCell(4).numFmt = '@'; // Force phone as text
         row.getCell(8).numFmt = '₹#,##0.00';
         row.getCell(9).numFmt = '₹#,##0.00';
+        row.getCell(10).numFmt = '₹#,##0.00';
       });
 
       const buffer = await workbook.xlsx.writeBuffer();
@@ -708,6 +735,7 @@ const ExtraWorksInner = () => {
                 <th className="px-6 py-4 font-bold text-xs uppercase tracking-wider">S.No</th>
                 <th className="px-6 py-4 font-bold text-xs uppercase tracking-wider">Date</th>
                 <th className="px-6 py-4 font-bold text-xs uppercase tracking-wider">Customer Name</th>
+                <th className="px-6 py-4 font-bold text-xs uppercase tracking-wider text-center">Status</th>
                 <th className="px-6 py-4 font-bold text-xs uppercase tracking-wider">Phone</th>
                 <th className="px-6 py-4 font-bold text-xs uppercase tracking-wider">CRD Person</th>
                 <th className="px-6 py-4 font-bold text-xs uppercase tracking-wider">Project</th>
@@ -721,7 +749,7 @@ const ExtraWorksInner = () => {
             <tbody className="divide-y divide-emerald-100">
               {filteredFlows.length === 0 ? (
                 <tr>
-                  <td colSpan="11" className="px-6 py-12 text-center text-gray-500 font-medium">No extra works requests found.</td>
+                  <td colSpan="12" className="px-6 py-12 text-center text-gray-500 font-medium">No extra works requests found.</td>
                 </tr>
               ) : filteredFlows.map((flow, idx) => {
                 const isExpanded = expandedFlow === flow._id;
@@ -735,6 +763,18 @@ const ExtraWorksInner = () => {
                       <td className="px-6 py-4 font-bold text-gray-900">{idx + 1}</td>
                       <td className="px-6 py-4 text-gray-600">{new Date(flow.createdAt).toLocaleDateString()}</td>
                       <td className="px-6 py-4 font-bold text-emerald-900">{flow.lead?.name}</td>
+                      <td className="px-6 py-4 text-center">
+                        {(() => {
+                          const isOld = flow.stages?.some(s =>
+                            s.extraWorks?.some(w => w.sentToPedDate || w.status !== 'Pending')
+                          );
+                          return isOld ? (
+                            <span className="px-2.5 py-1 bg-slate-100 text-slate-700 border border-slate-200 rounded-full text-[10px] font-bold">Old</span>
+                          ) : (
+                            <span className="px-2.5 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full text-[10px] font-bold">New</span>
+                          );
+                        })()}
+                      </td>
                       <td className="px-6 py-4 text-gray-600">{flow.lead?.phone}</td>
                       <td className="px-6 py-4 font-medium text-emerald-700">{flow.crdPersonName || 'Unassigned'}</td>
                       <td className="px-6 py-4 font-medium text-gray-900">{flow.project?.name}</td>
@@ -748,7 +788,7 @@ const ExtraWorksInner = () => {
                     </tr>
                     {isExpanded && (
                       <tr>
-                        <td colSpan="11" className="p-0 border-b border-emerald-100 bg-emerald-50/20 shadow-inner">
+                        <td colSpan="12" className="p-0 border-b border-emerald-100 bg-emerald-50/20 shadow-inner">
                           <div className="p-6">
                             <div className="flex justify-between items-center mb-4">
                               <h3 className="font-bold text-gray-800 text-lg">Extra Works Timeline</h3>
@@ -940,6 +980,8 @@ const ExtraWorksInner = () => {
                                     <th className="p-4 font-bold text-[11px] uppercase tracking-wider text-center">Customer Approval on </th>
                                     <th className="p-4 font-bold text-[11px] uppercase tracking-wider text-center">Sent to Account Team on </th>
                                     <th className="p-4 font-bold text-[11px] uppercase tracking-wider text-center">Work Order Issued on</th>
+                                    <th className="p-4 font-bold text-[11px] uppercase tracking-wider text-center">Send to Client / CRD</th>
+                                    <th className="p-4 font-bold text-[11px] uppercase tracking-wider text-center">Action</th>
                                   </tr>
                                 </thead>
                                 <tbody className="divide-y divide-emerald-50">
@@ -1061,6 +1103,8 @@ const ExtraWorksInner = () => {
                                           <td className="p-4 align-middle text-center text-sm text-purple-700 font-medium">
                                             {group.crdAddedDate ? new Date(group.crdAddedDate).toLocaleDateString('en-GB') : '-'}
                                           </td>
+                                          <td className="p-4 align-middle text-center text-sm text-gray-400 font-medium">-</td>
+                                          <td className="p-4 align-middle text-center text-sm text-gray-400 font-medium">-</td>
                                         </tr>
                                         {expandedReqIds[group.ewId] && group.items.map((work, wIdx) => (
                                           <tr key={work._id} className="bg-gray-50/50 hover:bg-white transition border-l-4 border-[#006838]">
@@ -1098,11 +1142,7 @@ const ExtraWorksInner = () => {
                                               {work.addedAt ? new Date(work.addedAt).toLocaleDateString('en-GB') : '-'}
                                             </td>
                                             <td className="p-4 align-middle text-center">
-                                              {work.sentToPedDate || work.status !== 'Pending' ? (
-                                                <span className="px-2.5 py-1 bg-slate-100 text-slate-700 border border-slate-200 rounded-full text-[10px] font-bold">Old</span>
-                                              ) : (
-                                                <span className="px-2.5 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full text-[10px] font-bold">New</span>
-                                              )}
+                                              {getStatusBadge(work.status)}
                                             </td>
                                             <td className="p-4 align-middle text-center text-[11px] text-gray-500">
                                               {work.sentToPedDate ? new Date(work.sentToPedDate).toLocaleDateString('en-GB') : '-'}
@@ -1138,64 +1178,263 @@ const ExtraWorksInner = () => {
                                             <td className="p-4 align-middle text-center text-[11px] text-blue-600 font-medium">
                                               {work.sentToAccountsDate ? new Date(work.sentToAccountsDate).toLocaleDateString('en-GB') : '-'}
                                             </td>
-                                            <td className="p-4 align-middle">
-                                              <div className="flex flex-col items-center justify-center gap-2">
-                                                <span className="text-[11px] text-purple-700 font-medium">
-                                                  {work.crdAddedDate ? new Date(work.crdAddedDate).toLocaleDateString('en-GB') : '-'}
-                                                </span>
-                                                <div className="flex items-center gap-2">
-
-                                                  {['Added to CRD', 'Execution Sent to PED', 'Start Work', 'In Progress'].includes(work.status) && (
-                                                    <select
-                                                      value={work.status}
-                                                      disabled={!(isAdmin || canEditTab('ped'))}
-                                                      onChange={async (e) => {
-                                                        try {
-                                                          await fetch(`${API_URL}/extra-works/${flow._id}/${work.stageIdx}/${work._id}/update-status`, {
-                                                            method: 'PUT',
-                                                            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-                                                            body: JSON.stringify({ status: e.target.value })
-                                                          });
-                                                          await fetchFlows();
-                                                        } catch (err) {
-                                                          alert(err.message);
-                                                        }
-                                                      }}
-                                                      onClick={(e) => e.stopPropagation()}
-                                                      className="px-2 py-1 bg-white border border-gray-200 rounded text-[10px] font-bold focus:outline-none focus:ring-1 focus:ring-[#006838] disabled:bg-gray-100 disabled:cursor-not-allowed"
-                                                    >
-                                                      <option value="Added to CRD" disabled>Ready for Execution</option>
-                                                      <option value="Execution Sent to PED" disabled>Execution Sent to PED</option>
-                                                      <option value="Start Work">Start Work</option>
-                                                      <option value="In Progress">In Progress</option>
-                                                      <option value="Completed">Completed</option>
-                                                    </select>
-                                                  )}
-                                                  {(user?.role === 'Superadmin' || user?.role === 'Crd team') && !['Removed by Client', 'Rejected', 'Completed', 'Cancelled by Superadmin', 'Added to CRD'].includes(work.status) && (
-                                                    <button
-                                                      onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        if (window.confirm('Are you sure you want to cancel this extra work request?')) {
-                                                          handleCancelExtraWork(flow._id, work.stageIdx, work._id);
-                                                        }
-                                                      }}
-                                                      disabled={submitting === work._id}
-                                                      className="px-2 py-1 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 rounded text-[10px] font-bold"
-                                                    >
-                                                      Cancel
-                                                    </button>
-                                                  )}
-                                                  {(() => {
-                                                    return <div className="mt-1">{getStatusBadge(work.status)}</div>;
-                                                  })()}
+                                            <td className="p-4 align-middle text-center text-[11px] text-purple-700 font-medium">
+                                              {work.crdAddedDate ? new Date(work.crdAddedDate).toLocaleDateString('en-GB') : '-'}
+                                            </td>
+                                            <td className="p-4 align-middle text-center">
+                                              {(isAdmin || canEditTab('crd')) && work.status === 'Pending' && (
+                                                <button
+                                                  onClick={async (e) => {
+                                                    e.stopPropagation();
+                                                    setSubmitting(work._id);
+                                                    try {
+                                                      await handleSendToPED(flow._id, work.stageIdx, work._id);
+                                                    } finally {
+                                                      setSubmitting(null);
+                                                    }
+                                                  }}
+                                                  disabled={submitting === work._id}
+                                                  className="px-2 py-1 bg-blue-50 hover:bg-blue-100 text-blue-600 border border-blue-200 rounded text-[10px] font-bold shadow-sm whitespace-nowrap"
+                                                >
+                                                  Send to PED
+                                                </button>
+                                              )}
+                                              {(isAdmin || canEditTab('ped')) && ['Sent to PED', 'PED Approved'].includes(work.status) && (
+                                                <div className="flex flex-col gap-1 items-center justify-center">
+                                                  <button
+                                                    onClick={async (e) => {
+                                                      e.stopPropagation();
+                                                      setSubmitting(work._id);
+                                                      try {
+                                                        await handleSavePrice(flow._id, work.stageIdx, work._id);
+                                                      } finally {
+                                                        setSubmitting(null);
+                                                      }
+                                                    }}
+                                                    disabled={submitting === work._id || !(rates[work._id] > 0 || work.rate > 0)}
+                                                    className="px-2 py-0.5 bg-gray-100 hover:bg-gray-200 text-gray-700 border border-gray-300 rounded text-[9px] font-bold shadow-sm whitespace-nowrap mb-1"
+                                                  >
+                                                    Save Price
+                                                  </button>
+                                                  <button
+                                                    onClick={async (e) => {
+                                                      e.stopPropagation();
+                                                      setSubmitting(work._id);
+                                                      try {
+                                                        await handleSaveAndSendToClient(flow._id, work.stageIdx, work._id);
+                                                      } finally {
+                                                        setSubmitting(null);
+                                                      }
+                                                    }}
+                                                    disabled={submitting === work._id || !(rates[work._id] > 0 || work.rate > 0)}
+                                                    className="px-2.5 py-1 bg-[#006838] hover:bg-[#00512c] text-white rounded text-[10px] font-bold shadow-sm whitespace-nowrap"
+                                                  >
+                                                    Send to Client
+                                                  </button>
                                                 </div>
+                                              )}
+                                              {(isAdmin || canEditTab('crd')) && work.status === 'Returned to CRD' && (
+                                                <button
+                                                  onClick={async (e) => {
+                                                    e.stopPropagation();
+                                                    setSubmitting(work._id);
+                                                    try {
+                                                      await fetch(`${API_URL}/extra-works/${flow._id}/${work.stageIdx}/${work._id}/send`, {
+                                                        method: 'PUT',
+                                                        headers: { Authorization: `Bearer ${token}` }
+                                                      });
+                                                      await fetchFlows();
+                                                    } catch (err) {
+                                                      alert(err.message);
+                                                    } finally {
+                                                      setSubmitting(null);
+                                                    }
+                                                  }}
+                                                  disabled={submitting === work._id}
+                                                  className="px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 rounded text-[10px] font-bold shadow-sm whitespace-nowrap"
+                                                >
+                                                  Send to Client
+                                                </button>
+                                              )}
+                                              {(isAdmin || canEditTab('crd')) && work.status === 'Client Approved' && (
+                                                <button
+                                                  onClick={async (e) => {
+                                                    e.stopPropagation();
+                                                    setSubmitting(work._id);
+                                                    try {
+                                                      await fetch(`${API_URL}/extra-works/${flow._id}/${work.stageIdx}/${work._id}/send-to-accounts`, {
+                                                        method: 'PUT',
+                                                        headers: { Authorization: `Bearer ${token}` }
+                                                      });
+                                                      await fetchFlows();
+                                                    } catch (err) {
+                                                      alert(err.message);
+                                                    } finally {
+                                                      setSubmitting(null);
+                                                    }
+                                                  }}
+                                                  disabled={submitting === work._id}
+                                                  className="px-2.5 py-1 bg-teal-50 hover:bg-teal-150 text-teal-700 border border-teal-200 rounded text-[10px] font-bold shadow-sm whitespace-nowrap"
+                                                >
+                                                  Send to Accounts
+                                                </button>
+                                              )}
+                                              {(isAdmin || canEditTab('accounts')) && work.status === 'Sent to Accounts' && (
+                                                <button
+                                                  onClick={async (e) => {
+                                                    e.stopPropagation();
+                                                    setSubmitting(work._id);
+                                                    try {
+                                                      await handleAddToCRD(flow._id, work.stageIdx, work._id);
+                                                    } finally {
+                                                      setSubmitting(null);
+                                                    }
+                                                  }}
+                                                  disabled={submitting === work._id}
+                                                  className="px-2.5 py-1 bg-[#006838] hover:bg-[#00512c] text-white rounded text-[10px] font-bold shadow-sm whitespace-nowrap"
+                                                >
+                                                  Create WO
+                                                </button>
+                                              )}
+                                              {!['Pending', 'Sent to PED', 'PED Approved', 'Returned to CRD', 'Client Approved', 'Sent to Accounts'].includes(work.status) && (
+                                                <span className="text-gray-400 text-xs">-</span>
+                                              )}
+                                            </td>
+                                            <td className="p-4 align-middle">
+                                              <div className="flex items-center justify-center gap-2">
+                                                {(() => {
+                                                  const showSendForExecution = (isAdmin || canEditTab('crd')) && work.status === 'Added to CRD';
+                                                  const showStatusDropdown = ['Added to CRD', 'Execution Sent to PED', 'Start Work', 'In Progress'].includes(work.status) && (isAdmin || canEditTab('ped'));
+                                                  const showCancel = (user?.role === 'Superadmin' || user?.role === 'Crd team') && !['Removed by Client', 'Rejected', 'Completed', 'Cancelled by Superadmin', 'Added to CRD'].includes(work.status);
+
+                                                  if (!showSendForExecution && !showStatusDropdown && !showCancel) {
+                                                    return <span className="text-gray-400 text-xs">-</span>;
+                                                  }
+
+                                                  return (
+                                                    <div className="relative group inline-block text-left">
+                                                      <button
+                                                        onClick={(e) => e.stopPropagation()}
+                                                        className="p-1 text-gray-500 hover:bg-gray-100 rounded-full transition focus:outline-none cursor-pointer"
+                                                      >
+                                                        <MoreVertical className="w-4 h-4" />
+                                                      </button>
+                                                      <div className="absolute right-full top-0 mr-2 w-44 bg-white border border-gray-200 rounded-xl shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-[100] py-1">
+                                                        {showSendForExecution && (
+                                                          <button
+                                                            onClick={async (e) => {
+                                                              e.stopPropagation();
+                                                              setSubmitting(work._id);
+                                                              try {
+                                                                await fetch(`${API_URL}/extra-works/${flow._id}/${work.stageIdx}/${work._id}/send-to-ped-execution`, {
+                                                                  method: 'PUT',
+                                                                  headers: { Authorization: `Bearer ${token}` }
+                                                                });
+                                                                await fetchFlows();
+                                                              } catch (err) {
+                                                                alert(err.message);
+                                                              } finally {
+                                                                setSubmitting(null);
+                                                              }
+                                                            }}
+                                                            disabled={submitting === work._id}
+                                                            className="w-full text-left px-4 py-2 text-xs font-bold text-emerald-700 hover:bg-emerald-50 transition cursor-pointer"
+                                                          >
+                                                            Send for Execution
+                                                          </button>
+                                                        )}
+
+                                                        {showStatusDropdown && (
+                                                          <div className="py-1">
+                                                            <div className="px-4 py-1 text-[9px] font-bold text-gray-400 uppercase tracking-widest">Update Status</div>
+                                                            {work.status !== 'Start Work' && (
+                                                              <button
+                                                                onClick={async (e) => {
+                                                                  e.stopPropagation();
+                                                                  try {
+                                                                    await fetch(`${API_URL}/extra-works/${flow._id}/${work.stageIdx}/${work._id}/update-status`, {
+                                                                      method: 'PUT',
+                                                                      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                                                                      body: JSON.stringify({ status: 'Start Work' })
+                                                                    });
+                                                                    await fetchFlows();
+                                                                  } catch (err) {
+                                                                    alert(err.message);
+                                                                  }
+                                                                }}
+                                                                className="w-full text-left px-4 py-2 text-xs font-bold text-gray-700 hover:bg-gray-50 transition cursor-pointer"
+                                                              >
+                                                                Start Work
+                                                              </button>
+                                                            )}
+                                                            {work.status !== 'In Progress' && (
+                                                              <button
+                                                                onClick={async (e) => {
+                                                                  e.stopPropagation();
+                                                                  try {
+                                                                    await fetch(`${API_URL}/extra-works/${flow._id}/${work.stageIdx}/${work._id}/update-status`, {
+                                                                      method: 'PUT',
+                                                                      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                                                                      body: JSON.stringify({ status: 'In Progress' })
+                                                                    });
+                                                                    await fetchFlows();
+                                                                  } catch (err) {
+                                                                    alert(err.message);
+                                                                  }
+                                                                }}
+                                                                className="w-full text-left px-4 py-2 text-xs font-bold text-gray-700 hover:bg-gray-50 transition cursor-pointer"
+                                                              >
+                                                                In Progress
+                                                              </button>
+                                                            )}
+                                                            {work.status !== 'Completed' && (
+                                                              <button
+                                                                onClick={async (e) => {
+                                                                  e.stopPropagation();
+                                                                  try {
+                                                                    await fetch(`${API_URL}/extra-works/${flow._id}/${work.stageIdx}/${work._id}/update-status`, {
+                                                                      method: 'PUT',
+                                                                      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                                                                      body: JSON.stringify({ status: 'Completed' })
+                                                                    });
+                                                                    await fetchFlows();
+                                                                  } catch (err) {
+                                                                    alert(err.message);
+                                                                  }
+                                                                }}
+                                                                className="w-full text-left px-4 py-2 text-xs font-bold text-emerald-700 hover:bg-emerald-50 transition cursor-pointer"
+                                                              >
+                                                                Completed
+                                                              </button>
+                                                            )}
+                                                          </div>
+                                                        )}
+
+                                                        {showCancel && (
+                                                          <button
+                                                            onClick={(e) => {
+                                                              e.stopPropagation();
+                                                              if (window.confirm('Are you sure you want to cancel this extra work request?')) {
+                                                                handleCancelExtraWork(flow._id, work.stageIdx, work._id);
+                                                              }
+                                                            }}
+                                                            disabled={submitting === work._id}
+                                                            className="w-full text-left px-4 py-2 text-xs font-bold text-red-650 hover:bg-red-50 border-t border-gray-100 transition cursor-pointer"
+                                                          >
+                                                            Cancel
+                                                          </button>
+                                                        )}
+                                                      </div>
+                                                    </div>
+                                                  );
+                                                })()}
                                               </div>
                                             </td>
                                           </tr>
                                         ))}
                                         {expandedReqIds[group.ewId] && (
                                           <tr className="bg-gray-50 border-l-4 border-[#006838]">
-                                            <td colSpan="11" className="p-4">
+                                            <td colSpan="13" className="p-4">
                                               {addingGroupWork === group.ewId ? (
                                                 <div className="bg-white p-4 rounded-xl border border-emerald-200 shadow-sm animate-fade-in-up">
                                                   <div className="flex justify-between items-center mb-3">
@@ -1348,13 +1587,31 @@ const ExtraWorksInner = () => {
                               const canPed = isAdmin || canEditTab('ped');
                               const canAccounts = isAdmin || canEditTab('accounts');
 
-                              const hasPending = flow.stages.some(s => s.extraWorks?.some(w => w.status === 'Pending'));
-                              const hasReturnedToCRD = flow.stages.some(s => s.extraWorks?.some(w => w.status === 'Returned to CRD'));
-                              const hasClientApproved = flow.stages.some(s => s.extraWorks?.some(w => w.status === 'Client Approved'));
-                              const hasAddedToCRD = flow.stages.some(s => s.extraWorks?.some(w => w.status === 'Added to CRD'));
+                              const selectedItems = [];
+                              flow.stages.forEach(s => s.extraWorks?.forEach(w => {
+                                if (selectedWorks.includes(w._id)) {
+                                  selectedItems.push(w);
+                                }
+                              }));
 
-                              const hasReadyToShare = flow.stages.some(s => s.extraWorks?.some(w => ['Sent to PED', 'PED Approved'].includes(w.status)));
-                              const hasSentToAccounts = flow.stages.some(s => s.extraWorks?.some(w => w.status === 'Sent to Accounts'));
+                              const hasSelected = selectedItems.length > 0;
+                              const hasPending = hasSelected && selectedItems.every(w => w.status === 'Pending' || w.status === 'Returned to CRD');
+                              const hasReturnedToCRD = hasSelected && selectedItems.every(w => w.status === 'Returned to CRD');
+                              const hasClientApproved = hasSelected && selectedItems.every(w => w.status === 'Client Approved');
+                              const hasAddedToCRD = hasSelected && selectedItems.every(w => w.status === 'Added to CRD');
+
+                              const hasReadyToShare = hasSelected && selectedItems.every(w => ['Sent to PED', 'PED Approved'].includes(w.status));
+                              const hasSentToAccounts = hasSelected && selectedItems.every(w => w.status === 'Sent to Accounts');
+
+                              if (!hasSelected) {
+                                return (
+                                  <div className="mt-4 flex justify-end">
+                                    <span className="text-[10px] text-gray-400 font-bold border border-dashed border-emerald-250/60 rounded-xl px-4 py-2 bg-emerald-50/10">
+                                      Select one or more items to perform actions
+                                    </span>
+                                  </div>
+                                );
+                              }
 
                               return (
                                 <div className="mt-4 flex flex-wrap justify-end gap-3">
@@ -1759,37 +2016,79 @@ const ExtraWorksInner = () => {
                 const steps = [
                   {
                     id: 1,
-                    title: 'CRD Team (Initiation)',
-                    description: 'Client raised extra work',
+                    title: 'CRD Initiation',
+                    description: 'Client raised extra work request',
                     activeStatuses: ['Pending'],
                     completedStatuses: ['Sent to PED', 'PED Approved', 'Returned to CRD', 'Sent to Customer', 'Client Approved', 'Sent to Accounts', 'Added to CRD', 'Execution Sent to PED', 'Start Work', 'In Progress', 'Completed']
                   },
                   {
                     id: 2,
-                    title: 'PED Team (Pricing)',
-                    description: 'PED updates the price',
-                    activeStatuses: ['Sent to PED', 'PED Approved', 'Returned to CRD'],
-                    completedStatuses: ['Sent to Customer', 'Client Approved', 'Sent to Accounts', 'Added to CRD', 'Execution Sent to PED', 'Start Work', 'In Progress', 'Completed']
+                    title: 'Sent to PED for Pricing',
+                    description: 'CRD forwarded work to PED estimation team',
+                    activeStatuses: ['Sent to PED'],
+                    completedStatuses: ['PED Approved', 'Returned to CRD', 'Sent to Customer', 'Client Approved', 'Sent to Accounts', 'Added to CRD', 'Execution Sent to PED', 'Start Work', 'In Progress', 'Completed']
                   },
                   {
                     id: 3,
-                    title: 'Client Approval',
-                    description: 'Client reviews and approves/negotiates',
-                    activeStatuses: ['Sent to Customer', 'Removed by Client', 'Rejected'],
-                    completedStatuses: ['Client Approved', 'Sent to Accounts', 'Added to CRD', 'Execution Sent to PED', 'Start Work', 'In Progress', 'Completed']
+                    title: 'Priced by PED',
+                    description: 'PED calculated and approved pricing',
+                    activeStatuses: ['PED Approved'],
+                    completedStatuses: ['Returned to CRD', 'Sent to Customer', 'Client Approved', 'Sent to Accounts', 'Added to CRD', 'Execution Sent to PED', 'Start Work', 'In Progress', 'Completed']
                   },
                   {
                     id: 4,
-                    title: 'Accounts Team',
-                    description: 'Creating Work Order',
-                    activeStatuses: ['Client Approved', 'Sent to Accounts', 'Added to CRD'],
-                    completedStatuses: ['Execution Sent to PED', 'Start Work', 'In Progress', 'Completed']
+                    title: 'Returned to CRD',
+                    description: 'Estimate sent back to CRD for customer presentation',
+                    activeStatuses: ['Returned to CRD'],
+                    completedStatuses: ['Sent to Customer', 'Client Approved', 'Sent to Accounts', 'Added to CRD', 'Execution Sent to PED', 'Start Work', 'In Progress', 'Completed']
                   },
                   {
                     id: 5,
-                    title: 'PED Execution',
-                    description: 'PED starts the works',
-                    activeStatuses: ['Execution Sent to PED', 'Start Work', 'In Progress', 'Completed'],
+                    title: 'Sent to Customer',
+                    description: 'Quote shared with client for review and approval',
+                    activeStatuses: ['Sent to Customer', 'Rejected', 'Removed by Client'],
+                    completedStatuses: ['Client Approved', 'Sent to Accounts', 'Added to CRD', 'Execution Sent to PED', 'Start Work', 'In Progress', 'Completed']
+                  },
+                  {
+                    id: 6,
+                    title: 'Client Approved',
+                    description: 'Customer approved the pricing and scope',
+                    activeStatuses: ['Client Approved'],
+                    completedStatuses: ['Sent to Accounts', 'Added to CRD', 'Execution Sent to PED', 'Start Work', 'In Progress', 'Completed']
+                  },
+                  {
+                    id: 7,
+                    title: 'Sent to Accounts',
+                    description: 'CRD sent client-approved work to Accounts',
+                    activeStatuses: ['Sent to Accounts'],
+                    completedStatuses: ['Added to CRD', 'Execution Sent to PED', 'Start Work', 'In Progress', 'Completed']
+                  },
+                  {
+                    id: 8,
+                    title: 'Work Order Created',
+                    description: 'Accounts confirmed budget and generated Work Order',
+                    activeStatuses: ['Added to CRD'],
+                    completedStatuses: ['Execution Sent to PED', 'Start Work', 'In Progress', 'Completed']
+                  },
+                  {
+                    id: 9,
+                    title: 'Sent to PED Execution',
+                    description: 'Work order released to PED site team for execution',
+                    activeStatuses: ['Execution Sent to PED'],
+                    completedStatuses: ['Start Work', 'In Progress', 'Completed']
+                  },
+                  {
+                    id: 10,
+                    title: 'Site Construction',
+                    description: 'Work in progress on layout site',
+                    activeStatuses: ['Start Work', 'In Progress'],
+                    completedStatuses: ['Completed']
+                  },
+                  {
+                    id: 11,
+                    title: 'Completion',
+                    description: 'Extra work finished and handed over',
+                    activeStatuses: ['Completed'],
                     completedStatuses: []
                   }
                 ];
@@ -1824,28 +2123,37 @@ const ExtraWorksInner = () => {
 
                   switch (step.id) {
                     case 1:
-                      dateVal = work.addedAt;
+                      dateVal = work.addedAt || work.createdAt;
                       break;
                     case 2:
-                      dateVal = work.pricingDate || work.sentToPedDate;
-                      if (!dateVal) {
-                        dateVal = findHistoryDate(h => h.notes?.includes(wName) && (h.action === 'Pricing Updated' || h.action === 'Sent to PED'));
-                      }
+                      dateVal = work.sentToPedDate || findHistoryDate(h => h.action === 'Sent to PED' && h.notes?.includes(wName));
                       break;
                     case 3:
-                      dateVal = work.customerApprovalDate;
-                      if (!dateVal) {
-                        dateVal = findHistoryDate(h => h.notes?.includes(wName) && (h.action === 'Sent to Customer' || h.notes.includes('approved by client')));
-                      }
+                      dateVal = work.pricingDate || findHistoryDate(h => h.action === 'PED Priced Extra Work' && h.notes?.includes(wName));
                       break;
                     case 4:
-                      dateVal = work.sentToAccountsDate || work.crdAddedDate;
-                      if (!dateVal) {
-                        dateVal = findHistoryDate(h => h.notes?.includes(wName) && (h.action === 'Sent to Accounts' || h.action === 'Added to CRD'));
-                      }
+                      dateVal = findHistoryDate(h => h.action === 'Returned to CRD' && h.notes?.includes(wName));
                       break;
                     case 5:
-                      dateVal = findHistoryDate(h => h.notes?.includes(wName) && h.action === 'Execution Sent to PED');
+                      dateVal = findHistoryDate(h => h.action === 'Sent Extra Work to Customer' && h.notes?.includes(wName));
+                      break;
+                    case 6:
+                      dateVal = work.customerApprovalDate || findHistoryDate(h => h.notes?.includes(wName) && h.notes?.toLowerCase().includes('approved'));
+                      break;
+                    case 7:
+                      dateVal = work.sentToAccountsDate || findHistoryDate(h => h.action === 'Sent to Accounts Team' && h.notes?.includes(wName));
+                      break;
+                    case 8:
+                      dateVal = work.crdAddedDate || findHistoryDate(h => h.action === 'Work Order Created' && h.notes?.includes(wName));
+                      break;
+                    case 9:
+                      dateVal = findHistoryDate(h => h.action === 'Sent to PED for Execution' && h.notes?.includes(wName));
+                      break;
+                    case 10:
+                      dateVal = findHistoryDate(h => h.action?.startsWith('Status Updated to') && h.notes?.includes(wName) && (h.action.includes('Start Work') || h.action.includes('In Progress')));
+                      break;
+                    case 11:
+                      dateVal = findHistoryDate(h => h.action?.startsWith('Status Updated to Completed') && h.notes?.includes(wName));
                       break;
                   }
 
@@ -1864,9 +2172,9 @@ const ExtraWorksInner = () => {
                         textColor = 'text-[#0e623a]';
                       } else if (status === 'active') {
                         if (step.id === 1) {
-                          dotColor = isNew ? 'bg-yellow-400 border-yellow-400' : 'bg-rose-900 border-rose-900'; // Maroon is rose-900
+                          dotColor = isNew ? 'bg-yellow-400 border-yellow-400' : 'bg-rose-900 border-rose-900';
                           textColor = isNew ? 'text-yellow-600' : 'text-rose-900';
-                        } else if (step.id === 5 && work.status === 'Completed') {
+                        } else if (step.id === 11 && work.status === 'Completed') {
                           dotColor = 'bg-[#0e623a] border-[#0e623a]';
                           textColor = 'text-[#0e623a]';
                         } else {

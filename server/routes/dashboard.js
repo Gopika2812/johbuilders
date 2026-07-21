@@ -32,11 +32,11 @@ router.get('/stats', protect, async (req, res) => {
         { 'history.timestamp': dateFilter }
       ];
     }
-    
+
     if (projectType) {
       const matchingProjects = await Project.find({ projectType: projectType });
       const matchingProjectIds = matchingProjects.map(p => p._id);
-      
+
       if (projectId) {
         if (matchingProjectIds.map(id => id.toString()).includes(projectId.toString())) {
           query.project = projectId;
@@ -65,12 +65,12 @@ router.get('/stats', protect, async (req, res) => {
     if (dateFilter) {
       qQuery.createdAt = dateFilter;
     }
-    
+
     if (projectType) {
       qQuery.projectType = projectType;
       const matchingProjects = await Project.find({ projectType: projectType });
       const matchingProjectIds = matchingProjects.map(p => p._id);
-      
+
       if (projectId) {
         if (matchingProjectIds.map(id => id.toString()).includes(projectId.toString())) {
           qQuery.project = projectId;
@@ -163,9 +163,9 @@ router.get('/stats', protect, async (req, res) => {
 
     // Concentric Layered Stats
     const layeredStats = {
-      projectTypes: {}, 
-      stages: {},       
-      sources: {}       
+      projectTypes: {},
+      stages: {},
+      sources: {}
     };
 
     // Seed sources
@@ -197,12 +197,12 @@ router.get('/stats', protect, async (req, res) => {
       const src = getNormalizedSourceKey(srcRaw);
 
       if (!sourceStats[src]) {
-        sourceStats[src] = { 
-          budget: 0, 
-          spent: 0, 
-          count: 0, 
-          value: 0, 
-          leadCost: 0, 
+        sourceStats[src] = {
+          budget: 0,
+          spent: 0,
+          count: 0,
+          value: 0,
+          leadCost: 0,
           leads: [],
           enquiries: 0,
           siteVisits: 0,
@@ -408,6 +408,18 @@ router.get('/stats', protect, async (req, res) => {
     });
 
     // Calculate Projects & Units Inventory Stats
+    const leadsWithSelectedUnits = await Lead.find({ 'bookingInfo.selectedUnits': { $exists: true, $ne: [] } });
+    const bookingDatesMap = new Map();
+    leadsWithSelectedUnits.forEach(lead => {
+      const projId = lead.project?.toString();
+      if (projId && lead.bookingInfo?.selectedUnits) {
+        lead.bookingInfo.selectedUnits.forEach(unitId => {
+          const date = lead.bookingInfo.bookingDate || lead.createdAt || new Date();
+          bookingDatesMap.set(`${projId}_${unitId}`, date);
+        });
+      }
+    });
+
     let projectFilter = {};
     if (projectType) {
       projectFilter.projectType = projectType;
@@ -442,10 +454,10 @@ router.get('/stats', protect, async (req, res) => {
 
     allProjects.forEach(p => {
       const pCode = p.code || p.name;
-      projectUnitsStats[pCode] = { 
-        total: 0, 
-        available: 0, 
-        booked: 0, 
+      projectUnitsStats[pCode] = {
+        total: 0,
+        available: 0,
+        booked: 0,
         handover: 0,
         cancelled: 0,
         availableUnitsList: [],
@@ -463,13 +475,22 @@ router.get('/stats', protect, async (req, res) => {
       p.units?.forEach(u => {
         projectUnitsStats[pCode].total += 1;
         projectUnitsStats[pCode].totalUnitsList.push(u.unitId);
-        
+
         if (u.status === 'New') {
           projectUnitsStats[pCode].available += 1;
           projectUnitsStats[pCode].availableUnitsList.push(u.unitId);
         } else if (u.status === 'Booked') {
-          projectUnitsStats[pCode].booked += 1;
-          projectUnitsStats[pCode].bookedUnitsList.push(u.unitId);
+          const bookingDate = bookingDatesMap.get(`${p._id.toString()}_${u.unitId}`);
+          let dateMatches = true;
+          if (fromDate || toDate) {
+            if (!bookingDate || !inRange(bookingDate)) {
+              dateMatches = false;
+            }
+          }
+          if (dateMatches) {
+            projectUnitsStats[pCode].booked += 1;
+            projectUnitsStats[pCode].bookedUnitsList.push(u.unitId);
+          }
         } else if (u.status === 'Sold Out') {
           projectUnitsStats[pCode].handover += 1;
           projectUnitsStats[pCode].handoverUnitsList.push(u.unitId);
@@ -515,19 +536,28 @@ router.get('/stats', protect, async (req, res) => {
           availableByType[type] = (availableByType[type] || 0) + 1;
           availableValueByType[type] = (availableValueByType[type] || 0) + val;
         } else if (u.status === 'Booked') {
-          bookedUnits += 1;
-          bookedByType[type] = (bookedByType[type] || 0) + 1;
-          bookedValueByType[type] = (bookedValueByType[type] || 0) + val;
-          bookedUnitsList.push({
-            projectName: p.name,
-            projectCode: p.code,
-            unitId: u.unitId,
-            unitType: type,
-            size: u.size,
-            price: val,
-            customerName: u.customerName || 'N/A',
-            customerPhone: u.customerPhone || 'N/A'
-          });
+          const bookingDate = bookingDatesMap.get(`${p._id.toString()}_${u.unitId}`);
+          let dateMatches = true;
+          if (fromDate || toDate) {
+            if (!bookingDate || !inRange(bookingDate)) {
+              dateMatches = false;
+            }
+          }
+          if (dateMatches) {
+            bookedUnits += 1;
+            bookedByType[type] = (bookedByType[type] || 0) + 1;
+            bookedValueByType[type] = (bookedValueByType[type] || 0) + val;
+            bookedUnitsList.push({
+              projectName: p.name,
+              projectCode: p.code,
+              unitId: u.unitId,
+              unitType: type,
+              size: u.size,
+              price: val,
+              customerName: u.customerName || 'N/A',
+              customerPhone: u.customerPhone || 'N/A'
+            });
+          }
         } else if (u.status === 'Sold Out') {
           handoverUnits += 1;
           handoverByType[type] = (handoverByType[type] || 0) + 1;
@@ -556,7 +586,7 @@ router.get('/stats', protect, async (req, res) => {
         const pCode = cf.project.code || cf.project.name;
         if (projectUnitsStats[pCode]) {
           projectUnitsStats[pCode].cancelled += 1;
-          
+
           let cancelNarration = 'No reason provided';
           let cancelStageName = 'Unknown';
           const cancelHistory = (cf.history || []).find(h => h?.action?.includes('Cancel') || h?.action?.includes('Return'));
@@ -580,7 +610,7 @@ router.get('/stats', protect, async (req, res) => {
             date: cf.updatedAt
           });
           cancelledUnits += 1;
-          
+
           const types = cf.project.projectType || [];
           let type = 'Plot';
           if (types.length === 1) type = types[0] === 'House' ? 'Villa' : types[0];
@@ -763,7 +793,7 @@ router.get('/stats', protect, async (req, res) => {
     const totalMarketingSpend = budgetPlans.reduce((sum, plan) => sum + (plan.allocations?.reduce((s, alloc) => s + (alloc.spent || 0), 0) || 0), 0);
     const totalLeadCost = leads.reduce((sum, lead) => sum + (lead.leadCost || 0), 0);
     const costPerEnquiry = cumulativeEnquiries > 0 ? (totalMarketingSpend / cumulativeEnquiries) : 0;
-    
+
     const siteVisitConversionRate = cumulativeSiteVisits > 0 ? (siteConversionsCount / cumulativeSiteVisits) * 100 : 0;
     const bookingConversionRate = cumulativeEnquiries > 0 ? (siteConversionsCount / cumulativeEnquiries) * 100 : 0;
     const handoverRate = totalUnits > 0 ? (handoverUnits / totalUnits) * 100 : 0;
@@ -779,13 +809,13 @@ router.get('/stats', protect, async (req, res) => {
 
     Object.keys(sourceStats).forEach(srcName => {
       const statsObj = sourceStats[srcName];
-      
-      const matchingGroup = leadGroups.find(g => 
+
+      const matchingGroup = leadGroups.find(g =>
         g.sources?.some(s => s.toLowerCase() === srcName.toLowerCase())
       );
 
       const groupName = matchingGroup ? matchingGroup.name : 'Other / Unassigned';
-      
+
       groupStats[groupName].budget += statsObj.budget || 0;
       groupStats[groupName].spent += statsObj.spent || 0;
       groupStats[groupName].value += statsObj.value || 0;
@@ -904,7 +934,7 @@ router.get('/stats', protect, async (req, res) => {
       // Find assigned user from the leads array
       const leadMatch = bookingLeads.find(l => l._id.toString() === flow.lead?.toString());
       const userName = leadMatch?.assignedTo?.name || 'Unassigned';
-      
+
       crdFlowStats.usersCount[userName] = (crdFlowStats.usersCount[userName] || 0) + 1;
     });
 
@@ -933,8 +963,8 @@ router.get('/stats', protect, async (req, res) => {
         enquiries: { total: cumulativeEnquiries, live: liveEnquiries, contacted: contactedCount, followup: followupCount, closed: closedEnquiries },
         siteVisits: { total: cumulativeSiteVisits, live: liveSiteVisits, siteVisit: siteVisitCount, followup: siteVisitFollowupCount, closed: closedSiteVisits },
         hotList: { total: cumulativeHotList, live: liveHotList },
-        conversion: { 
-          count: siteConversionsCount, 
+        conversion: {
+          count: siteConversionsCount,
           value: crdTotalValue,
           received: crdReceivedValue,
           pending: crdPendingValue
@@ -1043,7 +1073,7 @@ router.get('/lead-cost-analysis', protect, async (req, res) => {
 
           if (!expenseMap[localDateStr]) expenseMap[localDateStr] = {};
           if (!expenseMap[localDateStr][formattedSource]) expenseMap[localDateStr][formattedSource] = 0;
-          
+
           expenseMap[localDateStr][formattedSource] += (exp.amount || 0);
         });
       });
@@ -1056,14 +1086,14 @@ router.get('/lead-cost-analysis', protect, async (req, res) => {
       const formattedSource = srcRaw.split(' ')
         .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
         .join(' ');
-      
+
       const d = new Date(lead.createdAt);
       const tzOffset = d.getTimezoneOffset() * 60000;
       const localDateStr = (new Date(d - tzOffset)).toISOString().split('T')[0];
 
       if (!leadCountsMap[localDateStr]) leadCountsMap[localDateStr] = {};
       if (!leadCountsMap[localDateStr][formattedSource]) leadCountsMap[localDateStr][formattedSource] = 0;
-      
+
       leadCountsMap[localDateStr][formattedSource] += 1;
     });
 
@@ -1073,14 +1103,14 @@ router.get('/lead-cost-analysis', protect, async (req, res) => {
       const formattedSource = srcRaw.split(' ')
         .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
         .join(' ');
-      
+
       const d = new Date(lead.createdAt);
       const tzOffset = d.getTimezoneOffset() * 60000;
       const localDateStr = (new Date(d - tzOffset)).toISOString().split('T')[0];
 
       const dailySpent = (expenseMap[localDateStr] && expenseMap[localDateStr][formattedSource]) ? expenseMap[localDateStr][formattedSource] : 0;
       const dailyLeads = (leadCountsMap[localDateStr] && leadCountsMap[localDateStr][formattedSource]) ? leadCountsMap[localDateStr][formattedSource] : 1;
-      
+
       const costPerEnquiry = dailySpent / dailyLeads;
 
       return {

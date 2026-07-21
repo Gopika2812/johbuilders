@@ -663,7 +663,7 @@ const CustomerDashboard = () => {
           </button>
         </header>
 
-        <div className="flex-1 overflow-y-auto p-4 md:p-8 lg:p-12 scrollbar-thin">
+        <div className="flex-1 overflow-y-auto p-4 md:p-8 lg:p-12 scrollbar-thin relative">
           <div className="w-full space-y-8 animate-fade-in-up">
             
             {/* TAB: MY PROFILE */}
@@ -1235,7 +1235,7 @@ const CustomerDashboard = () => {
                 
                 {/* Floating Action Bar for Bulk Selection */}
                 {Object.values(bulkSelections).some(s => s.selected) && (
-                  <div className="fixed top-6 right-8 bg-gray-900 backdrop-blur-xl border border-gray-800 shadow-2xl rounded-2xl px-6 py-4 flex items-center gap-4 z-50 animate-fade-in-up hover:-translate-y-1 transition-transform shadow-[#006838]/20">
+                  <div className="absolute top-6 right-8 bg-gray-900 backdrop-blur-xl border border-gray-800 shadow-2xl rounded-2xl px-6 py-4 flex items-center gap-4 z-50 animate-fade-in-up hover:-translate-y-1 transition-transform shadow-[#006838]/20">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-full bg-[#006838] text-white flex items-center justify-center font-black text-lg shadow-lg">
                         {Object.values(bulkSelections).filter(s => s.selected).length}
@@ -2252,7 +2252,6 @@ const CustomerDashboard = () => {
                 </div>
                 <div>
                   <h3 className="text-xl font-bold text-gray-900">Review Requested Works</h3>
-                  <p className="text-sm text-gray-500">Please assign quantities and billing stages.</p>
                 </div>
                 {flow.unitId && flow.unitId.includes(',') && (
                   <div className="ml-6 border-l border-gray-200 pl-6 hidden md:block">
@@ -2285,7 +2284,9 @@ const CustomerDashboard = () => {
                         <div className="flex-1">
                           <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider bg-emerald-50 px-2 py-0.5 rounded">{item.category}</span>
                           <h4 className="text-sm font-bold text-gray-900 mt-1">{item.name}</h4>
-                          <div className="text-xs text-gray-500 mt-1">Rate: {item.rate > 0 ? `Rs. ${item.rate.toLocaleString()}` : 'TBD'} / {item.unit}</div>
+                          {item.rate > 0 && (
+                            <div className="text-xs text-gray-500 mt-1">Rate: Rs. {item.rate.toLocaleString()} / {item.unit}</div>
+                          )}
                         </div>
                         <div className="flex items-center gap-4 flex-wrap md:flex-nowrap">
                           <div className="w-24">
