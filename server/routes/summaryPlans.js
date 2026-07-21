@@ -145,9 +145,10 @@ router.get('/marketing-stats/:month', protect, async (req, res) => {
       staticStats.leadsGenerated[week] += 1;
     });
 
-    // 3. SITE VISIT CONVERSIONS means leads of type 'Lead' that transitioned to 'Site Visit' status during the selected month
+    // 3. SITE VISIT CONVERSIONS means leads of type 'Lead' that transitioned to 'Site Visit' status during the selected month (excluding currently Lost/Cancelled leads)
     const conversionLeads = await Lead.find({
       leadType: 'Lead',
+      status: { $nin: ['Lost', 'Cancelled'] },
       history: {
         $elemMatch: {
           status: 'Site Visit',
