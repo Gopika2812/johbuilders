@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth, API_URL } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { 
-  TrendingUp, 
-  Users, 
-  Calendar, 
-  MapPin, 
-  DollarSign, 
+import {
+  TrendingUp,
+  Users,
+  Calendar,
+  MapPin,
+  DollarSign,
   Target,
   Search,
   ArrowRight,
@@ -184,8 +184,8 @@ const ObservedPieChart = ({
       `}</style>
 
       <div className="relative flex-1 w-full min-w-[300px] max-w-[620px] shrink-0">
-        <svg 
-          className={`w-full h-auto drop-shadow-sm opacity-0 ${isVisible ? 'animate-wheel-in' : ''}`} 
+        <svg
+          className={`w-full h-auto drop-shadow-sm opacity-0 ${isVisible ? 'animate-wheel-in' : ''}`}
           viewBox="0 0 700 500"
         >
           {(() => {
@@ -270,8 +270,8 @@ const ObservedPieChart = ({
           const color = colorPalette[index % colorPalette.length];
           const isSelected = selectedLabel === item[labelKey];
           return (
-            <div 
-              key={index} 
+            <div
+              key={index}
               onClick={() => onSegmentClick && onSegmentClick(item)}
               className={`flex items-center justify-between bg-slate-50/70 border rounded-xl px-4 py-1.5 hover:bg-slate-100 transition cursor-pointer w-full text-xs ${isSelected ? 'border-blue-500 bg-blue-50/30' : 'border-slate-100'}`}
             >
@@ -289,10 +289,10 @@ const ObservedPieChart = ({
       </div>
 
       {hoveredItem && (
-        <div 
+        <div
           className="absolute z-50 pointer-events-none bg-white/95 backdrop-blur-md text-black-800 text-[12px] px-3.5 py-2.5 rounded-2xl shadow-xl border border-[#c5a059]/40 flex flex-col gap-1 pointer-events-none transition-all duration-75"
-          style={{ 
-            left: `${mousePos.x + 15}px`, 
+          style={{
+            left: `${mousePos.x + 15}px`,
             top: `${mousePos.y + 15}px`,
             fontFamily: "'Segoe UI', system-ui, sans-serif"
           }}
@@ -408,16 +408,17 @@ const Dashboard = () => {
     }
     // 'Total Leads' needs no status filter.
 
-    // 3. Group by User, Source, and Project Type
+    // 3. Group by User, Source, Project Type, and Stage
     const comboCounts = {};
     filtered.forEach(l => {
       const user = l.assignedTo || 'Unassigned';
       const source = l.leadSource || 'Unknown';
       const type = Array.isArray(l.projectType) ? l.projectType.join(', ') : (l.projectType || 'Unknown');
-      
-      const key = `${user}|${source}|${type}`;
+      const stage = l.status || 'New';
+
+      const key = `${user}|${source}|${type}|${stage}`;
       if (!comboCounts[key]) {
-        comboCounts[key] = { user, source, type, count: 0 };
+        comboCounts[key] = { user, source, type, stage, count: 0 };
       }
       comboCounts[key].count += 1;
     });
@@ -434,7 +435,7 @@ const Dashboard = () => {
     });
     setBreakdownModalOpen(true);
   };
-  
+
   // Date filters - default to current month
   const [selectedMonth, setSelectedMonth] = useState(() => {
     const d = new Date();
@@ -450,7 +451,7 @@ const Dashboard = () => {
     const isPrivileged = user?.role === 'Superadmin' || user?.role === 'Superadmin';
     return isPrivileged ? '' : (user?._id || '');
   });
-  
+
   useEffect(() => {
     if (user && user.role !== 'Superadmin' && user.role !== 'Superadmin') {
       setSelectedUser(user._id);
@@ -465,7 +466,7 @@ const Dashboard = () => {
   const [selectedUsersList, setSelectedUsersList] = useState([]);
   const [showProjectModal, setShowProjectModal] = useState(false);
   const [selectedProjectsList, setSelectedProjectsList] = useState([]);
-  
+
   const [selectedSource, setSelectedSource] = useState('');
   const [showSourceModal, setShowSourceModal] = useState(false);
   const [selectedSourcesList, setSelectedSourcesList] = useState([]);
@@ -477,6 +478,7 @@ const Dashboard = () => {
   const [stats, setStats] = useState({
     cards: {
       totalLeads: 0,
+      assignedLeads: 0,
       liveLeads: 0,
       today: { leads: 0, enquiries: 0, siteVisits: 0, hotList: 0, booked: 0, handover: 0 },
       enquiries: { total: 0, live: 0, contacted: 0, followup: 0, closed: 0 },
@@ -500,7 +502,7 @@ const Dashboard = () => {
 
   const userPerformanceData = React.useMemo(() => {
     const data = {};
-    
+
     (stats.users || []).forEach(u => {
       data[u.name] = {
         userName: u.name,
@@ -723,8 +725,8 @@ const Dashboard = () => {
           </tr>
     `;
 
-    const dataToExport = selectedUserPerfName 
-      ? [selectedUserPerfData] 
+    const dataToExport = selectedUserPerfName
+      ? [selectedUserPerfData]
       : userPerformanceData;
 
     dataToExport.forEach((row, idx) => {
@@ -931,7 +933,7 @@ const Dashboard = () => {
       if (selectedProject) url += `&projectId=${selectedProject}`;
       if (selectedProjectType) url += `&projectType=${selectedProjectType}`;
       if (selectedSource) url += `&source=${selectedSource}`;
-      
+
       const response = await fetch(url, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -969,7 +971,7 @@ const Dashboard = () => {
   // Helper to render an SVG solid Pie chart dynamically
   const renderPieChart = (dataArray, valueKey, labelKey, colorPalette, isCount = false, onSegmentClick = null, selectedLabel = null) => {
     return (
-      <ObservedPieChart 
+      <ObservedPieChart
         dataArray={dataArray}
         valueKey={valueKey}
         labelKey={labelKey}
@@ -984,7 +986,7 @@ const Dashboard = () => {
   // Helper to render the custom interlocking swirl pie chart for JMD/JLB Project Inventories
   const renderSwirlPieChart = (dataArray, valueKey, labelKey, isCount = false, onSegmentClick = null) => {
     return (
-      <ObservedSwirlPieChart 
+      <ObservedSwirlPieChart
         dataArray={dataArray}
         valueKey={valueKey}
         labelKey={labelKey}
@@ -1011,12 +1013,12 @@ const Dashboard = () => {
 
   const handleExportExcel = async () => {
     const inventory = stats.cards.inventory || {};
-    
+
     const availableProjCount = inventory.totalProjects || 0;
-    const availableProjVal = (inventory.availableValueByType?.Plot || 0) + 
-                             (inventory.availableValueByType?.Flat || 0) + 
-                             (inventory.availableValueByType?.Villa || 0) +
-                             (inventory.availableValueByType?.House || 0);
+    const availableProjVal = (inventory.availableValueByType?.Plot || 0) +
+      (inventory.availableValueByType?.Flat || 0) +
+      (inventory.availableValueByType?.Villa || 0) +
+      (inventory.availableValueByType?.House || 0);
 
     let htmlContent = `
       <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
@@ -1095,9 +1097,9 @@ const Dashboard = () => {
       const bookedVal = (inventory.bookedValueByType?.[type] || 0) + (type === 'Villa' ? (inventory.bookedValueByType?.House || 0) : 0);
       const soldCount = (inventory.handoverByType?.[type] || 0) + (type === 'Villa' ? (inventory.handoverByType?.House || 0) : 0);
       const soldVal = (inventory.handoverValueByType?.[type] || 0) + (type === 'Villa' ? (inventory.handoverValueByType?.House || 0) : 0);
-      
+
       const rowClass = idx % 2 === 1 ? 'class="even-row"' : '';
-      
+
       htmlContent += `
         <tr ${rowClass}>
           <td class="bold-label">${type}</td>
@@ -1327,7 +1329,7 @@ const Dashboard = () => {
 
     selectedProjectNames.forEach(projName => {
       const stages = stats.projectStages[projName] || { totalLeads: 0, enquiries: 0, siteVisits: 0, hotList: 0, booked: 0, handover: 0 };
-      
+
       htmlContent += `
         <tr><td colspan="7" class="section-banner">PROJECT: ${projName}</td></tr>
         <tr>
@@ -1520,7 +1522,7 @@ const Dashboard = () => {
             <Download className="w-3.5 h-3.5 lg:w-4 lg:h-4" />
             <span>Summary Report</span>
           </button>
-          
+
           <button
             onClick={() => setShowUserModal(true)}
             className="flex items-center justify-center gap-1.5 px-3 py-2 lg:px-4 lg:py-2.5 bg-green-600 hover:bg-green-700 text-white text-[11px] lg:text-xs font-bold rounded-xl transition shadow-sm w-full lg:w-auto"
@@ -1550,7 +1552,7 @@ const Dashboard = () => {
       {/* Filtration Header Card */}
       <div className="glass-card border-none shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-3xl p-5 w-full relative transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4 items-end">
-          
+
           {/* User Select */}
           {(user?.role === 'Superadmin' || user?.role === 'Superadmin') ? (
             <div className="flex flex-col gap-1 w-full">
@@ -1689,7 +1691,7 @@ const Dashboard = () => {
                     <Building className="w-4 h-4 text-[#0e623a]" />
                     <span>{projCode} Project Inventory</span>
                   </h3>
-                 
+
                 </div>
               </div>
               <div className="py-4 px-2">
@@ -1701,11 +1703,11 @@ const Dashboard = () => {
                   <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 w-full">
                     {[
                       { label: 'Total', count: pStats.total, color: '#94a3b8', pct: 100 },
-                      { label: 'Available', count: pStats.available, color: '#7ebda9', pct: pStats.total > 0 ? (pStats.available/pStats.total)*100 : 0 },
-                      { label: 'Booked', count: (pStats.booked || 0) + (pStats.handover || 0), color: '#8bc34a', pct: pStats.total > 0 ? (((pStats.booked || 0) + (pStats.handover || 0))/pStats.total)*100 : 0 },
+                      { label: 'Available', count: pStats.available, color: '#7ebda9', pct: pStats.total > 0 ? (pStats.available / pStats.total) * 100 : 0 },
+                      { label: 'Booked', count: (pStats.booked || 0) + (pStats.handover || 0), color: '#8bc34a', pct: pStats.total > 0 ? (((pStats.booked || 0) + (pStats.handover || 0)) / pStats.total) * 100 : 0 },
                     ].map((slot, index) => {
                       return (
-                        <div key={index} 
+                        <div key={index}
                           onClick={() => {
                             setSelectedInventoryProj({ projCode, stats: pStats, view: slot.label === 'Total' ? '' : slot.label.toLowerCase() });
                             setInventoryModalOpen(true);
@@ -1721,9 +1723,9 @@ const Dashboard = () => {
                         </div>
                       );
                     })}
-                    
+
                     {/* Cancelled Units display */}
-                    <div 
+                    <div
                       onClick={() => {
                         setSelectedInventoryProj({ projCode, stats: pStats, view: 'cancelled' });
                         setInventoryModalOpen(true);
@@ -1768,9 +1770,9 @@ const Dashboard = () => {
           <div>
             <h4 className="text-sm font-black text-black uppercase tracking-wider mb-3 text-left">Lead Details</h4>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              
+
               {/* Card 1: Total Leads */}
-              <div 
+              <div
                 onClick={handleLeadsCardClick}
                 className="bg-[#f0fbf4] border-none rounded-3xl p-6 shadow-sm hover:shadow-md transition cursor-pointer select-none active:scale-[0.99] duration-150 flex flex-col justify-between"
               >
@@ -1778,26 +1780,29 @@ const Dashboard = () => {
                   <div>
                     <span className="text-sm text-black font-extrabold uppercase tracking-wider">Total Leads</span>
                     <h3 className="text-3xl font-extrabold text-black-800 mt-1">{stats.cards.totalLeads || 0}</h3>
+                    <div className="text-xs text-gray-500 font-bold mt-1">
+                      assigned ({stats.cards.assignedLeads || 0})
+                    </div>
                   </div>
                 </div>
               </div>
 
               {/* Card 2: Total Followup */}
-              <div 
+              <div
                 className="bg-[#f0fbf4] border-none rounded-3xl p-6 shadow-sm transition flex flex-col justify-between"
               >
                 <div className="flex items-center justify-between">
                   <div>
                     <span className="text-sm text-black font-extrabold uppercase tracking-wider">Total Followup</span>
                     <h3 className="text-3xl font-extrabold text-black-800 mt-1">
-                      { (stats.cards.enquiries?.contacted || 0) + (stats.cards.enquiries?.followup || 0) + (stats.cards.siteVisits?.live || 0) }
+                      {(stats.cards.enquiries?.contacted || 0) + (stats.cards.enquiries?.followup || 0) + (stats.cards.siteVisits?.live || 0)}
                     </h3>
                   </div>
                 </div>
               </div>
 
               {/* Card 3: Total Booked */}
-              <div 
+              <div
                 onClick={handleBookedCardClick}
                 className="bg-[#f0fbf4] border-none rounded-3xl p-6 shadow-sm hover:shadow-md transition cursor-pointer select-none active:scale-[0.99] duration-150 flex flex-col justify-between"
               >
@@ -1810,7 +1815,7 @@ const Dashboard = () => {
               </div>
 
               {/* Card 4: Lost Leads */}
-              <div 
+              <div
                 className="bg-[#fcf3f3] border-none rounded-3xl p-6 shadow-sm hover:shadow-md transition cursor-pointer select-none active:scale-[0.99] duration-150 flex flex-col justify-between"
               >
                 <div className="flex items-center justify-between">
@@ -1829,11 +1834,11 @@ const Dashboard = () => {
 
 
           {/* Pending Follow-ups Widget */}
-          
+
 
           {/* User Wise & Stage Wise Performance Pie Reports */}
           <div className="flex flex-col gap-8">
-            
+
             {/* User turn over Pie Chart */}
             <div className="bg-[#f0fbf4] border-none rounded-3xl p-6 shadow-sm space-y-6">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-black-100 pb-3 gap-2">
@@ -1861,7 +1866,7 @@ const Dashboard = () => {
                     <span>Preview & Export</span>
                   </button>
                   {selectedUserPerfName && (
-                    <button 
+                    <button
                       onClick={() => setSelectedUserPerfName(null)}
                       className="px-2.5 py-1 text-[11px] font-bold text-emerald-600 hover:text-emerald-700 bg-emerald-50 hover:bg-emerald-100/80 rounded-xl transition"
                     >
@@ -1870,7 +1875,7 @@ const Dashboard = () => {
                   )}
                 </div>
               </div>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
                 <div className="md:col-span-7">
                   {userPerformanceData.length === 0 ? (
@@ -1887,7 +1892,7 @@ const Dashboard = () => {
                     )
                   )}
                 </div>
-                
+
                 <div className="md:col-span-5 bg-black-50/50 rounded-2xl p-4 border-none space-y-4">
                   <div className="border-b border-black-200/60 pb-2">
                     <span className="text-[10px] text-black-400 font-extrabold uppercase tracking-wider block">Currently Showing</span>
@@ -1895,7 +1900,7 @@ const Dashboard = () => {
                       {selectedUserPerfData.userName}
                     </h4>
                   </div>
-                  
+
                   <div className="space-y-3">
                     {[
                       { label: 'Total Leads', count: selectedUserPerfData.totalLeads, color: 'bg-black-400', icon: TrendingUp },
@@ -1907,12 +1912,12 @@ const Dashboard = () => {
                       { label: 'Lost', count: selectedUserPerfData.lost, color: 'bg-red-500', icon: TrendingDown }
                     ].filter(m => m.label === 'Total Leads' || m.count > 0).map((m, idx) => {
                       const IconComponent = m.icon;
-                      const percentageOfTotal = selectedUserPerfData.totalLeads > 0 
-                        ? (m.count / selectedUserPerfData.totalLeads) * 100 
+                      const percentageOfTotal = selectedUserPerfData.totalLeads > 0
+                        ? (m.count / selectedUserPerfData.totalLeads) * 100
                         : 0;
                       return (
-                        <div 
-                          key={idx} 
+                        <div
+                          key={idx}
                           className="space-y-1 cursor-pointer hover:bg-black-100 p-1.5 rounded-xl transition duration-150"
                           onClick={() => handleStageClick(m.label, 'user')}
                           title={`Click to see User breakdown for ${m.label}`}
@@ -1932,7 +1937,7 @@ const Dashboard = () => {
                             </div>
                           </div>
                           <div className="w-full h-1.5 bg-black-100 rounded-full overflow-hidden">
-                            <div 
+                            <div
                               className={`h-full ${m.color} rounded-full transition-all duration-500`}
                               style={{ width: `${Math.min(100, percentageOfTotal || (m.label === 'Total Leads' && m.count > 0 ? 100 : 0))}%` }}
                             ></div>
@@ -1952,7 +1957,7 @@ const Dashboard = () => {
                   <h3 className="text-sm font-extrabold text-black-800 uppercase tracking-wide">
                     Source Wise Lead Details
                   </h3>
-                  
+
                 </div>
                 <div className="flex items-center gap-2 self-start sm:self-auto">
                   <select
@@ -1976,7 +1981,7 @@ const Dashboard = () => {
                     <span>Preview & Export</span>
                   </button>
                   {selectedSourceGroup && (
-                    <button 
+                    <button
                       onClick={() => {
                         if (selectedSubSource) {
                           setSelectedSubSource(null);
@@ -1990,7 +1995,7 @@ const Dashboard = () => {
                     </button>
                   )}
                   {(selectedSourceGroup || selectedSubSource) && (
-                    <button 
+                    <button
                       onClick={() => {
                         setSelectedSourceGroup(null);
                         setSelectedSubSource(null);
@@ -2002,7 +2007,7 @@ const Dashboard = () => {
                   )}
                 </div>
               </div>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
                 <div className="md:col-span-7">
                   {sourceGroupsPerformanceData.length === 0 ? (
@@ -2031,7 +2036,7 @@ const Dashboard = () => {
                     )
                   )}
                 </div>
-                
+
                 <div className="md:col-span-5 bg-black-50/50 rounded-2xl p-4 border-none space-y-4">
                   <div className="border-b border-black-200/60 pb-2">
                     <span className="text-[10px] text-black-400 font-extrabold uppercase tracking-wider block">Currently Showing</span>
@@ -2039,7 +2044,7 @@ const Dashboard = () => {
                       {selectedSourcePerfData.displayName}
                     </h4>
                   </div>
-                  
+
                   <div className="space-y-3">
                     {[
                       { label: 'Total Leads', count: selectedSourcePerfData.totalLeads, color: 'bg-black-400', icon: TrendingUp },
@@ -2051,12 +2056,12 @@ const Dashboard = () => {
                       { label: 'Lost', count: selectedSourcePerfData.lost, color: 'bg-red-500', icon: TrendingDown }
                     ].filter(m => m.label === 'Total Leads' || m.count > 0).map((m, idx) => {
                       const IconComponent = m.icon;
-                      const percentageOfTotal = selectedSourcePerfData.totalLeads > 0 
-                        ? (m.count / selectedSourcePerfData.totalLeads) * 100 
+                      const percentageOfTotal = selectedSourcePerfData.totalLeads > 0
+                        ? (m.count / selectedSourcePerfData.totalLeads) * 100
                         : 0;
                       return (
-                        <div 
-                          key={idx} 
+                        <div
+                          key={idx}
                           className="space-y-1 cursor-pointer hover:bg-black-100 p-1.5 rounded-xl transition duration-150"
                           onClick={() => handleStageClick(m.label, 'source')}
                           title={`Click to see User breakdown for ${m.label}`}
@@ -2076,7 +2081,7 @@ const Dashboard = () => {
                             </div>
                           </div>
                           <div className="w-full h-1.5 bg-black-100 rounded-full overflow-hidden">
-                            <div 
+                            <div
                               className={`h-full ${m.color} rounded-full transition-all duration-500`}
                               style={{ width: `${Math.min(100, percentageOfTotal || (m.label === 'Total Leads' && m.count > 0 ? 100 : 0))}%` }}
                             ></div>
@@ -2097,7 +2102,7 @@ const Dashboard = () => {
             <h3 className="text-sm font-extrabold text-black-800 uppercase tracking-wide border-b border-black-100 pb-3 text-left">
               Project  Summary
             </h3>
-            
+
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse text-sm">
                 <thead>
@@ -2105,7 +2110,7 @@ const Dashboard = () => {
                     <th className="p-4 w-12 text-center">S.NO.</th>
                     <th className="p-4 w-32">PROJECT CODE</th>
                     <th className="p-4">PIPELINE STAGE SPLITS</th>
-                    
+
                     <th className="p-4 w-32 text-right">TOTAL LEADS</th>
                   </tr>
                 </thead>
@@ -2124,7 +2129,7 @@ const Dashboard = () => {
                           <td className="p-4">
                             <div className="flex flex-wrap gap-2">
                               {Object.keys(p.stages || {}).map(stageName => (
-                                <span 
+                                <span
                                   key={stageName}
                                   className="text-[13px] font-bold px-2.5 py-1 bg-black-50 border-none text-black-650 rounded-xl"
                                 >
@@ -2133,7 +2138,7 @@ const Dashboard = () => {
                               ))}
                             </div>
                           </td>
-                          
+
                           <td className="p-4 text-right font-black text-black-900 text-base">
                             {p.count}
                           </td>
@@ -2154,11 +2159,11 @@ const Dashboard = () => {
                   <h3 className="text-sm font-extrabold text-black-800 uppercase tracking-wide">
                     Project Wise Leads Share
                   </h3>
-                 
+
                 </div>
                 <div className="flex items-center gap-2 self-start sm:self-auto">
                   {selectedProjectPerfCode && (
-                    <button 
+                    <button
                       onClick={() => {
                         setSelectedProjectPerfCode(null);
                         setSelectedProjectPerfUser(null);
@@ -2227,12 +2232,12 @@ const Dashboard = () => {
                             })
                         ].filter(m => m.label === 'Total Leads' || m.count > 0).map((m, idx) => {
                           const IconComponent = m.icon;
-                          const percentageOfTotal = stats.projectStats[selectedProjectPerfCode].count > 0 
-                            ? (m.count / stats.projectStats[selectedProjectPerfCode].count) * 100 
+                          const percentageOfTotal = stats.projectStats[selectedProjectPerfCode].count > 0
+                            ? (m.count / stats.projectStats[selectedProjectPerfCode].count) * 100
                             : 0;
                           return (
-                            <div 
-                              key={idx} 
+                            <div
+                              key={idx}
                               className="space-y-1 p-1.5 rounded-xl transition duration-150"
                             >
                               <div className="flex items-center justify-between text-[12px]">
@@ -2250,7 +2255,7 @@ const Dashboard = () => {
                                 </div>
                               </div>
                               <div className="w-full h-1.5 bg-black-100 rounded-full overflow-hidden">
-                                <div 
+                                <div
                                   className={`h-full ${m.color} rounded-full transition-all duration-500`}
                                   style={{ width: `${Math.min(100, percentageOfTotal || (m.label === 'Total Leads' && m.count > 0 ? 100 : 0))}%` }}
                                 ></div>
@@ -2280,7 +2285,7 @@ const Dashboard = () => {
               <h3 className="text-lg font-extrabold text-black-800">Export User Wise Report</h3>
               <p className="text-xs text-black-500 mt-1">Select one or more sales executives to include in the report</p>
             </div>
-            
+
             <div className="p-6 max-h-60 overflow-y-auto space-y-2">
               <label className="flex items-center gap-2.5 p-2 hover:bg-black-50 rounded-xl cursor-pointer transition">
                 <input
@@ -2297,9 +2302,9 @@ const Dashboard = () => {
                 />
                 <span className="text-xs font-bold text-[#0e623a]">Select All Users</span>
               </label>
-              
+
               <div className="h-px bg-black-100 my-2"></div>
-              
+
               {(stats.users || []).map(user => (
                 <label key={user._id} className="flex items-center gap-2.5 p-2 hover:bg-black-50 rounded-xl cursor-pointer transition">
                   <input
@@ -2319,7 +2324,7 @@ const Dashboard = () => {
                 </label>
               ))}
             </div>
-            
+
             <div className="p-6 bg-black-50 border-t border-black-150 flex items-center justify-end gap-2">
               <button
                 onClick={() => {
@@ -2357,7 +2362,7 @@ const Dashboard = () => {
               <h3 className="text-lg font-extrabold text-black-800">Export Project Wise Report</h3>
               <p className="text-xs text-black-550 mt-1">Select one or more projects to include in the report</p>
             </div>
-            
+
             <div className="p-6 max-h-60 overflow-y-auto space-y-2">
               <label className="flex items-center gap-2.5 p-2 hover:bg-black-50 rounded-xl cursor-pointer transition">
                 <input
@@ -2374,9 +2379,9 @@ const Dashboard = () => {
                 />
                 <span className="text-xs font-bold text-[#0e623a]">Select All Projects</span>
               </label>
-              
+
               <div className="h-px bg-black-100 my-2"></div>
-              
+
               {(stats.projects || []).map(proj => {
                 const name = proj.code || proj.name;
                 return (
@@ -2398,7 +2403,7 @@ const Dashboard = () => {
                 );
               })}
             </div>
-            
+
             <div className="p-6 bg-black-50 border-t border-black-150 flex items-center justify-end gap-2">
               <button
                 onClick={() => {
@@ -2436,7 +2441,7 @@ const Dashboard = () => {
               <h3 className="text-lg font-extrabold text-black-800">Export Source Wise Report</h3>
               <p className="text-xs text-black-550 mt-1">Select one or more marketing sources to include in the report</p>
             </div>
-            
+
             <div className="p-6 max-h-60 overflow-y-auto space-y-2">
               <label className="flex items-center gap-2.5 p-2 hover:bg-black-50 rounded-xl cursor-pointer transition">
                 <input
@@ -2453,9 +2458,9 @@ const Dashboard = () => {
                 />
                 <span className="text-xs font-bold text-[#0e623a]">Select All Sources</span>
               </label>
-              
+
               <div className="h-px bg-black-100 my-2"></div>
-              
+
               {Object.keys(stats.sourceStats || {}).map(src => (
                 <label key={src} className="flex items-center gap-2.5 p-2 hover:bg-black-50 rounded-xl cursor-pointer transition">
                   <input
@@ -2474,7 +2479,7 @@ const Dashboard = () => {
                 </label>
               ))}
             </div>
-            
+
             <div className="p-6 bg-black-50 border-t border-black-150 flex items-center justify-end gap-2">
               <button
                 onClick={() => {
@@ -2507,14 +2512,14 @@ const Dashboard = () => {
       {/* Stage User Breakdown Modal Popup */}
       {breakdownModalOpen && (
         <div className="fixed inset-0 bg-black-900/60 backdrop-blur-sm z-[999] flex items-center justify-center p-4">
-          <div className="bg-[#f0fbf4] rounded-3xl border-none shadow-2xl w-full max-w-md max-h-[80vh] flex flex-col overflow-hidden text-left animate-fadeIn animate-duration-150">
+          <div className="bg-[#f0fbf4] rounded-3xl border-none shadow-2xl w-full max-w-2xl max-h-[80vh] flex flex-col overflow-hidden text-left animate-fadeIn animate-duration-150">
             {/* Header */}
             <div className="p-6 border-b border-black-150 flex items-center justify-between bg-black-50/50">
               <div>
                 <h3 className="text-sm font-extrabold text-black-800 uppercase tracking-wide">{breakdownModalData.title}</h3>
-                <p className="text-[11px] text-black-500 mt-0.5">Assigned executives, lead sources, project types and counts</p>
+                <p className="text-[11px] text-black-500 mt-0.5">Assigned executives, lead sources, project types, stages and counts</p>
               </div>
-              <button 
+              <button
                 onClick={() => setBreakdownModalOpen(false)}
                 className="w-8 h-8 rounded-full flex items-center justify-center bg-black-100 text-black-400 hover:bg-red-50 hover:text-red-500 transition cursor-pointer font-bold text-sm animate-scaleUp"
               >
@@ -2525,13 +2530,14 @@ const Dashboard = () => {
             {/* Content List */}
             <div className="flex-grow p-0 overflow-y-auto max-h-[55vh] scrollbar-thin">
               {breakdownModalData.comboData && breakdownModalData.comboData.length > 0 ? (
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto border-none">
                   <table className="w-full text-left border-collapse text-xs">
                     <thead className="bg-black-50/80 sticky top-0 z-10 backdrop-blur-sm">
                       <tr className="border-b border-black-150 text-[11px] font-bold text-black-500 uppercase tracking-wider">
                         <th className="p-4 whitespace-nowrap">User</th>
                         <th className="p-4 whitespace-nowrap">Source</th>
                         <th className="p-4 whitespace-nowrap">Project Type</th>
+                        <th className="p-4 whitespace-nowrap">Stage</th>
                         <th className="p-4 whitespace-nowrap text-right">Leads Count</th>
                       </tr>
                     </thead>
@@ -2541,6 +2547,35 @@ const Dashboard = () => {
                           <td className="p-4 text-black-850 font-bold">{row.user}</td>
                           <td className="p-4 text-[#0e623a]">{row.source}</td>
                           <td className="p-4 text-black-500 truncate max-w-[150px]" title={row.type}>{row.type}</td>
+                          <td className="p-4 whitespace-nowrap">
+                            {(() => {
+                              const s = row.stage || 'New';
+                              let badgeClass = 'bg-blue-50 text-blue-700 border-blue-200';
+                              let displayStatus = s;
+
+                              if (s === 'Contacted' || s === 'Follow-Up' || s === 'Followup') {
+                                badgeClass = 'bg-orange-50 text-orange-700 border border-orange-200';
+                              } else if (s === 'Site Visit' || s === 'Site Visit Follow-up') {
+                                badgeClass = 'bg-yellow-50 text-yellow-805 border border-yellow-200';
+                              } else if (s === 'Booking' || s === 'Booked') {
+                                badgeClass = 'bg-[#f0fbf4] text-[#0e623a] border border-[#bce2cb]';
+                                displayStatus = 'Booked';
+                              } else if (s === 'Won') {
+                                badgeClass = 'bg-emerald-50 text-emerald-700 border border-emerald-200';
+                                displayStatus = 'Won';
+                              } else if (s === 'Lost') {
+                                badgeClass = 'bg-red-50 text-red-700 border border-red-200';
+                              } else if (s === 'Assigned') {
+                                badgeClass = 'bg-purple-50 text-purple-700 border border-purple-200';
+                              }
+
+                              return (
+                                <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider ${badgeClass}`}>
+                                  {displayStatus}
+                                </span>
+                              );
+                            })()}
+                          </td>
                           <td className="p-4 text-right">
                             <span className="bg-black-100 text-black-800 px-2.5 py-1 rounded-xl font-extrabold text-[11px]">
                               {row.count}
@@ -2581,7 +2616,7 @@ const Dashboard = () => {
                 <h3 className="text-base font-extrabold text-black-800">Filtered Leads Directory</h3>
                 <p className="text-[11px] text-black-500 mt-0.5">Showing leads corresponding to current active filters</p>
               </div>
-              <button 
+              <button
                 onClick={() => setLeadsModalOpen(false)}
                 className="w-8 h-8 rounded-full flex items-center justify-center bg-black-100 text-black-400 hover:bg-red-50 hover:text-red-500 transition cursor-pointer font-bold"
               >
@@ -2591,75 +2626,89 @@ const Dashboard = () => {
 
             {/* List Content */}
             <div className="flex-grow p-6 overflow-y-auto max-h-[50vh] scrollbar-thin">
-              {stats.cards.leadsList && stats.cards.leadsList.length > 0 ? (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left border-collapse">
-                    <thead>
-                      <tr className="border-b border-black-100 text-[11px] font-bold text-black-400 uppercase tracking-wider">
-                        <th className="pb-3">Lead Name</th>
-                        <th className="pb-3">Lead Source</th>
-                        <th className="pb-3">Project Details</th>
-                        <th className="pb-3">Stage</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-black-50 text-xs font-semibold text-black-700">
-                      {stats.cards.leadsList.map((lead, idx) => (
-                        <tr key={lead._id || idx} className="hover:bg-black-50/50 transition">
-                          <td className="py-3.5 font-bold text-black-850">{lead.name}</td>
-                          <td className="py-3.5">
-                            <span className="bg-black-100 text-black-600 px-2.5 py-0.5 rounded-full text-[11px] font-bold">
-                              {lead.leadSource}
-                            </span>
-                          </td>
-                          <td className="py-3.5">
-                            <div className="flex flex-col gap-0.5">
-                              <span className="font-bold text-black-800">{lead.projectName}</span>
-                              <span className="text-[11px] text-black-450 font-bold uppercase tracking-wide">
-                                Type: {Array.isArray(lead.projectType) ? lead.projectType.join(', ') : lead.projectType}
-                              </span>
-                            </div>
-                          </td>
-                          <td className="py-3.5">
-                            {(() => {
-                              const s = lead.status || 'New';
-                              let badgeClass = 'bg-blue-50 text-blue-700 border-blue-200';
-                              let displayStatus = s;
-                              
-                              if (s === 'Contacted' || s === 'Follow-Up' || s === 'Followup') {
-                                badgeClass = 'bg-orange-50 text-orange-700 border border-orange-200';
-                              } else if (s === 'Site Visit' || s === 'Site Visit Follow-up') {
-                                badgeClass = 'bg-yellow-50 text-yellow-805 border border-yellow-200';
-                              } else if (s === 'Booking' || s === 'Booked') {
-                                badgeClass = 'bg-[#f0fbf4] text-[#0e623a] border border-[#bce2cb]';
-                                displayStatus = 'Booked';
-                              } else if (s === 'Won') {
-                                badgeClass = 'bg-emerald-50 text-emerald-700 border border-emerald-200';
-                                displayStatus = 'Won';
-                              } else if (s === 'Lost') {
-                                badgeClass = 'bg-red-50 text-red-700 border border-red-200';
-                              } else if (s === 'Assigned') {
-                                badgeClass = 'bg-purple-50 text-purple-700 border border-purple-200';
-                              }
-                              
-                              return (
-                                <span className={`px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider ${badgeClass}`}>
-                                  {displayStatus}
-                                </span>
-                              );
-                            })()}
-                          </td>
+              {(() => {
+                const filteredLeadsList = (stats.cards.leadsList || []).filter(lead => {
+                  if (!lead.createdAt) return true;
+                  const d = new Date(lead.createdAt);
+                  if (fromDate && d < new Date(fromDate)) return false;
+                  if (toDate) {
+                    const end = new Date(toDate);
+                    end.setHours(23, 59, 59, 999);
+                    if (d > end) return false;
+                  }
+                  return true;
+                });
+
+                return filteredLeadsList.length > 0 ? (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse">
+                      <thead>
+                        <tr className="border-b border-black-100 text-[11px] font-bold text-black-400 uppercase tracking-wider">
+                          <th className="pb-3">Lead Name</th>
+                          <th className="pb-3">Lead Source</th>
+                          <th className="pb-3">Project Details</th>
+                          <th className="pb-3">Stage</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <div className="py-12 text-center text-black-450 italic text-xs">
-                  No leads available for this filtered configuration.
-                </div>
-              )}
+                      </thead>
+                      <tbody className="divide-y divide-black-50 text-xs font-semibold text-black-700">
+                        {filteredLeadsList.map((lead, idx) => (
+                          <tr key={lead._id || idx} className="hover:bg-black-50/50 transition">
+                            <td className="py-3.5 font-bold text-black-850">{lead.name}</td>
+                            <td className="py-3.5">
+                              <span className="bg-black-100 text-black-600 px-2.5 py-0.5 rounded-full text-[11px] font-bold">
+                                {lead.leadSource}
+                              </span>
+                            </td>
+                            <td className="py-3.5">
+                              <div className="flex flex-col gap-0.5">
+                                <span className="font-bold text-black-800">{lead.projectName}</span>
+                                <span className="text-[11px] text-black-450 font-bold uppercase tracking-wide">
+                                  Type: {Array.isArray(lead.projectType) ? lead.projectType.join(', ') : lead.projectType}
+                                </span>
+                              </div>
+                            </td>
+                            <td className="py-3.5">
+                              {(() => {
+                                const s = lead.status || 'New';
+                                let badgeClass = 'bg-blue-50 text-blue-700 border-blue-200';
+                                let displayStatus = s;
+
+                                if (s === 'Contacted' || s === 'Follow-Up' || s === 'Followup') {
+                                  badgeClass = 'bg-orange-50 text-orange-700 border border-orange-200';
+                                } else if (s === 'Site Visit' || s === 'Site Visit Follow-up') {
+                                  badgeClass = 'bg-yellow-50 text-yellow-805 border border-yellow-200';
+                                } else if (s === 'Booking' || s === 'Booked') {
+                                  badgeClass = 'bg-[#f0fbf4] text-[#0e623a] border border-[#bce2cb]';
+                                  displayStatus = 'Booked';
+                                } else if (s === 'Won') {
+                                  badgeClass = 'bg-emerald-50 text-emerald-700 border border-emerald-200';
+                                  displayStatus = 'Won';
+                                } else if (s === 'Lost') {
+                                  badgeClass = 'bg-red-50 text-red-700 border border-red-200';
+                                } else if (s === 'Assigned') {
+                                  badgeClass = 'bg-purple-50 text-purple-700 border border-purple-200';
+                                }
+
+                                return (
+                                  <span className={`px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider ${badgeClass}`}>
+                                    {displayStatus}
+                                  </span>
+                                );
+                              })()}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div className="py-12 text-center text-black-450 italic text-xs">
+                    No leads available for this filtered configuration.
+                  </div>
+                );
+              })()}
             </div>
-            
+
             {/* Footer */}
             <div className="p-5 border-t border-black-150 bg-black-50/30 flex justify-end">
               <button
@@ -2686,7 +2735,7 @@ const Dashboard = () => {
                 <h3 className="text-base font-extrabold text-amber-800">Booked Units Directory</h3>
                 <p className="text-[11px] text-amber-700 mt-0.5">Showing registered unit bookings and customer information</p>
               </div>
-              <button 
+              <button
                 onClick={() => setBookedModalOpen(false)}
                 className="w-8 h-8 rounded-full flex items-center justify-center bg-[#f0fbf4] text-black-400 hover:bg-red-50 hover:text-red-500 transition cursor-pointer font-bold border-none"
               >
@@ -2744,7 +2793,7 @@ const Dashboard = () => {
                 </div>
               )}
             </div>
-            
+
             {/* Footer */}
             <div className="p-5 border-t border-black-150 bg-black-50/30 flex justify-end">
               <button
@@ -2771,7 +2820,7 @@ const Dashboard = () => {
                 <h3 className="text-base font-extrabold text-rose-800">Handover Units Directory</h3>
                 <p className="text-[11px] text-rose-700 mt-0.5">Showing completed handovers and client information</p>
               </div>
-              <button 
+              <button
                 onClick={() => setHandoverModalOpen(false)}
                 className="w-8 h-8 rounded-full flex items-center justify-center bg-[#f0fbf4] text-black-400 hover:bg-red-50 hover:text-red-500 transition cursor-pointer font-bold border-none"
               >
@@ -2829,7 +2878,7 @@ const Dashboard = () => {
                 </div>
               )}
             </div>
-            
+
             {/* Footer */}
             <div className="p-5 border-t border-black-150 bg-black-50/30 flex justify-end">
               <button
@@ -2856,7 +2905,7 @@ const Dashboard = () => {
                 <h3 className="text-base font-extrabold text-blue-800">Detailed Performance Report Preview</h3>
                 <p className="text-[11px] text-blue-700 mt-0.5">Review the overall stage splits for all sales executives before downloading</p>
               </div>
-              <button 
+              <button
                 onClick={() => setShowDetailedPreviewModal(false)}
                 className="w-8 h-8 rounded-full flex items-center justify-center bg-[#f0fbf4] text-black-400 hover:bg-red-50 hover:text-red-500 transition cursor-pointer font-bold border-none"
               >
@@ -2895,7 +2944,7 @@ const Dashboard = () => {
                         <td className="p-3 text-center text-red-600">{row.lost}</td>
                       </tr>
                     ))}
-                    
+
                     {/* Totals Row */}
                     {userPerformanceData.length > 0 && (
                       <tr className="bg-emerald-50/20 font-bold text-black-850 border-t border-black-200">
@@ -2948,7 +2997,7 @@ const Dashboard = () => {
                 <h3 className="text-base font-extrabold text-blue-800">Source Detailed Performance Report Preview</h3>
                 <p className="text-[11px] text-blue-700 mt-0.5">Review the overall stage splits for all marketing sources before downloading</p>
               </div>
-              <button 
+              <button
                 onClick={() => setShowSourceDetailedPreviewModal(false)}
                 className="w-8 h-8 rounded-full flex items-center justify-center bg-[#f0fbf4] text-black-400 hover:bg-red-50 hover:text-red-500 transition cursor-pointer font-bold border-none"
               >
@@ -2995,7 +3044,7 @@ const Dashboard = () => {
                           });
                         });
                       });
-                      
+
                       return (
                         <>
                           {rows.map((row, idx) => (
@@ -3012,7 +3061,7 @@ const Dashboard = () => {
                               <td className="p-3 text-center text-red-600">{row.lost}</td>
                             </tr>
                           ))}
-                          
+
                           {/* Totals Row */}
                           {rows.length > 0 && (
                             <tr className="bg-emerald-50/20 font-bold text-black-855 border-t border-black-200">
@@ -3067,7 +3116,7 @@ const Dashboard = () => {
                 <h3 className="text-base font-extrabold">{selectedInventoryProj.projCode} Project Inventory Details</h3>
                 <p className="text-[11px] text-emerald-100 mt-0.5">Detailed breakdown of registered units and stages</p>
               </div>
-              <button 
+              <button
                 onClick={() => setInventoryModalOpen(false)}
                 className="w-8 h-8 rounded-full flex items-center justify-center bg-[#f0fbf4]/10 text-white hover:bg-[#f0fbf4]/20 transition cursor-pointer font-bold border border-white/25"
               >
@@ -3099,7 +3148,7 @@ const Dashboard = () => {
 
               {/* Units Lists sections */}
               <div className="space-y-4">
-                
+
                 {/* Total Units List */}
                 <div className="space-y-2">
                   <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wide flex items-center gap-1.5">
@@ -3112,7 +3161,7 @@ const Dashboard = () => {
                         const isAvailable = selectedInventoryProj.stats.availableUnitsList?.includes(uid);
                         const isBooked = selectedInventoryProj.stats.bookedUnitsList?.includes(uid) || selectedInventoryProj.stats.handoverUnitsList?.includes(uid);
                         const isCancelled = selectedInventoryProj.stats.cancelledUnitsList?.some(u => u.unitId === uid);
-                        
+
                         let bgClass = "bg-blue-100 text-blue-800 border-blue-200"; // Fallback / Total
                         if (isAvailable) bgClass = "bg-green-100 text-green-800 border-green-200";
                         if (isBooked) bgClass = "bg-yellow-100 text-yellow-800 border-yellow-300";

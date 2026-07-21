@@ -130,6 +130,7 @@ router.get('/stats', protect, async (req, res) => {
 
     let cumulativeLeads = 0;
     let liveLeadsCount = 0;
+    let assignedLeadsCount = 0;
 
     let cumulativeEnquiries = 0;
     let liveEnquiries = 0;
@@ -273,6 +274,9 @@ router.get('/stats', protect, async (req, res) => {
       const createdInRange = inRange(lead.createdAt);
       if (createdInRange) {
         cumulativeLeads++;
+        if (lead.status === 'Assigned') {
+          assignedLeadsCount++;
+        }
       }
       if (!lead.isClosed && status !== 'Lost') {
         liveLeadsCount++;
@@ -942,6 +946,7 @@ router.get('/stats', protect, async (req, res) => {
       crdFlowStats,
       cards: {
         totalLeads: cumulativeLeads,
+        assignedLeads: assignedLeadsCount,
         liveLeads: liveLeadsCount,
         today: {
           leads: todayLeadsCount,
@@ -958,7 +963,8 @@ router.get('/stats', protect, async (req, res) => {
           projectType: l.project?.projectType || 'N/A',
           projectName: l.project?.name || 'N/A',
           assignedTo: l.assignedTo?.name || 'Unassigned',
-          status: l.status
+          status: l.status,
+          createdAt: l.createdAt
         })),
         enquiries: { total: cumulativeEnquiries, live: liveEnquiries, contacted: contactedCount, followup: followupCount, closed: closedEnquiries },
         siteVisits: { total: cumulativeSiteVisits, live: liveSiteVisits, siteVisit: siteVisitCount, followup: siteVisitFollowupCount, closed: closedSiteVisits },
