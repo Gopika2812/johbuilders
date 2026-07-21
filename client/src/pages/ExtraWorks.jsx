@@ -82,6 +82,7 @@ const ExtraWorksInner = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
 
   // Export Modal
   const [showExportModal, setShowExportModal] = useState(false);
@@ -439,7 +440,35 @@ const ExtraWorksInner = () => {
       matchesDate = flowDate >= start && flowDate <= end;
     }
 
-    return matchesSearch && matchesDate;
+    let matchesStatus = true;
+    if (statusFilter !== 'all') {
+      const isFlowNew = flow.stages?.some(stage =>
+        stage.extraWorks?.some(work =>
+          isWorkVisible(work) && !work.sentToPedDate && work.status === 'Pending'
+        )
+      );
+      const currentFlowStatus = isFlowNew ? 'new' : 'old';
+      matchesStatus = currentFlowStatus === statusFilter;
+    }
+
+    return matchesSearch && matchesDate && matchesStatus;
+  }).sort((a, b) => {
+    const aNew = a.stages?.some(stage =>
+      stage.extraWorks?.some(work =>
+        isWorkVisible(work) && !work.sentToPedDate && work.status === 'Pending'
+      )
+    );
+    const bNew = b.stages?.some(stage =>
+      stage.extraWorks?.some(work =>
+        isWorkVisible(work) && !work.sentToPedDate && work.status === 'Pending'
+      )
+    );
+
+    if (aNew && !bNew) return -1;
+    if (!aNew && bNew) return 1;
+
+    // Tie-breaker: sort by flow creation date (latest first)
+    return new Date(b.createdAt) - new Date(a.createdAt);
   });
 
   const exportToExcel = async () => {
@@ -523,13 +552,15 @@ const ExtraWorksInner = () => {
       // Data
       filteredFlows.forEach(flow => {
         const activeExtraWorksTotal = calculateActiveExtraWorksTotal(flow);
-        const isOld = flow.stages?.some(s =>
-          s.extraWorks?.some(w => w.sentToPedDate || w.status !== 'Pending')
+        const isFlowNew = flow.stages?.some(stage =>
+          stage.extraWorks?.some(work =>
+            isWorkVisible(work) && !work.sentToPedDate && work.status === 'Pending'
+          )
         );
         const row = sheet.addRow([
           new Date(flow.createdAt).toLocaleDateString(),
           flow.lead?.name || '',
-          isOld ? 'Old' : 'New',
+          isFlowNew ? 'New' : 'Old',
           (flow.lead?.phone || '').toString(),
           flow.crdPersonName || 'Unassigned',
           flow.project?.name || '',
@@ -619,6 +650,16 @@ const ExtraWorksInner = () => {
               className="px-3 py-2 bg-white/50 border border-emerald-100 rounded-xl text-sm text-gray-700 focus:outline-none focus:ring-1 focus:ring-emerald-500"
             />
           </div>
+
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="px-3 py-2 bg-white/50 border border-[#006838]/20 rounded-xl text-sm text-gray-750 focus:outline-none focus:ring-1 focus:ring-[#006838] cursor-pointer font-semibold"
+          >
+            <option value="all">All Status</option>
+            <option value="new">New Requests</option>
+            <option value="old">Old Requests</option>
+          </select>
 
           <button
             onClick={() => setShowExportModal(true)}
@@ -765,10 +806,12 @@ const ExtraWorksInner = () => {
                       <td className="px-6 py-4 font-bold text-emerald-900">{flow.lead?.name}</td>
                       <td className="px-6 py-4 text-center">
                         {(() => {
-                          const isOld = flow.stages?.some(s =>
-                            s.extraWorks?.some(w => w.sentToPedDate || w.status !== 'Pending')
+                          const isFlowNew = flow.stages?.some(stage =>
+                            stage.extraWorks?.some(work =>
+                              isWorkVisible(work) && !work.sentToPedDate && work.status === 'Pending'
+                            )
                           );
-                          return isOld ? (
+                          return !isFlowNew ? (
                             <span className="px-2.5 py-1 bg-slate-100 text-slate-700 border border-slate-200 rounded-full text-[10px] font-bold">Old</span>
                           ) : (
                             <span className="px-2.5 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full text-[10px] font-bold">New</span>
@@ -1063,14 +1106,18 @@ const ExtraWorksInner = () => {
                                             {expandedReqIds[group.ewId] ? <ChevronUp className="w-4 h-4 text-emerald-600" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
                                           </td>
                                           <td className="p-4 align-middle">
-                                            <button
-                                              onClick={(e) => { e.stopPropagation(); setFlowMapModal({ work: group.items[0], flow }); }}
-                                              className="font-mono text-[#006838] font-bold hover:underline transition-colors flex items-center gap-1"
-                                              title="View Flow Map"
-                                            >
-                                              <Activity className="w-3.5 h-3.5" />
-                                              {group.displayId || '-'}
-                                            </button>
+                                            {(() => {
+                                              const isGroupNew = !(group.sentToPedDate || group.items.some(w => w.sentToPedDate || w.status !== 'Pending'));
+                                              return (
+                                                <button
+                                                  onClick={(e) => { e.stopPropagation(); setFlowMapModal({ work: group.items[0], flow }); }}
+                                                  className={`font-mono font-bold hover:underline transition-colors flex items-center gap-1 ${isGroupNew ? 'text-red-600' : 'text-[#006838]'}`}
+                                                  title="View Flow Map"
+                                                >
+                                                  {group.displayId || '-'}
+                                                </button>
+                                              );
+                                            })()}
                                           </td>
                                           <td className="p-4 align-middle text-center text-sm text-gray-400 font-medium">
                                             -
@@ -2231,8 +2278,8 @@ const ExtraWorksInner = () => {
           <div className="bg-white rounded-[2rem] w-full max-w-4xl max-h-[90vh] flex flex-col shadow-2xl animate-fade-in-up">
             <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-[#006838] text-white rounded-t-[2rem]">
               <h2 className="text-xl font-bold flex items-center gap-2"><Plus className="w-5 h-5" /> Add Extra Work for Booked Customer</h2>
-              <button 
-                onClick={() => setShowGlobalModal(false)} 
+              <button
+                onClick={() => setShowGlobalModal(false)}
                 className="text-white/80 hover:text-white transition"
               >
                 <X className="w-6 h-6" />
@@ -2308,7 +2355,7 @@ const ExtraWorksInner = () => {
               {globalForm.flowId && globalForm.stageId && (
                 <div className="bg-white p-5 rounded-2xl border border-emerald-100 shadow-sm space-y-4">
                   <h3 className="text-xs font-black text-emerald-900 uppercase tracking-wider">Extra Work Item Details</h3>
-                  
+
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
                     {(() => {
                       const selectedFlow = allBookedFlows.find(f => f._id === globalForm.flowId);
@@ -2329,7 +2376,7 @@ const ExtraWorksInner = () => {
                               {catalogCategories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
                             </select>
                           </div>
-                          
+
                           <div className="lg:col-span-2">
                             <label className="block text-xs font-bold text-gray-700 mb-1">Sub Category (Name) <span className="text-red-500">*</span></label>
                             <select
@@ -2475,7 +2522,7 @@ const ExtraWorksInner = () => {
                   try {
                     setIsSubmittingGlobal(true);
                     const selectedFlow = allBookedFlows.find(f => f._id === globalForm.flowId);
-                    
+
                     const res = await fetch(`${API_URL}/extra-works/${globalForm.flowId}/add`, {
                       method: 'POST',
                       headers: {
