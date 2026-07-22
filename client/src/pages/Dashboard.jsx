@@ -318,7 +318,9 @@ const Dashboard = () => {
   const { token, user } = useAuth();
   const navigate = useNavigate();
   const [leadsModalOpen, setLeadsModalOpen] = useState(false);
+  const [followupModalOpen, setFollowupModalOpen] = useState(false);
   const [bookedModalOpen, setBookedModalOpen] = useState(false);
+  const [lostModalOpen, setLostModalOpen] = useState(false);
   const clickTimeoutRef = useRef(null);
   const bookedClickTimeoutRef = useRef(null);
 
@@ -401,8 +403,8 @@ const Dashboard = () => {
       filtered = filtered.filter(l => l.status === 'Hot List');
     } else if (stageLabel === 'Booking' || stageLabel === 'Booked') {
       filtered = filtered.filter(l => l.status === 'Booking');
-    } else if (stageLabel === 'Handover') {
-      filtered = filtered.filter(l => l.status === 'Won');
+    } else if (stageLabel === 'Handover' || stageLabel === 'Site Conversion') {
+      filtered = filtered.filter(l => l.status === 'Won' || l.status === 'Handover');
     } else if (stageLabel === 'Lost') {
       filtered = filtered.filter(l => l.status === 'Lost');
     }
@@ -528,6 +530,7 @@ const Dashboard = () => {
           hotList: 0,
           booked: 0,
           handover: 0,
+          siteConversions: 0,
           lost: 0
         };
       }
@@ -537,6 +540,7 @@ const Dashboard = () => {
       data[uName].hotList += row.hotList || 0;
       data[uName].booked += row.booked || 0;
       data[uName].handover += row.handover || 0;
+      data[uName].siteConversions += row.siteConversions || 0;
       data[uName].lost += row.lost || 0;
     });
     return Object.values(data).filter(u => u.totalLeads > 0);
@@ -561,6 +565,7 @@ const Dashboard = () => {
         totals.hotList += u.hotList;
         totals.booked += u.booked;
         totals.handover += u.handover;
+        totals.siteConversions += u.siteConversions || 0;
         totals.lost += u.lost;
       });
       return totals;
@@ -612,6 +617,7 @@ const Dashboard = () => {
         hotList: 0,
         booked: 0,
         handover: 0,
+        siteConversions: 0,
         lost: 0
       };
       (g.sources || []).forEach(src => {
@@ -621,6 +627,7 @@ const Dashboard = () => {
         totals.hotList += src.hotList || 0;
         totals.booked += src.booked || 0;
         totals.handover += src.handover || 0;
+        totals.siteConversions += src.siteConversions || 0;
         totals.lost += src.lost || 0;
       });
       return totals;
@@ -640,6 +647,7 @@ const Dashboard = () => {
       hotList: src.hotList || 0,
       booked: src.booked || 0,
       handover: src.handover || 0,
+      siteConversions: src.siteConversions || 0,
       lost: src.lost || 0
     })).filter(s => s.totalLeads > 0);
   }, [selectedSourceGroup, stats.groupStats]);
@@ -656,6 +664,7 @@ const Dashboard = () => {
         hotList: 0,
         booked: 0,
         handover: 0,
+        siteConversions: 0,
         lost: 0
       };
       sourceGroupsPerformanceData.forEach(g => {
@@ -665,6 +674,7 @@ const Dashboard = () => {
         totals.hotList += g.hotList;
         totals.booked += g.booked;
         totals.handover += g.handover;
+        totals.siteConversions += g.siteConversions || 0;
         totals.lost += g.lost;
       });
       return totals;
@@ -1773,15 +1783,16 @@ const Dashboard = () => {
 
               {/* Card 1: Total Leads */}
               <div
-                onClick={handleLeadsCardClick}
+                onClick={() => setLeadsModalOpen(true)}
                 className="bg-[#f0fbf4] border-none rounded-3xl p-6 shadow-sm hover:shadow-md transition cursor-pointer select-none active:scale-[0.99] duration-150 flex flex-col justify-between"
               >
                 <div className="flex items-center justify-between">
                   <div>
                     <span className="text-sm text-black font-extrabold uppercase tracking-wider">Total Leads</span>
                     <h3 className="text-3xl font-extrabold text-black-800 mt-1">{stats.cards.totalLeads || 0}</h3>
-                    <div className="text-xs text-gray-500 font-bold mt-1">
-                      assigned ({stats.cards.assignedLeads || 0})
+                    <div className="text-xs text-gray-500 font-bold mt-1 space-y-0.5">
+                      <div>new ({stats.cards.newLeads || 0})</div>
+                      <div>assigned ({stats.cards.assignedLeads || 0})</div>
                     </div>
                   </div>
                 </div>
@@ -1789,7 +1800,8 @@ const Dashboard = () => {
 
               {/* Card 2: Total Followup */}
               <div
-                className="bg-[#f0fbf4] border-none rounded-3xl p-6 shadow-sm transition flex flex-col justify-between"
+                onClick={() => setFollowupModalOpen(true)}
+                className="bg-[#f0fbf4] border-none rounded-3xl p-6 shadow-sm hover:shadow-md transition cursor-pointer select-none active:scale-[0.99] duration-150 flex flex-col justify-between"
               >
                 <div className="flex items-center justify-between">
                   <div>
@@ -1797,33 +1809,43 @@ const Dashboard = () => {
                     <h3 className="text-3xl font-extrabold text-black-800 mt-1">
                       {(stats.cards.enquiries?.contacted || 0) + (stats.cards.enquiries?.followup || 0) + (stats.cards.siteVisits?.live || 0)}
                     </h3>
+                    <div className="text-xs text-gray-500 font-bold mt-1">
+                      active ({(stats.cards.enquiries?.contacted || 0) + (stats.cards.enquiries?.followup || 0) + (stats.cards.siteVisits?.live || 0)})
+                    </div>
                   </div>
                 </div>
               </div>
 
               {/* Card 3: Total Booked */}
               <div
-                onClick={handleBookedCardClick}
+                onClick={() => setBookedModalOpen(true)}
                 className="bg-[#f0fbf4] border-none rounded-3xl p-6 shadow-sm hover:shadow-md transition cursor-pointer select-none active:scale-[0.99] duration-150 flex flex-col justify-between"
               >
                 <div className="flex items-center justify-between">
                   <div>
                     <span className="text-sm text-black font-extrabold uppercase tracking-wider">Total Booked</span>
                     <h3 className="text-3xl font-extrabold text-black-800 mt-1">{stats.cards.booked?.total || 0}</h3>
+                    <div className="text-xs text-gray-500 font-bold mt-1">
+                      booked ({stats.cards.booked?.total || 0})
+                    </div>
                   </div>
                 </div>
               </div>
 
               {/* Card 4: Lost Leads */}
               <div
-                className="bg-[#fcf3f3] border-none rounded-3xl p-6 shadow-sm hover:shadow-md transition cursor-pointer select-none active:scale-[0.99] duration-150 flex flex-col justify-between"
+                onClick={() => setLostModalOpen(true)}
+                className="bg-[#f0fbf4] border-none rounded-3xl p-6 shadow-sm hover:shadow-md transition cursor-pointer select-none active:scale-[0.99] duration-150 flex flex-col justify-between"
               >
                 <div className="flex items-center justify-between">
                   <div>
-                    <span className="text-sm text-rose-600 font-extrabold uppercase tracking-wider">Lost Leads</span>
-                    <h3 className="text-3xl font-extrabold text-rose-600 mt-1">
+                    <span className="text-sm text-black font-extrabold uppercase tracking-wider">Lost Leads</span>
+                    <h3 className="text-3xl font-extrabold text-black-800 mt-1">
                       {(stats.cards.enquiries?.closed || 0) + (stats.cards.siteVisits?.closed || 0)}
                     </h3>
+                    <div className="text-xs text-gray-500 font-bold mt-1">
+                      closed ({(stats.cards.enquiries?.closed || 0) + (stats.cards.siteVisits?.closed || 0)})
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1908,9 +1930,9 @@ const Dashboard = () => {
                       { label: 'Site Visit', count: selectedUserPerfData.siteVisits, color: 'bg-blue-500', icon: MapPin },
                       { label: 'Hot List', count: selectedUserPerfData.hotList, color: 'bg-amber-500', icon: Target },
                       { label: 'Booked', count: selectedUserPerfData.booked || 0, color: 'bg-yellow-500', icon: DollarSign },
-                      /* { label: 'Handover', count: selectedUserPerfData.handover, color: 'bg-emerald-700', icon: Building }, */
+                      { label: 'Site Conversion', count: selectedUserPerfData.siteConversions || 0, color: 'bg-teal-600', icon: Building },
                       { label: 'Lost', count: selectedUserPerfData.lost, color: 'bg-red-500', icon: TrendingDown }
-                    ].filter(m => m.label === 'Total Leads' || m.count > 0).map((m, idx) => {
+                    ].filter(m => m.label === 'Total Leads' || m.label === 'Site Conversion' || m.count > 0).map((m, idx) => {
                       const IconComponent = m.icon;
                       const percentageOfTotal = selectedUserPerfData.totalLeads > 0
                         ? (m.count / selectedUserPerfData.totalLeads) * 100
@@ -2052,9 +2074,9 @@ const Dashboard = () => {
                       { label: 'Site Visit', count: selectedSourcePerfData.siteVisits, color: 'bg-blue-500', icon: MapPin },
                       { label: 'Hot List', count: selectedSourcePerfData.hotList, color: 'bg-amber-500', icon: Target },
                       { label: 'Booked', count: selectedSourcePerfData.booked || 0, color: 'bg-yellow-500', icon: DollarSign },
-                      /* { label: 'Handover', count: selectedSourcePerfData.handover, color: 'bg-emerald-700', icon: Building }, */
+                      { label: 'Site Conversion', count: selectedSourcePerfData.siteConversions || 0, color: 'bg-teal-600', icon: Building },
                       { label: 'Lost', count: selectedSourcePerfData.lost, color: 'bg-red-500', icon: TrendingDown }
-                    ].filter(m => m.label === 'Total Leads' || m.count > 0).map((m, idx) => {
+                    ].filter(m => m.label === 'Total Leads' || m.label === 'Site Conversion' || m.count > 0).map((m, idx) => {
                       const IconComponent = m.icon;
                       const percentageOfTotal = selectedSourcePerfData.totalLeads > 0
                         ? (m.count / selectedSourcePerfData.totalLeads) * 100
@@ -2133,7 +2155,7 @@ const Dashboard = () => {
                                   key={stageName}
                                   className="text-[13px] font-bold px-2.5 py-1 bg-black-50 border-none text-black-650 rounded-xl"
                                 >
-                                  {stageName === 'Booking' ? 'Booked' : stageName}: <span className="text-[15px] font-black text-black-900 ml-1">{p.stages[stageName]}</span>
+                                  {stageName === 'Booking' ? 'Booked' : stageName === 'Won' || stageName === 'Handover' ? 'Site Conversion' : stageName}: <span className="text-[15px] font-black text-black-900 ml-1">{p.stages[stageName]}</span>
                                 </span>
                               ))}
                             </div>
@@ -2211,7 +2233,7 @@ const Dashboard = () => {
                           { label: 'Total Leads', count: stats.projectStats[selectedProjectPerfCode].count, color: 'bg-black-400', icon: TrendingUp },
                           ...Object.keys(stats.projectStats[selectedProjectPerfCode].stages || {})
                             .sort((a, b) => {
-                              const order = { 'Assigned': 1, 'Follow-Up': 2, 'Booking': 3, 'Lost': 4 };
+                              const order = { 'Assigned': 1, 'Contacted': 2, 'Follow-Up': 3, 'Site Visit': 4, 'Hot List': 5, 'Booking': 6, 'Booked': 6, 'Site Conversion': 7, 'Handover': 7, 'Won': 7, 'Lost': 8 };
                               return (order[a] || 99) - (order[b] || 99);
                             })
                             .map((stageName) => {
@@ -2220,11 +2242,13 @@ const Dashboard = () => {
                                 if (cleanLabel.includes('assign')) return 'bg-purple-500';
                                 if (cleanLabel.includes('follow')) return 'bg-emerald-600';
                                 if (cleanLabel.includes('book')) return 'bg-yellow-500';
+                                if (cleanLabel.includes('conversion') || cleanLabel.includes('handover') || cleanLabel.includes('won')) return 'bg-emerald-700';
                                 if (cleanLabel.includes('lost')) return 'bg-red-500';
                                 return 'bg-blue-500';
                               };
+                              const displayLabel = stageName === 'Booking' ? 'Booked' : stageName === 'Won' || stageName === 'Handover' ? 'Site Conversion' : stageName;
                               return {
-                                label: stageName,
+                                label: displayLabel,
                                 count: stats.projectStats[selectedProjectPerfCode].stages[stageName],
                                 color: getStageColor(stageName),
                                 icon: Users
@@ -2717,6 +2741,200 @@ const Dashboard = () => {
                   navigate('/leads');
                 }}
                 className="px-4 py-2 bg-[#0e623a] hover:bg-[#0b4d2d] text-white text-xs font-bold rounded-xl transition shadow-sm"
+              >
+                Go to Leads Directory →
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Total Followup Modal Popup */}
+      {followupModalOpen && (
+        <div className="fixed inset-0 bg-black-900/60 backdrop-blur-sm z-[999] flex items-center justify-center p-4">
+          <div className="bg-[#f0fbf4] rounded-3xl border-none shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden text-left animate-fadeIn">
+            {/* Header */}
+            <div className="p-6 border-b border-black-150 flex items-center justify-between bg-emerald-500/10">
+              <div>
+                <h3 className="text-base font-extrabold text-emerald-900">Active Follow-Up Leads Directory</h3>
+                <p className="text-[11px] text-emerald-700 mt-0.5">Showing active leads in Contacted, Follow-Up, and Site Visit stages</p>
+              </div>
+              <button
+                onClick={() => setFollowupModalOpen(false)}
+                className="w-8 h-8 rounded-full flex items-center justify-center bg-black-100 text-black-400 hover:bg-red-50 hover:text-red-500 transition cursor-pointer font-bold border-none"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* List Content */}
+            <div className="flex-grow p-6 overflow-y-auto max-h-[50vh] scrollbar-thin">
+              {(() => {
+                const followupLeadsList = (stats.cards.leadsList || []).filter(lead => {
+                  const isFollowup = ['Contacted', 'Follow-Up', 'Followup', 'Site Visit', 'Site Visit Follow-up'].includes(lead.status);
+                  if (!isFollowup) return false;
+                  if (!lead.createdAt) return true;
+                  const d = new Date(lead.createdAt);
+                  if (fromDate && d < new Date(fromDate)) return false;
+                  if (toDate) {
+                    const end = new Date(toDate);
+                    end.setHours(23, 59, 59, 999);
+                    if (d > end) return false;
+                  }
+                  return true;
+                });
+
+                return followupLeadsList.length > 0 ? (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse">
+                      <thead>
+                        <tr className="border-b border-black-100 text-[11px] font-bold text-black-400 uppercase tracking-wider">
+                          <th className="pb-3">Lead Name</th>
+                          <th className="pb-3">Lead Source</th>
+                          <th className="pb-3">Project Details</th>
+                          <th className="pb-3">Stage</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-black-50 text-xs font-semibold text-black-700">
+                        {followupLeadsList.map((lead, idx) => (
+                          <tr key={lead._id || idx} className="hover:bg-black-50/50 transition">
+                            <td className="py-3.5 font-bold text-black-850">{lead.name}</td>
+                            <td className="py-3.5">
+                              <span className="bg-black-100 text-black-600 px-2.5 py-0.5 rounded-full text-[11px] font-bold">
+                                {lead.leadSource}
+                              </span>
+                            </td>
+                            <td className="py-3.5">
+                              <div className="flex flex-col gap-0.5">
+                                <span className="font-bold text-black-800">{lead.projectName}</span>
+                                <span className="text-[11px] text-black-450 font-bold uppercase tracking-wide">
+                                  Type: {Array.isArray(lead.projectType) ? lead.projectType.join(', ') : lead.projectType}
+                                </span>
+                              </div>
+                            </td>
+                            <td className="py-3.5">
+                              <span className="px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-amber-50 text-amber-700 border border-amber-200">
+                                {lead.status}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div className="py-12 text-center text-black-450 italic text-xs">
+                    No active follow-up leads recorded for this filter.
+                  </div>
+                );
+              })()}
+            </div>
+
+            {/* Footer */}
+            <div className="p-5 border-t border-black-150 bg-black-50/30 flex justify-end">
+              <button
+                onClick={() => {
+                  setFollowupModalOpen(false);
+                  navigate('/leads');
+                }}
+                className="px-4 py-2 bg-[#0e623a] hover:bg-[#0b4d2d] text-white text-xs font-bold rounded-xl transition shadow-sm"
+              >
+                Go to Leads Directory →
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Lost Leads Modal Popup */}
+      {lostModalOpen && (
+        <div className="fixed inset-0 bg-black-900/60 backdrop-blur-sm z-[999] flex items-center justify-center p-4">
+          <div className="bg-[#f0fbf4] rounded-3xl border-none shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden text-left animate-fadeIn">
+            {/* Header */}
+            <div className="p-6 border-b border-black-150 flex items-center justify-between bg-red-500/10">
+              <div>
+                <h3 className="text-base font-extrabold text-red-800">Lost / Closed Leads Directory</h3>
+                <p className="text-[11px] text-red-700 mt-0.5">Showing closed and lost leads history</p>
+              </div>
+              <button
+                onClick={() => setLostModalOpen(false)}
+                className="w-8 h-8 rounded-full flex items-center justify-center bg-black-100 text-black-400 hover:bg-red-50 hover:text-red-500 transition cursor-pointer font-bold border-none"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* List Content */}
+            <div className="flex-grow p-6 overflow-y-auto max-h-[50vh] scrollbar-thin">
+              {(() => {
+                const lostLeadsList = (stats.cards.leadsList || []).filter(lead => {
+                  const isLost = ['Closed', 'Lost', 'Rejected'].includes(lead.status);
+                  if (!isLost) return false;
+                  if (!lead.createdAt) return true;
+                  const d = new Date(lead.createdAt);
+                  if (fromDate && d < new Date(fromDate)) return false;
+                  if (toDate) {
+                    const end = new Date(toDate);
+                    end.setHours(23, 59, 59, 999);
+                    if (d > end) return false;
+                  }
+                  return true;
+                });
+
+                return lostLeadsList.length > 0 ? (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse">
+                      <thead>
+                        <tr className="border-b border-black-100 text-[11px] font-bold text-black-400 uppercase tracking-wider">
+                          <th className="pb-3">Lead Name</th>
+                          <th className="pb-3">Lead Source</th>
+                          <th className="pb-3">Project Details</th>
+                          <th className="pb-3">Stage</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-black-50 text-xs font-semibold text-black-700">
+                        {lostLeadsList.map((lead, idx) => (
+                          <tr key={lead._id || idx} className="hover:bg-black-50/50 transition">
+                            <td className="py-3.5 font-bold text-black-850">{lead.name}</td>
+                            <td className="py-3.5">
+                              <span className="bg-black-100 text-black-600 px-2.5 py-0.5 rounded-full text-[11px] font-bold">
+                                {lead.leadSource}
+                              </span>
+                            </td>
+                            <td className="py-3.5">
+                              <div className="flex flex-col gap-0.5">
+                                <span className="font-bold text-black-800">{lead.projectName}</span>
+                                <span className="text-[11px] text-black-450 font-bold uppercase tracking-wide">
+                                  Type: {Array.isArray(lead.projectType) ? lead.projectType.join(', ') : lead.projectType}
+                                </span>
+                              </div>
+                            </td>
+                            <td className="py-3.5">
+                              <span className="px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-red-50 text-red-700 border border-red-200">
+                                {lead.status}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div className="py-12 text-center text-black-450 italic text-xs">
+                    No lost or closed leads recorded for this filter.
+                  </div>
+                );
+              })()}
+            </div>
+
+            {/* Footer */}
+            <div className="p-5 border-t border-black-150 bg-black-50/30 flex justify-end">
+              <button
+                onClick={() => {
+                  setLostModalOpen(false);
+                  navigate('/leads');
+                }}
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-xl transition shadow-sm"
               >
                 Go to Leads Directory →
               </button>

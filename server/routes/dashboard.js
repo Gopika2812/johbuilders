@@ -131,6 +131,7 @@ router.get('/stats', protect, async (req, res) => {
     let cumulativeLeads = 0;
     let liveLeadsCount = 0;
     let assignedLeadsCount = 0;
+    let newLeadsCount = 0;
 
     let cumulativeEnquiries = 0;
     let liveEnquiries = 0;
@@ -238,6 +239,11 @@ router.get('/stats', protect, async (req, res) => {
         }
       }
 
+      const isSiteConversion = (lead.leadType === 'Lead' || (lead.leadSource && lead.leadSource.toLowerCase() !== 'direct visit')) &&
+        !lead.isClosed && status !== 'Lost' && status !== 'Cancelled' &&
+        (status === 'Site Visit' || status === 'Site Visit Follow-up' || status === 'Booking' || status === 'Won' ||
+         lead.history?.some(h => h.status === 'Site Visit' || h.status === 'Site Visit Follow-up'));
+
       if (status === 'Contacted' || status === 'Follow-Up') {
         sourceStats[src].enquiries = (sourceStats[src].enquiries || 0) + 1;
       } else if (status === 'Site Visit' || status === 'Site Visit Follow-up') {
@@ -250,11 +256,14 @@ router.get('/stats', protect, async (req, res) => {
       if (isLeadHandover) {
         sourceStats[src].handover = (sourceStats[src].handover || 0) + 1;
       }
+      if (isSiteConversion) {
+        sourceStats[src].siteConversions = (sourceStats[src].siteConversions || 0) + 1;
+      }
       if (status === 'Lost' || lead.isClosed) {
         sourceStats[src].lost = (sourceStats[src].lost || 0) + 1;
       }
 
-      const displayStatus = status === 'Site Visit Follow-up' ? 'Site Visit' : status;
+      const displayStatus = status === 'Site Visit Follow-up' ? 'Site Visit' : (status || 'New');
 
       if (!stageStats[displayStatus]) {
         stageStats[displayStatus] = { count: 0, value: 0 };
@@ -263,11 +272,22 @@ router.get('/stats', protect, async (req, res) => {
 
       if (lead.project) {
         const pCode = lead.project.code || lead.project.name;
-        if (!projectStats[pCode]) {
-          projectStats[pCode] = { count: 0, value: 0, stages: {} };
+        if (pCode) {
+          if (!projectStats[pCode]) {
+            projectStats[pCode] = { count: 0, value: 0, stages: {} };
+          }
+          if (!projectStats[pCode].stages) {
+            projectStats[pCode].stages = {};
+          }
+          projectStats[pCode].count += 1;
+          projectStats[pCode].stages[displayStatus] = (projectStats[pCode].stages[displayStatus] || 0) + 1;
+          if (isLeadHandover) {
+            projectStats[pCode].stages['Site Conversion'] = (projectStats[pCode].stages['Site Conversion'] || 0) + 1;
+          }
+          if (isSiteConversion) {
+            projectStats[pCode].stages['Site Conversion'] = Math.max(projectStats[pCode].stages['Site Conversion'] || 0, (projectStats[pCode].stages['Site Conversion'] || 0) + 1);
+          }
         }
-        projectStats[pCode].count += 1;
-        projectStats[pCode].stages[displayStatus] = (projectStats[pCode].stages[displayStatus] || 0) + 1;
       }
 
       // 1. Total Leads / Live Leads
@@ -276,6 +296,8 @@ router.get('/stats', protect, async (req, res) => {
         cumulativeLeads++;
         if (lead.status === 'Assigned') {
           assignedLeadsCount++;
+        } else if (lead.status === 'New' || !lead.status) {
+          newLeadsCount++;
         }
       }
       if (!lead.isClosed && status !== 'Lost') {
@@ -648,15 +670,23 @@ router.get('/stats', protect, async (req, res) => {
       // Check if lead corresponds to a handed over unit (status is Won, or unit is Sold Out in project)
       let isHandover = lead.status === 'Won';
       if (!isHandover && lead.project && lead.bookingInfo?.selectedUnits?.length > 0) {
-        const projId = lead.project._id || lead.project;
-        const proj = allProjects.find(p => p._id.toString() === projId.toString());
-        if (proj) {
-          isHandover = lead.bookingInfo.selectedUnits.some(unitId => {
-            const unit = proj.units?.find(u => u.unitId === unitId);
-            return unit && unit.status === 'Sold Out';
-          });
+        const projId = (lead.project._id || lead.project)?.toString();
+        if (projId) {
+          const proj = allProjects.find(p => p._id && p._id.toString() === projId);
+          if (proj) {
+            isHandover = lead.bookingInfo.selectedUnits.some(unitId => {
+              const unit = proj.units?.find(u => u.unitId === unitId);
+              return unit && unit.status === 'Sold Out';
+            });
+          }
         }
       }
+
+      const status = lead.status || '';
+      const isSiteConversion = (lead.leadType === 'Lead' || (lead.leadSource && lead.leadSource.toLowerCase() !== 'direct visit')) &&
+        !lead.isClosed && status !== 'Lost' && status !== 'Cancelled' &&
+        (status === 'Site Visit' || status === 'Site Visit Follow-up' || status === 'Booking' || status === 'Won' ||
+         lead.history?.some(h => h.status === 'Site Visit' || h.status === 'Site Visit Follow-up'));
 
       if (!personProjectStages[personProjectKey]) {
         personProjectStages[personProjectKey] = {
@@ -668,12 +698,12 @@ router.get('/stats', protect, async (req, res) => {
           hotList: 0,
           booked: 0,
           handover: 0,
+          siteConversions: 0,
           lost: 0
         };
       }
 
       personProjectStages[personProjectKey].totalLeads += 1;
-      const status = lead.status;
       if (status === 'Contacted' || status === 'Follow-Up') {
         personProjectStages[personProjectKey].enquiries += 1;
       } else if (status === 'Site Visit' || status === 'Site Visit Follow-up') {
@@ -685,6 +715,9 @@ router.get('/stats', protect, async (req, res) => {
       }
       if (isHandover) {
         personProjectStages[personProjectKey].handover += 1;
+      }
+      if (isSiteConversion) {
+        personProjectStages[personProjectKey].siteConversions += 1;
       }
       if (status === 'Lost' || lead.isClosed) {
         personProjectStages[personProjectKey].lost += 1;
@@ -946,6 +979,7 @@ router.get('/stats', protect, async (req, res) => {
       crdFlowStats,
       cards: {
         totalLeads: cumulativeLeads,
+        newLeads: newLeadsCount,
         assignedLeads: assignedLeadsCount,
         liveLeads: liveLeadsCount,
         today: {
