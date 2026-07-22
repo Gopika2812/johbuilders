@@ -374,4 +374,33 @@ router.post('/complaint/:complaintId/review', protectCustomer, async (req, res) 
   }
 });
 
+// @route   POST /api/customer/complaint/:complaintId/feedback
+// @desc    Customer submits feedback and star rating for completed complaint
+router.post('/complaint/:complaintId/feedback', protectCustomer, async (req, res) => {
+  const { complaintId } = req.params;
+  const { rating, feedback } = req.body;
+  try {
+    const flow = req.customerFlow;
+    
+    const complaint = flow.complaints.id(complaintId);
+    if (!complaint) return res.status(404).json({ message: 'Complaint not found' });
+
+    complaint.status = 'Feedback Received';
+    complaint.clientRating = Number(rating) || 5;
+    complaint.clientFeedback = feedback;
+    complaint.feedbackDate = Date.now();
+
+    flow.history.push({
+      action: 'Customer Feedback Submitted',
+      notes: `Rating: ${rating} stars. Feedback: ${feedback || 'None'}`,
+      user: 'Customer'
+    });
+
+    await flow.save();
+    res.json(flow);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 module.exports = router;

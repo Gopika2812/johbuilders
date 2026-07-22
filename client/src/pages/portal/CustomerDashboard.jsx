@@ -101,7 +101,8 @@ const CustomerDashboard = () => {
   const [complaintReviewModal, setComplaintReviewModal] = useState({ open: false, complaintId: null });
   const [complaintReviewNote, setComplaintReviewNote] = useState('');
   const [feedbackModal, setFeedbackModal] = useState(null);
-  const [feedbackForm, setFeedbackForm] = useState({ rating: 0, feedback: '' });
+  const [feedbackRating, setFeedbackRating] = useState(5);
+  const [feedbackComment, setFeedbackComment] = useState('');
   const [hoverRating, setHoverRating] = useState(0);
   
   // Form State
@@ -144,6 +145,29 @@ const CustomerDashboard = () => {
   const [complaintStartDate, setComplaintStartDate] = useState('');
   const [complaintEndDate, setComplaintEndDate] = useState('');
   const [complaintSearchText, setComplaintSearchText] = useState('');
+
+  const handleFeedbackSubmit = async (e) => {
+    e.preventDefault();
+    if (!feedbackModal) return;
+    try {
+      setSubmitting(true);
+      const token = localStorage.getItem('customerToken');
+      const res = await fetch(`${API_URL}/customer/complaint/${feedbackModal._id}/feedback`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ rating: feedbackRating, feedback: feedbackComment })
+      });
+      if (!res.ok) throw new Error('Failed to submit feedback');
+      setFeedbackModal(null);
+      setFeedbackComment('');
+      setFeedbackRating(5);
+      await fetchFlow();
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   const fetchFlow = async () => {
     const token = localStorage.getItem('customerToken');
@@ -1764,23 +1788,32 @@ const CustomerDashboard = () => {
                                     </button>
                                   </div>
                                 ) : (
-                                    comp.status === 'Sent to Client (Completed)' ? (
-                                      <button
-                                        onClick={() => setFeedbackModal(comp)}
-                                        className="inline-flex items-center gap-1.5 px-3 py-1 text-[10px] font-bold uppercase tracking-widest rounded-lg border bg-amber-500 text-white border-amber-600 hover:bg-amber-600 transition shadow-sm"
-                                      >
-                                        <Star className="w-3.5 h-3.5" /> Submit Feedback
-                                      </button>
-                                    ) : (
-                                      <span className={`inline-flex px-3 py-1 text-[10px] font-bold uppercase tracking-widest rounded-lg border ${
-                                        ['Completed', 'Client Approved', 'Feedback Received'].includes(comp.status) ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
-                                        ['In Progress', 'Start Work', 'Execution Sent to PED', 'Returned to CRD'].includes(comp.status) ? 'bg-amber-50 text-amber-600 border-amber-100' :
-                                        ['Rejected', 'Removed by Client'].includes(comp.status) ? 'bg-red-50 text-red-600 border-red-100' :
-                                        'bg-gray-100 text-gray-600 border-gray-200'
-                                      }`}>
-                                        {comp.status === 'Client Approved' ? 'I Agreed' : comp.status || 'Pending'}
-                                      </span>
-                                    )
+                                  ['Completed', 'Sent to Client (Completed)'].includes(comp.status) && !comp.clientRating && comp.status !== 'Feedback Received' ? (
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setFeedbackModal(comp);
+                                        setFeedbackRating(5);
+                                        setFeedbackComment('');
+                                      }}
+                                      className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold rounded-xl bg-gradient-to-r from-amber-500 to-yellow-500 text-white border border-amber-500 hover:from-amber-600 hover:to-yellow-600 transition shadow-md shadow-amber-500/20 cursor-pointer"
+                                    >
+                                      <Star className="w-3.5 h-3.5 fill-white" /> Give Feedback
+                                    </button>
+                                  ) : (
+                                    <span className={`inline-flex items-center gap-1.5 px-3 py-1 text-[10px] font-bold uppercase tracking-widest rounded-lg border ${
+                                      ['Completed', 'Client Approved', 'Feedback Received'].includes(comp.status) ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
+                                      ['In Progress', 'Start Work', 'Execution Sent to PED', 'Returned to CRD'].includes(comp.status) ? 'bg-amber-50 text-amber-600 border-amber-100' :
+                                      ['Rejected', 'Removed by Client'].includes(comp.status) ? 'bg-red-50 text-red-600 border-red-100' :
+                                      'bg-gray-100 text-gray-600 border-gray-200'
+                                    }`}>
+                                      {comp.clientRating ? (
+                                        <><Star className="w-3 h-3 text-amber-500 fill-amber-400" /> {comp.clientRating}/5 Rated</>
+                                      ) : (
+                                        comp.status === 'Client Approved' ? 'I Agreed' : comp.status || 'Pending'
+                                      )}
+                                    </span>
+                                  )
                                 )}
                               </td>
                             </tr>
@@ -1832,12 +1865,17 @@ const CustomerDashboard = () => {
                                 </button>
                               </div>
                             ) : (
-                              comp.status === 'Sent to Client (Completed)' ? (
+                              ['Completed', 'Sent to Client (Completed)'].includes(comp.status) && !comp.clientRating && comp.status !== 'Feedback Received' ? (
                                 <button
-                                  onClick={() => setFeedbackModal(comp)}
-                                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest rounded-xl border bg-amber-500 text-white border-amber-600 hover:bg-amber-600 transition shadow-sm"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setFeedbackModal(comp);
+                                    setFeedbackRating(5);
+                                    setFeedbackComment('');
+                                  }}
+                                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest rounded-xl border bg-gradient-to-r from-amber-500 to-yellow-500 text-white border-amber-600 hover:from-amber-600 hover:to-yellow-600 transition shadow-sm cursor-pointer"
                                 >
-                                  <Star className="w-3.5 h-3.5" /> Submit Feedback
+                                  <Star className="w-3.5 h-3.5 fill-white" /> Give Feedback
                                 </button>
                               ) : (
                                 <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest rounded-xl border shadow-sm ${
@@ -1846,7 +1884,11 @@ const CustomerDashboard = () => {
                                   ['Rejected', 'Removed by Client'].includes(comp.status) ? 'bg-red-500/10 text-red-400 border-red-500/30' :
                                   'bg-white/5 text-gray-400 border-white/10'
                                 }`}>
-                                  {comp.status === 'Client Approved' ? 'I Agreed' : comp.status || 'Pending'}
+                                  {comp.clientRating ? (
+                                    <><Star className="w-3 h-3 text-amber-400 fill-amber-400" /> {comp.clientRating}/5 Rated</>
+                                  ) : (
+                                    comp.status === 'Client Approved' ? 'I Agreed' : comp.status || 'Pending'
+                                  )}
                                 </span>
                               )
                             )}
@@ -2412,6 +2454,77 @@ const CustomerDashboard = () => {
                 {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Send to CRD Team'}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Feedback Modal Overlay */}
+      {feedbackModal && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in" onClick={() => setFeedbackModal(null)}>
+          <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden animate-scale-up" onClick={(e) => e.stopPropagation()}>
+            <div className="bg-[#006838] p-6 text-white flex justify-between items-center">
+              <div>
+                <h3 className="font-bold text-lg flex items-center gap-2">
+                  <Star className="w-5 h-5 text-amber-400 fill-amber-400" />
+                  Complaint Resolution Feedback
+                </h3>
+                <p className="text-xs text-emerald-100 mt-1">Token: {feedbackModal.token}</p>
+              </div>
+              <button onClick={() => setFeedbackModal(null)} className="text-white/80 hover:text-white transition cursor-pointer">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleFeedbackSubmit} className="p-6 space-y-5">
+              <div>
+                <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">Rate Our Service</label>
+                <div className="flex items-center gap-2">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <button
+                      type="button"
+                      key={star}
+                      onClick={() => setFeedbackRating(star)}
+                      className="p-1 transition-transform hover:scale-125 focus:outline-none cursor-pointer"
+                    >
+                      <Star
+                        className={`w-8 h-8 ${star <= feedbackRating ? 'text-amber-400 fill-amber-400' : 'text-gray-300'}`}
+                      />
+                    </button>
+                  ))}
+                  <span className="ml-2 font-bold text-sm text-gray-700">{feedbackRating} / 5</span>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">Your Feedback / Comments</label>
+                <textarea
+                  rows="4"
+                  required
+                  value={feedbackComment}
+                  onChange={(e) => setFeedbackComment(e.target.value)}
+                  placeholder="Tell us about your experience with our complaint resolution..."
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#006838]/20 bg-gray-50 focus:bg-white transition-colors"
+                />
+              </div>
+
+              <div className="flex justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setFeedbackModal(null)}
+                  className="px-5 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-xl text-xs transition cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="px-6 py-2.5 bg-[#006838] hover:bg-[#00512c] text-white font-bold rounded-xl text-xs transition flex items-center gap-2 shadow-md shadow-emerald-700/20 disabled:opacity-50 cursor-pointer"
+                >
+                  {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
+                  Submit Feedback
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
