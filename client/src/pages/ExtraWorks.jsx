@@ -1141,26 +1141,34 @@ const ExtraWorksInner = () => {
                                     });
 
                                     const getGroupCompletedDateStr = (group) => {
-                                      const compItem = group.items.find(w => w.completedDate);
-                                      if (compItem && compItem.completedDate) {
-                                        return new Date(compItem.completedDate).toLocaleDateString('en-GB');
+                                      if (!group || !group.items) return '-';
+
+                                      const compItemWithDate = group.items.find(w => w.completedDate && (w.status === 'Completed' || w.status === 'Sent to Client (Completed)'));
+                                      if (compItemWithDate) {
+                                        return new Date(compItemWithDate.completedDate).toLocaleDateString('en-GB');
                                       }
+
+                                      const hasCompletedItem = group.items.some(w => w.status === 'Completed' || w.status === 'Sent to Client (Completed)');
+                                      if (!hasCompletedItem) return '-';
+
                                       const history = flow?.history || [];
                                       const groupNames = group.items.map(w => (w.name || '').toLowerCase());
                                       for (let i = history.length - 1; i >= 0; i--) {
                                         const h = history[i];
-                                        const isCompletedAction = (h.action && h.action.includes('Completed')) || (h.notes && h.notes.toLowerCase().includes('completed'));
-                                        if (isCompletedAction) {
-                                          const match = groupNames.some(name => name && h.notes?.toLowerCase().includes(name));
-                                          if (match || group.items.some(w => w.status === 'Completed')) {
-                                            return new Date(h.date || Date.now()).toLocaleDateString('en-GB');
+                                        if (h.action?.includes('Completed') || h.notes?.toLowerCase().includes('status updated to completed')) {
+                                          const matchName = groupNames.some(name => name && h.notes?.toLowerCase().includes(name));
+                                          const hDate = h.date || h.createdAt || h.timestamp;
+                                          if (matchName && hDate) {
+                                            return new Date(hDate).toLocaleDateString('en-GB');
                                           }
                                         }
                                       }
-                                      const anyCompleted = group.items.find(w => w.status === 'Completed');
-                                      if (anyCompleted) {
-                                        return new Date(anyCompleted.updatedAt || Date.now()).toLocaleDateString('en-GB');
+
+                                      const compItem = group.items.find(w => w.status === 'Completed' || w.status === 'Sent to Client (Completed)');
+                                      if (compItem && compItem.updatedAt) {
+                                        return new Date(compItem.updatedAt).toLocaleDateString('en-GB');
                                       }
+
                                       return '-';
                                     };
 
