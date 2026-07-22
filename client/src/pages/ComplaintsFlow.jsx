@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth, API_URL } from '../context/AuthContext';
-import { AlertCircle, Clock, CheckCircle2, FileText, Send, Loader2, Star, MessageSquare, ChevronDown, ChevronUp, Activity, X } from 'lucide-react';
+import { AlertCircle, Clock, CheckCircle2, FileText, Send, Loader2, Star, MessageSquare, ChevronDown, ChevronUp, Activity, X, Search } from 'lucide-react';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 
@@ -15,6 +15,12 @@ const ComplaintsFlow = () => {
   const [expandedNotes, setExpandedNotes] = useState({});
   const [feedbackForm, setFeedbackForm] = useState({ rating: 0, feedback: '' });
   const [hoverRating, setHoverRating] = useState(0);
+
+  // Filtration State
+  const [statusFilter, setStatusFilter] = useState('all'); // 'all', 'new', 'old'
+  const [searchText, setSearchText] = useState('');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
 
   const canEditTab = (tabId) => {
     if (isAdmin) return true;
@@ -282,7 +288,38 @@ const ComplaintsFlow = () => {
   };
 
   const filteredTasks = tasks
-    .filter(t => isComplaintVisible(t))
+    .filter(t => {
+      if (!isComplaintVisible(t)) return false;
+      
+      // Status Filter (New / Old)
+      if (statusFilter === 'new' && t.status !== 'Pending') return false;
+      if (statusFilter === 'old' && t.status === 'Pending') return false;
+
+      // Date Range Filter
+      if (startDate && endDate) {
+        const compDate = new Date(t.reportedAt);
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+        if (compDate < start || compDate > end) return false;
+      }
+
+      // Search Query Filter
+      if (searchText.trim()) {
+        const query = searchText.toLowerCase();
+        const matchToken = t.token?.toLowerCase().includes(query);
+        const matchTitle = t.title?.toLowerCase().includes(query);
+        const matchDesc = t.description?.toLowerCase().includes(query);
+        const matchCustomer = t.customerName?.toLowerCase().includes(query);
+        const matchUnit = t.unitId?.toLowerCase().includes(query);
+        const matchProject = t.projectName?.toLowerCase().includes(query);
+        if (!matchToken && !matchTitle && !matchDesc && !matchCustomer && !matchUnit && !matchProject) {
+          return false;
+        }
+      }
+
+      return true;
+    })
     .sort((a, b) => {
       const aNew = a.status === 'Pending';
       const bNew = b.status === 'Pending';
@@ -293,8 +330,54 @@ const ComplaintsFlow = () => {
 
   return (
     <div className="p-6 md:p-8 w-full mx-auto space-y-6 animate-fade-in pb-24">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">Complaints Tracking</h1>
+      {/* Header Banner & Filter Controls */}
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-white/70 backdrop-blur-xl p-6 rounded-[2rem] border border-white/60 shadow-sm">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">Complaints Tracking</h1>
+          <p className="text-xs text-gray-500 mt-1">Manage client complaints and track resolution progress.</p>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-3">
+          {/* Search Box */}
+          <div className="flex items-center gap-2 bg-white border border-[#006838]/20 p-2 rounded-xl shadow-sm px-3">
+            <Search className="w-4 h-4 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search complaints..."
+              value={searchText}
+              onChange={(e) => setSearchText(e.target.value)}
+              className="bg-transparent border-none focus:outline-none focus:ring-0 text-xs text-gray-700 w-36 md:w-48 font-medium placeholder-gray-400"
+            />
+          </div>
+
+          {/* Date Range */}
+          <div className="flex items-center gap-2 bg-white border border-[#006838]/20 p-1.5 rounded-xl shadow-sm">
+            <input
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              className="px-2.5 py-1 bg-white border border-gray-200 rounded-lg text-xs text-gray-700 focus:outline-none focus:ring-1 focus:ring-[#006838]"
+            />
+            <span className="text-xs text-gray-400 font-bold">to</span>
+            <input
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              className="px-2.5 py-1 bg-white border border-gray-200 rounded-lg text-xs text-gray-700 focus:outline-none focus:ring-1 focus:ring-[#006838]"
+            />
+          </div>
+
+          {/* New / Old Status Dropdown */}
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="px-4 py-2 bg-white border border-[#006838]/20 rounded-xl text-xs text-gray-800 focus:outline-none focus:ring-1 focus:ring-[#006838] cursor-pointer font-bold shadow-sm"
+          >
+            <option value="all">All Status ({tasks.length})</option>
+            <option value="new">New Complaints ({tasks.filter(t => t.status === 'Pending').length})</option>
+            <option value="old">Old Complaints ({tasks.filter(t => t.status !== 'Pending').length})</option>
+          </select>
+        </div>
       </div>
 
       <div className="bg-white/60 backdrop-blur-xl border border-white/60 rounded-[2rem] shadow-sm overflow-hidden">

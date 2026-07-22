@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import confetti from 'canvas-confetti';
 import { useNavigate } from 'react-router-dom';
-import { User, LogOut, CheckCircle, Clock, Plus, Minus, AlertTriangle, X, Loader2, MessageSquareWarning, MessageSquare, Home, Sparkles, Menu, Phone, MapPin, Activity, Wrench, ShieldAlert, FileText, ChevronRight, ChevronDown, ChevronUp, Building, CreditCard, Droplets, Grid, Utensils, Zap, Trees, Layout, Paintbrush, Hammer, Cloud, TrendingUp, Maximize, Package, Copy, LayoutGrid, List, Check, Calendar, Search, Frown, Star } from 'lucide-react';
+import { User, LogOut, CheckCircle, Clock, Plus, Minus, AlertTriangle, X, Loader2, MessageSquareWarning, MessageSquare, Home, Sparkles, Menu, Phone, MapPin, Activity, Wrench, ShieldAlert, FileText, ChevronRight, ChevronLeft, ChevronDown, ChevronUp, Building, CreditCard, Droplets, Grid, Utensils, Zap, Trees, Layout, Paintbrush, Hammer, Cloud, TrendingUp, Maximize, Package, Copy, LayoutGrid, List, Check, Calendar, Search, Frown, Star } from 'lucide-react';
 import { API_URL } from '../../context/AuthContext';
 
 const WelcomePopup = ({ isOpen, onClose, userName, projectName }) => {
@@ -137,6 +137,8 @@ const CustomerDashboard = () => {
   const [quotation, setQuotation] = useState(null);
   const [reviewModal, setReviewModal] = useState({ open: false, stageIdx: null, workId: null });
   const [reviewNote, setReviewNote] = useState('');
+
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   // Complaints Filtration State
   const [complaintStartDate, setComplaintStartDate] = useState('');
@@ -588,40 +590,62 @@ const CustomerDashboard = () => {
         />
       )}
 
-      {/* Sidebar - Dark Glassmorphic (Glacier) */}
-      <aside className={`fixed inset-y-0 left-0 w-72 bg-[#050907]/95 backdrop-blur-3xl border-r border-white/10 shadow-[4px_0_30px_rgba(0,0,0,0.5)] z-50 transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:flex-shrink-0 flex flex-col print:hidden overflow-hidden ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-        {/* Decorative background glows inside sidebar */}
+      <aside className={`fixed inset-y-0 left-0 ${sidebarCollapsed ? 'lg:w-20' : 'lg:w-72'} w-72 bg-[#050907]/95 backdrop-blur-3xl border-r border-white/10 shadow-[4px_0_30px_rgba(0,0,0,0.5)] z-50 transform transition-all duration-300 ease-in-out lg:translate-x-0 lg:static lg:flex-shrink-0 flex flex-col print:hidden overflow-hidden ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="absolute top-[-10%] left-[-20%] w-[100%] h-[40%] bg-[#006838]/20 rounded-full blur-[80px] pointer-events-none z-0"></div>
         <div className="absolute bottom-[-10%] right-[-10%] w-[80%] h-[30%] bg-emerald-600/10 rounded-full blur-[70px] pointer-events-none z-0"></div>
 
-        <div className="p-8 flex items-center justify-between relative z-10">
-          <div className="text-white font-black text-2xl tracking-tighter">
-            JOHN<span className="text-gray-500 font-light">BUILDWELL</span>
+        <div className={`p-6 flex items-center justify-between relative z-10 transition-all ${sidebarCollapsed ? 'lg:px-3 lg:justify-center' : 'p-8'}`}>
+          {!sidebarCollapsed ? (
+            <div className="text-white font-black text-2xl tracking-tighter truncate">
+              JOHN<span className="text-gray-500 font-light">BUILDWELL</span>
+            </div>
+          ) : (
+            <div className="text-[#006838] font-black text-2xl tracking-tighter hidden lg:block">
+              JB
+            </div>
+          )}
+          
+          <div className="flex items-center gap-2">
+            <button 
+              onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+              className="hidden lg:flex items-center justify-center w-8 h-8 rounded-xl bg-white/10 text-gray-300 hover:text-white hover:bg-[#006838] transition-all shadow-sm cursor-pointer"
+              title={sidebarCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+            >
+              {sidebarCollapsed ? <ChevronRight className="w-5 h-5" /> : <ChevronLeft className="w-5 h-5" />}
+            </button>
+            
+            <button className="lg:hidden text-gray-400 hover:text-white p-1" onClick={() => setSidebarOpen(false)}>
+              <X className="w-6 h-6" />
+            </button>
           </div>
-          <button className="lg:hidden text-gray-400 hover:text-white" onClick={() => setSidebarOpen(false)}>
-            <X className="w-6 h-6" />
-          </button>
         </div>
 
-        <div className="px-8 pb-6 relative z-10">
-          <div className="p-4 bg-gradient-to-br from-[#006838] to-[#008c4a] rounded-2xl text-white border border-white/10 shadow-[0_8px_20px_rgba(0,104,56,0.3)] relative overflow-hidden">
-            <div className="absolute top-0 right-0 p-4 opacity-10">
-              <User className="w-16 h-16" />
-            </div>
-            <div className="relative z-10">
-              <p className="text-[10px] uppercase tracking-widest text-emerald-200 font-bold mb-1">Client Portal</p>
-              <h3 className="font-bold text-lg leading-tight truncate text-white">{flow.lead?.name}</h3>
-              <p className="text-xs text-emerald-100 truncate mt-1 font-medium">
-                {flow.project?.projectType?.[0] || 'Project'} - {flow.project?.code || 'N/A'} | Unit {flow.unitId}
-              </p>
-            </div>
+        <div className={`px-8 pb-6 relative z-10 transition-all ${sidebarCollapsed ? 'lg:px-2' : ''}`}>
+          <div className={`p-4 bg-gradient-to-br from-[#006838] to-[#008c4a] rounded-2xl text-white border border-white/10 shadow-[0_8px_20px_rgba(0,104,56,0.3)] relative overflow-hidden transition-all ${sidebarCollapsed ? 'lg:p-2.5 lg:flex lg:justify-center' : ''}`}>
+            {!sidebarCollapsed ? (
+              <>
+                <div className="absolute top-0 right-0 p-4 opacity-10">
+                  <User className="w-16 h-16" />
+                </div>
+                <div className="relative z-10">
+                  <p className="text-[10px] uppercase tracking-widest text-emerald-200 font-bold mb-1">Client Portal</p>
+                  <h3 className="font-bold text-lg leading-tight truncate text-white">{flow.lead?.name}</h3>
+                  <p className="text-xs text-emerald-100 truncate mt-1 font-medium">
+                    {flow.project?.projectType?.[0] || 'Project'} - {flow.project?.code || 'N/A'} | Unit {flow.unitId}
+                  </p>
+                </div>
+              </>
+            ) : (
+              <div className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center text-white font-bold shrink-0" title={`${flow.lead?.name} (${flow.unitId})`}>
+                <User className="w-5 h-5" />
+              </div>
+            )}
           </div>
         </div>
 
         <nav className="flex-1 px-4 space-y-2 overflow-y-auto relative z-10 scrollbar-thin">
           {[
             { id: 'profile', icon: User, label: 'My Profile' },
-            // { id: 'quotation', icon: FileText, label: 'My Quotation' },
             { id: 'extraworks', icon: Wrench, label: 'Extra Works' },
             { id: 'requestedworks', icon: FileText, label: 'Requested Extra Works' },
             { id: 'complaints', icon: ShieldAlert, label: 'Complaints' }
@@ -629,44 +653,61 @@ const CustomerDashboard = () => {
             <button
               key={item.id}
               onClick={() => { setActiveTab(item.id); setSidebarOpen(false); }}
-              className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-xl text-sm font-bold transition-all group ${
+              title={sidebarCollapsed ? item.label : undefined}
+              className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-xl text-sm font-bold transition-all group ${sidebarCollapsed ? 'lg:justify-center lg:px-0' : ''} ${
                 activeTab === item.id 
                   ? 'bg-gradient-to-r from-[#006838] to-[#008c4a] text-white shadow-[0_0_20px_rgba(0,104,56,0.4)] border border-[#00a356]/30' 
                   : 'text-gray-400 hover:bg-white/5 hover:text-white border border-transparent'
               }`}
             >
-              <item.icon className={`w-5 h-5 transition-colors ${activeTab === item.id ? 'text-white' : 'text-gray-500 group-hover:text-emerald-400'}`} />
-              {item.label}
-              {activeTab === item.id && <ChevronRight className="w-4 h-4 ml-auto text-emerald-200" />}
+              <item.icon className={`w-5 h-5 shrink-0 transition-colors ${activeTab === item.id ? 'text-white' : 'text-gray-500 group-hover:text-emerald-400'}`} />
+              {!sidebarCollapsed && <span className="truncate">{item.label}</span>}
+              {!sidebarCollapsed && activeTab === item.id && <ChevronRight className="w-4 h-4 ml-auto text-emerald-200 shrink-0" />}
             </button>
           ))}
         </nav>
 
-        <div className="p-6 relative z-10">
+        <div className={`p-6 relative z-10 transition-all ${sidebarCollapsed ? 'lg:p-2' : ''}`}>
           <button 
             onClick={handleLogout}
-            className="w-full flex items-center justify-center gap-2 px-4 py-3 text-sm font-bold text-gray-400 bg-white/5 hover:bg-red-500/20 hover:text-red-400 border border-white/10 rounded-xl transition-all shadow-sm group"
+            title={sidebarCollapsed ? "Sign Out" : undefined}
+            className={`w-full flex items-center justify-center gap-2 px-4 py-3 text-sm font-bold text-gray-400 bg-white/5 hover:bg-red-500/20 hover:text-red-400 border border-white/10 rounded-xl transition-all shadow-sm group ${sidebarCollapsed ? 'lg:px-0' : ''}`}
           >
-            <LogOut className="w-4 h-4 group-hover:text-red-400 text-gray-500 transition-colors" /> Sign Out
+            <LogOut className="w-4 h-4 group-hover:text-red-400 text-gray-500 transition-colors shrink-0" />
+            {!sidebarCollapsed && <span>Sign Out</span>}
           </button>
         </div>
       </aside>
 
-      {/* Main Content Area */}
       <main className="flex-1 flex flex-col h-screen overflow-hidden relative z-10">
         
-        {/* Top Header Mobile (Glacier Style) */}
-        <header className="lg:hidden flex items-center justify-between p-4 bg-[#050907]/90 backdrop-blur-xl border-b border-white/10 sticky top-0 z-30 shadow-lg">
-          <div className="text-white font-black text-xl tracking-tighter">JOHN<span className="text-gray-400 font-light">BUILDWELL</span></div>
-          <button onClick={() => setSidebarOpen(true)} className="p-2 bg-white/10 rounded-lg text-white shadow-sm border border-white/20 hover:bg-white/20 transition-colors">
-            <Menu className="w-5 h-5" />
-          </button>
+        <header className="flex items-center justify-between p-4 bg-[#050907]/90 backdrop-blur-xl border-b border-white/10 sticky top-0 z-30 shadow-lg print:hidden">
+          <div className="flex items-center gap-3">
+            {sidebarCollapsed && (
+              <button 
+                onClick={() => setSidebarCollapsed(false)}
+                className="hidden lg:flex items-center justify-center p-2 bg-[#006838] text-white rounded-xl shadow-md hover:bg-[#00512c] transition-all cursor-pointer"
+                title="Open Sidebar"
+              >
+                <Menu className="w-5 h-5" />
+              </button>
+            )}
+            <div className="text-white font-black text-xl tracking-tighter">JOHN<span className="text-gray-400 font-light">BUILDWELL</span></div>
+          </div>
+          
+          <div className="flex items-center gap-3">
+            <div className="text-xs text-emerald-400 font-bold bg-white/5 px-3 py-1.5 rounded-xl border border-white/10 hidden sm:block">
+              {flow.lead?.name} ({flow.unitId})
+            </div>
+            <button onClick={() => setSidebarOpen(!sidebarOpen)} className="lg:hidden p-2 bg-white/10 rounded-lg text-white shadow-sm border border-white/20 hover:bg-white/20 transition-colors">
+              <Menu className="w-5 h-5" />
+            </button>
+          </div>
         </header>
 
         <div className="flex-1 overflow-y-auto p-4 md:p-8 lg:p-12 scrollbar-thin relative">
           <div className="w-full space-y-8 animate-fade-in-up">
             
-            {/* TAB: MY PROFILE */}
             {activeTab === 'profile' && (
               <div className="space-y-8">
                 <div className="flex flex-col md:flex-row gap-6">
@@ -1568,28 +1609,46 @@ const CustomerDashboard = () => {
 
               return (
               <div className="space-y-6">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                {/* Header Banner & Primary CTA */}
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-white/70 backdrop-blur-xl p-6 rounded-[2rem] border border-white/60 shadow-sm">
                   <div>
-                    <h1 className="text-3xl font-serif font-light text-gray-900">Complaints</h1>
-                    <p className="text-sm text-gray-500 mt-1">Track issues or raise new concerns.</p>
-                  </div>
-                  <div className="flex flex-col sm:flex-row items-center gap-3">
-                    {/* View Toggle */}
-                    <div className="flex items-center bg-white/60 backdrop-blur-xl border border-white/60 p-1 rounded-xl shadow-sm">
-                      <button 
-                        onClick={() => setComplaintsView('table')}
-                        className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 text-xs font-bold transition ${complaintsView === 'table' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-                      >
-                        <List className="w-4 h-4" /> Table
-                      </button>
-                      <button 
-                        onClick={() => setComplaintsView('cards')}
-                        className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 text-xs font-bold transition ${complaintsView === 'cards' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-                      >
-                        <LayoutGrid className="w-4 h-4" /> Cards
-                      </button>
+                    <div className="flex items-center gap-3">
+                      <h1 className="text-3xl font-serif font-light text-gray-900">Complaints</h1>
+                      <span className="px-3 py-1 bg-red-50 text-red-600 rounded-full text-xs font-bold border border-red-100">
+                        {flow.complaints?.length || 0} Total
+                      </span>
                     </div>
-                    
+                    <p className="text-sm text-gray-500 mt-1">Track existing issues or submit new concerns for your property unit.</p>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <button 
+                      onClick={() => setComplaintModalOpen(true)}
+                      className="px-6 py-3 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 text-white rounded-2xl text-sm font-bold shadow-lg shadow-red-600/30 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                    >
+                      <Plus className="w-4 h-4" /> Raise A Complaint
+                    </button>
+                  </div>
+                </div>
+
+                {/* Filter Controls Bar */}
+                <div className="flex flex-wrap items-center justify-between gap-4">
+                  <div className="flex items-center bg-white/60 backdrop-blur-xl border border-white/60 p-1 rounded-xl shadow-sm">
+                    <button 
+                      onClick={() => setComplaintsView('table')}
+                      className={`px-3.5 py-1.5 rounded-lg flex items-center gap-1.5 text-xs font-bold transition ${complaintsView === 'table' ? 'bg-[#006838] text-white shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                    >
+                      <List className="w-4 h-4" /> Table View
+                    </button>
+                    <button 
+                      onClick={() => setComplaintsView('cards')}
+                      className={`px-3.5 py-1.5 rounded-lg flex items-center gap-1.5 text-xs font-bold transition ${complaintsView === 'cards' ? 'bg-[#006838] text-white shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                    >
+                      <LayoutGrid className="w-4 h-4" /> Cards View
+                    </button>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-3">
                     <div className="flex items-center gap-2 bg-white/60 backdrop-blur-xl border border-white/60 p-1.5 rounded-xl shadow-sm px-3">
                       <Search className="w-4 h-4 text-gray-400" />
                       <input
@@ -1597,7 +1656,7 @@ const CustomerDashboard = () => {
                         placeholder="Search complaints..."
                         value={complaintSearchText}
                         onChange={(e) => setComplaintSearchText(e.target.value)}
-                        className="bg-transparent border-none focus:outline-none focus:ring-0 text-xs text-gray-700 w-32 md:w-48 placeholder-gray-400"
+                        className="bg-transparent border-none focus:outline-none focus:ring-0 text-xs text-gray-700 w-32 md:w-48 placeholder-gray-400 font-medium"
                       />
                     </div>
                     <div className="flex items-center gap-2 bg-white/60 backdrop-blur-xl border border-white/60 p-1.5 rounded-xl shadow-sm">
@@ -1615,16 +1674,28 @@ const CustomerDashboard = () => {
                         className="px-3 py-1.5 bg-white border border-gray-100 rounded-lg text-xs text-gray-700 focus:outline-none focus:ring-1 focus:ring-emerald-500"
                       />
                     </div>
-                    <button 
-                      onClick={() => setComplaintModalOpen(true)}
-                      className="w-full sm:w-auto px-5 py-2.5 bg-[#ED1C24] text-white rounded-xl text-sm font-bold shadow-lg shadow-red-500/20 hover:bg-red-700 transition flex items-center justify-center gap-2"
-                    >
-                      <Plus className="w-4 h-4" /> Raise Complaint
-                    </button>
                   </div>
                 </div>
 
-                {complaintsView === 'table' ? (
+                {filteredComplaints.length === 0 ? (
+                  <div className="py-16 px-6 text-center bg-white/70 backdrop-blur-xl rounded-[2.5rem] border border-emerald-100/80 shadow-sm max-w-2xl mx-auto flex flex-col items-center animate-fade-in-up">
+                    <div className="w-16 h-16 rounded-full bg-emerald-50 text-[#006838] flex items-center justify-center mb-4 border border-emerald-100 shadow-inner">
+                      <CheckCircle className="w-8 h-8" />
+                    </div>
+                    <h3 className="text-xl font-bold text-gray-900 mb-2">No Issues Reported</h3>
+                    <p className="text-sm text-gray-500 max-w-md mx-auto leading-relaxed mb-6 font-medium">
+                      {flow.complaints?.length === 0 
+                        ? "Everything with your property is running smoothly! If you ever face an issue or need assistance with your unit, click below."
+                        : "No complaints found matching your search or selected date range."}
+                    </p>
+                    <button 
+                      onClick={() => setComplaintModalOpen(true)}
+                      className="px-6 py-3 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 text-white rounded-2xl font-bold text-sm shadow-lg shadow-red-600/30 transition-all flex items-center gap-2 cursor-pointer"
+                    >
+                      <Plus className="w-4 h-4" /> Raise A Complaint
+                    </button>
+                  </div>
+                ) : complaintsView === 'table' ? (
                   <div className="bg-white/60 backdrop-blur-xl border border-white/60 rounded-[2rem] shadow-sm overflow-hidden animate-fade-in-up">
                     <div className="overflow-x-auto pb-2">
                       <table className="w-full text-left text-sm whitespace-nowrap min-w-[800px]">
@@ -1641,87 +1712,79 @@ const CustomerDashboard = () => {
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-emerald-50">
-                          {filteredComplaints.length === 0 ? (
-                            <tr>
-                              <td colSpan="8" className="px-6 py-12 text-center text-gray-500 font-medium">
-                                {flow.complaints?.length === 0 ? "You haven't reported any issues. We're glad everything is perfect!" : "No complaints found for the selected date range."}
+                          {filteredComplaints.map((comp, idx) => (
+                            <tr key={idx} className="hover:bg-emerald-50/50 transition-colors cursor-pointer" onClick={() => setSelectedComplaint(comp)}>
+                              <td className="px-6 py-4 text-center text-gray-400 font-bold">{idx + 1}</td>
+                              <td className="px-6 py-4 font-mono font-bold text-[#006838]">
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); setSelectedComplaint(comp); }}
+                                  className="flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 text-emerald-700 rounded-lg text-xs font-bold hover:bg-emerald-100 transition-colors border border-emerald-100 shadow-sm"
+                                  title="View Details & History"
+                                >
+                                  <Activity className="w-3.5 h-3.5" />
+                                  {comp.token || '-'}
+                                </button>
+                              </td>
+                              <td className="px-6 py-4 font-medium text-gray-900">{new Date(comp.reportedAt).toLocaleDateString()}</td>
+                              <td className="px-6 py-4 font-medium text-gray-900">{flow.project?.name || 'N/A'}</td>
+                              <td className="px-6 py-4 font-bold text-emerald-600">{flow.unitId}</td>
+                              <td className="px-6 py-4 text-gray-800 whitespace-normal min-w-[250px]">
+                                <div className="font-bold mb-1">{comp.title || 'Complaint'}</div>
+                                <div>{comp.description}</div>
+                              </td>
+                              <td className="px-6 py-4 text-right font-black text-[#006838]">
+                                {comp.pedPrice > 0 ? `Rs. ${comp.pedPrice.toLocaleString()}` : (['Pending', 'Sent to PED'].includes(comp.status) ? 'TBD' : 'Rs. 0')}
+                              </td>
+                              <td className="px-6 py-4 text-center">
+                                {comp.status === 'Sent to Customer' ? (
+                                  <div className="flex items-center justify-center gap-2" onClick={(e) => e.stopPropagation()}>
+                                    <button
+                                      onClick={() => handleComplaintApprove(comp._id)}
+                                      disabled={submitting}
+                                      title="I Agree"
+                                      className="p-1.5 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-500 hover:text-white transition-colors disabled:opacity-50 border border-emerald-100 shadow-sm"
+                                    >
+                                      <CheckCircle className="w-4 h-4" />
+                                    </button>
+                                    <button
+                                      onClick={() => setComplaintReviewModal({ open: true, complaintId: comp._id })}
+                                      disabled={submitting}
+                                      title="Review / Negotiate Price"
+                                      className="p-1.5 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-500 hover:text-white transition-colors disabled:opacity-50 border border-blue-100 shadow-sm"
+                                    >
+                                      <MessageSquare className="w-4 h-4" />
+                                    </button>
+                                    <button
+                                      onClick={() => handleComplaintRemove(comp._id)}
+                                      disabled={submitting}
+                                      title="Reject"
+                                      className="p-1.5 rounded-lg bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-colors disabled:opacity-50 border border-red-100 shadow-sm"
+                                    >
+                                      <X className="w-4 h-4" />
+                                    </button>
+                                  </div>
+                                ) : (
+                                    comp.status === 'Sent to Client (Completed)' ? (
+                                      <button
+                                        onClick={() => setFeedbackModal(comp)}
+                                        className="inline-flex items-center gap-1.5 px-3 py-1 text-[10px] font-bold uppercase tracking-widest rounded-lg border bg-amber-500 text-white border-amber-600 hover:bg-amber-600 transition shadow-sm"
+                                      >
+                                        <Star className="w-3.5 h-3.5" /> Submit Feedback
+                                      </button>
+                                    ) : (
+                                      <span className={`inline-flex px-3 py-1 text-[10px] font-bold uppercase tracking-widest rounded-lg border ${
+                                        ['Completed', 'Client Approved', 'Feedback Received'].includes(comp.status) ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
+                                        ['In Progress', 'Start Work', 'Execution Sent to PED', 'Returned to CRD'].includes(comp.status) ? 'bg-amber-50 text-amber-600 border-amber-100' :
+                                        ['Rejected', 'Removed by Client'].includes(comp.status) ? 'bg-red-50 text-red-600 border-red-100' :
+                                        'bg-gray-100 text-gray-600 border-gray-200'
+                                      }`}>
+                                        {comp.status === 'Client Approved' ? 'I Agreed' : comp.status || 'Pending'}
+                                      </span>
+                                    )
+                                )}
                               </td>
                             </tr>
-                          ) : (
-                            filteredComplaints.map((comp, idx) => (
-                              <tr key={idx} className="hover:bg-emerald-50/50 transition-colors cursor-pointer" onClick={() => setSelectedComplaint(comp)}>
-                                <td className="px-6 py-4 text-center text-gray-400 font-bold">{idx + 1}</td>
-                                <td className="px-6 py-4 font-mono font-bold text-[#006838]">
-                                  <button
-                                    onClick={(e) => { e.stopPropagation(); setSelectedComplaint(comp); }}
-                                    className="flex items-center gap-1.5 px-2 py-1 bg-emerald-50 text-emerald-700 rounded text-xs font-bold hover:bg-emerald-100 transition-colors border border-emerald-100 shadow-sm"
-                                    title="View Details & History"
-                                  >
-                                    <Activity className="w-3.5 h-3.5" />
-                                    {comp.token || '-'}
-                                  </button>
-                                </td>
-                                <td className="px-6 py-4 font-medium text-gray-900">{new Date(comp.reportedAt).toLocaleDateString()}</td>
-                                <td className="px-6 py-4 font-medium text-gray-900">{flow.project?.name || 'N/A'}</td>
-                                <td className="px-6 py-4 font-bold text-emerald-600">{flow.unitId}</td>
-                                <td className="px-6 py-4 text-gray-800 whitespace-normal min-w-[250px]">
-                                  <div className="font-bold mb-1">{comp.title || 'Complaint'}</div>
-                                  <div>{comp.description}</div>
-                                </td>
-                                <td className="px-6 py-4 text-right font-black text-[#006838]">
-                                  {comp.pedPrice > 0 ? `Rs. ${comp.pedPrice.toLocaleString()}` : (['Pending', 'Sent to PED'].includes(comp.status) ? 'TBD' : 'Rs. 0')}
-                                </td>
-                                <td className="px-6 py-4 text-center">
-                                  {comp.status === 'Sent to Customer' ? (
-                                    <div className="flex items-center justify-center gap-2" onClick={(e) => e.stopPropagation()}>
-                                      <button
-                                        onClick={() => handleComplaintApprove(comp._id)}
-                                        disabled={submitting}
-                                        title="I Agree"
-                                        className="p-1.5 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-500 hover:text-white transition-colors disabled:opacity-50 border border-emerald-100 shadow-sm"
-                                      >
-                                        <CheckCircle className="w-4 h-4" />
-                                      </button>
-                                      <button
-                                        onClick={() => setComplaintReviewModal({ open: true, complaintId: comp._id })}
-                                        disabled={submitting}
-                                        title="Review / Negotiate Price"
-                                        className="p-1.5 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-500 hover:text-white transition-colors disabled:opacity-50 border border-blue-100 shadow-sm"
-                                      >
-                                        <MessageSquare className="w-4 h-4" />
-                                      </button>
-                                      <button
-                                        onClick={() => handleComplaintRemove(comp._id)}
-                                        disabled={submitting}
-                                        title="Reject"
-                                        className="p-1.5 rounded-lg bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-colors disabled:opacity-50 border border-red-100 shadow-sm"
-                                      >
-                                        <X className="w-4 h-4" />
-                                      </button>
-                                    </div>
-                                  ) : (
-                                      comp.status === 'Sent to Client (Completed)' ? (
-                                        <button
-                                          onClick={() => setFeedbackModal(comp)}
-                                          className="inline-flex items-center gap-1.5 px-3 py-1 text-[10px] font-bold uppercase tracking-widest rounded-lg border bg-amber-500 text-white border-amber-600 hover:bg-amber-600 transition shadow-sm"
-                                        >
-                                          <Star className="w-3.5 h-3.5" /> Submit Feedback
-                                        </button>
-                                      ) : (
-                                        <span className={`inline-flex px-3 py-1 text-[10px] font-bold uppercase tracking-widest rounded-lg border ${
-                                          ['Completed', 'Client Approved', 'Feedback Received'].includes(comp.status) ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
-                                          ['In Progress', 'Start Work', 'Execution Sent to PED', 'Returned to CRD'].includes(comp.status) ? 'bg-amber-50 text-amber-600 border-amber-100' :
-                                          ['Rejected', 'Removed by Client'].includes(comp.status) ? 'bg-red-50 text-red-600 border-red-100' :
-                                          'bg-gray-100 text-gray-600 border-gray-200'
-                                        }`}>
-                                          {comp.status === 'Client Approved' ? 'I Agreed' : comp.status || 'Pending'}
-                                        </span>
-                                      )
-                                  )}
-                                </td>
-                              </tr>
-                            ))
-                          )}
+                          ))}
                         </tbody>
                       </table>
                     </div>

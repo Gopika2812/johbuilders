@@ -425,6 +425,18 @@ const ExtraWorksInner = () => {
     return true;
   };
 
+  const isWorkNew = (work) => {
+    if (!work) return false;
+    // A work remains 'New' until a Work Order is created (crdAddedDate or status Added to CRD and beyond)
+    return !work.crdAddedDate && !['Added to CRD', 'Execution Sent to PED', 'Start Work', 'In Progress', 'Completed'].includes(work.status);
+  };
+
+  const isFlowNew = (flow) => {
+    return flow.stages?.some(stage =>
+      stage.extraWorks?.some(work => isWorkVisible(work) && isWorkNew(work))
+    );
+  };
+
   const filteredFlows = flows.filter(flow => {
     // 1. Must have at least one visible extra work
     const hasValidWork = flow.stages.some(stage =>
@@ -453,27 +465,14 @@ const ExtraWorksInner = () => {
 
     let matchesStatus = true;
     if (statusFilter !== 'all') {
-      const isFlowNew = flow.stages?.some(stage =>
-        stage.extraWorks?.some(work =>
-          isWorkVisible(work) && !work.sentToPedDate && work.status === 'Pending'
-        )
-      );
-      const currentFlowStatus = isFlowNew ? 'new' : 'old';
+      const currentFlowStatus = isFlowNew(flow) ? 'new' : 'old';
       matchesStatus = currentFlowStatus === statusFilter;
     }
 
     return matchesSearch && matchesDate && matchesStatus;
   }).sort((a, b) => {
-    const aNew = a.stages?.some(stage =>
-      stage.extraWorks?.some(work =>
-        isWorkVisible(work) && !work.sentToPedDate && work.status === 'Pending'
-      )
-    );
-    const bNew = b.stages?.some(stage =>
-      stage.extraWorks?.some(work =>
-        isWorkVisible(work) && !work.sentToPedDate && work.status === 'Pending'
-      )
-    );
+    const aNew = isFlowNew(a);
+    const bNew = isFlowNew(b);
 
     if (aNew && !bNew) return -1;
     if (!aNew && bNew) return 1;
@@ -1119,8 +1118,8 @@ const ExtraWorksInner = () => {
                                       acc[id].totalAmount += (work.amount || 0);
                                       return acc;
                                     }, {})).sort((a, b) => {
-                                      const aNew = !a.sentToPedDate && !a.items.some(w => w.sentToPedDate || w.status !== 'Pending');
-                                      const bNew = !b.sentToPedDate && !b.items.some(w => w.sentToPedDate || w.status !== 'Pending');
+                                      const aNew = a.items.some(w => isWorkNew(w));
+                                      const bNew = b.items.some(w => isWorkNew(w));
                                       if (aNew && !bNew) return -1;
                                       if (!aNew && bNew) return 1;
                                       return new Date(b.addedAt || 0) - new Date(a.addedAt || 0);
@@ -1167,7 +1166,7 @@ const ExtraWorksInner = () => {
                                         <td className="p-4 align-middle">
                                           <div className="flex items-center gap-3">
                                             {(() => {
-                                              const isGroupNew = !(group.sentToPedDate || group.items.some(w => w.sentToPedDate || w.status !== 'Pending'));
+                                              const isGroupNew = group.items.some(w => isWorkNew(w));
                                               return (
                                                 <button
                                                   onClick={(e) => { e.stopPropagation(); setFlowMapModal({ work: group.items[0], flow }); }}
@@ -1196,10 +1195,10 @@ const ExtraWorksInner = () => {
                                           {group.addedAt ? new Date(group.addedAt).toLocaleDateString('en-GB') : '-'}
                                         </td>
                                         <td className="p-4 align-middle text-center">
-                                          {(group.sentToPedDate || group.items.some(w => w.sentToPedDate || w.status !== 'Pending')) ? (
-                                            <span className="px-2.5 py-1 bg-slate-100 text-slate-700 border border-slate-200 rounded-full text-[10px] font-bold">Old</span>
-                                          ) : (
+                                          {group.items.some(w => isWorkNew(w)) ? (
                                             <span className="px-2.5 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full text-[10px] font-bold">New</span>
+                                          ) : (
+                                            <span className="px-2.5 py-1 bg-slate-100 text-slate-700 border border-slate-200 rounded-full text-[10px] font-bold">Old</span>
                                           )}
                                         </td>
                                         <td className="p-4 align-middle text-center text-sm text-gray-600">
@@ -1253,8 +1252,8 @@ const ExtraWorksInner = () => {
                               }));
 
                               const hasSelected = selectedItems.length > 0;
-                              const hasPending = hasSelected && selectedItems.every(w => w.status === 'Pending');
-                              const hasReturnedToCRD = hasSelected && selectedItems.every(w => ['Returned to CRD', 'PED Approved'].includes(w.status));
+                              const hasSendToPed = hasSelected && selectedItems.every(w => ['Pending', 'Client Review'].includes(w.status) || (w.status === 'Returned to CRD' && w.clientNotes));
+                              const hasReturnedToCRD = hasSelected && selectedItems.every(w => ['Returned to CRD', 'PED Approved'].includes(w.status) && !w.clientNotes);
                               const hasClientApproved = hasSelected && selectedItems.every(w => w.status === 'Client Approved');
                               const hasAddedToCRD = hasSelected && selectedItems.every(w => w.status === 'Added to CRD');
 
@@ -1277,14 +1276,14 @@ const ExtraWorksInner = () => {
                               return (
                                 <div className="mt-4 flex flex-wrap justify-start gap-3">
                                   {/* CRD Actions */}
-                                  {canCrd && hasPending && (
+                                  {canCrd && hasSendToPed && (
                                     <button
                                       onClick={async () => {
-                                        setSubmitting('bulk-crd');
+                                        setSubmitting('bulk-crd-ped');
                                         try {
                                           const works = [];
                                           flow.stages.forEach((s, sIdx) => s.extraWorks?.forEach(w => {
-                                            if (w.status === 'Pending' && selectedWorks.includes(w._id)) {
+                                            if (selectedWorks.includes(w._id) && (w.status === 'Pending' || w.status === 'Returned to CRD' || w.status === 'Client Review')) {
                                               works.push({ sIdx, wId: w._id });
                                             }
                                           }));
@@ -1299,10 +1298,10 @@ const ExtraWorksInner = () => {
                                           setSubmitting(null);
                                         }
                                       }}
-                                      disabled={submitting === 'bulk-crd'}
+                                      disabled={submitting === 'bulk-crd-ped'}
                                       className="px-6 py-2 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition flex items-center justify-center gap-2 shadow-sm disabled:opacity-50"
                                     >
-                                      {submitting === 'bulk-crd' ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Send className="w-4 h-4" /> Extra Work Send to PED</>}
+                                      {submitting === 'bulk-crd-ped' ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Send className="w-4 h-4" /> {selectedItems.some(w => w.clientNotes) ? 'Send to PED for Repricing' : 'Extra Work Send to PED'}</>}
                                     </button>
                                   )}
 

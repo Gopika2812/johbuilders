@@ -46,9 +46,12 @@ router.get('/', protect, async (req, res) => {
     // We'll leave it returning all tasks to frontend and let frontend filter by role/status
     // if the user has `extra_works_crd` or `extra_works_ped` permission.
     // To not break existing stuff, if they don't have CRD/PED role, filter by assignedTo.
-    if (req.user.role !== 'Superadmin' && req.user.role !== 'Superadmin') {
-      const perms = req.user.permissions || [];
-      const hasTeamView = perms.some(p => ['extra_works_crd', 'extra_works_ped', 'extra_works_client'].includes(p.pageId));
+    // If user is not Superadmin, check UserPermission model or staff role
+    if (req.user.role !== 'Superadmin') {
+      const UserPermission = require('../models/UserPermission');
+      const userPerms = await UserPermission.find({ userId: req.user._id });
+      const hasTeamView = userPerms.some(p => ['extra_works_crd', 'extra_works_ped', 'extra_works_client', 'crd_flow'].includes(p.pageId) && (p.canView || p.canEdit)) ||
+                          Boolean(req.user.role);
       if (!hasTeamView) {
         allTasks = allTasks.filter(t => t.assignedTo?.toString() === req.user._id.toString());
       }
