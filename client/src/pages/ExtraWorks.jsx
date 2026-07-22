@@ -427,8 +427,9 @@ const ExtraWorksInner = () => {
 
   const isWorkNew = (work) => {
     if (!work) return false;
-    // A work remains 'New' until a Work Order is created (crdAddedDate or status Added to CRD and beyond)
-    return !work.crdAddedDate && !['Added to CRD', 'Execution Sent to PED', 'Start Work', 'In Progress', 'Completed'].includes(work.status);
+    // A work remains 'New' until a Work Order is created/issued (crdAddedDate or status Added to CRD and beyond)
+    const hasWorkOrder = Boolean(work.crdAddedDate) || ['Added to CRD', 'Execution Sent to PED', 'Start Work', 'In Progress', 'Completed'].includes(work.status);
+    return !hasWorkOrder;
   };
 
   const isFlowNew = (flow) => {
@@ -1116,125 +1117,167 @@ const ExtraWorksInner = () => {
                                       }
                                       acc[id].items.push(work);
                                       acc[id].totalAmount += (work.amount || 0);
+
+                                      if (work.pricingDate && !acc[id].pricingDate) acc[id].pricingDate = work.pricingDate;
+                                      if (work.sentToPedDate && !acc[id].sentToPedDate) acc[id].sentToPedDate = work.sentToPedDate;
+                                      if (work.customerApprovalDate && !acc[id].customerApprovalDate) acc[id].customerApprovalDate = work.customerApprovalDate;
+                                      if (work.sentToAccountsDate && !acc[id].sentToAccountsDate) acc[id].sentToAccountsDate = work.sentToAccountsDate;
+                                      if (work.crdAddedDate && !acc[id].crdAddedDate) acc[id].crdAddedDate = work.crdAddedDate;
+                                      if (work.completedDate && !acc[id].completedDate) acc[id].completedDate = work.completedDate;
+                                      if (work.addedAt && !acc[id].addedAt) acc[id].addedAt = work.addedAt;
+
                                       return acc;
                                     }, {})).sort((a, b) => {
-                                      const aNew = a.items.some(w => isWorkNew(w));
-                                      const bNew = b.items.some(w => isWorkNew(w));
+                                      const isGroupNew = (group) => {
+                                        if (!group || !group.items) return false;
+                                        const hasWorkOrder = Boolean(group.crdAddedDate) || group.items.some(w => w.crdAddedDate || ['Added to CRD', 'Execution Sent to PED', 'Start Work', 'In Progress', 'Completed'].includes(w.status));
+                                        return !hasWorkOrder;
+                                      };
+                                      const aNew = isGroupNew(a);
+                                      const bNew = isGroupNew(b);
                                       if (aNew && !bNew) return -1;
                                       if (!aNew && bNew) return 1;
                                       return new Date(b.addedAt || 0) - new Date(a.addedAt || 0);
                                     });
 
-                                    return groupedFlowWorks.map((group, gIdx) => (
-                                      <tr
-                                        key={group.ewId || gIdx}
-                                        className="hover:bg-emerald-50/50 transition-colors cursor-pointer bg-white"
-                                        onClick={() => setSelectedReqGroupModal({ flowId: flow._id, ewId: group.ewId })}
-                                      >
-                                        <td className="p-4 align-middle text-center flex items-center justify-center gap-2">
-                                          {(() => {
-                                            const selectableWorksInGroup = group.items.filter(work => {
-                                              const canSelectAsCrd = (isAdmin || canEditTab('crd')) && ['Pending', 'Client Approved', 'Added to CRD'].includes(work.status);
-                                              const canSelectAsPed = (isAdmin || canEditTab('ped')) && ['Sent to PED', 'PED Approved'].includes(work.status);
-                                              const canSelectAsAccounts = (isAdmin || canEditTab('accounts')) && work.status === 'Sent to Accounts';
-                                              return canSelectAsCrd || canSelectAsPed || canSelectAsAccounts;
-                                            });
-                                            if (selectableWorksInGroup.length > 0) {
-                                              const isAllSelected = selectableWorksInGroup.every(w => selectedWorks.includes(w._id));
-                                              return (
-                                                <input
-                                                  type="checkbox"
-                                                  className="w-4 h-4 rounded border-gray-300 text-[#006838] focus:ring-[#006838]"
-                                                  checked={isAllSelected}
-                                                  onClick={(e) => e.stopPropagation()}
-                                                  onChange={(e) => {
-                                                    e.stopPropagation();
-                                                    if (isAllSelected) {
-                                                      setSelectedWorks(prev => prev.filter(id => !selectableWorksInGroup.find(w => w._id === id)));
-                                                    } else {
-                                                      const idsToAdd = selectableWorksInGroup.map(w => w._id);
-                                                      setSelectedWorks(prev => [...new Set([...prev, ...idsToAdd])]);
-                                                    }
-                                                  }}
-                                                />
-                                              );
-                                            }
-                                            return null;
-                                          })()}
-                                          <span className="text-xs font-bold text-emerald-800">{gIdx + 1}</span>
-                                        </td>
-                                        <td className="p-4 align-middle">
-                                          <div className="flex items-center gap-3">
+                                    const getGroupCompletedDateStr = (group) => {
+                                      const compItem = group.items.find(w => w.completedDate);
+                                      if (compItem && compItem.completedDate) {
+                                        return new Date(compItem.completedDate).toLocaleDateString('en-GB');
+                                      }
+                                      const history = flow?.history || [];
+                                      const groupNames = group.items.map(w => (w.name || '').toLowerCase());
+                                      for (let i = history.length - 1; i >= 0; i--) {
+                                        const h = history[i];
+                                        const isCompletedAction = (h.action && h.action.includes('Completed')) || (h.notes && h.notes.toLowerCase().includes('completed'));
+                                        if (isCompletedAction) {
+                                          const match = groupNames.some(name => name && h.notes?.toLowerCase().includes(name));
+                                          if (match || group.items.some(w => w.status === 'Completed')) {
+                                            return new Date(h.date || Date.now()).toLocaleDateString('en-GB');
+                                          }
+                                        }
+                                      }
+                                      const anyCompleted = group.items.find(w => w.status === 'Completed');
+                                      if (anyCompleted) {
+                                        return new Date(anyCompleted.updatedAt || Date.now()).toLocaleDateString('en-GB');
+                                      }
+                                      return '-';
+                                    };
+
+                                    const checkGroupIsNew = (group) => {
+                                      if (!group || !group.items) return false;
+                                      const hasWorkOrder = Boolean(group.crdAddedDate) || group.items.some(w => w.crdAddedDate || ['Added to CRD', 'Execution Sent to PED', 'Start Work', 'In Progress', 'Completed'].includes(w.status));
+                                      return !hasWorkOrder;
+                                    };
+
+                                    return groupedFlowWorks.map((group, gIdx) => {
+                                      const isGroupNew = checkGroupIsNew(group);
+                                      return (
+                                        <tr
+                                          key={group.ewId || gIdx}
+                                          className="hover:bg-emerald-50/50 transition-colors cursor-pointer bg-white"
+                                          onClick={() => setSelectedReqGroupModal({ flowId: flow._id, ewId: group.ewId })}
+                                        >
+                                          <td className="p-4 align-middle text-center flex items-center justify-center gap-2">
                                             {(() => {
-                                              const isGroupNew = group.items.some(w => isWorkNew(w));
-                                              return (
-                                                <button
-                                                  onClick={(e) => { e.stopPropagation(); setFlowMapModal({ work: group.items[0], flow }); }}
-                                                  className={`font-mono font-bold hover:underline transition-colors flex items-center gap-1 ${isGroupNew ? 'text-red-600' : 'text-[#006838]'}`}
-                                                  title="View Flow Map"
-                                                >
-                                                  {group.displayId || '-'}
-                                                </button>
-                                              );
+                                              const selectableWorksInGroup = group.items.filter(work => {
+                                                const canSelectAsCrd = (isAdmin || canEditTab('crd')) && ['Pending', 'Client Approved', 'Added to CRD'].includes(work.status);
+                                                const canSelectAsPed = (isAdmin || canEditTab('ped')) && ['Sent to PED', 'PED Approved'].includes(work.status);
+                                                const canSelectAsAccounts = (isAdmin || canEditTab('accounts')) && work.status === 'Sent to Accounts';
+                                                return canSelectAsCrd || canSelectAsPed || canSelectAsAccounts;
+                                              });
+                                              if (selectableWorksInGroup.length > 0) {
+                                                const isAllSelected = selectableWorksInGroup.every(w => selectedWorks.includes(w._id));
+                                                return (
+                                                  <input
+                                                    type="checkbox"
+                                                    className="w-4 h-4 rounded border-gray-300 text-[#006838] focus:ring-[#006838]"
+                                                    checked={isAllSelected}
+                                                    onClick={(e) => e.stopPropagation()}
+                                                    onChange={(e) => {
+                                                      e.stopPropagation();
+                                                      if (isAllSelected) {
+                                                        setSelectedWorks(prev => prev.filter(id => !selectableWorksInGroup.find(w => w._id === id)));
+                                                      } else {
+                                                        const idsToAdd = selectableWorksInGroup.map(w => w._id);
+                                                        setSelectedWorks(prev => [...new Set([...prev, ...idsToAdd])]);
+                                                      }
+                                                    }}
+                                                  />
+                                                );
+                                              }
+                                              return null;
                                             })()}
+                                            <span className="text-xs font-bold text-emerald-800">{gIdx + 1}</span>
+                                          </td>
+                                          <td className="p-4 align-middle">
+                                            <div className="flex items-center gap-3">
+                                              <button
+                                                onClick={(e) => { e.stopPropagation(); setFlowMapModal({ work: group.items[0], flow }); }}
+                                                className={`font-mono font-bold hover:underline transition-colors flex items-center gap-1 ${isGroupNew ? 'text-red-600' : 'text-[#006838]'}`}
+                                                title="View Flow Map"
+                                              >
+                                                {group.displayId || '-'}
+                                              </button>
+                                              <button
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  setSelectedReqGroupModal({ flowId: flow._id, ewId: group.ewId });
+                                                }}
+                                                className="px-2.5 py-1 bg-[#006838] text-white hover:bg-[#00512c] rounded-lg text-xs font-bold transition shadow-sm cursor-pointer whitespace-nowrap"
+                                              >
+                                                View Details
+                                              </button>
+                                            </div>
+                                          </td>
+                                          <td className="p-4 align-middle text-center text-xs font-bold text-gray-700">
+                                            {group.items.length} {group.items.length === 1 ? 'Item' : 'Items'}
+                                          </td>
+                                          <td className="p-4 align-middle text-center text-sm text-gray-600">
+                                            {group.addedAt ? new Date(group.addedAt).toLocaleDateString('en-GB') : '-'}
+                                          </td>
+                                          <td className="p-4 align-middle text-center">
+                                            {isGroupNew ? (
+                                              <span className="px-2.5 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full text-[10px] font-bold">New</span>
+                                            ) : (
+                                              <span className="px-2.5 py-1 bg-slate-100 text-slate-700 border border-slate-200 rounded-full text-[10px] font-bold">Old</span>
+                                            )}
+                                          </td>
+                                          <td className="p-4 align-middle text-center text-sm text-gray-600">
+                                            {group.sentToPedDate ? new Date(group.sentToPedDate).toLocaleDateString('en-GB') : '-'}
+                                          </td>
+                                          <td className="p-4 align-middle text-right font-bold text-emerald-900">
+                                            Rs. {(group.totalAmount || 0).toLocaleString()}
+                                          </td>
+                                          <td className="p-4 align-middle text-center text-sm text-gray-600">
+                                            {group.pricingDate ? new Date(group.pricingDate).toLocaleDateString('en-GB') : '-'}
+                                          </td>
+                                          <td className="p-4 align-middle text-center text-sm text-emerald-700 font-medium">
+                                            {group.customerApprovalDate ? new Date(group.customerApprovalDate).toLocaleDateString('en-GB') : '-'}
+                                          </td>
+                                          <td className="p-4 align-middle text-center text-sm text-blue-700 font-medium">
+                                            {group.sentToAccountsDate ? new Date(group.sentToAccountsDate).toLocaleDateString('en-GB') : '-'}
+                                          </td>
+                                          <td className="p-4 align-middle text-center text-sm text-purple-700 font-medium">
+                                            {group.crdAddedDate ? new Date(group.crdAddedDate).toLocaleDateString('en-GB') : '-'}
+                                          </td>
+                                          <td className="p-4 align-middle text-center text-sm text-emerald-700 font-medium">
+                                            {getGroupCompletedDateStr(group)}
+                                          </td>
+                                          <td className="p-4 align-middle text-center">
                                             <button
                                               onClick={(e) => {
                                                 e.stopPropagation();
                                                 setSelectedReqGroupModal({ flowId: flow._id, ewId: group.ewId });
                                               }}
-                                              className="px-2.5 py-1 bg-[#006838] text-white hover:bg-[#00512c] rounded-lg text-xs font-bold transition shadow-sm cursor-pointer whitespace-nowrap"
+                                              className="px-3 py-1 bg-[#006838] text-white hover:bg-[#00512c] rounded-lg text-xs font-bold transition shadow-sm cursor-pointer"
                                             >
                                               View Details
                                             </button>
-                                          </div>
-                                        </td>
-                                        <td className="p-4 align-middle text-center text-xs font-bold text-gray-700">
-                                          {group.items.length} {group.items.length === 1 ? 'Item' : 'Items'}
-                                        </td>
-                                        <td className="p-4 align-middle text-center text-sm text-gray-600">
-                                          {group.addedAt ? new Date(group.addedAt).toLocaleDateString('en-GB') : '-'}
-                                        </td>
-                                        <td className="p-4 align-middle text-center">
-                                          {group.items.some(w => isWorkNew(w)) ? (
-                                            <span className="px-2.5 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full text-[10px] font-bold">New</span>
-                                          ) : (
-                                            <span className="px-2.5 py-1 bg-slate-100 text-slate-700 border border-slate-200 rounded-full text-[10px] font-bold">Old</span>
-                                          )}
-                                        </td>
-                                        <td className="p-4 align-middle text-center text-sm text-gray-600">
-                                          {group.sentToPedDate ? new Date(group.sentToPedDate).toLocaleDateString('en-GB') : '-'}
-                                        </td>
-                                        <td className="p-4 align-middle text-right font-bold text-emerald-900">
-                                          Rs. {(group.totalAmount || 0).toLocaleString()}
-                                        </td>
-                                        <td className="p-4 align-middle text-center text-sm text-gray-600">
-                                          {group.pricingDate ? new Date(group.pricingDate).toLocaleDateString('en-GB') : '-'}
-                                        </td>
-                                        <td className="p-4 align-middle text-center text-sm text-emerald-700 font-medium">
-                                          {group.customerApprovalDate ? new Date(group.customerApprovalDate).toLocaleDateString('en-GB') : '-'}
-                                        </td>
-                                        <td className="p-4 align-middle text-center text-sm text-blue-700 font-medium">
-                                          {group.sentToAccountsDate ? new Date(group.sentToAccountsDate).toLocaleDateString('en-GB') : '-'}
-                                        </td>
-                                        <td className="p-4 align-middle text-center text-sm text-purple-700 font-medium">
-                                          {group.crdAddedDate ? new Date(group.crdAddedDate).toLocaleDateString('en-GB') : '-'}
-                                        </td>
-                                        <td className="p-4 align-middle text-center text-sm text-emerald-700 font-medium">
-                                          {group.items.some(w => w.completedDate) ? new Date(group.items.find(w => w.completedDate).completedDate).toLocaleDateString('en-GB') : (group.items.every(w => w.status === 'Completed') ? new Date().toLocaleDateString('en-GB') : '-')}
-                                        </td>
-                                        <td className="p-4 align-middle text-center">
-                                          <button
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              setSelectedReqGroupModal({ flowId: flow._id, ewId: group.ewId });
-                                            }}
-                                            className="px-3 py-1 bg-[#006838] text-white hover:bg-[#00512c] rounded-lg text-xs font-bold transition shadow-sm cursor-pointer"
-                                          >
-                                            View Details
-                                          </button>
-                                        </td>
-                                      </tr>
-                                    ));
+                                          </td>
+                                        </tr>
+                                      );
+                                    });
                                   })()}
                                 </tbody>
                               </table>
