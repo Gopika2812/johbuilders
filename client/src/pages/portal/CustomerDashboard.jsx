@@ -101,8 +101,7 @@ const CustomerDashboard = () => {
   const [complaintReviewModal, setComplaintReviewModal] = useState({ open: false, complaintId: null });
   const [complaintReviewNote, setComplaintReviewNote] = useState('');
   const [feedbackModal, setFeedbackModal] = useState(null);
-  const [feedbackRating, setFeedbackRating] = useState(5);
-  const [feedbackComment, setFeedbackComment] = useState('');
+  const [feedbackForm, setFeedbackForm] = useState({ rating: 5, feedback: '' });
   const [hoverRating, setHoverRating] = useState(0);
   
   // Form State
@@ -147,7 +146,7 @@ const CustomerDashboard = () => {
   const [complaintSearchText, setComplaintSearchText] = useState('');
 
   const handleFeedbackSubmit = async (e) => {
-    e.preventDefault();
+    if (e) e.preventDefault();
     if (!feedbackModal) return;
     try {
       setSubmitting(true);
@@ -155,12 +154,11 @@ const CustomerDashboard = () => {
       const res = await fetch(`${API_URL}/customer/complaint/${feedbackModal._id}/feedback`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ rating: feedbackRating, feedback: feedbackComment })
+        body: JSON.stringify({ rating: feedbackForm.rating || 5, feedback: feedbackForm.feedback })
       });
       if (!res.ok) throw new Error('Failed to submit feedback');
       setFeedbackModal(null);
-      setFeedbackComment('');
-      setFeedbackRating(5);
+      setFeedbackForm({ rating: 5, feedback: '' });
       await fetchFlow();
     } catch (err) {
       alert(err.message);
@@ -1793,8 +1791,7 @@ const CustomerDashboard = () => {
                                       onClick={(e) => {
                                         e.stopPropagation();
                                         setFeedbackModal(comp);
-                                        setFeedbackRating(5);
-                                        setFeedbackComment('');
+                                        setFeedbackForm({ rating: 5, feedback: '' });
                                       }}
                                       className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold rounded-xl bg-gradient-to-r from-amber-500 to-yellow-500 text-white border border-amber-500 hover:from-amber-600 hover:to-yellow-600 transition shadow-md shadow-amber-500/20 cursor-pointer"
                                     >
@@ -1870,8 +1867,7 @@ const CustomerDashboard = () => {
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     setFeedbackModal(comp);
-                                    setFeedbackRating(5);
-                                    setFeedbackComment('');
+                                    setFeedbackForm({ rating: 5, feedback: '' });
                                   }}
                                   className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest rounded-xl border bg-gradient-to-r from-amber-500 to-yellow-500 text-white border-amber-600 hover:from-amber-600 hover:to-yellow-600 transition shadow-sm cursor-pointer"
                                 >
@@ -2483,15 +2479,17 @@ const CustomerDashboard = () => {
                     <button
                       type="button"
                       key={star}
-                      onClick={() => setFeedbackRating(star)}
+                      onMouseEnter={() => setHoverRating(star)}
+                      onMouseLeave={() => setHoverRating(0)}
+                      onClick={() => setFeedbackForm(prev => ({ ...prev, rating: star }))}
                       className="p-1 transition-transform hover:scale-125 focus:outline-none cursor-pointer"
                     >
                       <Star
-                        className={`w-8 h-8 ${star <= feedbackRating ? 'text-amber-400 fill-amber-400' : 'text-gray-300'}`}
+                        className={`w-8 h-8 ${star <= (hoverRating || feedbackForm.rating) ? 'text-amber-400 fill-amber-400' : 'text-gray-300'}`}
                       />
                     </button>
                   ))}
-                  <span className="ml-2 font-bold text-sm text-gray-700">{feedbackRating} / 5</span>
+                  <span className="ml-2 font-bold text-sm text-gray-700">{feedbackForm.rating || 5} / 5</span>
                 </div>
               </div>
 
@@ -2500,8 +2498,8 @@ const CustomerDashboard = () => {
                 <textarea
                   rows="4"
                   required
-                  value={feedbackComment}
-                  onChange={(e) => setFeedbackComment(e.target.value)}
+                  value={feedbackForm.feedback}
+                  onChange={(e) => setFeedbackForm(prev => ({ ...prev, feedback: e.target.value }))}
                   placeholder="Tell us about your experience with our complaint resolution..."
                   className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#006838]/20 bg-gray-50 focus:bg-white transition-colors"
                 />
