@@ -16,7 +16,8 @@ import {
   X,
   FileText,
   Activity,
-  MoreVertical
+  MoreVertical,
+  Play
 } from 'lucide-react';
 
 class ErrorBoundary extends React.Component {
@@ -59,10 +60,27 @@ const ExtraWorksInner = () => {
   const [extraWorkDetailsModal, setExtraWorkDetailsModal] = useState(null);
   const [flowMapModal, setFlowMapModal] = useState(null);
   const [expandedReqIds, setExpandedReqIds] = useState({});
+  const [selectedReqGroupModal, setSelectedReqGroupModal] = useState(null);
 
   const canEditTab = (tabId) => {
     if (isAdmin) return true;
-    if (!user || !user.permissions) return false;
+    if (!user) return false;
+
+    const userRoleStr = (user.role || '').toLowerCase();
+    const userDeptStr = (user.department || '').toLowerCase();
+
+    // Strict role/department isolation
+    if (userRoleStr.includes('ped') || userDeptStr.includes('ped')) {
+      return tabId === 'ped';
+    }
+    if (userRoleStr.includes('crd') || userDeptStr.includes('crd')) {
+      return tabId === 'crd';
+    }
+    if (userRoleStr.includes('account') || userDeptStr.includes('account')) {
+      return tabId === 'accounts' || tabId === 'work-orders';
+    }
+
+    if (!user.permissions) return false;
     const tabPermissionMap = {
       'crd': 'extra_works_crd',
       'ped': 'extra_works_ped',
@@ -71,9 +89,18 @@ const ExtraWorksInner = () => {
       'work-orders': 'extra_works_work_orders'
     };
     const permId = tabPermissionMap[tabId];
-    if (!permId) return false;
     const perm = user.permissions.find(p => p.pageId === permId);
-    return perm ? perm.canEdit : false;
+    if (perm) return perm.canEdit;
+
+    // Fallback for general extra_works permission based on user role
+    const generalPerm = user.permissions.find(p => p.pageId === 'extra_works');
+    if (generalPerm && generalPerm.canEdit) {
+      if (tabId === 'ped') return userRoleStr.includes('ped') || userDeptStr.includes('ped');
+      if (tabId === 'accounts') return userRoleStr.includes('account') || userDeptStr.includes('account');
+      if (tabId === 'crd') return !userRoleStr.includes('ped') && !userRoleStr.includes('account');
+    }
+
+    return false;
   };
 
   const hasAnyPermission = isAdmin || (user?.permissions && user.permissions.some(p => p.pageId?.startsWith('extra_works_')));
@@ -374,12 +401,14 @@ const ExtraWorksInner = () => {
   const getStatusBadge = (status) => {
     switch (status) {
       case 'Pending': return <span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded text-xs font-bold">Pending (CRD)</span>;
-      case 'Sent to PED': return <span className="px-2 py-1 bg-indigo-100 text-indigo-800 rounded text-xs font-bold">Sent to PED</span>;
-      case 'PED Approved': return <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs font-bold">Priced (Ready to Send)</span>;
+      case 'Sent to PED': return <span className="px-2 py-1 bg-indigo-100 text-indigo-800 rounded text-xs font-bold">Pending (PED)</span>;
+      case 'PED Approved':
+      case 'Returned to CRD':
+        return <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs font-bold">Waiting for CRD & Client</span>;
       case 'Sent to Customer': return <span className="px-2 py-1 bg-purple-100 text-purple-800 rounded text-xs font-bold">Sent to Customer</span>;
       case 'Client Approved': return <span className="px-2 py-1 bg-emerald-100 text-emerald-800 rounded text-xs font-bold">Client Approved</span>;
       case 'Sent to Accounts': return <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs font-bold">Sent to Accounts</span>;
-      case 'Added to CRD': return <span className="px-2 py-1 bg-gray-100 text-gray-800 rounded text-xs font-bold">Added to CRD</span>;
+      case 'Added to CRD': return <span className="px-2.5 py-1 bg-emerald-100 text-emerald-800 rounded-lg text-xs font-bold shadow-sm">Work Order Created (Send to CRD)</span>;
       case 'Execution Sent to PED': return <span className="px-2 py-1 bg-teal-100 text-teal-800 rounded text-xs font-bold">Execution Sent to PED</span>;
       case 'Start Work': return <span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded text-xs font-bold">Start Work</span>;
       case 'In Progress': return <span className="px-2 py-1 bg-orange-100 text-orange-800 rounded text-xs font-bold">In Progress</span>;
@@ -391,27 +420,9 @@ const ExtraWorksInner = () => {
   };
 
   const isWorkVisible = (work) => {
-    if (isAdmin) return true;
-
-    const status = work.status;
-
-    if (canEditTab('crd') && ['Pending', 'Returned to CRD', 'Client Approved', 'Added to CRD'].includes(status)) {
-      return true;
-    }
-
-    if (canEditTab('ped') && ['Sent to PED', 'PED Approved', 'Execution Sent to PED', 'Start Work', 'In Progress', 'Completed'].includes(status)) {
-      return true;
-    }
-
-    if (canEditTab('client') && ['Sent to Customer', 'Removed by Client', 'Rejected'].includes(status)) {
-      return true;
-    }
-
-    if (canEditTab('accounts') && ['Sent to Accounts'].includes(status)) {
-      return true;
-    }
-
-    return false;
+    if (!work) return false;
+    // Allow all authorized team members to view extra works across all lifecycle statuses (Pending, Sent to PED, etc.)
+    return true;
   };
 
   const filteredFlows = flows.filter(flow => {
@@ -610,6 +621,40 @@ const ExtraWorksInner = () => {
     return total;
   };
 
+  const activeGroupModalData = (() => {
+    if (!selectedReqGroupModal) return null;
+    const targetFlow = flows.find(f => f._id === selectedReqGroupModal.flowId);
+    if (!targetFlow) return null;
+
+    const filteredFlowWorks = [];
+    targetFlow.stages?.forEach((stage, sIdx) => {
+      stage.extraWorks?.forEach(work => {
+        if (isWorkVisible(work)) {
+          filteredFlowWorks.push({ ...work, stageIdx: sIdx, originalWork: work });
+        }
+      });
+    });
+
+    const groupItems = filteredFlowWorks.filter(w => (w.ewId || `NO_ID_${w._id}`) === selectedReqGroupModal.ewId);
+    if (groupItems.length === 0) return null;
+
+    const totalAmount = groupItems.reduce((sum, w) => sum + (w.amount || 0), 0);
+    const firstWork = groupItems[0];
+
+    return {
+      flow: targetFlow,
+      ewId: selectedReqGroupModal.ewId,
+      displayId: firstWork.ewId || selectedReqGroupModal.ewId,
+      items: groupItems,
+      totalAmount,
+      addedAt: firstWork.addedAt,
+      sentToPedDate: firstWork.sentToPedDate,
+      pricingDate: firstWork.pricingDate,
+      customerApprovalDate: firstWork.customerApprovalDate,
+      sentToAccountsDate: firstWork.sentToAccountsDate,
+      crdAddedDate: firstWork.crdAddedDate,
+    };
+  })();
 
   return (
     <div className="p-6 md:p-8 w-full mx-auto space-y-6 animate-fade-in">
@@ -668,7 +713,7 @@ const ExtraWorksInner = () => {
             <Download className="w-4 h-4" /> Export
           </button>
 
-          {(isAdmin || canEditTab('crd')) && (
+          {(isAdmin || (canEditTab('crd') && !user?.role?.includes('PED') && !user?.role?.includes('Account'))) && (
             <button
               onClick={() => {
                 setShowGlobalModal(true);
@@ -803,7 +848,20 @@ const ExtraWorksInner = () => {
                     >
                       <td className="px-6 py-4 font-bold text-gray-900">{idx + 1}</td>
                       <td className="px-6 py-4 text-gray-600">{new Date(flow.createdAt).toLocaleDateString()}</td>
-                      <td className="px-6 py-4 font-bold text-emerald-900">{flow.lead?.name}</td>
+                      <td className="px-6 py-4 font-bold text-emerald-900">
+                        <div className="flex items-center justify-between gap-3">
+                          <span>{flow.lead?.name}</span>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setExpandedFlow(isExpanded ? null : flow._id);
+                            }}
+                            className="px-3 py-1 bg-[#006838] text-white hover:bg-[#00512c] rounded-lg text-xs font-bold transition shadow-sm whitespace-nowrap cursor-pointer"
+                          >
+                            {isExpanded ? 'Close' : 'View Extra Works'}
+                          </button>
+                        </div>
+                      </td>
                       <td className="px-6 py-4 text-center">
                         {(() => {
                           const isFlowNew = flow.stages?.some(stage =>
@@ -835,7 +893,7 @@ const ExtraWorksInner = () => {
                           <div className="p-6">
                             <div className="flex justify-between items-center mb-4">
                               <h3 className="font-bold text-gray-800 text-lg">Extra Works Timeline</h3>
-                              {(isAdmin || canEditTab('crd')) && (
+                              {(isAdmin || (canEditTab('crd') && !user?.role?.includes('PED') && !user?.role?.includes('Account'))) && (
                                 <button
                                   onClick={() => {
                                     setShowAddForm(!showAddForm);
@@ -1023,7 +1081,7 @@ const ExtraWorksInner = () => {
                                     <th className="p-4 font-bold text-[11px] uppercase tracking-wider text-center">Customer Approval on </th>
                                     <th className="p-4 font-bold text-[11px] uppercase tracking-wider text-center">Sent to Account Team on </th>
                                     <th className="p-4 font-bold text-[11px] uppercase tracking-wider text-center">Work Order Issued on</th>
-                                    <th className="p-4 font-bold text-[11px] uppercase tracking-wider text-center">Send to Client / CRD</th>
+                                    <th className="p-4 font-bold text-[11px] uppercase tracking-wider text-center">Completed On</th>
                                     <th className="p-4 font-bold text-[11px] uppercase tracking-wider text-center">Action</th>
                                   </tr>
                                 </thead>
@@ -1053,6 +1111,7 @@ const ExtraWorksInner = () => {
                                           customerApprovalDate: work.customerApprovalDate,
                                           sentToAccountsDate: work.sentToAccountsDate,
                                           crdAddedDate: work.crdAddedDate,
+                                          completedDate: work.completedDate,
                                           addedAt: work.addedAt
                                         };
                                       }
@@ -1068,44 +1127,45 @@ const ExtraWorksInner = () => {
                                     });
 
                                     return groupedFlowWorks.map((group, gIdx) => (
-                                      <React.Fragment key={group.ewId || gIdx}>
-                                        <tr
-                                          className="hover:bg-emerald-50/30 transition-colors cursor-pointer bg-white"
-                                          onClick={() => setExpandedReqIds(prev => ({ ...prev, [group.ewId]: !prev[group.ewId] }))}
-                                        >
-                                          <td className="p-4 align-middle text-center flex items-center justify-center gap-2">
-                                            {(() => {
-                                              const selectableWorksInGroup = group.items.filter(work => {
-                                                const canSelectAsCrd = (isAdmin || canEditTab('crd')) && ['Pending', 'Client Approved', 'Added to CRD'].includes(work.status);
-                                                const canSelectAsPed = (isAdmin || canEditTab('ped')) && ['Sent to PED', 'PED Approved'].includes(work.status);
-                                                const canSelectAsAccounts = (isAdmin || canEditTab('accounts')) && work.status === 'Sent to Accounts';
-                                                return canSelectAsCrd || canSelectAsPed || canSelectAsAccounts;
-                                              });
-                                              if (selectableWorksInGroup.length > 0) {
-                                                const isAllSelected = selectableWorksInGroup.every(w => selectedWorks.includes(w._id));
-                                                return (
-                                                  <input
-                                                    type="checkbox"
-                                                    className="w-4 h-4 rounded border-gray-300 text-[#006838] focus:ring-[#006838]"
-                                                    checked={isAllSelected}
-                                                    onClick={(e) => e.stopPropagation()}
-                                                    onChange={(e) => {
-                                                      e.stopPropagation();
-                                                      if (isAllSelected) {
-                                                        setSelectedWorks(prev => prev.filter(id => !selectableWorksInGroup.find(w => w._id === id)));
-                                                      } else {
-                                                        const idsToAdd = selectableWorksInGroup.map(w => w._id);
-                                                        setSelectedWorks(prev => [...new Set([...prev, ...idsToAdd])]);
-                                                      }
-                                                    }}
-                                                  />
-                                                );
-                                              }
-                                              return null;
-                                            })()}
-                                            {expandedReqIds[group.ewId] ? <ChevronUp className="w-4 h-4 text-emerald-600" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
-                                          </td>
-                                          <td className="p-4 align-middle">
+                                      <tr
+                                        key={group.ewId || gIdx}
+                                        className="hover:bg-emerald-50/50 transition-colors cursor-pointer bg-white"
+                                        onClick={() => setSelectedReqGroupModal({ flowId: flow._id, ewId: group.ewId })}
+                                      >
+                                        <td className="p-4 align-middle text-center flex items-center justify-center gap-2">
+                                          {(() => {
+                                            const selectableWorksInGroup = group.items.filter(work => {
+                                              const canSelectAsCrd = (isAdmin || canEditTab('crd')) && ['Pending', 'Client Approved', 'Added to CRD'].includes(work.status);
+                                              const canSelectAsPed = (isAdmin || canEditTab('ped')) && ['Sent to PED', 'PED Approved'].includes(work.status);
+                                              const canSelectAsAccounts = (isAdmin || canEditTab('accounts')) && work.status === 'Sent to Accounts';
+                                              return canSelectAsCrd || canSelectAsPed || canSelectAsAccounts;
+                                            });
+                                            if (selectableWorksInGroup.length > 0) {
+                                              const isAllSelected = selectableWorksInGroup.every(w => selectedWorks.includes(w._id));
+                                              return (
+                                                <input
+                                                  type="checkbox"
+                                                  className="w-4 h-4 rounded border-gray-300 text-[#006838] focus:ring-[#006838]"
+                                                  checked={isAllSelected}
+                                                  onClick={(e) => e.stopPropagation()}
+                                                  onChange={(e) => {
+                                                    e.stopPropagation();
+                                                    if (isAllSelected) {
+                                                      setSelectedWorks(prev => prev.filter(id => !selectableWorksInGroup.find(w => w._id === id)));
+                                                    } else {
+                                                      const idsToAdd = selectableWorksInGroup.map(w => w._id);
+                                                      setSelectedWorks(prev => [...new Set([...prev, ...idsToAdd])]);
+                                                    }
+                                                  }}
+                                                />
+                                              );
+                                            }
+                                            return null;
+                                          })()}
+                                          <span className="text-xs font-bold text-emerald-800">{gIdx + 1}</span>
+                                        </td>
+                                        <td className="p-4 align-middle">
+                                          <div className="flex items-center gap-3">
                                             {(() => {
                                               const isGroupNew = !(group.sentToPedDate || group.items.some(w => w.sentToPedDate || w.status !== 'Pending'));
                                               return (
@@ -1118,517 +1178,68 @@ const ExtraWorksInner = () => {
                                                 </button>
                                               );
                                             })()}
-                                          </td>
-                                          <td className="p-4 align-middle text-center text-sm text-gray-400 font-medium">
-                                            -
-                                          </td>
-                                          <td className="p-4 align-middle text-center text-sm text-gray-600">
-                                            {group.addedAt ? new Date(group.addedAt).toLocaleDateString('en-GB') : '-'}
-                                          </td>
-                                          <td className="p-4 align-middle text-center">
-                                            {(group.sentToPedDate || group.items.some(w => w.sentToPedDate || w.status !== 'Pending')) ? (
-                                              <span className="px-2.5 py-1 bg-slate-100 text-slate-700 border border-slate-200 rounded-full text-[10px] font-bold">Old</span>
-                                            ) : (
-                                              <span className="px-2.5 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full text-[10px] font-bold">New</span>
-                                            )}
-                                          </td>
-                                          <td className="p-4 align-middle text-center text-sm text-gray-600">
-                                            {group.sentToPedDate ? new Date(group.sentToPedDate).toLocaleDateString('en-GB') : '-'}
-                                          </td>
-                                          <td className="p-4 align-middle text-right font-bold text-black-800">
-                                            Rs. {(group.totalAmount || 0).toLocaleString()}
-                                          </td>
-                                          <td className="p-4 align-middle text-center text-sm text-gray-600">
-                                            {group.pricingDate ? new Date(group.pricingDate).toLocaleDateString('en-GB') : '-'}
-                                          </td>
-                                          <td className="p-4 align-middle text-center text-sm text-emerald-700 font-medium">
-                                            {group.customerApprovalDate ? new Date(group.customerApprovalDate).toLocaleDateString('en-GB') : '-'}
-                                          </td>
-                                          <td className="p-4 align-middle text-center text-sm text-blue-700 font-medium">
-                                            {group.sentToAccountsDate ? new Date(group.sentToAccountsDate).toLocaleDateString('en-GB') : '-'}
-                                          </td>
-                                          <td className="p-4 align-middle text-center text-sm text-purple-700 font-medium">
-                                            {group.crdAddedDate ? new Date(group.crdAddedDate).toLocaleDateString('en-GB') : '-'}
-                                          </td>
-                                          <td className="p-4 align-middle text-center text-sm text-gray-400 font-medium">-</td>
-                                          <td className="p-4 align-middle text-center text-sm text-gray-400 font-medium">-</td>
-                                        </tr>
-                                        {expandedReqIds[group.ewId] && group.items.map((work, wIdx) => (
-                                          <tr key={work._id} className="bg-gray-50/50 hover:bg-white transition border-l-4 border-[#006838]">
-                                            <td className="p-4 align-middle text-center flex items-center justify-center gap-2">
-                                              {(((isAdmin || canEditTab('crd')) && ['Pending', 'Returned to CRD', 'Client Approved', 'Added to CRD'].includes(work.status)) ||
-                                                ((isAdmin || canEditTab('ped')) && ['Sent to PED', 'PED Approved'].includes(work.status)) ||
-                                                ((isAdmin || canEditTab('accounts')) && work.status === 'Sent to Accounts')) && (
-                                                  <input
-                                                    type="checkbox"
-                                                    className="w-4 h-4 rounded border-gray-300 text-[#006838] focus:ring-[#006838]"
-                                                    checked={selectedWorks.includes(work._id)}
-                                                    onChange={(e) => {
-                                                      e.stopPropagation();
-                                                      setSelectedWorks(prev => prev.includes(work._id) ? prev.filter(id => id !== work._id) : [...prev, work._id]);
-                                                    }}
-                                                  />
-                                                )}
-                                              <span className="text-xs text-gray-400 font-bold">{gIdx + 1}.{wIdx + 1}</span>
-                                            </td>
-                                            <td className="p-4 align-middle">
-                                              <div className="font-bold text-gray-700 flex flex-col gap-1 text-xs whitespace-normal max-w-[200px]">
-                                                <span>↳ {work.name || '-'}</span>
-                                                {work.clientNotes && (
-                                                  <span className="text-[10px] text-blue-600 bg-blue-50 p-1.5 rounded mt-1 border border-blue-100 inline-block w-full">
-                                                    <strong className="block mb-0.5 text-[9px] uppercase tracking-wider text-blue-400">Client Review Note:</strong>
-                                                    {work.clientNotes}
-                                                  </span>
-                                                )}
-                                              </div>
-                                            </td>
-                                            <td className="p-4 align-middle text-center text-xs text-gray-700 font-medium whitespace-nowrap">
-                                              {work.quantity || 1} {work.unit || 'No'}
-                                            </td>
-                                            <td className="p-4 align-middle text-center text-[11px] text-gray-500">
-                                              {work.addedAt ? new Date(work.addedAt).toLocaleDateString('en-GB') : '-'}
-                                            </td>
-                                            <td className="p-4 align-middle text-center">
-                                              {getStatusBadge(work.status)}
-                                            </td>
-                                            <td className="p-4 align-middle text-center text-[11px] text-gray-500">
-                                              {work.sentToPedDate ? new Date(work.sentToPedDate).toLocaleDateString('en-GB') : '-'}
-                                            </td>
-                                            <td className="p-4 align-middle text-right font-bold text-[#006838]">
-                                              {['Sent to PED', 'PED Approved', 'Sent to Customer', 'Client Approved', 'Sent to Accounts'].includes(work.status) && (isAdmin || canEditTab('ped')) ? (
-                                                <div className="flex flex-col items-end gap-1">
-                                                  <div className="flex items-center gap-1 justify-end">
-                                                    <span className="text-[11px] text-gray-500 font-normal">Rs.</span>
-                                                    <input
-                                                      type="number"
-                                                      value={rates[work._id] ?? work.rate ?? ''}
-                                                      onChange={(e) => handleRateChange(work._id, e.target.value)}
-                                                      className="w-20 px-2 py-1 bg-white border border-gray-300 rounded text-xs focus:outline-none focus:ring-1 focus:ring-[#006838] text-right"
-                                                      placeholder="Rate"
-                                                      onClick={(e) => e.stopPropagation()}
-                                                    />
-                                                  </div>
-                                                  {work.quantity > 1 && (
-                                                    <span className="text-[9px] text-gray-400 font-medium">Total: Rs. {(work.amount || 0).toLocaleString()}</span>
-                                                  )}
-                                                </div>
-                                              ) : (
-                                                `Rs. ${(work.amount || 0).toLocaleString()}`
-                                              )}
-                                            </td>
-                                            <td className="p-4 align-middle text-center text-[11px] text-gray-500">
-                                              {work.pricingDate ? new Date(work.pricingDate).toLocaleDateString('en-GB') : '-'}
-                                            </td>
-                                            <td className="p-4 align-middle text-center text-[11px] text-emerald-600 font-medium">
-                                              {work.customerApprovalDate ? new Date(work.customerApprovalDate).toLocaleDateString('en-GB') : '-'}
-                                            </td>
-                                            <td className="p-4 align-middle text-center text-[11px] text-blue-600 font-medium">
-                                              {work.sentToAccountsDate ? new Date(work.sentToAccountsDate).toLocaleDateString('en-GB') : '-'}
-                                            </td>
-                                            <td className="p-4 align-middle text-center text-[11px] text-purple-700 font-medium">
-                                              {work.crdAddedDate ? new Date(work.crdAddedDate).toLocaleDateString('en-GB') : '-'}
-                                            </td>
-                                            <td className="p-4 align-middle text-center">
-                                              {(isAdmin || canEditTab('crd')) && work.status === 'Pending' && (
-                                                <button
-                                                  onClick={async (e) => {
-                                                    e.stopPropagation();
-                                                    setSubmitting(work._id);
-                                                    try {
-                                                      await handleSendToPED(flow._id, work.stageIdx, work._id);
-                                                    } finally {
-                                                      setSubmitting(null);
-                                                    }
-                                                  }}
-                                                  disabled={submitting === work._id}
-                                                  className="px-2 py-1 bg-blue-50 hover:bg-blue-100 text-blue-600 border border-blue-200 rounded text-[10px] font-bold shadow-sm whitespace-nowrap"
-                                                >
-                                                  Send to PED
-                                                </button>
-                                              )}
-                                              {(isAdmin || canEditTab('ped')) && ['Sent to PED', 'PED Approved'].includes(work.status) && (
-                                                <div className="flex flex-col gap-1 items-center justify-center">
-                                                  <button
-                                                    onClick={async (e) => {
-                                                      e.stopPropagation();
-                                                      setSubmitting(work._id);
-                                                      try {
-                                                        await handleSavePrice(flow._id, work.stageIdx, work._id);
-                                                      } finally {
-                                                        setSubmitting(null);
-                                                      }
-                                                    }}
-                                                    disabled={submitting === work._id || !(rates[work._id] > 0 || work.rate > 0)}
-                                                    className="px-2 py-0.5 bg-gray-100 hover:bg-gray-200 text-gray-700 border border-gray-300 rounded text-[9px] font-bold shadow-sm whitespace-nowrap mb-1"
-                                                  >
-                                                    Save Price
-                                                  </button>
-                                                  <button
-                                                    onClick={async (e) => {
-                                                      e.stopPropagation();
-                                                      setSubmitting(work._id);
-                                                      try {
-                                                        await handleSaveAndSendToClient(flow._id, work.stageIdx, work._id);
-                                                      } finally {
-                                                        setSubmitting(null);
-                                                      }
-                                                    }}
-                                                    disabled={submitting === work._id || !(rates[work._id] > 0 || work.rate > 0)}
-                                                    className="px-2.5 py-1 bg-[#006838] hover:bg-[#00512c] text-white rounded text-[10px] font-bold shadow-sm whitespace-nowrap"
-                                                  >
-                                                    Send to Client
-                                                  </button>
-                                                </div>
-                                              )}
-                                              {(isAdmin || canEditTab('crd')) && work.status === 'Returned to CRD' && (
-                                                <button
-                                                  onClick={async (e) => {
-                                                    e.stopPropagation();
-                                                    setSubmitting(work._id);
-                                                    try {
-                                                      await fetch(`${API_URL}/extra-works/${flow._id}/${work.stageIdx}/${work._id}/send`, {
-                                                        method: 'PUT',
-                                                        headers: { Authorization: `Bearer ${token}` }
-                                                      });
-                                                      await fetchFlows();
-                                                    } catch (err) {
-                                                      alert(err.message);
-                                                    } finally {
-                                                      setSubmitting(null);
-                                                    }
-                                                  }}
-                                                  disabled={submitting === work._id}
-                                                  className="px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 rounded text-[10px] font-bold shadow-sm whitespace-nowrap"
-                                                >
-                                                  Send to Client
-                                                </button>
-                                              )}
-                                              {(isAdmin || canEditTab('crd')) && work.status === 'Client Approved' && (
-                                                <button
-                                                  onClick={async (e) => {
-                                                    e.stopPropagation();
-                                                    setSubmitting(work._id);
-                                                    try {
-                                                      await fetch(`${API_URL}/extra-works/${flow._id}/${work.stageIdx}/${work._id}/send-to-accounts`, {
-                                                        method: 'PUT',
-                                                        headers: { Authorization: `Bearer ${token}` }
-                                                      });
-                                                      await fetchFlows();
-                                                    } catch (err) {
-                                                      alert(err.message);
-                                                    } finally {
-                                                      setSubmitting(null);
-                                                    }
-                                                  }}
-                                                  disabled={submitting === work._id}
-                                                  className="px-2.5 py-1 bg-teal-50 hover:bg-teal-150 text-teal-700 border border-teal-200 rounded text-[10px] font-bold shadow-sm whitespace-nowrap"
-                                                >
-                                                  Send to Accounts
-                                                </button>
-                                              )}
-                                              {(isAdmin || canEditTab('accounts')) && work.status === 'Sent to Accounts' && (
-                                                <button
-                                                  onClick={async (e) => {
-                                                    e.stopPropagation();
-                                                    setSubmitting(work._id);
-                                                    try {
-                                                      await handleAddToCRD(flow._id, work.stageIdx, work._id);
-                                                    } finally {
-                                                      setSubmitting(null);
-                                                    }
-                                                  }}
-                                                  disabled={submitting === work._id}
-                                                  className="px-2.5 py-1 bg-[#006838] hover:bg-[#00512c] text-white rounded text-[10px] font-bold shadow-sm whitespace-nowrap"
-                                                >
-                                                  Create WO
-                                                </button>
-                                              )}
-                                              {!['Pending', 'Sent to PED', 'PED Approved', 'Returned to CRD', 'Client Approved', 'Sent to Accounts'].includes(work.status) && (
-                                                <span className="text-gray-400 text-xs">-</span>
-                                              )}
-                                            </td>
-                                            <td className="p-4 align-middle">
-                                              <div className="flex items-center justify-center gap-2">
-                                                {(() => {
-                                                  const showSendForExecution = (isAdmin || canEditTab('crd')) && work.status === 'Added to CRD';
-                                                  const showStatusDropdown = ['Added to CRD', 'Execution Sent to PED', 'Start Work', 'In Progress'].includes(work.status) && (isAdmin || canEditTab('ped'));
-                                                  const showCancel = (user?.role === 'Superadmin' || user?.role === 'Crd team') && !['Removed by Client', 'Rejected', 'Completed', 'Cancelled by Superadmin', 'Added to CRD'].includes(work.status);
-
-                                                  if (!showSendForExecution && !showStatusDropdown && !showCancel) {
-                                                    return <span className="text-gray-400 text-xs">-</span>;
-                                                  }
-
-                                                  return (
-                                                    <div className="relative group inline-block text-left">
-                                                      <button
-                                                        onClick={(e) => e.stopPropagation()}
-                                                        className="p-1 text-gray-500 hover:bg-gray-100 rounded-full transition focus:outline-none cursor-pointer"
-                                                      >
-                                                        <MoreVertical className="w-4 h-4" />
-                                                      </button>
-                                                      <div className="absolute right-full top-0 mr-2 w-44 bg-white border border-gray-200 rounded-xl shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-[100] py-1">
-                                                        {showSendForExecution && (
-                                                          <button
-                                                            onClick={async (e) => {
-                                                              e.stopPropagation();
-                                                              setSubmitting(work._id);
-                                                              try {
-                                                                await fetch(`${API_URL}/extra-works/${flow._id}/${work.stageIdx}/${work._id}/send-to-ped-execution`, {
-                                                                  method: 'PUT',
-                                                                  headers: { Authorization: `Bearer ${token}` }
-                                                                });
-                                                                await fetchFlows();
-                                                              } catch (err) {
-                                                                alert(err.message);
-                                                              } finally {
-                                                                setSubmitting(null);
-                                                              }
-                                                            }}
-                                                            disabled={submitting === work._id}
-                                                            className="w-full text-left px-4 py-2 text-xs font-bold text-emerald-700 hover:bg-emerald-50 transition cursor-pointer"
-                                                          >
-                                                            Send for Execution
-                                                          </button>
-                                                        )}
-
-                                                        {showStatusDropdown && (
-                                                          <div className="py-1">
-                                                            <div className="px-4 py-1 text-[9px] font-bold text-gray-400 uppercase tracking-widest">Update Status</div>
-                                                            {work.status !== 'Start Work' && (
-                                                              <button
-                                                                onClick={async (e) => {
-                                                                  e.stopPropagation();
-                                                                  try {
-                                                                    await fetch(`${API_URL}/extra-works/${flow._id}/${work.stageIdx}/${work._id}/update-status`, {
-                                                                      method: 'PUT',
-                                                                      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-                                                                      body: JSON.stringify({ status: 'Start Work' })
-                                                                    });
-                                                                    await fetchFlows();
-                                                                  } catch (err) {
-                                                                    alert(err.message);
-                                                                  }
-                                                                }}
-                                                                className="w-full text-left px-4 py-2 text-xs font-bold text-gray-700 hover:bg-gray-50 transition cursor-pointer"
-                                                              >
-                                                                Start Work
-                                                              </button>
-                                                            )}
-                                                            {work.status !== 'In Progress' && (
-                                                              <button
-                                                                onClick={async (e) => {
-                                                                  e.stopPropagation();
-                                                                  try {
-                                                                    await fetch(`${API_URL}/extra-works/${flow._id}/${work.stageIdx}/${work._id}/update-status`, {
-                                                                      method: 'PUT',
-                                                                      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-                                                                      body: JSON.stringify({ status: 'In Progress' })
-                                                                    });
-                                                                    await fetchFlows();
-                                                                  } catch (err) {
-                                                                    alert(err.message);
-                                                                  }
-                                                                }}
-                                                                className="w-full text-left px-4 py-2 text-xs font-bold text-gray-700 hover:bg-gray-50 transition cursor-pointer"
-                                                              >
-                                                                In Progress
-                                                              </button>
-                                                            )}
-                                                            {work.status !== 'Completed' && (
-                                                              <button
-                                                                onClick={async (e) => {
-                                                                  e.stopPropagation();
-                                                                  try {
-                                                                    await fetch(`${API_URL}/extra-works/${flow._id}/${work.stageIdx}/${work._id}/update-status`, {
-                                                                      method: 'PUT',
-                                                                      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-                                                                      body: JSON.stringify({ status: 'Completed' })
-                                                                    });
-                                                                    await fetchFlows();
-                                                                  } catch (err) {
-                                                                    alert(err.message);
-                                                                  }
-                                                                }}
-                                                                className="w-full text-left px-4 py-2 text-xs font-bold text-emerald-700 hover:bg-emerald-50 transition cursor-pointer"
-                                                              >
-                                                                Completed
-                                                              </button>
-                                                            )}
-                                                          </div>
-                                                        )}
-
-                                                        {showCancel && (
-                                                          <button
-                                                            onClick={(e) => {
-                                                              e.stopPropagation();
-                                                              if (window.confirm('Are you sure you want to cancel this extra work request?')) {
-                                                                handleCancelExtraWork(flow._id, work.stageIdx, work._id);
-                                                              }
-                                                            }}
-                                                            disabled={submitting === work._id}
-                                                            className="w-full text-left px-4 py-2 text-xs font-bold text-red-650 hover:bg-red-50 border-t border-gray-100 transition cursor-pointer"
-                                                          >
-                                                            Cancel
-                                                          </button>
-                                                        )}
-                                                      </div>
-                                                    </div>
-                                                  );
-                                                })()}
-                                              </div>
-                                            </td>
-                                          </tr>
-                                        ))}
-                                        {expandedReqIds[group.ewId] && (
-                                          <tr className="bg-gray-50 border-l-4 border-[#006838]">
-                                            <td colSpan="13" className="p-4">
-                                              {addingGroupWork === group.ewId ? (
-                                                <div className="bg-white p-4 rounded-xl border border-emerald-200 shadow-sm animate-fade-in-up">
-                                                  <div className="flex justify-between items-center mb-3">
-                                                    <h4 className="text-xs font-black text-emerald-900 uppercase tracking-wider">Add Extra Work to {group.displayId}</h4>
-                                                    <button onClick={() => setAddingGroupWork(null)} className="text-gray-400 hover:text-gray-600">
-                                                      <X className="w-4 h-4" />
-                                                    </button>
-                                                  </div>
-                                                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-                                                    {(() => {
-                                                      const catalog = flow.project?.extraWorkCatalog || [];
-                                                      const catalogCategories = Array.from(new Set(catalog.map(item => item.category)));
-                                                      const subCategories = addForm.category ? catalog.filter(item => item.category === addForm.category) : [];
-
-                                                      return (
-                                                        <>
-                                                          <div className="lg:col-span-1">
-                                                            <label className="block text-xs font-bold text-gray-700 mb-1">Category <span className="text-red-500">*</span></label>
-                                                            <select
-                                                              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#006838]/20"
-                                                              value={addForm.category}
-                                                              onChange={e => setAddForm({ ...addForm, category: e.target.value, name: '', unit: 'Unit' })}
-                                                            >
-                                                              <option value="">Select Category...</option>
-                                                              {catalogCategories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
-                                                            </select>
-                                                          </div>
-                                                          <div className="lg:col-span-2">
-                                                            <label className="block text-xs font-bold text-gray-700 mb-1">Sub Category (Name) <span className="text-red-500">*</span></label>
-                                                            <select
-                                                              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#006838]/20"
-                                                              value={addForm.name}
-                                                              onChange={e => {
-                                                                const selectedItem = subCategories.find(item => item.name === e.target.value);
-                                                                setAddForm({ ...addForm, name: e.target.value, unit: selectedItem ? selectedItem.unit : 'Unit', rate: selectedItem ? selectedItem.rate : 0 });
-                                                              }}
-                                                              disabled={!addForm.category}
-                                                            >
-                                                              <option value="">Select Sub Category...</option>
-                                                              {subCategories.map(sub => <option key={sub._id || sub.name} value={sub.name}>{sub.name}</option>)}
-                                                            </select>
-                                                          </div>
-                                                          {flow.unitId && flow.unitId.includes(',') && (
-                                                            <div className="lg:col-span-1">
-                                                              <label className="block text-xs font-bold text-gray-700 mb-1">Select Unit</label>
-                                                              <select
-                                                                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#006838]/20"
-                                                                value={addForm.forUnit || flow.unitId.split(',')[0].trim()}
-                                                                onChange={e => setAddForm({ ...addForm, forUnit: e.target.value })}
-                                                              >
-                                                                {flow.unitId.split(',').map(u => <option key={u.trim()} value={u.trim()}>{u.trim()}</option>)}
-                                                              </select>
-                                                            </div>
-                                                          )}
-                                                          <div className="lg:col-span-1 flex gap-2">
-                                                            <div className="flex-1">
-                                                              <label className="block text-xs font-bold text-gray-700 mb-1">Qty <span className="text-red-500">*</span></label>
-                                                              <input
-                                                                type="number" min="1"
-                                                                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#006838]/20"
-                                                                value={addForm.quantity}
-                                                                onChange={e => setAddForm({ ...addForm, quantity: e.target.value })}
-                                                              />
-                                                            </div>
-                                                            <div className="flex-1">
-                                                              <label className="block text-xs font-bold text-gray-700 mb-1">Unit</label>
-                                                              <input
-                                                                type="text" placeholder="No" disabled
-                                                                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-100 cursor-not-allowed focus:outline-none"
-                                                                value={addForm.unit}
-                                                              />
-                                                            </div>
-                                                          </div>
-                                                        </>
-                                                      );
-                                                    })()}
-                                                    {addedWorks.length > 0 && (
-                                                      <div className="mt-4 mb-4 lg:col-span-5">
-                                                        <h4 className="text-xs font-bold text-gray-700 mb-2 uppercase tracking-wider">Works to be added ({addedWorks.length})</h4>
-                                                        <div className="bg-gray-50 border border-gray-200 rounded-lg overflow-hidden">
-                                                          <table className="min-w-full divide-y divide-gray-200">
-                                                            <thead className="bg-gray-100">
-                                                              <tr>
-                                                                <th className="px-3 py-2 text-left text-[10px] font-bold text-gray-500 uppercase">Sub Category</th>
-                                                                <th className="px-3 py-2 text-center text-[10px] font-bold text-gray-500 uppercase">Qty</th>
-                                                                <th className="px-3 py-2 text-right text-[10px] font-bold text-gray-500 uppercase">Amount</th>
-                                                                <th className="px-3 py-2 text-center text-[10px] font-bold text-gray-500 uppercase">Action</th>
-                                                              </tr>
-                                                            </thead>
-                                                            <tbody className="divide-y divide-gray-200 bg-white">
-                                                              {addedWorks.map((w, idx) => (
-                                                                <tr key={idx}>
-                                                                  <td className="px-3 py-2 text-[11px] text-gray-700">{w.name}</td>
-                                                                  <td className="px-3 py-2 text-[11px] text-center text-gray-500">{w.quantity} {w.unit}</td>
-                                                                  <td className="px-3 py-2 text-[11px] text-right font-bold text-[#006838]">Rs. {(w.quantity * w.rate)?.toLocaleString()}</td>
-                                                                  <td className="px-3 py-2 text-center">
-                                                                    <button onClick={() => setAddedWorks(prev => prev.filter((_, i) => i !== idx))} className="text-red-500 hover:text-red-700">
-                                                                      <X className="w-3 h-3 mx-auto" />
-                                                                    </button>
-                                                                  </td>
-                                                                </tr>
-                                                              ))}
-                                                            </tbody>
-                                                          </table>
-                                                        </div>
-                                                      </div>
-                                                    )}
-                                                  </div>
-                                                  <div className="mt-4 flex justify-between items-center">
-                                                    <button
-                                                      onClick={handleAddToList}
-                                                      className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold rounded transition-colors flex items-center gap-1 text-xs"
-                                                    >
-                                                      <Plus className="w-3 h-3" /> Add to List
-                                                    </button>
-                                                    <button
-                                                      onClick={() => handleAddExtraWork(flow, group.ewId)}
-                                                      disabled={isAddingWork || (addedWorks.length === 0 && !addForm.name.trim())}
-                                                      className="px-5 py-2 bg-[#006838] hover:bg-[#00522a] text-white font-bold rounded-lg transition-colors flex items-center gap-2 disabled:opacity-50 text-xs"
-                                                    >
-                                                      {isAddingWork ? <Loader2 className="w-3 h-3 animate-spin" /> : <CheckCircle className="w-3 h-3" />}
-                                                      Save to {group.displayId}
-                                                    </button>
-                                                  </div>
-                                                </div>
-                                              ) : (
-                                                <button
-                                                  onClick={() => {
-                                                    setAddingGroupWork(group.ewId);
-                                                    setAddedWorks([]);
-                                                    setAddForm({ stageId: '', name: '', category: '', unit: 'Unit', quantity: 1, rate: 0, forUnit: '' });
-                                                  }}
-                                                  className="flex items-center gap-2 text-emerald-600 hover:text-emerald-800 font-bold text-xs"
-                                                >
-                                                  <Plus className="w-3 h-3" /> Add Extra Work to {group.displayId}
-                                                </button>
-                                              )}
-                                            </td>
-                                          </tr>
-                                        )}
-                                      </React.Fragment>
+                                            <button
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                setSelectedReqGroupModal({ flowId: flow._id, ewId: group.ewId });
+                                              }}
+                                              className="px-2.5 py-1 bg-[#006838] text-white hover:bg-[#00512c] rounded-lg text-xs font-bold transition shadow-sm cursor-pointer whitespace-nowrap"
+                                            >
+                                              View Details
+                                            </button>
+                                          </div>
+                                        </td>
+                                        <td className="p-4 align-middle text-center text-xs font-bold text-gray-700">
+                                          {group.items.length} {group.items.length === 1 ? 'Item' : 'Items'}
+                                        </td>
+                                        <td className="p-4 align-middle text-center text-sm text-gray-600">
+                                          {group.addedAt ? new Date(group.addedAt).toLocaleDateString('en-GB') : '-'}
+                                        </td>
+                                        <td className="p-4 align-middle text-center">
+                                          {(group.sentToPedDate || group.items.some(w => w.sentToPedDate || w.status !== 'Pending')) ? (
+                                            <span className="px-2.5 py-1 bg-slate-100 text-slate-700 border border-slate-200 rounded-full text-[10px] font-bold">Old</span>
+                                          ) : (
+                                            <span className="px-2.5 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full text-[10px] font-bold">New</span>
+                                          )}
+                                        </td>
+                                        <td className="p-4 align-middle text-center text-sm text-gray-600">
+                                          {group.sentToPedDate ? new Date(group.sentToPedDate).toLocaleDateString('en-GB') : '-'}
+                                        </td>
+                                        <td className="p-4 align-middle text-right font-bold text-emerald-900">
+                                          Rs. {(group.totalAmount || 0).toLocaleString()}
+                                        </td>
+                                        <td className="p-4 align-middle text-center text-sm text-gray-600">
+                                          {group.pricingDate ? new Date(group.pricingDate).toLocaleDateString('en-GB') : '-'}
+                                        </td>
+                                        <td className="p-4 align-middle text-center text-sm text-emerald-700 font-medium">
+                                          {group.customerApprovalDate ? new Date(group.customerApprovalDate).toLocaleDateString('en-GB') : '-'}
+                                        </td>
+                                        <td className="p-4 align-middle text-center text-sm text-blue-700 font-medium">
+                                          {group.sentToAccountsDate ? new Date(group.sentToAccountsDate).toLocaleDateString('en-GB') : '-'}
+                                        </td>
+                                        <td className="p-4 align-middle text-center text-sm text-purple-700 font-medium">
+                                          {group.crdAddedDate ? new Date(group.crdAddedDate).toLocaleDateString('en-GB') : '-'}
+                                        </td>
+                                        <td className="p-4 align-middle text-center text-sm text-emerald-700 font-medium">
+                                          {group.items.some(w => w.completedDate) ? new Date(group.items.find(w => w.completedDate).completedDate).toLocaleDateString('en-GB') : (group.items.every(w => w.status === 'Completed') ? new Date().toLocaleDateString('en-GB') : '-')}
+                                        </td>
+                                        <td className="p-4 align-middle text-center">
+                                          <button
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              setSelectedReqGroupModal({ flowId: flow._id, ewId: group.ewId });
+                                            }}
+                                            className="px-3 py-1 bg-[#006838] text-white hover:bg-[#00512c] rounded-lg text-xs font-bold transition shadow-sm cursor-pointer"
+                                          >
+                                            View Details
+                                          </button>
+                                        </td>
+                                      </tr>
                                     ));
                                   })()}
                                 </tbody>
                               </table>
                             </div>
-
                             {(() => {
                               const canCrd = isAdmin || canEditTab('crd');
                               const canPed = isAdmin || canEditTab('ped');
@@ -1642,17 +1253,20 @@ const ExtraWorksInner = () => {
                               }));
 
                               const hasSelected = selectedItems.length > 0;
-                              const hasPending = hasSelected && selectedItems.every(w => w.status === 'Pending' || w.status === 'Returned to CRD');
-                              const hasReturnedToCRD = hasSelected && selectedItems.every(w => w.status === 'Returned to CRD');
+                              const hasPending = hasSelected && selectedItems.every(w => w.status === 'Pending');
+                              const hasReturnedToCRD = hasSelected && selectedItems.every(w => ['Returned to CRD', 'PED Approved'].includes(w.status));
                               const hasClientApproved = hasSelected && selectedItems.every(w => w.status === 'Client Approved');
                               const hasAddedToCRD = hasSelected && selectedItems.every(w => w.status === 'Added to CRD');
 
                               const hasReadyToShare = hasSelected && selectedItems.every(w => ['Sent to PED', 'PED Approved'].includes(w.status));
                               const hasSentToAccounts = hasSelected && selectedItems.every(w => w.status === 'Sent to Accounts');
+                              const hasExecutionSentToPed = hasSelected && selectedItems.every(w => w.status === 'Execution Sent to PED');
+                              const hasStartWork = hasSelected && selectedItems.every(w => w.status === 'Start Work');
+                              const hasInProgress = hasSelected && selectedItems.every(w => w.status === 'In Progress');
 
                               if (!hasSelected) {
                                 return (
-                                  <div className="mt-4 flex justify-end">
+                                  <div className="mt-4 flex justify-start">
                                     <span className="text-[10px] text-gray-400 font-bold border border-dashed border-emerald-250/60 rounded-xl px-4 py-2 bg-emerald-50/10">
                                       Select one or more items to perform actions
                                     </span>
@@ -1661,16 +1275,18 @@ const ExtraWorksInner = () => {
                               }
 
                               return (
-                                <div className="mt-4 flex flex-wrap justify-end gap-3">
+                                <div className="mt-4 flex flex-wrap justify-start gap-3">
                                   {/* CRD Actions */}
-                                  {canCrd && (hasPending || hasReturnedToCRD) && (
+                                  {canCrd && hasPending && (
                                     <button
                                       onClick={async () => {
                                         setSubmitting('bulk-crd');
                                         try {
                                           const works = [];
                                           flow.stages.forEach((s, sIdx) => s.extraWorks?.forEach(w => {
-                                            if ((w.status === 'Pending' || w.status === 'Returned to CRD') && selectedWorks.includes(w._id)) works.push({ sIdx, wId: w._id });
+                                            if (w.status === 'Pending' && selectedWorks.includes(w._id)) {
+                                              works.push({ sIdx, wId: w._id });
+                                            }
                                           }));
                                           for (const work of works) {
                                             await fetch(`${API_URL}/extra-works/${flow._id}/${work.sIdx}/${work.wId}/send-to-ped`, {
@@ -1683,11 +1299,7 @@ const ExtraWorksInner = () => {
                                           setSubmitting(null);
                                         }
                                       }}
-                                      disabled={submitting === 'bulk-crd' || !selectedWorks.some(id => {
-                                        let isPendingOrReturned = false;
-                                        flow.stages.forEach(s => s.extraWorks?.forEach(w => { if (w._id === id && (w.status === 'Pending' || w.status === 'Returned to CRD')) isPendingOrReturned = true; }));
-                                        return isPendingOrReturned;
-                                      })}
+                                      disabled={submitting === 'bulk-crd'}
                                       className="px-6 py-2 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition flex items-center justify-center gap-2 shadow-sm disabled:opacity-50"
                                     >
                                       {submitting === 'bulk-crd' ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Send className="w-4 h-4" /> Extra Work Send to PED</>}
@@ -1783,7 +1395,7 @@ const ExtraWorksInner = () => {
                                       })}
                                       className="px-6 py-2 bg-teal-600 text-white font-bold rounded-xl hover:bg-teal-700 transition flex items-center justify-center gap-2 shadow-sm disabled:opacity-50"
                                     >
-                                      {submitting === 'bulk-crd-execution' ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Send className="w-4 h-4" /> Send to PED for Execution</>}
+                                      {submitting === 'bulk-crd-execution' ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Send className="w-4 h-4" /> Send to PED Execution</>}
                                     </button>
                                   )}
 
@@ -1841,6 +1453,93 @@ const ExtraWorksInner = () => {
                                       className="px-6 py-2 bg-[#006838] text-white font-bold rounded-xl hover:bg-[#00512c] transition flex items-center gap-2 shadow-sm disabled:opacity-50"
                                     >
                                       {submitting === 'bulk-ped' ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Send className="w-4 h-4" /> Save & Send to CRD ({selectedWorks.length})</>}
+                                    </button>
+                                  )}
+
+                                  {canPed && hasExecutionSentToPed && (
+                                    <button
+                                      onClick={async () => {
+                                        setSubmitting('bulk-ped-start');
+                                        try {
+                                          const works = [];
+                                          flow.stages.forEach((s, sIdx) => s.extraWorks?.forEach(w => {
+                                            if (w.status === 'Execution Sent to PED' && selectedWorks.includes(w._id)) works.push({ sIdx, wId: w._id });
+                                          }));
+                                          for (const item of works) {
+                                            await fetch(`${API_URL}/extra-works/${flow._id}/${item.sIdx}/${item.wId}/update-status`, {
+                                              method: 'PUT',
+                                              headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                                              body: JSON.stringify({ status: 'Start Work' })
+                                            });
+                                          }
+                                          setSelectedWorks([]);
+                                          await fetchFlows();
+                                        } finally {
+                                          setSubmitting(null);
+                                        }
+                                      }}
+                                      disabled={submitting === 'bulk-ped-start'}
+                                      className="px-6 py-2 bg-yellow-600 text-white font-bold rounded-xl hover:bg-yellow-700 transition flex items-center justify-center gap-2 shadow-sm disabled:opacity-50"
+                                    >
+                                      {submitting === 'bulk-ped-start' ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Play className="w-4 h-4" /> Start Work</>}
+                                    </button>
+                                  )}
+
+                                  {canPed && hasStartWork && (
+                                    <button
+                                      onClick={async () => {
+                                        setSubmitting('bulk-ped-progress');
+                                        try {
+                                          const works = [];
+                                          flow.stages.forEach((s, sIdx) => s.extraWorks?.forEach(w => {
+                                            if (w.status === 'Start Work' && selectedWorks.includes(w._id)) works.push({ sIdx, wId: w._id });
+                                          }));
+                                          for (const item of works) {
+                                            await fetch(`${API_URL}/extra-works/${flow._id}/${item.sIdx}/${item.wId}/update-status`, {
+                                              method: 'PUT',
+                                              headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                                              body: JSON.stringify({ status: 'In Progress' })
+                                            });
+                                          }
+                                          setSelectedWorks([]);
+                                          await fetchFlows();
+                                        } finally {
+                                          setSubmitting(null);
+                                        }
+                                      }}
+                                      disabled={submitting === 'bulk-ped-progress'}
+                                      className="px-6 py-2 bg-orange-600 text-white font-bold rounded-xl hover:bg-orange-700 transition flex items-center justify-center gap-2 shadow-sm disabled:opacity-50"
+                                    >
+                                      {submitting === 'bulk-ped-progress' ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Clock className="w-4 h-4" /> Mark In Progress</>}
+                                    </button>
+                                  )}
+
+                                  {canPed && hasInProgress && (
+                                    <button
+                                      onClick={async () => {
+                                        setSubmitting('bulk-ped-completed');
+                                        try {
+                                          const works = [];
+                                          flow.stages.forEach((s, sIdx) => s.extraWorks?.forEach(w => {
+                                            if (w.status === 'In Progress' && selectedWorks.includes(w._id)) works.push({ sIdx, wId: w._id });
+                                          }));
+                                          for (const item of works) {
+                                            await fetch(`${API_URL}/extra-works/${flow._id}/${item.sIdx}/${item.wId}/update-status`, {
+                                              method: 'PUT',
+                                              headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                                              body: JSON.stringify({ status: 'Completed' })
+                                            });
+                                          }
+                                          setSelectedWorks([]);
+                                          await fetchFlows();
+                                        } finally {
+                                          setSubmitting(null);
+                                        }
+                                      }}
+                                      disabled={submitting === 'bulk-ped-completed'}
+                                      className="px-6 py-2 bg-emerald-600 text-white font-bold rounded-xl hover:bg-emerald-700 transition flex items-center justify-center gap-2 shadow-sm disabled:opacity-50"
+                                    >
+                                      {submitting === 'bulk-ped-completed' ? <Loader2 className="w-4 h-4 animate-spin" /> : <><CheckCircle className="w-4 h-4" /> Mark Completed</>}
                                     </button>
                                   )}
 
@@ -2044,7 +1743,7 @@ const ExtraWorksInner = () => {
       )}
       {/* Flow Map Modal */}
       {flowMapModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 md:pl-24 bg-black/60 backdrop-blur-sm">
           <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden animate-fade-in-up">
             <div className="bg-[#0e623a] p-5 text-white flex justify-between items-center">
               <h3 className="font-bold text-lg flex items-center gap-2">
@@ -2274,7 +1973,7 @@ const ExtraWorksInner = () => {
 
       {/* Global Add Extra Work Modal */}
       {showGlobalModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4 md:pl-24">
           <div className="bg-white rounded-[2rem] w-full max-w-4xl max-h-[90vh] flex flex-col shadow-2xl animate-fade-in-up">
             <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-[#006838] text-white rounded-t-[2rem]">
               <h2 className="text-xl font-bold flex items-center gap-2"><Plus className="w-5 h-5" /> Add Extra Work for Booked Customer</h2>
@@ -2564,6 +2263,692 @@ const ExtraWorksInner = () => {
               >
                 {isSubmittingGlobal ? <Loader2 className="w-5 h-5 animate-spin" /> : <CheckCircle className="w-5 h-5" />}
                 Save Extra Work
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Selected Extra Work REQ Group Popup Modal */}
+      {activeGroupModalData && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 md:pl-24 bg-black/60 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white rounded-3xl w-full max-w-6xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden border border-emerald-100">
+            {/* Header */}
+            <div className="bg-[#006838] p-5 text-white flex justify-between items-center shrink-0">
+              <div>
+                <div className="text-xs text-emerald-200 uppercase font-bold tracking-wider">Extra Work Details</div>
+                <h2 className="text-xl font-bold flex items-center gap-2 mt-0.5">
+                  <FileText className="w-5 h-5 text-emerald-300" />
+                  <span>{activeGroupModalData.displayId}</span>
+                </h2>
+              </div>
+              <button
+                onClick={() => setSelectedReqGroupModal(null)}
+                className="text-white/80 hover:text-white transition p-1.5 rounded-full hover:bg-white/10"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            {/* Info Summary Banner */}
+            <div className="bg-emerald-50/70 p-4 border-b border-emerald-100 grid grid-cols-2 md:grid-cols-4 gap-4 text-xs shrink-0">
+              <div>
+                <span className="text-gray-500 font-bold uppercase tracking-wider text-[10px] block">Customer Name</span>
+                <span className="font-extrabold text-emerald-950 text-sm">{activeGroupModalData.flow.lead?.name || '-'}</span>
+              </div>
+              <div>
+                <span className="text-gray-500 font-bold uppercase tracking-wider text-[10px] block">Project / Unit</span>
+                <span className="font-bold text-gray-900 text-sm">{activeGroupModalData.flow.project?.name} ({activeGroupModalData.flow.unitId})</span>
+              </div>
+              <div>
+                <span className="text-gray-500 font-bold uppercase tracking-wider text-[10px] block">Requested On</span>
+                <span className="font-bold text-gray-900 text-sm">{activeGroupModalData.addedAt ? new Date(activeGroupModalData.addedAt).toLocaleDateString('en-GB') : '-'}</span>
+              </div>
+              <div>
+                <span className="text-gray-500 font-bold uppercase tracking-wider text-[10px] block">Total Estimated Amount</span>
+                <span className="font-black text-emerald-700 text-sm">Rs. {activeGroupModalData.totalAmount.toLocaleString()}</span>
+              </div>
+            </div>
+
+            {/* Items Table & Add Form */}
+            <div className="p-6 overflow-y-auto flex-1 space-y-6 bg-gray-50/50">
+              <div className="bg-white rounded-2xl shadow-sm border border-emerald-100 overflow-hidden">
+                <div className="p-4 bg-emerald-900 text-white font-bold text-sm flex justify-between items-center">
+                  <span>Extra Work Items ({activeGroupModalData.items.length})</span>
+                  {(isAdmin || (canEditTab('crd') && !user?.role?.includes('PED') && !user?.role?.includes('Account'))) && (
+                    <button
+                      onClick={() => {
+                        setAddingGroupWork(activeGroupModalData.ewId === addingGroupWork ? null : activeGroupModalData.ewId);
+                        setAddedWorks([]);
+                        setAddForm({ stageId: '', name: '', category: '', unit: 'Unit', quantity: 1, rate: 0, forUnit: '' });
+                      }}
+                      className="px-3 py-1.5 bg-white text-[#006838] hover:bg-emerald-50 rounded-lg text-xs font-bold transition flex items-center gap-1 shadow-sm cursor-pointer"
+                    >
+                      <Plus className="w-3.5 h-3.5" /> Add Extra Work to {activeGroupModalData.displayId}
+                    </button>
+                  )}
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-emerald-50 text-emerald-900 font-bold uppercase tracking-wider border-b border-emerald-100">
+                      <tr>
+                        <th className="p-3 w-10 text-center">
+                          <input
+                            type="checkbox"
+                            className="w-4 h-4 rounded border-gray-300 text-[#006838] focus:ring-[#006838]"
+                            checked={activeGroupModalData.items.length > 0 && activeGroupModalData.items.every(w => selectedWorks.includes(w._id))}
+                            onChange={(e) => {
+                              const itemIds = activeGroupModalData.items.map(w => w._id);
+                              if (e.target.checked) {
+                                setSelectedWorks(prev => [...new Set([...prev, ...itemIds])]);
+                              } else {
+                                setSelectedWorks(prev => prev.filter(id => !itemIds.includes(id)));
+                              }
+                            }}
+                          />
+                        </th>
+                        <th className="p-3">S.No</th>
+                        <th className="p-3">Work Name</th>
+                        <th className="p-3 text-center">Qty / Unit</th>
+                        <th className="p-3 text-right">Estimated Value</th>
+                        <th className="p-3 text-center">Pricing Date</th>
+                        <th className="p-3 text-center">Approval Date</th>
+                        <th className="p-3 text-center">Completed On</th>
+                        <th className="p-3 text-center">More</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100 bg-white">
+                      {activeGroupModalData.items.map((work, wIdx) => (
+                        <tr key={work._id} className="hover:bg-emerald-50/30 transition">
+                          <td className="p-3 text-center">
+                            <input
+                              type="checkbox"
+                              className="w-4 h-4 rounded border-gray-300 text-[#006838] focus:ring-[#006838]"
+                              checked={selectedWorks.includes(work._id)}
+                              onChange={(e) => {
+                                setSelectedWorks(prev => prev.includes(work._id) ? prev.filter(id => id !== work._id) : [...prev, work._id]);
+                              }}
+                            />
+                          </td>
+                          <td className="p-3 font-bold text-gray-500">1.{wIdx + 1}</td>
+                          <td className="p-3">
+                            <div className="font-bold text-gray-900">{work.name || '-'}</div>
+                            {work.category && <span className="text-[10px] text-gray-400 font-medium">{work.category}</span>}
+                            {work.clientNotes && (
+                              <div className="text-[10px] text-blue-600 bg-blue-50 p-1.5 rounded mt-1 border border-blue-100">
+                                <strong>Note:</strong> {work.clientNotes}
+                              </div>
+                            )}
+                          </td>
+                          <td className="p-3 text-center font-semibold text-gray-700 whitespace-nowrap">
+                            {work.quantity || 1} {work.unit || 'No'}
+                          </td>
+                          <td className="p-3 text-right font-bold text-[#006838]">
+                            {['Sent to PED', 'Pending'].includes(work.status) && (isAdmin || canEditTab('ped')) ? (
+                              <div className="flex flex-col items-end gap-1">
+                                <div className="flex items-center gap-1 justify-end">
+                                  <span className="text-[11px] text-gray-500 font-normal">Rs.</span>
+                                  <input
+                                    type="number"
+                                    value={rates[work._id] ?? work.rate ?? ''}
+                                    onChange={(e) => handleRateChange(work._id, e.target.value)}
+                                    className="w-24 px-2 py-1 bg-white border border-gray-300 rounded text-xs focus:outline-none focus:ring-1 focus:ring-[#006838] text-right font-bold"
+                                    placeholder="Rate"
+                                  />
+                                </div>
+                                {work.quantity > 1 && (
+                                  <span className="text-[9px] text-gray-400 font-medium">Total: Rs. {(work.amount || 0).toLocaleString()}</span>
+                                )}
+                              </div>
+                            ) : (
+                              `Rs. ${(work.amount || 0).toLocaleString()}`
+                            )}
+                          </td>
+                          <td className="p-3 text-center text-gray-500">
+                            {work.pricingDate ? new Date(work.pricingDate).toLocaleDateString('en-GB') : '-'}
+                          </td>
+                          <td className="p-3 text-center text-emerald-600 font-medium">
+                            {work.customerApprovalDate ? new Date(work.customerApprovalDate).toLocaleDateString('en-GB') : '-'}
+                          </td>
+                          <td className="p-3 text-center text-emerald-700 font-medium whitespace-nowrap">
+                            {work.completedDate ? new Date(work.completedDate).toLocaleDateString('en-GB') : (work.status === 'Completed' ? new Date().toLocaleDateString('en-GB') : '-')}
+                          </td>
+                          <td className="p-3 text-center">
+                            <div className="relative group inline-block">
+                              <button className="p-1 text-gray-400 hover:text-gray-600 rounded">
+                                <MoreVertical className="w-4 h-4" />
+                              </button>
+                              <div className="absolute right-0 top-full mt-1 w-48 bg-white border border-gray-200 rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-[100] py-2 text-left">
+                                <div className="px-3 py-2 border-b border-gray-100 flex items-center justify-between gap-2">
+                                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Status</span>
+                                  <div>{getStatusBadge(work.status)}</div>
+                                </div>
+                                {work.status === 'Added to CRD' && (isAdmin || canEditTab('crd')) && (
+                                  <button
+                                    onClick={async () => {
+                                      setSubmitting(work._id);
+                                      try {
+                                        await fetch(`${API_URL}/extra-works/${activeGroupModalData.flow._id}/${work.stageIdx}/${work._id}/send-to-ped-execution`, {
+                                          method: 'PUT', headers: { Authorization: `Bearer ${token}` }
+                                        });
+                                        await fetchFlows();
+                                      } catch (err) { alert(err.message); }
+                                      finally { setSubmitting(null); }
+                                    }}
+                                    className="w-full text-left px-4 py-2 text-xs font-bold text-emerald-700 hover:bg-emerald-50 transition cursor-pointer"
+                                  >
+                                    Send for Execution
+                                  </button>
+                                )}
+                                {['Pending', 'Sent to PED', 'PED Approved'].includes(work.status) && (isAdmin || canEditTab('crd') || canEditTab('ped')) && (
+                                  <button
+                                    onClick={() => {
+                                      if (window.confirm('Are you sure you want to cancel this extra work request?')) {
+                                        handleCancelExtraWork(activeGroupModalData.flow._id, work.stageIdx, work._id);
+                                      }
+                                    }}
+                                    className="w-full text-left px-4 py-2 text-xs font-bold text-red-600 hover:bg-red-50 transition cursor-pointer"
+                                  >
+                                    Cancel Request
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Add Extra Work inside Modal form */}
+              {addingGroupWork === activeGroupModalData.ewId && (
+                <div className="bg-white p-5 rounded-2xl border border-emerald-200 shadow-sm animate-fade-in-up">
+                  <div className="flex justify-between items-center mb-3">
+                    <h4 className="text-xs font-black text-emerald-900 uppercase tracking-wider">Add Extra Work to {activeGroupModalData.displayId}</h4>
+                    <button onClick={() => setAddingGroupWork(null)} className="text-gray-400 hover:text-gray-600">
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                    {(() => {
+                      const catalog = activeGroupModalData.flow.project?.extraWorkCatalog || [];
+                      const catalogCategories = Array.from(new Set(catalog.map(item => item.category)));
+                      const subCategories = addForm.category ? catalog.filter(item => item.category === addForm.category) : [];
+
+                      return (
+                        <>
+                          <div className="lg:col-span-1">
+                            <label className="block text-xs font-bold text-gray-700 mb-1">Category <span className="text-red-500">*</span></label>
+                            <select
+                              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#006838]/20"
+                              value={addForm.category}
+                              onChange={e => setAddForm({ ...addForm, category: e.target.value, name: '', unit: 'Unit' })}
+                            >
+                              <option value="">Select Category...</option>
+                              {catalogCategories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                            </select>
+                          </div>
+                          <div className="lg:col-span-2">
+                            <label className="block text-xs font-bold text-gray-700 mb-1">Sub Category (Name) <span className="text-red-500">*</span></label>
+                            <select
+                              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#006838]/20"
+                              value={addForm.name}
+                              onChange={e => {
+                                const selectedItem = subCategories.find(item => item.name === e.target.value);
+                                setAddForm({ ...addForm, name: e.target.value, unit: selectedItem ? selectedItem.unit : 'Unit', rate: selectedItem ? selectedItem.rate : 0 });
+                              }}
+                              disabled={!addForm.category}
+                            >
+                              <option value="">Select Sub Category...</option>
+                              {subCategories.map(sub => <option key={sub._id || sub.name} value={sub.name}>{sub.name}</option>)}
+                            </select>
+                          </div>
+                          {activeGroupModalData.flow.unitId && activeGroupModalData.flow.unitId.includes(',') && (
+                            <div className="lg:col-span-1">
+                              <label className="block text-xs font-bold text-gray-700 mb-1">Select Unit</label>
+                              <select
+                                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#006838]/20"
+                                value={addForm.forUnit || activeGroupModalData.flow.unitId.split(',')[0].trim()}
+                                onChange={e => setAddForm({ ...addForm, forUnit: e.target.value })}
+                              >
+                                {activeGroupModalData.flow.unitId.split(',').map(u => <option key={u.trim()} value={u.trim()}>{u.trim()}</option>)}
+                              </select>
+                            </div>
+                          )}
+                          <div className="lg:col-span-1 flex gap-2">
+                            <div className="flex-1">
+                              <label className="block text-xs font-bold text-gray-700 mb-1">Qty <span className="text-red-500">*</span></label>
+                              <input
+                                type="number" min="1"
+                                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#006838]/20"
+                                value={addForm.quantity}
+                                onChange={e => setAddForm({ ...addForm, quantity: e.target.value })}
+                              />
+                            </div>
+                            <div className="flex-1">
+                              <label className="block text-xs font-bold text-gray-700 mb-1">Unit</label>
+                              <input
+                                type="text" placeholder="No" disabled
+                                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-100 cursor-not-allowed focus:outline-none"
+                                value={addForm.unit}
+                              />
+                            </div>
+                          </div>
+                        </>
+                      );
+                    })()}
+                    {addedWorks.length > 0 && (
+                      <div className="mt-4 mb-4 lg:col-span-5">
+                        <h4 className="text-xs font-bold text-gray-700 mb-2 uppercase tracking-wider">Works to be added ({addedWorks.length})</h4>
+                        <div className="bg-gray-50 border border-gray-200 rounded-lg overflow-hidden">
+                          <table className="min-w-full divide-y divide-gray-200">
+                            <thead className="bg-gray-100">
+                              <tr>
+                                <th className="px-3 py-2 text-left text-[10px] font-bold text-gray-500 uppercase">Sub Category</th>
+                                <th className="px-3 py-2 text-center text-[10px] font-bold text-gray-500 uppercase">Qty</th>
+                                <th className="px-3 py-2 text-right text-[10px] font-bold text-gray-500 uppercase">Amount</th>
+                                <th className="px-3 py-2 text-center text-[10px] font-bold text-gray-500 uppercase">Action</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-200 bg-white">
+                              {addedWorks.map((w, idx) => (
+                                <tr key={idx}>
+                                  <td className="px-3 py-2 text-[11px] text-gray-700">{w.name}</td>
+                                  <td className="px-3 py-2 text-[11px] text-center text-gray-500">{w.quantity} {w.unit}</td>
+                                  <td className="px-3 py-2 text-[11px] text-right font-bold text-[#006838]">Rs. {(w.quantity * w.rate)?.toLocaleString()}</td>
+                                  <td className="px-3 py-2 text-center">
+                                    <button onClick={() => setAddedWorks(prev => prev.filter((_, i) => i !== idx))} className="text-red-500 hover:text-red-700">
+                                      <X className="w-3 h-3 mx-auto" />
+                                    </button>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  <div className="mt-4 flex justify-between items-center">
+                    <button
+                      onClick={handleAddToList}
+                      className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold rounded transition-colors flex items-center gap-1 text-xs cursor-pointer"
+                    >
+                      <Plus className="w-3 h-3" /> Add to List
+                    </button>
+                    <button
+                      onClick={() => handleAddExtraWork(activeGroupModalData.flow, activeGroupModalData.ewId)}
+                      disabled={isAddingWork || (addedWorks.length === 0 && !addForm.name.trim())}
+                      className="px-5 py-2 bg-[#006838] hover:bg-[#00522a] text-white font-bold rounded-lg transition-colors flex items-center gap-2 disabled:opacity-50 text-xs cursor-pointer"
+                    >
+                      {isAddingWork ? <Loader2 className="w-3 h-3 animate-spin" /> : <CheckCircle className="w-3 h-3" />}
+                      Save to {activeGroupModalData.displayId}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="p-4 border-t border-gray-100 bg-white flex flex-wrap justify-between items-center gap-3 shrink-0">
+              <div className="flex flex-wrap items-center gap-2">
+                {/* 1. Send to PED (For CRD Team when items are Pending) */}
+                {(isAdmin || (canEditTab('crd') && !user?.role?.includes('PED'))) && activeGroupModalData.items.some(w => w.status === 'Pending') && (
+                  <button
+                    onClick={async () => {
+                      setSubmitting('modal-send-ped');
+                      try {
+                        const checkedInModal = activeGroupModalData.items.filter(w => selectedWorks.includes(w._id));
+                        const targetItems = checkedInModal.length > 0 ? checkedInModal : activeGroupModalData.items;
+                        const itemsToSend = targetItems.filter(w => w.status === 'Pending');
+
+                        if (itemsToSend.length === 0) {
+                          alert('No eligible pending items selected to send to PED.');
+                          return;
+                        }
+
+                        for (const work of itemsToSend) {
+                          const res = await fetch(`${API_URL}/extra-works/${activeGroupModalData.flow._id}/${work.stageIdx}/${work._id}/send-to-ped`, {
+                            method: 'PUT', headers: { Authorization: `Bearer ${token}` }
+                          });
+                          if (!res.ok) {
+                            const errData = await res.json().catch(() => ({}));
+                            throw new Error(errData.message || 'Failed to send to PED');
+                          }
+                        }
+                        setSelectedWorks([]);
+                        await fetchFlows();
+                      } catch (err) {
+                        alert(err.message);
+                      } finally {
+                        setSubmitting(null);
+                      }
+                    }}
+                    disabled={submitting === 'modal-send-ped'}
+                    className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition flex items-center gap-2 text-xs shadow-md shadow-blue-600/20 disabled:opacity-50 cursor-pointer"
+                  >
+                    {submitting === 'modal-send-ped' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                    Send to PED
+                  </button>
+                )}
+
+                {/* 2. Send to CRD (For PED Team when items are Sent to PED / Pending (PED)) */}
+                {(isAdmin || canEditTab('ped') || user?.role?.includes('PED')) && activeGroupModalData.items.some(w => ['Sent to PED', 'PED Approved'].includes(w.status)) && (
+                  <button
+                    onClick={async () => {
+                      setSubmitting('modal-send-crd');
+                      try {
+                        const checkedInModal = activeGroupModalData.items.filter(w => selectedWorks.includes(w._id));
+                        const targetItems = checkedInModal.length > 0 ? checkedInModal : activeGroupModalData.items;
+                        const pedItems = targetItems.filter(w => ['Sent to PED', 'PED Approved'].includes(w.status));
+
+                        if (pedItems.length === 0) {
+                          alert('No extra work items found to price and send.');
+                          return;
+                        }
+
+                        for (const item of pedItems) {
+                          const rate = rates[item._id] !== undefined ? Number(rates[item._id]) : item.rate;
+                          if (!rate || rate <= 0) {
+                            alert(`Please enter a valid rate (> 0) for "${item.name}" before sending.`);
+                            return;
+                          }
+                        }
+
+                        for (const item of pedItems) {
+                          const newRate = rates[item._id] !== undefined ? Number(rates[item._id]) : item.rate;
+                          const priceRes = await fetch(`${API_URL}/extra-works/${activeGroupModalData.flow._id}/${item.stageIdx}/${item._id}/price`, {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                            body: JSON.stringify({ rate: newRate })
+                          });
+                          if (!priceRes.ok) {
+                            const errData = await priceRes.json().catch(() => ({}));
+                            throw new Error(errData.message || 'Failed to save price');
+                          }
+                          const sendRes = await fetch(`${API_URL}/extra-works/${activeGroupModalData.flow._id}/${item.stageIdx}/${item._id}/send`, {
+                            method: 'PUT', headers: { Authorization: `Bearer ${token}` }
+                          });
+                          if (!sendRes.ok) {
+                            const errData = await sendRes.json().catch(() => ({}));
+                            throw new Error(errData.message || 'Failed to send to CRD');
+                          }
+                        }
+
+                        setSelectedWorks([]);
+                        await fetchFlows();
+                      } catch (err) {
+                        alert(err.message);
+                      } finally {
+                        setSubmitting(null);
+                      }
+                    }}
+                    disabled={submitting === 'modal-send-crd'}
+                    className="px-5 py-2.5 bg-[#006838] hover:bg-[#00512c] text-white font-bold rounded-xl transition flex items-center gap-2 text-xs shadow-md shadow-emerald-600/20 disabled:opacity-50 cursor-pointer"
+                  >
+                    {submitting === 'modal-send-crd' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                    Send to CRD
+                  </button>
+                )}
+
+                {/* 3. Send to Client (For CRD Team when items are Returned to CRD / PED Approved) */}
+                {(isAdmin || (canEditTab('crd') && !user?.role?.includes('PED'))) && activeGroupModalData.items.some(w => ['Returned to CRD', 'PED Approved'].includes(w.status)) && (
+                  <button
+                    onClick={async () => {
+                      setSubmitting('modal-send-client');
+                      try {
+                        const checkedInModal = activeGroupModalData.items.filter(w => selectedWorks.includes(w._id));
+                        const targetItems = checkedInModal.length > 0 ? checkedInModal : activeGroupModalData.items;
+                        const clientItems = targetItems.filter(w => ['Returned to CRD', 'PED Approved'].includes(w.status));
+
+                        for (const work of clientItems) {
+                          const res = await fetch(`${API_URL}/extra-works/${activeGroupModalData.flow._id}/${work.stageIdx}/${work._id}/send`, {
+                            method: 'PUT', headers: { Authorization: `Bearer ${token}` }
+                          });
+                          if (!res.ok) {
+                            const errData = await res.json().catch(() => ({}));
+                            throw new Error(errData.message || 'Failed to send to client');
+                          }
+                        }
+                        setSelectedWorks([]);
+                        await fetchFlows();
+                      } catch (err) {
+                        alert(err.message);
+                      } finally {
+                        setSubmitting(null);
+                      }
+                    }}
+                    disabled={submitting === 'modal-send-client'}
+                    className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition flex items-center gap-2 text-xs shadow-md shadow-emerald-600/20 disabled:opacity-50 cursor-pointer"
+                  >
+                    {submitting === 'modal-send-client' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                    Send to Client
+                  </button>
+                )}
+
+                {/* 4. Send to Accounts (For CRD Team when items are Client Approved) */}
+                {(isAdmin || (canEditTab('crd') && !user?.role?.includes('PED'))) && activeGroupModalData.items.some(w => w.status === 'Client Approved') && (
+                  <button
+                    onClick={async () => {
+                      setSubmitting('modal-send-accounts');
+                      try {
+                        const checkedInModal = activeGroupModalData.items.filter(w => selectedWorks.includes(w._id));
+                        const targetItems = checkedInModal.length > 0 ? checkedInModal : activeGroupModalData.items;
+                        const approvedItems = targetItems.filter(w => w.status === 'Client Approved');
+
+                        for (const work of approvedItems) {
+                          const res = await fetch(`${API_URL}/extra-works/${activeGroupModalData.flow._id}/${work.stageIdx}/${work._id}/send-to-accounts`, {
+                            method: 'PUT', headers: { Authorization: `Bearer ${token}` }
+                          });
+                          if (!res.ok) {
+                            const errData = await res.json().catch(() => ({}));
+                            throw new Error(errData.message || 'Failed to send to accounts');
+                          }
+                        }
+                        setSelectedWorks([]);
+                        await fetchFlows();
+                      } catch (err) {
+                        alert(err.message);
+                      } finally {
+                        setSubmitting(null);
+                      }
+                    }}
+                    disabled={submitting === 'modal-send-accounts'}
+                    className="px-5 py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl transition flex items-center gap-2 text-xs shadow-md shadow-purple-600/20 disabled:opacity-50 cursor-pointer"
+                  >
+                    {submitting === 'modal-send-accounts' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Building className="w-4 h-4" />}
+                    Send to Accounts
+                  </button>
+                )}
+
+                {/* 5. Create Work Order & Send to CRD (For Accounts Team when items are Sent to Accounts or Client Approved) */}
+                {(isAdmin || canEditTab('accounts') || user?.role?.toLowerCase().includes('account') || user?.department?.toLowerCase().includes('account')) && activeGroupModalData.items.some(w => ['Sent to Accounts', 'Client Approved'].includes(w.status)) && (
+                  <button
+                    onClick={async () => {
+                      setSubmitting('modal-create-wo');
+                      try {
+                        const checkedInModal = activeGroupModalData.items.filter(w => selectedWorks.includes(w._id));
+                        const targetItems = checkedInModal.length > 0 ? checkedInModal : activeGroupModalData.items;
+                        const accountItems = targetItems.filter(w => ['Sent to Accounts', 'Client Approved'].includes(w.status));
+
+                        if (accountItems.length === 0) {
+                          alert('No eligible items selected for Work Order creation.');
+                          return;
+                        }
+
+                        for (const work of accountItems) {
+                          await handleAddToCRD(activeGroupModalData.flow._id, work.stageIdx, work._id);
+                        }
+                        setSelectedWorks([]);
+                        await fetchFlows();
+                      } catch (err) {
+                        alert(err.message);
+                      } finally {
+                        setSubmitting(null);
+                      }
+                    }}
+                    disabled={submitting === 'modal-create-wo'}
+                    className="px-5 py-2.5 bg-[#006838] hover:bg-[#00512c] text-white font-bold rounded-xl transition flex items-center gap-2 text-xs shadow-md shadow-emerald-600/20 disabled:opacity-50 cursor-pointer"
+                  >
+                    {submitting === 'modal-create-wo' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+                    Create Work Order & Send to CRD
+                  </button>
+                )}
+
+                {/* 6. Send to PED Execution (For CRD Team when Work Order has been created) */}
+                {(isAdmin || (canEditTab('crd') && !user?.role?.includes('PED'))) && activeGroupModalData.items.some(w => w.status === 'Added to CRD') && (
+                  <button
+                    onClick={async () => {
+                      setSubmitting('modal-send-execution');
+                      try {
+                        const checkedInModal = activeGroupModalData.items.filter(w => selectedWorks.includes(w._id));
+                        const targetItems = checkedInModal.length > 0 ? checkedInModal : activeGroupModalData.items;
+                        const woItems = targetItems.filter(w => w.status === 'Added to CRD');
+
+                        for (const work of woItems) {
+                          const res = await fetch(`${API_URL}/extra-works/${activeGroupModalData.flow._id}/${work.stageIdx}/${work._id}/send-to-ped-execution`, {
+                            method: 'PUT', headers: { Authorization: `Bearer ${token}` }
+                          });
+                          if (!res.ok) {
+                            const errData = await res.json().catch(() => ({}));
+                            throw new Error(errData.message || 'Failed to send to PED execution');
+                          }
+                        }
+                        setSelectedWorks([]);
+                        await fetchFlows();
+                      } catch (err) {
+                        alert(err.message);
+                      } finally {
+                        setSubmitting(null);
+                      }
+                    }}
+                    disabled={submitting === 'modal-send-execution'}
+                    className="px-5 py-2.5 bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-xl transition flex items-center gap-2 text-xs shadow-md shadow-teal-600/20 disabled:opacity-50 cursor-pointer"
+                  >
+                    {submitting === 'modal-send-execution' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                    Send to PED Execution
+                  </button>
+                )}
+                {/* 7. Start Work (For PED Team when Execution is Sent to PED) */}
+                {(isAdmin || canEditTab('ped') || user?.role?.toLowerCase().includes('ped') || user?.department?.toLowerCase().includes('ped')) && activeGroupModalData.items.some(w => w.status === 'Execution Sent to PED') && (
+                  <button
+                    onClick={async () => {
+                      setSubmitting('modal-start-work');
+                      try {
+                        const checkedInModal = activeGroupModalData.items.filter(w => selectedWorks.includes(w._id));
+                        const targetItems = checkedInModal.length > 0 ? checkedInModal : activeGroupModalData.items;
+                        const itemsToStart = targetItems.filter(w => w.status === 'Execution Sent to PED');
+
+                        for (const work of itemsToStart) {
+                          const res = await fetch(`${API_URL}/extra-works/${activeGroupModalData.flow._id}/${work.stageIdx}/${work._id}/update-status`, {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                            body: JSON.stringify({ status: 'Start Work' })
+                          });
+                          if (!res.ok) {
+                            const errData = await res.json().catch(() => ({}));
+                            throw new Error(errData.message || 'Failed to start work');
+                          }
+                        }
+                        setSelectedWorks([]);
+                        await fetchFlows();
+                      } catch (err) {
+                        alert(err.message);
+                      } finally {
+                        setSubmitting(null);
+                      }
+                    }}
+                    disabled={submitting === 'modal-start-work'}
+                    className="px-5 py-2.5 bg-yellow-600 hover:bg-yellow-700 text-white font-bold rounded-xl transition flex items-center gap-2 text-xs shadow-md disabled:opacity-50 cursor-pointer"
+                  >
+                    {submitting === 'modal-start-work' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
+                    Start Work
+                  </button>
+                )}
+
+                {/* 8. Mark In Progress (For PED Team when Work has Started) */}
+                {(isAdmin || canEditTab('ped') || user?.role?.toLowerCase().includes('ped') || user?.department?.toLowerCase().includes('ped')) && activeGroupModalData.items.some(w => w.status === 'Start Work') && (
+                  <button
+                    onClick={async () => {
+                      setSubmitting('modal-in-progress');
+                      try {
+                        const checkedInModal = activeGroupModalData.items.filter(w => selectedWorks.includes(w._id));
+                        const targetItems = checkedInModal.length > 0 ? checkedInModal : activeGroupModalData.items;
+                        const itemsInProgress = targetItems.filter(w => w.status === 'Start Work');
+
+                        for (const work of itemsInProgress) {
+                          const res = await fetch(`${API_URL}/extra-works/${activeGroupModalData.flow._id}/${work.stageIdx}/${work._id}/update-status`, {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                            body: JSON.stringify({ status: 'In Progress' })
+                          });
+                          if (!res.ok) {
+                            const errData = await res.json().catch(() => ({}));
+                            throw new Error(errData.message || 'Failed to mark in progress');
+                          }
+                        }
+                        setSelectedWorks([]);
+                        await fetchFlows();
+                      } catch (err) {
+                        alert(err.message);
+                      } finally {
+                        setSubmitting(null);
+                      }
+                    }}
+                    disabled={submitting === 'modal-in-progress'}
+                    className="px-5 py-2.5 bg-orange-600 hover:bg-orange-700 text-white font-bold rounded-xl transition flex items-center gap-2 text-xs shadow-md disabled:opacity-50 cursor-pointer"
+                  >
+                    {submitting === 'modal-in-progress' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Clock className="w-4 h-4" />}
+                    Mark In Progress
+                  </button>
+                )}
+
+                {/* 9. Mark Completed (For PED Team when Work is In Progress) */}
+                {(isAdmin || canEditTab('ped') || user?.role?.toLowerCase().includes('ped') || user?.department?.toLowerCase().includes('ped')) && activeGroupModalData.items.some(w => w.status === 'In Progress') && (
+                  <button
+                    onClick={async () => {
+                      setSubmitting('modal-completed');
+                      try {
+                        const checkedInModal = activeGroupModalData.items.filter(w => selectedWorks.includes(w._id));
+                        const targetItems = checkedInModal.length > 0 ? checkedInModal : activeGroupModalData.items;
+                        const itemsCompleted = targetItems.filter(w => w.status === 'In Progress');
+
+                        for (const work of itemsCompleted) {
+                          const res = await fetch(`${API_URL}/extra-works/${activeGroupModalData.flow._id}/${work.stageIdx}/${work._id}/update-status`, {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                            body: JSON.stringify({ status: 'Completed' })
+                          });
+                          if (!res.ok) {
+                            const errData = await res.json().catch(() => ({}));
+                            throw new Error(errData.message || 'Failed to mark completed');
+                          }
+                        }
+                        setSelectedWorks([]);
+                        await fetchFlows();
+                      } catch (err) {
+                        alert(err.message);
+                      } finally {
+                        setSubmitting(null);
+                      }
+                    }}
+                    disabled={submitting === 'modal-completed'}
+                    className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition flex items-center gap-2 text-xs shadow-md disabled:opacity-50 cursor-pointer"
+                  >
+                    {submitting === 'modal-completed' ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
+                    Mark Completed
+                  </button>
+                )}
+              </div>
+
+              <button
+                onClick={() => setSelectedReqGroupModal(null)}
+                className="px-6 py-2.5 bg-gray-100 text-gray-700 font-bold rounded-xl hover:bg-gray-200 transition text-xs cursor-pointer"
+              >
+                Close
               </button>
             </div>
           </div>

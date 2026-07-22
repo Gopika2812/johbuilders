@@ -2653,7 +2653,7 @@ const LeadsDirectory = () => {
                     {LEAD_STATUSES.map((status, idx) => {
                       const currentIdx = selectedLeadForEdit ? LEAD_STATUSES.indexOf(selectedLeadForEdit.status) : 0;
                       if (idx < currentIdx && currentIdx !== -1) return null;
-                      return <option key={status} value={status}>{status}</option>;
+                      return <option key={status} value={status}>{status === 'Booking' ? 'Booked' : status}</option>;
                     })}
                     {selectedLeadForEdit && (
                       <option value="Schedule Follow-up">Schedule Follow-up ({selectedLeadForEdit.status})</option>

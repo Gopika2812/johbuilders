@@ -57,8 +57,13 @@ router.get('/', protect, async (req, res) => {
       .populate('lead', 'name phone bankLoan bookingInfo bankLoanPercentage')
       .sort({ updatedAt: -1 });
       
-    // Filter out orphaned flows where lead was deleted
-    flows = flows.filter(flow => flow.lead != null);
+    // Filter out orphaned flows or flows that are cancelled/returned or belong to cancelled/lost leads
+    flows = flows.filter(flow => {
+      if (flow.lead == null) return false;
+      if (flow.status === 'Cancelled' || flow.status === 'Returned') return false;
+      if (['Lost', 'Cancelled'].includes(flow.lead.status)) return false;
+      return true;
+    });
     
     res.json(flows);
   } catch (err) {

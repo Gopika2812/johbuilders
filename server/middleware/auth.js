@@ -83,9 +83,23 @@ const checkPermission = (pageId, action) => {
         return next();
       }
       
+      const roleStr = (req.user.role || '').toLowerCase();
+      const deptStr = (req.user.department || '').toLowerCase();
+
+      // Role/department shortcuts for extra_works modules
+      if (pageId === 'extra_works_ped' || pageId === 'extra_works') {
+        if (roleStr.includes('ped') || deptStr.includes('ped')) return next();
+      }
+      if (pageId === 'extra_works_crd' || pageId === 'extra_works') {
+        if (roleStr.includes('crd') || deptStr.includes('crd')) return next();
+      }
+      if (pageId === 'extra_works_accounts' || pageId === 'extra_works') {
+        if (roleStr.includes('account') || deptStr.includes('account')) return next();
+      }
+
       const permissions = await getMergedPermissions(req.user);
       
-      const permission = permissions.find(p => p.pageId === pageId);
+      const permission = permissions.find(p => p.pageId === pageId || (pageId.startsWith('extra_works') && p.pageId === 'extra_works'));
       if (!permission) {
         return res.status(403).json({ message: `Access denied. Module '${pageId}' is not configured for user '${req.user.name}'.` });
       }

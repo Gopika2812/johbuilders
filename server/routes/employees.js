@@ -87,4 +87,33 @@ router.get('/history', protect, async (req, res) => {
   }
 });
 
+// @route   DELETE /api/employees/:id
+// @desc    Delete employee
+router.delete('/:id', protect, authorize('Superadmin'), async (req, res) => {
+  try {
+    const employee = await User.findById(req.params.id);
+    if (!employee) {
+      return res.status(404).json({ message: 'Employee not found' });
+    }
+
+    if (employee._id.toString() === req.user._id.toString()) {
+      return res.status(400).json({ message: 'You cannot delete your own account' });
+    }
+
+    await User.findByIdAndDelete(req.params.id);
+
+    await AuditLog.create({
+      user: req.user._id,
+      userName: req.user.name,
+      userRole: req.user.role,
+      action: 'Delete Employee',
+      description: `Deleted employee ${employee.name} (${employee.email})`
+    });
+
+    res.json({ message: 'Employee deleted successfully' });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 module.exports = router;

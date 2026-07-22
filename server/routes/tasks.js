@@ -12,6 +12,14 @@ router.get('/', protect, async (req, res) => {
     const { startDate, endDate } = req.query;
     let flows = await CRDFlow.find().populate('lead').populate('project');
     
+    // Filter out orphaned flows or flows that are cancelled/returned or belong to cancelled/lost leads
+    flows = flows.filter(flow => {
+      if (flow.lead == null) return false;
+      if (flow.status === 'Cancelled' || flow.status === 'Returned') return false;
+      if (['Lost', 'Cancelled'].includes(flow.lead.status)) return false;
+      return true;
+    });
+
     let allTasks = [];
     flows.forEach(flow => {
       if (flow.complaints && flow.complaints.length > 0) {

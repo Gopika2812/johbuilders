@@ -1254,15 +1254,18 @@ const CustomerDashboard = () => {
 
             {/* TAB: REQUESTED WORKS */}
             {activeTab === 'requestedworks' && (() => {
+              const AGREED_STATUSES = ['Client Approved', 'Sent to Accounts', 'Added to CRD', 'Execution Sent to PED', 'Start Work', 'In Progress', 'Completed', 'Approved'];
+              const CANCELLED_STATUSES = ['Rejected', 'Removed by Client', 'Cancelled by Superadmin'];
+
               const filteredRequestedWorks = allExtraWorks.filter(ew => {
                 if (requestedWorksTab === 'new') {
-                  if (['Client Approved', 'Added to CRD', 'Rejected', 'Removed by Client', 'Cancelled by Superadmin'].includes(ew.status)) return false;
+                  if (AGREED_STATUSES.includes(ew.status) || CANCELLED_STATUSES.includes(ew.status)) return false;
                 }
                 if (requestedWorksTab === 'agreed') {
-                  if (!['Client Approved', 'Added to CRD'].includes(ew.status)) return false;
+                  if (!AGREED_STATUSES.includes(ew.status)) return false;
                 }
                 if (requestedWorksTab === 'cancelled') {
-                  if (!['Rejected', 'Removed by Client', 'Cancelled by Superadmin'].includes(ew.status)) return false;
+                  if (!CANCELLED_STATUSES.includes(ew.status)) return false;
                 }
                 if (requestedWorksTab === 'history') {
                   // Show all in history, no status filter
@@ -1411,14 +1414,31 @@ const CustomerDashboard = () => {
                                 <td className="p-4 text-xs font-bold text-gray-600">{new Date(group.addedAt).toLocaleDateString()}</td>
                                 <td className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider">{group.items.length === 1 ? group.items[0].category : 'Multiple'}</td>
                                 <td className="p-4"><div className="font-bold text-gray-900">{group.items.length} Items Requested</div></td>
-                                <td className="p-4 text-right font-black text-[#006838]">Rs. {group.totalAmount.toLocaleString()}</td>
-                                <td className="p-4 text-center">
-                                  <span className="inline-flex px-3 py-1 text-[10px] font-bold uppercase tracking-widest rounded-lg border bg-gray-50 text-gray-600 border-gray-200">
-                                    {group.items.length === 1 ? group.items[0].status || 'Pending' : 'Grouped Request'}
-                                  </span>
-                                </td>
+                                  {/* Group Summary Row */}
+                                  {(() => {
+                                    const clientVisibleAmount = group.items.reduce((sum, item) => {
+                                      return sum + (['Sent to Customer', 'Client Approved', 'Sent to Accounts', 'Added to CRD', 'Execution Sent to PED', 'Start Work', 'In Progress', 'Completed', 'Approved'].includes(item.status) ? (item.amount || 0) : 0);
+                                    }, 0);
+                                    const allItemsSentToClient = group.items.every(item => ['Sent to Customer', 'Client Approved', 'Sent to Accounts', 'Added to CRD', 'Execution Sent to PED', 'Start Work', 'In Progress', 'Completed', 'Approved'].includes(item.status));
+
+                                    return (
+                                      <>
+                                        <td className="p-4 text-right font-black text-[#006838]">
+                                          {allItemsSentToClient ? `Rs. ${group.totalAmount.toLocaleString()}` : (clientVisibleAmount > 0 ? `Rs. ${clientVisibleAmount.toLocaleString()}` : <span className="text-gray-400 font-normal italic text-xs">Under Estimation</span>)}
+                                        </td>
+                                        <td className="p-4 text-center">
+                                          <span className="inline-flex px-3 py-1 text-[10px] font-bold uppercase tracking-widest rounded-lg border bg-gray-50 text-gray-600 border-gray-200">
+                                            {allItemsSentToClient ? (group.items.length === 1 ? group.items[0].status || 'Pending' : 'Grouped Request') : 'Under Estimation'}
+                                          </span>
+                                        </td>
+                                      </>
+                                    );
+                                  })()}
                               </tr>
-                              {expandedReqIds[group.ewId] && group.items.map((ew, childIdx) => (
+                              {expandedReqIds[group.ewId] && group.items.map((ew, childIdx) => {
+                                const isSentToClient = ['Sent to Customer', 'Client Approved', 'Sent to Accounts', 'Added to CRD', 'Execution Sent to PED', 'Start Work', 'In Progress', 'Completed', 'Approved'].includes(ew.status);
+
+                                return (
                                 <tr key={`${idx}-${childIdx}`} className="bg-gray-50/50 hover:bg-white transition border-l-4 border-[#006838]">
                                   <td className="p-4 text-center text-gray-400 font-bold text-xs">{idx + 1}.{childIdx + 1}</td>
                                   <td className="p-4 text-xs font-bold text-[#006838]/50">↳ {ew.ewId || '-'}</td>
@@ -1426,12 +1446,16 @@ const CustomerDashboard = () => {
                                   <td className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider">{ew.category || 'General'}</td>
                                   <td className="p-4">
                                     <div className="font-bold text-gray-900">{ew.name}</div>
-                                    <div className="text-[10px] text-gray-500 mt-0.5">Qty: {ew.quantity || 1} {ew.unit ? `x ${ew.unit}` : ''} @ Rs. {ew.rate || 0}</div>
+                                    <div className="text-[10px] text-gray-500 mt-0.5">
+                                      Qty: {ew.quantity || 1} {ew.unit ? `x ${ew.unit}` : ''} {isSentToClient ? `@ Rs. ${ew.rate || 0}` : ''}
+                                    </div>
                                   </td>
-                                  <td className="p-4 text-right font-black text-[#006838]">Rs. {(ew.amount || 0).toLocaleString()}</td>
+                                  <td className="p-4 text-right font-black text-[#006838]">
+                                    {isSentToClient ? `Rs. ${(ew.amount || 0).toLocaleString()}` : <span className="text-gray-400 font-normal italic text-xs">Under Estimation</span>}
+                                  </td>
                                   <td className="p-4 text-center flex items-center justify-center gap-2">
                                     {requestedWorksTab === 'new' ? (
-                                      (ew.status === 'Sent to Customer' || ew.status === 'PED Approved') ? (
+                                      ew.status === 'Sent to Customer' ? (
                                         <div className="flex items-center gap-2">
                                           <button
                                             onClick={() => handleCustomerApprove(ew.stageIdx, ew._id)}
@@ -1459,8 +1483,8 @@ const CustomerDashboard = () => {
                                           </button>
                                         </div>
                                       ) : (
-                                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-600 text-[10px] font-bold uppercase tracking-wider border border-emerald-100">
-                                          <CheckCircle className="w-3 h-3" /> {ew.status === 'Client Approved' ? 'I Agreed' : ew.status}
+                                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-gray-50 text-gray-600 text-[10px] font-bold uppercase tracking-wider border border-gray-200">
+                                          {['Pending', 'Sent to PED', 'PED Approved', 'Returned to CRD'].includes(ew.status) ? 'Under Estimation' : ew.status === 'Client Approved' ? 'I Agreed' : ew.status}
                                         </span>
                                       )
                                     ) : (
@@ -1472,33 +1496,16 @@ const CustomerDashboard = () => {
                                         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-red-50 text-red-600 text-[10px] font-bold uppercase tracking-wider border border-red-100">
                                           <X className="w-3 h-3" /> {ew.status}
                                         </span>
-                                      ) : ew.status === 'Sent to Customer' ? (
-                                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-50 text-blue-600 text-[10px] font-bold uppercase tracking-wider border border-blue-100">
-                                          <AlertTriangle className="w-3 h-3" /> Action Required
-                                        </span>
-                                      ) : (ew.status === 'Pending' || ew.status === 'PED Approved' || !ew.status) ? (
-                                        <div className="flex items-center gap-2">
-                                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-50 text-amber-600 text-[10px] font-bold uppercase tracking-wider border border-amber-100">
-                                            <Clock className="w-3 h-3" /> {ew.status === 'PED Approved' ? 'Pending' : (ew.status || 'Pending')}
-                                          </span>
-                                          <button 
-                                            onClick={() => handleCustomerRemove(ew.stageIdx, ew._id)}
-                                            disabled={submitting}
-                                            title="Remove Request"
-                                            className="p-1 rounded bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-colors disabled:opacity-50"
-                                          >
-                                            <X className="w-3 h-3" />
-                                          </button>
-                                        </div>
                                       ) : (
-                                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-gray-50 text-gray-600 text-[10px] font-bold uppercase tracking-wider border border-gray-100">
-                                          <Clock className="w-3 h-3" /> {ew.status}
+                                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-gray-50 text-gray-600 text-[10px] font-bold uppercase tracking-wider border border-gray-200">
+                                          Under Estimation
                                         </span>
                                       )
                                     )}
                                   </td>
                                 </tr>
-                              ))}
+                                );
+                              })}
                             </React.Fragment>
                           ))}
                         </tbody>

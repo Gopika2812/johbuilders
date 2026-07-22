@@ -24,7 +24,13 @@ router.param('flowId', async (req, res, next, id) => {
     const quotation = await Quotation.findOne({ lead: flow.lead?._id }, 'crdPerson');
     const isCrdPerson = quotation && quotation.crdPerson ? (quotation.crdPerson.toString() === req.user._id.toString()) : false;
     
-    if (!isAssigned && !isCrdPerson) {
+    const { getMergedPermissions } = require('../utils/permissionHelper');
+    const userPermissions = await getMergedPermissions(req.user);
+    const hasExtraWorksPermission = userPermissions.some(p => 
+      ['extra_works', 'extra_works_crd', 'extra_works_ped', 'extra_works_accounts'].includes(p.pageId)
+    );
+
+    if (!isAssigned && !isCrdPerson && !hasExtraWorksPermission) {
       return res.status(403).json({ message: 'You are not authorized to view or modify this construction flow' });
     }
     next();
@@ -39,15 +45,23 @@ router.get('/', protect, checkPermission('extra_works', 'view'), async (req, res
   try {
     let query = {};
     if (req.user.role !== 'Superadmin') {
-      const userLeads = await Lead.find({ assignedTo: req.user._id }, '_id');
-      const leadIds = userLeads.map(l => l._id);
-      
-      const Quotation = require('../models/Quotation');
-      const userQuotations = await Quotation.find({ crdPerson: req.user._id }, 'lead');
-      const quotationLeadIds = userQuotations.map(q => q.lead);
-      
-      const authorizedLeadIds = [...new Set([...leadIds, ...quotationLeadIds])];
-      query = { lead: { $in: authorizedLeadIds } };
+      const { getMergedPermissions } = require('../utils/permissionHelper');
+      const userPermissions = await getMergedPermissions(req.user);
+      const hasGlobalExtraWorksPermission = userPermissions.some(p => 
+        ['extra_works', 'extra_works_crd', 'extra_works_ped', 'extra_works_accounts'].includes(p.pageId) && (p.canView || p.canEdit)
+      );
+
+      if (!hasGlobalExtraWorksPermission) {
+        const userLeads = await Lead.find({ assignedTo: req.user._id }, '_id');
+        const leadIds = userLeads.map(l => l._id);
+        
+        const Quotation = require('../models/Quotation');
+        const userQuotations = await Quotation.find({ crdPerson: req.user._id }, 'lead');
+        const quotationLeadIds = userQuotations.map(q => q.lead);
+        
+        const authorizedLeadIds = [...new Set([...leadIds, ...quotationLeadIds])];
+        query = { lead: { $in: authorizedLeadIds } };
+      }
     }
 
     const flows = await CRDFlow.find(query)
@@ -56,9 +70,13 @@ router.get('/', protect, checkPermission('extra_works', 'view'), async (req, res
       .lean();
     
     // We can filter flows that have extraWorks in any stage
-    const flowsWithExtraWorks = flows.filter(flow => 
-      flow.stages.some(stage => stage.extraWorks && stage.extraWorks.length > 0)
-    );
+    const flowsWithExtraWorks = flows.filter(flow => {
+      // Exclude cancelled flows or flows with cancelled/lost leads
+      if (flow.status === 'Cancelled' || flow.status === 'Returned') return false;
+      if (flow.lead && ['Lost', 'Cancelled'].includes(flow.lead.status)) return false;
+
+      return flow.stages.some(stage => stage.extraWorks && stage.extraWorks.length > 0);
+    });
 
     const Quotation = require('../models/Quotation');
     
@@ -340,6 +358,9 @@ router.put('/:flowId/:stageIdx/:workId/update-status', protect, checkPermission(
     }
 
     extraWork.status = status;
+    if (status === 'Completed') {
+      extraWork.completedDate = new Date();
+    }
 
     flow.history.push({
       action: `Status Updated to ${status}`,

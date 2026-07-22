@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth, API_URL } from '../context/AuthContext';
-import { Users, ShieldAlert, CheckCircle2, XCircle, ArrowUpDown, Loader2 } from 'lucide-react';
+import { Users, ShieldAlert, CheckCircle2, XCircle, Trash2, Loader2 } from 'lucide-react';
 
 const EmployeesDirectory = () => {
   const { token, user } = useAuth();
@@ -9,6 +9,7 @@ const EmployeesDirectory = () => {
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
   const [approvingId, setApprovingId] = useState(null);
+  const [deletingId, setDeletingId] = useState(null);
 
   useEffect(() => {
     fetchEmployees();
@@ -84,6 +85,36 @@ const EmployeesDirectory = () => {
       }
     } catch (err) {
       console.error(err);
+    }
+  };
+
+  const handleDelete = async (empId, empName) => {
+    if (!window.confirm(`Are you sure you want to permanently delete employee "${empName}"?`)) {
+      return;
+    }
+    setMessage('');
+    setDeletingId(empId);
+    try {
+      const response = await fetch(`${API_URL}/employees/${empId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setMessage(data.message);
+        fetchEmployees();
+      } else {
+        const data = await response.json();
+        alert(data.message || 'Failed to delete employee');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Connection error deleting employee');
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -182,18 +213,28 @@ const EmployeesDirectory = () => {
                       {emp._id === user._id ? (
                         <span className="text-xs text-black-400 italic font-light pr-4">Self account</span>
                       ) : (
-                        <button
-                          onClick={() => handleApproveToggle(emp._id, emp.isApproved)}
-                          disabled={approvingId === emp._id}
-                          className={`px-4 py-1.5 rounded-xl text-xs font-bold transition border disabled:opacity-50 flex items-center justify-center gap-1 ${
-                            emp.isApproved
-                              ? 'bg-red-50 text-red-700 border-red-200 hover:bg-red-100'
-                              : 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
-                          }`}
-                        >
-                          {approvingId === emp._id ? <Loader2 className="w-3 h-3 animate-spin" /> : null}
-                          {emp.isApproved ? 'Revoke Access' : 'Approve Access'}
-                        </button>
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={() => handleApproveToggle(emp._id, emp.isApproved)}
+                            disabled={approvingId === emp._id || deletingId === emp._id}
+                            className={`px-4 py-1.5 rounded-xl text-xs font-bold transition border disabled:opacity-50 flex items-center justify-center gap-1 ${
+                              emp.isApproved
+                                ? 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100'
+                                : 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
+                            }`}
+                          >
+                            {approvingId === emp._id ? <Loader2 className="w-3 h-3 animate-spin" /> : null}
+                            {emp.isApproved ? 'Revoke Access' : 'Approve Access'}
+                          </button>
+                          <button
+                            onClick={() => handleDelete(emp._id, emp.name)}
+                            disabled={deletingId === emp._id || approvingId === emp._id}
+                            title="Delete Employee"
+                            className="p-1.5 rounded-xl text-red-500 hover:bg-red-50 transition border border-transparent hover:border-red-200 disabled:opacity-50 flex items-center justify-center"
+                          >
+                            {deletingId === emp._id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                          </button>
+                        </div>
                       )}
                     </td>
                   )}
