@@ -152,6 +152,7 @@ router.put('/:flowId/:stageIdx/:workId/price', protect, checkPermission('extra_w
     if (quantity) extraWork.quantity = quantity;
     extraWork.amount = rate * extraWork.quantity;
     extraWork.status = 'PED Approved';
+    extraWork.clientNotes = '';
     extraWork.pricingDate = new Date();
 
     flow.history.push({

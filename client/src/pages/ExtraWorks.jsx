@@ -2594,18 +2594,18 @@ const ExtraWorksInner = () => {
             {/* Footer */}
             <div className="p-4 border-t border-gray-100 bg-white flex flex-wrap justify-between items-center gap-3 shrink-0">
               <div className="flex flex-wrap items-center gap-2">
-                {/* 1. Send to PED (For CRD Team when items are Pending) */}
-                {(isAdmin || (canEditTab('crd') && !user?.role?.includes('PED'))) && activeGroupModalData.items.some(w => w.status === 'Pending') && (
+                {/* 1. Send to PED / Send to PED for Repricing (For CRD Team when items are Pending or have Client Notes for repricing) */}
+                {(isAdmin || (canEditTab('crd') && !user?.role?.includes('PED'))) && activeGroupModalData.items.some(w => w.status === 'Pending' || (w.status === 'Returned to CRD' && w.clientNotes)) && (
                   <button
                     onClick={async () => {
                       setSubmitting('modal-send-ped');
                       try {
                         const checkedInModal = activeGroupModalData.items.filter(w => selectedWorks.includes(w._id));
                         const targetItems = checkedInModal.length > 0 ? checkedInModal : activeGroupModalData.items;
-                        const itemsToSend = targetItems.filter(w => w.status === 'Pending');
+                        const itemsToSend = targetItems.filter(w => w.status === 'Pending' || (w.status === 'Returned to CRD' && w.clientNotes));
 
                         if (itemsToSend.length === 0) {
-                          alert('No eligible pending items selected to send to PED.');
+                          alert('No eligible pending or repricing items selected to send to PED.');
                           return;
                         }
 
@@ -2630,7 +2630,7 @@ const ExtraWorksInner = () => {
                     className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition flex items-center gap-2 text-xs shadow-md shadow-blue-600/20 disabled:opacity-50 cursor-pointer"
                   >
                     {submitting === 'modal-send-ped' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                    Send to PED
+                    {activeGroupModalData.items.some(w => w.clientNotes) ? 'Send to PED for Repricing' : 'Send to PED'}
                   </button>
                 )}
 
@@ -2693,15 +2693,15 @@ const ExtraWorksInner = () => {
                   </button>
                 )}
 
-                {/* 3. Send to Client (For CRD Team when items are Returned to CRD / PED Approved) */}
-                {(isAdmin || (canEditTab('crd') && !user?.role?.includes('PED'))) && activeGroupModalData.items.some(w => ['Returned to CRD', 'PED Approved'].includes(w.status)) && (
+                {/* 3. Send to Client (For CRD Team when items are Returned to CRD / PED Approved AND no pending client notes) */}
+                {(isAdmin || (canEditTab('crd') && !user?.role?.includes('PED'))) && activeGroupModalData.items.some(w => ['Returned to CRD', 'PED Approved'].includes(w.status) && !w.clientNotes) && (
                   <button
                     onClick={async () => {
                       setSubmitting('modal-send-client');
                       try {
                         const checkedInModal = activeGroupModalData.items.filter(w => selectedWorks.includes(w._id));
                         const targetItems = checkedInModal.length > 0 ? checkedInModal : activeGroupModalData.items;
-                        const clientItems = targetItems.filter(w => ['Returned to CRD', 'PED Approved'].includes(w.status));
+                        const clientItems = targetItems.filter(w => ['Returned to CRD', 'PED Approved'].includes(w.status) && !w.clientNotes);
 
                         for (const work of clientItems) {
                           const res = await fetch(`${API_URL}/extra-works/${activeGroupModalData.flow._id}/${work.stageIdx}/${work._id}/send`, {
