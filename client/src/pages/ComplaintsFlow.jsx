@@ -413,7 +413,11 @@ const ComplaintsFlow = () => {
                 </tr>
               ) : filteredTasks.map((t, idx) => (
                 <React.Fragment key={t.complaintId}>
-                  <tr className="hover:bg-emerald-50/50 transition-colors cursor-pointer bg-white">
+                  <tr className={`transition-colors cursor-pointer ${
+                    t.status === 'Pending' 
+                      ? 'bg-yellow-50 hover:bg-yellow-100/50' 
+                      : 'bg-white hover:bg-emerald-50/50'
+                  }`}>
                     <td className="px-6 py-4 font-bold text-gray-900">{idx + 1}</td>
                     <td className="px-6 py-4 text-gray-600">
                       {new Date(t.reportedAt).toLocaleDateString('en-GB')}
@@ -430,7 +434,7 @@ const ComplaintsFlow = () => {
                     </td>
                     <td className="px-6 py-4 text-center">
                       {t.status === 'Pending' ? (
-                        <span className="px-2.5 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full text-[11px] font-bold">New</span>
+                        <span className="px-2.5 py-1 bg-yellow-100 text-yellow-800 border border-yellow-200 rounded-full text-[11px] font-bold">New</span>
                       ) : (
                         <span className="px-2.5 py-1 bg-slate-100 text-slate-700 border border-slate-200 rounded-full text-[11px] font-bold">Old</span>
                       )}

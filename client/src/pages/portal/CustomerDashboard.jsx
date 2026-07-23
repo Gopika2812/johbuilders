@@ -145,6 +145,11 @@ const CustomerDashboard = () => {
   const [complaintEndDate, setComplaintEndDate] = useState('');
   const [complaintSearchText, setComplaintSearchText] = useState('');
 
+  // Client Pricing Update Notification State
+  const [clientPriceNotif, setClientPriceNotif] = useState(null);
+  const [notifiedPricedIds, setNotifiedPricedIds] = useState([]);
+  const [selectedClientWorkIds, setSelectedClientWorkIds] = useState([]);
+
   const handleFeedbackSubmit = async (e) => {
     if (e) e.preventDefault();
     if (!feedbackModal) return;
@@ -216,6 +221,49 @@ const CustomerDashboard = () => {
   useEffect(() => {
     fetchFlow();
   }, []);
+
+  // Request browser Notification permissions
+  useEffect(() => {
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
+  }, []);
+
+  // Monitor for priced extra works sent to client
+  useEffect(() => {
+    if (flow && flow.stages) {
+      const pricedItems = [];
+      flow.stages.forEach(stage => {
+        stage.extraWorks?.forEach(work => {
+          if (work.status === 'Sent to Customer' && !notifiedPricedIds.includes(work._id)) {
+            pricedItems.push({
+              work,
+              ewId: work.ewId || `REQ-${work._id.substring(0, 6)}`
+            });
+          }
+        });
+      });
+
+      if (pricedItems.length > 0) {
+        const firstPriced = pricedItems[0];
+        setClientPriceNotif(firstPriced);
+
+        // Fire Chrome Desktop Notification
+        if ('Notification' in window && Notification.permission === 'granted') {
+          try {
+            new Notification("Extra Work Pricing Updated!", {
+              body: `You received an estimation pricing update for your raised Extra Work (${firstPriced.ewId}). Please check and proceed.`,
+              icon: '/favicon.ico'
+            });
+          } catch (e) {
+            console.error("Browser notification failed", e);
+          }
+        }
+      } else {
+        setClientPriceNotif(null);
+      }
+    }
+  }, [flow, notifiedPricedIds]);
 
   const handleCopyToken = () => {
     if (complaintSuccessToken) {
@@ -388,6 +436,66 @@ const CustomerDashboard = () => {
       await fetchFlow();
     } catch (err) {
       alert(err.message);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleBulkCustomerApprove = async () => {
+    const idsToApprove = selectedClientWorkIds.length > 0
+      ? selectedClientWorkIds
+      : allExtraWorks.filter(ew => ew.status === 'Sent to Customer').map(ew => ew._id);
+
+    if (idsToApprove.length === 0) {
+      alert("Please select at least one item to agree.");
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      const token = localStorage.getItem('customerToken');
+      for (const workId of idsToApprove) {
+        const ew = allExtraWorks.find(w => w._id === workId);
+        if (ew) {
+          await fetch(`${API_URL}/customer/extra-work/${ew.stageIdx}/${ew._id}/approve`, {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${token}` }
+          });
+        }
+      }
+      setSelectedClientWorkIds([]);
+      await fetchFlow();
+    } catch (err) {
+      alert('Failed to approve selected items');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleBulkCustomerRemove = async () => {
+    if (selectedClientWorkIds.length === 0) {
+      alert("Please select at least one item to cancel.");
+      return;
+    }
+
+    if (!window.confirm(`Are you sure you want to cancel the ${selectedClientWorkIds.length} selected extra work request(s)?`)) return;
+
+    try {
+      setSubmitting(true);
+      const token = localStorage.getItem('customerToken');
+      for (const workId of selectedClientWorkIds) {
+        const ew = allExtraWorks.find(w => w._id === workId);
+        if (ew) {
+          await fetch(`${API_URL}/customer/extra-work/${ew.stageIdx}/${ew._id}/remove`, {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${token}` }
+          });
+        }
+      }
+      setSelectedClientWorkIds([]);
+      await fetchFlow();
+    } catch (err) {
+      alert('Failed to cancel selected items');
     } finally {
       setSubmitting(false);
     }
@@ -1318,7 +1426,7 @@ const CustomerDashboard = () => {
             {/* TAB: REQUESTED WORKS */}
             {activeTab === 'requestedworks' && (() => {
               const AGREED_STATUSES = ['Client Approved', 'Sent to Accounts', 'Added to CRD', 'Execution Sent to PED', 'Start Work', 'In Progress', 'Completed', 'Approved'];
-              const CANCELLED_STATUSES = ['Rejected', 'Removed by Client', 'Cancelled by Superadmin'];
+              const CANCELLED_STATUSES = ['Rejected', 'Removed by Client', 'Cancelled by Superadmin', 'Cancelled by Client', 'Cancelled'];
 
               const filteredRequestedWorks = allExtraWorks.filter(ew => {
                 if (requestedWorksTab === 'new') {
@@ -1453,7 +1561,28 @@ const CustomerDashboard = () => {
                       <table className="w-full text-left text-sm whitespace-nowrap">
                         <thead className="bg-[#006838] text-white text-[10px] tracking-wider border-b border-[#00512c]">
                           <tr>
-                            <th className="p-4 w-16 text-center font-bold uppercase">S.No</th>
+                            <th className="p-4 w-12 text-center font-bold uppercase">
+                              {(() => {
+                                const clientPricedWorks = filteredRequestedWorks.filter(ew => requestedWorksTab === 'new' && ew.status === 'Sent to Customer');
+                                if (clientPricedWorks.length === 0) return 'S.No';
+                                const allSelected = clientPricedWorks.length > 0 && clientPricedWorks.every(w => selectedClientWorkIds.includes(w._id));
+                                return (
+                                  <input
+                                    type="checkbox"
+                                    className="w-4 h-4 rounded border-gray-300 text-[#006838] focus:ring-[#006838] cursor-pointer"
+                                    checked={allSelected}
+                                    onChange={(e) => {
+                                      if (e.target.checked) {
+                                        setSelectedClientWorkIds(clientPricedWorks.map(w => w._id));
+                                      } else {
+                                        setSelectedClientWorkIds([]);
+                                      }
+                                    }}
+                                    title="Select All Items"
+                                  />
+                                );
+                              })()}
+                            </th>
                             <th className="p-4 font-bold uppercase">Req ID</th>
                             <th className="p-4 font-bold uppercase">Date</th>
                             <th className="p-4 font-bold uppercase">Category</th>
@@ -1500,15 +1629,44 @@ const CustomerDashboard = () => {
                               </tr>
                               {expandedReqIds[group.ewId] && group.items.map((ew, childIdx) => {
                                 const isSentToClient = ['Sent to Customer', 'Client Approved', 'Sent to Accounts', 'Added to CRD', 'Execution Sent to PED', 'Start Work', 'In Progress', 'Completed', 'Approved'].includes(ew.status);
+                                const isCancelled = CANCELLED_STATUSES.includes(ew.status);
+                                const subRowBgClass = isCancelled
+                                  ? 'bg-red-100/80 hover:bg-red-200/60 border-l-4 border-l-red-500 transition-colors text-red-950 font-medium'
+                                  : 'bg-emerald-100/80 hover:bg-emerald-200/70 transition-colors border-l-4 border-l-[#006838]';
 
                                 return (
-                                <tr key={`${idx}-${childIdx}`} className="bg-gray-50/50 hover:bg-white transition border-l-4 border-[#006838]">
-                                  <td className="p-4 text-center text-gray-400 font-bold text-xs">{idx + 1}.{childIdx + 1}</td>
-                                  <td className="p-4 text-xs font-bold text-[#006838]/50">↳ {ew.ewId || '-'}</td>
-                                  <td className="p-4 text-xs font-bold text-gray-400">{new Date(ew.addedAt).toLocaleDateString()}</td>
-                                  <td className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider">{ew.category || 'General'}</td>
+                                <tr key={`${idx}-${childIdx}`} className={subRowBgClass}>
+                                  <td className="p-4 text-center">
+                                    {requestedWorksTab === 'new' && ew.status === 'Sent to Customer' ? (
+                                      <input
+                                        type="checkbox"
+                                        className="w-4 h-4 rounded border-gray-300 text-[#006838] focus:ring-[#006838] cursor-pointer"
+                                        checked={selectedClientWorkIds.includes(ew._id)}
+                                        onChange={(e) => {
+                                          e.stopPropagation();
+                                          if (e.target.checked) {
+                                            setSelectedClientWorkIds(prev => [...new Set([...prev, ew._id])]);
+                                          } else {
+                                            setSelectedClientWorkIds(prev => prev.filter(id => id !== ew._id));
+                                          }
+                                        }}
+                                      />
+                                    ) : (
+                                      <span className="text-gray-500 font-bold text-xs">{idx + 1}.{childIdx + 1}</span>
+                                    )}
+                                  </td>
+                                  <td className="p-4 text-xs font-bold text-[#006838]/70">↳ {ew.ewId || '-'}</td>
+                                  <td className="p-4 text-xs font-bold text-gray-500">{new Date(ew.addedAt).toLocaleDateString()}</td>
+                                  <td className="p-4 text-xs font-bold text-gray-600 uppercase tracking-wider">{ew.category || 'General'}</td>
                                   <td className="p-4">
-                                    <div className="font-bold text-gray-900">{ew.name}</div>
+                                    <div className="flex flex-wrap items-center gap-2">
+                                      <span className="font-bold text-gray-900">{ew.name}</span>
+                                      {isCancelled && (
+                                        <span className="px-2 py-0.5 bg-red-200 text-red-900 border border-red-300 rounded text-[10px] font-extrabold uppercase tracking-wider">
+                                          {ew.status === 'Removed by Client' || ew.status === 'Cancelled by Client' ? 'Cancelled by Client' : ew.status}
+                                        </span>
+                                      )}
+                                    </div>
                                     <div className="text-[10px] text-gray-500 mt-0.5">
                                       Qty: {ew.quantity || 1} {ew.unit ? `x ${ew.unit}` : ''} {isSentToClient ? `@ Rs. ${ew.rate || 0}` : ''}
                                     </div>
@@ -1575,35 +1733,30 @@ const CustomerDashboard = () => {
                       </table>
                     </div>
                     {filteredRequestedWorks.filter(ew => requestedWorksTab === 'new' && ew.status === 'Sent to Customer').length > 0 && (
-                      <div className="p-4 bg-white/40 border-t border-gray-100 flex flex-wrap items-center justify-end gap-4">
+                      <div className="p-4 bg-white/40 border-t border-gray-100 flex flex-wrap items-center justify-end gap-3">
                         <button
                           onClick={() => setActiveTab('quotation')}
-                          className="px-5 py-2 bg-white text-gray-700 font-bold rounded-lg border border-gray-200 hover:bg-gray-50 transition flex items-center gap-2 text-sm shadow-sm"
+                          className="px-4 py-2 bg-white text-gray-700 font-bold rounded-xl border border-gray-200 hover:bg-gray-50 transition flex items-center gap-2 text-xs shadow-sm cursor-pointer"
                         >
                           <FileText className="w-4 h-4" /> Preview Quotation
                         </button>
+
+                        {selectedClientWorkIds.length > 0 && (
+                          <button
+                            onClick={handleBulkCustomerRemove}
+                            disabled={submitting}
+                            className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl transition flex items-center gap-2 text-xs shadow-sm disabled:opacity-50 cursor-pointer"
+                          >
+                            {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <><X className="w-4 h-4" /> Cancel Selected ({selectedClientWorkIds.length})</>}
+                          </button>
+                        )}
+
                         <button
-                          onClick={async () => {
-                            try {
-                              setSubmitting(true);
-                              const worksToApprove = allExtraWorks.filter(ew => ew.status === 'Sent to Customer');
-                              for (const work of worksToApprove) {
-                                await fetch(`${API_URL}/customer/extra-work/${work.stageIdx}/${work._id}/approve`, {
-                                  method: 'POST',
-                                  headers: { Authorization: `Bearer ${localStorage.getItem('customerToken')}` }
-                                });
-                              }
-                              await fetchFlow();
-                            } catch (err) {
-                              alert('Failed to approve some items');
-                            } finally {
-                              setSubmitting(false);
-                            }
-                          }}
+                          onClick={handleBulkCustomerApprove}
                           disabled={submitting}
-                          className="px-5 py-2 bg-[#006838] text-white font-bold rounded-lg hover:bg-[#00522c] transition flex items-center gap-2 shadow-sm text-sm disabled:opacity-50"
+                          className="px-5 py-2 bg-[#006838] text-white font-bold rounded-xl hover:bg-[#00522c] transition flex items-center gap-2 shadow-sm text-xs disabled:opacity-50 cursor-pointer"
                         >
-                          {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <><CheckCircle className="w-4 h-4" /> I Agree to All & Send</>}
+                          {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <><CheckCircle className="w-4 h-4" /> {selectedClientWorkIds.length > 0 ? `I Agree to Selected (${selectedClientWorkIds.length}) & Send` : 'I Agree to All & Send'}</>}
                         </button>
                       </div>
                     )}
@@ -2523,6 +2676,43 @@ const CustomerDashboard = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* CLIENT PRICING UPDATE NOTIFICATION POPUP (CENTERED MODAL - NO DISMISS / NO X) */}
+      {clientPriceNotif && (
+        <div className="fixed inset-0 z-[9999] bg-black/70 backdrop-blur-md flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-white border-2 border-[#006838] rounded-3xl shadow-2xl max-w-lg w-full p-8 animate-scale-up relative text-center">
+            <div className="w-16 h-16 bg-emerald-100 text-[#006838] rounded-full flex items-center justify-center mx-auto mb-4 border border-emerald-200 shadow-md">
+              <Sparkles className="w-8 h-8 animate-pulse text-[#006838]" />
+            </div>
+            
+            <span className="px-3 py-1 bg-emerald-100 text-[#006838] text-xs font-extrabold uppercase tracking-wider rounded-full border border-emerald-200 inline-block mb-3">
+              Price Estimation Updated
+            </span>
+
+            <h3 className="text-xl font-bold text-gray-900 leading-snug mb-2">
+              You received an estimation pricing update for your raised Extra Work (<span className="text-[#006838] font-black">{clientPriceNotif.ewId}</span>).
+            </h3>
+
+            <p className="text-sm text-gray-600 mb-6 bg-emerald-50/60 p-3 rounded-2xl border border-emerald-100 text-left font-medium">
+              Work: <strong>{clientPriceNotif.work.name}</strong> <br />
+              Amount: <strong className="text-[#006838]">Rs. {(clientPriceNotif.work.amount || 0).toLocaleString()}</strong>
+            </p>
+
+            <button
+              onClick={() => {
+                setActiveTab('requestedworks');
+                setRequestedWorksTab('new');
+                setExpandedReqIds(prev => ({ ...prev, [clientPriceNotif.ewId]: true }));
+                setNotifiedPricedIds(prev => [...prev, clientPriceNotif.work._id]);
+                setClientPriceNotif(null);
+              }}
+              className="w-full py-4 bg-[#006838] hover:bg-[#00522c] text-white text-sm font-black rounded-2xl shadow-xl shadow-[#006838]/20 transition flex items-center justify-center gap-2 cursor-pointer"
+            >
+              <CheckCircle className="w-5 h-5" /> Check & Proceed
+            </button>
           </div>
         </div>
       )}

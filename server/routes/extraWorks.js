@@ -302,12 +302,18 @@ router.put('/:flowId/:stageIdx/:workId/add-to-crd', protect, checkPermission('ex
 });
 
 // @route   PUT /api/extra-works/:flowId/:stageIdx/:workId/send-to-ped-execution
-// @desc    CRD team sends work order to PED team for execution
-router.put('/:flowId/:stageIdx/:workId/send-to-ped-execution', protect, checkPermission('extra_works_crd', 'edit'), async (req, res) => {
-
+// @desc    CRD or Accounts team sends work order to PED team for execution
+router.put('/:flowId/:stageIdx/:workId/send-to-ped-execution', protect, async (req, res) => {
   const { flowId, stageIdx, workId } = req.params;
 
   try {
+    const { getMergedPermissions } = require('../utils/permissionHelper');
+    const userPermissions = req.user.role === 'Superadmin' ? [] : await getMergedPermissions(req.user);
+    const canEdit = req.user.role === 'Superadmin' || userPermissions.some(p => ['extra_works', 'extra_works_crd', 'extra_works_accounts'].includes(p.pageId) && p.canEdit);
+    if (!canEdit) {
+      return res.status(403).json({ message: 'Access denied to send to PED execution.' });
+    }
+
     const flow = await CRDFlow.findById(flowId);
     if (!flow) return res.status(404).json({ message: 'CRD Flow not found' });
 

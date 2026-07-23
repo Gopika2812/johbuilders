@@ -17,7 +17,8 @@ import {
   FileText,
   Activity,
   MoreVertical,
-  Play
+  Play,
+  Bell
 } from 'lucide-react';
 
 class ErrorBoundary extends React.Component {
@@ -61,6 +62,149 @@ const ExtraWorksInner = () => {
   const [flowMapModal, setFlowMapModal] = useState(null);
   const [expandedReqIds, setExpandedReqIds] = useState({});
   const [selectedReqGroupModal, setSelectedReqGroupModal] = useState(null);
+  const [roleNotification, setRoleNotification] = useState(null);
+  const [dismissedNotifs, setDismissedNotifs] = useState([]);
+
+  useEffect(() => {
+    if (flows && flows.length > 0) {
+      let notif = null;
+
+      // 1. Check CRD Team Notification ('Pending' or 'Returned to CRD' / 'PED Approved' extra works)
+      if (isAdmin || canEditTab('crd')) {
+        for (const flow of flows) {
+          for (const stage of flow.stages || []) {
+            for (const work of stage.extraWorks || []) {
+              if (!dismissedNotifs.includes(work._id)) {
+                if (work.status === 'Pending') {
+                  notif = {
+                    roleTitle: 'CRD Team',
+                    badgeText: 'New Extra Work Alert',
+                    badgeColor: 'bg-amber-100 text-amber-900 border-amber-200',
+                    borderColor: 'border-amber-400',
+                    iconColor: 'bg-amber-100 text-amber-800',
+                    btnColor: 'from-amber-500 to-yellow-600 hover:from-amber-600 hover:to-yellow-700 shadow-amber-500/30',
+                    message: (
+                      <>
+                        CRD Team, today you got an Extra Work request (<span className="text-[#006838] font-black">{work.ewId || `REQ-${work._id.substring(0, 6)}`}</span>) from <span className="font-extrabold text-amber-900">{flow.customerName || 'Customer'}</span>!
+                      </>
+                    ),
+                    work,
+                    flow,
+                    ewId: work.ewId || `REQ-${work._id.substring(0, 6)}`
+                  };
+                  break;
+                } else if (['Returned to CRD', 'PED Approved'].includes(work.status)) {
+                  notif = {
+                    roleTitle: 'CRD Team',
+                    badgeText: 'Pricing / Repricing Complete',
+                    badgeColor: 'bg-blue-100 text-blue-900 border-blue-200',
+                    borderColor: 'border-blue-500',
+                    iconColor: 'bg-blue-100 text-blue-800',
+                    btnColor: 'from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 shadow-blue-500/30',
+                    message: (
+                      <>
+                        CRD Team, PED has completed pricing / repricing for Extra Work (<span className="text-blue-700 font-black">{work.ewId || `REQ-${work._id.substring(0, 6)}`}</span>) for customer <span className="font-extrabold text-blue-900">{flow.customerName || 'Customer'}</span>! Please review and send to customer.
+                      </>
+                    ),
+                    work,
+                    flow,
+                    ewId: work.ewId || `REQ-${work._id.substring(0, 6)}`
+                  };
+                  break;
+                }
+              }
+            }
+            if (notif) break;
+          }
+          if (notif) break;
+        }
+      }
+
+      // 2. Check PED Team Notification ('Sent to PED' for pricing OR 'Execution Sent to PED' / 'Added to CRD' for site execution)
+      if (!notif && (isAdmin || canEditTab('ped'))) {
+        for (const flow of flows) {
+          for (const stage of flow.stages || []) {
+            for (const work of stage.extraWorks || []) {
+              if (!dismissedNotifs.includes(work._id)) {
+                if (work.status === 'Sent to PED') {
+                  notif = {
+                    roleTitle: 'PED Team',
+                    badgeText: 'Pricing Action Required',
+                    badgeColor: 'bg-blue-100 text-blue-900 border-blue-200',
+                    borderColor: 'border-blue-500',
+                    iconColor: 'bg-blue-100 text-blue-800',
+                    btnColor: 'from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 shadow-blue-500/30',
+                    message: (
+                      <>
+                        PED Team, you are assigned for pricing for Extra Work (<span className="text-blue-700 font-black">{work.ewId || `REQ-${work._id.substring(0, 6)}`}</span>) for customer <span className="font-extrabold text-blue-900">{flow.customerName || 'Customer'}</span>!
+                      </>
+                    ),
+                    work,
+                    flow,
+                    ewId: work.ewId || `REQ-${work._id.substring(0, 6)}`
+                  };
+                  break;
+                } else if (['Execution Sent to PED', 'Added to CRD'].includes(work.status)) {
+                  notif = {
+                    roleTitle: 'PED Team',
+                    badgeText: 'Site Execution Assigned',
+                    badgeColor: 'bg-teal-100 text-teal-900 border-teal-200',
+                    borderColor: 'border-teal-500',
+                    iconColor: 'bg-teal-100 text-teal-800',
+                    btnColor: 'from-teal-600 to-emerald-700 hover:from-teal-700 hover:to-emerald-800 shadow-teal-500/30',
+                    message: (
+                      <>
+                        PED Team, Work Order (<span className="text-teal-700 font-black">{work.ewId || `REQ-${work._id.substring(0, 6)}`}</span>) for customer <span className="font-extrabold text-teal-900">{flow.customerName || 'Customer'}</span> has been assigned for site execution! Please start work.
+                      </>
+                    ),
+                    work,
+                    flow,
+                    ewId: work.ewId || `REQ-${work._id.substring(0, 6)}`
+                  };
+                  break;
+                }
+              }
+            }
+            if (notif) break;
+          }
+          if (notif) break;
+        }
+      }
+
+      // 3. Check Accounts Team Notification ('Sent to Accounts' / 'Client Approved' extra works)
+      if (!notif && (isAdmin || canEditTab('accounts'))) {
+        for (const flow of flows) {
+          for (const stage of flow.stages || []) {
+            for (const work of stage.extraWorks || []) {
+              if (['Sent to Accounts', 'Client Approved'].includes(work.status) && !dismissedNotifs.includes(work._id)) {
+                notif = {
+                  roleTitle: 'Accounts Team',
+                  badgeText: 'Work Order & Invoicing Alert',
+                  badgeColor: 'bg-emerald-100 text-emerald-900 border-emerald-200',
+                  borderColor: 'border-emerald-500',
+                  iconColor: 'bg-emerald-100 text-emerald-800',
+                  btnColor: 'from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 shadow-emerald-500/30',
+                  message: (
+                    <>
+                      Accounts Team, you received an approved Extra Work request (<span className="text-[#006838] font-black">{work.ewId || `REQ-${work._id.substring(0, 6)}`}</span>) from customer <span className="font-extrabold text-emerald-900">{flow.customerName || 'Customer'}</span> for Work Order & Billing!
+                    </>
+                  ),
+                  work,
+                  flow,
+                  ewId: work.ewId || `REQ-${work._id.substring(0, 6)}`
+                };
+                break;
+              }
+            }
+            if (notif) break;
+          }
+          if (notif) break;
+        }
+      }
+
+      setRoleNotification(notif);
+    }
+  }, [flows, dismissedNotifs, user, isAdmin]);
 
   const canEditTab = (tabId) => {
     if (isAdmin) return true;
@@ -413,15 +557,38 @@ const ExtraWorksInner = () => {
       case 'Start Work': return <span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded text-xs font-bold">Start Work</span>;
       case 'In Progress': return <span className="px-2 py-1 bg-orange-100 text-orange-800 rounded text-xs font-bold">In Progress</span>;
       case 'Completed': return <span className="px-2 py-1 bg-green-100 text-green-800 rounded text-xs font-bold">Completed</span>;
-      case 'Removed by Client': return <span className="px-2 py-1 bg-red-100 text-red-800 rounded text-xs font-bold">Removed by Client</span>;
-      case 'Cancelled by Superadmin': return <span className="px-2 py-1 bg-red-100 text-red-800 rounded text-xs font-bold">Cancelled by Superadmin</span>;
+      case 'Removed by Client':
+      case 'Cancelled by Client':
+        return <span className="px-2.5 py-1 bg-red-100 text-red-800 border border-red-200 rounded-md text-xs font-extrabold shadow-sm">Cancelled by Client</span>;
+      case 'Cancelled by Superadmin':
+      case 'Cancelled':
+      case 'Rejected':
+        return <span className="px-2.5 py-1 bg-red-100 text-red-800 border border-red-200 rounded-md text-xs font-extrabold shadow-sm">Cancelled</span>;
       default: return <span className="px-2 py-1 bg-gray-100 text-gray-800 rounded text-xs font-bold">{status}</span>;
     }
   };
 
   const isWorkVisible = (work) => {
     if (!work) return false;
-    // Allow all authorized team members to view extra works across all lifecycle statuses (Pending, Sent to PED, etc.)
+    if (isAdmin) return true;
+
+    const userRoleStr = (user?.role || '').toLowerCase();
+    const userDeptStr = (user?.department || '').toLowerCase();
+
+    const isPedUser = userRoleStr.includes('ped') || userDeptStr.includes('ped') || (canEditTab('ped') && !canEditTab('crd') && !canEditTab('accounts'));
+    const isAccountsUser = userRoleStr.includes('account') || userDeptStr.includes('account') || (canEditTab('accounts') && !canEditTab('crd') && !canEditTab('ped'));
+
+    if (isAccountsUser) {
+      // Accounts team ONLY sees extra works sent to Accounts, approved by client, or in work order execution
+      return ['Sent to Accounts', 'Client Approved', 'Added to CRD', 'Execution Sent to PED', 'Start Work', 'In Progress', 'Completed'].includes(work.status);
+    }
+
+    if (isPedUser) {
+      // PED team ONLY sees extra works assigned to PED for pricing or execution (including Work Orders created by Accounts)
+      return ['Sent to PED', 'PED Approved', 'Returned to CRD', 'Added to CRD', 'Execution Sent to PED', 'Start Work', 'In Progress', 'Completed'].includes(work.status);
+    }
+
+    // CRD team sees all extra work requests
     return true;
   };
 
@@ -611,7 +778,7 @@ const ExtraWorksInner = () => {
       flow.stages.forEach(stage => {
         if (stage.extraWorks) {
           stage.extraWorks.forEach(work => {
-            if (!['Rejected', 'Removed by Client', 'Cancelled by Superadmin'].includes(work.status)) {
+            if (!['Rejected', 'Removed by Client', 'Cancelled by Superadmin', 'Cancelled by Client', 'Cancelled'].includes(work.status)) {
               total += (work.amount || 0);
             }
           });
@@ -638,7 +805,10 @@ const ExtraWorksInner = () => {
     const groupItems = filteredFlowWorks.filter(w => (w.ewId || `NO_ID_${w._id}`) === selectedReqGroupModal.ewId);
     if (groupItems.length === 0) return null;
 
-    const totalAmount = groupItems.reduce((sum, w) => sum + (w.amount || 0), 0);
+    const totalAmount = groupItems.reduce((sum, w) => {
+      const isCancelled = ['Rejected', 'Removed by Client', 'Cancelled by Superadmin', 'Cancelled by Client', 'Cancelled'].includes(w.status);
+      return isCancelled ? sum : sum + (w.amount || 0);
+    }, 0);
     const firstWork = groupItems[0];
 
     return {
@@ -829,21 +999,31 @@ const ExtraWorksInner = () => {
                 <th className="px-6 py-4 font-bold text-xs uppercase tracking-wider text-right">Quotation Value</th>
                 <th className="px-6 py-4 font-bold text-xs uppercase tracking-wider text-right">Extra Works</th>
                 <th className="px-6 py-4 font-bold text-xs uppercase tracking-wider text-right">Final Value</th>
-                <th className="px-6 py-4"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-emerald-100">
               {filteredFlows.length === 0 ? (
                 <tr>
-                  <td colSpan="12" className="px-6 py-12 text-center text-gray-500 font-medium">No extra works requests found.</td>
+                  <td colSpan="11" className="px-6 py-12 text-center text-gray-500 font-medium">No extra works requests found.</td>
                 </tr>
               ) : filteredFlows.map((flow, idx) => {
                 const isExpanded = expandedFlow === flow._id;
+                const isFlowNew = flow.stages?.some(stage =>
+                  stage.extraWorks?.some(work =>
+                    isWorkVisible(work) && !work.sentToPedDate && work.status === 'Pending'
+                  )
+                );
 
                 return (
                   <React.Fragment key={flow._id}>
                     <tr
-                      className="hover:bg-emerald-50/50 transition-colors cursor-pointer"
+                      className={`transition-colors cursor-pointer ${
+                        isExpanded 
+                          ? 'bg-emerald-50/20' 
+                          : isFlowNew 
+                            ? 'bg-yellow-50/60 hover:bg-yellow-100/80' 
+                            : 'hover:bg-emerald-50/50'
+                      }`}
                       onClick={() => setExpandedFlow(isExpanded ? null : flow._id)}
                     >
                       <td className="px-6 py-4 font-bold text-gray-900">{idx + 1}</td>
@@ -863,18 +1043,11 @@ const ExtraWorksInner = () => {
                         </div>
                       </td>
                       <td className="px-6 py-4 text-center">
-                        {(() => {
-                          const isFlowNew = flow.stages?.some(stage =>
-                            stage.extraWorks?.some(work =>
-                              isWorkVisible(work) && !work.sentToPedDate && work.status === 'Pending'
-                            )
-                          );
-                          return !isFlowNew ? (
-                            <span className="px-2.5 py-1 bg-slate-100 text-slate-700 border border-slate-200 rounded-full text-[10px] font-bold">Old</span>
-                          ) : (
-                            <span className="px-2.5 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full text-[10px] font-bold">New</span>
-                          );
-                        })()}
+                        {!isFlowNew ? (
+                          <span className="px-2.5 py-1 bg-slate-100 text-slate-700 border border-slate-200 rounded-full text-[10px] font-bold">Old</span>
+                        ) : (
+                          <span className="px-2.5 py-1 bg-yellow-100 text-yellow-800 border border-yellow-200 rounded-full text-[10px] font-bold">New</span>
+                        )}
                       </td>
                       <td className="px-6 py-4 text-gray-600">{flow.lead?.phone}</td>
                       <td className="px-6 py-4 font-medium text-emerald-700">{flow.crdPersonName || 'Unassigned'}</td>
@@ -883,13 +1056,10 @@ const ExtraWorksInner = () => {
                       <td className="px-6 py-4 text-right font-bold text-gray-900">Rs. {flow.totalOriginalValue?.toLocaleString()}</td>
                       <td className="px-6 py-4 text-right font-bold text-amber-600">Rs. {calculateActiveExtraWorksTotal(flow).toLocaleString()}</td>
                       <td className="px-6 py-4 text-right font-black text-emerald-600">Rs. {(flow.totalOriginalValue + calculateActiveExtraWorksTotal(flow)).toLocaleString()}</td>
-                      <td className="px-6 py-4 text-right text-emerald-600 font-bold hover:underline">
-                        {isExpanded ? 'Close Details' : 'View Details'}
-                      </td>
                     </tr>
                     {isExpanded && (
                       <tr>
-                        <td colSpan="12" className="p-0 border-b border-emerald-100 bg-emerald-50/20 shadow-inner">
+                        <td colSpan="11" className="p-0 border-b border-emerald-100 bg-emerald-50/20 shadow-inner">
                           <div className="p-6">
                             <div className="flex justify-between items-center mb-4">
                               <h3 className="font-bold text-gray-800 text-lg">Extra Works Timeline</h3>
@@ -1082,7 +1252,6 @@ const ExtraWorksInner = () => {
                                     <th className="p-4 font-bold text-[11px] uppercase tracking-wider text-center">Sent to Account Team on </th>
                                     <th className="p-4 font-bold text-[11px] uppercase tracking-wider text-center">Work Order Issued on</th>
                                     <th className="p-4 font-bold text-[11px] uppercase tracking-wider text-center">Completed On</th>
-                                    <th className="p-4 font-bold text-[11px] uppercase tracking-wider text-center">Action</th>
                                   </tr>
                                 </thead>
                                 <tbody className="divide-y divide-emerald-50">
@@ -1116,7 +1285,9 @@ const ExtraWorksInner = () => {
                                         };
                                       }
                                       acc[id].items.push(work);
-                                      acc[id].totalAmount += (work.amount || 0);
+                                      if (!['Rejected', 'Removed by Client', 'Cancelled by Superadmin', 'Cancelled by Client', 'Cancelled'].includes(work.status)) {
+                                        acc[id].totalAmount += (work.amount || 0);
+                                      }
 
                                       if (work.pricingDate && !acc[id].pricingDate) acc[id].pricingDate = work.pricingDate;
                                       if (work.sentToPedDate && !acc[id].sentToPedDate) acc[id].sentToPedDate = work.sentToPedDate;
@@ -1180,10 +1351,15 @@ const ExtraWorksInner = () => {
 
                                     return groupedFlowWorks.map((group, gIdx) => {
                                       const isGroupNew = checkGroupIsNew(group);
+                                      const hasPendingNew = group.items.some(w => w.status === 'Pending');
+                                      const reqRowBgClass = hasPendingNew
+                                        ? 'bg-amber-100/90 hover:bg-amber-200/80 border-l-4 border-l-amber-500 text-amber-950 font-semibold shadow-sm transition-colors cursor-pointer'
+                                        : 'hover:bg-emerald-50/50 transition-colors cursor-pointer bg-white';
+
                                       return (
                                         <tr
                                           key={group.ewId || gIdx}
-                                          className="hover:bg-emerald-50/50 transition-colors cursor-pointer bg-white"
+                                          className={reqRowBgClass}
                                           onClick={() => setSelectedReqGroupModal({ flowId: flow._id, ewId: group.ewId })}
                                         >
                                           <td className="p-4 align-middle text-center flex items-center justify-center gap-2">
@@ -1272,359 +1448,14 @@ const ExtraWorksInner = () => {
                                           <td className="p-4 align-middle text-center text-sm text-emerald-700 font-medium">
                                             {getGroupCompletedDateStr(group)}
                                           </td>
-                                          <td className="p-4 align-middle text-center">
-                                            <button
-                                              onClick={(e) => {
-                                                e.stopPropagation();
-                                                setSelectedReqGroupModal({ flowId: flow._id, ewId: group.ewId });
-                                              }}
-                                              className="px-3 py-1 bg-[#006838] text-white hover:bg-[#00512c] rounded-lg text-xs font-bold transition shadow-sm cursor-pointer"
-                                            >
-                                              View Details
-                                            </button>
-                                          </td>
                                         </tr>
                                       );
                                     });
                                   })()}
                                 </tbody>
-                              </table>
-                            </div>
-                            {(() => {
-                              const canCrd = isAdmin || canEditTab('crd');
-                              const canPed = isAdmin || canEditTab('ped');
-                              const canAccounts = isAdmin || canEditTab('accounts');
-
-                              const selectedItems = [];
-                              flow.stages.forEach(s => s.extraWorks?.forEach(w => {
-                                if (selectedWorks.includes(w._id)) {
-                                  selectedItems.push(w);
-                                }
-                              }));
-
-                              const hasSelected = selectedItems.length > 0;
-                              const hasSendToPed = hasSelected && selectedItems.every(w => ['Pending', 'Client Review'].includes(w.status) || (w.status === 'Returned to CRD' && w.clientNotes));
-                              const hasReturnedToCRD = hasSelected && selectedItems.every(w => ['Returned to CRD', 'PED Approved'].includes(w.status) && !w.clientNotes);
-                              const hasClientApproved = hasSelected && selectedItems.every(w => w.status === 'Client Approved');
-                              const hasAddedToCRD = hasSelected && selectedItems.every(w => w.status === 'Added to CRD');
-
-                              const hasReadyToShare = hasSelected && selectedItems.every(w => ['Sent to PED', 'PED Approved'].includes(w.status));
-                              const hasSentToAccounts = hasSelected && selectedItems.every(w => w.status === 'Sent to Accounts');
-                              const hasExecutionSentToPed = hasSelected && selectedItems.every(w => w.status === 'Execution Sent to PED');
-                              const hasStartWork = hasSelected && selectedItems.every(w => w.status === 'Start Work');
-                              const hasInProgress = hasSelected && selectedItems.every(w => w.status === 'In Progress');
-
-                              if (!hasSelected) {
-                                return (
-                                  <div className="mt-4 flex justify-start">
-                                    <span className="text-[10px] text-gray-400 font-bold border border-dashed border-emerald-250/60 rounded-xl px-4 py-2 bg-emerald-50/10">
-                                      Select one or more items to perform actions
-                                    </span>
-                                  </div>
-                                );
-                              }
-
-                              return (
-                                <div className="mt-4 flex flex-wrap justify-start gap-3">
-                                  {/* CRD Actions */}
-                                  {canCrd && hasSendToPed && (
-                                    <button
-                                      onClick={async () => {
-                                        setSubmitting('bulk-crd-ped');
-                                        try {
-                                          const works = [];
-                                          flow.stages.forEach((s, sIdx) => s.extraWorks?.forEach(w => {
-                                            if (selectedWorks.includes(w._id) && (w.status === 'Pending' || w.status === 'Returned to CRD' || w.status === 'Client Review')) {
-                                              works.push({ sIdx, wId: w._id });
-                                            }
-                                          }));
-                                          for (const work of works) {
-                                            await fetch(`${API_URL}/extra-works/${flow._id}/${work.sIdx}/${work.wId}/send-to-ped`, {
-                                              method: 'PUT', headers: { Authorization: `Bearer ${token}` }
-                                            });
-                                          }
-                                          setSelectedWorks([]);
-                                          await fetchFlows();
-                                        } finally {
-                                          setSubmitting(null);
-                                        }
-                                      }}
-                                      disabled={submitting === 'bulk-crd-ped'}
-                                      className="px-6 py-2 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition flex items-center justify-center gap-2 shadow-sm disabled:opacity-50"
-                                    >
-                                      {submitting === 'bulk-crd-ped' ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Send className="w-4 h-4" /> {selectedItems.some(w => w.clientNotes) ? 'Send to PED for Repricing' : 'Extra Work Send to PED'}</>}
-                                    </button>
-                                  )}
-
-                                  {canCrd && hasReturnedToCRD && (
-                                    <button
-                                      onClick={async () => {
-                                        setSubmitting('bulk-crd-client');
-                                        try {
-                                          const works = [];
-                                          flow.stages.forEach((s, sIdx) => s.extraWorks?.forEach(w => {
-                                            if (w.status === 'Returned to CRD' && selectedWorks.includes(w._id)) works.push({ sIdx, wId: w._id });
-                                          }));
-                                          for (const work of works) {
-                                            await fetch(`${API_URL}/extra-works/${flow._id}/${work.sIdx}/${work.wId}/send`, {
-                                              method: 'PUT', headers: { Authorization: `Bearer ${token}` }
-                                            });
-                                          }
-                                          setSelectedWorks([]);
-                                          await fetchFlows();
-                                        } finally {
-                                          setSubmitting(null);
-                                        }
-                                      }}
-                                      disabled={submitting === 'bulk-crd-client' || !selectedWorks.some(id => {
-                                        let isReturned = false;
-                                        flow.stages.forEach(s => s.extraWorks?.forEach(w => { if (w._id === id && w.status === 'Returned to CRD') isReturned = true; }));
-                                        return isReturned;
-                                      })}
-                                      className="px-6 py-2 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 transition flex items-center justify-center gap-2 shadow-sm disabled:opacity-50"
-                                    >
-                                      {submitting === 'bulk-crd-client' ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Send className="w-4 h-4" /> Extra Work Send to Client</>}
-                                    </button>
-                                  )}
-
-                                  {canCrd && hasClientApproved && (
-                                    <button
-                                      onClick={async () => {
-                                        setSubmitting('bulk-crd-accounts');
-                                        try {
-                                          const works = [];
-                                          flow.stages.forEach((s, sIdx) => s.extraWorks?.forEach(w => {
-                                            if (w.status === 'Client Approved' && selectedWorks.includes(w._id)) works.push({ sIdx, wId: w._id });
-                                          }));
-                                          for (const work of works) {
-                                            await fetch(`${API_URL}/extra-works/${flow._id}/${work.sIdx}/${work.wId}/send-to-accounts`, {
-                                              method: 'PUT', headers: { Authorization: `Bearer ${token}` }
-                                            });
-                                          }
-                                          setSelectedWorks([]);
-                                          await fetchFlows();
-                                        } finally {
-                                          setSubmitting(null);
-                                        }
-                                      }}
-                                      disabled={submitting === 'bulk-crd-accounts' || !selectedWorks.some(id => {
-                                        let isApproved = false;
-                                        flow.stages.forEach(s => s.extraWorks?.forEach(w => { if (w._id === id && w.status === 'Client Approved') isApproved = true; }));
-                                        return isApproved;
-                                      })}
-                                      className="px-6 py-2 bg-purple-600 text-white font-bold rounded-xl hover:bg-purple-700 transition flex items-center justify-center gap-2 shadow-sm disabled:opacity-50"
-                                    >
-                                      {submitting === 'bulk-crd-accounts' ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Building className="w-4 h-4" /> Extra Work Send to Accounts</>}
-                                    </button>
-                                  )}
-
-                                  {canCrd && hasAddedToCRD && (
-                                    <button
-                                      onClick={async () => {
-                                        setSubmitting('bulk-crd-execution');
-                                        try {
-                                          const works = [];
-                                          flow.stages.forEach((s, sIdx) => s.extraWorks?.forEach(w => {
-                                            if (w.status === 'Added to CRD' && selectedWorks.includes(w._id)) works.push({ sIdx, wId: w._id });
-                                          }));
-                                          for (const work of works) {
-                                            await fetch(`${API_URL}/extra-works/${flow._id}/${work.sIdx}/${work.wId}/send-to-ped-execution`, {
-                                              method: 'PUT', headers: { Authorization: `Bearer ${token}` }
-                                            });
-                                          }
-                                          setSelectedWorks([]);
-                                          await fetchFlows();
-                                        } finally {
-                                          setSubmitting(null);
-                                        }
-                                      }}
-                                      disabled={submitting === 'bulk-crd-execution' || !selectedWorks.some(id => {
-                                        let isAdded = false;
-                                        flow.stages.forEach(s => s.extraWorks?.forEach(w => { if (w._id === id && w.status === 'Added to CRD') isAdded = true; }));
-                                        return isAdded;
-                                      })}
-                                      className="px-6 py-2 bg-teal-600 text-white font-bold rounded-xl hover:bg-teal-700 transition flex items-center justify-center gap-2 shadow-sm disabled:opacity-50"
-                                    >
-                                      {submitting === 'bulk-crd-execution' ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Send className="w-4 h-4" /> Send to PED Execution</>}
-                                    </button>
-                                  )}
-
-                                  {/* PED Actions */}
-                                  {canPed && hasReadyToShare && (
-                                    <button
-                                      onClick={async () => {
-                                        setSubmitting('bulk-ped');
-                                        try {
-                                          const works = [];
-                                          flow.stages.forEach((s, sIdx) => s.extraWorks?.forEach(w => {
-                                            if (['Sent to PED', 'PED Approved'].includes(w.status) && selectedWorks.includes(w._id)) {
-                                              works.push({ sIdx, work: w });
-                                            }
-                                          }));
-
-                                          // Validate rates: each selected item must have a rate > 0
-                                          for (const item of works) {
-                                            const rate = rates[item.work._id] !== undefined ? Number(rates[item.work._id]) : item.work.rate;
-                                            if (!rate || rate <= 0) {
-                                              alert(`Please enter a valid rate (> 0) for "${item.work.name}" before sending.`);
-                                              return;
-                                            }
-                                          }
-
-                                          // Save price for each selected work first
-                                          for (const item of works) {
-                                            const newRate = rates[item.work._id] !== undefined ? Number(rates[item.work._id]) : item.work.rate;
-                                            await fetch(`${API_URL}/extra-works/${flow._id}/${item.sIdx}/${item.work._id}/price`, {
-                                              method: 'PUT',
-                                              headers: {
-                                                'Content-Type': 'application/json',
-                                                Authorization: `Bearer ${token}`
-                                              },
-                                              body: JSON.stringify({ rate: newRate })
-                                            });
-                                          }
-
-                                          // Send each selected work to CRD
-                                          for (const item of works) {
-                                            await fetch(`${API_URL}/extra-works/${flow._id}/${item.sIdx}/${item.work._id}/send`, {
-                                              method: 'PUT', headers: { Authorization: `Bearer ${token}` }
-                                            });
-                                          }
-
-                                          setSelectedWorks([]);
-                                          await fetchFlows();
-                                        } catch (err) {
-                                          alert(err.message);
-                                        } finally {
-                                          setSubmitting(null);
-                                        }
-                                      }}
-                                      disabled={submitting === 'bulk-ped' || selectedWorks.length === 0}
-                                      className="px-6 py-2 bg-[#006838] text-white font-bold rounded-xl hover:bg-[#00512c] transition flex items-center gap-2 shadow-sm disabled:opacity-50"
-                                    >
-                                      {submitting === 'bulk-ped' ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Send className="w-4 h-4" /> Save & Send to CRD ({selectedWorks.length})</>}
-                                    </button>
-                                  )}
-
-                                  {canPed && hasExecutionSentToPed && (
-                                    <button
-                                      onClick={async () => {
-                                        setSubmitting('bulk-ped-start');
-                                        try {
-                                          const works = [];
-                                          flow.stages.forEach((s, sIdx) => s.extraWorks?.forEach(w => {
-                                            if (w.status === 'Execution Sent to PED' && selectedWorks.includes(w._id)) works.push({ sIdx, wId: w._id });
-                                          }));
-                                          for (const item of works) {
-                                            await fetch(`${API_URL}/extra-works/${flow._id}/${item.sIdx}/${item.wId}/update-status`, {
-                                              method: 'PUT',
-                                              headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-                                              body: JSON.stringify({ status: 'Start Work' })
-                                            });
-                                          }
-                                          setSelectedWorks([]);
-                                          await fetchFlows();
-                                        } finally {
-                                          setSubmitting(null);
-                                        }
-                                      }}
-                                      disabled={submitting === 'bulk-ped-start'}
-                                      className="px-6 py-2 bg-yellow-600 text-white font-bold rounded-xl hover:bg-yellow-700 transition flex items-center justify-center gap-2 shadow-sm disabled:opacity-50"
-                                    >
-                                      {submitting === 'bulk-ped-start' ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Play className="w-4 h-4" /> Start Work</>}
-                                    </button>
-                                  )}
-
-                                  {canPed && hasStartWork && (
-                                    <button
-                                      onClick={async () => {
-                                        setSubmitting('bulk-ped-progress');
-                                        try {
-                                          const works = [];
-                                          flow.stages.forEach((s, sIdx) => s.extraWorks?.forEach(w => {
-                                            if (w.status === 'Start Work' && selectedWorks.includes(w._id)) works.push({ sIdx, wId: w._id });
-                                          }));
-                                          for (const item of works) {
-                                            await fetch(`${API_URL}/extra-works/${flow._id}/${item.sIdx}/${item.wId}/update-status`, {
-                                              method: 'PUT',
-                                              headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-                                              body: JSON.stringify({ status: 'In Progress' })
-                                            });
-                                          }
-                                          setSelectedWorks([]);
-                                          await fetchFlows();
-                                        } finally {
-                                          setSubmitting(null);
-                                        }
-                                      }}
-                                      disabled={submitting === 'bulk-ped-progress'}
-                                      className="px-6 py-2 bg-orange-600 text-white font-bold rounded-xl hover:bg-orange-700 transition flex items-center justify-center gap-2 shadow-sm disabled:opacity-50"
-                                    >
-                                      {submitting === 'bulk-ped-progress' ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Clock className="w-4 h-4" /> Mark In Progress</>}
-                                    </button>
-                                  )}
-
-                                  {canPed && hasInProgress && (
-                                    <button
-                                      onClick={async () => {
-                                        setSubmitting('bulk-ped-completed');
-                                        try {
-                                          const works = [];
-                                          flow.stages.forEach((s, sIdx) => s.extraWorks?.forEach(w => {
-                                            if (w.status === 'In Progress' && selectedWorks.includes(w._id)) works.push({ sIdx, wId: w._id });
-                                          }));
-                                          for (const item of works) {
-                                            await fetch(`${API_URL}/extra-works/${flow._id}/${item.sIdx}/${item.wId}/update-status`, {
-                                              method: 'PUT',
-                                              headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-                                              body: JSON.stringify({ status: 'Completed' })
-                                            });
-                                          }
-                                          setSelectedWorks([]);
-                                          await fetchFlows();
-                                        } finally {
-                                          setSubmitting(null);
-                                        }
-                                      }}
-                                      disabled={submitting === 'bulk-ped-completed'}
-                                      className="px-6 py-2 bg-emerald-600 text-white font-bold rounded-xl hover:bg-emerald-700 transition flex items-center justify-center gap-2 shadow-sm disabled:opacity-50"
-                                    >
-                                      {submitting === 'bulk-ped-completed' ? <Loader2 className="w-4 h-4 animate-spin" /> : <><CheckCircle className="w-4 h-4" /> Mark Completed</>}
-                                    </button>
-                                  )}
-
-                                  {/* Accounts Actions */}
-                                  {canAccounts && hasSentToAccounts && (
-                                    <button
-                                      onClick={async () => {
-                                        setSubmitting('bulk-accounts');
-                                        try {
-                                          const works = [];
-                                          flow.stages.forEach((s, sIdx) => s.extraWorks?.forEach(w => {
-                                            if (w.status === 'Sent to Accounts' && selectedWorks.includes(w._id)) works.push({ sIdx, wId: w._id });
-                                          }));
-                                          for (const work of works) {
-                                            await fetch(`${API_URL}/extra-works/${flow._id}/${work.sIdx}/${work.wId}/add-to-crd`, {
-                                              method: 'PUT', headers: { Authorization: `Bearer ${token}` }
-                                            });
-                                          }
-                                          setSelectedWorks([]);
-                                          await fetchFlows();
-                                        } finally {
-                                          setSubmitting(null);
-                                        }
-                                      }}
-                                      disabled={submitting === 'bulk-accounts' || selectedWorks.length === 0}
-                                      className="px-6 py-2 bg-[#006838] text-white font-bold rounded-xl hover:bg-[#00512c] transition flex items-center gap-2 shadow-sm disabled:opacity-50"
-                                    >
-                                      {submitting === 'bulk-accounts' ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Plus className="w-4 h-4" /> Create Work Orders for Selected ({selectedWorks.length})</>}
-                                    </button>
-                                  )}
-                                </div>
-                              );
-                            })()}
-
-                          </div>
+                               </table>
+                             </div>
+                           </div>
                         </td>
                       </tr>
                     )}
@@ -1812,7 +1643,7 @@ const ExtraWorksInner = () => {
                 const steps = [
                   {
                     id: 1,
-                    title: 'CRD Initiation',
+                    title: 'Client Initiation for Extra Work',
                     description: 'Client raised extra work request',
                     activeStatuses: ['Pending'],
                     completedStatuses: ['Sent to PED', 'PED Approved', 'Returned to CRD', 'Sent to Customer', 'Client Approved', 'Sent to Accounts', 'Added to CRD', 'Execution Sent to PED', 'Start Work', 'In Progress', 'Completed']
@@ -1826,65 +1657,51 @@ const ExtraWorksInner = () => {
                   },
                   {
                     id: 3,
-                    title: 'Priced by PED',
-                    description: 'PED calculated and approved pricing',
-                    activeStatuses: ['PED Approved'],
-                    completedStatuses: ['Returned to CRD', 'Sent to Customer', 'Client Approved', 'Sent to Accounts', 'Added to CRD', 'Execution Sent to PED', 'Start Work', 'In Progress', 'Completed']
-                  },
-                  {
-                    id: 4,
-                    title: 'Returned to CRD',
-                    description: 'Estimate sent back to CRD for customer presentation',
-                    activeStatuses: ['Returned to CRD'],
+                    title: 'Priced by PED & Returned to CRD',
+                    description: 'PED calculated pricing & estimate sent back to CRD',
+                    activeStatuses: ['PED Approved', 'Returned to CRD'],
                     completedStatuses: ['Sent to Customer', 'Client Approved', 'Sent to Accounts', 'Added to CRD', 'Execution Sent to PED', 'Start Work', 'In Progress', 'Completed']
                   },
                   {
-                    id: 5,
-                    title: 'Sent to Customer',
+                    id: 4,
+                    title: 'Sent to Customer by CRD',
                     description: 'Quote shared with client for review and approval',
                     activeStatuses: ['Sent to Customer', 'Rejected', 'Removed by Client'],
                     completedStatuses: ['Client Approved', 'Sent to Accounts', 'Added to CRD', 'Execution Sent to PED', 'Start Work', 'In Progress', 'Completed']
                   },
                   {
-                    id: 6,
-                    title: 'Client Approved',
+                    id: 5,
+                    title: 'Client Approved and Sent to CRD',
                     description: 'Customer approved the pricing and scope',
                     activeStatuses: ['Client Approved'],
                     completedStatuses: ['Sent to Accounts', 'Added to CRD', 'Execution Sent to PED', 'Start Work', 'In Progress', 'Completed']
                   },
                   {
-                    id: 7,
+                    id: 6,
                     title: 'Sent to Accounts',
                     description: 'CRD sent client-approved work to Accounts',
                     activeStatuses: ['Sent to Accounts'],
                     completedStatuses: ['Added to CRD', 'Execution Sent to PED', 'Start Work', 'In Progress', 'Completed']
                   },
                   {
-                    id: 8,
+                    id: 7,
                     title: 'Work Order Created',
                     description: 'Accounts confirmed budget and generated Work Order',
                     activeStatuses: ['Added to CRD'],
                     completedStatuses: ['Execution Sent to PED', 'Start Work', 'In Progress', 'Completed']
                   },
                   {
-                    id: 9,
-                    title: 'Sent to PED Execution',
+                    id: 8,
+                    title: 'Sent to PED for Execution',
                     description: 'Work order released to PED site team for execution',
                     activeStatuses: ['Execution Sent to PED'],
                     completedStatuses: ['Start Work', 'In Progress', 'Completed']
                   },
                   {
-                    id: 10,
-                    title: 'Site Construction',
-                    description: 'Work in progress on layout site',
-                    activeStatuses: ['Start Work', 'In Progress'],
-                    completedStatuses: ['Completed']
-                  },
-                  {
-                    id: 11,
+                    id: 9,
                     title: 'Completion',
                     description: 'Extra work finished and handed over',
-                    activeStatuses: ['Completed'],
+                    activeStatuses: ['Start Work', 'In Progress', 'Completed'],
                     completedStatuses: []
                   }
                 ];
@@ -1925,31 +1742,25 @@ const ExtraWorksInner = () => {
                       dateVal = work.sentToPedDate || findHistoryDate(h => h.action === 'Sent to PED' && h.notes?.includes(wName));
                       break;
                     case 3:
-                      dateVal = work.pricingDate || findHistoryDate(h => h.action === 'PED Priced Extra Work' && h.notes?.includes(wName));
+                      dateVal = work.pricingDate || findHistoryDate(h => (h.action === 'PED Priced Extra Work' || h.action === 'Returned to CRD') && h.notes?.includes(wName));
                       break;
                     case 4:
-                      dateVal = findHistoryDate(h => h.action === 'Returned to CRD' && h.notes?.includes(wName));
-                      break;
-                    case 5:
                       dateVal = findHistoryDate(h => h.action === 'Sent Extra Work to Customer' && h.notes?.includes(wName));
                       break;
-                    case 6:
+                    case 5:
                       dateVal = work.customerApprovalDate || findHistoryDate(h => h.notes?.includes(wName) && h.notes?.toLowerCase().includes('approved'));
                       break;
-                    case 7:
+                    case 6:
                       dateVal = work.sentToAccountsDate || findHistoryDate(h => h.action === 'Sent to Accounts Team' && h.notes?.includes(wName));
                       break;
-                    case 8:
+                    case 7:
                       dateVal = work.crdAddedDate || findHistoryDate(h => h.action === 'Work Order Created' && h.notes?.includes(wName));
                       break;
-                    case 9:
+                    case 8:
                       dateVal = findHistoryDate(h => h.action === 'Sent to PED for Execution' && h.notes?.includes(wName));
                       break;
-                    case 10:
-                      dateVal = findHistoryDate(h => h.action?.startsWith('Status Updated to') && h.notes?.includes(wName) && (h.action.includes('Start Work') || h.action.includes('In Progress')));
-                      break;
-                    case 11:
-                      dateVal = findHistoryDate(h => h.action?.startsWith('Status Updated to Completed') && h.notes?.includes(wName));
+                    case 9:
+                      dateVal = work.completedDate || findHistoryDate(h => h.action?.startsWith('Status Updated to Completed') && h.notes?.includes(wName));
                       break;
                   }
 
@@ -1970,7 +1781,7 @@ const ExtraWorksInner = () => {
                         if (step.id === 1) {
                           dotColor = isNew ? 'bg-yellow-400 border-yellow-400' : 'bg-rose-900 border-rose-900';
                           textColor = isNew ? 'text-yellow-600' : 'text-rose-900';
-                        } else if (step.id === 11 && work.status === 'Completed') {
+                        } else if (step.id === 9 && work.status === 'Completed') {
                           dotColor = 'bg-[#0e623a] border-[#0e623a]';
                           textColor = 'text-[#0e623a]';
                         } else {
@@ -2365,7 +2176,7 @@ const ExtraWorksInner = () => {
               <div className="bg-white rounded-2xl shadow-sm border border-emerald-100 overflow-hidden">
                 <div className="p-4 bg-emerald-900 text-white font-bold text-sm flex justify-between items-center">
                   <span>Extra Work Items ({activeGroupModalData.items.length})</span>
-                  {(isAdmin || (canEditTab('crd') && !user?.role?.includes('PED') && !user?.role?.includes('Account'))) && (
+                  {(isAdmin || (canEditTab('crd') && !user?.role?.includes('PED') && !user?.role?.includes('Account'))) && !activeGroupModalData.sentToPedDate && !activeGroupModalData.items.some(w => w.sentToPedDate || w.status !== 'Pending') && (
                     <button
                       onClick={() => {
                         setAddingGroupWork(activeGroupModalData.ewId === addingGroupWork ? null : activeGroupModalData.ewId);
@@ -2380,24 +2191,9 @@ const ExtraWorksInner = () => {
                 </div>
 
                 <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs">
-                    <thead className="bg-emerald-50 text-emerald-900 font-bold uppercase tracking-wider border-b border-emerald-100">
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead className="bg-emerald-100/90 text-emerald-950 font-extrabold uppercase tracking-wider border-b border-emerald-200 text-[11px]">
                       <tr>
-                        <th className="p-3 w-10 text-center">
-                          <input
-                            type="checkbox"
-                            className="w-4 h-4 rounded border-gray-300 text-[#006838] focus:ring-[#006838]"
-                            checked={activeGroupModalData.items.length > 0 && activeGroupModalData.items.every(w => selectedWorks.includes(w._id))}
-                            onChange={(e) => {
-                              const itemIds = activeGroupModalData.items.map(w => w._id);
-                              if (e.target.checked) {
-                                setSelectedWorks(prev => [...new Set([...prev, ...itemIds])]);
-                              } else {
-                                setSelectedWorks(prev => prev.filter(id => !itemIds.includes(id)));
-                              }
-                            }}
-                          />
-                        </th>
                         <th className="p-3">S.No</th>
                         <th className="p-3">Work Name</th>
                         <th className="p-3 text-center">Qty / Unit</th>
@@ -2405,109 +2201,98 @@ const ExtraWorksInner = () => {
                         <th className="p-3 text-center">Pricing Date</th>
                         <th className="p-3 text-center">Approval Date</th>
                         <th className="p-3 text-center">Completed On</th>
-                        <th className="p-3 text-center">More</th>
+                        {(isAdmin || (canEditTab('crd') && !user?.role?.includes('PED') && !user?.role?.includes('Account'))) && activeGroupModalData.items.some(w => ['Pending', 'Sent to PED', 'PED Approved'].includes(w.status)) && (
+                          <th className="p-3 text-center">More</th>
+                        )}
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-100 bg-white">
-                      {activeGroupModalData.items.map((work, wIdx) => (
-                        <tr key={work._id} className="hover:bg-emerald-50/30 transition">
-                          <td className="p-3 text-center">
-                            <input
-                              type="checkbox"
-                              className="w-4 h-4 rounded border-gray-300 text-[#006838] focus:ring-[#006838]"
-                              checked={selectedWorks.includes(work._id)}
-                              onChange={(e) => {
-                                setSelectedWorks(prev => prev.includes(work._id) ? prev.filter(id => id !== work._id) : [...prev, work._id]);
-                              }}
-                            />
-                          </td>
-                          <td className="p-3 font-bold text-gray-500">1.{wIdx + 1}</td>
-                          <td className="p-3">
-                            <div className="font-bold text-gray-900">{work.name || '-'}</div>
-                            {work.category && <span className="text-[10px] text-gray-400 font-medium">{work.category}</span>}
-                            {work.clientNotes && (
-                              <div className="text-[10px] text-blue-600 bg-blue-50 p-1.5 rounded mt-1 border border-blue-100">
-                                <strong>Note:</strong> {work.clientNotes}
+                    <tbody className="divide-y divide-emerald-100/80">
+                      {activeGroupModalData.items.map((work, wIdx) => {
+                        const isCancelled = ['Removed by Client', 'Cancelled by Client', 'Cancelled by Superadmin', 'Cancelled', 'Rejected'].includes(work.status);
+                        const rowBgClass = isCancelled
+                          ? 'bg-red-100/80 border-l-4 border-l-red-500 hover:bg-red-200/60 transition-colors text-red-950 font-medium'
+                          : 'bg-emerald-100/80 hover:bg-emerald-200/70 transition-colors border-l-4 border-l-[#006838]';
+
+                        return (
+                          <tr key={work._id} className={rowBgClass}>
+                            <td className="p-3 font-bold text-gray-600">1.{wIdx + 1}</td>
+                            <td className="p-3">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <span className="font-bold text-gray-900">{work.name || '-'}</span>
+                                {isCancelled && (
+                                  <span className="px-2 py-0.5 bg-red-200 text-red-900 border border-red-300 rounded text-[10px] font-extrabold uppercase tracking-wider">
+                                    {work.status === 'Removed by Client' || work.status === 'Cancelled by Client' ? 'Cancelled by Client' : work.status}
+                                  </span>
+                                )}
                               </div>
-                            )}
-                          </td>
-                          <td className="p-3 text-center font-semibold text-gray-700 whitespace-nowrap">
-                            {work.quantity || 1} {work.unit || 'No'}
-                          </td>
-                          <td className="p-3 text-right font-bold text-[#006838]">
-                            {['Sent to PED', 'Pending'].includes(work.status) && (isAdmin || canEditTab('ped')) ? (
-                              <div className="flex flex-col items-end gap-1">
-                                <div className="flex items-center gap-1 justify-end">
-                                  <span className="text-[11px] text-gray-500 font-normal">Rs.</span>
-                                  <input
-                                    type="number"
-                                    value={rates[work._id] ?? work.rate ?? ''}
-                                    onChange={(e) => handleRateChange(work._id, e.target.value)}
-                                    className="w-24 px-2 py-1 bg-white border border-gray-300 rounded text-xs focus:outline-none focus:ring-1 focus:ring-[#006838] text-right font-bold"
-                                    placeholder="Rate"
-                                  />
+                              {work.category && <span className="text-[10px] text-gray-400 font-medium">{work.category}</span>}
+                              {work.clientNotes && (
+                                <div className="text-[10px] text-blue-600 bg-blue-50 p-1.5 rounded mt-1 border border-blue-100">
+                                  <strong>Note:</strong> {work.clientNotes}
                                 </div>
-                                {work.quantity > 1 && (
-                                  <span className="text-[9px] text-gray-400 font-medium">Total: Rs. {(work.amount || 0).toLocaleString()}</span>
-                                )}
-                              </div>
-                            ) : (
-                              `Rs. ${(work.amount || 0).toLocaleString()}`
-                            )}
-                          </td>
-                          <td className="p-3 text-center text-gray-500">
-                            {work.pricingDate ? new Date(work.pricingDate).toLocaleDateString('en-GB') : '-'}
-                          </td>
-                          <td className="p-3 text-center text-emerald-600 font-medium">
-                            {work.customerApprovalDate ? new Date(work.customerApprovalDate).toLocaleDateString('en-GB') : '-'}
-                          </td>
-                          <td className="p-3 text-center text-emerald-700 font-medium whitespace-nowrap">
-                            {work.completedDate ? new Date(work.completedDate).toLocaleDateString('en-GB') : (work.status === 'Completed' ? new Date().toLocaleDateString('en-GB') : '-')}
-                          </td>
-                          <td className="p-3 text-center">
-                            <div className="relative group inline-block">
-                              <button className="p-1 text-gray-400 hover:text-gray-600 rounded">
-                                <MoreVertical className="w-4 h-4" />
-                              </button>
-                              <div className="absolute right-0 top-full mt-1 w-48 bg-white border border-gray-200 rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-[100] py-2 text-left">
-                                <div className="px-3 py-2 border-b border-gray-100 flex items-center justify-between gap-2">
-                                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Status</span>
-                                  <div>{getStatusBadge(work.status)}</div>
+                              )}
+                            </td>
+                            <td className="p-3 text-center font-semibold text-gray-700 whitespace-nowrap">
+                              {work.quantity || 1} {work.unit || 'No'}
+                            </td>
+                            <td className="p-3 text-right font-bold text-[#006838]">
+                              {['Sent to PED', 'Pending'].includes(work.status) && (isAdmin || canEditTab('ped')) ? (
+                                <div className="flex flex-col items-end gap-1">
+                                  <div className="flex items-center gap-1 justify-end">
+                                    <span className="text-[11px] text-gray-500 font-normal">Rs.</span>
+                                    <input
+                                      type="number"
+                                      value={rates[work._id] ?? work.rate ?? ''}
+                                      onChange={(e) => handleRateChange(work._id, e.target.value)}
+                                      className="w-24 px-2 py-1 bg-white border border-gray-300 rounded text-xs focus:outline-none focus:ring-1 focus:ring-[#006838] text-right font-bold"
+                                      placeholder="Rate"
+                                    />
+                                  </div>
+                                  {work.quantity > 1 && (
+                                    <span className="text-[9px] text-gray-400 font-medium">Total: Rs. {(work.amount || 0).toLocaleString()}</span>
+                                  )}
                                 </div>
-                                {work.status === 'Added to CRD' && (isAdmin || canEditTab('crd')) && (
-                                  <button
-                                    onClick={async () => {
-                                      setSubmitting(work._id);
-                                      try {
-                                        await fetch(`${API_URL}/extra-works/${activeGroupModalData.flow._id}/${work.stageIdx}/${work._id}/send-to-ped-execution`, {
-                                          method: 'PUT', headers: { Authorization: `Bearer ${token}` }
-                                        });
-                                        await fetchFlows();
-                                      } catch (err) { alert(err.message); }
-                                      finally { setSubmitting(null); }
-                                    }}
-                                    className="w-full text-left px-4 py-2 text-xs font-bold text-emerald-700 hover:bg-emerald-50 transition cursor-pointer"
-                                  >
-                                    Send for Execution
-                                  </button>
+                              ) : (
+                                `Rs. ${(work.amount || 0).toLocaleString()}`
+                              )}
+                            </td>
+                            <td className="p-3 text-center text-gray-500">
+                              {work.pricingDate ? new Date(work.pricingDate).toLocaleDateString('en-GB') : '-'}
+                            </td>
+                            <td className="p-3 text-center text-emerald-600 font-medium">
+                              {work.customerApprovalDate ? new Date(work.customerApprovalDate).toLocaleDateString('en-GB') : '-'}
+                            </td>
+                            <td className="p-3 text-center text-emerald-700 font-medium whitespace-nowrap">
+                              {work.completedDate ? new Date(work.completedDate).toLocaleDateString('en-GB') : (work.status === 'Completed' ? new Date().toLocaleDateString('en-GB') : '-')}
+                            </td>
+                            {(isAdmin || (canEditTab('crd') && !user?.role?.includes('PED') && !user?.role?.includes('Account'))) && activeGroupModalData.items.some(w => ['Pending', 'Sent to PED', 'PED Approved'].includes(w.status)) && (
+                              <td className="p-3 text-center">
+                                {['Pending', 'Sent to PED', 'PED Approved'].includes(work.status) ? (
+                                  <div className="relative group inline-block">
+                                    <button className="p-1 text-gray-400 hover:text-gray-600 rounded">
+                                      <MoreVertical className="w-4 h-4" />
+                                    </button>
+                                    <div className="absolute right-0 top-full mt-1 w-36 bg-white border border-gray-200 rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-[100] py-2 text-left">
+                                      <button
+                                        onClick={() => {
+                                          if (window.confirm('Are you sure you want to cancel this extra work request?')) {
+                                            handleCancelExtraWork(activeGroupModalData.flow._id, work.stageIdx, work._id);
+                                          }
+                                        }}
+                                        className="w-full text-left px-4 py-2 text-xs font-bold text-red-600 hover:bg-red-50 transition cursor-pointer"
+                                      >
+                                        Cancel Request
+                                      </button>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  '-'
                                 )}
-                                {['Pending', 'Sent to PED', 'PED Approved'].includes(work.status) && (isAdmin || canEditTab('crd') || canEditTab('ped')) && (
-                                  <button
-                                    onClick={() => {
-                                      if (window.confirm('Are you sure you want to cancel this extra work request?')) {
-                                        handleCancelExtraWork(activeGroupModalData.flow._id, work.stageIdx, work._id);
-                                      }
-                                    }}
-                                    className="w-full text-left px-4 py-2 text-xs font-bold text-red-600 hover:bg-red-50 transition cursor-pointer"
-                                  >
-                                    Cancel Request
-                                  </button>
-                                )}
-                              </div>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
+                              </td>
+                            )}
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
@@ -2779,42 +2564,52 @@ const ExtraWorksInner = () => {
                   </button>
                 )}
 
-                {/* 4. Send to Accounts (For CRD Team when items are Client Approved) */}
-                {(isAdmin || (canEditTab('crd') && !user?.role?.includes('PED'))) && activeGroupModalData.items.some(w => w.status === 'Client Approved') && (
-                  <button
-                    onClick={async () => {
-                      setSubmitting('modal-send-accounts');
-                      try {
-                        const checkedInModal = activeGroupModalData.items.filter(w => selectedWorks.includes(w._id));
-                        const targetItems = checkedInModal.length > 0 ? checkedInModal : activeGroupModalData.items;
-                        const approvedItems = targetItems.filter(w => w.status === 'Client Approved');
+                {/* 4. Send to Accounts (For CRD Team ONLY when ALL active non-cancelled items are Client Approved) */}
+                {(() => {
+                  const canCrd = isAdmin || (canEditTab('crd') && !user?.role?.includes('PED'));
+                  const activeItems = activeGroupModalData.items.filter(w => !['Removed by Client', 'Cancelled by Client', 'Cancelled by Superadmin', 'Cancelled', 'Rejected'].includes(w.status));
+                  const allActiveAgreed = activeItems.length > 0 && activeItems.every(w => ['Client Approved', 'Sent to Accounts', 'Added to CRD', 'Execution Sent to PED', 'Start Work', 'In Progress', 'Completed'].includes(w.status));
+                  const hasUnsentApproved = activeGroupModalData.items.some(w => w.status === 'Client Approved');
 
-                        for (const work of approvedItems) {
-                          const res = await fetch(`${API_URL}/extra-works/${activeGroupModalData.flow._id}/${work.stageIdx}/${work._id}/send-to-accounts`, {
-                            method: 'PUT', headers: { Authorization: `Bearer ${token}` }
-                          });
-                          if (!res.ok) {
-                            const errData = await res.json().catch(() => ({}));
-                            throw new Error(errData.message || 'Failed to send to accounts');
+                  if (canCrd && allActiveAgreed && hasUnsentApproved) {
+                    return (
+                      <button
+                        onClick={async () => {
+                          setSubmitting('modal-send-accounts');
+                          try {
+                            const checkedInModal = activeGroupModalData.items.filter(w => selectedWorks.includes(w._id));
+                            const targetItems = checkedInModal.length > 0 ? checkedInModal : activeGroupModalData.items;
+                            const approvedItems = targetItems.filter(w => w.status === 'Client Approved');
+
+                            for (const work of approvedItems) {
+                              const res = await fetch(`${API_URL}/extra-works/${activeGroupModalData.flow._id}/${work.stageIdx}/${work._id}/send-to-accounts`, {
+                                method: 'PUT', headers: { Authorization: `Bearer ${token}` }
+                              });
+                              if (!res.ok) {
+                                const errData = await res.json().catch(() => ({}));
+                                throw new Error(errData.message || 'Failed to send to accounts');
+                              }
+                            }
+                            setSelectedWorks([]);
+                            await fetchFlows();
+                          } catch (err) {
+                            alert(err.message);
+                          } finally {
+                            setSubmitting(null);
                           }
-                        }
-                        setSelectedWorks([]);
-                        await fetchFlows();
-                      } catch (err) {
-                        alert(err.message);
-                      } finally {
-                        setSubmitting(null);
-                      }
-                    }}
-                    disabled={submitting === 'modal-send-accounts'}
-                    className="px-5 py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl transition flex items-center gap-2 text-xs shadow-md shadow-purple-600/20 disabled:opacity-50 cursor-pointer"
-                  >
-                    {submitting === 'modal-send-accounts' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Building className="w-4 h-4" />}
-                    Send to Accounts
-                  </button>
-                )}
+                        }}
+                        disabled={submitting === 'modal-send-accounts'}
+                        className="px-5 py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl transition flex items-center gap-2 text-xs shadow-md shadow-purple-600/20 disabled:opacity-50 cursor-pointer"
+                      >
+                        {submitting === 'modal-send-accounts' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Building className="w-4 h-4" />}
+                        Send to Accounts
+                      </button>
+                    );
+                  }
+                  return null;
+                })()}
 
-                {/* 5. Create Work Order & Send to CRD (For Accounts Team when items are Sent to Accounts or Client Approved) */}
+                {/* 5. Create Work Order & Send to PED for Execution (For Accounts Team when items are Sent to Accounts or Client Approved) */}
                 {(isAdmin || canEditTab('accounts') || user?.role?.toLowerCase().includes('account') || user?.department?.toLowerCase().includes('account')) && activeGroupModalData.items.some(w => ['Sent to Accounts', 'Client Approved'].includes(w.status)) && (
                   <button
                     onClick={async () => {
@@ -2831,6 +2626,9 @@ const ExtraWorksInner = () => {
 
                         for (const work of accountItems) {
                           await handleAddToCRD(activeGroupModalData.flow._id, work.stageIdx, work._id);
+                          await fetch(`${API_URL}/extra-works/${activeGroupModalData.flow._id}/${work.stageIdx}/${work._id}/send-to-ped-execution`, {
+                            method: 'PUT', headers: { Authorization: `Bearer ${token}` }
+                          });
                         }
                         setSelectedWorks([]);
                         await fetchFlows();
@@ -2844,53 +2642,19 @@ const ExtraWorksInner = () => {
                     className="px-5 py-2.5 bg-[#006838] hover:bg-[#00512c] text-white font-bold rounded-xl transition flex items-center gap-2 text-xs shadow-md shadow-emerald-600/20 disabled:opacity-50 cursor-pointer"
                   >
                     {submitting === 'modal-create-wo' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
-                    Create Work Order & Send to CRD
+                    Create Work Order & Send to PED for Execution
                   </button>
                 )}
 
-                {/* 6. Send to PED Execution (For CRD Team when Work Order has been created) */}
-                {(isAdmin || (canEditTab('crd') && !user?.role?.includes('PED'))) && activeGroupModalData.items.some(w => w.status === 'Added to CRD') && (
-                  <button
-                    onClick={async () => {
-                      setSubmitting('modal-send-execution');
-                      try {
-                        const checkedInModal = activeGroupModalData.items.filter(w => selectedWorks.includes(w._id));
-                        const targetItems = checkedInModal.length > 0 ? checkedInModal : activeGroupModalData.items;
-                        const woItems = targetItems.filter(w => w.status === 'Added to CRD');
-
-                        for (const work of woItems) {
-                          const res = await fetch(`${API_URL}/extra-works/${activeGroupModalData.flow._id}/${work.stageIdx}/${work._id}/send-to-ped-execution`, {
-                            method: 'PUT', headers: { Authorization: `Bearer ${token}` }
-                          });
-                          if (!res.ok) {
-                            const errData = await res.json().catch(() => ({}));
-                            throw new Error(errData.message || 'Failed to send to PED execution');
-                          }
-                        }
-                        setSelectedWorks([]);
-                        await fetchFlows();
-                      } catch (err) {
-                        alert(err.message);
-                      } finally {
-                        setSubmitting(null);
-                      }
-                    }}
-                    disabled={submitting === 'modal-send-execution'}
-                    className="px-5 py-2.5 bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-xl transition flex items-center gap-2 text-xs shadow-md shadow-teal-600/20 disabled:opacity-50 cursor-pointer"
-                  >
-                    {submitting === 'modal-send-execution' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                    Send to PED Execution
-                  </button>
-                )}
-                {/* 7. Start Work (For PED Team when Execution is Sent to PED) */}
-                {(isAdmin || canEditTab('ped') || user?.role?.toLowerCase().includes('ped') || user?.department?.toLowerCase().includes('ped')) && activeGroupModalData.items.some(w => w.status === 'Execution Sent to PED') && (
+                {/* 6. Start Work (For PED Team when Execution is Sent to PED or Work Order Created) */}
+                {(isAdmin || canEditTab('ped') || user?.role?.toLowerCase().includes('ped') || user?.department?.toLowerCase().includes('ped')) && activeGroupModalData.items.some(w => ['Execution Sent to PED', 'Added to CRD'].includes(w.status)) && (
                   <button
                     onClick={async () => {
                       setSubmitting('modal-start-work');
                       try {
                         const checkedInModal = activeGroupModalData.items.filter(w => selectedWorks.includes(w._id));
                         const targetItems = checkedInModal.length > 0 ? checkedInModal : activeGroupModalData.items;
-                        const itemsToStart = targetItems.filter(w => w.status === 'Execution Sent to PED');
+                        const itemsToStart = targetItems.filter(w => ['Execution Sent to PED', 'Added to CRD'].includes(w.status));
 
                         for (const work of itemsToStart) {
                           const res = await fetch(`${API_URL}/extra-works/${activeGroupModalData.flow._id}/${work.stageIdx}/${work._id}/update-status`, {
@@ -2919,52 +2683,15 @@ const ExtraWorksInner = () => {
                   </button>
                 )}
 
-                {/* 8. Mark In Progress (For PED Team when Work has Started) */}
-                {(isAdmin || canEditTab('ped') || user?.role?.toLowerCase().includes('ped') || user?.department?.toLowerCase().includes('ped')) && activeGroupModalData.items.some(w => w.status === 'Start Work') && (
-                  <button
-                    onClick={async () => {
-                      setSubmitting('modal-in-progress');
-                      try {
-                        const checkedInModal = activeGroupModalData.items.filter(w => selectedWorks.includes(w._id));
-                        const targetItems = checkedInModal.length > 0 ? checkedInModal : activeGroupModalData.items;
-                        const itemsInProgress = targetItems.filter(w => w.status === 'Start Work');
-
-                        for (const work of itemsInProgress) {
-                          const res = await fetch(`${API_URL}/extra-works/${activeGroupModalData.flow._id}/${work.stageIdx}/${work._id}/update-status`, {
-                            method: 'PUT',
-                            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-                            body: JSON.stringify({ status: 'In Progress' })
-                          });
-                          if (!res.ok) {
-                            const errData = await res.json().catch(() => ({}));
-                            throw new Error(errData.message || 'Failed to mark in progress');
-                          }
-                        }
-                        setSelectedWorks([]);
-                        await fetchFlows();
-                      } catch (err) {
-                        alert(err.message);
-                      } finally {
-                        setSubmitting(null);
-                      }
-                    }}
-                    disabled={submitting === 'modal-in-progress'}
-                    className="px-5 py-2.5 bg-orange-600 hover:bg-orange-700 text-white font-bold rounded-xl transition flex items-center gap-2 text-xs shadow-md disabled:opacity-50 cursor-pointer"
-                  >
-                    {submitting === 'modal-in-progress' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Clock className="w-4 h-4" />}
-                    Mark In Progress
-                  </button>
-                )}
-
-                {/* 9. Mark Completed (For PED Team when Work is In Progress) */}
-                {(isAdmin || canEditTab('ped') || user?.role?.toLowerCase().includes('ped') || user?.department?.toLowerCase().includes('ped')) && activeGroupModalData.items.some(w => w.status === 'In Progress') && (
+                {/* 7. Mark Completed (For PED Team when Work is Started or In Progress) */}
+                {(isAdmin || canEditTab('ped') || user?.role?.toLowerCase().includes('ped') || user?.department?.toLowerCase().includes('ped')) && activeGroupModalData.items.some(w => ['Start Work', 'In Progress'].includes(w.status)) && (
                   <button
                     onClick={async () => {
                       setSubmitting('modal-completed');
                       try {
                         const checkedInModal = activeGroupModalData.items.filter(w => selectedWorks.includes(w._id));
                         const targetItems = checkedInModal.length > 0 ? checkedInModal : activeGroupModalData.items;
-                        const itemsCompleted = targetItems.filter(w => w.status === 'In Progress');
+                        const itemsCompleted = targetItems.filter(w => ['Start Work', 'In Progress'].includes(w.status));
 
                         for (const work of itemsCompleted) {
                           const res = await fetch(`${API_URL}/extra-works/${activeGroupModalData.flow._id}/${work.stageIdx}/${work._id}/update-status`, {
@@ -2999,6 +2726,50 @@ const ExtraWorksInner = () => {
                 className="px-6 py-2.5 bg-gray-100 text-gray-700 font-bold rounded-xl hover:bg-gray-200 transition text-xs cursor-pointer"
               >
                 Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ROLE-BASED NOTIFICATION POPUP (CENTERED MODAL - NO DISMISS / NO X) */}
+      {roleNotification && (
+        <div className="fixed inset-0 z-[9999] bg-black/65 backdrop-blur-md flex items-center justify-center p-4 animate-fade-in">
+          <div className={`bg-white border-2 ${roleNotification.borderColor} rounded-3xl shadow-2xl max-w-lg w-full p-6 animate-scale-up relative`}>
+            <div className="flex items-start gap-4">
+              <div className={`p-3 ${roleNotification.iconColor} rounded-2xl shrink-0`}>
+                <Bell className="w-8 h-8 animate-pulse" />
+              </div>
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className={`px-2.5 py-1 text-xs font-extrabold uppercase tracking-wider rounded-lg border shadow-sm ${roleNotification.badgeColor}`}>
+                    {roleNotification.badgeText}
+                  </span>
+                  <span className="text-xs text-gray-400 font-bold">{new Date(roleNotification.work.addedAt || Date.now()).toLocaleDateString('en-GB')}</span>
+                </div>
+                <h3 className="text-base font-bold text-gray-900 leading-snug">
+                  {roleNotification.message}
+                </h3>
+                <p className="text-xs text-gray-600 mt-2 bg-gray-50 p-2.5 rounded-xl border border-gray-100">
+                  Work: <strong>{roleNotification.work.name}</strong> ({roleNotification.flow.projectName} {roleNotification.flow.unitId ? `- Unit ${roleNotification.flow.unitId}` : ''})
+                </p>
+              </div>
+            </div>
+            <div className="mt-6 flex items-center justify-end pt-4 border-t border-gray-100">
+              <button
+                onClick={() => {
+                  setExpandedFlow(roleNotification.flow._id);
+                  setExpandedReqIds(prev => ({ ...prev, [roleNotification.ewId]: true }));
+                  setSelectedReqGroupModal({
+                    flowId: roleNotification.flow._id,
+                    ewId: roleNotification.ewId
+                  });
+                  setDismissedNotifs(prev => [...prev, roleNotification.work._id]);
+                  setRoleNotification(null);
+                }}
+                className={`w-full py-3.5 bg-gradient-to-r ${roleNotification.btnColor} text-white text-sm font-black rounded-xl shadow-lg transition flex items-center justify-center gap-2 cursor-pointer`}
+              >
+                <Play className="w-4 h-4 fill-current" /> Take Action
               </button>
             </div>
           </div>

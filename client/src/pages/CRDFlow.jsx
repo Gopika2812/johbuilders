@@ -979,10 +979,26 @@ const CRDFlow = () => {
                     : 0;
                   const pending = value !== null ? Math.max(0, value - received) : null;
                   
+                  const hasNewExtraWork = flow?.stages?.some(stage =>
+                    stage.extraWorks?.some(work =>
+                      work && !work.sentToPedDate && work.status === 'Pending'
+                    )
+                  );
+                  const hasNewComplaint = flow?.complaints?.some(comp =>
+                    comp && comp.status === 'Pending'
+                  );
+                  const isFlowNew = hasNewExtraWork || hasNewComplaint;
+                  
                   return (
                     <React.Fragment key={lead._id}>
                       <tr 
-                        className={`transition cursor-pointer ${isSelected ? 'bg-emerald-50/30' : 'hover:bg-black-50/50'}`}
+                        className={`transition cursor-pointer ${
+                          isSelected 
+                            ? 'bg-emerald-50/30' 
+                            : isFlowNew 
+                              ? 'bg-yellow-50 hover:bg-yellow-100/50' 
+                              : 'hover:bg-black-50/50'
+                        }`}
                         onClick={() => {
                           if (isSelected) {
                             setSelectedBookingId(null);
