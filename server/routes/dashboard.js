@@ -281,12 +281,6 @@ router.get('/stats', protect, async (req, res) => {
           }
           projectStats[pCode].count += 1;
           projectStats[pCode].stages[displayStatus] = (projectStats[pCode].stages[displayStatus] || 0) + 1;
-          if (isLeadHandover) {
-            projectStats[pCode].stages['Site Conversion'] = (projectStats[pCode].stages['Site Conversion'] || 0) + 1;
-          }
-          if (isSiteConversion) {
-            projectStats[pCode].stages['Site Conversion'] = Math.max(projectStats[pCode].stages['Site Conversion'] || 0, (projectStats[pCode].stages['Site Conversion'] || 0) + 1);
-          }
         }
       }
 
@@ -435,14 +429,32 @@ router.get('/stats', protect, async (req, res) => {
 
     // Calculate Projects & Units Inventory Stats
     const leadsWithSelectedUnits = await Lead.find({ 'bookingInfo.selectedUnits': { $exists: true, $ne: [] } });
+    const crdFlowsWithUnits = await CRDFlow.find({ unitId: { $exists: true, $ne: '' } });
     const bookingDatesMap = new Map();
+
     leadsWithSelectedUnits.forEach(lead => {
-      const projId = lead.project?.toString();
-      if (projId && lead.bookingInfo?.selectedUnits) {
+      const projId = (lead.project?._id || lead.project)?.toString();
+      const projCode = lead.project?.code;
+      if (lead.bookingInfo?.selectedUnits) {
         lead.bookingInfo.selectedUnits.forEach(unitId => {
           const date = lead.bookingInfo.bookingDate || lead.createdAt || new Date();
-          bookingDatesMap.set(`${projId}_${unitId}`, date);
+          if (projId) bookingDatesMap.set(`${projId}_${unitId}`, date);
+          if (projCode) bookingDatesMap.set(`${projCode}_${unitId}`, date);
+          bookingDatesMap.set(`${unitId}`, date);
         });
+      }
+    });
+
+    crdFlowsWithUnits.forEach(cf => {
+      const projId = (cf.project?._id || cf.project)?.toString();
+      const date = cf.createdAt || cf.updatedAt || new Date();
+      if (cf.unitId) {
+        if (projId && !bookingDatesMap.has(`${projId}_${cf.unitId}`)) {
+          bookingDatesMap.set(`${projId}_${cf.unitId}`, date);
+        }
+        if (!bookingDatesMap.has(`${cf.unitId}`)) {
+          bookingDatesMap.set(`${cf.unitId}`, date);
+        }
       }
     });
 
@@ -502,11 +514,19 @@ router.get('/stats', protect, async (req, res) => {
         projectUnitsStats[pCode].total += 1;
         projectUnitsStats[pCode].totalUnitsList.push(u.unitId);
 
+        const bookingDate = bookingDatesMap.get(`${p._id.toString()}_${u.unitId}`) ||
+                            bookingDatesMap.get(`${pCode}_${u.unitId}`) ||
+                            bookingDatesMap.get(`${u.unitId}`) ||
+                            u.bookingDate ||
+                            u.updatedAt ||
+                            u.createdAt ||
+                            p.updatedAt ||
+                            p.createdAt;
+
         if (u.status === 'New') {
           projectUnitsStats[pCode].available += 1;
           projectUnitsStats[pCode].availableUnitsList.push(u.unitId);
         } else if (u.status === 'Booked') {
-          const bookingDate = bookingDatesMap.get(`${p._id.toString()}_${u.unitId}`);
           let dateMatches = true;
           if (fromDate || toDate) {
             if (!bookingDate || !inRange(bookingDate)) {
@@ -562,7 +582,6 @@ router.get('/stats', protect, async (req, res) => {
           availableByType[type] = (availableByType[type] || 0) + 1;
           availableValueByType[type] = (availableValueByType[type] || 0) + val;
         } else if (u.status === 'Booked') {
-          const bookingDate = bookingDatesMap.get(`${p._id.toString()}_${u.unitId}`);
           let dateMatches = true;
           if (fromDate || toDate) {
             if (!bookingDate || !inRange(bookingDate)) {
@@ -581,7 +600,8 @@ router.get('/stats', protect, async (req, res) => {
               size: u.size,
               price: val,
               customerName: u.customerName || 'N/A',
-              customerPhone: u.customerPhone || 'N/A'
+              customerPhone: u.customerPhone || 'N/A',
+              bookingDate: bookingDate || p.updatedAt || p.createdAt
             });
           }
         } else if (u.status === 'Sold Out') {
@@ -596,7 +616,8 @@ router.get('/stats', protect, async (req, res) => {
             size: u.size,
             price: val,
             customerName: u.customerName || 'N/A',
-            customerPhone: u.customerPhone || 'N/A'
+            customerPhone: u.customerPhone || 'N/A',
+            bookingDate: bookingDate || p.updatedAt || p.createdAt
           });
         } else {
           availableUnits += 1;
