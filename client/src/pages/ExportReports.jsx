@@ -1090,7 +1090,7 @@ const ExportReports = () => {
             <!-- Table Headers -->
             <tr class="table-headers">
               <th>S.NO.</th>
-              <th>BOOKING DATE</th>
+              <th>BOOKED DATE</th>
               <th>CUSTOMER NAME</th>
               <th>CONTACT NO.</th>
               <th>Attended by</th>

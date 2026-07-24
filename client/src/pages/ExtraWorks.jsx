@@ -649,6 +649,15 @@ const ExtraWorksInner = () => {
     return new Date(b.createdAt) - new Date(a.createdAt);
   });
 
+  const getBookedDate = (flow) => {
+    const lead = flow?.lead;
+    const bDate = lead?.bookingInfo?.bookingDate || lead?.history?.find(h => h.status === 'Booking')?.timestamp || lead?.createdAt || flow?.createdAt;
+    if (!bDate) return '—';
+    const d = new Date(bDate);
+    if (isNaN(d.getTime())) return '—';
+    return d.toLocaleDateString('en-GB');
+  };
+
   const exportToExcel = async () => {
     try {
       setExporting(true);
@@ -699,7 +708,7 @@ const ExtraWorksInner = () => {
       sheet.addRow([]);
 
       // Headers
-      const headers = ['Date', 'Customer Name', 'Status', 'Phone', 'CRD Person', 'Project', 'Units', 'Quotation Value', 'Extra Works', 'Final Value'];
+      const headers = ['Booked Date', 'Customer Name', 'Status', 'Phone', 'CRD Person', 'Project', 'Units', 'Quotation Value', 'Extra Works', 'Final Value'];
       const headerRow = sheet.addRow(headers);
       headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 11 };
       headerRow.eachCell(cell => {
@@ -715,7 +724,7 @@ const ExtraWorksInner = () => {
 
       // Columns width
       sheet.columns = [
-        { width: 15 }, // Date
+        { width: 15 }, // Booked Date
         { width: 25 }, // Customer
         { width: 12 }, // Status
         { width: 20 }, // Phone
@@ -736,7 +745,7 @@ const ExtraWorksInner = () => {
           )
         );
         const row = sheet.addRow([
-          new Date(flow.createdAt).toLocaleDateString(),
+          getBookedDate(flow),
           flow.lead?.name || '',
           isFlowNew ? 'New' : 'Old',
           (flow.lead?.phone || '').toString(),
@@ -932,7 +941,7 @@ const ExtraWorksInner = () => {
                   <table className="w-full text-sm text-left">
                     <thead className="bg-emerald-50 text-emerald-900 sticky top-0 shadow-sm border-b border-emerald-100">
                       <tr>
-                        <th className="px-4 py-3 font-bold text-xs uppercase tracking-wider">Date</th>
+                        <th className="px-4 py-3 font-bold text-xs uppercase tracking-wider">Booked Date</th>
                         <th className="px-4 py-3 font-bold text-xs uppercase tracking-wider">Customer Name</th>
                         <th className="px-4 py-3 font-bold text-xs uppercase tracking-wider">Phone</th>
                         <th className="px-4 py-3 font-bold text-xs uppercase tracking-wider">CRD Person</th>
@@ -946,7 +955,7 @@ const ExtraWorksInner = () => {
                     <tbody className="divide-y divide-emerald-50">
                       {filteredFlows.map(flow => (
                         <tr key={flow._id} className="hover:bg-emerald-50/50">
-                          <td className="px-4 py-3 text-gray-600">{new Date(flow.createdAt).toLocaleDateString()}</td>
+                          <td className="px-4 py-3 text-gray-600">{getBookedDate(flow)}</td>
                           <td className="px-4 py-3 font-bold text-gray-900">{flow.lead?.name}</td>
                           <td className="px-4 py-3 text-gray-600">{flow.lead?.phone}</td>
                           <td className="px-4 py-3 font-medium text-emerald-700">{flow.crdPersonName || 'Unassigned'}</td>
@@ -989,7 +998,7 @@ const ExtraWorksInner = () => {
             <thead className="bg-[#006838] text-white">
               <tr>
                 <th className="px-6 py-4 font-bold text-xs uppercase tracking-wider">S.No</th>
-                <th className="px-6 py-4 font-bold text-xs uppercase tracking-wider">Date</th>
+                <th className="px-6 py-4 font-bold text-xs uppercase tracking-wider">Booked Date</th>
                 <th className="px-6 py-4 font-bold text-xs uppercase tracking-wider">Customer Name</th>
                 <th className="px-6 py-4 font-bold text-xs uppercase tracking-wider text-center">Status</th>
                 <th className="px-6 py-4 font-bold text-xs uppercase tracking-wider">Phone</th>
@@ -1027,7 +1036,7 @@ const ExtraWorksInner = () => {
                       onClick={() => setExpandedFlow(isExpanded ? null : flow._id)}
                     >
                       <td className="px-6 py-4 font-bold text-gray-900">{idx + 1}</td>
-                      <td className="px-6 py-4 text-gray-600">{new Date(flow.createdAt).toLocaleDateString()}</td>
+                      <td className="px-6 py-4 text-gray-600">{getBookedDate(flow)}</td>
                       <td className="px-6 py-4 font-bold text-emerald-900">
                         <div className="flex items-center justify-between gap-3">
                           <span>{flow.lead?.name}</span>

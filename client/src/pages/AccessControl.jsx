@@ -61,7 +61,7 @@ const PAGE_COLUMNS = {
   ],
   crdFlow: [
     { key: 'sno', label: 'S.No' },
-    { key: 'bookingDate', label: 'Booking Date' },
+    { key: 'bookingDate', label: 'Booked Date' },
     { key: 'customerName', label: 'Customer Name' },
     { key: 'phoneNumber', label: 'Phone Number' },
     { key: 'project', label: 'Project' },

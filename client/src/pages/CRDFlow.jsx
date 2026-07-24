@@ -938,7 +938,7 @@ const CRDFlow = () => {
             <thead className="bg-black-50 text-black-500 font-bold uppercase tracking-wider border-b">
               <tr>
                 {hasColumnPermission('crdFlow', 'sno') && <th className="p-4">S.No</th>}
-                {hasColumnPermission('crdFlow', 'bookingDate') && <th className="p-4">Booking Date</th>}
+                {hasColumnPermission('crdFlow', 'bookingDate') && <th className="p-4">Booked Date</th>}
                 {hasColumnPermission('crdFlow', 'customerName') && <th className="p-4">Customer Name</th>}
                 {hasColumnPermission('crdFlow', 'phoneNumber') && <th className="p-4">Phone Number</th>}
                 {hasColumnPermission('crdFlow', 'project') && <th className="p-4">Project</th>}
@@ -1303,7 +1303,6 @@ const CRDFlow = () => {
                             <th className="p-4 w-12">#</th>
                             <th className="p-4">Milestone Stage</th>
                             <th className="p-4 text-right">Stage Value</th>
-                            <th className="p-4 text-center">Status</th>
                             <th className="p-4 text-right">Received</th>
                             <th className="p-4 text-right">Pending</th>
                             <th className="p-4 text-center">Payment Action</th>
@@ -1338,16 +1337,6 @@ const CRDFlow = () => {
                                     {stage.extraWorks && stage.extraWorks.length > 0 && (
                                       <div className="text-[10px] text-blue-600 mt-0.5">+ Extra Works</div>
                                     )}
-                                  </td>
-                                  <td className="p-4 text-center">
-                                    {stagePaid > 0 && (
-                                      <span className={`px-2 py-1 rounded text-[11px] font-bold uppercase ${isPaidInFull ? 'bg-emerald-100 text-emerald-800' : 'bg-blue-100 text-blue-800'}`}>
-                                        {isPaidInFull ? 'Paid' : 'Partial'}
-                                      </span>
-                                    )}
-                                    <span className={`block ${stagePaid > 0 ? 'mt-1.5' : ''} px-2 py-1 rounded text-[11px] font-bold uppercase ${stage.isCompleted ? 'bg-emerald-100 text-[#0e623a]' : 'bg-amber-100 text-amber-800'}`}>
-                                      {stage.isCompleted ? 'Completed' : 'In Progress'}
-                                    </span>
                                   </td>
                                   <td className="p-4 text-right font-bold text-emerald-600">
                                     Rs. {stagePaid.toLocaleString()}

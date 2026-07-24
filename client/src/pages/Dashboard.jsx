@@ -3034,7 +3034,7 @@ const Dashboard = () => {
                   <table className="w-full text-left border-collapse">
                     <thead>
                       <tr className="border-b border-black-100 text-[11px] font-bold text-black-400 uppercase tracking-wider">
-                        <th className="pb-3 pl-2">Booking Date</th>
+                        <th className="pb-3 pl-2">Booked Date</th>
                         <th className="pb-3">Customer Details</th>
                         <th className="pb-3">Project / Unit</th>
                         <th className="pb-3">Unit Specifications</th>
