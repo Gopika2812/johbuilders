@@ -1026,14 +1026,13 @@ const ExtraWorksInner = () => {
                 return (
                   <React.Fragment key={flow._id}>
                     <tr
-                      className={`transition-colors cursor-pointer ${
+                      className={`transition-colors ${
                         isExpanded 
                           ? 'bg-emerald-50/20' 
                           : isFlowNew 
                             ? 'bg-yellow-50/60 hover:bg-yellow-100/80' 
                             : 'hover:bg-emerald-50/50'
                       }`}
-                      onClick={() => setExpandedFlow(isExpanded ? null : flow._id)}
                     >
                       <td className="px-6 py-4 font-bold text-gray-900">{idx + 1}</td>
                       <td className="px-6 py-4 text-gray-600">{getBookedDate(flow)}</td>
@@ -1070,8 +1069,7 @@ const ExtraWorksInner = () => {
                       <tr>
                         <td colSpan="11" className="p-0 border-b border-emerald-100 bg-emerald-50/20 shadow-inner">
                           <div className="p-6">
-                            <div className="flex justify-between items-center mb-4">
-                              <h3 className="font-bold text-gray-800 text-lg">Extra Works Timeline</h3>
+                            <div className="flex justify-end items-center mb-4">
                               {(isAdmin || (canEditTab('crd') && !user?.role?.includes('PED') && !user?.role?.includes('Account'))) && (
                                 <button
                                   onClick={() => {
@@ -1214,7 +1212,7 @@ const ExtraWorksInner = () => {
 
                             <div className="bg-white rounded-2xl shadow-sm border border-emerald-100 overflow-hidden">
                               <table className="w-full text-left">
-                                <thead className="bg-[#006838] text-white">
+                                <thead className="bg-emerald-100 text-emerald-950 font-bold border-b border-emerald-200">
                                   <tr>
                                     <th className="p-4 w-12 text-center">
                                       {(() => {
