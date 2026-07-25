@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth, API_URL } from '../context/AuthContext';
+import { LOGO_BASE64 } from '../utils/logoBase64';
 import { useNavigate } from 'react-router-dom';
 import {
   TrendingUp,
@@ -781,9 +782,9 @@ const Dashboard = () => {
       </head>
       <body>
         <table>
-          <tr style="height: 120px;">
-            <td colspan="3" style="background-color: #0e623a; border: none; text-align: center; vertical-align: middle; height: 120px;">
-              <img src="${logoPath}" height="95" style="height: 95px; width: auto; display: block; margin: 0 auto;" />
+          <tr style="height: 60px;">
+            <td colspan="3" bgcolor="#0B4D2D" style="background-color: #0B4D2D; color: #FFFFFF; font-family: 'Segoe UI', Arial, sans-serif; font-size: 14pt; font-weight: bold; text-align: center; vertical-align: middle; height: 60px; border: 1px solid #000000;">
+              JOHN BUILDWELL
             </td>
             <td colspan="5" class="title-row" style="border:none; vertical-align:middle; text-align:center; font-size: 14pt; font-weight: bold; color: #0e623a; height: 120px;">
               JohnBuildwell ERP - USER PERFORMANCE DETAILS
@@ -889,9 +890,9 @@ const Dashboard = () => {
       </head>
       <body>
         <table>
-          <tr style="height: 120px;">
-            <td colspan="3" style="background-color: #0e623a; border: none; text-align: center; vertical-align: middle; height: 120px;">
-              <img src="${logoPath}" height="95" style="height: 95px; width: auto; display: block; margin: 0 auto;" />
+          <tr style="height: 60px;">
+            <td colspan="3" bgcolor="#0B4D2D" style="background-color: #0B4D2D; color: #FFFFFF; font-family: 'Segoe UI', Arial, sans-serif; font-size: 14pt; font-weight: bold; text-align: center; vertical-align: middle; height: 60px; border: 1px solid #000000;">
+              JOHN BUILDWELL
             </td>
             <td colspan="6" class="title-row" style="border:none; vertical-align:middle; text-align:center; font-size: 14pt; font-weight: bold; color: #0e623a; height: 120px;">
               JohnBuildwell ERP - MARKETING SOURCE PERFORMANCE DETAILS
@@ -1087,7 +1088,7 @@ const Dashboard = () => {
     setToDate(lastDay);
   };
 
-  const logoPath = window.location.origin + "/jb_logo.jpg";
+  const logoPath = LOGO_BASE64;
 
   const handleExportExcel = async () => {
     const inventory = stats.cards.inventory || {};
@@ -1114,9 +1115,11 @@ const Dashboard = () => {
       </head>
       <body>
         <table>
-          <tr style="height: 120px;">
-            <td colspan="3" style="background-color: #0e623a; border: none; text-align: center; vertical-align: middle; height: 120px;">
-              <img src="${logoPath}" height="95" style="height: 95px; width: auto; display: block; margin: 0 auto;" />
+          <tr style="height: 70px;">
+            <td colspan="3" bgcolor="#0b4d2d" style="background-color: #0b4d2d; border: none; text-align: center; vertical-align: middle; height: 70px;">
+              <div style="font-family: 'Georgia', 'Times New Roman', serif; font-size: 24pt; font-weight: bold; color: #ffffff; letter-spacing: 2px;">
+                JB <span style="font-family: 'Segoe UI', Arial, sans-serif; font-size: 11pt; font-weight: 700; color: #fde047; letter-spacing: 1px;">JOHN BUILDWELL</span>
+              </div>
             </td>
             <td colspan="6" class="title-row" style="border:none; vertical-align:middle; text-align:center; font-size: 22pt; font-weight: bold; color: #0e623a; height: 120px;">
               JohnBuildwell ERP - OVERALL STATUS REPORT
@@ -1293,9 +1296,11 @@ const Dashboard = () => {
       </head>
       <body>
         <table>
-          <tr style="height: 120px;">
-            <td colspan="3" style="background-color: #0e623a; border: none; text-align: center; vertical-align: middle; height: 120px;">
-              <img src="${logoPath}" height="95" style="height: 95px; width: auto; display: block; margin: 0 auto;" />
+          <tr style="height: 70px;">
+            <td colspan="3" bgcolor="#0b4d2d" style="background-color: #0b4d2d; border: none; text-align: center; vertical-align: middle; height: 70px;">
+              <div style="font-family: 'Georgia', 'Times New Roman', serif; font-size: 24pt; font-weight: bold; color: #ffffff; letter-spacing: 2px;">
+                JB <span style="font-family: 'Segoe UI', Arial, sans-serif; font-size: 11pt; font-weight: 700; color: #fde047; letter-spacing: 1px;">JOHN BUILDWELL</span>
+              </div>
             </td>
             <td colspan="4" class="title-row" style="border:none; vertical-align:middle; text-align:center; font-size: 22pt; font-weight: bold; color: #0e623a; height: 120px;">
               JohnBuildwell ERP - USER WISE PERFORMANCE REPORT
@@ -1394,9 +1399,11 @@ const Dashboard = () => {
       </head>
       <body>
         <table>
-          <tr style="height: 120px;">
-            <td colspan="3" style="background-color: #0e623a; border: none; text-align: center; vertical-align: middle; height: 120px;">
-              <img src="${logoPath}" height="95" style="height: 95px; width: auto; display: block; margin: 0 auto;" />
+          <tr style="height: 70px;">
+            <td colspan="3" bgcolor="#0b4d2d" style="background-color: #0b4d2d; border: none; text-align: center; vertical-align: middle; height: 70px;">
+              <div style="font-family: 'Georgia', 'Times New Roman', serif; font-size: 24pt; font-weight: bold; color: #ffffff; letter-spacing: 2px;">
+                JB <span style="font-family: 'Segoe UI', Arial, sans-serif; font-size: 11pt; font-weight: 700; color: #fde047; letter-spacing: 1px;">JOHN BUILDWELL</span>
+              </div>
             </td>
             <td colspan="4" class="title-row" style="border:none; vertical-align:middle; text-align:center; font-size: 22pt; font-weight: bold; color: #0e623a; height: 120px;">
               JohnBuildwell ERP - PROJECT WISE PERFORMANCE REPORT

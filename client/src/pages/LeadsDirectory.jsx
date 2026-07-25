@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth, API_URL } from '../context/AuthContext';
+import { LOGO_BASE64 } from '../utils/logoBase64';
 import SearchableSelect from '../components/SearchableSelect';
 import { sendLeadAssignmentEmail } from '../utils/emailService';
 import {
@@ -1277,7 +1278,7 @@ const LeadsDirectory = () => {
         return;
       }
 
-      const logoPath = window.location.origin + "/jb_logo.jpg";
+      const logoPath = LOGO_BASE64;
 
       // Generate styled HTML sheet
       let html = `
@@ -1310,11 +1311,11 @@ const LeadsDirectory = () => {
             <col width="150" />
             <col width="300" />
 
-            <tr style="height: 100px;">
-              <td colspan="3" style="background-color: #0e623a; border: none; text-align: center; vertical-align: middle; height: 100px;">
-                <img src="${logoPath}" height="80" style="height: 80px; width: auto; display: block; margin: 0 auto;" />
+            <tr style="height: 60px;">
+              <td colspan="3" bgcolor="#0B4D2D" style="background-color: #0B4D2D; color: #FFFFFF; font-family: 'Segoe UI', Arial, sans-serif; font-size: 14pt; font-weight: bold; text-align: center; vertical-align: middle; height: 60px; border: 1px solid #000000;">
+                JOHN BUILDWELL
               </td>
-              <td colspan="7" class="title-row" style="background-color: #0e623a; border: none; vertical-align: middle; text-align: center; font-size: 16pt; font-weight: 800; color: #ffffff; height: 100px; font-family: 'Segoe UI', sans-serif;">
+              <td colspan="7" class="title-row" style="background-color: #0b4d2d; border: 1px solid #000000; vertical-align: middle; text-align: center; font-size: 16pt; font-weight: 800; color: #ffffff; height: 60px; font-family: 'Segoe UI', sans-serif;">
                 LEADS DIRECTORY REPORT
               </td>
             </tr>

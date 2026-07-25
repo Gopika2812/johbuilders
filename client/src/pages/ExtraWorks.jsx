@@ -62,147 +62,179 @@ const ExtraWorksInner = () => {
   const [flowMapModal, setFlowMapModal] = useState(null);
   const [expandedReqIds, setExpandedReqIds] = useState({});
   const [selectedReqGroupModal, setSelectedReqGroupModal] = useState(null);
-  const [roleNotification, setRoleNotification] = useState(null);
+  const [roleNotifications, setRoleNotifications] = useState([]);
   const [dismissedNotifs, setDismissedNotifs] = useState([]);
+  const [actionToast, setActionToast] = useState(null);
+
+  const showActionToast = (message, type = 'success') => {
+    setActionToast({ message, type });
+    setTimeout(() => {
+      setActionToast(prev => (prev?.message === message ? null : prev));
+    }, 4500);
+  };
 
   useEffect(() => {
     if (flows && flows.length > 0) {
-      let notif = null;
+      const groupsMap = {};
 
-      // 1. Check CRD Team Notification ('Pending' or 'Returned to CRD' / 'PED Approved' extra works)
-      if (isAdmin || canEditTab('crd')) {
-        for (const flow of flows) {
-          for (const stage of flow.stages || []) {
-            for (const work of stage.extraWorks || []) {
-              if (!dismissedNotifs.includes(work._id)) {
+      for (const flow of flows) {
+        for (const stage of flow.stages || []) {
+          for (const work of stage.extraWorks || []) {
+            if (!dismissedNotifs.includes(work._id)) {
+              let notifMeta = null;
+
+              // 1. Check CRD Team Notification ('Pending' or 'Returned to CRD' / 'PED Approved' extra works)
+              if (isAdmin || canEditTab('crd')) {
                 if (work.status === 'Pending') {
-                  notif = {
+                  notifMeta = {
                     roleTitle: 'CRD Team',
                     badgeText: 'New Extra Work Alert',
                     badgeColor: 'bg-amber-100 text-amber-900 border-amber-200',
                     borderColor: 'border-amber-400',
                     iconColor: 'bg-amber-100 text-amber-800',
                     btnColor: 'from-amber-500 to-yellow-600 hover:from-amber-600 hover:to-yellow-700 shadow-amber-500/30',
-                    message: (
-                      <>
-                        CRD Team, today you got an Extra Work request (<span className="text-[#006838] font-black">{work.ewId || `REQ-${work._id.substring(0, 6)}`}</span>) from <span className="font-extrabold text-amber-900">{flow.customerName || 'Customer'}</span>!
-                      </>
-                    ),
-                    work,
-                    flow,
-                    ewId: work.ewId || `REQ-${work._id.substring(0, 6)}`
+                    actionType: 'crd_pending'
                   };
-                  break;
                 } else if (['Returned to CRD', 'PED Approved'].includes(work.status)) {
-                  notif = {
-                    roleTitle: 'CRD Team',
-                    badgeText: 'Pricing / Repricing Complete',
-                    badgeColor: 'bg-blue-100 text-blue-900 border-blue-200',
-                    borderColor: 'border-blue-500',
-                    iconColor: 'bg-blue-100 text-blue-800',
-                    btnColor: 'from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 shadow-blue-500/30',
-                    message: (
-                      <>
-                        CRD Team, PED has completed pricing / repricing for Extra Work (<span className="text-blue-700 font-black">{work.ewId || `REQ-${work._id.substring(0, 6)}`}</span>) for customer <span className="font-extrabold text-blue-900">{flow.customerName || 'Customer'}</span>! Please review and send to customer.
-                      </>
-                    ),
-                    work,
-                    flow,
-                    ewId: work.ewId || `REQ-${work._id.substring(0, 6)}`
-                  };
-                  break;
+                  const isReprice = work.status === 'Returned to CRD' || Boolean(work.clientNotes) || work.previousRate !== undefined || Boolean(work.isRepriced);
+                  if (isReprice) {
+                    notifMeta = {
+                      roleTitle: 'CRD Team',
+                      badgeText: 'Repricing Complete',
+                      badgeColor: 'bg-indigo-100 text-indigo-900 border-indigo-200',
+                      borderColor: 'border-indigo-500',
+                      iconColor: 'bg-indigo-100 text-indigo-800',
+                      btnColor: 'from-indigo-600 to-blue-700 hover:from-indigo-700 hover:to-blue-800 shadow-indigo-500/30',
+                      actionType: 'crd_repricing_complete'
+                    };
+                  } else {
+                    notifMeta = {
+                      roleTitle: 'CRD Team',
+                      badgeText: 'Pricing Complete',
+                      badgeColor: 'bg-blue-100 text-blue-900 border-blue-200',
+                      borderColor: 'border-blue-500',
+                      iconColor: 'bg-blue-100 text-blue-800',
+                      btnColor: 'from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 shadow-blue-500/30',
+                      actionType: 'crd_pricing_complete'
+                    };
+                  }
                 }
               }
-            }
-            if (notif) break;
-          }
-          if (notif) break;
-        }
-      }
 
-      // 2. Check PED Team Notification ('Sent to PED' for pricing OR 'Execution Sent to PED' / 'Added to CRD' for site execution)
-      if (!notif && (isAdmin || canEditTab('ped'))) {
-        for (const flow of flows) {
-          for (const stage of flow.stages || []) {
-            for (const work of stage.extraWorks || []) {
-              if (!dismissedNotifs.includes(work._id)) {
+              // 2. Check PED Team Notification ('Sent to PED' for pricing OR 'Execution Sent to PED' / 'Added to CRD' for site execution)
+              if (!notifMeta && (isAdmin || canEditTab('ped'))) {
                 if (work.status === 'Sent to PED') {
-                  notif = {
+                  notifMeta = {
                     roleTitle: 'PED Team',
                     badgeText: 'Pricing Action Required',
                     badgeColor: 'bg-blue-100 text-blue-900 border-blue-200',
                     borderColor: 'border-blue-500',
                     iconColor: 'bg-blue-100 text-blue-800',
                     btnColor: 'from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 shadow-blue-500/30',
-                    message: (
-                      <>
-                        PED Team, you are assigned for pricing for Extra Work (<span className="text-blue-700 font-black">{work.ewId || `REQ-${work._id.substring(0, 6)}`}</span>) for customer <span className="font-extrabold text-blue-900">{flow.customerName || 'Customer'}</span>!
-                      </>
-                    ),
-                    work,
-                    flow,
-                    ewId: work.ewId || `REQ-${work._id.substring(0, 6)}`
+                    actionType: 'ped_pricing'
                   };
-                  break;
                 } else if (['Execution Sent to PED', 'Added to CRD'].includes(work.status)) {
-                  notif = {
+                  notifMeta = {
                     roleTitle: 'PED Team',
                     badgeText: 'Site Execution Assigned',
                     badgeColor: 'bg-teal-100 text-teal-900 border-teal-200',
                     borderColor: 'border-teal-500',
                     iconColor: 'bg-teal-100 text-teal-800',
                     btnColor: 'from-teal-600 to-emerald-700 hover:from-teal-700 hover:to-emerald-800 shadow-teal-500/30',
-                    message: (
-                      <>
-                        PED Team, Work Order (<span className="text-teal-700 font-black">{work.ewId || `REQ-${work._id.substring(0, 6)}`}</span>) for customer <span className="font-extrabold text-teal-900">{flow.customerName || 'Customer'}</span> has been assigned for site execution! Please start work.
-                      </>
-                    ),
-                    work,
-                    flow,
-                    ewId: work.ewId || `REQ-${work._id.substring(0, 6)}`
+                    actionType: 'ped_execution'
                   };
-                  break;
                 }
               }
-            }
-            if (notif) break;
-          }
-          if (notif) break;
-        }
-      }
 
-      // 3. Check Accounts Team Notification ('Sent to Accounts' / 'Client Approved' extra works)
-      if (!notif && (isAdmin || canEditTab('accounts'))) {
-        for (const flow of flows) {
-          for (const stage of flow.stages || []) {
-            for (const work of stage.extraWorks || []) {
-              if (['Sent to Accounts', 'Client Approved'].includes(work.status) && !dismissedNotifs.includes(work._id)) {
-                notif = {
-                  roleTitle: 'Accounts Team',
-                  badgeText: 'Work Order & Invoicing Alert',
-                  badgeColor: 'bg-emerald-100 text-emerald-900 border-emerald-200',
-                  borderColor: 'border-emerald-500',
-                  iconColor: 'bg-emerald-100 text-emerald-800',
-                  btnColor: 'from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 shadow-emerald-500/30',
-                  message: (
-                    <>
-                      Accounts Team, you received an approved Extra Work request (<span className="text-[#006838] font-black">{work.ewId || `REQ-${work._id.substring(0, 6)}`}</span>) from customer <span className="font-extrabold text-emerald-900">{flow.customerName || 'Customer'}</span> for Work Order & Billing!
-                    </>
-                  ),
-                  work,
-                  flow,
-                  ewId: work.ewId || `REQ-${work._id.substring(0, 6)}`
-                };
-                break;
+              // 3. Check Accounts Team Notification ('Sent to Accounts' / 'Client Approved' extra works)
+              if (!notifMeta && (isAdmin || canEditTab('accounts'))) {
+                if (['Sent to Accounts', 'Client Approved'].includes(work.status)) {
+                  notifMeta = {
+                    roleTitle: 'Accounts Team',
+                    badgeText: 'Work Order & Invoicing Alert',
+                    badgeColor: 'bg-emerald-100 text-emerald-900 border-emerald-200',
+                    borderColor: 'border-emerald-500',
+                    iconColor: 'bg-emerald-100 text-emerald-800',
+                    btnColor: 'from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 shadow-emerald-500/30',
+                    actionType: 'accounts_invoicing'
+                  };
+                }
+              }
+
+              if (notifMeta) {
+                const groupKey = `${flow._id}_${notifMeta.actionType}`;
+                if (!groupsMap[groupKey]) {
+                  groupsMap[groupKey] = {
+                    ...notifMeta,
+                    flow,
+                    works: [],
+                    ewIds: new Set()
+                  };
+                }
+                groupsMap[groupKey].works.push(work);
+                groupsMap[groupKey].ewIds.add(work.ewId || `REQ-${work._id.substring(0, 6)}`);
               }
             }
-            if (notif) break;
           }
-          if (notif) break;
         }
       }
 
-      setRoleNotification(notif);
+      const notifs = Object.values(groupsMap).map(group => {
+        const ewIdArr = Array.from(group.ewIds);
+        const ewIdString = ewIdArr.join(', ');
+        const customerName = group.flow.customerName || group.flow.lead?.name || 'Customer';
+        const workCount = group.works.length;
+
+        let message = null;
+        if (group.actionType === 'crd_pending') {
+          message = (
+            <>
+              {group.roleTitle}, today you got <span className="font-extrabold">{workCount}</span> Extra Work request{workCount > 1 ? 's' : ''} (<span className="text-[#006838] font-black">{ewIdString}</span>) from <span className="font-extrabold text-amber-900">{customerName}</span>!
+            </>
+          );
+        } else if (group.actionType === 'crd_pricing_complete') {
+          message = (
+            <>
+              {group.roleTitle}, PED has completed pricing for Extra Work (<span className="text-blue-700 font-black">{ewIdString}</span>) for customer <span className="font-extrabold text-blue-900">{customerName}</span>! Please review and send to customer.
+            </>
+          );
+        } else if (group.actionType === 'crd_repricing_complete') {
+          message = (
+            <>
+              {group.roleTitle}, PED has completed repricing for Extra Work (<span className="text-indigo-700 font-black">{ewIdString}</span>) for customer <span className="font-extrabold text-indigo-900">{customerName}</span>! Please review and send to customer.
+            </>
+          );
+        } else if (group.actionType === 'ped_pricing') {
+          message = (
+            <>
+              {group.roleTitle}, you are assigned for pricing for Extra Work (<span className="text-blue-700 font-black">{ewIdString}</span>) for customer <span className="font-extrabold text-blue-900">{customerName}</span>!
+            </>
+          );
+        } else if (group.actionType === 'ped_execution') {
+          message = (
+            <>
+              {group.roleTitle}, Work Order (<span className="text-teal-700 font-black">{ewIdString}</span>) for customer <span className="font-extrabold text-teal-900">{customerName}</span> has been assigned for site execution! Please start work.
+            </>
+          );
+        } else if (group.actionType === 'accounts_invoicing') {
+          message = (
+            <>
+              {group.roleTitle}, you received an approved Extra Work request (<span className="text-[#006838] font-black">{ewIdString}</span>) from customer <span className="font-extrabold text-emerald-900">{customerName}</span> for Work Order & Billing!
+            </>
+          );
+        }
+
+        return {
+          ...group,
+          ewIdString,
+          ewIdArr,
+          message
+        };
+      });
+
+      setRoleNotifications(notifs);
+    } else {
+      setRoleNotifications([]);
     }
   }, [flows, dismissedNotifs, user, isAdmin]);
 
@@ -594,7 +626,7 @@ const ExtraWorksInner = () => {
 
   const isWorkNew = (work) => {
     if (!work) return false;
-    // A work remains 'New' until a Work Order is created/issued (crdAddedDate or status Added to CRD and beyond)
+    // An extra work stays 'New' until a Work Order is created/issued for it
     const hasWorkOrder = Boolean(work.crdAddedDate) || ['Added to CRD', 'Execution Sent to PED', 'Start Work', 'In Progress', 'Completed'].includes(work.status);
     return !hasWorkOrder;
   };
@@ -835,8 +867,101 @@ const ExtraWorksInner = () => {
     };
   })();
 
+  const getSubRowStatusBadge = (status) => {
+    switch (status) {
+      case 'In Progress':
+      case 'Start Work':
+        return (
+          <span className="px-2.5 py-0.5 bg-amber-100 text-amber-900 border border-amber-300 rounded-full text-[10px] font-extrabold flex items-center gap-1 uppercase tracking-wider shrink-0 shadow-sm">
+            <Clock className="w-3 h-3 text-amber-700" /> In Progress
+          </span>
+        );
+      case 'Completed':
+        return (
+          <span className="px-2.5 py-0.5 bg-emerald-200 text-emerald-950 border border-emerald-400 rounded-full text-[10px] font-black flex items-center gap-1 uppercase tracking-wider shrink-0 shadow-sm">
+            <CheckCircle className="w-3 h-3 text-emerald-700" /> Completed
+          </span>
+        );
+      case 'Execution Sent to PED':
+      case 'Added to CRD':
+        return (
+          <span className="px-2.5 py-0.5 bg-blue-100 text-blue-900 border border-blue-300 rounded-full text-[10px] font-extrabold uppercase tracking-wider shrink-0">
+            Execution Ready
+          </span>
+        );
+      case 'Sent to Accounts':
+        return (
+          <span className="px-2.5 py-0.5 bg-purple-100 text-purple-900 border border-purple-300 rounded-full text-[10px] font-extrabold uppercase tracking-wider shrink-0">
+            Sent to Accounts
+          </span>
+        );
+      case 'Client Approved':
+        return (
+          <span className="px-2.5 py-0.5 bg-teal-100 text-teal-900 border border-teal-300 rounded-full text-[10px] font-extrabold uppercase tracking-wider shrink-0">
+            Client Approved
+          </span>
+        );
+      case 'Sent to Customer':
+        return (
+          <span className="px-2.5 py-0.5 bg-indigo-100 text-indigo-900 border border-indigo-300 rounded-full text-[10px] font-extrabold uppercase tracking-wider shrink-0">
+            Sent to Client
+          </span>
+        );
+      case 'PED Approved':
+      case 'Returned to CRD':
+        return (
+          <span className="px-2.5 py-0.5 bg-sky-100 text-sky-900 border border-sky-300 rounded-full text-[10px] font-extrabold uppercase tracking-wider shrink-0">
+            Priced (CRD)
+          </span>
+        );
+      case 'Sent to PED':
+        return (
+          <span className="px-2.5 py-0.5 bg-amber-50 text-amber-900 border border-amber-200 rounded-full text-[10px] font-extrabold uppercase tracking-wider shrink-0">
+            Sent to PED
+          </span>
+        );
+      case 'Removed by Client':
+      case 'Cancelled by Client':
+      case 'Cancelled by Superadmin':
+      case 'Cancelled':
+      case 'Rejected':
+        return (
+          <span className="px-2.5 py-0.5 bg-red-200 text-red-950 border border-red-300 rounded-full text-[10px] font-extrabold uppercase tracking-wider shrink-0">
+            {status.includes('Client') ? 'Cancelled by Client' : status}
+          </span>
+        );
+      default:
+        return (
+          <span className="px-2.5 py-0.5 bg-gray-100 text-gray-800 border border-gray-300 rounded-full text-[10px] font-extrabold uppercase tracking-wider shrink-0">
+            {status || 'Pending'}
+          </span>
+        );
+    }
+  };
+
   return (
-    <div className="p-6 md:p-8 w-full mx-auto space-y-6 animate-fade-in">
+    <div className="p-6 md:p-8 w-full mx-auto space-y-6 animate-fade-in relative">
+      {/* INSTANT ACTION CONFIRMATION MODAL POPUP (CENTERED) */}
+      {actionToast && (
+        <div className="fixed inset-0 z-[999999] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-white rounded-3xl p-6 md:p-8 max-w-md w-full shadow-2xl border-2 border-emerald-500 text-center flex flex-col items-center gap-4 animate-scale-up">
+            <div className="w-16 h-16 bg-emerald-100 text-emerald-700 rounded-full flex items-center justify-center shadow-inner">
+              <CheckCircle className="w-10 h-10 text-[#006838]" />
+            </div>
+            <div>
+              <h3 className="text-lg font-black text-emerald-950 uppercase tracking-wider">Action Successful</h3>
+              <p className="text-sm font-bold text-gray-800 mt-2 leading-relaxed">{actionToast.message}</p>
+            </div>
+            <button
+              onClick={() => setActionToast(null)}
+              className="w-full py-3 bg-[#006838] hover:bg-[#00512c] text-white font-extrabold rounded-2xl shadow-lg transition cursor-pointer text-sm"
+            >
+              OK
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">Extra Works Management</h1>
@@ -909,7 +1034,7 @@ const ExtraWorksInner = () => {
                   ewId: ''
                 });
               }}
-              className="w-full sm:w-auto px-4 py-2 bg-[#006838] text-white font-bold rounded-xl flex items-center justify-center gap-2 hover:bg-[#00512c] transition-colors shadow-sm"
+              className="w-full sm:w-auto px-4 py-2 bg-[#006838] text-white font-bold rounded-xl flex items-center justify-center gap-2 hover:bg-[#00512c] transition-colors shadow-sm cursor-pointer"
             >
               <Plus className="w-4 h-4" /> Add Extra Work
             </button>
@@ -1017,11 +1142,7 @@ const ExtraWorksInner = () => {
                 </tr>
               ) : filteredFlows.map((flow, idx) => {
                 const isExpanded = expandedFlow === flow._id;
-                const isFlowNew = flow.stages?.some(stage =>
-                  stage.extraWorks?.some(work =>
-                    isWorkVisible(work) && !work.sentToPedDate && work.status === 'Pending'
-                  )
-                );
+                const isFlowNewItem = isFlowNew(flow);
 
                 return (
                   <React.Fragment key={flow._id}>
@@ -1029,7 +1150,7 @@ const ExtraWorksInner = () => {
                       className={`transition-colors ${
                         isExpanded 
                           ? 'bg-emerald-50/20' 
-                          : isFlowNew 
+                          : isFlowNewItem 
                             ? 'bg-yellow-50/60 hover:bg-yellow-100/80' 
                             : 'hover:bg-emerald-50/50'
                       }`}
@@ -1051,7 +1172,7 @@ const ExtraWorksInner = () => {
                         </div>
                       </td>
                       <td className="px-6 py-4 text-center">
-                        {!isFlowNew ? (
+                        {!isFlowNewItem ? (
                           <span className="px-2.5 py-1 bg-slate-100 text-slate-700 border border-slate-200 rounded-full text-[10px] font-bold">Old</span>
                         ) : (
                           <span className="px-2.5 py-1 bg-yellow-100 text-yellow-800 border border-yellow-200 rounded-full text-[10px] font-bold">New</span>
@@ -1068,21 +1189,8 @@ const ExtraWorksInner = () => {
                     {isExpanded && (
                       <tr>
                         <td colSpan="11" className="p-0 border-b border-emerald-100 bg-emerald-50/20 shadow-inner">
-                          <div className="p-6">
-                            <div className="flex justify-end items-center mb-4">
-                              {(isAdmin || (canEditTab('crd') && !user?.role?.includes('PED') && !user?.role?.includes('Account'))) && (
-                                <button
-                                  onClick={() => {
-                                    setShowAddForm(!showAddForm);
-                                    setAddedWorks([]);
-                                    setAddForm({ stageId: '', name: '', category: '', unit: 'Unit', quantity: 1, rate: 0, forUnit: '' });
-                                  }}
-                                  className="flex items-center gap-2 px-4 py-2 bg-[#006838] text-white font-bold rounded-xl hover:bg-[#00512c] transition-colors shadow-sm text-sm"
-                                >
-                                  <Plus className="w-4 h-4" /> Add Extra Work
-                                </button>
-                              )}
-                            </div>
+                          <div className="px-4 py-3">
+                            {/* Add Extra Work button removed as requested */}
 
                             {showAddForm && (
                               <div className="mb-6 bg-white p-5 rounded-2xl border border-emerald-200 shadow-sm animate-fade-in-up">
@@ -1210,9 +1318,9 @@ const ExtraWorksInner = () => {
                               </div>
                             )}
 
-                            <div className="bg-white rounded-2xl shadow-sm border border-emerald-100 overflow-hidden">
+                            <div className="bg-white rounded-2xl shadow-sm border border-slate-300 overflow-hidden">
                               <table className="w-full text-left">
-                                <thead className="bg-emerald-100 text-emerald-950 font-bold border-b border-emerald-200">
+                                <thead className="sub-table-header bg-gray-600 text-white font-bold border-b border-gray-500">
                                   <tr>
                                     <th className="p-4 w-12 text-center">
                                       {(() => {
@@ -2180,8 +2288,8 @@ const ExtraWorksInner = () => {
 
             {/* Items Table & Add Form */}
             <div className="p-6 overflow-y-auto flex-1 space-y-6 bg-gray-50/50">
-              <div className="bg-white rounded-2xl shadow-sm border border-emerald-100 overflow-hidden">
-                <div className="p-4 bg-emerald-900 text-white font-bold text-sm flex justify-between items-center">
+              <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                <div className="p-4 bg-gray-800 text-white font-bold text-sm flex justify-between items-center" style={{ backgroundColor: '#374151', color: '#ffffff' }}>
                   <span>Extra Work Items ({activeGroupModalData.items.length})</span>
                   {(isAdmin || (canEditTab('crd') && !user?.role?.includes('PED') && !user?.role?.includes('Account'))) && !activeGroupModalData.sentToPedDate && !activeGroupModalData.items.some(w => w.sentToPedDate || w.status !== 'Pending') && (
                     <button
@@ -2190,7 +2298,7 @@ const ExtraWorksInner = () => {
                         setAddedWorks([]);
                         setAddForm({ stageId: '', name: '', category: '', unit: 'Unit', quantity: 1, rate: 0, forUnit: '' });
                       }}
-                      className="px-3 py-1.5 bg-white text-[#006838] hover:bg-emerald-50 rounded-lg text-xs font-bold transition flex items-center gap-1 shadow-sm cursor-pointer"
+                      className="px-3 py-1.5 bg-white text-slate-800 hover:bg-slate-100 rounded-lg text-xs font-bold transition flex items-center gap-1 shadow-sm cursor-pointer"
                     >
                       <Plus className="w-3.5 h-3.5" /> Add Extra Work to {activeGroupModalData.displayId}
                     </button>
@@ -2199,8 +2307,36 @@ const ExtraWorksInner = () => {
 
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-xs border-collapse">
-                    <thead className="bg-emerald-100/90 text-emerald-950 font-extrabold uppercase tracking-wider border-b border-emerald-200 text-[11px]">
+                    <thead className="sub-table-header bg-gray-600 text-white font-extrabold uppercase tracking-wider border-b border-gray-500 text-[11px]">
                       <tr>
+                        <th className="p-3 w-10 text-center">
+                          {(() => {
+                            const selectableModalWorks = activeGroupModalData.items.filter(w => {
+                              const canSelectAsCrd = (isAdmin || canEditTab('crd')) && ['Pending', 'Returned to CRD', 'Client Approved', 'Added to CRD'].includes(w.status);
+                              const canSelectAsPed = (isAdmin || canEditTab('ped')) && ['Sent to PED', 'PED Approved', 'Execution Sent to PED', 'Added to CRD', 'Start Work', 'In Progress'].includes(w.status);
+                              const canSelectAsAccounts = (isAdmin || canEditTab('accounts')) && w.status === 'Sent to Accounts';
+                              return canSelectAsCrd || canSelectAsPed || canSelectAsAccounts;
+                            });
+                            if (selectableModalWorks.length === 0) return null;
+                            const allModalSelected = selectableModalWorks.every(w => selectedWorks.includes(w._id));
+
+                            return (
+                              <input
+                                type="checkbox"
+                                className="w-4 h-4 rounded border-gray-300 text-[#006838] focus:ring-[#006838] cursor-pointer"
+                                onChange={() => {
+                                  const modalIds = selectableModalWorks.map(w => w._id);
+                                  if (allModalSelected) {
+                                    setSelectedWorks(prev => prev.filter(id => !modalIds.includes(id)));
+                                  } else {
+                                    setSelectedWorks(prev => [...new Set([...prev, ...modalIds])]);
+                                  }
+                                }}
+                                checked={allModalSelected}
+                              />
+                            );
+                          })()}
+                        </th>
                         <th className="p-3">S.No</th>
                         <th className="p-3">Work Name</th>
                         <th className="p-3 text-center">Qty / Unit</th>
@@ -2216,21 +2352,50 @@ const ExtraWorksInner = () => {
                     <tbody className="divide-y divide-emerald-100/80">
                       {activeGroupModalData.items.map((work, wIdx) => {
                         const isCancelled = ['Removed by Client', 'Cancelled by Client', 'Cancelled by Superadmin', 'Cancelled', 'Rejected'].includes(work.status);
-                        const rowBgClass = isCancelled
-                          ? 'bg-red-100/80 border-l-4 border-l-red-500 hover:bg-red-200/60 transition-colors text-red-950 font-medium'
-                          : 'bg-emerald-100/80 hover:bg-emerald-200/70 transition-colors border-l-4 border-l-[#006838]';
+                        const isInProgress = ['In Progress', 'Start Work'].includes(work.status);
+                        const isCompleted = work.status === 'Completed';
+
+                        let rowBgClass = 'bg-slate-50/90 hover:bg-slate-100/90 border-l-4 border-l-[#006838] transition-colors';
+                        if (isInProgress) {
+                          rowBgClass = 'bg-amber-100/90 hover:bg-amber-200/80 border-l-4 border-l-amber-500 transition-colors font-medium';
+                        } else if (isCompleted) {
+                          rowBgClass = 'bg-emerald-100/90 hover:bg-emerald-200/80 border-l-4 border-l-emerald-600 transition-colors font-medium';
+                        } else if (isCancelled) {
+                          rowBgClass = 'bg-red-100/80 hover:bg-red-200/60 border-l-4 border-l-red-500 transition-colors text-red-950 font-medium';
+                        }
 
                         return (
                           <tr key={work._id} className={rowBgClass}>
+                            <td className="p-3 text-center align-middle">
+                              {(() => {
+                                const canSelectAsCrd = (isAdmin || canEditTab('crd')) && ['Pending', 'Returned to CRD', 'Client Approved', 'Added to CRD'].includes(work.status);
+                                const canSelectAsPed = (isAdmin || canEditTab('ped')) && ['Sent to PED', 'PED Approved', 'Execution Sent to PED', 'Added to CRD', 'Start Work', 'In Progress'].includes(work.status);
+                                const canSelectAsAccounts = (isAdmin || canEditTab('accounts')) && work.status === 'Sent to Accounts';
+                                if (canSelectAsCrd || canSelectAsPed || canSelectAsAccounts) {
+                                  return (
+                                    <input
+                                      type="checkbox"
+                                      className="w-4 h-4 rounded border-gray-300 text-[#006838] focus:ring-[#006838] cursor-pointer"
+                                      checked={selectedWorks.includes(work._id)}
+                                      onChange={(e) => {
+                                        e.stopPropagation();
+                                        if (selectedWorks.includes(work._id)) {
+                                          setSelectedWorks(prev => prev.filter(id => id !== work._id));
+                                        } else {
+                                          setSelectedWorks(prev => [...prev, work._id]);
+                                        }
+                                      }}
+                                    />
+                                  );
+                                }
+                                return null;
+                              })()}
+                            </td>
                             <td className="p-3 font-bold text-gray-600">1.{wIdx + 1}</td>
                             <td className="p-3">
                               <div className="flex flex-wrap items-center gap-2">
                                 <span className="font-bold text-gray-900">{work.name || '-'}</span>
-                                {isCancelled && (
-                                  <span className="px-2 py-0.5 bg-red-200 text-red-900 border border-red-300 rounded text-[10px] font-extrabold uppercase tracking-wider">
-                                    {work.status === 'Removed by Client' || work.status === 'Cancelled by Client' ? 'Cancelled by Client' : work.status}
-                                  </span>
-                                )}
+                                {getSubRowStatusBadge(work.status)}
                               </div>
                               {work.category && <span className="text-[10px] text-gray-400 font-medium">{work.category}</span>}
                               {work.clientNotes && (
@@ -2463,6 +2628,8 @@ const ExtraWorksInner = () => {
                         }
                         setSelectedWorks([]);
                         await fetchFlows();
+                        const isReprice = itemsToSend.some(w => w.clientNotes || w.status === 'Returned to CRD');
+                        showActionToast(isReprice ? `Work Order ${activeGroupModalData.displayId} successfully sent from CRD to PED for Repricing!` : `Work Order ${activeGroupModalData.displayId} successfully sent from CRD to PED!`);
                       } catch (err) {
                         alert(err.message);
                       } finally {
@@ -2522,6 +2689,7 @@ const ExtraWorksInner = () => {
 
                         setSelectedWorks([]);
                         await fetchFlows();
+                        showActionToast(`Work Order ${activeGroupModalData.displayId} successfully sent from PED to CRD!`);
                       } catch (err) {
                         alert(err.message);
                       } finally {
@@ -2557,6 +2725,7 @@ const ExtraWorksInner = () => {
                         }
                         setSelectedWorks([]);
                         await fetchFlows();
+                        showActionToast(`Work Order ${activeGroupModalData.displayId} successfully sent from CRD to Client!`);
                       } catch (err) {
                         alert(err.message);
                       } finally {
@@ -2599,6 +2768,7 @@ const ExtraWorksInner = () => {
                             }
                             setSelectedWorks([]);
                             await fetchFlows();
+                            showActionToast(`Work Order ${activeGroupModalData.displayId} successfully sent from CRD to Accounts Team!`);
                           } catch (err) {
                             alert(err.message);
                           } finally {
@@ -2639,6 +2809,7 @@ const ExtraWorksInner = () => {
                         }
                         setSelectedWorks([]);
                         await fetchFlows();
+                        showActionToast(`Work Order ${activeGroupModalData.displayId} successfully created & sent to PED for Execution!`);
                       } catch (err) {
                         alert(err.message);
                       } finally {
@@ -2653,11 +2824,11 @@ const ExtraWorksInner = () => {
                   </button>
                 )}
 
-                {/* 6. Start Work (For PED Team when Execution is Sent to PED or Work Order Created) */}
+                {/* 6. In Progress (For PED Team when Execution is Sent to PED or Work Order Created) */}
                 {(isAdmin || canEditTab('ped') || user?.role?.toLowerCase().includes('ped') || user?.department?.toLowerCase().includes('ped')) && activeGroupModalData.items.some(w => ['Execution Sent to PED', 'Added to CRD'].includes(w.status)) && (
                   <button
                     onClick={async () => {
-                      setSubmitting('modal-start-work');
+                      setSubmitting('modal-in-progress');
                       try {
                         const checkedInModal = activeGroupModalData.items.filter(w => selectedWorks.includes(w._id));
                         const targetItems = checkedInModal.length > 0 ? checkedInModal : activeGroupModalData.items;
@@ -2667,38 +2838,39 @@ const ExtraWorksInner = () => {
                           const res = await fetch(`${API_URL}/extra-works/${activeGroupModalData.flow._id}/${work.stageIdx}/${work._id}/update-status`, {
                             method: 'PUT',
                             headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-                            body: JSON.stringify({ status: 'Start Work' })
+                            body: JSON.stringify({ status: 'In Progress' })
                           });
                           if (!res.ok) {
                             const errData = await res.json().catch(() => ({}));
-                            throw new Error(errData.message || 'Failed to start work');
+                            throw new Error(errData.message || 'Failed to set in progress');
                           }
                         }
                         setSelectedWorks([]);
                         await fetchFlows();
+                        showActionToast(`Work Order ${activeGroupModalData.displayId} set to In Progress!`);
                       } catch (err) {
                         alert(err.message);
                       } finally {
                         setSubmitting(null);
                       }
                     }}
-                    disabled={submitting === 'modal-start-work'}
-                    className="px-5 py-2.5 bg-yellow-600 hover:bg-yellow-700 text-white font-bold rounded-xl transition flex items-center gap-2 text-xs shadow-md disabled:opacity-50 cursor-pointer"
+                    disabled={submitting === 'modal-in-progress'}
+                    className="px-5 py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl transition flex items-center gap-2 text-xs shadow-md disabled:opacity-50 cursor-pointer"
                   >
-                    {submitting === 'modal-start-work' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
-                    Start Work
+                    {submitting === 'modal-in-progress' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Clock className="w-4 h-4" />}
+                    In Progress
                   </button>
                 )}
 
-                {/* 7. Mark Completed (For PED Team when Work is Started or In Progress) */}
-                {(isAdmin || canEditTab('ped') || user?.role?.toLowerCase().includes('ped') || user?.department?.toLowerCase().includes('ped')) && activeGroupModalData.items.some(w => ['Start Work', 'In Progress'].includes(w.status)) && (
+                {/* 7. Mark Completed (For PED Team when Work is In Progress or Execution Ready) */}
+                {(isAdmin || canEditTab('ped') || user?.role?.toLowerCase().includes('ped') || user?.department?.toLowerCase().includes('ped')) && activeGroupModalData.items.some(w => ['Execution Sent to PED', 'Added to CRD', 'Start Work', 'In Progress'].includes(w.status)) && (
                   <button
                     onClick={async () => {
                       setSubmitting('modal-completed');
                       try {
                         const checkedInModal = activeGroupModalData.items.filter(w => selectedWorks.includes(w._id));
                         const targetItems = checkedInModal.length > 0 ? checkedInModal : activeGroupModalData.items;
-                        const itemsCompleted = targetItems.filter(w => ['Start Work', 'In Progress'].includes(w.status));
+                        const itemsCompleted = targetItems.filter(w => ['Execution Sent to PED', 'Added to CRD', 'Start Work', 'In Progress'].includes(w.status));
 
                         for (const work of itemsCompleted) {
                           const res = await fetch(`${API_URL}/extra-works/${activeGroupModalData.flow._id}/${work.stageIdx}/${work._id}/update-status`, {
@@ -2713,6 +2885,7 @@ const ExtraWorksInner = () => {
                         }
                         setSelectedWorks([]);
                         await fetchFlows();
+                        showActionToast(`Work Order ${activeGroupModalData.displayId} marked as completed!`);
                       } catch (err) {
                         alert(err.message);
                       } finally {
@@ -2739,44 +2912,105 @@ const ExtraWorksInner = () => {
         </div>
       )}
 
-      {/* ROLE-BASED NOTIFICATION POPUP (CENTERED MODAL - NO DISMISS / NO X) */}
-      {roleNotification && (
+      {/* ROLE-BASED NOTIFICATION POPUP (CENTERED COMBINED MODAL) */}
+      {roleNotifications && roleNotifications.length > 0 && (
         <div className="fixed inset-0 z-[9999] bg-black/65 backdrop-blur-md flex items-center justify-center p-4 animate-fade-in">
-          <div className={`bg-white border-2 ${roleNotification.borderColor} rounded-3xl shadow-2xl max-w-lg w-full p-6 animate-scale-up relative`}>
-            <div className="flex items-start gap-4">
-              <div className={`p-3 ${roleNotification.iconColor} rounded-2xl shrink-0`}>
-                <Bell className="w-8 h-8 animate-pulse" />
-              </div>
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-2">
-                  <span className={`px-2.5 py-1 text-xs font-extrabold uppercase tracking-wider rounded-lg border shadow-sm ${roleNotification.badgeColor}`}>
-                    {roleNotification.badgeText}
-                  </span>
-                  <span className="text-xs text-gray-400 font-bold">{new Date(roleNotification.work.addedAt || Date.now()).toLocaleDateString('en-GB')}</span>
+          <div className="bg-white border-2 border-emerald-500 rounded-3xl shadow-2xl max-w-2xl w-full p-6 animate-scale-up relative flex flex-col max-h-[90vh]">
+            {/* Header */}
+            <div className="flex items-center justify-between pb-4 border-b border-gray-100 shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="p-3 bg-emerald-100 text-emerald-800 rounded-2xl shrink-0">
+                  <Bell className="w-7 h-7 animate-pulse text-emerald-700" />
                 </div>
-                <h3 className="text-base font-bold text-gray-900 leading-snug">
-                  {roleNotification.message}
-                </h3>
-                <p className="text-xs text-gray-600 mt-2 bg-gray-50 p-2.5 rounded-xl border border-gray-100">
-                  Work: <strong>{roleNotification.work.name}</strong> ({roleNotification.flow.projectName} {roleNotification.flow.unitId ? `- Unit ${roleNotification.flow.unitId}` : ''})
-                </p>
+                <div>
+                  <h3 className="text-lg font-black text-gray-900 leading-snug">
+                    Extra Works Pending Action
+                  </h3>
+                  <p className="text-xs font-semibold text-gray-500">
+                    You have <span className="text-emerald-700 font-extrabold">{roleNotifications.reduce((sum, g) => sum + g.works.length, 0)}</span> work item{roleNotifications.reduce((sum, g) => sum + g.works.length, 0) > 1 ? 's' : ''} requiring your attention
+                  </p>
+                </div>
               </div>
+              <span className="px-3 py-1 bg-[#006838] text-white font-extrabold text-xs rounded-full shadow-sm">
+                {roleNotifications.reduce((sum, g) => sum + g.works.length, 0)} Work{roleNotifications.reduce((sum, g) => sum + g.works.length, 0) > 1 ? 's' : ''}
+              </span>
             </div>
-            <div className="mt-6 flex items-center justify-end pt-4 border-t border-gray-100">
+
+            {/* Scrollable Work Items List */}
+            <div className="max-h-[60vh] overflow-y-auto space-y-3 my-4 pr-1.5 custom-scrollbar flex-1">
+              {roleNotifications.map((notif, idx) => (
+                <div
+                  key={idx}
+                  className="bg-gray-50/80 hover:bg-emerald-50/30 border border-gray-200/80 rounded-2xl p-4 transition shadow-sm hover:border-emerald-300 flex flex-col gap-2.5"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className={`px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider rounded-md border ${notif.badgeColor}`}>
+                        {notif.badgeText}
+                      </span>
+                      <span className="text-xs font-mono font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                        {notif.ewIdString}
+                      </span>
+                    </div>
+                    <span className="text-[11px] text-gray-400 font-bold whitespace-nowrap">
+                      {new Date(notif.works[0]?.addedAt || Date.now()).toLocaleDateString('en-GB')}
+                    </span>
+                  </div>
+
+                  <div className="text-xs font-semibold text-gray-800 leading-relaxed">
+                    {notif.message}
+                  </div>
+
+                  <div className="mt-1 flex items-center justify-between gap-3 pt-2.5 border-t border-gray-200/60">
+                    <div className="text-xs text-gray-500 font-medium">
+                      Project: <strong className="text-gray-700">{notif.flow.projectName || notif.flow.project?.name}</strong> {notif.flow.unitId ? `- Unit ${notif.flow.unitId}` : ''}
+                    </div>
+
+                    <button
+                      onClick={() => {
+                        setExpandedFlow(notif.flow._id);
+                        notif.ewIdArr.forEach(id => {
+                          setExpandedReqIds(prev => ({ ...prev, [id]: true }));
+                        });
+                        setSelectedReqGroupModal({
+                          flowId: notif.flow._id,
+                          ewId: notif.ewIdArr[0]
+                        });
+                        const groupWorkIds = notif.works.map(w => w._id);
+                        setDismissedNotifs(prev => [...prev, ...groupWorkIds]);
+                        setRoleNotifications([]);
+                      }}
+                      className={`px-5 py-2 bg-gradient-to-r ${notif.btnColor} text-white text-xs font-extrabold rounded-xl shadow transition flex items-center gap-1.5 shrink-0 cursor-pointer`}
+                    >
+                      <Play className="w-3.5 h-3.5 fill-current" /> Take Action ({notif.works.length} Work{notif.works.length > 1 ? 's' : ''})
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Footer Action Buttons */}
+            <div className="pt-3 border-t border-gray-100 flex items-center justify-end gap-3 shrink-0">
               <button
                 onClick={() => {
-                  setExpandedFlow(roleNotification.flow._id);
-                  setExpandedReqIds(prev => ({ ...prev, [roleNotification.ewId]: true }));
-                  setSelectedReqGroupModal({
-                    flowId: roleNotification.flow._id,
-                    ewId: roleNotification.ewId
-                  });
-                  setDismissedNotifs(prev => [...prev, roleNotification.work._id]);
-                  setRoleNotification(null);
+                  const first = roleNotifications[0];
+                  if (first) {
+                    setExpandedFlow(first.flow._id);
+                    first.ewIdArr.forEach(id => {
+                      setExpandedReqIds(prev => ({ ...prev, [id]: true }));
+                    });
+                    setSelectedReqGroupModal({
+                      flowId: first.flow._id,
+                      ewId: first.ewIdArr[0]
+                    });
+                  }
+                  const allIds = roleNotifications.flatMap(n => n.works.map(w => w._id));
+                  setDismissedNotifs(prev => [...prev, ...allIds]);
+                  setRoleNotifications([]);
                 }}
-                className={`w-full py-3.5 bg-gradient-to-r ${roleNotification.btnColor} text-white text-sm font-black rounded-xl shadow-lg transition flex items-center justify-center gap-2 cursor-pointer`}
+                className="w-full sm:w-auto px-6 py-2.5 bg-[#006838] hover:bg-[#00512c] text-white text-xs font-black rounded-xl shadow-lg transition flex items-center justify-center gap-2 cursor-pointer"
               >
-                <Play className="w-4 h-4 fill-current" /> Take Action
+                <Play className="w-4 h-4 fill-current" /> Take Action on All ({roleNotifications.reduce((sum, g) => sum + g.works.length, 0)})
               </button>
             </div>
           </div>

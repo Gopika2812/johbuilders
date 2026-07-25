@@ -382,7 +382,6 @@ const SummaryPlanning = () => {
                     <th className="p-4 w-44 text-right">TOTAL TARGET</th>
                     <th className="p-4 w-28">UNIT</th>
                     <th className="p-4 w-36 text-right">ACHIEVED</th>
-                    <th className="p-4 w-36 text-right">BALANCE</th>
                     <th className="p-4 w-44 text-right">LAST MONTH ACHIEVED</th>
                   </tr>
                 </thead>
@@ -403,9 +402,6 @@ const SummaryPlanning = () => {
                     <td className="p-4 text-black-500 font-semibold">Crores</td>
                     <td className="p-4 text-right font-extrabold text-black-800">
                       {achievedStats.salesValue.toFixed(4)}
-                    </td>
-                    <td className="p-4 text-right font-extrabold text-[#0e623a]">
-                      {(salesTarget - achievedStats.salesValue).toFixed(4)}
                     </td>
                     <td className="p-4 text-right font-bold text-black-500">
                       {lastMonthStats.salesValue.toFixed(4)}
@@ -428,9 +424,6 @@ const SummaryPlanning = () => {
                     <td className="p-4 text-right font-extrabold text-black-800">
                       {achievedStats.villasCount}
                     </td>
-                    <td className="p-4 text-right font-extrabold text-[#0e623a]">
-                      {villasTarget - achievedStats.villasCount}
-                    </td>
                     <td className="p-4 text-right font-bold text-black-500">
                       {lastMonthStats.villasCount}
                     </td>
@@ -451,9 +444,6 @@ const SummaryPlanning = () => {
                     <td className="p-4 text-black-500 font-semibold">Units</td>
                     <td className="p-4 text-right font-extrabold text-black-800">
                       {achievedStats.plotsCount}
-                    </td>
-                    <td className="p-4 text-right font-extrabold text-[#0e623a]">
-                      {plotsTarget - achievedStats.plotsCount}
                     </td>
                     <td className="p-4 text-right font-bold text-black-500">
                       {lastMonthStats.plotsCount}

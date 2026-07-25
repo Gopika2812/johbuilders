@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth, API_URL } from '../context/AuthContext';
+import { LOGO_BASE64 } from '../utils/logoBase64';
 import { 
   TrendingUp, 
   Calendar, 
@@ -80,9 +81,9 @@ const getExcelStyles = (titleBg, monthBg, headerBg, execBg) => {
 const getExcelHeader = (titleText, monthTitle, totalColumns, themeColor, logoPath) => {
     const safeCols = Math.max(1, totalColumns);
     return `
-      <tr style="height: 60px;">
-        <td colspan="${safeCols}" class="title-row" style="border: 1px solid #000000; border-bottom: none; vertical-align:middle; text-align:center; height: 60px;">
-          <img src="${logoPath}" width="150" height="52" style="vertical-align: middle;" />
+      <tr style="height: 50px;">
+        <td colspan="${safeCols}" bgcolor="#0B4D2D" class="title-row" style="background-color: #0B4D2D; color: #FFFFFF; font-family: 'Segoe UI', Arial, sans-serif; font-size: 16pt; font-weight: bold; text-align: center; vertical-align: middle; border: 1px solid #000000; height: 50px;">
+          JOHN BUILDWELL
         </td>
       </tr>
       <tr style="height: 40px;">
@@ -335,7 +336,7 @@ const ObservedBarChart = ({ dataArray, xKey, yKey, barColor, isPercent = false }
 
 const KPIInsights = () => {
   const { token, user } = useAuth();
-  const logoPath = window.location.origin + "/jb_logo.jpg";
+  const logoPath = LOGO_BASE64;
   
   // Date filters - default to current month
   const [fromDate, setFromDate] = useState(() => new Date().toISOString().split('T')[0]);
@@ -1258,54 +1259,52 @@ const KPIInsights = () => {
         <body>
           <table>
             <thead>
-              <tr style="height: 80px;">
-                <td colspan="10" class="bg-header-blue font-bold" style="font-size: 14pt; font-weight: bold; height: 80px; text-align: center; vertical-align: middle;">
-                  <img src="${logoPath}" width="250" height="80" style="vertical-align: middle; margin-right: 15px;" />
+              <tr style="height: 60px;">
+                <td colspan="2" bgcolor="#0B4D2D" class="bg-header-green" style="background-color: #0B4D2D; color: #FFFFFF; font-family: 'Segoe UI', Arial, sans-serif; font-size: 14pt; font-weight: bold; text-align: center; vertical-align: middle; border: 1px solid #000000; height: 60px;">
+                  JOHN BUILDWELL
+                </td>
+                <td colspan="8" bgcolor="#9BC2E6" class="bg-header-blue font-bold" style="background-color: #9BC2E6; font-size: 14pt; font-weight: bold; height: 60px; text-align: center; vertical-align: middle; border: 1px solid #000000;">
                   SALES PARAMETER REPORT
                 </td>
               </tr>
               <tr>
-                <th class="bg-header-green" style="width: 50px;">S.No</th>
-                <th class="bg-header-green" style="width: 250px;">TOTAL SALES PROJECTION ${dateForMonth.getFullYear() - 1} - ${dateForMonth.getFullYear().toString().substring(2)}</th>
-                <th class="bg-header-green" style="width: 180px;">TOTAL</th>
-                <th class="bg-header-green" style="width: 80px;">UNIT</th>
-                <th class="bg-header-green" style="width: 100px;">ACHIEVED</th>
-                <th class="bg-header-green" style="width: 100px;">BALANCE</th>
-                <th class="bg-header-green" style="width: 130px;">LAST MONTH ACHIEVED</th>
-                <th colspan="3" rowspan="3" class="bg-header-green font-bold" style="font-size: 11pt; vertical-align: middle; text-align: center;">
-                  ${shortMonthHeader}
+                <th bgcolor="#C6E0B4" class="bg-header-green" style="background-color: #C6E0B4; width: 50px; border: 1px solid #000000;">S.No</th>
+                <th colspan="2" bgcolor="#C6E0B4" class="bg-header-green" style="background-color: #C6E0B4; width: 250px; border: 1px solid #000000;">TOTAL SALES PROJECTION ${dateForMonth.getFullYear() - 1} - ${dateForMonth.getFullYear().toString().substring(2)}</th>
+                <th bgcolor="#C6E0B4" class="bg-header-green" style="background-color: #C6E0B4; width: 180px; border: 1px solid #000000;">TOTAL</th>
+                <th bgcolor="#C6E0B4" class="bg-header-green" style="background-color: #C6E0B4; width: 80px; border: 1px solid #000000;">UNIT</th>
+                <th bgcolor="#C6E0B4" class="bg-header-green" style="background-color: #C6E0B4; width: 100px; border: 1px solid #000000;">ACHIEVED</th>
+                <th bgcolor="#C6E0B4" class="bg-header-green" style="background-color: #C6E0B4; width: 130px; border: 1px solid #000000;">LAST MONTH ACHIEVED</th>
+                <th colspan="3" rowspan="3" bgcolor="#C6E0B4" class="bg-header-green font-bold" style="background-color: #C6E0B4; font-size: 12pt; vertical-align: middle; text-align: center; text-transform: uppercase; border: 1px solid #000000;">
+                  ${shortMonthHeader.toUpperCase()}
                 </th>
               </tr>
             </thead>
             <tbody>
               <tr>
-                <td>1</td>
-                <td class="text-left font-bold">Overall Sales Target</td>
-                <td class="text-right font-bold">${sTarget}</td>
-                <td>Crores</td>
-                <td class="text-right">${currentAchieved.salesValue.toFixed(2)}</td>
-                <td class="text-right">${Math.max(0, sTarget - currentAchieved.salesValue).toFixed(2)}</td>
-                <td class="text-right">${lastMonthAchieved.salesValue.toFixed(2)}</td>
+                <td style="border: 1px solid #000000;">1</td>
+                <td colspan="2" class="text-left font-bold" style="border: 1px solid #000000;">Overall Sales Target</td>
+                <td class="text-right font-bold" style="border: 1px solid #000000;">${sTarget}</td>
+                <td style="border: 1px solid #000000;">Crores</td>
+                <td class="text-right" style="border: 1px solid #000000;">${currentAchieved.salesValue.toFixed(2)}</td>
+                <td class="text-right" style="border: 1px solid #000000;">${lastMonthAchieved.salesValue.toFixed(2)}</td>
               </tr>
               <tr>
-                <td>2</td>
-                <td class="text-left font-bold">Total Houses to be Sold</td>
-                <td class="text-right font-bold">${hTarget}</td>
-                <td>Units</td>
-                <td class="text-right">${currentAchieved.villasCount}</td>
-                <td class="text-right">${Math.max(0, hTarget - currentAchieved.villasCount)}</td>
-                <td class="text-right">${lastMonthAchieved.villasCount}</td>
+                <td style="border: 1px solid #000000;">2</td>
+                <td colspan="2" class="text-left font-bold" style="border: 1px solid #000000;">Total Houses to be Sold</td>
+                <td class="text-right font-bold" style="border: 1px solid #000000;">${hTarget}</td>
+                <td style="border: 1px solid #000000;">Units</td>
+                <td class="text-right" style="border: 1px solid #000000;">${currentAchieved.villasCount}</td>
+                <td class="text-right" style="border: 1px solid #000000;">${lastMonthAchieved.villasCount}</td>
               </tr>
               <tr>
-                <td>3</td>
-                <td class="text-left font-bold">Total Plots to be Sold</td>
-                <td class="text-right font-bold">${pTarget}</td>
-                <td>Units</td>
-                <td class="text-right">${currentAchieved.plotsCount}</td>
-                <td class="text-right">${Math.max(0, pTarget - currentAchieved.plotsCount)}</td>
-                <td class="text-right">${lastMonthAchieved.plotsCount}</td>
-                <td colspan="2" class="font-bold bg-header-green" style="font-size: 10pt;">DATE:</td>
-                <td class="bg-header-green" style="font-size: 10pt;">${todayFormatted}</td>
+                <td style="border: 1px solid #000000;">3</td>
+                <td colspan="2" class="text-left font-bold" style="border: 1px solid #000000;">Total Plots to be Sold</td>
+                <td class="text-right font-bold" style="border: 1px solid #000000;">${pTarget}</td>
+                <td style="border: 1px solid #000000;">Units</td>
+                <td class="text-right" style="border: 1px solid #000000;">${currentAchieved.plotsCount}</td>
+                <td class="text-right" style="border: 1px solid #000000;">${lastMonthAchieved.plotsCount}</td>
+                <td colspan="1" bgcolor="#C6E0B4" class="font-bold bg-header-green text-center" style="background-color: #C6E0B4; font-size: 10pt; border: 1px solid #000000;">DATE:</td>
+                <td colspan="2" bgcolor="#C6E0B4" class="bg-header-green text-center" style="background-color: #C6E0B4; font-size: 10pt; border: 1px solid #000000;">${todayFormatted}</td>
               </tr>
 
               <!-- Spacing row -->
@@ -1313,16 +1312,16 @@ const KPIInsights = () => {
 
               <!-- PHASE 2: Project wise Report Headers -->
               <tr>
-                <th class="bg-header-blue">S.NO.</th>
-                <th class="bg-header-blue">PROJECT</th>
-                <th class="bg-header-blue">DESCRIPTION</th>
-                <th class="bg-header-blue">TARGET</th>
-                <th class="bg-header-blue">ACTUAL</th>
-                <th class="bg-header-blue">% ACHIEVED</th>
-                <th class="bg-header-blue">1st Week Actual</th>
-                <th class="bg-header-blue">2nd Week Actual</th>
-                <th class="bg-header-blue">3rd Week Actual</th>
-                <th class="bg-header-blue">4th Week Actual</th>
+                <th bgcolor="#9BC2E6" class="bg-header-blue" style="background-color: #9BC2E6; border: 1px solid #000000;">S.NO.</th>
+                <th bgcolor="#9BC2E6" class="bg-header-blue" style="background-color: #9BC2E6; border: 1px solid #000000;">PROJECT</th>
+                <th bgcolor="#9BC2E6" class="bg-header-blue" style="background-color: #9BC2E6; border: 1px solid #000000;">DESCRIPTION</th>
+                <th bgcolor="#9BC2E6" class="bg-header-blue" style="background-color: #9BC2E6; border: 1px solid #000000;">TARGET</th>
+                <th bgcolor="#9BC2E6" class="bg-header-blue" style="background-color: #9BC2E6; border: 1px solid #000000;">ACTUAL</th>
+                <th bgcolor="#9BC2E6" class="bg-header-blue" style="background-color: #9BC2E6; border: 1px solid #000000;">% ACHIEVED</th>
+                <th bgcolor="#9BC2E6" class="bg-header-blue" style="background-color: #9BC2E6; border: 1px solid #000000;">1st Week Actual</th>
+                <th bgcolor="#9BC2E6" class="bg-header-blue" style="background-color: #9BC2E6; border: 1px solid #000000;">2nd Week Actual</th>
+                <th bgcolor="#9BC2E6" class="bg-header-blue" style="background-color: #9BC2E6; border: 1px solid #000000;">3rd Week Actual</th>
+                <th bgcolor="#9BC2E6" class="bg-header-blue" style="background-color: #9BC2E6; border: 1px solid #000000;">4th Week Actual</th>
               </tr>
       `;
 
@@ -1349,15 +1348,15 @@ const KPIInsights = () => {
 
           html += `
             <tr>
-              ${rIdx === 0 ? `<td rowspan="4" style="vertical-align: middle;">${index + 1}</td><td rowspan="4" class="font-bold" style="vertical-align: middle;">${proj.code || proj.name}</td>` : ''}
-              <td class="text-left">${row.label}</td>
-              <td class="text-right">${row.target}${row.isFloat ? ' Cr' : ''}</td>
-              <td class="text-right">${row.isFloat ? row.actual.toFixed(2) : row.actual}</td>
-              <td class="font-bold">${pctText}</td>
-              <td class="text-right">${row.isFloat ? row.w1.toFixed(2) : row.w1}</td>
-              <td class="text-right">${row.isFloat ? row.w2.toFixed(2) : row.w2}</td>
-              <td class="text-right">${row.isFloat ? row.w3.toFixed(2) : row.w3}</td>
-              <td class="text-right">${row.isFloat ? row.w4.toFixed(2) : row.w4}</td>
+              ${rIdx === 0 ? `<td rowspan="4" bgcolor="#E2EFDA" class="bg-light-green text-center" style="background-color: #E2EFDA; vertical-align: middle; border: 1px solid #000000;">${index + 1}</td><td rowspan="4" bgcolor="#E2EFDA" class="bg-light-green font-bold text-center" style="background-color: #E2EFDA; vertical-align: middle; border: 1px solid #000000;">${proj.code || proj.name}</td>` : ''}
+              <td bgcolor="#E2EFDA" class="text-left bg-light-green" style="background-color: #E2EFDA; border: 1px solid #000000;">${row.label}</td>
+              <td bgcolor="#E2EFDA" class="text-right bg-light-green" style="background-color: #E2EFDA; border: 1px solid #000000;">${row.target}${row.isFloat ? ' Cr' : ''}</td>
+              <td bgcolor="#E2EFDA" class="text-right bg-light-green" style="background-color: #E2EFDA; border: 1px solid #000000;">${row.isFloat ? row.actual.toFixed(2) : row.actual}</td>
+              <td bgcolor="#E2EFDA" class="font-bold" style="background-color: #E2EFDA; border: 1px solid #000000;">${pctText}</td>
+              <td bgcolor="#E2EFDA" class="text-right bg-light-green" style="background-color: #E2EFDA; border: 1px solid #000000;">${row.isFloat ? row.w1.toFixed(2) : row.w1}</td>
+              <td bgcolor="#E2EFDA" class="text-right bg-light-green" style="background-color: #E2EFDA; border: 1px solid #000000;">${row.isFloat ? row.w2.toFixed(2) : row.w2}</td>
+              <td bgcolor="#E2EFDA" class="text-right bg-light-green" style="background-color: #E2EFDA; border: 1px solid #000000;">${row.isFloat ? row.w3.toFixed(2) : row.w3}</td>
+              <td bgcolor="#E2EFDA" class="text-right bg-light-green" style="background-color: #E2EFDA; border: 1px solid #000000;">${row.isFloat ? row.w4.toFixed(2) : row.w4}</td>
             </tr>
           `;
         });
@@ -1368,34 +1367,43 @@ const KPIInsights = () => {
       html += `
             <!-- Phase 2 Overall Average achieved -->
             <tr>
-              <td class="bg-black-row"></td><td class="bg-black-row"></td><td class="bg-black-row"></td><td class="bg-black-row"></td><td class="bg-black-row"></td>
-              <td class="bg-orange-pct" style="font-size: 10pt; font-weight: bold; border: 1px solid #000000; text-align: center; vertical-align: middle;">${projectPerformanceText}</td>
-              <td class="bg-black-row"></td><td class="bg-black-row"></td><td class="bg-black-row"></td><td class="bg-black-row"></td>
+              <td bgcolor="#D9D9D9" class="bg-black-row" style="background-color: #D9D9D9; border: 1px solid #000000;">&nbsp;</td>
+              <td bgcolor="#D9D9D9" class="bg-black-row" style="background-color: #D9D9D9; border: 1px solid #000000;">&nbsp;</td>
+              <td bgcolor="#D9D9D9" class="bg-black-row" style="background-color: #D9D9D9; border: 1px solid #000000;">&nbsp;</td>
+              <td bgcolor="#D9D9D9" class="bg-black-row" style="background-color: #D9D9D9; border: 1px solid #000000;">&nbsp;</td>
+              <td bgcolor="#D9D9D9" class="bg-black-row" style="background-color: #D9D9D9; border: 1px solid #000000;">&nbsp;</td>
+              <td bgcolor="#F4B084" class="bg-orange-pct" style="background-color: #F4B084; font-size: 10pt; font-weight: bold; border: 1px solid #000000; text-align: center; vertical-align: middle;">${projectPerformanceText}</td>
+              <td bgcolor="#D9D9D9" class="bg-black-row" style="background-color: #D9D9D9; border: 1px solid #000000;">&nbsp;</td>
+              <td bgcolor="#D9D9D9" class="bg-black-row" style="background-color: #D9D9D9; border: 1px solid #000000;">&nbsp;</td>
+              <td bgcolor="#D9D9D9" class="bg-black-row" style="background-color: #D9D9D9; border: 1px solid #000000;">&nbsp;</td>
+              <td bgcolor="#D9D9D9" class="bg-black-row" style="background-color: #D9D9D9; border: 1px solid #000000;">&nbsp;</td>
             </tr>
 
             <!-- Spacing row -->
             <tr><td colspan="10" style="border: none; height: 15px;"></td></tr>
 
             <!-- PHASE 3: Marketing Plan Table -->
-            <tr style="height: 80px;">
-              <td colspan="10" class="bg-header-blue font-bold" style="font-size: 14pt; font-weight: bold; height: 80px; text-align: center; vertical-align: middle;">
-                <img src="${logoPath}" width="250" height="80" style="vertical-align: middle; margin-right: 15px;" />
+            <tr style="height: 60px;">
+              <td colspan="2" bgcolor="#0B4D2D" class="bg-header-green" style="background-color: #0B4D2D; color: #FFFFFF; font-family: 'Segoe UI', Arial, sans-serif; font-size: 14pt; font-weight: bold; text-align: center; vertical-align: middle; border: 1px solid #000000; height: 60px;">
+                JOHN BUILDWELL
+              </td>
+              <td colspan="8" bgcolor="#9BC2E6" class="bg-header-blue font-bold" style="background-color: #9BC2E6; font-size: 14pt; font-weight: bold; height: 60px; text-align: center; vertical-align: middle; border: 1px solid #000000;">
                 JB MARKETING PARAMETER REPORT
               </td>
             </tr>
             <tr style="height: 22px;">
-              <td colspan="10" class="bg-header-green font-bold" style="font-size: 10pt; height: 22px; text-align: center; vertical-align: middle; text-transform: uppercase;">MONTH OF ${monthNames[dateForMonth.getMonth()].toUpperCase()} ${dateForMonth.getFullYear()}</td>
+              <td colspan="10" bgcolor="#C6E0B4" class="bg-header-green font-bold" style="background-color: #C6E0B4; font-size: 10pt; height: 22px; text-align: center; vertical-align: middle; text-transform: uppercase; border: 1px solid #000000;">MONTH OF ${monthNames[dateForMonth.getMonth()].toUpperCase()} ${dateForMonth.getFullYear()}</td>
             </tr>
             <tr>
-              <th class="bg-header-blue">S.NO.</th>
-              <th colspan="2" class="bg-header-blue">DESCRIPTION</th>
-              <th class="bg-header-blue">BUDGET/ TARGET</th>
-              <th class="bg-header-blue">ACTUAL</th>
-              <th class="bg-header-blue">% ACHIEVED</th>
-              <th class="bg-header-blue">1st Week Actual</th>
-              <th class="bg-header-blue">2nd Week Actual</th>
-              <th class="bg-header-blue">3rd Week Actual</th>
-              <th class="bg-header-blue">4th Week Actual</th>
+              <th bgcolor="#9BC2E6" class="bg-header-blue" style="background-color: #9BC2E6; border: 1px solid #000000;">S.NO.</th>
+              <th colspan="2" bgcolor="#9BC2E6" class="bg-header-blue" style="background-color: #9BC2E6; border: 1px solid #000000;">DESCRIPTION</th>
+              <th bgcolor="#9BC2E6" class="bg-header-blue" style="background-color: #9BC2E6; border: 1px solid #000000;">BUDGET/ TARGET</th>
+              <th bgcolor="#9BC2E6" class="bg-header-blue" style="background-color: #9BC2E6; border: 1px solid #000000;">ACTUAL</th>
+              <th bgcolor="#9BC2E6" class="bg-header-blue" style="background-color: #9BC2E6; border: 1px solid #000000;">% ACHIEVED</th>
+              <th bgcolor="#9BC2E6" class="bg-header-blue" style="background-color: #9BC2E6; border: 1px solid #000000;">1st Week Actual</th>
+              <th bgcolor="#9BC2E6" class="bg-header-blue" style="background-color: #9BC2E6; border: 1px solid #000000;">2nd Week Actual</th>
+              <th bgcolor="#9BC2E6" class="bg-header-blue" style="background-color: #9BC2E6; border: 1px solid #000000;">3rd Week Actual</th>
+              <th bgcolor="#9BC2E6" class="bg-header-blue" style="background-color: #9BC2E6; border: 1px solid #000000;">4th Week Actual</th>
             </tr>
       `;
 
@@ -1403,24 +1411,30 @@ const KPIInsights = () => {
         const pctText = getPct(row.actual, row.target);
         html += `
           <tr>
-            <td>${row.sNo}</td>
-            <td colspan="2" class="text-left font-bold">${row.name}</td>
-            <td class="text-right">${row.isFloat ? '₹ ' : ''}${row.target.toLocaleString()}</td>
-            <td class="text-right">${row.isFloat ? '₹ ' : ''}${row.isFloat ? row.actual.toFixed(2) : row.actual}</td>
-            <td class="font-bold">${pctText}</td>
-            <td class="text-right">${row.isFloat ? '₹ ' : ''}${row.isFloat ? row.w1.toFixed(2) : row.w1}</td>
-            <td class="text-right">${row.isFloat ? '₹ ' : ''}${row.isFloat ? row.w2.toFixed(2) : row.w2}</td>
-            <td class="text-right">${row.isFloat ? '₹ ' : ''}${row.isFloat ? row.w3.toFixed(2) : row.w3}</td>
-            <td class="text-right">${row.isFloat ? '₹ ' : ''}${row.isFloat ? row.w4.toFixed(2) : row.w4}</td>
+            <td style="border: 1px solid #000000;">${row.sNo}</td>
+            <td colspan="2" class="text-left font-bold" style="border: 1px solid #000000;">${row.name}</td>
+            <td class="text-right" style="border: 1px solid #000000;">${row.isFloat ? '₹ ' : ''}${row.target.toLocaleString()}</td>
+            <td class="text-right" style="border: 1px solid #000000;">${row.isFloat ? '₹ ' : ''}${row.isFloat ? row.actual.toFixed(2) : row.actual}</td>
+            <td bgcolor="#E2EFDA" class="font-bold bg-light-green" style="background-color: #E2EFDA; border: 1px solid #000000;">${pctText}</td>
+            <td class="text-right" style="border: 1px solid #000000;">${row.isFloat ? '₹ ' : ''}${row.isFloat ? row.w1.toFixed(2) : row.w1}</td>
+            <td class="text-right" style="border: 1px solid #000000;">${row.isFloat ? '₹ ' : ''}${row.isFloat ? row.w2.toFixed(2) : row.w2}</td>
+            <td class="text-right" style="border: 1px solid #000000;">${row.isFloat ? '₹ ' : ''}${row.isFloat ? row.w3.toFixed(2) : row.w3}</td>
+            <td class="text-right" style="border: 1px solid #000000;">${row.isFloat ? '₹ ' : ''}${row.isFloat ? row.w4.toFixed(2) : row.w4}</td>
           </tr>
         `;
       });
 
       html += `
             <tr>
-              <td class="bg-black-row"></td><td class="bg-black-row"></td><td class="bg-black-row"></td><td class="bg-black-row"></td><td class="bg-black-row"></td>
-              <td class="bg-orange-pct" style="font-size: 10pt; font-weight: bold; border: 1px solid #000000; text-align: center; vertical-align: middle;">${marketingPerformanceText}</td>
-              <td class="bg-black-row"></td><td class="bg-black-row"></td><td class="bg-black-row"></td><td class="bg-black-row"></td>
+              <td bgcolor="#D9D9D9" class="bg-black-row" style="background-color: #D9D9D9; border: 1px solid #000000;">&nbsp;</td>
+              <td colspan="2" bgcolor="#D9D9D9" class="bg-black-row" style="background-color: #D9D9D9; border: 1px solid #000000;">&nbsp;</td>
+              <td bgcolor="#D9D9D9" class="bg-black-row" style="background-color: #D9D9D9; border: 1px solid #000000;">&nbsp;</td>
+              <td bgcolor="#D9D9D9" class="bg-black-row" style="background-color: #D9D9D9; border: 1px solid #000000;">&nbsp;</td>
+              <td bgcolor="#F4B084" class="bg-orange-pct" style="background-color: #F4B084; font-size: 10pt; font-weight: bold; border: 1px solid #000000; text-align: center; vertical-align: middle;">${marketingPerformanceText}</td>
+              <td bgcolor="#D9D9D9" class="bg-black-row" style="background-color: #D9D9D9; border: 1px solid #000000;">&nbsp;</td>
+              <td bgcolor="#D9D9D9" class="bg-black-row" style="background-color: #D9D9D9; border: 1px solid #000000;">&nbsp;</td>
+              <td bgcolor="#D9D9D9" class="bg-black-row" style="background-color: #D9D9D9; border: 1px solid #000000;">&nbsp;</td>
+              <td bgcolor="#D9D9D9" class="bg-black-row" style="background-color: #D9D9D9; border: 1px solid #000000;">&nbsp;</td>
             </tr>
           </tbody>
           </table>

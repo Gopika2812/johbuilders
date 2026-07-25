@@ -141,7 +141,7 @@ router.put('/:flowId/:complaintId/send-to-ped', protect, async (req, res) => {
 // @desc    PED updates price and returns to CRD
 // @access  Private
 router.put('/:flowId/:complaintId/ped-price', protect, async (req, res) => {
-  const { pedPrice } = req.body;
+  const { pedPrice, noPrice } = req.body;
   try {
     const flow = await CRDFlow.findById(req.params.flowId);
     if (!flow) return res.status(404).json({ message: 'Flow not found' });
@@ -149,14 +149,17 @@ router.put('/:flowId/:complaintId/ped-price', protect, async (req, res) => {
     const complaint = flow.complaints.id(req.params.complaintId);
     if (!complaint) return res.status(404).json({ message: 'Complaint not found' });
 
-    complaint.pedPrice = Number(pedPrice) || 0;
+    complaint.pedPrice = noPrice ? 0 : (Number(pedPrice) || 0);
+    complaint.noPrice = Boolean(noPrice || (Number(pedPrice) === 0));
     complaint.status = 'Returned to CRD';
     complaint.clientNotes = '';
     complaint.pricingDate = Date.now();
 
     flow.history.push({
       action: 'PED Pricing Updated',
-      notes: `PED team updated price (Rs. ${pedPrice}) for complaint ${complaint.token}`,
+      notes: (noPrice || Number(pedPrice) === 0)
+        ? `PED marked complaint ${complaint.token} as No Price (Free)`
+        : `PED team updated price (Rs. ${pedPrice}) for complaint ${complaint.token}`,
       user: req.user.name
     });
 

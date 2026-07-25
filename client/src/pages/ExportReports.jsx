@@ -51,9 +51,9 @@ const getExcelStyles = (titleBg, monthBg, headerBg, execBg) => {
 const getExcelHeader = (titleText, monthTitle, totalColumns, themeColor) => {
     const safeCols = Math.max(1, totalColumns);
     return `
-      <tr style="height: 60px;">
-        <td colspan="${safeCols}" class="title-row" style="border: 1px solid #000000; border-bottom: none; vertical-align:middle; text-align:center; height: 60px;">
-          <img src="${LOGO_BASE64}" width="150" height="52" style="vertical-align: middle;" />
+      <tr style="height: 50px;">
+        <td colspan="${safeCols}" bgcolor="#0B4D2D" class="title-row" style="background-color: #0B4D2D; color: #FFFFFF; font-family: 'Segoe UI', Arial, sans-serif; font-size: 16pt; font-weight: bold; text-align: center; vertical-align: middle; border: 1px solid #000000; height: 50px;">
+          JOHN BUILDWELL
         </td>
       </tr>
       <tr style="height: 40px;">
@@ -1315,61 +1315,50 @@ const ExportReports = () => {
         <body>
           <table>
             <!-- PHASE 1: Turnover Plan Table -->
-              <tr style="height: 80px;">
-                <td colspan="2" class="bg-header-blue" style="height: 80px; text-align: center; vertical-align: middle; border: 1px solid #000000; border-right: none;">
-                  <!--[if gte mso 9]>
-                    <img src="file:///E:/builders/client/public/jb_logo.jpg" width="150" height="52" style="vertical-align: middle;" />
-                  <![endif]-->
-                  <!--[if !mso]><!-->
-                    <img src="${LOGO_BASE64}" width="150" height="52" style="vertical-align: middle;" />
-                  <!--<![endif]-->
+              <tr style="height: 60px;">
+                <td colspan="2" bgcolor="#0B4D2D" class="bg-header-green" style="background-color: #0B4D2D; color: #FFFFFF; font-family: 'Segoe UI', Arial, sans-serif; font-size: 14pt; font-weight: bold; text-align: center; vertical-align: middle; border: 1px solid #000000; height: 60px;">
+                  JOHN BUILDWELL
                 </td>
-                <td colspan="8" class="bg-header-blue font-bold" style="font-size: 14pt; font-weight: bold; height: 80px; text-align: center; vertical-align: middle; border: 1px solid #000000; border-left: none;">
+                <td colspan="8" bgcolor="#9BC2E6" class="bg-header-blue font-bold" style="background-color: #9BC2E6; font-size: 14pt; font-weight: bold; height: 60px; text-align: center; vertical-align: middle; border: 1px solid #000000;">
                   JB ${projCode.toUpperCase()} SALES PARAMETER REPORT
                 </td>
               </tr>
               <tr>
-                <td class="bg-header-green font-bold text-center" style="width: 50px;">S.No</td>
-                <td colspan="2" class="bg-header-green font-bold text-center" style="width: 250px;">TOTAL SALES PROJECTION ${dateForMonth.getFullYear() - 1} - ${dateForMonth.getFullYear().toString().substring(2)}</td>
-                <td class="bg-header-green font-bold text-center" style="width: 180px;">TOTAL</td>
-                <td class="bg-header-green font-bold text-center" style="width: 80px;">UNIT</td>
-                <td class="bg-header-green font-bold text-center" style="width: 100px;">ACHIEVED</td>
-                <td class="bg-header-green font-bold text-center" style="width: 100px;">BALANCE</td>
-                <td class="bg-header-green font-bold text-center" style="width: 130px;">LAST MONTH ACHIEVED</td>
-                <td colspan="2" class="bg-header-green font-bold" style="font-size: 11pt; vertical-align: middle; text-align: center;">
-                  ${shortMonthHeader}
-                </td>
+                <th bgcolor="#C6E0B4" class="bg-header-green font-bold text-center" style="background-color: #C6E0B4; width: 50px; border: 1px solid #000000;">S.No</th>
+                <th colspan="2" bgcolor="#C6E0B4" class="bg-header-green font-bold text-center" style="background-color: #C6E0B4; width: 250px; border: 1px solid #000000;">TOTAL SALES PROJECTION ${dateForMonth.getFullYear() - 1} - ${dateForMonth.getFullYear().toString().substring(2)}</th>
+                <th bgcolor="#C6E0B4" class="bg-header-green font-bold text-center" style="background-color: #C6E0B4; width: 120px; border: 1px solid #000000;">TOTAL</th>
+                <th bgcolor="#C6E0B4" class="bg-header-green font-bold text-center" style="background-color: #C6E0B4; width: 80px; border: 1px solid #000000;">UNIT</th>
+                <th bgcolor="#C6E0B4" class="bg-header-green font-bold text-center" style="background-color: #C6E0B4; width: 100px; border: 1px solid #000000;">ACHIEVED</th>
+                <th bgcolor="#C6E0B4" class="bg-header-green font-bold text-center" style="background-color: #C6E0B4; width: 140px; border: 1px solid #000000;">LAST MONTH ACHIEVED</th>
+                <th colspan="3" rowspan="3" bgcolor="#C6E0B4" class="bg-header-green font-bold" style="background-color: #C6E0B4; font-size: 12pt; vertical-align: middle; text-align: center; text-transform: uppercase; border: 1px solid #000000;">
+                  ${shortMonthHeader.toUpperCase()}
+                </th>
               </tr>
               <tr>
-                <td class="text-center">1</td>
-                <td colspan="2" class="text-left font-bold">Overall Sales Target</td>
-                <td class="text-center font-bold">${sTarget}</td>
-                <td class="text-center">Crores</td>
-                <td class="text-center">${currentAchieved.salesValue.toFixed(2)}</td>
-                <td class="text-center">${Math.max(0, sTarget - currentAchieved.salesValue).toFixed(2)}</td>
-                <td class="text-center">${lastMonthAchieved.salesValue.toFixed(2)}</td>
-                <td colspan="2" class="bg-header-green" style="border: 1px solid #000000; border-bottom: none; border-top: none;">&nbsp;</td>
+                <td class="text-center" style="border: 1px solid #000000;">1</td>
+                <td colspan="2" class="text-left font-bold" style="border: 1px solid #000000;">Overall Sales Target</td>
+                <td class="text-center font-bold" style="border: 1px solid #000000;">${sTarget}</td>
+                <td class="text-center" style="border: 1px solid #000000;">Crores</td>
+                <td class="text-center" style="border: 1px solid #000000;">${currentAchieved.salesValue.toFixed(2)}</td>
+                <td class="text-center" style="border: 1px solid #000000;">${lastMonthAchieved.salesValue.toFixed(2)}</td>
               </tr>
               <tr>
-                <td class="text-center">2</td>
-                <td colspan="2" class="text-left font-bold">Total Houses to be Sold</td>
-                <td class="text-center font-bold">${hTarget}</td>
-                <td class="text-center">Units</td>
-                <td class="text-center">${currentAchieved.villasCount}</td>
-                <td class="text-center">${Math.max(0, hTarget - currentAchieved.villasCount)}</td>
-                <td class="text-center">${lastMonthAchieved.villasCount}</td>
-                <td colspan="2" class="bg-header-green" style="border: 1px solid #000000; border-top: none; border-bottom: none;">&nbsp;</td>
+                <td class="text-center" style="border: 1px solid #000000;">2</td>
+                <td colspan="2" class="text-left font-bold" style="border: 1px solid #000000;">Total Houses to be Sold</td>
+                <td class="text-center font-bold" style="border: 1px solid #000000;">${hTarget}</td>
+                <td class="text-center" style="border: 1px solid #000000;">Units</td>
+                <td class="text-center" style="border: 1px solid #000000;">${currentAchieved.villasCount}</td>
+                <td class="text-center" style="border: 1px solid #000000;">${lastMonthAchieved.villasCount}</td>
               </tr>
               <tr>
-                <td class="text-center">3</td>
-                <td colspan="2" class="text-left font-bold">Total Plots to be Sold</td>
-                <td class="text-center font-bold">${pTarget}</td>
-                <td class="text-center">Units</td>
-                <td class="text-center">${currentAchieved.plotsCount}</td>
-                <td class="text-center">${Math.max(0, pTarget - currentAchieved.plotsCount)}</td>
-                <td class="text-center">${lastMonthAchieved.plotsCount}</td>
-                <td colspan="1" class="font-bold bg-header-green text-center" style="font-size: 10pt;">DATE:</td>
-                <td class="bg-header-green text-center" style="font-size: 10pt;">${todayFormatted}</td>
+                <td class="text-center" style="border: 1px solid #000000;">3</td>
+                <td colspan="2" class="text-left font-bold" style="border: 1px solid #000000;">Total Plots to be Sold</td>
+                <td class="text-center font-bold" style="border: 1px solid #000000;">${pTarget}</td>
+                <td class="text-center" style="border: 1px solid #000000;">Units</td>
+                <td class="text-center" style="border: 1px solid #000000;">${currentAchieved.plotsCount}</td>
+                <td class="text-center" style="border: 1px solid #000000;">${lastMonthAchieved.plotsCount}</td>
+                <td colspan="1" bgcolor="#C6E0B4" class="font-bold bg-header-green text-center" style="background-color: #C6E0B4; font-size: 10pt; border: 1px solid #000000;">DATE:</td>
+                <td colspan="2" bgcolor="#C6E0B4" class="bg-header-green text-center" style="background-color: #C6E0B4; font-size: 10pt; border: 1px solid #000000;">${todayFormatted}</td>
               </tr>
 
               <!-- Spacing row -->
@@ -1377,16 +1366,16 @@ const ExportReports = () => {
 
               <!-- PHASE 2: Project wise Report Headers -->
               <tr>
-                <td class="bg-header-blue font-bold text-center">S.NO.</td>
-                <td class="bg-header-blue font-bold text-center">PROJECT</td>
-                <td class="bg-header-blue font-bold text-center">DESCRIPTION</td>
-                <td class="bg-header-blue font-bold text-center">TARGET</td>
-                <td class="bg-header-blue font-bold text-center">ACTUAL</td>
-                <td class="bg-header-blue font-bold text-center">% ACHIEVED</td>
-                <td class="bg-header-blue font-bold text-center">1st Week Actual</td>
-                <td class="bg-header-blue font-bold text-center">2nd Week Actual</td>
-                <td class="bg-header-blue font-bold text-center">3rd Week Actual</td>
-                <td class="bg-header-blue font-bold text-center">4th Week Actual</td>
+                <td bgcolor="#9BC2E6" class="bg-header-blue font-bold text-center" style="background-color: #9BC2E6;">S.NO.</td>
+                <td bgcolor="#9BC2E6" class="bg-header-blue font-bold text-center" style="background-color: #9BC2E6;">PROJECT</td>
+                <td bgcolor="#9BC2E6" class="bg-header-blue font-bold text-center" style="background-color: #9BC2E6;">DESCRIPTION</td>
+                <td bgcolor="#9BC2E6" class="bg-header-blue font-bold text-center" style="background-color: #9BC2E6;">TARGET</td>
+                <td bgcolor="#9BC2E6" class="bg-header-blue font-bold text-center" style="background-color: #9BC2E6;">ACTUAL</td>
+                <td bgcolor="#9BC2E6" class="bg-header-blue font-bold text-center" style="background-color: #9BC2E6;">% ACHIEVED</td>
+                <td bgcolor="#9BC2E6" class="bg-header-blue font-bold text-center" style="background-color: #9BC2E6;">1st Week Actual</td>
+                <td bgcolor="#9BC2E6" class="bg-header-blue font-bold text-center" style="background-color: #9BC2E6;">2nd Week Actual</td>
+                <td bgcolor="#9BC2E6" class="bg-header-blue font-bold text-center" style="background-color: #9BC2E6;">3rd Week Actual</td>
+                <td bgcolor="#9BC2E6" class="bg-header-blue font-bold text-center" style="background-color: #9BC2E6;">4th Week Actual</td>
               </tr>
       `;
 
@@ -1415,20 +1404,18 @@ const ExportReports = () => {
           projTotalPct += getPctVal(row.actual, row.target);
           projTotalRows += 1;
 
-          const bgDescTarget = 'bg-light-green';
-          
           html += `
             <tr>
-              <td class="bg-light-green text-center" style="vertical-align: middle;">${rIdx + 1}</td>
-              ${rIdx === 0 ? `<td rowspan="5" class="bg-light-green font-bold text-center" style="vertical-align: middle;">${proj.code || proj.name}</td>` : ''}
-              <td class="text-left ${bgDescTarget}">${row.label}</td>
-              <td class="text-center ${bgDescTarget}">${row.target}${row.isFloat ? ' Cr' : ''}</td>
-              <td class="text-center bg-light-green">${row.isFloat ? row.actual.toFixed(2) : row.actual}</td>
+              <td bgcolor="#E2EFDA" class="bg-light-green text-center" style="background-color: #E2EFDA; vertical-align: middle;">${rIdx + 1}</td>
+              ${rIdx === 0 ? `<td rowspan="5" bgcolor="#E2EFDA" class="bg-light-green font-bold text-center" style="background-color: #E2EFDA; vertical-align: middle;">${proj.code || proj.name}</td>` : ''}
+              <td bgcolor="#E2EFDA" class="text-left bg-light-green" style="background-color: #E2EFDA;">${row.label}</td>
+              <td bgcolor="#E2EFDA" class="text-center bg-light-green" style="background-color: #E2EFDA;">${row.target}${row.isFloat ? ' Cr' : ''}</td>
+              <td bgcolor="#E2EFDA" class="text-center bg-light-green" style="background-color: #E2EFDA;">${row.isFloat ? row.actual.toFixed(2) : row.actual}</td>
               <td class="font-bold text-right" style="background-color: #FFFFFF;">${pctText}</td>
-              <td class="text-center bg-light-green">${row.isFloat ? row.w1.toFixed(2) : row.w1}</td>
-              <td class="text-center bg-light-green">${row.isFloat ? row.w2.toFixed(2) : row.w2}</td>
-              <td class="text-center bg-light-green">${row.isFloat ? row.w3.toFixed(2) : row.w3}</td>
-              <td class="text-center bg-light-green">${row.isFloat ? row.w4.toFixed(2) : row.w4}</td>
+              <td bgcolor="#E2EFDA" class="text-center bg-light-green" style="background-color: #E2EFDA;">${row.isFloat ? row.w1.toFixed(2) : row.w1}</td>
+              <td bgcolor="#E2EFDA" class="text-center bg-light-green" style="background-color: #E2EFDA;">${row.isFloat ? row.w2.toFixed(2) : row.w2}</td>
+              <td bgcolor="#E2EFDA" class="text-center bg-light-green" style="background-color: #E2EFDA;">${row.isFloat ? row.w3.toFixed(2) : row.w3}</td>
+              <td bgcolor="#E2EFDA" class="text-center bg-light-green" style="background-color: #E2EFDA;">${row.isFloat ? row.w4.toFixed(2) : row.w4}</td>
             </tr>
           `;
         });
@@ -1437,9 +1424,16 @@ const ExportReports = () => {
 
         html += `
             <tr class="bg-black-row">
-              <td class="bg-black-row">&nbsp;</td><td class="bg-black-row">&nbsp;</td><td class="bg-black-row">&nbsp;</td><td class="bg-black-row">&nbsp;</td><td class="bg-black-row">&nbsp;</td>
-              <td class="bg-orange-pct" style="font-size: 10pt; font-weight: bold; border: 1px solid #000000; text-align: center; vertical-align: middle;">${projPerformanceText}</td>
-              <td class="bg-black-row">&nbsp;</td><td class="bg-black-row">&nbsp;</td><td class="bg-black-row">&nbsp;</td><td class="bg-black-row">&nbsp;</td>
+              <td bgcolor="#D9D9D9" class="bg-black-row" style="background-color: #D9D9D9;">&nbsp;</td>
+              <td bgcolor="#D9D9D9" class="bg-black-row" style="background-color: #D9D9D9;">&nbsp;</td>
+              <td bgcolor="#D9D9D9" class="bg-black-row" style="background-color: #D9D9D9;">&nbsp;</td>
+              <td bgcolor="#D9D9D9" class="bg-black-row" style="background-color: #D9D9D9;">&nbsp;</td>
+              <td bgcolor="#D9D9D9" class="bg-black-row" style="background-color: #D9D9D9;">&nbsp;</td>
+              <td bgcolor="#F4B084" class="bg-orange-pct" style="background-color: #F4B084; font-size: 10pt; font-weight: bold; border: 1px solid #000000; text-align: center; vertical-align: middle;">${projPerformanceText}</td>
+              <td bgcolor="#D9D9D9" class="bg-black-row" style="background-color: #D9D9D9;">&nbsp;</td>
+              <td bgcolor="#D9D9D9" class="bg-black-row" style="background-color: #D9D9D9;">&nbsp;</td>
+              <td bgcolor="#D9D9D9" class="bg-black-row" style="background-color: #D9D9D9;">&nbsp;</td>
+              <td bgcolor="#D9D9D9" class="bg-black-row" style="background-color: #D9D9D9;">&nbsp;</td>
             </tr>
         `;
       });
@@ -1449,32 +1443,27 @@ const ExportReports = () => {
             <tr><td colspan="10" style="border: none; height: 15px;"></td></tr>
 
             <!-- PHASE 3: Marketing Plan Table -->
-            <tr style="height: 80px;">
-              <td colspan="2" class="bg-header-blue" style="height: 80px; text-align: center; vertical-align: middle; border: 1px solid #000000; border-right: none;">
-                <!--[if gte mso 9]>
-                  <img src="file:///E:/builders/client/public/jb_logo.jpg" width="150" height="52" style="vertical-align: middle;" />
-                <![endif]-->
-                <!--[if !mso]><!-->
-                  <img src="${LOGO_BASE64}" width="150" height="52" style="vertical-align: middle;" />
-                <!--<![endif]-->
+            <tr style="height: 60px;">
+              <td colspan="2" bgcolor="#0B4D2D" class="bg-header-green" style="background-color: #0B4D2D; color: #FFFFFF; font-family: 'Segoe UI', Arial, sans-serif; font-size: 14pt; font-weight: bold; text-align: center; vertical-align: middle; border: 1px solid #000000; height: 60px;">
+                JOHN BUILDWELL
               </td>
-              <td colspan="8" class="bg-header-blue font-bold" style="font-size: 14pt; font-weight: bold; height: 80px; text-align: center; vertical-align: middle; border: 1px solid #000000; border-left: none;">
+              <td colspan="8" bgcolor="#9BC2E6" class="bg-header-blue font-bold" style="background-color: #9BC2E6; font-size: 14pt; font-weight: bold; height: 60px; text-align: center; vertical-align: middle; border: 1px solid #000000;">
                 JB MARKETING PARAMETER REPORT
               </td>
             </tr>
             <tr style="height: 22px;">
-              <td colspan="10" class="bg-header-green font-bold" style="font-size: 10pt; height: 22px; text-align: center; vertical-align: middle; text-transform: uppercase;">MONTH OF ${monthNames[dateForMonth.getMonth()].toUpperCase()} ${dateForMonth.getFullYear()}</td>
+              <td colspan="10" bgcolor="#C6E0B4" class="bg-header-green font-bold" style="background-color: #C6E0B4; font-size: 10pt; height: 22px; text-align: center; vertical-align: middle; text-transform: uppercase;">MONTH OF ${monthNames[dateForMonth.getMonth()].toUpperCase()} ${dateForMonth.getFullYear()}</td>
             </tr>
             <tr>
-              <td class="bg-header-blue font-bold text-center">S.NO.</td>
-              <td colspan="2" class="bg-header-blue font-bold text-center">DESCRIPTION</td>
-              <td class="bg-header-blue font-bold text-center">BUDGET/ TARGET</td>
-              <td class="bg-header-blue font-bold text-center">ACTUAL</td>
-              <td class="bg-header-blue font-bold text-center">% ACHIEVED</td>
-              <td class="bg-header-blue font-bold text-center">1st Week Actual</td>
-              <td class="bg-header-blue font-bold text-center">2nd Week Actual</td>
-              <td class="bg-header-blue font-bold text-center">3rd Week Actual</td>
-              <td class="bg-header-blue font-bold text-center">4th Week Actual</td>
+              <td bgcolor="#9BC2E6" class="bg-header-blue font-bold text-center" style="background-color: #9BC2E6;">S.NO.</td>
+              <td colspan="2" bgcolor="#9BC2E6" class="bg-header-blue font-bold text-center" style="background-color: #9BC2E6;">DESCRIPTION</td>
+              <td bgcolor="#9BC2E6" class="bg-header-blue font-bold text-center" style="background-color: #9BC2E6;">BUDGET/ TARGET</td>
+              <td bgcolor="#9BC2E6" class="bg-header-blue font-bold text-center" style="background-color: #9BC2E6;">ACTUAL</td>
+              <td bgcolor="#9BC2E6" class="bg-header-blue font-bold text-center" style="background-color: #9BC2E6;">% ACHIEVED</td>
+              <td bgcolor="#9BC2E6" class="bg-header-blue font-bold text-center" style="background-color: #9BC2E6;">1st Week Actual</td>
+              <td bgcolor="#9BC2E6" class="bg-header-blue font-bold text-center" style="background-color: #9BC2E6;">2nd Week Actual</td>
+              <td bgcolor="#9BC2E6" class="bg-header-blue font-bold text-center" style="background-color: #9BC2E6;">3rd Week Actual</td>
+              <td bgcolor="#9BC2E6" class="bg-header-blue font-bold text-center" style="background-color: #9BC2E6;">4th Week Actual</td>
             </tr>
       `;
 
@@ -1489,24 +1478,30 @@ const ExportReports = () => {
 
         html += `
           <tr>
-            <td class="text-center">${row.sNo}</td>
-            <td colspan="2" class="text-left font-bold">${row.name}</td>
-            <td class="text-right" style="padding: 0 4px;">${formatVal(row.target, row.isFloat)}</td>
-            <td class="text-right" style="padding: 0 4px;">${formatVal(row.actual, row.isFloat)}</td>
-            <td class="font-bold text-right bg-light-green">${pctText}</td>
-            <td class="text-right" style="padding: 0 4px;">${formatVal(row.w1, row.isFloat)}</td>
-            <td class="text-right" style="padding: 0 4px;">${formatVal(row.w2, row.isFloat)}</td>
-            <td class="text-right" style="padding: 0 4px;">${formatVal(row.w3, row.isFloat)}</td>
-            <td class="text-right" style="padding: 0 4px;">${formatVal(row.w4, row.isFloat)}</td>
+            <td class="text-center" style="border: 1px solid #000000;">${row.sNo}</td>
+            <td colspan="2" class="text-left font-bold" style="border: 1px solid #000000;">${row.name}</td>
+            <td class="text-right" style="padding: 0 4px; border: 1px solid #000000;">${formatVal(row.target, row.isFloat)}</td>
+            <td class="text-right" style="padding: 0 4px; border: 1px solid #000000;">${formatVal(row.actual, row.isFloat)}</td>
+            <td bgcolor="#E2EFDA" class="font-bold text-right bg-light-green" style="background-color: #E2EFDA; border: 1px solid #000000;">${pctText}</td>
+            <td class="text-right" style="padding: 0 4px; border: 1px solid #000000;">${formatVal(row.w1, row.isFloat)}</td>
+            <td class="text-right" style="padding: 0 4px; border: 1px solid #000000;">${formatVal(row.w2, row.isFloat)}</td>
+            <td class="text-right" style="padding: 0 4px; border: 1px solid #000000;">${formatVal(row.w3, row.isFloat)}</td>
+            <td class="text-right" style="padding: 0 4px; border: 1px solid #000000;">${formatVal(row.w4, row.isFloat)}</td>
           </tr>
         `;
       });
 
       html += `
             <tr class="bg-black-row">
-              <td class="bg-black-row">&nbsp;</td><td class="bg-black-row">&nbsp;</td><td class="bg-black-row">&nbsp;</td><td class="bg-black-row">&nbsp;</td><td class="bg-black-row">&nbsp;</td>
-              <td class="bg-orange-pct" style="font-size: 10pt; font-weight: bold; border: 1px solid #000000; text-align: center; vertical-align: middle;">${marketingPerformanceText}</td>
-              <td class="bg-black-row">&nbsp;</td><td class="bg-black-row">&nbsp;</td><td class="bg-black-row">&nbsp;</td><td class="bg-black-row">&nbsp;</td>
+              <td bgcolor="#D9D9D9" class="bg-black-row" style="background-color: #D9D9D9; border: 1px solid #000000;">&nbsp;</td>
+              <td colspan="2" bgcolor="#D9D9D9" class="bg-black-row" style="background-color: #D9D9D9; border: 1px solid #000000;">&nbsp;</td>
+              <td bgcolor="#D9D9D9" class="bg-black-row" style="background-color: #D9D9D9; border: 1px solid #000000;">&nbsp;</td>
+              <td bgcolor="#D9D9D9" class="bg-black-row" style="background-color: #D9D9D9; border: 1px solid #000000;">&nbsp;</td>
+              <td bgcolor="#F4B084" class="bg-orange-pct" style="background-color: #F4B084; font-size: 10pt; font-weight: bold; border: 1px solid #000000; text-align: center; vertical-align: middle;">${marketingPerformanceText}</td>
+              <td bgcolor="#D9D9D9" class="bg-black-row" style="background-color: #D9D9D9; border: 1px solid #000000;">&nbsp;</td>
+              <td bgcolor="#D9D9D9" class="bg-black-row" style="background-color: #D9D9D9; border: 1px solid #000000;">&nbsp;</td>
+              <td bgcolor="#D9D9D9" class="bg-black-row" style="background-color: #D9D9D9; border: 1px solid #000000;">&nbsp;</td>
+              <td bgcolor="#D9D9D9" class="bg-black-row" style="background-color: #D9D9D9; border: 1px solid #000000;">&nbsp;</td>
             </tr>
           </table>
         </body>
