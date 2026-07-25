@@ -2515,7 +2515,7 @@ const ExportReports = () => {
         </head>
         <body>
           <table>
-            ${getExcelHeader(titleText, "", 7, "#7c3aed")}
+            ${getExcelHeader(titleText, "", 6, "#7c3aed")}
             <!-- Table Headers -->
             <tr class="table-headers">
               <th>S No</th>
@@ -2524,7 +2524,6 @@ const ExportReports = () => {
               <th>Contact Number</th>
               <th>Extra Work</th>
               <th>Value of Work</th>
-              <th>Status</th>
             </tr>
       `;
 
@@ -2543,7 +2542,6 @@ const ExportReports = () => {
             <td>${phoneStr}</td>
             <td class="text-left">${ew.extraWorkName}</td>
             <td class="text-right">₹ ${ew.value.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-            <td style="font-weight: bold; color: ${ew.status === 'Completed' ? '#16a34a' : '#ea580c'}">${ew.status}</td>
           </tr>
         `;
       });
@@ -2553,7 +2551,6 @@ const ExportReports = () => {
         <tr class="subtotal-row">
           <td colspan="5" class="text-right">TOTAL VALUE OF EXTRA WORKS</td>
           <td class="text-right">₹ ${totalValue.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-          <td></td>
         </tr>
       `;
 
@@ -2615,7 +2612,8 @@ const ExportReports = () => {
             projectCode: flow.project?.code || 'UNASSIGNED',
             unitId: flow.unitId || '',
             description: comp.description || '',
-            status: comp.status || 'Pending'
+            status: comp.status || 'Pending',
+            resolvedAt: comp.resolvedAt ? new Date(comp.resolvedAt) : null
           });
         });
       });
@@ -2641,34 +2639,37 @@ const ExportReports = () => {
         </head>
         <body>
           <table>
-            ${getExcelHeader(titleText, "", 7, "#7c3aed")}
+            ${getExcelHeader(titleText, "", 8, "#7c3aed")}
             <!-- Table Headers -->
             <tr class="table-headers">
               <th>S No</th>
-              <th>Reported Date</th>
               <th>Customer Name</th>
               <th>Project Type</th>
               <th>Unit / Flat / Plot No</th>
               <th>Complaint</th>
+              <th>Complaint Raised On</th>
+              <th>Completed On</th>
               <th>Status</th>
             </tr>
       `;
 
       complaintsList.forEach((comp, index) => {
-        const dateStr = comp.reportedDate.toLocaleDateString('en-GB').replace(/\//g, '.');
+        const raisedDateStr = comp.reportedDate ? comp.reportedDate.toLocaleDateString('en-GB').replace(/\//g, '.') : '-';
+        const completedDateStr = comp.resolvedAt ? comp.resolvedAt.toLocaleDateString('en-GB').replace(/\//g, '.') : '-';
         let statusColor = '#ea580c'; // Orange
-        if (comp.status === 'Resolved') statusColor = '#16a34a'; // Green
-        else if (comp.status === 'In Progress') statusColor = '#2563eb'; // Blue
+        if (comp.status === 'Resolved' || comp.status === 'Completed' || comp.status === 'Sent to Client (Completed)') statusColor = '#16a34a'; // Green
+        else if (comp.status === 'In Progress' || comp.status === 'Start Work') statusColor = '#2563eb'; // Blue
         const rowClass = index % 2 === 1 ? 'class="even-row"' : '';
 
         html += `
           <tr ${rowClass}>
             <td>${index + 1}</td>
-            <td>${dateStr}</td>
             <td class="text-left bold-label">${comp.customerName}</td>
             <td>${comp.projectType} (${comp.projectCode})</td>
             <td>${comp.unitId}</td>
             <td class="text-left">${comp.description}</td>
+            <td>${raisedDateStr}</td>
+            <td>${completedDateStr}</td>
             <td style="font-weight: bold; color: ${statusColor};">${comp.status}</td>
           </tr>
         `;
