@@ -1466,8 +1466,7 @@ const ExtraWorksInner = () => {
 
                                     return groupedFlowWorks.map((group, gIdx) => {
                                       const isGroupNew = checkGroupIsNew(group);
-                                      const hasPendingNew = group.items.some(w => w.status === 'Pending');
-                                      const reqRowBgClass = hasPendingNew
+                                      const reqRowBgClass = isGroupNew
                                         ? 'bg-amber-100/90 hover:bg-amber-200/80 border-l-4 border-l-amber-500 text-amber-950 font-semibold shadow-sm transition-colors cursor-pointer'
                                         : 'hover:bg-emerald-50/50 transition-colors cursor-pointer bg-white';
 
@@ -1537,7 +1536,7 @@ const ExtraWorksInner = () => {
                                           </td>
                                           <td className="p-4 align-middle text-center">
                                             {isGroupNew ? (
-                                              <span className="px-2.5 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full text-[10px] font-bold">New</span>
+                                              <span className="px-2.5 py-1 bg-yellow-100 text-yellow-800 border border-yellow-300 rounded-full text-[10px] font-extrabold shadow-xs">New</span>
                                             ) : (
                                               <span className="px-2.5 py-1 bg-slate-100 text-slate-700 border border-slate-200 rounded-full text-[10px] font-bold">Old</span>
                                             )}

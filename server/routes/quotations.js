@@ -307,16 +307,22 @@ router.get('/summary-stats/:month', protect, async (req, res) => {
       const bookingQuotations = quotations.filter(q => q.lead && q.lead.status === 'Booking');
 
       let salesValue = 0; // In rupees
-      let villasCount = 0; // count of Flat/Villa units
+      let flatsCount = 0;  // count of Flat units
+      let villasCount = 0; // count of Villa units
       let plotsCount = 0;  // count of Plot units
 
       bookingQuotations.forEach(q => {
         salesValue += q.totalValue || 0;
         const unitCount = q.selectedUnits?.length || 1;
-        if (q.projectType === 'Plot') {
+        const pType = (q.projectType || '').toLowerCase();
+        if (pType.includes('flat') || pType.includes('apartment')) {
+          flatsCount += unitCount;
+        } else if (pType.includes('villa')) {
+          villasCount += unitCount;
+        } else if (pType.includes('plot')) {
           plotsCount += unitCount;
         } else {
-          villasCount += unitCount;
+          flatsCount += unitCount;
         }
       });
 
@@ -325,6 +331,7 @@ router.get('/summary-stats/:month', protect, async (req, res) => {
 
       return {
         salesValue: parseFloat(salesInCrores.toFixed(4)),
+        flatsCount,
         villasCount,
         plotsCount
       };

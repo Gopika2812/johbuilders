@@ -79,15 +79,14 @@ const getExcelStyles = (titleBg, monthBg, headerBg, execBg) => {
 };
 
 const getExcelHeader = (titleText, monthTitle, totalColumns, themeColor, logoPath) => {
-    const safeCols = Math.max(1, totalColumns);
+    const safeCols = Math.max(3, totalColumns);
+    const webLogo = LOGO_BASE64;
     return `
-      <tr style="height: 50px;">
-        <td colspan="${safeCols}" bgcolor="#0B4D2D" class="title-row" style="background-color: #0B4D2D; color: #FFFFFF; font-family: 'Segoe UI', Arial, sans-serif; font-size: 16pt; font-weight: bold; text-align: center; vertical-align: middle; border: 1px solid #000000; height: 50px;">
-          JOHN BUILDWELL
+      <tr style="height: 60px;">
+        <td colspan="2" bgcolor="#0B4D2D" class="title-row" style="background-color: #0B4D2D; color: #FFFFFF; font-family: 'Segoe UI', Arial, sans-serif; font-size: 14pt; font-weight: bold; text-align: center; vertical-align: middle; border: 1px solid #000000; height: 60px; padding: 4px;">
+          <img src="${webLogo}" style="max-height: 48px; max-width: 100%; width: auto; object-fit: contain; margin: 0 auto; display: block;" alt="JOHN BUILDWELL" />
         </td>
-      </tr>
-      <tr style="height: 40px;">
-        <td colspan="${safeCols}" class="title-row" style="border: 1px solid #000000; border-top: none; vertical-align:middle; text-align:center; font-size: 14pt; font-weight: bold; color: #000000; height: 40px;">
+        <td colspan="${safeCols - 2}" class="title-row text-center" style="background-color: #FCE4D6; color: #000000; border: 1px solid #000000; border-left: none; vertical-align:middle; text-align:center; font-size: 14pt; font-weight: bold; height: 60px;">
           ${titleText}
         </td>
       </tr>
@@ -1289,21 +1288,21 @@ const KPIInsights = () => {
                 <td class="text-right" style="border: 1px solid #000000;">${lastMonthAchieved.salesValue.toFixed(2)}</td>
               </tr>
               <tr>
-                <td style="border: 1px solid #000000;">2</td>
-                <td colspan="2" class="text-left font-bold" style="border: 1px solid #000000;">Total Houses to be Sold</td>
-                <td class="text-right font-bold" style="border: 1px solid #000000;">${hTarget}</td>
-                <td style="border: 1px solid #000000;">Units</td>
-                <td class="text-right" style="border: 1px solid #000000;">${currentAchieved.villasCount}</td>
-                <td class="text-right" style="border: 1px solid #000000;">${lastMonthAchieved.villasCount}</td>
+                <td class="text-center" style="border: 1px solid #000000;">2</td>
+                <td colspan="2" class="text-left font-bold" style="border: 1px solid #000000;">Total Flats to be Sold</td>
+                <td class="text-center font-bold" style="border: 1px solid #000000;">${hTarget}</td>
+                <td class="text-center" style="border: 1px solid #000000;">Units</td>
+                <td class="text-center" style="border: 1px solid #000000;">${currentAchieved.villasCount}</td>
+                <td class="text-center" style="border: 1px solid #000000;">${lastMonthAchieved.villasCount}</td>
               </tr>
               <tr>
-                <td style="border: 1px solid #000000;">3</td>
-                <td colspan="2" class="text-left font-bold" style="border: 1px solid #000000;">Total Plots to be Sold</td>
-                <td class="text-right font-bold" style="border: 1px solid #000000;">${pTarget}</td>
-                <td style="border: 1px solid #000000;">Units</td>
-                <td class="text-right" style="border: 1px solid #000000;">${currentAchieved.plotsCount}</td>
-                <td class="text-right" style="border: 1px solid #000000;">${lastMonthAchieved.plotsCount}</td>
-                <td colspan="1" bgcolor="#C6E0B4" class="font-bold bg-header-green text-center" style="background-color: #C6E0B4; font-size: 10pt; border: 1px solid #000000;">DATE:</td>
+                <td class="text-center" style="border: 1px solid #000000;">3</td>
+                <td colspan="2" class="text-left font-bold" style="border: 1px solid #000000;">Total Villas to be Sold</td>
+                <td class="text-center font-bold" style="border: 1px solid #000000;">${pTarget}</td>
+                <td class="text-center" style="border: 1px solid #000000;">Units</td>
+                <td class="text-center" style="border: 1px solid #000000;">${currentAchieved.plotsCount}</td>
+                <td class="text-center" style="border: 1px solid #000000;">${lastMonthAchieved.plotsCount}</td>
+                <td colspan="1" bgcolor="#C6E0B4" class="bg-header-green font-bold text-center" style="background-color: #C6E0B4; font-size: 10pt; border: 1px solid #000000;">DATE:</td>
                 <td colspan="2" bgcolor="#C6E0B4" class="bg-header-green text-center" style="background-color: #C6E0B4; font-size: 10pt; border: 1px solid #000000;">${todayFormatted}</td>
               </tr>
 

@@ -283,7 +283,6 @@ router.put('/:flowId/:stageIdx/:workId/add-to-crd', protect, checkPermission('ex
     stage.amount += extraWork.amount;
     flow.totalCurrentValue += extraWork.amount;
     flow.totalExtraWorksValue += extraWork.amount;
-    flow.debtorsAmount += extraWork.amount;
 
     extraWork.status = 'Added to CRD';
     extraWork.crdAddedDate = new Date();

@@ -109,7 +109,7 @@ router.get('/:month', protect, async (req, res) => {
         });
       });
 
-      const flowDebtors = Math.max(0, (flow.totalCurrentValue || 0) - flowTotalPaid);
+      const flowDebtors = flow.debtorsAmount || 0;
       totalDebtorsAmount += flowDebtors;
 
       // NPA Calculation

@@ -66,13 +66,13 @@ const SummaryPlanning = () => {
         const statsData = await statsRes.json();
         setAchievedStats({
           salesValue: statsData.current?.salesValue || 0,
-          villasCount: statsData.current?.villasCount || statsData.current?.housesCount || 0,
-          plotsCount: statsData.current?.plotsCount || 0
+          flatsCount: statsData.current?.flatsCount || statsData.current?.villasCount || 0,
+          villasCount: statsData.current?.villasCount || 0
         });
         setLastMonthStats({
           salesValue: statsData.lastMonth?.salesValue || 0,
-          villasCount: statsData.lastMonth?.villasCount || statsData.lastMonth?.housesCount || 0,
-          plotsCount: statsData.lastMonth?.plotsCount || 0
+          flatsCount: statsData.lastMonth?.flatsCount || statsData.lastMonth?.villasCount || 0,
+          villasCount: statsData.lastMonth?.villasCount || 0
         });
       }
 
@@ -410,7 +410,7 @@ const SummaryPlanning = () => {
 
                   <tr className="hover:bg-black-50 transition align-middle">
                     <td className="p-4 text-center font-bold text-black-400">2</td>
-                    <td className="p-4 font-bold text-black-750">Total Villas to be Sold</td>
+                    <td className="p-4 font-bold text-black-750">Total Flats to be Sold</td>
                     <td className="p-4 text-right">
                       <input
                         type="number"
@@ -422,16 +422,16 @@ const SummaryPlanning = () => {
                     </td>
                     <td className="p-4 text-black-500 font-semibold">Units</td>
                     <td className="p-4 text-right font-extrabold text-black-800">
-                      {achievedStats.villasCount}
+                      {achievedStats.flatsCount !== undefined ? achievedStats.flatsCount : achievedStats.villasCount}
                     </td>
                     <td className="p-4 text-right font-bold text-black-500">
-                      {lastMonthStats.villasCount}
+                      {lastMonthStats.flatsCount !== undefined ? lastMonthStats.flatsCount : lastMonthStats.villasCount}
                     </td>
                   </tr>
 
                   <tr className="hover:bg-black-50 transition align-middle">
                     <td className="p-4 text-center font-bold text-black-400">3</td>
-                    <td className="p-4 font-bold text-black-750">Total Plots to be Sold</td>
+                    <td className="p-4 font-bold text-black-750">Total Villas to be Sold</td>
                     <td className="p-4 text-right">
                       <input
                         type="number"
@@ -443,10 +443,10 @@ const SummaryPlanning = () => {
                     </td>
                     <td className="p-4 text-black-500 font-semibold">Units</td>
                     <td className="p-4 text-right font-extrabold text-black-800">
-                      {achievedStats.plotsCount}
+                      {achievedStats.villasCount}
                     </td>
                     <td className="p-4 text-right font-bold text-black-500">
-                      {lastMonthStats.plotsCount}
+                      {lastMonthStats.villasCount}
                     </td>
                   </tr>
                 </tbody>
