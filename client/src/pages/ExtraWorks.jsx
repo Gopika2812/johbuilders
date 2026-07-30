@@ -374,6 +374,12 @@ const ExtraWorksInner = () => {
     fetchFlows();
     fetchAllBookedFlows();
     fetchStaff();
+
+    const intervalId = setInterval(() => {
+      fetchFlows();
+    }, 8000);
+
+    return () => clearInterval(intervalId);
   }, [token]);
 
   useEffect(() => {

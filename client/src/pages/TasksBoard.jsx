@@ -57,11 +57,17 @@ const TasksBoard = () => {
   useEffect(() => {
     fetchTasks();
     fetchEmployees();
+
+    const intervalId = setInterval(() => {
+      fetchTasks(true);
+    }, 5000);
+
+    return () => clearInterval(intervalId);
   }, [token, startDate, endDate]);
 
-  const fetchTasks = async () => {
+  const fetchTasks = async (isSilent = false) => {
     try {
-      setLoading(true);
+      if (!isSilent) setLoading(true);
       let url = `${API_URL}/user-tasks`;
       const queryParts = [];
       if (startDate) queryParts.push(`startDate=${startDate}`);

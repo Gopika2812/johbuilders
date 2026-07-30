@@ -914,10 +914,16 @@ const CRDDashboard = () => {
 
   useEffect(() => {
     fetchDashboardStats();
+
+    const intervalId = setInterval(() => {
+      fetchDashboardStats(true);
+    }, 8000);
+
+    return () => clearInterval(intervalId);
   }, [fromDate, toDate, selectedUser, selectedProject, selectedProjectType, selectedSource]);
 
-  const fetchDashboardStats = async () => {
-    setLoading(true);
+  const fetchDashboardStats = async (isSilent = false) => {
+    if (!isSilent) setLoading(true);
     try {
       let url = `${API_URL}/dashboard/stats?fromDate=${fromDate}&toDate=${toDate}`;
       if (selectedUser) url += `&userId=${selectedUser}`;

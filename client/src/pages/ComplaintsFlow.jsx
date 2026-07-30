@@ -74,6 +74,13 @@ const ComplaintsFlow = () => {
 
   useEffect(() => {
     fetchTasks();
+    fetchStaff();
+
+    const intervalId = setInterval(() => {
+      fetchTasks();
+    }, 5000);
+
+    return () => clearInterval(intervalId);
   }, [token]);
 
   const fetchTasks = async () => {

@@ -133,28 +133,34 @@ const ProjectsDictionary = () => {
     }
   };
 
-  useEffect(() => {
-    const fetchProjects = async () => {
-      try {
-        const response = await fetch(`${API_URL}/projects`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
-        if (response.ok) {
-          const data = await response.json();
-          setProjects(data);
-        } else {
-          setError('Failed to fetch projects database');
+  const fetchProjects = async () => {
+    try {
+      const response = await fetch(`${API_URL}/projects`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
         }
-      } catch (err) {
-        setError('Connection error fetching projects');
-      } finally {
-        setLoading(false);
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setProjects(data);
+      } else {
+        setError('Failed to fetch projects database');
       }
-    };
+    } catch (err) {
+      setError('Connection error fetching projects');
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchProjects();
+
+    const intervalId = setInterval(() => {
+      fetchProjects();
+    }, 8000);
+
+    return () => clearInterval(intervalId);
   }, [token]);
 
   const displayProjectType = (typeVal) => {

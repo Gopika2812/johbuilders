@@ -573,10 +573,16 @@ const KPIInsights = () => {
   useEffect(() => {
     setSelectedGroup(null);
     fetchInsightsData();
+
+    const intervalId = setInterval(() => {
+      fetchInsightsData(true);
+    }, 8000);
+
+    return () => clearInterval(intervalId);
   }, [fromDate, toDate, selectedUser, selectedProject]);
 
-  const fetchInsightsData = async () => {
-    setLoading(true);
+  const fetchInsightsData = async (isSilent = false) => {
+    if (!isSilent) setLoading(true);
     try {
       let url = `${API_URL}/dashboard/stats?fromDate=${fromDate}&toDate=${toDate}`;
       if (selectedUser) url += `&userId=${selectedUser}`;

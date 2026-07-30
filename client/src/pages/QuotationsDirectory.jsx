@@ -29,6 +29,12 @@ const QuotationsDirectory = () => {
   useEffect(() => {
     fetchQuotations();
     fetchUsers();
+
+    const intervalId = setInterval(() => {
+      fetchQuotations();
+    }, 8000);
+
+    return () => clearInterval(intervalId);
   }, [token]);
 
   const fetchUsers = async () => {

@@ -33,6 +33,12 @@ const Requests = () => {
 
   useEffect(() => {
     fetchRequests();
+
+    const intervalId = setInterval(() => {
+      fetchRequests();
+    }, 5000);
+
+    return () => clearInterval(intervalId);
   }, []);
 
   const handleApprove = async (id) => {
@@ -43,8 +49,8 @@ const Requests = () => {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (res.ok) {
-        setRequests(requests.filter(req => req._id !== id));
         alert('Request approved successfully');
+        await fetchRequests();
       } else {
         throw new Error('Failed to approve');
       }
@@ -64,8 +70,8 @@ const Requests = () => {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (res.ok) {
-        setRequests(requests.filter(req => req._id !== id));
         alert('Request rejected successfully');
+        await fetchRequests();
       } else {
         throw new Error('Failed to reject');
       }

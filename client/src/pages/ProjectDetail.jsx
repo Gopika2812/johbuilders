@@ -145,6 +145,12 @@ const ProjectDetail = () => {
 
   useEffect(() => {
     fetchProjectDetails();
+
+    const intervalId = setInterval(() => {
+      fetchProjectDetails();
+    }, 8000);
+
+    return () => clearInterval(intervalId);
   }, [id, token]);
 
   const fetchProjectDetails = async () => {
