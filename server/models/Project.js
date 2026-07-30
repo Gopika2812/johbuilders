@@ -74,7 +74,7 @@ const ProjectSchema = new mongoose.Schema({
   },
   projectType: [{
     type: String,
-    enum: ['Plot', 'Flat', 'House', 'Villa']
+    enum: ['Plot', 'Flat', 'House', 'Villa', 'Unit']
   }],
   layoutPlanImage: {
     type: String,

@@ -475,18 +475,18 @@ router.get('/stats', protect, async (req, res) => {
     let bookedUnitsList = [];
     let handoverUnitsList = [];
     let cancelledUnitsList = [];
-    let totalByType = { Plot: 0, Flat: 0, Villa: 0 };
-    let availableByType = { Plot: 0, Flat: 0, Villa: 0 };
-    let bookedByType = { Plot: 0, Flat: 0, Villa: 0 };
-    let handoverByType = { Plot: 0, Flat: 0, Villa: 0 };
-    let cancelledByType = { Plot: 0, Flat: 0, Villa: 0 };
+    let totalByType = { Plot: 0, Flat: 0, Villa: 0, Unit: 0 };
+    let availableByType = { Plot: 0, Flat: 0, Villa: 0, Unit: 0 };
+    let bookedByType = { Plot: 0, Flat: 0, Villa: 0, Unit: 0 };
+    let handoverByType = { Plot: 0, Flat: 0, Villa: 0, Unit: 0 };
+    let cancelledByType = { Plot: 0, Flat: 0, Villa: 0, Unit: 0 };
 
-    let totalValueByType = { Plot: 0, Flat: 0, Villa: 0 };
-    let availableValueByType = { Plot: 0, Flat: 0, Villa: 0 };
-    let bookedValueByType = { Plot: 0, Flat: 0, Villa: 0 };
-    let handoverValueByType = { Plot: 0, Flat: 0, Villa: 0 };
+    let totalValueByType = { Plot: 0, Flat: 0, Villa: 0, Unit: 0 };
+    let availableValueByType = { Plot: 0, Flat: 0, Villa: 0, Unit: 0 };
+    let bookedValueByType = { Plot: 0, Flat: 0, Villa: 0, Unit: 0 };
+    let handoverValueByType = { Plot: 0, Flat: 0, Villa: 0, Unit: 0 };
 
-    let projectsByType = { Plot: 0, Flat: 0, Villa: 0 };
+    let projectsByType = { Plot: 0, Flat: 0, Villa: 0, Unit: 0 };
     const projectUnitsStats = {};
 
     allProjects.forEach(p => {
@@ -508,6 +508,7 @@ router.get('/stats', protect, async (req, res) => {
       if (types.includes('Plot')) projectsByType.Plot += 1;
       if (types.includes('Flat')) projectsByType.Flat += 1;
       if (types.includes('House') || types.includes('Villa')) projectsByType.Villa += 1;
+      if (types.includes('Unit')) projectsByType.Unit = (projectsByType.Unit || 0) + 1;
 
       p.units?.forEach(u => {
         projectUnitsStats[pCode].total += 1;

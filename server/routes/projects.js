@@ -72,7 +72,7 @@ router.post('/', protect, checkPermission('projects', 'edit'), async (req, res) 
         remarks: u.remarks || '',
         isLocked: !!u.isLocked,
         mapCoordinates: u.mapCoordinates,
-        unitType: u.unitType || (projectType.includes('Plot') ? 'Plot' : (projectType.includes('House') || projectType.includes('Villa')) ? 'Villa' : 'Flat'),
+        unitType: u.unitType || (projectType.includes('Plot') ? 'Plot' : (projectType.includes('House') || projectType.includes('Villa')) ? 'Villa' : projectType.includes('Unit') ? 'Unit' : 'Flat'),
         ratePerUom: Number(u.ratePerUom) || 0,
         soldRatePerUom: Number(u.soldRatePerUom) || 0,
         soldConsideration: Number(u.soldConsideration) || 0
@@ -104,6 +104,19 @@ router.post('/', protect, checkPermission('projects', 'edit'), async (req, res) 
               status: 'New',
               isLocked: false,
               unitType: 'Villa'
+            });
+          }
+        } else if (type === 'Unit') {
+          const count = Number(req.body.initialVillaCount) || Number(req.body.initialUnitCount) || Number(initialUnitCount) || 5;
+          const initialSize = area / count;
+          for (let i = 1; i <= count; i++) {
+            units.push({
+              unitId: `${code}U${i}`,
+              size: initialSize,
+              price: initialSize * price,
+              status: 'New',
+              isLocked: false,
+              unitType: 'Unit'
             });
           }
         } else if (type === 'Flat') {
