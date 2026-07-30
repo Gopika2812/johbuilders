@@ -135,10 +135,6 @@ router.get('/:month', protect, async (req, res) => {
     }
 
     // Convert amounts to Crores
-    actuals.totalDebtors.total = totalDebtorsAmount / 10000000;
-    actuals.totalDebtors.actual = totalDebtorsAmount / 10000000;
-    actuals.totalDebtors.w1 = actuals.totalDebtors.actual; // display snapshot in w1
-    
     actuals.npaValue.total = totalNpaAmount / 10000000;
     actuals.npaValue.actual = totalNpaAmount / 10000000;
     actuals.npaValue.w1 = actuals.npaValue.actual; // display snapshot in w1
@@ -150,6 +146,17 @@ router.get('/:month', protect, async (req, res) => {
     actuals.collectionAmount.w3 = actuals.collectionAmount.w3 / 10000000;
     actuals.collectionAmount.w4 = actuals.collectionAmount.w4 / 10000000;
     actuals.collectionAmount.w5 = actuals.collectionAmount.w5 / 10000000;
+
+    // Total Debtors = Collection Amount + NPA Value
+    actuals.totalDebtors = {
+      total: actuals.collectionAmount.total + actuals.npaValue.total,
+      actual: actuals.collectionAmount.actual + actuals.npaValue.actual,
+      w1: actuals.collectionAmount.w1 + actuals.npaValue.w1,
+      w2: actuals.collectionAmount.w2 + actuals.npaValue.w2,
+      w3: actuals.collectionAmount.w3 + actuals.npaValue.w3,
+      w4: actuals.collectionAmount.w4 + actuals.npaValue.w4,
+      w5: actuals.collectionAmount.w5 + actuals.npaValue.w5
+    };
 
     res.json({
       target: plan,

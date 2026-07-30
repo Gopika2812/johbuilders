@@ -450,20 +450,11 @@ const RegisterProject = () => {
                 <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 cursor-pointer">
                   <input
                     type="checkbox"
-                    checked={projectTypes.includes('Villa')}
-                    onChange={() => handleToggleProjectType('Villa')}
+                    checked={projectTypes.includes('Unit')}
+                    onChange={() => handleToggleProjectType('Unit')}
                     className="w-4 h-4 text-[#0e623a] focus:ring-[#0e623a] border-gray-300 rounded"
                   />
-                  <span>Villa</span>
-                </label>
-                <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={projectTypes.includes('Flat')}
-                    onChange={() => handleToggleProjectType('Flat')}
-                    className="w-4 h-4 text-[#0e623a] focus:ring-[#0e623a] border-gray-300 rounded"
-                  />
-                  <span>Flat</span>
+                  <span>Unit</span>
                 </label>
               </div>
             </div>
@@ -667,49 +658,19 @@ const RegisterProject = () => {
                   </div>
                 )}
 
-                {projectTypes.includes('Villa') && (
+                {(projectTypes.includes('Unit') || projectTypes.includes('Villa') || projectTypes.includes('Flat')) && (
                   <div className="bg-white/20 backdrop-blur-sm border-2 border-[#0e623a]/30 rounded-2xl p-6 space-y-4">
                     <p className="text-xs text-gray-600 leading-normal text-left">
-                      Villas will be generated using code prefix: <strong>{code ? code.toUpperCase() : 'JMDV'}V1</strong>, <strong>{code ? code.toUpperCase() : 'JMDV'}V2...</strong>
+                      Units will be generated using code prefix: <strong>{code ? code.toUpperCase() : 'UNIT'}U1</strong>, <strong>{code ? code.toUpperCase() : 'UNIT'}U2...</strong>
                     </p>
                     <div className="text-left">
-                      <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-2">Initial Villa Count</label>
+                      <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-2 font-sans">Initial Unit Count</label>
                       <input
                         type="number"
                         min="1"
                         value={initialVillaCount}
                         onChange={(e) => setInitialVillaCount(e.target.value)}
                         className="w-32 px-4 py-2.5 bg-white/40 border border-[#0e623a]/20 rounded-xl focus:ring-2 focus:ring-[#0e623a] focus:outline-none"
-                      />
-                    </div>
-                  </div>
-                )}
-
-                {projectTypes.includes('Flat') && (
-                  <div className="bg-white/20 backdrop-blur-sm border-2 border-[#0e623a]/30 rounded-2xl p-6 grid grid-cols-1 sm:grid-cols-2 gap-6 text-left">
-                    <div className="sm:col-span-2">
-                      <p className="text-xs text-gray-600">
-                        Flats will be generated floor-by-floor in format: <strong>{code ? code.toUpperCase() : 'JLB'}-F1-101</strong>, <strong>{code ? code.toUpperCase() : 'JLB'}-F1-102...</strong>
-                      </p>
-                    </div>
-                    <div>
-                      <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-2">Number of Floors</label>
-                      <input
-                        type="number"
-                        min="1"
-                        value={floorCount}
-                        onChange={(e) => setFloorCount(e.target.value)}
-                        className="w-full px-4 py-2.5 bg-white/40 border border-[#0e623a]/20 rounded-xl focus:ring-2 focus:ring-[#0e623a] focus:outline-none"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-2">Flats per Floor</label>
-                      <input
-                        type="number"
-                        min="1"
-                        value={unitsPerFloor}
-                        onChange={(e) => setUnitsPerFloor(e.target.value)}
-                        className="w-full px-4 py-2.5 bg-white/40 border border-[#0e623a]/20 rounded-xl focus:ring-2 focus:ring-[#0e623a] focus:outline-none"
                       />
                     </div>
                   </div>

@@ -280,7 +280,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
         )}
 
         {/* Tasks Board Module */}
-        {/* {hasPermission('tasks_board') && (
+        {hasPermission('tasks_board') && (
           <div>
             <Link
               to="/tasks-board"
@@ -292,10 +292,10 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
               }`}
             >
               <ClipboardList className={`w-5 h-5 ${isActive('/tasks-board') ? 'text-white' : 'text-white group-hover:text-emerald-400'}`} />
-              <span className={`font-semibold whitespace-nowrap ${isExpanded ? "block" : "hidden"}`}>Tasks Board</span>
+              <span className={`font-semibold whitespace-nowrap ${isExpanded ? "block" : "hidden"}`}>Task Board</span>
             </Link>
           </div>
-        )} */}
+        )}
 
         {/* Employees Directory */}
         {hasPermission('employees') && (

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth, API_URL } from '../context/AuthContext';
+import { formatUnitWithLabel } from '../utils/formatUtils';
 import { 
   Building, 
   FileSpreadsheet, 
@@ -109,6 +110,7 @@ const CRDFlow = () => {
   // Dual Mode amounts
   const [dualTransferAmount, setDualTransferAmount] = useState('');
   const [dualLoanAmount, setDualLoanAmount] = useState('');
+  const [paymentDate, setPaymentDate] = useState(() => new Date().toISOString().split('T')[0]);
 
   // 5 PDFs for stage 2
   const [pdfFiles, setPdfFiles] = useState(['', '', '', '', '']);
@@ -280,6 +282,9 @@ const CRDFlow = () => {
         setActiveFlow(newFlow);
         setSuccess('Milestone payment workflow initialized successfully!');
         setTimeout(() => setSuccess(''), 4000);
+      } else {
+        const errData = await initRes.json();
+        setError(errData.message || 'Failed to initialize milestone payment workflow');
       }
     } catch (err) {
       console.error(err);
@@ -520,6 +525,62 @@ const CRDFlow = () => {
     }
   };
 
+  const handleUpdateStageStatus = async (stageIdx, newStatus) => {
+    if (!activeFlow) return;
+    try {
+      setLoading(true);
+      const res = await fetch(`${API_URL}/crd-flow/${activeFlow._id}/stage/${stageIdx}/status`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ stageStatus: newStatus })
+      });
+      if (res.ok) {
+        const updated = await res.json();
+        setActiveFlow(updated);
+        setSuccess(`Stage status updated to "${newStatus}"`);
+        setTimeout(() => setSuccess(''), 3000);
+      } else {
+        const data = await res.json();
+        setError(data.message || 'Failed to update stage status');
+      }
+    } catch (err) {
+      setError('Error updating stage status');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleUpdateBilledStatus = async (stageIdx, newBilledStatus) => {
+    if (!activeFlow) return;
+    try {
+      setLoading(true);
+      const res = await fetch(`${API_URL}/crd-flow/${activeFlow._id}/stage/${stageIdx}/billed`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ billedStatus: newBilledStatus })
+      });
+      if (res.ok) {
+        const updated = await res.json();
+        setActiveFlow(updated);
+        setSuccess(`Billed status set to "${newBilledStatus}"`);
+        setTimeout(() => setSuccess(''), 3000);
+      } else {
+        const data = await res.json();
+        setError(data.message || 'Failed to update billed status');
+      }
+    } catch (err) {
+      setError('Error updating billed status');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleAutoPrepareDocs = () => {
     if (!activeFlow) return;
     const customerName = activeFlow.lead?.name?.replace(/\s+/g, '_') || 'Customer';
@@ -622,9 +683,10 @@ const CRDFlow = () => {
       if (res.ok) {
         const updated = await res.json();
         setActiveFlow(updated);
-        setSuccess('Cancellation request sent successfully!');
+        setSuccess(user?.role === 'Superadmin' ? 'Lead cancelled successfully!' : 'Cancellation request sent to Superadmin successfully!');
         setCancelModalOpen(false);
         setCancelNarration('');
+        fetchProjectsAndBookings(true);
         setTimeout(() => setSuccess(''), 4000);
       } else {
         const data = await res.json();
@@ -746,20 +808,18 @@ const CRDFlow = () => {
   const handleMakePayment = async (e) => {
     e.preventDefault();
 
-    let payload = {};
+    let payload = {
+      paymentDate: paymentDate || new Date().toISOString().split('T')[0]
+    };
     if (paymentMethod === 'Dual Mode') {
-      payload = {
-        payments: [
-          { method: 'Customer Transfer', amount: Number(dualTransferAmount), details: {} },
-          { method: 'Bank Loan', amount: Number(dualLoanAmount), details: {} }
-        ]
-      };
+      payload.payments = [
+        { method: 'Customer Transfer', amount: Number(dualTransferAmount), details: {} },
+        { method: 'Bank Loan', amount: Number(dualLoanAmount), details: {} }
+      ];
     } else {
-      payload = {
-        method: paymentMethod,
-        amount: Number(paymentAmount),
-        details: {}
-      };
+      payload.method = paymentMethod;
+      payload.amount = Number(paymentAmount);
+      payload.details = {};
     }
 
     setIsSubmitting(true);
@@ -782,6 +842,7 @@ const CRDFlow = () => {
         setActiveFlow(updated);
         setPaymentStageIdx(null);
         setPaymentAmount('');
+        setPaymentDate(new Date().toISOString().split('T')[0]);
         setPdfFiles(['', '', '', '', '']);
         setSuccess('Payment submitted successfully!');
         setTimeout(() => setSuccess(''), 4000);
@@ -948,6 +1009,8 @@ const CRDFlow = () => {
                 {hasColumnPermission('crdFlow', 'pendingValue') && <th className="p-4">Pending Value</th>}
                 {hasColumnPermission('crdFlow', 'assignedPerson') && <th className="p-4">Assigned Person</th>}
                 {hasColumnPermission('crdFlow', 'crdPerson') && <th className="p-4">CRD Person</th>}
+                {hasColumnPermission('crdFlow', 'pedPerson') && <th className="p-4">PED Person</th>}
+                {hasColumnPermission('crdFlow', 'accountsPerson') && <th className="p-4">Accounts Person</th>}
                 {hasColumnPermission('crdFlow', 'actions') && <th className="p-4 text-center">Quick Actions</th>}
               </tr>
             </thead>
@@ -960,7 +1023,10 @@ const CRDFlow = () => {
                   if (filterToDate && bookingStr > filterToDate) return false;
                   if (user?.role !== 'Superadmin') {
                     const quot = quotations.find(q => (q.lead?._id || q.lead) === lead._id);
-                    if (quot?.crdPerson?.name !== user.name && quot?.crdPerson?._id !== user.name && quot?.crdPerson?._id !== user._id) {
+                    const isCrdMatch = quot?.crdPerson?.name === user.name || quot?.crdPerson?._id === user.name || quot?.crdPerson?._id === user._id || quot?.crdPerson === user._id;
+                    const isPedMatch = quot?.pedPerson?.name === user.name || quot?.pedPerson?._id === user.name || quot?.pedPerson?._id === user._id || quot?.pedPerson === user._id;
+                    const isAccountsMatch = quot?.accountsPerson?.name === user.name || quot?.accountsPerson?._id === user.name || quot?.accountsPerson?._id === user._id || quot?.accountsPerson === user._id;
+                    if (!isCrdMatch && !isPedMatch && !isAccountsMatch) {
                       return false;
                     }
                   }
@@ -989,15 +1055,22 @@ const CRDFlow = () => {
                   );
                   const isFlowNew = hasNewExtraWork || hasNewComplaint;
                   
+                  const isCancelled = flow?.status === 'Cancelled' || flow?.status === 'Returned' || lead.status === 'Cancelled';
+                  const isCancelRequested = flow?.status === 'Cancel Requested' || lead.status === 'Cancel Requested';
+                  
                   return (
                     <React.Fragment key={lead._id}>
                       <tr 
                         className={`transition cursor-pointer ${
-                          isSelected 
-                            ? 'bg-emerald-50/30' 
-                            : isFlowNew 
-                              ? 'bg-yellow-50 hover:bg-yellow-100/50' 
-                              : 'hover:bg-black-50/50'
+                          isCancelled
+                            ? 'bg-red-100/70 hover:bg-red-100 border-l-4 border-l-red-600'
+                            : isCancelRequested
+                              ? 'bg-amber-50 hover:bg-amber-100/70 border-l-4 border-l-amber-500'
+                              : isSelected 
+                                ? 'bg-emerald-50/30' 
+                                : isFlowNew 
+                                  ? 'bg-yellow-50 hover:bg-yellow-100/50' 
+                                  : 'hover:bg-black-50/50'
                         }`}
                         onClick={() => {
                           if (isSelected) {
@@ -1016,7 +1089,19 @@ const CRDFlow = () => {
                         )}
                         {hasColumnPermission('crdFlow', 'customerName') && (
                           <td className="p-4">
-                            <div className="font-bold text-black-800">{lead.name}</div>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <div className={`font-bold ${isCancelled ? 'text-red-950 line-through' : isCancelRequested ? 'text-amber-950' : 'text-black-800'}`}>{lead.name}</div>
+                              {isCancelled && (
+                                <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded bg-red-600 text-white shadow-sm">
+                                  CANCELLED
+                                </span>
+                              )}
+                              {isCancelRequested && (
+                                <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded bg-amber-500 text-white shadow-sm animate-pulse">
+                                  CANCEL PENDING
+                                </span>
+                              )}
+                            </div>
                           </td>
                         )}
                         {hasColumnPermission('crdFlow', 'phoneNumber') && (
@@ -1082,6 +1167,20 @@ const CRDFlow = () => {
                           <td className="p-4">
                             <div className="font-semibold text-[#0e623a] text-xs">
                               {quot?.crdPerson?.name || 'Unassigned'}
+                            </div>
+                          </td>
+                        )}
+                        {hasColumnPermission('crdFlow', 'pedPerson') && (
+                          <td className="p-4">
+                            <div className="font-semibold text-purple-700 text-xs">
+                              {quot?.pedPerson?.name || 'Unassigned'}
+                            </div>
+                          </td>
+                        )}
+                        {hasColumnPermission('crdFlow', 'accountsPerson') && (
+                          <td className="p-4">
+                            <div className="font-semibold text-blue-700 text-xs">
+                              {quot?.accountsPerson?.name || 'Unassigned'}
                             </div>
                           </td>
                         )}
@@ -1163,19 +1262,31 @@ const CRDFlow = () => {
                                     )}
 
                                     {/* Cancel Lead */}
-                                    {menuFlow && menuFlow.status === 'Active' && (
-                                      <button
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          setActiveFlow(menuFlow);
-                                          setCancelModalOpen(true);
-                                          setActionMenuId(null);
-                                        }}
-                                        className="flex items-center gap-2 px-3 py-2 text-xs font-bold text-red-600 hover:bg-red-50 hover:text-red-800 rounded-lg transition"
-                                      >
-                                        <Trash className="w-4 h-4" /> Cancel Lead
-                                      </button>
-                                    )}
+                                     {/* Cancel Lead / Status Actions */}
+                                     {isCancelled ? (
+                                       <div className="flex items-center gap-2 px-3 py-2 text-xs font-bold text-red-700 bg-red-50 rounded-lg">
+                                         <Trash className="w-4 h-4 text-red-600" /> Cancelled
+                                       </div>
+                                     ) : isCancelRequested ? (
+                                       <div className="flex flex-col gap-1 px-3 py-2 bg-amber-50 rounded-lg border border-amber-200">
+                                         <div className="flex items-center gap-2 text-xs font-bold text-amber-800">
+                                           <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" /> Cancel Pending
+                                         </div>
+                                         <span className="text-[10px] text-amber-700">Awaiting Superadmin approval</span>
+                                       </div>
+                                     ) : (menuFlow || lead) && (
+                                       <button
+                                         onClick={(e) => {
+                                           e.stopPropagation();
+                                           if (menuFlow) setActiveFlow(menuFlow);
+                                           setCancelModalOpen(true);
+                                           setActionMenuId(null);
+                                         }}
+                                         className="flex items-center gap-2 px-3 py-2 text-xs font-bold text-red-600 hover:bg-red-50 hover:text-red-800 rounded-lg transition"
+                                       >
+                                         <Trash className="w-4 h-4" /> Cancel Lead
+                                       </button>
+                                     )}
 
                                     {selectedBookingId === lead._id && (
                                       <button
@@ -1210,14 +1321,17 @@ const CRDFlow = () => {
                 if (filterToDate && bookingStr > filterToDate) return false;
                 if (user?.role !== 'Superadmin') {
                   const quot = quotations.find(q => (q.lead?._id || q.lead) === lead._id);
-                  if (quot?.crdPerson?.name !== user.name && quot?.crdPerson?._id !== user._id) {
+                  const isCrdMatch = quot?.crdPerson?.name === user.name || quot?.crdPerson?._id === user.name || quot?.crdPerson?._id === user._id || quot?.crdPerson === user._id;
+                  const isPedMatch = quot?.pedPerson?.name === user.name || quot?.pedPerson?._id === user.name || quot?.pedPerson?._id === user._id || quot?.pedPerson === user._id;
+                  const isAccountsMatch = quot?.accountsPerson?.name === user.name || quot?.accountsPerson?._id === user.name || quot?.accountsPerson?._id === user._id || quot?.accountsPerson === user._id;
+                  if (!isCrdMatch && !isPedMatch && !isAccountsMatch) {
                     return false;
                   }
                 }
                 return true;
               }).length === 0 && (
                 <tr>
-                  <td colSpan="11" className="p-8 text-center text-black-400">
+                  <td colSpan="12" className="p-8 text-center text-black-400">
                     No matching booked leads found.
                   </td>
                 </tr>
@@ -1249,11 +1363,27 @@ const CRDFlow = () => {
                 {/* Auto Initializing Flow State */}
                 {!activeFlow ? (
                   <div className="bg-white border border-black-150 p-12 rounded-3xl shadow-sm space-y-6 text-center flex flex-col items-center justify-center">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#0e623a]"></div>
-                    <div className="max-w-md mx-auto space-y-2 mt-4">
-                      <h3 className="text-sm font-bold text-black-800">Initializing CRD Master Format...</h3>
-                      <p className="text-xs text-black-500">Automatically setting up the milestone payment schedules for this booking.</p>
-                    </div>
+                    {loading ? (
+                      <>
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#0e623a]"></div>
+                        <div className="max-w-md mx-auto space-y-2 mt-4">
+                          <h3 className="text-sm font-bold text-black-800">Initializing CRD Master Format...</h3>
+                          <p className="text-xs text-black-500">Automatically setting up the milestone payment schedules for this booking.</p>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="max-w-md mx-auto space-y-3">
+                        <h3 className="text-sm font-bold text-red-600">Failed to Load Milestone Details</h3>
+                        <p className="text-xs text-black-500">{error || 'Could not initialize or fetch CRD flow record for this booking.'}</p>
+                        <button
+                          type="button"
+                          onClick={() => handleBookingSelect(selectedBookingId)}
+                          className="px-4 py-2 bg-[#0e623a] text-white text-xs font-bold rounded-xl hover:bg-[#0b4d2d] transition cursor-pointer"
+                        >
+                          Retry Loading
+                        </button>
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <div className="bg-white border border-black-150 p-6 rounded-3xl shadow-sm">
@@ -1292,153 +1422,241 @@ const CRDFlow = () => {
                           className="px-4 py-2 bg-[#0e623a] text-white font-bold text-[11px] rounded-xl hover:bg-[#0b4d2d] transition shadow cursor-pointer flex items-center gap-1"
                         >
                           <CreditCard className="w-3.5 h-3.5" /> Log Payment
-                        </button>
+                                </button>
                       </div>
                     </div>
 
                     <div className="overflow-x-auto">
-                      <table className="w-full text-xs text-left">
-                        <thead className="bg-black-50 text-black-500 font-bold uppercase tracking-wider border-y">
-                          <tr>
-                            <th className="p-4 w-12">#</th>
-                            <th className="p-4">Milestone Stage</th>
-                            <th className="p-4 text-right">Stage Value</th>
-                            <th className="p-4 text-right">Received</th>
-                            <th className="p-4 text-right">Pending</th>
-                            <th className="p-4 text-center">Payment Action</th>
-                            <th className="p-4 text-center">Stage Action</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-black-100">
-                          {activeFlow.stages.map((stage, idx) => {
-                            const stageTotal = getStageTotal(stage);
-                            const stagePaid = getStagePaid(stage);
-                            const isPaidInFull = stageTotal > 0 && stagePaid >= stageTotal;
+                      {(() => {
+                        const currentQuot = quotations.find(q => (q.lead?._id || q.lead) === (activeFlow?.lead?._id || activeFlow?.lead));
+                        const isCrdOrAdmin = user?.role === 'Superadmin' || user?.role === 'Crd team' || (currentQuot && (currentQuot.crdPerson?._id === user._id || currentQuot.crdPerson === user._id || currentQuot.crdPerson?.name === user.name));
+                        const isPedOrAdmin = user?.role === 'Superadmin' || user?.role === 'Ped team' || (currentQuot && (currentQuot.pedPerson?._id === user._id || currentQuot.pedPerson === user._id || currentQuot.pedPerson?.name === user.name));
+                        const isAccountsOrAdmin = user?.role === 'Superadmin' || user?.role === 'Accounts team' || (currentQuot && (currentQuot.accountsPerson?._id === user._id || currentQuot.accountsPerson === user._id || currentQuot.accountsPerson?.name === user.name));
 
-                            return (
-                              <React.Fragment key={idx}>
-                                <tr className={`hover:bg-black-50/50 transition ${isPaidInFull ? 'bg-emerald-50/10' : ''}`}>
-                                  <td className="p-4 font-bold text-black-400">{idx + 1}</td>
-                                  <td className="p-4 cursor-pointer hover:bg-black-100/50 rounded transition group" onClick={() => toggleStage(idx)}>
-                                    <div className="font-bold text-black-800 flex items-center gap-2">
-                                      {stage.name}
-                                      {stage.extraWorks && stage.extraWorks.length > 0 && (
-                                        expandedStages[idx] ? <ChevronDown className="w-4 h-4 text-black-400 group-hover:text-black-600" /> : <ChevronRight className="w-4 h-4 text-black-400 group-hover:text-black-600" />
-                                      )}
-                                    </div>
-                                    <div className="text-[11px] text-black-400">
-                                      {stage.percentage === 5 
-                                        ? 'Token advance + 5% of total value' 
-                                        : `${stage.percentage}% of total value`}
-                                    </div>
-                                  </td>
-                                  <td className="p-4 text-right font-semibold text-black-700">
-                                    Rs. {stageTotal.toLocaleString()}
-                                    {stage.extraWorks && stage.extraWorks.length > 0 && (
-                                      <div className="text-[10px] text-blue-600 mt-0.5">+ Extra Works</div>
-                                    )}
-                                  </td>
-                                  <td className="p-4 text-right font-bold text-emerald-600">
-                                    Rs. {stagePaid.toLocaleString()}
-                                  </td>
-                                  <td className="p-4 text-right font-bold text-rose-600">
-                                    Rs. {Math.max(0, stageTotal - stagePaid).toLocaleString()}
-                                  </td>
-                                  <td className="p-4 text-center">
-                                    {stageTotal === 0 ? (
-                                      <span className="px-2.5 py-1 rounded-lg bg-gray-100 text-gray-500 text-[11px] font-bold uppercase border border-gray-200 shadow-sm inline-block w-24">
-                                        N/A
-                                      </span>
-                                    ) : isPaidInFull ? (
-                                      <span className="px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-800 text-[11px] font-extrabold uppercase border border-emerald-200 shadow-sm inline-block w-24">
-                                        Paid
-                                      </span>
-                                    ) : (
-                                      <button
-                                        type="button"
-                                        onClick={() => {
-                                          setPaymentStageIdx(idx);
-                                          const thisStagePending = Math.max(0, getStageTotal(stage) - getStagePaid(stage));
-                                          const arrears = getPendingPreviousStages(idx).reduce((sum, s) => sum + s.pending, 0);
-                                          const totalAmt = thisStagePending + arrears;
-                                          setPaymentAmount(totalAmt.toString());
-                                          const pct = activeFlow?.lead?.bankLoanPercentage || selectedBookingDetails?.bankLoanPercentage || 50;
-                                          const loanAmt = Math.round(totalAmt * (pct / 100));
-                                          const transferAmt = totalAmt - loanAmt;
-                                          setDualTransferAmount(transferAmt.toString());
-                                          setDualLoanAmount(loanAmt.toString());
-                                          setPaymentMethod(hasBankLoanSelected ? 'Bank Loan' : 'Customer Transfer');
-                                        }}
-                                        className="px-3 py-1.5 rounded-lg text-[11px] font-bold transition w-24 bg-blue-50 text-blue-700 hover:bg-blue-100 cursor-pointer border border-blue-200"
-                                      >
-                                        Pay
-                                      </button>
-                                    )}
-                                  </td>
-                                  <td className="p-4 text-center">
-                                    {stage.isCompleted ? (
-                                      <span className="px-2.5 py-1 rounded-lg bg-emerald-50 text-[#0e623a] text-[11px] font-extrabold uppercase border border-emerald-200 shadow-sm inline-block w-24">
-                                        Completed
-                                      </span>
-                                    ) : (
-                                      <button
-                                        type="button"
-                                        onClick={() => handleToggleStageCompletion(idx, stage.isCompleted)}
-                                        className="px-3 py-1.5 rounded-lg text-[11px] font-bold transition w-24 cursor-pointer border bg-amber-50 text-amber-700 hover:bg-amber-100 border-amber-200"
-                                      >
-                                        Complete
-                                      </button>
-                                    )}
-                                  </td>
-                                </tr>
-                                {/* Extra works rows if any */}
-                                {expandedStages[idx] && stage.extraWorks && stage.extraWorks.map((ew, ewIdx) => (
-                                  <tr key={`ew-${idx}-${ewIdx}`} className="bg-blue-50/30">
-                                    <td className="p-2 border-l-2 border-blue-400"></td>
-                                    <td className="p-2 text-[11px] text-black-600 flex items-center gap-2">
-                                      <ChevronRight className="w-3 h-3 text-blue-400" />
-                                      <button onClick={() => setExtraWorkDetailsModal(ew)} className="font-mono text-blue-700 font-bold hover:underline cursor-pointer">
-                                        {ew.ewId || '-'}
-                                      </button>
-                                      <span className="font-bold border-l pl-2 border-black-200">{ew.name}</span>
-                                    </td>
-                                    <td className="p-2 text-right text-[11px] font-semibold text-black-700">Rs. {ew.amount.toLocaleString()}</td>
-                                    <td colSpan="5"></td>
-                                  </tr>
-                                ))}
-                                {/* Payments breakdown if any */}
-                                {stage.payments && stage.payments.length > 0 && (
-                                  <tr className="bg-black-50/50">
-                                    <td></td>
-                                    <td colSpan="7" className="p-2">
-                                      <div className="flex flex-wrap gap-2">
-                                        {stage.payments.map((p, pIdx) => (
-                                          <div key={`p-${idx}-${pIdx}`} className="flex items-center gap-1.5 bg-white border border-black-200 px-2 py-1 rounded text-[10px] shadow-sm">
-                                            <CheckCircle className="w-3 h-3 text-emerald-500" />
-                                            <span className="font-semibold text-black-700">Rs. {p.amount.toLocaleString()}</span>
-                                            <span className="text-black-400 border-l border-black-200 pl-1.5 ml-0.5">{new Date(p.date).toLocaleDateString('en-GB')}</span>
-                                            <span className="text-blue-600 font-bold border-l border-black-200 pl-1.5 ml-0.5">{p.mode}</span>
+                        const visibleStages = activeFlow.stages
+                          .map((stage, idx) => ({ stage, originalIdx: idx }))
+                          .filter(({ originalIdx }) => isCrdOrAdmin || originalIdx >= 2);
+
+                        return (
+                          <table className="w-full text-xs text-left">
+                            <thead className="bg-black-50 text-black-500 font-bold uppercase tracking-wider border-y">
+                              <tr>
+                                <th className="p-4 w-12">#</th>
+                                <th className="p-4">Milestone Stage</th>
+                                <th className="p-4 text-right">Stage Value</th>
+                                <th className="p-4 text-right">Received</th>
+                                <th className="p-4 text-right">Pending</th>
+                                <th className="p-4 text-center">Billed Action</th>
+                                <th className="p-4 text-center">Stage Action</th>
+                                <th className="p-4 text-center">Payment Action</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-black-100">
+                              {visibleStages.map(({ stage, originalIdx }) => {
+                                const stageTotal = getStageTotal(stage);
+                                const stagePaid = getStagePaid(stage);
+                                const isPaidInFull = stageTotal > 0 && stagePaid >= stageTotal;
+
+                                return (
+                                  <React.Fragment key={originalIdx}>
+                                    <tr className={`hover:bg-black-50/50 transition ${isPaidInFull ? 'bg-emerald-50/10' : ''}`}>
+                                      <td className="p-4 font-bold text-black-400">{originalIdx + 1}</td>
+                                      <td className="p-4 cursor-pointer hover:bg-black-100/50 rounded transition group" onClick={() => toggleStage(originalIdx)}>
+                                        <div className="font-bold text-black-800 flex items-center gap-2">
+                                          {stage.name}
+                                          {stage.extraWorks && stage.extraWorks.length > 0 && (
+                                            expandedStages[originalIdx] ? <ChevronDown className="w-4 h-4 text-black-400 group-hover:text-black-600" /> : <ChevronRight className="w-4 h-4 text-black-400 group-hover:text-black-600" />
+                                          )}
+                                        </div>
+                                        <div className="text-[11px] text-black-400">
+                                          {stage.percentage === 5 
+                                            ? 'Token advance + 5% of total value' 
+                                            : `${stage.percentage}% of total value`}
+                                        </div>
+                                      </td>
+                                      <td className="p-4 text-right font-semibold text-black-700">
+                                        Rs. {stageTotal.toLocaleString()}
+                                        {stage.extraWorks && stage.extraWorks.length > 0 && (
+                                          <div className="text-[10px] text-blue-600 mt-0.5">+ Extra Works</div>
+                                        )}
+                                      </td>
+                                      <td className="p-4 text-right font-bold text-emerald-600">
+                                        Rs. {stagePaid.toLocaleString()}
+                                      </td>
+                                      <td className="p-4 text-right font-bold text-rose-600">
+                                        Rs. {Math.max(0, stageTotal - stagePaid).toLocaleString()}
+                                      </td>
+
+                                      {/* 1. BILLED ACTION (Accounts team) */}
+                                      <td className="p-4 text-center">
+                                        {isAccountsOrAdmin ? (
+                                          stage.billedStatus === 'Billed' ? (
+                                            <button
+                                              type="button"
+                                              onClick={() => handleUpdateBilledStatus(originalIdx, 'Not Billed')}
+                                              className="px-3 py-1.5 rounded-lg text-[11px] font-extrabold uppercase border bg-emerald-50 text-emerald-800 border-emerald-200 hover:bg-emerald-100 transition shadow-sm w-24 cursor-pointer"
+                                            >
+                                              Billed
+                                            </button>
+                                          ) : (
+                                            <button
+                                              type="button"
+                                              onClick={() => handleUpdateBilledStatus(originalIdx, 'Billed')}
+                                              className="px-3 py-1.5 rounded-lg text-[11px] font-bold transition w-24 border bg-blue-50 text-blue-700 hover:bg-blue-100 border-blue-200 shadow-sm cursor-pointer"
+                                            >
+                                              Complete
+                                            </button>
+                                          )
+                                        ) : (
+                                          stage.billedStatus === 'Billed' ? (
+                                            <span className="px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-800 text-[11px] font-extrabold uppercase border border-emerald-200 inline-block w-24">
+                                              Billed
+                                            </span>
+                                          ) : (
+                                            <span className="px-2.5 py-1 rounded-lg bg-gray-100 text-gray-500 text-[11px] font-bold uppercase border border-gray-200 inline-block w-24">
+                                              Not Billed
+                                            </span>
+                                          )
+                                        )}
+                                      </td>
+
+                                      {/* 2. STAGE ACTION (PED team: Start -> In Progress -> Completed) */}
+                                      <td className="p-4 text-center">
+                                        {isPedOrAdmin ? (
+                                          stage.stageStatus === 'Completed' || stage.isCompleted ? (
+                                            <button
+                                              type="button"
+                                              onClick={() => handleUpdateStageStatus(originalIdx, 'Start')}
+                                              className="px-2.5 py-1 rounded-lg bg-emerald-50 text-[#0e623a] text-[11px] font-extrabold uppercase border border-emerald-200 shadow-sm w-24 hover:bg-emerald-100 transition cursor-pointer"
+                                            >
+                                              Completed
+                                            </button>
+                                          ) : stage.stageStatus === 'In Progress' ? (
+                                            <button
+                                              type="button"
+                                              onClick={() => handleUpdateStageStatus(originalIdx, 'Completed')}
+                                              className="px-2 py-1 rounded-lg bg-amber-50 text-amber-800 text-[11px] font-extrabold uppercase border border-amber-200 shadow-sm w-24 hover:bg-amber-100 transition cursor-pointer"
+                                            >
+                                              In Progress
+                                            </button>
+                                          ) : (
+                                            <button
+                                              type="button"
+                                              onClick={() => handleUpdateStageStatus(originalIdx, 'In Progress')}
+                                              className="px-3 py-1.5 rounded-lg text-[11px] font-bold transition w-24 border bg-purple-50 text-purple-700 hover:bg-purple-100 border-purple-200 shadow-sm cursor-pointer"
+                                            >
+                                              Start
+                                            </button>
+                                          )
+                                        ) : (
+                                          stage.stageStatus === 'Completed' || stage.isCompleted ? (
+                                            <span className="px-2.5 py-1 rounded-lg bg-emerald-50 text-[#0e623a] text-[11px] font-extrabold uppercase border border-emerald-200 inline-block w-24">
+                                              Completed
+                                            </span>
+                                          ) : stage.stageStatus === 'In Progress' ? (
+                                            <span className="px-2.5 py-1 rounded-lg bg-amber-50 text-amber-800 text-[11px] font-extrabold uppercase border border-amber-200 inline-block w-24">
+                                              In Progress
+                                            </span>
+                                          ) : (
+                                            <span className="px-2.5 py-1 rounded-lg bg-gray-100 text-gray-500 text-[11px] font-bold uppercase border border-gray-200 inline-block w-24">
+                                              Start
+                                            </span>
+                                          )
+                                        )}
+                                      </td>
+
+                                      {/* 3. PAYMENT ACTION (CRD team: Pay / Paid) */}
+                                      <td className="p-4 text-center">
+                                        {stageTotal === 0 ? (
+                                          <span className="px-2.5 py-1 rounded-lg bg-gray-100 text-gray-500 text-[11px] font-bold uppercase border border-gray-200 shadow-sm inline-block w-24">
+                                            N/A
+                                          </span>
+                                        ) : isPaidInFull ? (
+                                          <span className="px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-800 text-[11px] font-extrabold uppercase border border-emerald-200 shadow-sm inline-block w-24">
+                                            Paid
+                                          </span>
+                                        ) : isCrdOrAdmin ? (
+                                          <button
+                                            type="button"
+                                            onClick={() => {
+                                              setPaymentStageIdx(originalIdx);
+                                              const thisStagePending = Math.max(0, getStageTotal(stage) - getStagePaid(stage));
+                                              const arrears = getPendingPreviousStages(originalIdx).reduce((sum, s) => sum + s.pending, 0);
+                                              const totalAmt = thisStagePending + arrears;
+                                              setPaymentAmount(totalAmt.toString());
+                                              const pct = activeFlow?.lead?.bankLoanPercentage || selectedBookingDetails?.bankLoanPercentage || 50;
+                                              const loanAmt = Math.round(totalAmt * (pct / 100));
+                                              const transferAmt = totalAmt - loanAmt;
+                                              setDualTransferAmount(transferAmt.toString());
+                                              setDualLoanAmount(loanAmt.toString());
+                                              setPaymentMethod(hasBankLoanSelected ? 'Bank Loan' : 'Customer Transfer');
+                                            }}
+                                            className="px-3 py-1.5 rounded-lg text-[11px] font-bold transition w-24 bg-blue-50 text-blue-700 hover:bg-blue-100 cursor-pointer border border-blue-200 shadow-sm"
+                                          >
+                                            Pay
+                                          </button>
+                                        ) : (
+                                          <span className="px-2.5 py-1 rounded-lg bg-rose-50 text-rose-700 text-[11px] font-bold uppercase border border-rose-200 inline-block w-24">
+                                            Unpaid
+                                          </span>
+                                        )}
+                                      </td>
+                                    </tr>
+
+                                    {/* Extra works rows if any */}
+                                    {expandedStages[originalIdx] && stage.extraWorks && stage.extraWorks.map((ew, ewIdx) => (
+                                      <tr key={`ew-${originalIdx}-${ewIdx}`} className="bg-blue-50/30">
+                                        <td className="p-2 border-l-2 border-blue-400"></td>
+                                        <td className="p-2 text-[11px] text-black-600 flex items-center gap-2">
+                                          <ChevronRight className="w-3 h-3 text-blue-400" />
+                                          <button onClick={() => setExtraWorkDetailsModal(ew)} className="font-mono text-blue-700 font-bold hover:underline cursor-pointer">
+                                            {ew.ewId || '-'}
+                                          </button>
+                                          <span className="font-bold border-l pl-2 border-black-200">{ew.name}</span>
+                                        </td>
+                                        <td className="p-2 text-right text-[11px] font-semibold text-black-700">Rs. {ew.amount.toLocaleString()}</td>
+                                        <td colSpan="5"></td>
+                                      </tr>
+                                    ))}
+
+                                    {/* Payments breakdown if any */}
+                                    {stage.payments && stage.payments.length > 0 && (
+                                      <tr className="bg-black-50/50">
+                                        <td></td>
+                                        <td colSpan="7" className="p-2">
+                                          <div className="flex flex-wrap gap-2">
+                                            {stage.payments.map((p, pIdx) => (
+                                              <div key={`p-${originalIdx}-${pIdx}`} className="flex items-center gap-1.5 bg-white border border-black-200 px-2 py-1 rounded text-[10px] shadow-sm">
+                                                <CheckCircle className="w-3 h-3 text-emerald-500" />
+                                                <span className="font-semibold text-black-700">Rs. {p.amount.toLocaleString()}</span>
+                                                <span className="text-black-400 border-l border-black-200 pl-1.5 ml-0.5">{new Date(p.date).toLocaleDateString('en-GB')}</span>
+                                                <span className="text-blue-600 font-bold border-l border-black-200 pl-1.5 ml-0.5">{p.method}</span>
+                                                {p.receivedBy && (
+                                                  <span className="text-purple-700 font-extrabold border-l border-black-200 pl-1.5 ml-0.5">By: {p.receivedBy}</span>
+                                                )}
+                                              </div>
+                                            ))}
                                           </div>
-                                        ))}
-                                      </div>
-                                    </td>
-                                  </tr>
-                                )}
-                              </React.Fragment>
-                            );
-                          })}
-                        </tbody>
-                        <tfoot className="bg-black-50 border-t border-black-200">
-                          <tr>
-                            <td colSpan="2" className="p-4 text-right font-black text-black-800 uppercase text-[11px] tracking-wider">Total CRD Value</td>
-                            <td className="p-4 text-right font-black text-[#0e623a] text-sm">Rs. {(() => {
-                              const totalWithExtra = activeFlow.stages.reduce((sum, s) => sum + getStageTotal(s), 0);
-                              return totalWithExtra.toLocaleString();
-                            })()}</td>
-                            <td colSpan="5"></td>
-                          </tr>
-                        </tfoot>
-                      </table>
+                                        </td>
+                                      </tr>
+                                    )}
+                                  </React.Fragment>
+                                );
+                              })}
+                            </tbody>
+                            <tfoot className="bg-black-50 border-t border-black-200">
+                              <tr>
+                                <td colSpan="2" className="p-4 text-right font-black text-black-800 uppercase text-[11px] tracking-wider">Total CRD Value</td>
+                                <td className="p-4 text-right font-black text-[#0e623a] text-sm">Rs. {(() => {
+                                  const totalWithExtra = activeFlow.stages.reduce((sum, s) => sum + getStageTotal(s), 0);
+                                  return totalWithExtra.toLocaleString();
+                                })()}</td>
+                                <td colSpan="5"></td>
+                              </tr>
+                            </tfoot>
+                          </table>
+                        );
+                      })()}
                     </div>
                   </div>
                 )}
@@ -1610,6 +1828,23 @@ const CRDFlow = () => {
                     </div>
                   )}
                 </div>
+
+                {/* Payment Received Date picker (allows today and up to 5 days ago) */}
+                <div>
+                  <label className="text-xs font-semibold text-black-600 block mb-1">Payment Received Date</label>
+                  <input
+                    type="date"
+                    required
+                    min={new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]}
+                    max={new Date().toISOString().split('T')[0]}
+                    value={paymentDate}
+                    onChange={(e) => setPaymentDate(e.target.value)}
+                    className="w-full px-4 py-2.5 bg-black-50 border border-black-250 rounded-xl text-sm font-semibold text-black-800 focus:outline-none focus:ring-2 focus:ring-[#0e623a]"
+                  />
+                  <span className="text-[10px] text-black-400 font-medium block mt-1">
+                    Allowed range: Past 5 days up to Today ({new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]} to {new Date().toISOString().split('T')[0]})
+                  </span>
+                </div>
                 {hasBankLoanSelected ? (
                   <div className="grid grid-cols-3 gap-2">
                     <button
@@ -1766,7 +2001,7 @@ const CRDFlow = () => {
 
                 {/* Subject */}
                 <div className="mb-6 text-[12px]">
-                  <span className="font-bold">Subject:</span> Payment Request Letter for <strong>{activeFlow.lead?.name}</strong> – <strong>"{activeFlow.project?.name}"</strong>, Plot/Unit No: <strong>{activeFlow.unitId}</strong>
+                  <span className="font-bold">Subject:</span> Payment Request Letter for <strong>{activeFlow.lead?.name}</strong> – <strong>"{activeFlow.project?.name}"</strong>, Unit/Flat/Villa: <strong>{formatUnitWithLabel(activeFlow.unitId, activeFlow.project?.projectType)}</strong>
                 </div>
 
                 {/* Letter Paragraphs */}
@@ -1780,7 +2015,7 @@ const CRDFlow = () => {
                     <div className="space-y-4 text-black-700 mb-6 font-sans text-[11px] leading-relaxed">
                       <p>Dear Sir,</p>
                       <p>
-                        We are writing to inform you that the <strong className="text-black-900">{activeFlow.stages[demandLetterStageIdx].name} ({activeFlow.stages[demandLetterStageIdx].percentage}%)</strong> milestone has been successfully completed for Unit No. <strong className="text-black-900">{activeFlow.unitId}</strong> in our premium project <strong className="text-black-900">"{activeFlow.project?.name}"</strong>, located at {activeFlow.project?.location || 'Palayamkottai, Tirunelveli'}.
+                        We are writing to inform you that the <strong className="text-black-900">{activeFlow.stages[demandLetterStageIdx].name} ({activeFlow.stages[demandLetterStageIdx].percentage}%)</strong> milestone has been successfully completed for <strong className="text-black-900">{formatUnitWithLabel(activeFlow.unitId, activeFlow.project?.projectType)}</strong> in our premium project <strong className="text-black-900">"{activeFlow.project?.name}"</strong>, located at {activeFlow.project?.location || 'Palayamkottai, Tirunelveli'}.
                       </p>
                       
                       {pendingPrev.length > 0 && (

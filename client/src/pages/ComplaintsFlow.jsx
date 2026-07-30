@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth, API_URL } from '../context/AuthContext';
+import { formatUnitWithLabel } from '../utils/formatUtils';
 import { AlertCircle, Clock, CheckCircle2, FileText, Send, Loader2, Star, MessageSquare, ChevronDown, ChevronUp, Activity, X, Search, Eye, Image } from 'lucide-react';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
@@ -15,12 +16,29 @@ const ComplaintsFlow = () => {
   const [expandedNotes, setExpandedNotes] = useState({});
   const [feedbackForm, setFeedbackForm] = useState({ rating: 0, feedback: '' });
   const [hoverRating, setHoverRating] = useState(0);
+  const [staffList, setStaffList] = useState([]);
+  const [assignModal, setAssignModal] = useState(null);
+  const [selectedAssignee, setSelectedAssignee] = useState('');
 
   // Filtration State
   const [statusFilter, setStatusFilter] = useState('all'); // 'all', 'new', 'old'
   const [searchText, setSearchText] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+
+  const fetchStaff = async () => {
+    try {
+      const res = await fetch(`${API_URL}/employees`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setStaffList(data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch staff list:', err);
+    }
+  };
 
   const canEditTab = (tabId) => {
     if (isAdmin) return true;
@@ -122,7 +140,7 @@ const ComplaintsFlow = () => {
     doc.text(`Date: ${new Date().toLocaleDateString()}`, 20, 50);
     doc.text(`Quotation Ref: QTN-${task.token}`, 20, 60);
     doc.text(`Project: ${task.projectName}`, 20, 70);
-    doc.text(`Unit: ${task.unitId}`, 20, 80);
+    doc.text(`Unit/Flat/Villa: ${formatUnitWithLabel(task.unitId, task.projectType)}`, 20, 80);
     doc.text(`Customer Name: ${task.customerName}`, 20, 90);
 
     const tableData = [
@@ -179,7 +197,7 @@ const ComplaintsFlow = () => {
     if (t.status === 'Pending') {
       if (isCRD) {
         actions.push(
-          <button key="crd-pending" onClick={() => handleAction(t.complaintId, () => apiCall(`${API_URL}/tasks/${t.flowId}/${t.complaintId}/send-to-ped`, 'PUT'))} className="px-3 py-1.5 bg-[#006838] text-white text-xs font-bold rounded-lg hover:bg-[#00522c] cursor-pointer">
+          <button key="crd-pending" onClick={() => setAssignModal({ title: 'Send Complaint to PED Team', onConfirm: (assigneeId) => handleAction(t.complaintId, () => apiCall(`${API_URL}/tasks/${t.flowId}/${t.complaintId}/send-to-ped`, 'PUT', { assignedTo: assigneeId })) })} className="px-3 py-1.5 bg-[#006838] text-white text-xs font-bold rounded-lg hover:bg-[#00522c] cursor-pointer">
             {actionLoading === t.complaintId ? <Loader2 className="w-3.5 h-3.5 animate-spin mx-auto" /> : 'Send to PED'}
           </button>
         );
@@ -190,14 +208,14 @@ const ComplaintsFlow = () => {
       if (isCRD) {
         if (t.clientNotes) {
           actions.push(
-            <button key="crd-returned-reprice" onClick={() => handleAction(t.complaintId, () => apiCall(`${API_URL}/tasks/${t.flowId}/${t.complaintId}/send-to-ped`, 'PUT'))} className="px-3 py-1.5 bg-[#006838] text-white text-xs font-bold rounded-lg hover:bg-[#00522c] cursor-pointer">
+            <button key="crd-returned-reprice" onClick={() => setAssignModal({ title: 'Send Complaint to PED for Repricing', onConfirm: (assigneeId) => handleAction(t.complaintId, () => apiCall(`${API_URL}/tasks/${t.flowId}/${t.complaintId}/send-to-ped`, 'PUT', { assignedTo: assigneeId })) })} className="px-3 py-1.5 bg-[#006838] text-white text-xs font-bold rounded-lg hover:bg-[#00522c] cursor-pointer">
               {actionLoading === t.complaintId ? <Loader2 className="w-3.5 h-3.5 animate-spin mx-auto" /> : 'Send to PED for Repricing'}
             </button>
           );
         } else if (!t.pedPrice || t.pedPrice === 0 || t.noPrice) {
           // NO PRICE: Bypasses Client Approval, sends directly to PED Execution!
           actions.push(
-            <button key="crd-no-price-exec" onClick={() => handleAction(t.complaintId, () => apiCall(`${API_URL}/tasks/${t.flowId}/${t.complaintId}/send-to-ped-execution`, 'PUT'))} className="px-3 py-1.5 bg-teal-600 text-white text-xs font-bold rounded-lg hover:bg-teal-700 shadow-sm cursor-pointer whitespace-nowrap">
+            <button key="crd-no-price-exec" onClick={() => setAssignModal({ title: 'Send Complaint to PED for Execution', onConfirm: (assigneeId) => handleAction(t.complaintId, () => apiCall(`${API_URL}/tasks/${t.flowId}/${t.complaintId}/send-to-ped-execution`, 'PUT', { assignedTo: assigneeId })) })} className="px-3 py-1.5 bg-teal-600 text-white text-xs font-bold rounded-lg hover:bg-teal-700 shadow-sm cursor-pointer whitespace-nowrap">
               {actionLoading === t.complaintId ? <Loader2 className="w-3.5 h-3.5 animate-spin mx-auto" /> : 'Send to PED for Execution'}
             </button>
           );
@@ -216,29 +234,47 @@ const ComplaintsFlow = () => {
       if (isPED) {
         actions.push(
           <React.Fragment key="ped-price-actions">
-            <div className="flex items-center gap-1.5">
-              <div className="relative">
-                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-500 font-medium text-xs">Rs.</span>
+            <div className="flex items-center justify-end gap-2 whitespace-nowrap">
+              <div className="relative shrink-0">
+                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-500 font-bold text-xs">Rs.</span>
                 <input
                   type="number"
                   value={pedPrices[t.complaintId] || ''}
                   onChange={(e) => setPedPrices({ ...pedPrices, [t.complaintId]: e.target.value })}
                   placeholder="Price"
-                  className="w-24 pl-7 pr-2 py-1.5 border border-gray-200 rounded-lg text-xs focus:ring-2 focus:ring-[#006838] outline-none font-bold text-gray-900"
+                  className="w-24 pl-8 pr-2 py-1.5 border border-gray-300 rounded-xl text-xs focus:ring-2 focus:ring-[#006838] focus:border-transparent outline-none font-bold text-gray-900 shadow-sm bg-white"
                 />
               </div>
-              <button onClick={() => handleAction(t.complaintId, () => apiCall(`${API_URL}/tasks/${t.flowId}/${t.complaintId}/ped-price`, 'PUT', { pedPrice: pedPrices[t.complaintId] }))} className="px-3 py-1.5 bg-[#006838] text-white text-xs font-bold rounded-lg hover:bg-[#00522c] cursor-pointer shadow-sm">
-                {actionLoading === t.complaintId ? <Loader2 className="w-3.5 h-3.5 animate-spin mx-auto" /> : 'Save & Send to CRD'}
+              <button 
+                onClick={() => setAssignModal({ title: 'Save Price & Send Complaint to CRD', onConfirm: (assigneeId) => handleAction(t.complaintId, () => apiCall(`${API_URL}/tasks/${t.flowId}/${t.complaintId}/ped-price`, 'PUT', { pedPrice: pedPrices[t.complaintId], assignedTo: assigneeId })) })} 
+                className="flex items-center gap-1.5 px-3.5 py-1.5 bg-[#006838] hover:bg-[#00522c] text-white text-xs font-bold rounded-xl shadow-sm cursor-pointer transition whitespace-nowrap shrink-0"
+              >
+                {actionLoading === t.complaintId ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin mx-auto" />
+                ) : (
+                  <>
+                    <Send className="w-3.5 h-3.5" />
+                    <span>Save & Send to CRD</span>
+                  </>
+                )}
               </button>
               <button
-                onClick={() => handleAction(t.complaintId, () => apiCall(`${API_URL}/tasks/${t.flowId}/${t.complaintId}/ped-price`, 'PUT', { pedPrice: 0, noPrice: true }))}
-                className="px-3 py-1.5 bg-slate-700 hover:bg-slate-800 text-white text-xs font-bold rounded-lg cursor-pointer shadow-sm whitespace-nowrap"
+                onClick={() => setAssignModal({ title: 'Send Free Complaint to CRD', onConfirm: (assigneeId) => handleAction(t.complaintId, () => apiCall(`${API_URL}/tasks/${t.flowId}/${t.complaintId}/ped-price`, 'PUT', { pedPrice: 0, noPrice: true, assignedTo: assigneeId })) })}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-700 hover:bg-slate-800 text-white text-xs font-bold rounded-xl cursor-pointer shadow-sm transition whitespace-nowrap shrink-0"
                 title="No Price charged, send directly for execution via CRD"
               >
-                {actionLoading === t.complaintId ? <Loader2 className="w-3.5 h-3.5 animate-spin mx-auto" /> : 'No Price (Free)'}
+                {actionLoading === t.complaintId ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin mx-auto" />
+                ) : (
+                  'No Price (Free)'
+                )}
               </button>
-              <button onClick={() => generateQuotationPDF(t)} className="p-1.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 cursor-pointer" title="Quotation">
-                <FileText className="w-4 h-4" />
+              <button 
+                onClick={() => generateQuotationPDF(t)} 
+                className="p-2 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 border border-gray-200 cursor-pointer transition shrink-0" 
+                title="Download Quotation PDF"
+              >
+                <FileText className="w-4 h-4 text-emerald-700" />
               </button>
             </div>
           </React.Fragment>
@@ -264,7 +300,7 @@ const ComplaintsFlow = () => {
     } else if (t.status === 'Client Approved') {
       if (isCRD) {
         actions.push(
-          <button key="crd-approved" onClick={() => handleAction(t.complaintId, () => apiCall(`${API_URL}/tasks/${t.flowId}/${t.complaintId}/send-to-ped-execution`, 'PUT'))} className="px-3 py-1.5 bg-teal-600 text-white text-xs font-bold rounded-lg hover:bg-teal-700">
+          <button key="crd-approved" onClick={() => setAssignModal({ title: 'Send Approved Complaint to PED for Execution', onConfirm: (assigneeId) => handleAction(t.complaintId, () => apiCall(`${API_URL}/tasks/${t.flowId}/${t.complaintId}/send-to-ped-execution`, 'PUT', { assignedTo: assigneeId })) })} className="px-3 py-1.5 bg-teal-600 text-white text-xs font-bold rounded-lg hover:bg-teal-700">
             {actionLoading === t.complaintId ? <Loader2 className="w-3.5 h-3.5 animate-spin mx-auto" /> : 'Send to PED for Execution'}
           </button>
         );
@@ -424,7 +460,7 @@ const ComplaintsFlow = () => {
                 <th className="px-6 py-4 font-bold text-xs uppercase tracking-wider">Price (Rs.)</th>
                 <th className="px-6 py-4 font-bold text-xs uppercase tracking-wider">Status</th>
                 <th className="px-6 py-4 font-bold text-xs uppercase tracking-wider">Feedback</th>
-                <th className="px-6 py-4 font-bold text-xs uppercase tracking-wider text-right">Action</th>
+                <th className="px-6 py-4 font-bold text-xs uppercase tracking-wider text-right min-w-[360px]">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-emerald-50">
@@ -478,8 +514,13 @@ const ComplaintsFlow = () => {
                       </span>
                     </td>
                     <td className="px-6 py-4 text-gray-800 whitespace-normal min-w-[200px]">
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-wrap items-center gap-2">
                         <span className="font-bold text-gray-900">{t.title || 'Complaint'}</span>
+                        {t.assignedPersonName && (
+                          <span className="text-[10px] font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 shrink-0">
+                            Assigned: {t.assignedPersonName}
+                          </span>
+                        )}
                         <button
                           onClick={(e) => { e.stopPropagation(); setHistoryModal(t); }}
                           className="px-2 py-0.5 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded transition border border-emerald-100 text-[10px] font-bold flex items-center gap-1 shrink-0 cursor-pointer shadow-sm"
@@ -585,7 +626,7 @@ const ComplaintsFlow = () => {
                 </div>
                 <div>
                   <span className="text-gray-400 font-bold uppercase text-[9px] block mb-0.5">Project / Unit</span>
-                  <span className="font-bold text-emerald-700">{historyModal.projectName} ({historyModal.unitId})</span>
+                  <span className="font-bold text-emerald-700">{historyModal.projectName} ({formatUnitWithLabel(historyModal.unitId, historyModal.projectType)})</span>
                 </div>
                 <div>
                   <span className="text-gray-400 font-bold uppercase text-[9px] block mb-0.5">Quoted Price</span>
@@ -662,6 +703,75 @@ const ComplaintsFlow = () => {
           </div>
         </div>
       )}
+
+      {/* Stage Transfer Assign Person Modal */}
+      {assignModal && (
+        <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl border border-emerald-100 space-y-5 animate-scale-up">
+            <div className="flex justify-between items-start border-b border-gray-100 pb-3">
+              <div>
+                <div className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider">Complaint Assignment</div>
+                <h3 className="text-base font-bold text-gray-900 mt-0.5">{assignModal.title}</h3>
+              </div>
+              <button
+                onClick={() => { setAssignModal(null); setSelectedAssignee(''); }}
+                className="text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-100 transition"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-2">
+              <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider">
+                Assign Person to handle complaint <span className="text-red-500">*</span>
+              </label>
+              <select
+                value={selectedAssignee}
+                onChange={(e) => setSelectedAssignee(e.target.value)}
+                className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-300 rounded-xl text-xs font-bold text-gray-900 focus:ring-2 focus:ring-[#006838] focus:bg-white focus:outline-none transition shadow-sm cursor-pointer"
+              >
+                <option value="">-- Select Assigned Staff Member --</option>
+                {staffList.map(emp => (
+                  <option key={emp._id} value={emp._id}>
+                    {emp.name} ({emp.role || emp.department || 'Staff'})
+                  </option>
+                ))}
+              </select>
+              <p className="text-[11px] text-gray-500 italic mt-1">
+                Only the assigned person (and Superadmin) will see this complaint in their dashboard queue.
+              </p>
+            </div>
+
+            <div className="flex items-center justify-end gap-3 pt-3 border-t border-gray-100">
+              <button
+                onClick={() => { setAssignModal(null); setSelectedAssignee(''); }}
+                className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold rounded-xl transition cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={async () => {
+                  if (!selectedAssignee) {
+                    alert('Please select an assigned staff member before proceeding!');
+                    return;
+                  }
+                  const assigneeId = selectedAssignee;
+                  const modalData = assignModal;
+                  setAssignModal(null);
+                  setSelectedAssignee('');
+                  await modalData.onConfirm(assigneeId);
+                }}
+                disabled={!selectedAssignee}
+                className="px-5 py-2 bg-[#006838] hover:bg-[#00512c] text-white text-xs font-bold rounded-xl shadow-md shadow-emerald-600/20 transition disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
+              >
+                <Send className="w-4 h-4" />
+                <span>Assign & Send</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };

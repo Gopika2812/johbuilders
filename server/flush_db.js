@@ -14,6 +14,7 @@ const LeadTarget = require('./models/LeadTarget');
 const ParameterPlan = require('./models/ParameterPlan');
 const Quotation = require('./models/Quotation');
 const SummaryPlan = require('./models/SummaryPlan');
+const UserTask = require('./models/UserTask');
 const Project = require('./models/Project');
 
 const flushData = async () => {
@@ -50,6 +51,9 @@ const flushData = async () => {
     
     console.log('Deleting SummaryPlans...');
     await SummaryPlan.deleteMany({});
+
+    console.log('Deleting UserTasks...');
+    await UserTask.deleteMany({});
 
     // Reset units in Projects to available, instead of deleting the Projects entirely (since Projects are master data)
     console.log('Resetting Project units to New...');

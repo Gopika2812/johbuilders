@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth, API_URL } from '../context/AuthContext';
 import { LOGO_BASE64 } from '../utils/logoBase64';
+import { formatUnitWithLabel } from '../utils/formatUtils';
 import { 
   TrendingUp, 
   Calendar, 
@@ -83,8 +84,9 @@ const getExcelHeader = (titleText, monthTitle, totalColumns, themeColor, logoPat
     const webLogo = LOGO_BASE64;
     return `
       <tr style="height: 60px;">
-        <td colspan="2" bgcolor="#0B4D2D" class="title-row" style="background-color: #0B4D2D; color: #FFFFFF; font-family: 'Segoe UI', Arial, sans-serif; font-size: 14pt; font-weight: bold; text-align: center; vertical-align: middle; border: 1px solid #000000; height: 60px; padding: 4px;">
-          <img src="${webLogo}" style="max-height: 48px; max-width: 100%; width: auto; object-fit: contain; margin: 0 auto; display: block;" alt="JOHN BUILDWELL" />
+        <td colspan="2" bgcolor="#0B4D2D" class="title-row" style="background-color: #0B4D2D; color: #FFFFFF; font-family: 'Segoe UI', Arial, sans-serif; font-size: 12pt; font-weight: bold; text-align: center; vertical-align: middle; border: 1px solid #000000; height: 60px; padding: 4px;">
+          ${webLogo ? `<img src="${webLogo}" style="max-height: 34px; max-width: 100%; width: auto; object-fit: contain; margin: 0 auto 2px auto; display: block;" alt="JOHN BUILDWELL" />` : ''}
+          <div style="color: #FFFFFF; font-size: 10.5pt; font-weight: bold; font-family: 'Segoe UI', Arial, sans-serif; text-align: center; text-transform: uppercase; line-height: 1.1;">John Buildwell</div>
         </td>
         <td colspan="${safeCols - 2}" class="title-row text-center" style="background-color: #FCE4D6; color: #000000; border: 1px solid #000000; border-left: none; vertical-align:middle; text-align:center; font-size: 14pt; font-weight: bold; height: 60px;">
           ${titleText}
@@ -1273,7 +1275,7 @@ const KPIInsights = () => {
                 <th bgcolor="#C6E0B4" class="bg-header-green" style="background-color: #C6E0B4; width: 80px; border: 1px solid #000000;">UNIT</th>
                 <th bgcolor="#C6E0B4" class="bg-header-green" style="background-color: #C6E0B4; width: 100px; border: 1px solid #000000;">ACHIEVED</th>
                 <th bgcolor="#C6E0B4" class="bg-header-green" style="background-color: #C6E0B4; width: 130px; border: 1px solid #000000;">LAST MONTH ACHIEVED</th>
-                <th colspan="3" rowspan="3" bgcolor="#C6E0B4" class="bg-header-green font-bold" style="background-color: #C6E0B4; font-size: 12pt; vertical-align: middle; text-align: center; text-transform: uppercase; border: 1px solid #000000;">
+                <th colspan="3" rowspan="2" bgcolor="#C6E0B4" class="bg-header-green font-bold" style="background-color: #C6E0B4; font-size: 12pt; vertical-align: middle; text-align: center; text-transform: uppercase; border: 1px solid #000000;">
                   ${shortMonthHeader.toUpperCase()}
                 </th>
               </tr>
@@ -1289,19 +1291,11 @@ const KPIInsights = () => {
               </tr>
               <tr>
                 <td class="text-center" style="border: 1px solid #000000;">2</td>
-                <td colspan="2" class="text-left font-bold" style="border: 1px solid #000000;">Total Flats to be Sold</td>
-                <td class="text-center font-bold" style="border: 1px solid #000000;">${hTarget}</td>
+                <td colspan="2" class="text-left font-bold" style="border: 1px solid #000000;">Total Units to be Sold</td>
+                <td class="text-center font-bold" style="border: 1px solid #000000;">${totalUnitsTarget}</td>
                 <td class="text-center" style="border: 1px solid #000000;">Units</td>
-                <td class="text-center" style="border: 1px solid #000000;">${currentAchieved.villasCount}</td>
-                <td class="text-center" style="border: 1px solid #000000;">${lastMonthAchieved.villasCount}</td>
-              </tr>
-              <tr>
-                <td class="text-center" style="border: 1px solid #000000;">3</td>
-                <td colspan="2" class="text-left font-bold" style="border: 1px solid #000000;">Total Villas to be Sold</td>
-                <td class="text-center font-bold" style="border: 1px solid #000000;">${pTarget}</td>
-                <td class="text-center" style="border: 1px solid #000000;">Units</td>
-                <td class="text-center" style="border: 1px solid #000000;">${currentAchieved.plotsCount}</td>
-                <td class="text-center" style="border: 1px solid #000000;">${lastMonthAchieved.plotsCount}</td>
+                <td class="text-center" style="border: 1px solid #000000;">${currentAchieved.totalUnitsCount}</td>
+                <td class="text-center" style="border: 1px solid #000000;">${lastMonthAchieved.totalUnitsCount}</td>
                 <td colspan="1" bgcolor="#C6E0B4" class="bg-header-green font-bold text-center" style="background-color: #C6E0B4; font-size: 10pt; border: 1px solid #000000;">DATE:</td>
                 <td colspan="2" bgcolor="#C6E0B4" class="bg-header-green text-center" style="background-color: #C6E0B4; font-size: 10pt; border: 1px solid #000000;">${todayFormatted}</td>
               </tr>
@@ -1856,15 +1850,6 @@ const KPIInsights = () => {
             const plotNo = flow.unitId || lead.bookingInfo?.selectedUnits?.join(' & ') || '';
             const custName = lead.name || '';
             
-            // Mapping projectType to Plots/Villa/Flat
-            const typeRaw = (flow.project?.projectType || '').toLowerCase();
-            let houseType = 'Plots';
-            if (typeRaw.includes('villa') || typeRaw.includes('house') || typeRaw.includes('individual')) {
-              houseType = 'Villa';
-            } else if (typeRaw.includes('apartment') || typeRaw.includes('flat')) {
-              houseType = 'Flat';
-            }
-
             const commentsStr = lead.closeRemarks || '';
             const rowClass = idx % 2 === 1 ? 'class="even-row"' : '';
 
@@ -1875,7 +1860,7 @@ const KPIInsights = () => {
                 <td>${projCode}</td>
                 <td>${plotNo}</td>
                 <td class="text-left bold-label">${custName}</td>
-                <td>${houseType}</td>
+                <td>${projCode}</td>
                 <td class="text-left">${commentsStr}</td>
               </tr>
             `;
@@ -2479,15 +2464,21 @@ const KPIInsights = () => {
               if (addedDate > end) return;
             }
 
+            const completedDate = (ew.status === 'Completed' || stage.isCompleted)
+              ? (ew.completedDate ? new Date(ew.completedDate) : (stage.completedDate ? new Date(stage.completedDate) : (ew.crdAddedDate ? new Date(ew.crdAddedDate) : null)))
+              : null;
+
             extraWorksList.push({
               projectCode: flow.project?.code || 'UNASSIGNED',
-              projectType: flow.project?.projectType || 'Land',
               customerName: lead.name || '',
               contactNumber: lead.phone || '',
+              unitId: ew.forUnit || flow.unitId || 'N/A',
               extraWorkName: ew.name || '',
               value: ew.amount || 0,
-              status: stage.isCompleted ? 'Completed' : 'Pending',
-              addedAt: addedDate
+              raisedDate: addedDate,
+              completedDate: completedDate,
+              remarks: ew.clientNotes || ew.remarks || ew.status || (stage.isCompleted ? 'Completed' : 'Pending'),
+              addedAt: addedDate || new Date(0)
             });
           });
         });
@@ -2515,15 +2506,19 @@ const KPIInsights = () => {
         </head>
         <body>
           <table>
-            ${getExcelHeader(titleText, "", 6, "#7c3aed", logoPath)}
+            ${getExcelHeader(titleText, "", 10, "#7c3aed", logoPath)}
             <!-- Table Headers -->
             <tr class="table-headers">
               <th>S No</th>
               <th>Project Type</th>
               <th>Customer Name</th>
               <th>Contact Number</th>
+              <th>Unit</th>
               <th>Extra Work</th>
               <th>Value of Work</th>
+              <th>Extra Work Raised On</th>
+              <th>Completed On</th>
+              <th>Remarks</th>
             </tr>
       `;
 
@@ -2532,16 +2527,22 @@ const KPIInsights = () => {
       extraWorksList.forEach((ew, index) => {
         totalValue += ew.value;
         const phoneStr = ew.contactNumber ? `'${ew.contactNumber}` : '';
+        const raisedDateStr = ew.raisedDate ? ew.raisedDate.toLocaleDateString('en-GB').replace(/\//g, '.') : '-';
+        const completedDateStr = ew.completedDate ? ew.completedDate.toLocaleDateString('en-GB').replace(/\//g, '.') : '-';
         const rowClass = index % 2 === 1 ? 'class="even-row"' : '';
 
         html += `
           <tr ${rowClass}>
             <td>${index + 1}</td>
-            <td>${ew.projectType} (${ew.projectCode})</td>
+            <td>${ew.projectCode}</td>
             <td class="text-left bold-label">${ew.customerName}</td>
             <td>${phoneStr}</td>
+            <td>${ew.unitId}</td>
             <td class="text-left">${ew.extraWorkName}</td>
             <td class="text-right">₹ ${ew.value.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+            <td>${raisedDateStr}</td>
+            <td>${completedDateStr}</td>
+            <td class="text-left">${ew.remarks}</td>
           </tr>
         `;
       });
@@ -2549,8 +2550,9 @@ const KPIInsights = () => {
       // Total Row
       html += `
         <tr class="subtotal-row">
-          <td colspan="5" class="text-right">TOTAL VALUE OF EXTRA WORKS</td>
+          <td colspan="6" class="text-right">TOTAL VALUE OF EXTRA WORKS</td>
           <td class="text-right">₹ ${totalValue.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+          <td colspan="3"></td>
         </tr>
       `;
 
@@ -2618,7 +2620,7 @@ const KPIInsights = () => {
             customerName: lead.name || '',
             projectType: flow.project?.projectType || 'Land',
             projectCode: flow.project?.code || 'UNASSIGNED',
-            unitId: flow.unitId || '',
+            unitId: formatUnitWithLabel(flow.unitId || '', flow.project?.projectType),
             description: comp.description || '',
             status: comp.status || 'Pending',
             resolvedAt: comp.resolvedAt ? new Date(comp.resolvedAt) : null

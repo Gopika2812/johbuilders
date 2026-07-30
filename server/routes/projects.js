@@ -8,7 +8,7 @@ const { protect, authorize, checkPermission } = require('../middleware/auth');
 // @desc    Get all projects
 router.get('/', protect, async (req, res) => {
   try {
-    const projects = await Project.find({}).sort({ createdAt: -1 });
+    const projects = await Project.find({}).sort({ createdAt: -1 }).lean();
     res.json(projects);
   } catch (err) {
     res.status(500).json({ message: err.message });

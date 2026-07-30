@@ -410,7 +410,7 @@ const SummaryPlanning = () => {
 
                   <tr className="hover:bg-black-50 transition align-middle">
                     <td className="p-4 text-center font-bold text-black-400">2</td>
-                    <td className="p-4 font-bold text-black-750">Total Flats to be Sold</td>
+                    <td className="p-4 font-bold text-black-750">Total Units to be Sold</td>
                     <td className="p-4 text-right">
                       <input
                         type="number"
@@ -422,31 +422,10 @@ const SummaryPlanning = () => {
                     </td>
                     <td className="p-4 text-black-500 font-semibold">Units</td>
                     <td className="p-4 text-right font-extrabold text-black-800">
-                      {achievedStats.flatsCount !== undefined ? achievedStats.flatsCount : achievedStats.villasCount}
+                      {((achievedStats.flatsCount || 0) + (achievedStats.villasCount || 0)) || (achievedStats.unitsCount || 0)}
                     </td>
                     <td className="p-4 text-right font-bold text-black-500">
-                      {lastMonthStats.flatsCount !== undefined ? lastMonthStats.flatsCount : lastMonthStats.villasCount}
-                    </td>
-                  </tr>
-
-                  <tr className="hover:bg-black-50 transition align-middle">
-                    <td className="p-4 text-center font-bold text-black-400">3</td>
-                    <td className="p-4 font-bold text-black-750">Total Villas to be Sold</td>
-                    <td className="p-4 text-right">
-                      <input
-                        type="number"
-                        placeholder="0"
-                        value={plotsTarget || ''}
-                        onChange={(e) => setPlotsTarget(Number(e.target.value) || 0)}
-                        className="px-3 py-1.5 bg-black-50 border border-black-255 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-xs font-bold text-right w-36 mx-auto inline-block"
-                      />
-                    </td>
-                    <td className="p-4 text-black-500 font-semibold">Units</td>
-                    <td className="p-4 text-right font-extrabold text-black-800">
-                      {achievedStats.villasCount}
-                    </td>
-                    <td className="p-4 text-right font-bold text-black-500">
-                      {lastMonthStats.villasCount}
+                      {((lastMonthStats.flatsCount || 0) + (lastMonthStats.villasCount || 0)) || (lastMonthStats.unitsCount || 0)}
                     </td>
                   </tr>
                 </tbody>

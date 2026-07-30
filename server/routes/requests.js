@@ -79,6 +79,20 @@ router.put('/:id/approve', protect, async (req, res) => {
         });
         await crdFlow.save();
 
+        const lead = await Lead.findById(crdFlow.lead);
+        if (lead) {
+          lead.status = 'Cancelled';
+          lead.isClosed = true;
+          lead.history.push({
+            status: 'Cancelled',
+            assignedTo: lead.assignedTo,
+            updatedBy: req.user._id,
+            timestamp: Date.now(),
+            note: `Cancellation approved by Superadmin. Narration: ${approvalReq.narration}`
+          });
+          await lead.save();
+        }
+
         await AuditLog.create({
           action: 'CRD Flow Cancelled',
           user: req.user._id,

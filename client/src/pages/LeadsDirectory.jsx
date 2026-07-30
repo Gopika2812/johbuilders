@@ -156,6 +156,12 @@ const getContrastClass = (hex) => {
   return yiq >= 128 ? '' : 'dark-row';
 };
 
+const formatProjectTypeLabel = (projectType) => {
+  const typeStr = Array.isArray(projectType) ? projectType.join(', ') : (projectType || '');
+  if (!typeStr) return 'Unit';
+  return typeStr.replace(/Flat|Villa|House/gi, 'Unit');
+};
+
 const LeadsDirectory = () => {
   const { token, user, hasColumnPermission } = useAuth();
   const location = useLocation();
@@ -747,7 +753,7 @@ const LeadsDirectory = () => {
       setError('Notes (Narration) is required for Direct Visit.');
       return;
     }
-    if ((user?.role === 'Superadmin' || user?.role === 'Crd team') && !assignedToId) {
+    if ((user?.role === 'Superadmin' || user?.role === 'Crd team') && !assignedToId && !previouslyAssignedExecutive) {
       setError('Please select an assigned executive.');
       return;
     }
@@ -917,6 +923,27 @@ const LeadsDirectory = () => {
     if (selectedBookedUnits.length === 0) {
       alert('Please select at least one unit (plot/flat/villa) to confirm Booked!');
       return;
+    }
+
+    if (!BookedAadhar || BookedAadhar.length !== 12) {
+      alert('Aadhar Card Number is mandatory and must be a 12-digit number!');
+      return;
+    }
+
+    if (!BookedPan || !BookedPan.trim()) {
+      alert('PAN Number is mandatory!');
+      return;
+    }
+
+    if (BookedHasLoan === 'Yes') {
+      if (!loanAmount || Number(loanAmount) <= 0) {
+        alert('Loan Amount Required (Rs.) is mandatory and must be greater than 0!');
+        return;
+      }
+      if (!loanBank || !loanBank.trim()) {
+        alert('Preferred Bank name is mandatory!');
+        return;
+      }
     }
 
     if (BookedAltLocal) {
@@ -2178,7 +2205,7 @@ const LeadsDirectory = () => {
                     <div className="flex flex-col">
                       <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Project Code <span className="text-red-500">*</span></label>
                       <SearchableSelect
-                        options={projects.map(p => ({ value: p._id, label: `${p.code} - ${p.name} (${p.projectType})` }))}
+                        options={projects.map(p => ({ value: p._id, label: `${p.code} - ${p.name} (${formatProjectTypeLabel(p.projectType)})` }))}
                         value={selectedProjectId}
                         onChange={setSelectedProjectId}
                         placeholder="Select Project"
@@ -2232,7 +2259,7 @@ const LeadsDirectory = () => {
                     <div className="flex flex-col">
                       <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Project Code <span className="text-red-500">*</span></label>
                       <SearchableSelect
-                        options={projects.map(p => ({ value: p._id, label: `${p.code} - ${p.name} (${p.projectType})` }))}
+                        options={projects.map(p => ({ value: p._id, label: `${p.code} - ${p.name} (${formatProjectTypeLabel(p.projectType)})` }))}
                         value={selectedProjectId}
                         onChange={setSelectedProjectId}
                         placeholder="Select Project"
@@ -2509,7 +2536,7 @@ const LeadsDirectory = () => {
                     <div className="flex flex-col">
                       <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Project Code <span className="text-red-500">*</span></label>
                       <SearchableSelect
-                        options={projects.map(p => ({ value: p._id, label: `${p.code} - ${p.name} (${p.projectType})` }))}
+                        options={projects.map(p => ({ value: p._id, label: `${p.code} - ${p.name} (${formatProjectTypeLabel(p.projectType)})` }))}
                         value={editProjectId}
                         onChange={setEditProjectId}
                         placeholder="Select Project"
@@ -2550,7 +2577,7 @@ const LeadsDirectory = () => {
                     <div className="flex flex-col">
                       <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Project Code <span className="text-red-500">*</span></label>
                       <SearchableSelect
-                        options={projects.map(p => ({ value: p._id, label: `${p.code} - ${p.name} (${p.projectType})` }))}
+                        options={projects.map(p => ({ value: p._id, label: `${p.code} - ${p.name} (${formatProjectTypeLabel(p.projectType)})` }))}
                         value={editProjectId}
                         onChange={setEditProjectId}
                         placeholder="Select Project"
@@ -3210,9 +3237,10 @@ const LeadsDirectory = () => {
                     )}
                   </div>
                   <div>
-                    <label className="text-xs font-semibold text-black-600 block mb-1">Aadhar Card Number</label>
+                    <label className="text-xs font-semibold text-black-600 block mb-1">Aadhar Card Number <span className="text-red-500">*</span></label>
                     <input
                       type="text"
+                      required
                       placeholder="12 digit aadhar"
                       value={BookedAadhar}
                       onChange={(e) => setBookedAadhar(e.target.value.replace(/\D/g, '').slice(0, 12))}
@@ -3220,9 +3248,10 @@ const LeadsDirectory = () => {
                     />
                   </div>
                   <div>
-                    <label className="text-xs font-semibold text-black-600 block mb-1">PAN Number</label>
+                    <label className="text-xs font-semibold text-black-600 block mb-1">PAN Number <span className="text-red-500">*</span></label>
                     <input
                       type="text"
+                      required
                       placeholder="PAN Number"
                       value={BookedPan}
                       onChange={(e) => setBookedPan(e.target.value.toUpperCase().slice(0, 10))}
@@ -3284,9 +3313,10 @@ const LeadsDirectory = () => {
                         />
                       </div>
                       <div>
-                        <label className="text-[11px] font-semibold text-black-500 block mb-1">Loan Amount Required (Rs.)</label>
+                        <label className="text-[11px] font-semibold text-black-500 block mb-1">Loan Amount Required (Rs.) <span className="text-red-500">*</span></label>
                         <input
                           type="number"
+                          required
                           placeholder="e.g. 1500000"
                           value={loanAmount}
                           onChange={(e) => setLoanAmount(e.target.value)}
@@ -3295,9 +3325,10 @@ const LeadsDirectory = () => {
                         />
                       </div>
                       <div>
-                        <label className="text-[11px] font-semibold text-black-500 block mb-1">Preferred Bank name</label>
+                        <label className="text-[11px] font-semibold text-black-500 block mb-1">Preferred Bank name <span className="text-red-500">*</span></label>
                         <input
                           type="text"
+                          required
                           placeholder="e.g. SBI, HDFC"
                           value={loanBank}
                           onChange={(e) => setLoanBank(e.target.value)}
@@ -3305,7 +3336,7 @@ const LeadsDirectory = () => {
                         />
                       </div>
                       <div>
-                        <label className="text-[11px] font-semibold text-black-500 block mb-1">Account Number</label>
+                        <label className="text-[11px] font-semibold text-black-500 block mb-1">Account Number (Optional)</label>
                         <input
                           type="text"
                           placeholder="Bank Account Number"

@@ -159,9 +159,9 @@ const ProjectsDictionary = () => {
 
   const displayProjectType = (typeVal) => {
     if (Array.isArray(typeVal)) {
-      return typeVal.map(t => t === 'House' ? 'Villa' : t).join(', ');
+      return typeVal.map(t => (t === 'House' || t === 'Villa' || t === 'Flat') ? 'Unit' : t).join(', ');
     }
-    return typeVal === 'House' ? 'Villa' : typeVal;
+    return (typeVal === 'House' || typeVal === 'Villa' || typeVal === 'Flat') ? 'Unit' : typeVal;
   };
 
   const getTypeBadgeStyle = (type) => {
@@ -170,10 +170,10 @@ const ProjectsDictionary = () => {
       case 'Plot':
         return 'bg-emerald-50 text-emerald-700 border-emerald-200';
       case 'Flat':
-        return 'bg-blue-50 text-blue-700 border-blue-200';
       case 'House':
       case 'Villa':
-        return 'bg-amber-50 text-amber-700 border-amber-200';
+      case 'Unit':
+        return 'bg-blue-50 text-blue-700 border-blue-200';
       default:
         return 'bg-black-50 text-black-700 border-black-200';
     }
@@ -195,7 +195,8 @@ const ProjectsDictionary = () => {
       project.location.toLowerCase().includes(searchTerm.toLowerCase());
 
     // 2. Project type filter
-    const matchesType = projectType === 'All' || project.projectType === projectType || (projectType === 'Villa' && project.projectType === 'House');
+    const matchesType = projectType === 'All' || project.projectType === projectType || 
+      (projectType === 'Unit' && (project.projectType === 'Flat' || project.projectType === 'Villa' || project.projectType === 'House' || project.projectType === 'Unit'));
 
     // 3. Date range filter
     let matchesDate = true;
@@ -285,8 +286,7 @@ const ProjectsDictionary = () => {
             >
               <option value="All">All Project Types</option>
               <option value="Plot">Plot Projects</option>
-              <option value="Flat">Flat Projects</option>
-              <option value="Villa">Villa Projects</option>
+              <option value="Unit">Unit Projects</option>
             </select>
           </div>
 

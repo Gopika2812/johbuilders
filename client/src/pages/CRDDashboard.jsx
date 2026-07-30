@@ -1041,14 +1041,9 @@ const CRDDashboard = () => {
             <td colspan="3">Rs. ${(inventory.availableValueByType?.Plot || 0).toLocaleString()}</td>
           </tr>
           <tr>
-            <td colspan="3" class="bold-label">Available Projects (Flat)</td>
-            <td colspan="3">${inventory.projectsByType?.Flat || 0}</td>
-            <td colspan="3">Rs. ${(inventory.availableValueByType?.Flat || 0).toLocaleString()}</td>
-          </tr>
-          <tr class="even-row">
-            <td colspan="3" class="bold-label">Available Projects (Villa)</td>
-            <td colspan="3">${(inventory.projectsByType?.Villa || 0) + (inventory.projectsByType?.House || 0)}</td>
-            <td colspan="3">Rs. ${((inventory.availableValueByType?.Villa || 0) + (inventory.availableValueByType?.House || 0)).toLocaleString()}</td>
+            <td colspan="3" class="bold-label">Available Projects (Unit)</td>
+            <td colspan="3">${(inventory.projectsByType?.Flat || 0) + (inventory.projectsByType?.Villa || 0) + (inventory.projectsByType?.House || 0) + (inventory.projectsByType?.Unit || 0)}</td>
+            <td colspan="3">Rs. ${((inventory.availableValueByType?.Flat || 0) + (inventory.availableValueByType?.Villa || 0) + (inventory.availableValueByType?.House || 0) + (inventory.availableValueByType?.Unit || 0)).toLocaleString()}</td>
           </tr>
           <tr><td colspan="9" style="border:none; height: 10px;"></td></tr>
           

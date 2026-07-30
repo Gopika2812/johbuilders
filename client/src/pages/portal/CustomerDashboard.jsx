@@ -138,7 +138,7 @@ const CustomerDashboard = () => {
   const [reviewModal, setReviewModal] = useState({ open: false, stageIdx: null, workId: null });
   const [reviewNote, setReviewNote] = useState('');
 
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
 
   // Complaints Filtration State
   const [complaintStartDate, setComplaintStartDate] = useState('');

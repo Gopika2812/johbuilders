@@ -120,6 +120,9 @@ export const AuthProvider = ({ children }) => {
   const isSiteEngineer = user?.role === 'ped team';
 
   const hasPermission = (pageId) => {
+    if (pageId === 'tasks_board' || pageId === 'tasksBoard' || pageId === 'tasks') {
+      return !!user; // All logged in users can view and edit task board
+    }
     if (isAdmin) return true; // Admins see everything
     if (!user || !user.permissions) return false;
     

@@ -15,8 +15,7 @@ const { protect } = require('../middleware/auth');
 router.get('/stats', protect, async (req, res) => {
   const { fromDate, toDate, userId, projectId, projectType, source } = req.query;
   try {
-    const projectsForHandover = await Project.find({}, 'units');
-    // 1. Build leads filters
+    // 1. Build queries
     let query = {};
     let dateFilter = null;
     if (fromDate || toDate) {
@@ -33,15 +32,15 @@ router.get('/stats', protect, async (req, res) => {
       ];
     }
 
+    let matchingProjectIds = null;
     if (projectType) {
-      const matchingProjects = await Project.find({ projectType: projectType });
-      const matchingProjectIds = matchingProjects.map(p => p._id);
-
+      const matchingProjects = await Project.find({ projectType: projectType }, '_id').lean();
+      matchingProjectIds = matchingProjects.map(p => p._id);
       if (projectId) {
         if (matchingProjectIds.map(id => id.toString()).includes(projectId.toString())) {
           query.project = projectId;
         } else {
-          query.project = new mongoose.Types.ObjectId(); // matches nothing
+          query.project = new mongoose.Types.ObjectId();
         }
       } else {
         query.project = { $in: matchingProjectIds };
@@ -50,27 +49,14 @@ router.get('/stats', protect, async (req, res) => {
       query.project = projectId;
     }
 
-    if (userId) {
-      query.assignedTo = userId;
-    }
+    if (userId) query.assignedTo = userId;
+    if (source) query.leadSource = source;
 
-    if (source) {
-      query.leadSource = source;
-    }
-
-    const leads = await Lead.find(query).populate('project').populate('assignedTo');
-
-    // 2. Build quotations filters
+    // Build quotations query
     let qQuery = {};
-    if (dateFilter) {
-      qQuery.createdAt = dateFilter;
-    }
-
-    if (projectType) {
+    if (dateFilter) qQuery.createdAt = dateFilter;
+    if (projectType && matchingProjectIds) {
       qQuery.projectType = projectType;
-      const matchingProjects = await Project.find({ projectType: projectType });
-      const matchingProjectIds = matchingProjects.map(p => p._id);
-
       if (projectId) {
         if (matchingProjectIds.map(id => id.toString()).includes(projectId.toString())) {
           qQuery.project = projectId;
@@ -84,18 +70,6 @@ router.get('/stats', protect, async (req, res) => {
       qQuery.project = projectId;
     }
 
-    if (userId || source) {
-      let leadFilter = {};
-      if (userId) leadFilter.assignedTo = userId;
-      if (source) leadFilter.leadSource = source;
-      const userLeads = await Lead.find(leadFilter);
-      const leadIds = userLeads.map(ul => ul._id);
-      qQuery.lead = { $in: leadIds };
-    }
-
-    const quotations = await Quotation.find(qQuery).populate('lead').populate('project').populate('createdBy');
-
-    // 3. Fetch budget plans
     let budgetQuery = {};
     if (fromDate || toDate) {
       const startMonth = fromDate ? fromDate.substring(0, 7) : null;
@@ -108,9 +82,34 @@ router.get('/stats', protect, async (req, res) => {
         budgetQuery.month = { $lte: endMonth };
       }
     }
-    const budgetPlans = await BudgetPlan.find(budgetQuery);
-    const allUsers = await User.find({}, 'name role');
-    const dbProjects = await Project.find({}, 'name code');
+
+    // Execute queries in parallel using Promise.all & .lean()
+    const [
+      projectsForHandover,
+      leads,
+      userLeads,
+      budgetPlans,
+      allUsers,
+      dbProjects
+    ] = await Promise.all([
+      Project.find({}, 'units').lean(),
+      Lead.find(query).populate('project', 'name code').populate('assignedTo', 'name role').lean(),
+      (userId || source) ? Lead.find(userId && source ? { assignedTo: userId, leadSource: source } : (userId ? { assignedTo: userId } : { leadSource: source }), '_id').lean() : Promise.resolve([]),
+      BudgetPlan.find(budgetQuery).lean(),
+      User.find({}, 'name role').lean(),
+      Project.find({}, 'name code').lean()
+    ]);
+
+    if (userId || source) {
+      const leadIds = userLeads.map(ul => ul._id);
+      qQuery.lead = { $in: leadIds };
+    }
+
+    const quotations = await Quotation.find(qQuery)
+      .populate('lead', 'name phone status assignedTo')
+      .populate('project', 'name code')
+      .populate('createdBy', 'name role')
+      .lean();
 
     // Computation variables
     const rangeStart = fromDate ? new Date(fromDate) : null;
@@ -527,16 +526,8 @@ router.get('/stats', protect, async (req, res) => {
           projectUnitsStats[pCode].available += 1;
           projectUnitsStats[pCode].availableUnitsList.push(u.unitId);
         } else if (u.status === 'Booked') {
-          let dateMatches = true;
-          if (fromDate || toDate) {
-            if (!bookingDate || !inRange(bookingDate)) {
-              dateMatches = false;
-            }
-          }
-          if (dateMatches) {
-            projectUnitsStats[pCode].booked += 1;
-            projectUnitsStats[pCode].bookedUnitsList.push(u.unitId);
-          }
+          projectUnitsStats[pCode].booked += 1;
+          projectUnitsStats[pCode].bookedUnitsList.push(u.unitId);
         } else if (u.status === 'Sold Out') {
           projectUnitsStats[pCode].handover += 1;
           projectUnitsStats[pCode].handoverUnitsList.push(u.unitId);

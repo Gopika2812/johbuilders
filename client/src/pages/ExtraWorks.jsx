@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 
 import { saveAs } from 'file-saver';
 import { useAuth, API_URL } from '../context/AuthContext';
+import { formatUnitWithLabel } from '../utils/formatUtils';
 import {
   Building,
   ChevronDown,
@@ -65,12 +66,29 @@ const ExtraWorksInner = () => {
   const [roleNotifications, setRoleNotifications] = useState([]);
   const [dismissedNotifs, setDismissedNotifs] = useState([]);
   const [actionToast, setActionToast] = useState(null);
+  const [staffList, setStaffList] = useState([]);
+  const [assignModal, setAssignModal] = useState(null);
+  const [selectedAssignee, setSelectedAssignee] = useState('');
 
   const showActionToast = (message, type = 'success') => {
     setActionToast({ message, type });
     setTimeout(() => {
       setActionToast(prev => (prev?.message === message ? null : prev));
     }, 4500);
+  };
+
+  const fetchStaff = async () => {
+    try {
+      const res = await fetch(`${API_URL}/employees`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setStaffList(data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch staff list:', err);
+    }
   };
 
   useEffect(() => {
@@ -355,6 +373,7 @@ const ExtraWorksInner = () => {
   useEffect(() => {
     fetchFlows();
     fetchAllBookedFlows();
+    fetchStaff();
   }, [token]);
 
   useEffect(() => {
@@ -1085,7 +1104,7 @@ const ExtraWorksInner = () => {
                           <td className="px-4 py-3 text-gray-600">{flow.lead?.phone}</td>
                           <td className="px-4 py-3 font-medium text-emerald-700">{flow.crdPersonName || 'Unassigned'}</td>
                           <td className="px-4 py-3 font-medium text-gray-900">{flow.project?.name}</td>
-                          <td className="px-4 py-3 font-bold text-emerald-600">{flow.unitId}</td>
+                          <td className="px-4 py-3 font-bold text-emerald-600">{formatUnitWithLabel(flow.unitId, flow.project?.projectType)}</td>
                           <td className="px-4 py-3 text-right font-semibold text-gray-900">₹{flow.totalOriginalValue?.toLocaleString()}</td>
                           <td className="px-4 py-3 text-right font-bold text-amber-600">₹{calculateActiveExtraWorksTotal(flow).toLocaleString()}</td>
                           <td className="px-4 py-3 text-right font-black text-emerald-600">₹{(flow.totalOriginalValue + calculateActiveExtraWorksTotal(flow)).toLocaleString()}</td>
@@ -1181,7 +1200,7 @@ const ExtraWorksInner = () => {
                       <td className="px-6 py-4 text-gray-600">{flow.lead?.phone}</td>
                       <td className="px-6 py-4 font-medium text-emerald-700">{flow.crdPersonName || 'Unassigned'}</td>
                       <td className="px-6 py-4 font-medium text-gray-900">{flow.project?.name}</td>
-                      <td className="px-6 py-4 text-emerald-600 font-bold">{flow.unitId}</td>
+                      <td className="px-6 py-4 text-emerald-600 font-bold">{formatUnitWithLabel(flow.unitId, flow.project?.projectType)}</td>
                       <td className="px-6 py-4 text-right font-bold text-gray-900">Rs. {flow.totalOriginalValue?.toLocaleString()}</td>
                       <td className="px-6 py-4 text-right font-bold text-amber-600">Rs. {calculateActiveExtraWorksTotal(flow).toLocaleString()}</td>
                       <td className="px-6 py-4 text-right font-black text-emerald-600">Rs. {(flow.totalOriginalValue + calculateActiveExtraWorksTotal(flow)).toLocaleString()}</td>
@@ -1994,7 +2013,7 @@ const ExtraWorksInner = () => {
                     <option value="">Search customer name...</option>
                     {allBookedFlows.map(flow => (
                       <option key={flow._id} value={flow._id}>
-                        {flow.lead?.name || 'Unknown'} ({flow.project?.name || 'N/A'}{flow.unitId ? ` - ${flow.unitId}` : ''})
+                        {flow.lead?.name || 'Unknown'} ({flow.project?.name || 'N/A'}{flow.unitId ? ` - ${formatUnitWithLabel(flow.unitId, flow.project?.projectType)}` : ''})
                       </option>
                     ))}
                   </select>
@@ -2273,7 +2292,7 @@ const ExtraWorksInner = () => {
               </div>
               <div>
                 <span className="text-gray-500 font-bold uppercase tracking-wider text-[10px] block">Project / Unit</span>
-                <span className="font-bold text-gray-900 text-sm">{activeGroupModalData.flow.project?.name} ({activeGroupModalData.flow.unitId})</span>
+                <span className="font-bold text-gray-900 text-sm">{activeGroupModalData.flow.project?.name} ({formatUnitWithLabel(activeGroupModalData.flow.unitId, activeGroupModalData.flow.project?.projectType)})</span>
               </div>
               <div>
                 <span className="text-gray-500 font-bold uppercase tracking-wider text-[10px] block">Requested On</span>
@@ -2604,36 +2623,43 @@ const ExtraWorksInner = () => {
                 {/* 1. Send to PED / Send to PED for Repricing (For CRD Team when items are Pending or have Client Notes for repricing) */}
                 {(isAdmin || (canEditTab('crd') && !user?.role?.includes('PED'))) && activeGroupModalData.items.some(w => w.status === 'Pending' || (w.status === 'Returned to CRD' && w.clientNotes)) && (
                   <button
-                    onClick={async () => {
-                      setSubmitting('modal-send-ped');
-                      try {
-                        const checkedInModal = activeGroupModalData.items.filter(w => selectedWorks.includes(w._id));
-                        const targetItems = checkedInModal.length > 0 ? checkedInModal : activeGroupModalData.items;
-                        const itemsToSend = targetItems.filter(w => w.status === 'Pending' || (w.status === 'Returned to CRD' && w.clientNotes));
+                    onClick={() => {
+                      const checkedInModal = activeGroupModalData.items.filter(w => selectedWorks.includes(w._id));
+                      const targetItems = checkedInModal.length > 0 ? checkedInModal : activeGroupModalData.items;
+                      const itemsToSend = targetItems.filter(w => w.status === 'Pending' || (w.status === 'Returned to CRD' && w.clientNotes));
 
-                        if (itemsToSend.length === 0) {
-                          alert('No eligible pending or repricing items selected to send to PED.');
-                          return;
-                        }
+                      if (itemsToSend.length === 0) {
+                        alert('No eligible pending or repricing items selected to send to PED.');
+                        return;
+                      }
 
-                        for (const work of itemsToSend) {
-                          const res = await fetch(`${API_URL}/extra-works/${activeGroupModalData.flow._id}/${work.stageIdx}/${work._id}/send-to-ped`, {
-                            method: 'PUT', headers: { Authorization: `Bearer ${token}` }
-                          });
-                          if (!res.ok) {
-                            const errData = await res.json().catch(() => ({}));
-                            throw new Error(errData.message || 'Failed to send to PED');
+                      setAssignModal({
+                        title: 'Send Work Order to PED Team',
+                        onConfirm: async (assigneeId) => {
+                          setSubmitting('modal-send-ped');
+                          try {
+                            for (const work of itemsToSend) {
+                              const res = await fetch(`${API_URL}/extra-works/${activeGroupModalData.flow._id}/${work.stageIdx}/${work._id}/send-to-ped`, {
+                                method: 'PUT',
+                                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                                body: JSON.stringify({ assignedTo: assigneeId })
+                              });
+                              if (!res.ok) {
+                                const errData = await res.json().catch(() => ({}));
+                                throw new Error(errData.message || 'Failed to send to PED');
+                              }
+                            }
+                            setSelectedWorks([]);
+                            await fetchFlows();
+                            const isReprice = itemsToSend.some(w => w.clientNotes || w.status === 'Returned to CRD');
+                            showActionToast(isReprice ? `Work Order ${activeGroupModalData.displayId} successfully sent from CRD to PED for Repricing!` : `Work Order ${activeGroupModalData.displayId} successfully sent from CRD to PED!`);
+                          } catch (err) {
+                            alert(err.message);
+                          } finally {
+                            setSubmitting(null);
                           }
                         }
-                        setSelectedWorks([]);
-                        await fetchFlows();
-                        const isReprice = itemsToSend.some(w => w.clientNotes || w.status === 'Returned to CRD');
-                        showActionToast(isReprice ? `Work Order ${activeGroupModalData.displayId} successfully sent from CRD to PED for Repricing!` : `Work Order ${activeGroupModalData.displayId} successfully sent from CRD to PED!`);
-                      } catch (err) {
-                        alert(err.message);
-                      } finally {
-                        setSubmitting(null);
-                      }
+                      });
                     }}
                     disabled={submitting === 'modal-send-ped'}
                     className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition flex items-center gap-2 text-xs shadow-md shadow-blue-600/20 disabled:opacity-50 cursor-pointer"
@@ -2646,54 +2672,61 @@ const ExtraWorksInner = () => {
                 {/* 2. Send to CRD (For PED Team when items are Sent to PED / Pending (PED)) */}
                 {(isAdmin || canEditTab('ped') || user?.role?.includes('PED')) && activeGroupModalData.items.some(w => ['Sent to PED', 'PED Approved'].includes(w.status)) && (
                   <button
-                    onClick={async () => {
-                      setSubmitting('modal-send-crd');
-                      try {
-                        const checkedInModal = activeGroupModalData.items.filter(w => selectedWorks.includes(w._id));
-                        const targetItems = checkedInModal.length > 0 ? checkedInModal : activeGroupModalData.items;
-                        const pedItems = targetItems.filter(w => ['Sent to PED', 'PED Approved'].includes(w.status));
+                    onClick={() => {
+                      const checkedInModal = activeGroupModalData.items.filter(w => selectedWorks.includes(w._id));
+                      const targetItems = checkedInModal.length > 0 ? checkedInModal : activeGroupModalData.items;
+                      const pedItems = targetItems.filter(w => ['Sent to PED', 'PED Approved'].includes(w.status));
 
-                        if (pedItems.length === 0) {
-                          alert('No extra work items found to price and send.');
+                      if (pedItems.length === 0) {
+                        alert('No extra work items found to price and send.');
+                        return;
+                      }
+
+                      for (const item of pedItems) {
+                        const rate = rates[item._id] !== undefined ? Number(rates[item._id]) : item.rate;
+                        if (!rate || rate <= 0) {
+                          alert(`Please enter a valid rate (> 0) for "${item.name}" before sending.`);
                           return;
                         }
-
-                        for (const item of pedItems) {
-                          const rate = rates[item._id] !== undefined ? Number(rates[item._id]) : item.rate;
-                          if (!rate || rate <= 0) {
-                            alert(`Please enter a valid rate (> 0) for "${item.name}" before sending.`);
-                            return;
-                          }
-                        }
-
-                        for (const item of pedItems) {
-                          const newRate = rates[item._id] !== undefined ? Number(rates[item._id]) : item.rate;
-                          const priceRes = await fetch(`${API_URL}/extra-works/${activeGroupModalData.flow._id}/${item.stageIdx}/${item._id}/price`, {
-                            method: 'PUT',
-                            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-                            body: JSON.stringify({ rate: newRate })
-                          });
-                          if (!priceRes.ok) {
-                            const errData = await priceRes.json().catch(() => ({}));
-                            throw new Error(errData.message || 'Failed to save price');
-                          }
-                          const sendRes = await fetch(`${API_URL}/extra-works/${activeGroupModalData.flow._id}/${item.stageIdx}/${item._id}/send`, {
-                            method: 'PUT', headers: { Authorization: `Bearer ${token}` }
-                          });
-                          if (!sendRes.ok) {
-                            const errData = await sendRes.json().catch(() => ({}));
-                            throw new Error(errData.message || 'Failed to send to CRD');
-                          }
-                        }
-
-                        setSelectedWorks([]);
-                        await fetchFlows();
-                        showActionToast(`Work Order ${activeGroupModalData.displayId} successfully sent from PED to CRD!`);
-                      } catch (err) {
-                        alert(err.message);
-                      } finally {
-                        setSubmitting(null);
                       }
+
+                      setAssignModal({
+                        title: 'Send Priced Work Order to CRD Team',
+                        onConfirm: async (assigneeId) => {
+                          setSubmitting('modal-send-crd');
+                          try {
+                            for (const item of pedItems) {
+                              const newRate = rates[item._id] !== undefined ? Number(rates[item._id]) : item.rate;
+                              const priceRes = await fetch(`${API_URL}/extra-works/${activeGroupModalData.flow._id}/${item.stageIdx}/${item._id}/price`, {
+                                method: 'PUT',
+                                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                                body: JSON.stringify({ rate: newRate, assignedTo: assigneeId })
+                              });
+                              if (!priceRes.ok) {
+                                const errData = await priceRes.json().catch(() => ({}));
+                                throw new Error(errData.message || 'Failed to save price');
+                              }
+                              const sendRes = await fetch(`${API_URL}/extra-works/${activeGroupModalData.flow._id}/${item.stageIdx}/${item._id}/send`, {
+                                method: 'PUT',
+                                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                                body: JSON.stringify({ assignedTo: assigneeId })
+                              });
+                              if (!sendRes.ok) {
+                                const errData = await sendRes.json().catch(() => ({}));
+                                throw new Error(errData.message || 'Failed to send to CRD');
+                              }
+                            }
+
+                            setSelectedWorks([]);
+                            await fetchFlows();
+                            showActionToast(`Work Order ${activeGroupModalData.displayId} successfully sent from PED to CRD!`);
+                          } catch (err) {
+                            alert(err.message);
+                          } finally {
+                            setSubmitting(null);
+                          }
+                        }
+                      });
                     }}
                     disabled={submitting === 'modal-send-crd'}
                     className="px-5 py-2.5 bg-[#006838] hover:bg-[#00512c] text-white font-bold rounded-xl transition flex items-center gap-2 text-xs shadow-md shadow-emerald-600/20 disabled:opacity-50 cursor-pointer"
@@ -2749,30 +2782,42 @@ const ExtraWorksInner = () => {
                   if (canCrd && allActiveAgreed && hasUnsentApproved) {
                     return (
                       <button
-                        onClick={async () => {
-                          setSubmitting('modal-send-accounts');
-                          try {
-                            const checkedInModal = activeGroupModalData.items.filter(w => selectedWorks.includes(w._id));
-                            const targetItems = checkedInModal.length > 0 ? checkedInModal : activeGroupModalData.items;
-                            const approvedItems = targetItems.filter(w => w.status === 'Client Approved');
+                        onClick={() => {
+                          const checkedInModal = activeGroupModalData.items.filter(w => selectedWorks.includes(w._id));
+                          const targetItems = checkedInModal.length > 0 ? checkedInModal : activeGroupModalData.items;
+                          const approvedItems = targetItems.filter(w => w.status === 'Client Approved');
 
-                            for (const work of approvedItems) {
-                              const res = await fetch(`${API_URL}/extra-works/${activeGroupModalData.flow._id}/${work.stageIdx}/${work._id}/send-to-accounts`, {
-                                method: 'PUT', headers: { Authorization: `Bearer ${token}` }
-                              });
-                              if (!res.ok) {
-                                const errData = await res.json().catch(() => ({}));
-                                throw new Error(errData.message || 'Failed to send to accounts');
+                          if (approvedItems.length === 0) {
+                            alert('No Client Approved items selected to send to Accounts.');
+                            return;
+                          }
+
+                          setAssignModal({
+                            title: 'Send Work Order to Accounts Team',
+                            onConfirm: async (assigneeId) => {
+                              setSubmitting('modal-send-accounts');
+                              try {
+                                for (const work of approvedItems) {
+                                  const res = await fetch(`${API_URL}/extra-works/${activeGroupModalData.flow._id}/${work.stageIdx}/${work._id}/send-to-accounts`, {
+                                    method: 'PUT',
+                                    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                                    body: JSON.stringify({ assignedTo: assigneeId })
+                                  });
+                                  if (!res.ok) {
+                                    const errData = await res.json().catch(() => ({}));
+                                    throw new Error(errData.message || 'Failed to send to accounts');
+                                  }
+                                }
+                                setSelectedWorks([]);
+                                await fetchFlows();
+                                showActionToast(`Work Order ${activeGroupModalData.displayId} successfully sent from CRD to Accounts Team!`);
+                              } catch (err) {
+                                alert(err.message);
+                              } finally {
+                                setSubmitting(null);
                               }
                             }
-                            setSelectedWorks([]);
-                            await fetchFlows();
-                            showActionToast(`Work Order ${activeGroupModalData.displayId} successfully sent from CRD to Accounts Team!`);
-                          } catch (err) {
-                            alert(err.message);
-                          } finally {
-                            setSubmitting(null);
-                          }
+                          });
                         }}
                         disabled={submitting === 'modal-send-accounts'}
                         className="px-5 py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl transition flex items-center gap-2 text-xs shadow-md shadow-purple-600/20 disabled:opacity-50 cursor-pointer"
@@ -2788,32 +2833,39 @@ const ExtraWorksInner = () => {
                 {/* 5. Create Work Order & Send to PED for Execution (For Accounts Team when items are Sent to Accounts or Client Approved) */}
                 {(isAdmin || canEditTab('accounts') || user?.role?.toLowerCase().includes('account') || user?.department?.toLowerCase().includes('account')) && activeGroupModalData.items.some(w => ['Sent to Accounts', 'Client Approved'].includes(w.status)) && (
                   <button
-                    onClick={async () => {
-                      setSubmitting('modal-create-wo');
-                      try {
-                        const checkedInModal = activeGroupModalData.items.filter(w => selectedWorks.includes(w._id));
-                        const targetItems = checkedInModal.length > 0 ? checkedInModal : activeGroupModalData.items;
-                        const accountItems = targetItems.filter(w => ['Sent to Accounts', 'Client Approved'].includes(w.status));
+                    onClick={() => {
+                      const checkedInModal = activeGroupModalData.items.filter(w => selectedWorks.includes(w._id));
+                      const targetItems = checkedInModal.length > 0 ? checkedInModal : activeGroupModalData.items;
+                      const accountItems = targetItems.filter(w => ['Sent to Accounts', 'Client Approved'].includes(w.status));
 
-                        if (accountItems.length === 0) {
-                          alert('No eligible items selected for Work Order creation.');
-                          return;
-                        }
-
-                        for (const work of accountItems) {
-                          await handleAddToCRD(activeGroupModalData.flow._id, work.stageIdx, work._id);
-                          await fetch(`${API_URL}/extra-works/${activeGroupModalData.flow._id}/${work.stageIdx}/${work._id}/send-to-ped-execution`, {
-                            method: 'PUT', headers: { Authorization: `Bearer ${token}` }
-                          });
-                        }
-                        setSelectedWorks([]);
-                        await fetchFlows();
-                        showActionToast(`Work Order ${activeGroupModalData.displayId} successfully created & sent to PED for Execution!`);
-                      } catch (err) {
-                        alert(err.message);
-                      } finally {
-                        setSubmitting(null);
+                      if (accountItems.length === 0) {
+                        alert('No eligible items selected for Work Order creation.');
+                        return;
                       }
+
+                      setAssignModal({
+                        title: 'Assign PED Engineer for Site Execution',
+                        onConfirm: async (assigneeId) => {
+                          setSubmitting('modal-create-wo');
+                          try {
+                            for (const work of accountItems) {
+                              await handleAddToCRD(activeGroupModalData.flow._id, work.stageIdx, work._id);
+                              await fetch(`${API_URL}/extra-works/${activeGroupModalData.flow._id}/${work.stageIdx}/${work._id}/send-to-ped-execution`, {
+                                method: 'PUT',
+                                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                                body: JSON.stringify({ assignedTo: assigneeId })
+                              });
+                            }
+                            setSelectedWorks([]);
+                            await fetchFlows();
+                            showActionToast(`Work Order ${activeGroupModalData.displayId} created & sent to PED for Execution!`);
+                          } catch (err) {
+                            alert(err.message);
+                          } finally {
+                            setSubmitting(null);
+                          }
+                        }
+                      });
                     }}
                     disabled={submitting === 'modal-create-wo'}
                     className="px-5 py-2.5 bg-[#006838] hover:bg-[#00512c] text-white font-bold rounded-xl transition flex items-center gap-2 text-xs shadow-md shadow-emerald-600/20 disabled:opacity-50 cursor-pointer"
@@ -3010,6 +3062,74 @@ const ExtraWorksInner = () => {
                 className="w-full sm:w-auto px-6 py-2.5 bg-[#006838] hover:bg-[#00512c] text-white text-xs font-black rounded-xl shadow-lg transition flex items-center justify-center gap-2 cursor-pointer"
               >
                 <Play className="w-4 h-4 fill-current" /> Take Action on All ({roleNotifications.reduce((sum, g) => sum + g.works.length, 0)})
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Stage Transfer Assign Person Modal */}
+      {assignModal && (
+        <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl border border-emerald-100 space-y-5 animate-scale-up">
+            <div className="flex justify-between items-start border-b border-gray-100 pb-3">
+              <div>
+                <div className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider">Stage Transfer Assignment</div>
+                <h3 className="text-base font-bold text-gray-900 mt-0.5">{assignModal.title}</h3>
+              </div>
+              <button
+                onClick={() => { setAssignModal(null); setSelectedAssignee(''); }}
+                className="text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-100 transition"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-2">
+              <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider">
+                Assign Person to handle work <span className="text-red-500">*</span>
+              </label>
+              <select
+                value={selectedAssignee}
+                onChange={(e) => setSelectedAssignee(e.target.value)}
+                className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-300 rounded-xl text-xs font-bold text-gray-900 focus:ring-2 focus:ring-[#006838] focus:bg-white focus:outline-none transition shadow-sm cursor-pointer"
+              >
+                <option value="">-- Select Assigned Staff Member --</option>
+                {staffList.map(emp => (
+                  <option key={emp._id} value={emp._id}>
+                    {emp.name} ({emp.role || emp.department || 'Staff'})
+                  </option>
+                ))}
+              </select>
+              <p className="text-[11px] text-gray-500 italic mt-1">
+                Only the assigned person (and Superadmin) will see this work order in their dashboard queue.
+              </p>
+            </div>
+
+            <div className="flex items-center justify-end gap-3 pt-3 border-t border-gray-100">
+              <button
+                onClick={() => { setAssignModal(null); setSelectedAssignee(''); }}
+                className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold rounded-xl transition cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={async () => {
+                  if (!selectedAssignee) {
+                    alert('Please select an assigned staff member before proceeding!');
+                    return;
+                  }
+                  const assigneeId = selectedAssignee;
+                  const modalData = assignModal;
+                  setAssignModal(null);
+                  setSelectedAssignee('');
+                  await modalData.onConfirm(assigneeId);
+                }}
+                disabled={!selectedAssignee}
+                className="px-5 py-2 bg-[#006838] hover:bg-[#00512c] text-white text-xs font-bold rounded-xl shadow-md shadow-emerald-600/20 transition disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
+              >
+                <Send className="w-4 h-4" />
+                <span>Assign & Send</span>
               </button>
             </div>
           </div>

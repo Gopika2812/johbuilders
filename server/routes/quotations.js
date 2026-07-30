@@ -11,13 +11,15 @@ router.get('/', protect, async (req, res) => {
   try {
     let query = {};
     if (req.user.role !== 'Superadmin') {
-      const userLeads = await Lead.find({ assignedTo: req.user._id }, '_id');
+      const userLeads = await Lead.find({ assignedTo: req.user._id }, '_id').lean();
       const leadIds = userLeads.map(l => l._id);
       query = {
         $or: [
           { createdBy: req.user._id },
           { crdPerson: req.user._id },
-          { lead: { $in: leadIds } }
+          { pedPerson: req.user._id },
+          { accountsPerson: req.user._id },
+          { crdPerson: { $in: [null, undefined] }, lead: { $in: leadIds } }
         ]
       };
     }
@@ -27,7 +29,10 @@ router.get('/', protect, async (req, res) => {
       .populate('lead', 'name phone assignedTo')
       .populate('createdBy', 'name role')
       .populate('crdPerson', 'name role')
-      .sort({ createdAt: -1 });
+      .populate('pedPerson', 'name role')
+      .populate('accountsPerson', 'name role')
+      .sort({ createdAt: -1 })
+      .lean();
       
     // Filter out orphaned quotations where lead was deleted
     quotations = quotations.filter(q => q.lead != null);
@@ -46,7 +51,9 @@ router.get('/:id', protect, async (req, res) => {
       .populate('project')
       .populate('lead')
       .populate('createdBy', 'name role')
-      .populate('crdPerson', 'name role');
+      .populate('crdPerson', 'name role')
+      .populate('pedPerson', 'name role')
+      .populate('accountsPerson', 'name role');
     if (!quotation) {
       return res.status(404).json({ message: 'Quotation not found' });
     }
@@ -54,9 +61,11 @@ router.get('/:id', protect, async (req, res) => {
     if (req.user.role !== 'Superadmin') {
       const isCreator = quotation.createdBy && quotation.createdBy._id.toString() === req.user._id.toString();
       const isCrdPerson = quotation.crdPerson && quotation.crdPerson._id.toString() === req.user._id.toString();
+      const isPedPerson = quotation.pedPerson && quotation.pedPerson._id.toString() === req.user._id.toString();
+      const isAccountsPerson = quotation.accountsPerson && quotation.accountsPerson._id.toString() === req.user._id.toString();
       const leadAssignedTo = quotation.lead && (quotation.lead.assignedTo?._id || quotation.lead.assignedTo);
       const isAssigned = leadAssignedTo && leadAssignedTo.toString() === req.user._id.toString();
-      if (!isCreator && !isCrdPerson && !isAssigned) {
+      if (!isCreator && !isCrdPerson && !isPedPerson && !isAccountsPerson && !isAssigned) {
         return res.status(403).json({ message: 'You are not authorized to view this quotation' });
       }
     }
@@ -144,8 +153,8 @@ router.post('/', protect, async (req, res) => {
 // @route   PUT /api/quotations/:id
 // @desc    Update an existing quotation
 router.put('/:id', protect, async (req, res) => {
-  if (req.body.crdPerson !== undefined && req.user.role !== 'Superadmin') {
-    return res.status(403).json({ message: 'Only Superadmin is allowed to assign or edit CRD Person.' });
+  if ((req.body.crdPerson !== undefined || req.body.pedPerson !== undefined || req.body.accountsPerson !== undefined) && req.user.role !== 'Superadmin') {
+    return res.status(403).json({ message: 'Only Superadmin is allowed to assign or edit CRD / PED / Accounts Person.' });
   }
 
   try {
@@ -158,8 +167,10 @@ router.put('/:id', protect, async (req, res) => {
       const lead = await Lead.findById(quotation.lead);
       const isCreator = quotation.createdBy && quotation.createdBy.toString() === req.user._id.toString();
       const isCrdPerson = quotation.crdPerson && quotation.crdPerson.toString() === req.user._id.toString();
+      const isPedPerson = quotation.pedPerson && quotation.pedPerson.toString() === req.user._id.toString();
+      const isAccountsPerson = quotation.accountsPerson && quotation.accountsPerson.toString() === req.user._id.toString();
       const isAssigned = lead && lead.assignedTo && lead.assignedTo.toString() === req.user._id.toString();
-      if (!isCreator && !isCrdPerson && !isAssigned) {
+      if (!isCreator && !isCrdPerson && !isPedPerson && !isAccountsPerson && !isAssigned) {
         return res.status(403).json({ message: 'You are not authorized to modify this quotation' });
       }
     }
@@ -170,7 +181,7 @@ router.put('/:id', protect, async (req, res) => {
       'customerName', 'customerPhone', 'customerAddress', 'projectType', 
       'selectedUnits', 'pricePerSqFt', 'totalArea', 'totalValue', 
       'alternativePhone', 'aadharNumber', 'panNumber', 'bankLoanRequired', 
-      'loanAmount', 'preferredBank'
+      'loanAmount', 'preferredBank', 'crdPerson', 'pedPerson', 'accountsPerson'
     ];
 
     fieldsToTrack.forEach(field => {
@@ -231,7 +242,9 @@ router.put('/:id', protect, async (req, res) => {
       .populate('project', 'name code')
       .populate('lead', 'name phone')
       .populate('createdBy', 'name role')
-      .populate('crdPerson', 'name role');
+      .populate('crdPerson', 'name role')
+      .populate('pedPerson', 'name role')
+      .populate('accountsPerson', 'name role');
 
     res.json(updatedQuotation);
   } catch (err) {
