@@ -23,6 +23,8 @@ const PAGE_COLUMNS = {
     { key: 'preparedBy', label: 'Prepared By' },
     { key: 'createdDate', label: 'Created Date' },
     { key: 'crdPerson', label: 'CRD Person' },
+    { key: 'pedPerson', label: 'PED Person' },
+    { key: 'accountsPerson', label: 'Accounts Person' },
     { key: 'actions', label: 'Actions' }
   ],
   projects: [
@@ -52,16 +54,20 @@ const PAGE_COLUMNS = {
     { key: 'actions', label: 'Actions' }
   ],
   customers: [
+    { key: 'sno', label: 'S.No' },
+    { key: 'bookingDate', label: 'Booking Date' },
     { key: 'customerName', label: 'Customer Name' },
     { key: 'phoneNumber', label: 'Phone Number' },
     { key: 'project', label: 'Project' },
-    { key: 'unitPlot', label: 'Unit / Plot' },
-    { key: 'complaints', label: 'Complaints' },
+    { key: 'units', label: 'Units' },
+    { key: 'totalCost', label: 'Total Cost' },
+    { key: 'bankLoan', label: 'Bank Loan' },
+    { key: 'assignedTo', label: 'Assigned Executive' },
     { key: 'actions', label: 'Actions' }
   ],
   crdFlow: [
     { key: 'sno', label: 'S.No' },
-    { key: 'bookingDate', label: 'Booking Date' },
+    { key: 'bookingDate', label: 'Booked Date' },
     { key: 'customerName', label: 'Customer Name' },
     { key: 'phoneNumber', label: 'Phone Number' },
     { key: 'project', label: 'Project' },
@@ -71,6 +77,8 @@ const PAGE_COLUMNS = {
     { key: 'pendingValue', label: 'Pending Value' },
     { key: 'assignedPerson', label: 'Assigned Person' },
     { key: 'crdPerson', label: 'CRD Person' },
+    { key: 'pedPerson', label: 'PED Person' },
+    { key: 'accountsPerson', label: 'Accounts Person' },
     { key: 'actions', label: 'Quick Actions' }
   ],
   complaintsFlow: [

@@ -17,10 +17,12 @@ const checkFlowAccess = async (flowId, req) => {
   const isAssigned = lead ? (lead.assignedTo?.toString() === req.user._id.toString()) : false;
   
   const Quotation = require('../models/Quotation');
-  const quotation = await Quotation.findOne({ lead: flow.lead?._id }, 'crdPerson');
+  const quotation = await Quotation.findOne({ lead: flow.lead?._id }, 'crdPerson pedPerson accountsPerson');
   const isCrdPerson = quotation && quotation.crdPerson ? (quotation.crdPerson.toString() === req.user._id.toString()) : false;
+  const isPedPerson = quotation && quotation.pedPerson ? (quotation.pedPerson.toString() === req.user._id.toString()) : false;
+  const isAccountsPerson = quotation && quotation.accountsPerson ? (quotation.accountsPerson.toString() === req.user._id.toString()) : false;
   
-  return isAssigned || isCrdPerson;
+  return isAssigned || isCrdPerson || isPedPerson || isAccountsPerson;
 };
 
 const validateFlowAccess = async (req, res, next) => {
@@ -41,27 +43,30 @@ router.get('/', protect, async (req, res) => {
   try {
     let query = {};
     if (req.user.role !== 'Superadmin') {
-      const userLeads = await Lead.find({ assignedTo: req.user._id }, '_id');
-      const leadIds = userLeads.map(l => l._id);
-      
       const Quotation = require('../models/Quotation');
-      const userQuotations = await Quotation.find({ crdPerson: req.user._id }, 'lead');
-      const quotationLeadIds = userQuotations.map(q => q.lead);
       
-      const authorizedLeadIds = [...new Set([...leadIds, ...quotationLeadIds])];
+      // Quotations explicitly assigned to user as CRD Person, PED Person, or Accounts Person
+      const assignedQuotations = await Quotation.find({
+        $or: [
+          { crdPerson: req.user._id },
+          { pedPerson: req.user._id },
+          { accountsPerson: req.user._id }
+        ]
+      }, 'lead').lean();
+      const authorizedLeadIds = assignedQuotations.map(q => q.lead?.toString()).filter(Boolean);
       query = { lead: { $in: authorizedLeadIds } };
     }
 
     let flows = await CRDFlow.find(query)
       .populate('project', 'name code location projectType extraWorkCatalog')
       .populate('lead', 'name phone bankLoan bookingInfo bankLoanPercentage')
-      .sort({ updatedAt: -1 });
+      .sort({ updatedAt: -1 })
+      .lean();
       
-    // Filter out orphaned flows or flows that are cancelled/returned or belong to cancelled/lost leads
+    // Filter out orphaned flows or flows that belong to lost leads (keep cancelled flows for UI visibility)
     flows = flows.filter(flow => {
       if (flow.lead == null) return false;
-      if (flow.status === 'Cancelled' || flow.status === 'Returned') return false;
-      if (['Lost', 'Cancelled'].includes(flow.lead.status)) return false;
+      if (flow.lead.status === 'Lost') return false;
       return true;
     });
     
@@ -80,10 +85,12 @@ router.get('/booking/:leadId', protect, async (req, res) => {
       const isAssigned = lead ? (lead.assignedTo?.toString() === req.user._id.toString()) : false;
 
       const Quotation = require('../models/Quotation');
-      const quotation = await Quotation.findOne({ lead: req.params.leadId }, 'crdPerson');
+      const quotation = await Quotation.findOne({ lead: req.params.leadId }, 'crdPerson pedPerson accountsPerson');
       const isCrdPerson = quotation && quotation.crdPerson ? (quotation.crdPerson.toString() === req.user._id.toString()) : false;
+      const isPedPerson = quotation && quotation.pedPerson ? (quotation.pedPerson.toString() === req.user._id.toString()) : false;
+      const isAccountsPerson = quotation && quotation.accountsPerson ? (quotation.accountsPerson.toString() === req.user._id.toString()) : false;
 
-      if (!isAssigned && !isCrdPerson) {
+      if (!isAssigned && !isCrdPerson && !isPedPerson && !isAccountsPerson) {
         return res.status(403).json({ message: 'You are not authorized to view this construction flow' });
       }
     }
@@ -146,10 +153,12 @@ router.post('/', protect, async (req, res) => {
       const isAssigned = lead ? (lead.assignedTo?.toString() === req.user._id.toString()) : false;
       
       const Quotation = require('../models/Quotation');
-      const quotation = await Quotation.findOne({ lead: leadId }, 'crdPerson');
+      const quotation = await Quotation.findOne({ lead: leadId }, 'crdPerson pedPerson accountsPerson');
       const isCrdPerson = quotation && quotation.crdPerson ? (quotation.crdPerson.toString() === req.user._id.toString()) : false;
+      const isPedPerson = quotation && quotation.pedPerson ? (quotation.pedPerson.toString() === req.user._id.toString()) : false;
+      const isAccountsPerson = quotation && quotation.accountsPerson ? (quotation.accountsPerson.toString() === req.user._id.toString()) : false;
 
-      if (!isAssigned && !isCrdPerson) {
+      if (!isAssigned && !isCrdPerson && !isPedPerson && !isAccountsPerson) {
         return res.status(403).json({ message: 'You are not authorized to initialize a construction flow for this lead' });
       }
     }
@@ -275,6 +284,73 @@ router.put('/:id/stage/:stageIndex/complete', protect, validateFlowAccess, async
     res.json(populated);
   } catch (err) {
     console.error("COMPLETE ERROR:", err);
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// @route   PUT /api/crd-flow/:id/stage/:stageIndex/status
+// @desc    Update stageStatus (Start -> In Progress -> Completed)
+router.put('/:id/stage/:stageIndex/status', protect, validateFlowAccess, async (req, res) => {
+  const { stageStatus } = req.body;
+  try {
+    const flow = await CRDFlow.findById(req.params.id);
+    if (!flow) return res.status(404).json({ message: 'Flow record not found' });
+
+    const idx = Number(req.params.stageIndex);
+    if (idx < 0 || idx >= flow.stages.length) {
+      return res.status(400).json({ message: 'Invalid stage index' });
+    }
+
+    flow.stages[idx].stageStatus = stageStatus;
+    if (stageStatus === 'Completed') {
+      flow.stages[idx].isCompleted = true;
+      flow.stages[idx].completedDate = new Date();
+    } else {
+      flow.stages[idx].isCompleted = false;
+      flow.stages[idx].completedDate = undefined;
+    }
+
+    flow.history.push({
+      action: 'Stage Status Updated',
+      notes: `Stage "${flow.stages[idx].name}" set to ${stageStatus}`,
+      user: req.user.name,
+      date: Date.now()
+    });
+
+    await flow.save();
+    const populated = await CRDFlow.findById(flow._id).populate('project').populate('lead');
+    res.json(populated);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// @route   PUT /api/crd-flow/:id/stage/:stageIndex/billed
+// @desc    Update billedStatus (Not Billed / Billed)
+router.put('/:id/stage/:stageIndex/billed', protect, validateFlowAccess, async (req, res) => {
+  const { billedStatus } = req.body;
+  try {
+    const flow = await CRDFlow.findById(req.params.id);
+    if (!flow) return res.status(404).json({ message: 'Flow record not found' });
+
+    const idx = Number(req.params.stageIndex);
+    if (idx < 0 || idx >= flow.stages.length) {
+      return res.status(400).json({ message: 'Invalid stage index' });
+    }
+
+    flow.stages[idx].billedStatus = billedStatus;
+
+    flow.history.push({
+      action: 'Billed Status Updated',
+      notes: `Stage "${flow.stages[idx].name}" billed status set to ${billedStatus}`,
+      user: req.user.name,
+      date: Date.now()
+    });
+
+    await flow.save();
+    const populated = await CRDFlow.findById(flow._id).populate('project').populate('lead');
+    res.json(populated);
+  } catch (err) {
     res.status(500).json({ message: err.message });
   }
 });
@@ -459,7 +535,7 @@ router.delete('/:id/stage/:stageIndex/extra-work/:workId', protect, validateFlow
 // @route   PUT /api/crd-flow/:id/stage/:stageIndex/payment
 // @desc    Submit split payment for a stage
 router.put('/:id/stage/:stageIndex/payment', protect, validateFlowAccess, async (req, res) => {
-  const { method, amount, details, payments } = req.body;
+  const { method, amount, details, payments, paymentDate } = req.body;
   try {
     const flow = await CRDFlow.findById(req.params.id);
     if (!flow) return res.status(404).json({ message: 'Flow record not found' });
@@ -468,6 +544,8 @@ router.put('/:id/stage/:stageIndex/payment', protect, validateFlowAccess, async 
     if (idx < 0 || idx >= flow.stages.length) {
       return res.status(400).json({ message: 'Invalid stage index' });
     }
+
+    const payDate = paymentDate ? new Date(paymentDate) : new Date();
 
     // Process payments and cascade backwards to clear previous stages
     let paymentsToProcess = [];
@@ -501,7 +579,9 @@ router.put('/:id/stage/:stageIndex/payment', protect, validateFlowAccess, async 
             stage.payments.push({
               method: p.method,
               amount: stagePending,
-              details: p.details
+              details: p.details,
+              date: payDate,
+              receivedBy: req.user.name
             });
             remainingAmount -= stagePending;
           } else {
@@ -509,7 +589,9 @@ router.put('/:id/stage/:stageIndex/payment', protect, validateFlowAccess, async 
             stage.payments.push({
               method: p.method,
               amount: remainingAmount,
-              details: p.details
+              details: p.details,
+              date: payDate,
+              receivedBy: req.user.name
             });
             remainingAmount = 0;
           }
@@ -522,7 +604,9 @@ router.put('/:id/stage/:stageIndex/payment', protect, validateFlowAccess, async 
         flow.stages[idx].payments.push({
           method: p.method,
           amount: remainingAmount,
-          details: p.details
+          details: p.details,
+          date: payDate,
+          receivedBy: req.user.name
         });
       }
     }
@@ -609,21 +693,46 @@ router.put('/:id/cancel-request', protect, validateFlowAccess, async (req, res) 
       return res.status(400).json({ message: 'Cancellation already requested' });
     }
 
-    flow.status = 'Cancel Requested';
-    flow.history.push({
-      action: 'Cancel Requested',
-      notes: `Narration: ${narration}`,
-      user: req.user.name,
-      date: Date.now()
-    });
-    await flow.save();
+    if (req.user.role === 'Superadmin') {
+      flow.status = 'Cancelled';
+      flow.history.push({
+        action: 'Cancelled by Superadmin',
+        notes: `Narration: ${narration}`,
+        user: req.user.name,
+        date: Date.now()
+      });
+      await flow.save();
 
-    await ApprovalRequest.create({
-      type: 'CRD_CANCELLATION',
-      referenceId: flow._id,
-      requestedBy: req.user._id,
-      narration
-    });
+      const lead = await Lead.findById(flow.lead);
+      if (lead) {
+        lead.status = 'Cancelled';
+        lead.isClosed = true;
+        lead.history.push({
+          status: 'Cancelled',
+          assignedTo: lead.assignedTo,
+          updatedBy: req.user._id,
+          timestamp: Date.now(),
+          note: `Cancelled by Superadmin. Narration: ${narration}`
+        });
+        await lead.save();
+      }
+    } else {
+      flow.status = 'Cancel Requested';
+      flow.history.push({
+        action: 'Cancel Requested',
+        notes: `Narration: ${narration}`,
+        user: req.user.name,
+        date: Date.now()
+      });
+      await flow.save();
+
+      await ApprovalRequest.create({
+        type: 'CRD_CANCELLATION',
+        referenceId: flow._id,
+        requestedBy: req.user._id,
+        narration
+      });
+    }
 
     const populated = await CRDFlow.findById(flow._id).populate('project').populate('lead');
     res.json(populated);

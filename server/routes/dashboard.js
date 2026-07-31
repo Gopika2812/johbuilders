@@ -15,8 +15,7 @@ const { protect } = require('../middleware/auth');
 router.get('/stats', protect, async (req, res) => {
   const { fromDate, toDate, userId, projectId, projectType, source } = req.query;
   try {
-    const projectsForHandover = await Project.find({}, 'units');
-    // 1. Build leads filters
+    // 1. Build queries
     let query = {};
     let dateFilter = null;
     if (fromDate || toDate) {
@@ -33,15 +32,15 @@ router.get('/stats', protect, async (req, res) => {
       ];
     }
 
+    let matchingProjectIds = null;
     if (projectType) {
-      const matchingProjects = await Project.find({ projectType: projectType });
-      const matchingProjectIds = matchingProjects.map(p => p._id);
-
+      const matchingProjects = await Project.find({ projectType: projectType }, '_id').lean();
+      matchingProjectIds = matchingProjects.map(p => p._id);
       if (projectId) {
         if (matchingProjectIds.map(id => id.toString()).includes(projectId.toString())) {
           query.project = projectId;
         } else {
-          query.project = new mongoose.Types.ObjectId(); // matches nothing
+          query.project = new mongoose.Types.ObjectId();
         }
       } else {
         query.project = { $in: matchingProjectIds };
@@ -50,27 +49,14 @@ router.get('/stats', protect, async (req, res) => {
       query.project = projectId;
     }
 
-    if (userId) {
-      query.assignedTo = userId;
-    }
+    if (userId) query.assignedTo = userId;
+    if (source) query.leadSource = source;
 
-    if (source) {
-      query.leadSource = source;
-    }
-
-    const leads = await Lead.find(query).populate('project').populate('assignedTo');
-
-    // 2. Build quotations filters
+    // Build quotations query
     let qQuery = {};
-    if (dateFilter) {
-      qQuery.createdAt = dateFilter;
-    }
-
-    if (projectType) {
+    if (dateFilter) qQuery.createdAt = dateFilter;
+    if (projectType && matchingProjectIds) {
       qQuery.projectType = projectType;
-      const matchingProjects = await Project.find({ projectType: projectType });
-      const matchingProjectIds = matchingProjects.map(p => p._id);
-
       if (projectId) {
         if (matchingProjectIds.map(id => id.toString()).includes(projectId.toString())) {
           qQuery.project = projectId;
@@ -84,18 +70,6 @@ router.get('/stats', protect, async (req, res) => {
       qQuery.project = projectId;
     }
 
-    if (userId || source) {
-      let leadFilter = {};
-      if (userId) leadFilter.assignedTo = userId;
-      if (source) leadFilter.leadSource = source;
-      const userLeads = await Lead.find(leadFilter);
-      const leadIds = userLeads.map(ul => ul._id);
-      qQuery.lead = { $in: leadIds };
-    }
-
-    const quotations = await Quotation.find(qQuery).populate('lead').populate('project').populate('createdBy');
-
-    // 3. Fetch budget plans
     let budgetQuery = {};
     if (fromDate || toDate) {
       const startMonth = fromDate ? fromDate.substring(0, 7) : null;
@@ -108,9 +82,34 @@ router.get('/stats', protect, async (req, res) => {
         budgetQuery.month = { $lte: endMonth };
       }
     }
-    const budgetPlans = await BudgetPlan.find(budgetQuery);
-    const allUsers = await User.find({}, 'name role');
-    const dbProjects = await Project.find({}, 'name code');
+
+    // Execute queries in parallel using Promise.all & .lean()
+    const [
+      projectsForHandover,
+      leads,
+      userLeads,
+      budgetPlans,
+      allUsers,
+      dbProjects
+    ] = await Promise.all([
+      Project.find({}, 'units').lean(),
+      Lead.find(query).populate('project', 'name code').populate('assignedTo', 'name role').lean(),
+      (userId || source) ? Lead.find(userId && source ? { assignedTo: userId, leadSource: source } : (userId ? { assignedTo: userId } : { leadSource: source }), '_id').lean() : Promise.resolve([]),
+      BudgetPlan.find(budgetQuery).lean(),
+      User.find({}, 'name role').lean(),
+      Project.find({}, 'name code projectType').lean()
+    ]);
+
+    if (userId || source) {
+      const leadIds = userLeads.map(ul => ul._id);
+      qQuery.lead = { $in: leadIds };
+    }
+
+    const quotations = await Quotation.find(qQuery)
+      .populate('lead', 'name phone status assignedTo')
+      .populate('project', 'name code')
+      .populate('createdBy', 'name role')
+      .lean();
 
     // Computation variables
     const rangeStart = fromDate ? new Date(fromDate) : null;
@@ -281,12 +280,6 @@ router.get('/stats', protect, async (req, res) => {
           }
           projectStats[pCode].count += 1;
           projectStats[pCode].stages[displayStatus] = (projectStats[pCode].stages[displayStatus] || 0) + 1;
-          if (isLeadHandover) {
-            projectStats[pCode].stages['Site Conversion'] = (projectStats[pCode].stages['Site Conversion'] || 0) + 1;
-          }
-          if (isSiteConversion) {
-            projectStats[pCode].stages['Site Conversion'] = Math.max(projectStats[pCode].stages['Site Conversion'] || 0, (projectStats[pCode].stages['Site Conversion'] || 0) + 1);
-          }
         }
       }
 
@@ -435,14 +428,32 @@ router.get('/stats', protect, async (req, res) => {
 
     // Calculate Projects & Units Inventory Stats
     const leadsWithSelectedUnits = await Lead.find({ 'bookingInfo.selectedUnits': { $exists: true, $ne: [] } });
+    const crdFlowsWithUnits = await CRDFlow.find({ unitId: { $exists: true, $ne: '' } });
     const bookingDatesMap = new Map();
+
     leadsWithSelectedUnits.forEach(lead => {
-      const projId = lead.project?.toString();
-      if (projId && lead.bookingInfo?.selectedUnits) {
+      const projId = (lead.project?._id || lead.project)?.toString();
+      const projCode = lead.project?.code;
+      if (lead.bookingInfo?.selectedUnits) {
         lead.bookingInfo.selectedUnits.forEach(unitId => {
           const date = lead.bookingInfo.bookingDate || lead.createdAt || new Date();
-          bookingDatesMap.set(`${projId}_${unitId}`, date);
+          if (projId) bookingDatesMap.set(`${projId}_${unitId}`, date);
+          if (projCode) bookingDatesMap.set(`${projCode}_${unitId}`, date);
+          bookingDatesMap.set(`${unitId}`, date);
         });
+      }
+    });
+
+    crdFlowsWithUnits.forEach(cf => {
+      const projId = (cf.project?._id || cf.project)?.toString();
+      const date = cf.createdAt || cf.updatedAt || new Date();
+      if (cf.unitId) {
+        if (projId && !bookingDatesMap.has(`${projId}_${cf.unitId}`)) {
+          bookingDatesMap.set(`${projId}_${cf.unitId}`, date);
+        }
+        if (!bookingDatesMap.has(`${cf.unitId}`)) {
+          bookingDatesMap.set(`${cf.unitId}`, date);
+        }
       }
     });
 
@@ -464,18 +475,18 @@ router.get('/stats', protect, async (req, res) => {
     let bookedUnitsList = [];
     let handoverUnitsList = [];
     let cancelledUnitsList = [];
-    let totalByType = { Plot: 0, Flat: 0, Villa: 0 };
-    let availableByType = { Plot: 0, Flat: 0, Villa: 0 };
-    let bookedByType = { Plot: 0, Flat: 0, Villa: 0 };
-    let handoverByType = { Plot: 0, Flat: 0, Villa: 0 };
-    let cancelledByType = { Plot: 0, Flat: 0, Villa: 0 };
+    let totalByType = { Plot: 0, Flat: 0, Villa: 0, Unit: 0 };
+    let availableByType = { Plot: 0, Flat: 0, Villa: 0, Unit: 0 };
+    let bookedByType = { Plot: 0, Flat: 0, Villa: 0, Unit: 0 };
+    let handoverByType = { Plot: 0, Flat: 0, Villa: 0, Unit: 0 };
+    let cancelledByType = { Plot: 0, Flat: 0, Villa: 0, Unit: 0 };
 
-    let totalValueByType = { Plot: 0, Flat: 0, Villa: 0 };
-    let availableValueByType = { Plot: 0, Flat: 0, Villa: 0 };
-    let bookedValueByType = { Plot: 0, Flat: 0, Villa: 0 };
-    let handoverValueByType = { Plot: 0, Flat: 0, Villa: 0 };
+    let totalValueByType = { Plot: 0, Flat: 0, Villa: 0, Unit: 0 };
+    let availableValueByType = { Plot: 0, Flat: 0, Villa: 0, Unit: 0 };
+    let bookedValueByType = { Plot: 0, Flat: 0, Villa: 0, Unit: 0 };
+    let handoverValueByType = { Plot: 0, Flat: 0, Villa: 0, Unit: 0 };
 
-    let projectsByType = { Plot: 0, Flat: 0, Villa: 0 };
+    let projectsByType = { Plot: 0, Flat: 0, Villa: 0, Unit: 0 };
     const projectUnitsStats = {};
 
     allProjects.forEach(p => {
@@ -497,26 +508,27 @@ router.get('/stats', protect, async (req, res) => {
       if (types.includes('Plot')) projectsByType.Plot += 1;
       if (types.includes('Flat')) projectsByType.Flat += 1;
       if (types.includes('House') || types.includes('Villa')) projectsByType.Villa += 1;
+      if (types.includes('Unit')) projectsByType.Unit = (projectsByType.Unit || 0) + 1;
 
       p.units?.forEach(u => {
         projectUnitsStats[pCode].total += 1;
         projectUnitsStats[pCode].totalUnitsList.push(u.unitId);
 
+        const bookingDate = bookingDatesMap.get(`${p._id.toString()}_${u.unitId}`) ||
+                            bookingDatesMap.get(`${pCode}_${u.unitId}`) ||
+                            bookingDatesMap.get(`${u.unitId}`) ||
+                            u.bookingDate ||
+                            u.updatedAt ||
+                            u.createdAt ||
+                            p.updatedAt ||
+                            p.createdAt;
+
         if (u.status === 'New') {
           projectUnitsStats[pCode].available += 1;
           projectUnitsStats[pCode].availableUnitsList.push(u.unitId);
         } else if (u.status === 'Booked') {
-          const bookingDate = bookingDatesMap.get(`${p._id.toString()}_${u.unitId}`);
-          let dateMatches = true;
-          if (fromDate || toDate) {
-            if (!bookingDate || !inRange(bookingDate)) {
-              dateMatches = false;
-            }
-          }
-          if (dateMatches) {
-            projectUnitsStats[pCode].booked += 1;
-            projectUnitsStats[pCode].bookedUnitsList.push(u.unitId);
-          }
+          projectUnitsStats[pCode].booked += 1;
+          projectUnitsStats[pCode].bookedUnitsList.push(u.unitId);
         } else if (u.status === 'Sold Out') {
           projectUnitsStats[pCode].handover += 1;
           projectUnitsStats[pCode].handoverUnitsList.push(u.unitId);
@@ -562,7 +574,6 @@ router.get('/stats', protect, async (req, res) => {
           availableByType[type] = (availableByType[type] || 0) + 1;
           availableValueByType[type] = (availableValueByType[type] || 0) + val;
         } else if (u.status === 'Booked') {
-          const bookingDate = bookingDatesMap.get(`${p._id.toString()}_${u.unitId}`);
           let dateMatches = true;
           if (fromDate || toDate) {
             if (!bookingDate || !inRange(bookingDate)) {
@@ -581,7 +592,8 @@ router.get('/stats', protect, async (req, res) => {
               size: u.size,
               price: val,
               customerName: u.customerName || 'N/A',
-              customerPhone: u.customerPhone || 'N/A'
+              customerPhone: u.customerPhone || 'N/A',
+              bookingDate: bookingDate || p.updatedAt || p.createdAt
             });
           }
         } else if (u.status === 'Sold Out') {
@@ -596,7 +608,8 @@ router.get('/stats', protect, async (req, res) => {
             size: u.size,
             price: val,
             customerName: u.customerName || 'N/A',
-            customerPhone: u.customerPhone || 'N/A'
+            customerPhone: u.customerPhone || 'N/A',
+            bookingDate: bookingDate || p.updatedAt || p.createdAt
           });
         } else {
           availableUnits += 1;

@@ -23,6 +23,7 @@ const requestsRoutes = require('./routes/requests');
 const customerRoutes = require('./routes/customer');
 const extraWorksRoutes = require('./routes/extraWorks');
 const tasksRoutes = require('./routes/tasks');
+const userTaskRoutes = require('./routes/userTasks');
 const settingsRoutes = require('./routes/settings');
 const app = express();
 
@@ -188,6 +189,7 @@ app.use('/api/requests', requestsRoutes);
 app.use('/api/customer', customerRoutes);
 app.use('/api/extra-works', extraWorksRoutes);
 app.use('/api/tasks', tasksRoutes);
+app.use('/api/user-tasks', userTaskRoutes);
 app.use('/api/settings', settingsRoutes);
 
 // Health check endpoint

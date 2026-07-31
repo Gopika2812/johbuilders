@@ -27,8 +27,9 @@ const SummaryPlanning = () => {
   const [plotsTarget, setPlotsTarget] = useState(0);
 
   // Phase 1: Dynamically aggregated stats
-  const [achievedStats, setAchievedStats] = useState({ salesValue: 0, villasCount: 0, plotsCount: 0 });
-  const [lastMonthStats, setLastMonthStats] = useState({ salesValue: 0, villasCount: 0, plotsCount: 0 });
+  const [achievedStats, setAchievedStats] = useState({ salesValue: 0, villasCount: 0, plotsCount: 0, flatsCount: 0 });
+  const [lastMonthStats, setLastMonthStats] = useState({ salesValue: 0, villasCount: 0, plotsCount: 0, flatsCount: 0 });
+  const [projectsList, setProjectsList] = useState([]);
 
   // Phase 2: Project targets state
   const [projectTargetsState, setProjectTargetsState] = useState({});
@@ -46,6 +47,15 @@ const SummaryPlanning = () => {
   const fetchInitialData = async () => {
     setLoading(true);
     try {
+      // 0. Fetch Projects List for Composition Detection
+      const projRes = await fetch(`${API_URL}/projects`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (projRes.ok) {
+        const pList = await projRes.json();
+        setProjectsList(pList);
+      }
+
       // 1. Fetch User Targets Config
       const targetsRes = await fetch(`${API_URL}/summary-plans/${selectedMonth}`, {
         headers: { 'Authorization': `Bearer ${token}` }
@@ -66,12 +76,14 @@ const SummaryPlanning = () => {
         const statsData = await statsRes.json();
         setAchievedStats({
           salesValue: statsData.current?.salesValue || 0,
-          villasCount: statsData.current?.villasCount || statsData.current?.housesCount || 0,
+          flatsCount: statsData.current?.flatsCount || 0,
+          villasCount: statsData.current?.villasCount || 0,
           plotsCount: statsData.current?.plotsCount || 0
         });
         setLastMonthStats({
           salesValue: statsData.lastMonth?.salesValue || 0,
-          villasCount: statsData.lastMonth?.villasCount || statsData.lastMonth?.housesCount || 0,
+          flatsCount: statsData.lastMonth?.flatsCount || 0,
+          villasCount: statsData.lastMonth?.villasCount || 0,
           plotsCount: statsData.lastMonth?.plotsCount || 0
         });
       }
@@ -118,14 +130,16 @@ const SummaryPlanning = () => {
       const mTargetMap = {};
       // Populate defaults for all lead groups + static rows
       Object.keys(fetchedMStats.groups || {}).forEach(name => {
-        mTargetMap[name] = 0;
+        mTargetMap[name] = fetchedMStats.groups[name]?.budget || 0;
       });
       mTargetMap['LEADS GENERATED'] = 0;
       mTargetMap['SITE VISIT CONVERSIONS'] = 0;
 
       if (targetData && targetData.marketingTargets) {
         targetData.marketingTargets.forEach(mt => {
-          mTargetMap[mt.name] = mt.target || 0;
+          if (mt.target !== undefined && mt.target !== null && mt.target > 0) {
+            mTargetMap[mt.name] = mt.target;
+          }
         });
       }
       setMarketingTargetsState(mTargetMap);
@@ -382,7 +396,6 @@ const SummaryPlanning = () => {
                     <th className="p-4 w-44 text-right">TOTAL TARGET</th>
                     <th className="p-4 w-28">UNIT</th>
                     <th className="p-4 w-36 text-right">ACHIEVED</th>
-                    <th className="p-4 w-36 text-right">BALANCE</th>
                     <th className="p-4 w-44 text-right">LAST MONTH ACHIEVED</th>
                   </tr>
                 </thead>
@@ -404,9 +417,6 @@ const SummaryPlanning = () => {
                     <td className="p-4 text-right font-extrabold text-black-800">
                       {achievedStats.salesValue.toFixed(4)}
                     </td>
-                    <td className="p-4 text-right font-extrabold text-[#0e623a]">
-                      {(salesTarget - achievedStats.salesValue).toFixed(4)}
-                    </td>
                     <td className="p-4 text-right font-bold text-black-500">
                       {lastMonthStats.salesValue.toFixed(4)}
                     </td>
@@ -414,25 +424,22 @@ const SummaryPlanning = () => {
 
                   <tr className="hover:bg-black-50 transition align-middle">
                     <td className="p-4 text-center font-bold text-black-400">2</td>
-                    <td className="p-4 font-bold text-black-750">Total Villas to be Sold</td>
+                    <td className="p-4 font-bold text-black-750">Total Units to be Sold</td>
                     <td className="p-4 text-right">
                       <input
                         type="number"
                         placeholder="0"
                         value={villasTarget || ''}
                         onChange={(e) => setVillasTarget(Number(e.target.value) || 0)}
-                        className="px-3 py-1.5 bg-black-55 border border-black-255 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-xs font-bold text-right w-36 mx-auto inline-block"
+                        className="px-3 py-1.5 bg-black-50 border border-black-250 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-xs font-bold text-right w-36 mx-auto inline-block"
                       />
                     </td>
                     <td className="p-4 text-black-500 font-semibold">Units</td>
                     <td className="p-4 text-right font-extrabold text-black-800">
-                      {achievedStats.villasCount}
-                    </td>
-                    <td className="p-4 text-right font-extrabold text-[#0e623a]">
-                      {villasTarget - achievedStats.villasCount}
+                      {(achievedStats.flatsCount || 0) + (achievedStats.villasCount || 0)}
                     </td>
                     <td className="p-4 text-right font-bold text-black-500">
-                      {lastMonthStats.villasCount}
+                      {(lastMonthStats.flatsCount || 0) + (lastMonthStats.villasCount || 0)}
                     </td>
                   </tr>
 
@@ -445,18 +452,15 @@ const SummaryPlanning = () => {
                         placeholder="0"
                         value={plotsTarget || ''}
                         onChange={(e) => setPlotsTarget(Number(e.target.value) || 0)}
-                        className="px-3 py-1.5 bg-black-50 border border-black-255 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-xs font-bold text-right w-36 mx-auto inline-block"
+                        className="px-3 py-1.5 bg-black-50 border border-black-250 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-xs font-bold text-right w-36 mx-auto inline-block"
                       />
                     </td>
-                    <td className="p-4 text-black-500 font-semibold">Units</td>
+                    <td className="p-4 text-black-500 font-semibold">Plots</td>
                     <td className="p-4 text-right font-extrabold text-black-800">
-                      {achievedStats.plotsCount}
-                    </td>
-                    <td className="p-4 text-right font-extrabold text-[#0e623a]">
-                      {plotsTarget - achievedStats.plotsCount}
+                      {achievedStats.plotsCount || 0}
                     </td>
                     <td className="p-4 text-right font-bold text-black-500">
-                      {lastMonthStats.plotsCount}
+                      {lastMonthStats.plotsCount || 0}
                     </td>
                   </tr>
                 </tbody>

@@ -29,24 +29,27 @@ router.get('/', protect, async (req, res) => {
     ];
   }
 
-  // Restrict to assigned leads for Sales Executives and Site Engineers (non-Superadmin/non-Crd team)
+  // Restrict to assigned leads for non-Superadmin users
   if (req.user.role !== 'Superadmin') {
     if (crdView === 'true') {
       const Quotation = require('../models/Quotation');
-      const userQuotations = await Quotation.find({ crdPerson: req.user._id }, 'lead');
-      const leadIds = userQuotations.map(q => q.lead);
+      const userQuotations = await Quotation.find({
+        $or: [
+          { crdPerson: req.user._id },
+          { pedPerson: req.user._id },
+          { accountsPerson: req.user._id }
+        ]
+      }, 'lead').lean();
+      const leadIds = userQuotations.map(q => q.lead?.toString()).filter(Boolean);
       
       if (query.$or) {
         query.$and = [
           { $or: query.$or },
-          { $or: [{ assignedTo: req.user._id }, { _id: { $in: leadIds } }] }
+          { _id: { $in: leadIds } }
         ];
         delete query.$or;
       } else {
-        query.$or = [
-          { assignedTo: req.user._id },
-          { _id: { $in: leadIds } }
-        ];
+        query._id = { $in: leadIds };
       }
     } else {
       query.assignedTo = req.user._id;
@@ -60,7 +63,8 @@ router.get('/', protect, async (req, res) => {
       .populate('assignedBy', 'name role')
       .populate('history.assignedTo', 'name role')
       .populate('history.updatedBy', 'name role')
-      .sort({ updatedAt: -1 });
+      .sort({ updatedAt: -1 })
+      .lean();
     res.json(leads);
   } catch (err) {
     res.status(500).json({ message: err.message });

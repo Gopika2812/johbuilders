@@ -68,6 +68,52 @@ const QuotationsDirectory = () => {
     }
   };
 
+  const updatePedPerson = async (quotationId, userId) => {
+    try {
+      const res = await fetch(`${API_URL}/quotations/${quotationId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ pedPerson: userId })
+      });
+      if (res.ok) {
+        const updated = await res.json();
+        setQuotations(prev => prev.map(q => q._id === quotationId ? updated : q));
+        setSuccess('PED Person assigned successfully');
+        setTimeout(() => setSuccess(''), 3000);
+      } else {
+        setError('Failed to assign PED Person');
+      }
+    } catch (err) {
+      setError('Error assigning PED Person');
+    }
+  };
+
+  const updateAccountsPerson = async (quotationId, userId) => {
+    try {
+      const res = await fetch(`${API_URL}/quotations/${quotationId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ accountsPerson: userId })
+      });
+      if (res.ok) {
+        const updated = await res.json();
+        setQuotations(prev => prev.map(q => q._id === quotationId ? updated : q));
+        setSuccess('Accounts Person assigned successfully');
+        setTimeout(() => setSuccess(''), 3000);
+      } else {
+        setError('Failed to assign Accounts Person');
+      }
+    } catch (err) {
+      setError('Error assigning Accounts Person');
+    }
+  };
+
   const fetchQuotations = async () => {
     try {
       const res = await fetch(`${API_URL}/quotations`, {
@@ -176,6 +222,8 @@ const QuotationsDirectory = () => {
                   {hasColumnPermission('quotations', 'preparedBy') && <th className="p-4">Prepared By</th>}
                   {hasColumnPermission('quotations', 'createdDate') && <th className="p-4">Created Date</th>}
                   {hasColumnPermission('quotations', 'crdPerson') && <th className="p-4">CRD Person</th>}
+                  {hasColumnPermission('quotations', 'pedPerson') && <th className="p-4">PED Person</th>}
+                  {hasColumnPermission('quotations', 'accountsPerson') && <th className="p-4">Accounts Person</th>}
                   {hasColumnPermission('quotations', 'actions') && <th className="p-4 text-center">Actions</th>}
                 </tr>
               </thead>
@@ -207,40 +255,40 @@ const QuotationsDirectory = () => {
                     {/* Quoted Units */}
                     {hasColumnPermission('quotations', 'quotedUnits') && (
                       <td className="p-4">
-                        <div className="flex flex-wrap gap-1">
-                          {q.selectedUnits.map(unit => (
-                            <span key={unit} className="px-2 py-0.5 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded text-[11px] font-bold">
+                        <div className="flex flex-wrap gap-1 mb-1">
+                          {q.selectedUnits?.map((unit, idx) => (
+                            <span key={idx} className="px-2 py-0.5 bg-[#0e623a]/10 text-[#0e623a] text-xs font-bold rounded-lg border border-[#0e623a]/20">
                               {unit}
                             </span>
                           ))}
                         </div>
-                        <div className="text-[10px] text-black-400 mt-1">
-                          Type: {q.projectType} • Total Area: {q.totalArea} Sq.Ft
+                        <div className="text-[10px] text-black-500 font-semibold">
+                          Type: {q.projectType} • Total Area: {q.totalArea?.toLocaleString()} Sq.Ft
                         </div>
                       </td>
                     )}
 
                     {/* Total Value */}
                     {hasColumnPermission('quotations', 'totalValue') && (
-                      <td className="p-4">
-                        <div className="font-extrabold text-black-800">Rs. {q.totalValue.toLocaleString()}</div>
-                        <div className="text-[10px] text-black-400 mt-0.5">Rate: Rs. {q.pricePerSqFt}/Sq.Ft</div>
+                      <td className="p-4 font-bold text-black-800">
+                        <div className="text-sm">Rs. {q.totalValue?.toLocaleString()}</div>
+                        <div className="text-[10px] text-black-400 font-medium mt-0.5">Rate: Rs. {q.pricePerSqFt}/Sq.Ft</div>
                       </td>
                     )}
 
                     {/* Prepared By */}
                     {hasColumnPermission('quotations', 'preparedBy') && (
                       <td className="p-4">
-                        <div className="font-semibold text-black-700">{q.createdBy?.name || 'System'}</div>
-                        <div className="text-[11px] text-black-400">{q.createdBy?.role || 'User'}</div>
+                        <div className="font-bold text-black-700">{q.createdBy?.name || 'System User'}</div>
+                        <div className="text-[10px] text-black-400 capitalize">{q.createdBy?.role || 'User'}</div>
                       </td>
                     )}
 
                     {/* Created Date */}
                     {hasColumnPermission('quotations', 'createdDate') && (
-                      <td className="p-4">
-                        <div className="text-xs text-black-600 flex items-center gap-1">
-                          <Calendar className="w-3.5 h-3.5 text-black-300" />
+                      <td className="p-4 text-xs font-semibold text-black-600">
+                        <div className="flex items-center gap-1">
+                          <Calendar className="w-3.5 h-3.5 text-black-400" />
                           <span>{new Date(q.createdAt).toLocaleDateString()}</span>
                         </div>
                       </td>
@@ -253,6 +301,40 @@ const QuotationsDirectory = () => {
                           disabled={!isAdmin}
                           value={q.crdPerson?._id || q.crdPerson || ''}
                           onChange={(e) => updateCrdPerson(q._id, e.target.value)}
+                          className="w-full text-[11px] bg-black-50 border border-black-200 rounded-lg px-2 py-1.5 focus:outline-none focus:border-[#0e623a] font-bold text-black-700 cursor-pointer disabled:cursor-not-allowed disabled:opacity-75"
+                        >
+                          <option value="">Select Person...</option>
+                          {users.map(u => (
+                            <option key={u._id} value={u._id}>{u.name}</option>
+                          ))}
+                        </select>
+                      </td>
+                    )}
+
+                    {/* PED Person */}
+                    {hasColumnPermission('quotations', 'pedPerson') && (
+                      <td className="p-4">
+                        <select
+                          disabled={!isAdmin}
+                          value={q.pedPerson?._id || q.pedPerson || ''}
+                          onChange={(e) => updatePedPerson(q._id, e.target.value)}
+                          className="w-full text-[11px] bg-black-50 border border-black-200 rounded-lg px-2 py-1.5 focus:outline-none focus:border-[#0e623a] font-bold text-black-700 cursor-pointer disabled:cursor-not-allowed disabled:opacity-75"
+                        >
+                          <option value="">Select Person...</option>
+                          {users.map(u => (
+                            <option key={u._id} value={u._id}>{u.name}</option>
+                          ))}
+                        </select>
+                      </td>
+                    )}
+
+                    {/* Accounts Person */}
+                    {hasColumnPermission('quotations', 'accountsPerson') && (
+                      <td className="p-4">
+                        <select
+                          disabled={!isAdmin}
+                          value={q.accountsPerson?._id || q.accountsPerson || ''}
+                          onChange={(e) => updateAccountsPerson(q._id, e.target.value)}
                           className="w-full text-[11px] bg-black-50 border border-black-200 rounded-lg px-2 py-1.5 focus:outline-none focus:border-[#0e623a] font-bold text-black-700 cursor-pointer disabled:cursor-not-allowed disabled:opacity-75"
                         >
                           <option value="">Select Person...</option>

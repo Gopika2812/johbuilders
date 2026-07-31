@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth, API_URL } from '../context/AuthContext';
-import { AlertCircle, Clock, CheckCircle2, FileText, Send, Loader2, Star, MessageSquare, ChevronDown, ChevronUp, Activity, X, Search } from 'lucide-react';
+import { formatUnitWithLabel } from '../utils/formatUtils';
+import { AlertCircle, Clock, CheckCircle2, FileText, Send, Loader2, Star, MessageSquare, ChevronDown, ChevronUp, Activity, X, Search, Eye, Image } from 'lucide-react';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 
@@ -15,12 +16,29 @@ const ComplaintsFlow = () => {
   const [expandedNotes, setExpandedNotes] = useState({});
   const [feedbackForm, setFeedbackForm] = useState({ rating: 0, feedback: '' });
   const [hoverRating, setHoverRating] = useState(0);
+  const [staffList, setStaffList] = useState([]);
+  const [assignModal, setAssignModal] = useState(null);
+  const [selectedAssignee, setSelectedAssignee] = useState('');
 
   // Filtration State
   const [statusFilter, setStatusFilter] = useState('all'); // 'all', 'new', 'old'
   const [searchText, setSearchText] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+
+  const fetchStaff = async () => {
+    try {
+      const res = await fetch(`${API_URL}/employees`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setStaffList(data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch staff list:', err);
+    }
+  };
 
   const canEditTab = (tabId) => {
     if (isAdmin) return true;
@@ -37,12 +55,26 @@ const ComplaintsFlow = () => {
     return perm ? perm.canEdit : false;
   };
 
+  const isOldComplaint = (t) => {
+    const oldStatuses = [
+      'Execution Sent to PED',
+      'Start Work',
+      'In Progress',
+      'Completed',
+      'Sent to Client (Completed)',
+      'Feedback Received',
+      'Resolved'
+    ];
+    return oldStatuses.includes(t?.status);
+  };
+
   const isComplaintVisible = (task) => {
     return true; // Show all records to everyone, relying on action buttons/labels to indicate turn
   };
 
   useEffect(() => {
     fetchTasks();
+    fetchStaff();
   }, [token]);
 
   const fetchTasks = async () => {
@@ -109,7 +141,7 @@ const ComplaintsFlow = () => {
     doc.text(`Date: ${new Date().toLocaleDateString()}`, 20, 50);
     doc.text(`Quotation Ref: QTN-${task.token}`, 20, 60);
     doc.text(`Project: ${task.projectName}`, 20, 70);
-    doc.text(`Unit: ${task.unitId}`, 20, 80);
+    doc.text(`Unit/Flat/Villa: ${formatUnitWithLabel(task.unitId, task.projectType)}`, 20, 80);
     doc.text(`Customer Name: ${task.customerName}`, 20, 90);
 
     const tableData = [
@@ -141,12 +173,13 @@ const ComplaintsFlow = () => {
       case 'Sent to PED': return <span className="px-3 py-1 bg-indigo-100 text-indigo-800 rounded-full text-xs font-bold w-max">Sent to PED</span>;
       case 'Returned to CRD':
         if (t.clientNotes) return <span className="px-3 py-1 bg-pink-100 text-pink-800 rounded-full text-xs font-bold w-max flex items-center gap-1"><MessageSquare className="w-3 h-3" /> Client Review</span>;
+        if (!t.pedPrice || t.pedPrice === 0 || t.noPrice) return <span className="px-3 py-1 bg-teal-100 text-teal-800 rounded-full text-xs font-bold w-max">No Price (CRD)</span>;
         return <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-bold w-max">Priced (CRD)</span>;
       case 'Sent to Customer': return <span className="px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-xs font-bold w-max">Sent to Customer</span>;
       case 'Client Approved': return <span className="px-3 py-1 bg-emerald-100 text-emerald-800 rounded-full text-xs font-bold w-max">Client Approved</span>;
       case 'Rejected': return <span className="px-3 py-1 bg-red-100 text-red-800 rounded-full text-xs font-bold w-max">Rejected</span>;
       case 'Execution Sent to PED': return <span className="px-3 py-1 bg-teal-100 text-teal-800 rounded-full text-xs font-bold w-max">Execution (PED)</span>;
-      case 'Start Work': return <span className="px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs font-bold flex items-center gap-1 w-max"><Clock className="w-3 h-3" /> Start Work</span>;
+      case 'Start Work':
       case 'In Progress': return <span className="px-3 py-1 bg-orange-100 text-orange-800 rounded-full text-xs font-bold flex items-center gap-1 w-max"><Clock className="w-3 h-3" /> In Progress</span>;
       case 'Completed': return <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-xs font-bold flex items-center gap-1 w-max"><CheckCircle2 className="w-3 h-3" /> Completed</span>;
       case 'Sent to Client (Completed)': return <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-bold w-max">Completed (Client)</span>;
@@ -165,7 +198,7 @@ const ComplaintsFlow = () => {
     if (t.status === 'Pending') {
       if (isCRD) {
         actions.push(
-          <button key="crd-pending" onClick={() => handleAction(t.complaintId, () => apiCall(`${API_URL}/tasks/${t.flowId}/${t.complaintId}/send-to-ped`, 'PUT'))} className="px-3 py-1.5 bg-[#006838] text-white text-xs font-bold rounded-lg hover:bg-[#00522c]">
+          <button key="crd-pending" onClick={() => setAssignModal({ title: 'Send Complaint to PED Team', onConfirm: (assigneeId) => handleAction(t.complaintId, () => apiCall(`${API_URL}/tasks/${t.flowId}/${t.complaintId}/send-to-ped`, 'PUT', { assignedTo: assigneeId })) })} className="px-3 py-1.5 bg-[#006838] text-white text-xs font-bold rounded-lg hover:bg-[#00522c] cursor-pointer">
             {actionLoading === t.complaintId ? <Loader2 className="w-3.5 h-3.5 animate-spin mx-auto" /> : 'Send to PED'}
           </button>
         );
@@ -176,13 +209,21 @@ const ComplaintsFlow = () => {
       if (isCRD) {
         if (t.clientNotes) {
           actions.push(
-            <button key="crd-returned-reprice" onClick={() => handleAction(t.complaintId, () => apiCall(`${API_URL}/tasks/${t.flowId}/${t.complaintId}/send-to-ped`, 'PUT'))} className="px-3 py-1.5 bg-[#006838] text-white text-xs font-bold rounded-lg hover:bg-[#00522c]">
+            <button key="crd-returned-reprice" onClick={() => setAssignModal({ title: 'Send Complaint to PED for Repricing', onConfirm: (assigneeId) => handleAction(t.complaintId, () => apiCall(`${API_URL}/tasks/${t.flowId}/${t.complaintId}/send-to-ped`, 'PUT', { assignedTo: assigneeId })) })} className="px-3 py-1.5 bg-[#006838] text-white text-xs font-bold rounded-lg hover:bg-[#00522c] cursor-pointer">
               {actionLoading === t.complaintId ? <Loader2 className="w-3.5 h-3.5 animate-spin mx-auto" /> : 'Send to PED for Repricing'}
             </button>
           );
-        } else {
+        } else if (!t.pedPrice || t.pedPrice === 0 || t.noPrice) {
+          // NO PRICE: Bypasses Client Approval, sends directly to PED Execution!
           actions.push(
-            <button key="crd-returned-client" onClick={() => handleAction(t.complaintId, () => apiCall(`${API_URL}/tasks/${t.flowId}/${t.complaintId}/send-to-customer`, 'PUT'))} className="px-3 py-1.5 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700">
+            <button key="crd-no-price-exec" onClick={() => setAssignModal({ title: 'Send Complaint to PED for Execution', onConfirm: (assigneeId) => handleAction(t.complaintId, () => apiCall(`${API_URL}/tasks/${t.flowId}/${t.complaintId}/send-to-ped-execution`, 'PUT', { assignedTo: assigneeId })) })} className="px-3 py-1.5 bg-teal-600 text-white text-xs font-bold rounded-lg hover:bg-teal-700 shadow-sm cursor-pointer whitespace-nowrap">
+              {actionLoading === t.complaintId ? <Loader2 className="w-3.5 h-3.5 animate-spin mx-auto" /> : 'Send to PED for Execution'}
+            </button>
+          );
+        } else {
+          // PRICE GIVEN: Send to Client for Approval!
+          actions.push(
+            <button key="crd-returned-client" onClick={() => handleAction(t.complaintId, () => apiCall(`${API_URL}/tasks/${t.flowId}/${t.complaintId}/send-to-customer`, 'PUT'))} className="px-3 py-1.5 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700 shadow-sm cursor-pointer whitespace-nowrap">
               {actionLoading === t.complaintId ? <Loader2 className="w-3.5 h-3.5 animate-spin mx-auto" /> : 'Send to Client'}
             </button>
           );
@@ -194,22 +235,49 @@ const ComplaintsFlow = () => {
       if (isPED) {
         actions.push(
           <React.Fragment key="ped-price-actions">
-            <div className="relative">
-              <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-500 font-medium text-xs">Rs.</span>
-              <input
-                type="number"
-                value={pedPrices[t.complaintId] || ''}
-                onChange={(e) => setPedPrices({ ...pedPrices, [t.complaintId]: e.target.value })}
-                placeholder="Price"
-                className="w-24 pl-7 pr-2 py-1.5 border border-gray-200 rounded-lg text-xs focus:ring-2 focus:ring-[#006838] outline-none"
-              />
+            <div className="flex items-center justify-end gap-2 whitespace-nowrap">
+              <div className="relative shrink-0">
+                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-500 font-bold text-xs">Rs.</span>
+                <input
+                  type="number"
+                  value={pedPrices[t.complaintId] || ''}
+                  onChange={(e) => setPedPrices({ ...pedPrices, [t.complaintId]: e.target.value })}
+                  placeholder="Price"
+                  className="w-24 pl-8 pr-2 py-1.5 border border-gray-300 rounded-xl text-xs focus:ring-2 focus:ring-[#006838] focus:border-transparent outline-none font-bold text-gray-900 shadow-sm bg-white"
+                />
+              </div>
+              <button 
+                onClick={() => setAssignModal({ title: 'Save Price & Send Complaint to CRD', onConfirm: (assigneeId) => handleAction(t.complaintId, () => apiCall(`${API_URL}/tasks/${t.flowId}/${t.complaintId}/ped-price`, 'PUT', { pedPrice: pedPrices[t.complaintId], assignedTo: assigneeId })) })} 
+                className="flex items-center gap-1.5 px-3.5 py-1.5 bg-[#006838] hover:bg-[#00522c] text-white text-xs font-bold rounded-xl shadow-sm cursor-pointer transition whitespace-nowrap shrink-0"
+              >
+                {actionLoading === t.complaintId ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin mx-auto" />
+                ) : (
+                  <>
+                    <Send className="w-3.5 h-3.5" />
+                    <span>Save & Send to CRD</span>
+                  </>
+                )}
+              </button>
+              <button
+                onClick={() => setAssignModal({ title: 'Send Free Complaint to CRD', onConfirm: (assigneeId) => handleAction(t.complaintId, () => apiCall(`${API_URL}/tasks/${t.flowId}/${t.complaintId}/ped-price`, 'PUT', { pedPrice: 0, noPrice: true, assignedTo: assigneeId })) })}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-700 hover:bg-slate-800 text-white text-xs font-bold rounded-xl cursor-pointer shadow-sm transition whitespace-nowrap shrink-0"
+                title="No Price charged, send directly for execution via CRD"
+              >
+                {actionLoading === t.complaintId ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin mx-auto" />
+                ) : (
+                  'No Price (Free)'
+                )}
+              </button>
+              <button 
+                onClick={() => generateQuotationPDF(t)} 
+                className="p-2 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 border border-gray-200 cursor-pointer transition shrink-0" 
+                title="Download Quotation PDF"
+              >
+                <FileText className="w-4 h-4 text-emerald-700" />
+              </button>
             </div>
-            <button onClick={() => handleAction(t.complaintId, () => apiCall(`${API_URL}/tasks/${t.flowId}/${t.complaintId}/ped-price`, 'PUT', { pedPrice: pedPrices[t.complaintId] }))} className="px-3 py-1.5 bg-[#006838] text-white text-xs font-bold rounded-lg hover:bg-[#00522c]">
-              {actionLoading === t.complaintId ? <Loader2 className="w-3.5 h-3.5 animate-spin mx-auto" /> : 'Save & Send to CRD'}
-            </button>
-            <button onClick={() => generateQuotationPDF(t)} className="p-1.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200" title="Quotation">
-              <FileText className="w-4 h-4" />
-            </button>
           </React.Fragment>
         );
       } else {
@@ -233,7 +301,7 @@ const ComplaintsFlow = () => {
     } else if (t.status === 'Client Approved') {
       if (isCRD) {
         actions.push(
-          <button key="crd-approved" onClick={() => handleAction(t.complaintId, () => apiCall(`${API_URL}/tasks/${t.flowId}/${t.complaintId}/send-to-ped-execution`, 'PUT'))} className="px-3 py-1.5 bg-teal-600 text-white text-xs font-bold rounded-lg hover:bg-teal-700">
+          <button key="crd-approved" onClick={() => setAssignModal({ title: 'Send Approved Complaint to PED for Execution', onConfirm: (assigneeId) => handleAction(t.complaintId, () => apiCall(`${API_URL}/tasks/${t.flowId}/${t.complaintId}/send-to-ped-execution`, 'PUT', { assignedTo: assigneeId })) })} className="px-3 py-1.5 bg-teal-600 text-white text-xs font-bold rounded-lg hover:bg-teal-700">
             {actionLoading === t.complaintId ? <Loader2 className="w-3.5 h-3.5 animate-spin mx-auto" /> : 'Send to PED for Execution'}
           </button>
         );
@@ -251,10 +319,9 @@ const ComplaintsFlow = () => {
                 handleAction(t.complaintId, () => apiCall(`${API_URL}/tasks/${t.flowId}/${t.complaintId}/status`, 'PUT', { status: e.target.value }));
               }
             }}
-            className="px-3 py-1.5 border border-emerald-200 bg-emerald-50 rounded-lg text-xs font-bold text-emerald-800 outline-none"
+            className="px-3 py-1.5 border border-emerald-200 bg-emerald-50 rounded-lg text-xs font-bold text-emerald-800 outline-none cursor-pointer"
           >
             <option value="Execution Sent to PED" disabled>Select Status...</option>
-            <option value="Start Work">Start Work</option>
             <option value="In Progress">In Progress</option>
             <option value="Completed">Completed</option>
           </select>
@@ -292,8 +359,8 @@ const ComplaintsFlow = () => {
       if (!isComplaintVisible(t)) return false;
       
       // Status Filter (New / Old)
-      if (statusFilter === 'new' && t.status !== 'Pending') return false;
-      if (statusFilter === 'old' && t.status === 'Pending') return false;
+      if (statusFilter === 'new' && isOldComplaint(t)) return false;
+      if (statusFilter === 'old' && !isOldComplaint(t)) return false;
 
       // Date Range Filter
       if (startDate && endDate) {
@@ -321,10 +388,10 @@ const ComplaintsFlow = () => {
       return true;
     })
     .sort((a, b) => {
-      const aNew = a.status === 'Pending';
-      const bNew = b.status === 'Pending';
-      if (aNew && !bNew) return -1;
-      if (!aNew && bNew) return 1;
+      const aOld = isOldComplaint(a);
+      const bOld = isOldComplaint(b);
+      if (!aOld && bOld) return -1;
+      if (aOld && !bOld) return 1;
       return new Date(b.reportedAt) - new Date(a.reportedAt);
     });
 
@@ -374,8 +441,8 @@ const ComplaintsFlow = () => {
             className="px-4 py-2 bg-white border border-[#006838]/20 rounded-xl text-xs text-gray-800 focus:outline-none focus:ring-1 focus:ring-[#006838] cursor-pointer font-bold shadow-sm"
           >
             <option value="all">All Status ({tasks.length})</option>
-            <option value="new">New Complaints ({tasks.filter(t => t.status === 'Pending').length})</option>
-            <option value="old">Old Complaints ({tasks.filter(t => t.status !== 'Pending').length})</option>
+            <option value="new">New Complaints ({tasks.filter(t => !isOldComplaint(t)).length})</option>
+            <option value="old">Old Complaints ({tasks.filter(t => isOldComplaint(t)).length})</option>
           </select>
         </div>
       </div>
@@ -394,7 +461,7 @@ const ComplaintsFlow = () => {
                 <th className="px-6 py-4 font-bold text-xs uppercase tracking-wider">Price (Rs.)</th>
                 <th className="px-6 py-4 font-bold text-xs uppercase tracking-wider">Status</th>
                 <th className="px-6 py-4 font-bold text-xs uppercase tracking-wider">Feedback</th>
-                <th className="px-6 py-4 font-bold text-xs uppercase tracking-wider text-right">Action</th>
+                <th className="px-6 py-4 font-bold text-xs uppercase tracking-wider text-right min-w-[360px]">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-emerald-50">
@@ -413,7 +480,14 @@ const ComplaintsFlow = () => {
                 </tr>
               ) : filteredTasks.map((t, idx) => (
                 <React.Fragment key={t.complaintId}>
-                  <tr className="hover:bg-emerald-50/50 transition-colors cursor-pointer bg-white">
+                  <tr 
+                    onClick={() => setHistoryModal(t)}
+                    className={`transition-colors cursor-pointer ${
+                      !isOldComplaint(t) 
+                        ? 'bg-yellow-50/70 hover:bg-yellow-100/60' 
+                        : 'bg-white hover:bg-emerald-50/50'
+                    }`}
+                  >
                     <td className="px-6 py-4 font-bold text-gray-900">{idx + 1}</td>
                     <td className="px-6 py-4 text-gray-600">
                       {new Date(t.reportedAt).toLocaleDateString('en-GB')}
@@ -421,16 +495,16 @@ const ComplaintsFlow = () => {
                     <td className="px-6 py-4 font-mono text-xs text-gray-500">
                       <button
                         onClick={(e) => { e.stopPropagation(); setHistoryModal(t); }}
-                        className="flex items-center gap-1.5 px-2 py-1 bg-emerald-50 text-emerald-700 rounded text-xs font-bold hover:bg-emerald-100 transition-colors border border-emerald-100 shadow-sm"
-                        title="View Activity History"
+                        className="flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 text-emerald-700 rounded-lg text-xs font-bold hover:bg-emerald-100 transition-colors border border-emerald-100 shadow-sm cursor-pointer"
+                        title="View Details & History"
                       >
                         <Activity className="w-3.5 h-3.5" />
                         {t.token}
                       </button>
                     </td>
                     <td className="px-6 py-4 text-center">
-                      {t.status === 'Pending' ? (
-                        <span className="px-2.5 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full text-[11px] font-bold">New</span>
+                      {!isOldComplaint(t) ? (
+                        <span className="px-2.5 py-1 bg-yellow-100 text-yellow-800 border border-yellow-200 rounded-full text-[11px] font-bold">New</span>
                       ) : (
                         <span className="px-2.5 py-1 bg-slate-100 text-slate-700 border border-slate-200 rounded-full text-[11px] font-bold">Old</span>
                       )}
@@ -441,11 +515,26 @@ const ComplaintsFlow = () => {
                       </span>
                     </td>
                     <td className="px-6 py-4 text-gray-800 whitespace-normal min-w-[200px]">
-                      <div className="font-bold mb-1">{t.title || 'Complaint'}</div>
-                      <div className="text-xs text-gray-600 line-clamp-2" title={t.description}>{t.description}</div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="font-bold text-gray-900">{t.title || 'Complaint'}</span>
+                        {t.assignedPersonName && (
+                          <span className="text-[10px] font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 shrink-0">
+                            Assigned: {t.assignedPersonName}
+                          </span>
+                        )}
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setHistoryModal(t); }}
+                          className="px-2 py-0.5 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded transition border border-emerald-100 text-[10px] font-bold flex items-center gap-1 shrink-0 cursor-pointer shadow-sm"
+                          title="View Full Description & Uploaded Images"
+                        >
+                          <Eye className="w-3 h-3" /> View
+                        </button>
+                      </div>
                     </td>
                     <td className="px-6 py-4 font-black text-[#006838]">
-                      {t.pedPrice > 0 ? `Rs. ${t.pedPrice.toLocaleString()}` : '-'}
+                      {t.noPrice || (t.pedPrice === 0 && !['Pending', 'Sent to PED'].includes(t.status)) ? (
+                        <span className="px-2 py-0.5 bg-gray-100 text-gray-700 border border-gray-200 rounded-md text-xs font-bold whitespace-nowrap">No Price</span>
+                      ) : (t.pedPrice > 0 ? `Rs. ${t.pedPrice.toLocaleString()}` : '-')}
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex flex-col gap-1 items-start">
@@ -456,7 +545,7 @@ const ComplaintsFlow = () => {
                               e.stopPropagation();
                               setExpandedNotes(prev => ({ ...prev, [t.complaintId]: !prev[t.complaintId] }));
                             }}
-                            className="flex items-center gap-1 text-[10px] font-bold text-pink-600 hover:text-pink-800 transition-colors bg-pink-50 px-2 py-1 rounded-full border border-pink-100"
+                            className="flex items-center gap-1 text-[10px] font-bold text-pink-600 hover:text-pink-800 transition-colors bg-pink-50 px-2 py-1 rounded-full border border-pink-100 cursor-pointer"
                           >
                             {expandedNotes[t.complaintId] ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
                             {expandedNotes[t.complaintId] ? 'Hide Note' : 'View Note'}
@@ -478,7 +567,7 @@ const ComplaintsFlow = () => {
                         <span className="text-xs text-gray-400">-</span>
                       )}
                     </td>
-                    <td className="px-6 py-4 text-right">
+                    <td className="px-6 py-4 text-right" onClick={(e) => e.stopPropagation()}>
                       {renderActionButtons(t)}
                     </td>
                   </tr>
@@ -504,59 +593,186 @@ const ComplaintsFlow = () => {
         </div>
       </div>
 
-      {/* History Modal */}
+      {/* Complaint Details, Description & Images Modal */}
       {historyModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="bg-white rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden animate-fade-in-up flex flex-col max-h-[80vh]">
-            <div className="bg-[#006838] p-5 text-white flex justify-between items-center">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setHistoryModal(null)}>
+          <div className="bg-white rounded-3xl w-full max-w-2xl shadow-2xl overflow-hidden animate-fade-in-up flex flex-col max-h-[88vh]" onClick={(e) => e.stopPropagation()}>
+            {/* Header */}
+            <div className="bg-[#006838] p-5 text-white flex justify-between items-center shrink-0">
               <div>
                 <h3 className="font-bold text-lg flex items-center gap-2">
-                  <Activity className="w-5 h-5 text-emerald-300" />
-                  Complaint Timeline
+                  <FileText className="w-5 h-5 text-emerald-300" />
+                  {historyModal.title || 'Complaint Details'}
                 </h3>
-                <p className="text-emerald-100 text-xs mt-1">Token ID: <span className="font-mono font-bold">{historyModal.token}</span></p>
+                <p className="text-emerald-100 text-xs mt-1 flex items-center gap-2">
+                  Token ID: <span className="font-mono font-bold bg-white/10 px-2.5 py-0.5 rounded text-white">{historyModal.token}</span>
+                  • Date: <span className="font-semibold">{new Date(historyModal.reportedAt).toLocaleDateString('en-GB')}</span>
+                </p>
               </div>
-              <button onClick={() => setHistoryModal(null)} className="text-white/80 hover:text-white transition p-2 bg-black/10 rounded-full">
+              <button onClick={() => setHistoryModal(null)} className="text-white/80 hover:text-white transition p-2 bg-black/10 hover:bg-black/20 rounded-full cursor-pointer">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="p-6 overflow-y-auto flex-1 bg-gray-50/50">
-              {historyModal.history && historyModal.history.length > 0 ? (
-                <div className="relative border-l-2 border-emerald-200 ml-3 space-y-6">
-                  {historyModal.history.map((h, i) => (
-                    <div key={i} className="relative pl-6">
-                      <div className="absolute -left-[9px] top-1 w-4 h-4 rounded-full bg-[#006838] border-4 border-white shadow-sm" />
-                      <div className="bg-white p-3 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
-                        <div className="flex justify-between items-start mb-1">
-                          <span className="font-bold text-gray-800 text-sm">{h.action}</span>
-                          <span className="text-[10px] font-bold text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
-                            {new Date(h.timestamp || h.date).toLocaleString('en-GB', {
-                              day: '2-digit', month: '2-digit', year: 'numeric',
-                              hour: '2-digit', minute: '2-digit', hour12: true
-                            })}
-                          </span>
-                        </div>
-                        <p className="text-xs text-gray-600 mt-1 leading-relaxed whitespace-pre-wrap">{h.notes}</p>
-                        {h.user && (
-                          <div className="mt-2 text-[10px] text-gray-400 font-bold uppercase tracking-wide">
-                            By {h.user}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  ))}
+            <div className="p-6 overflow-y-auto flex-1 bg-gray-50/50 space-y-5">
+              {/* Customer & Unit Information */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-white p-4 rounded-2xl border border-gray-200/80 shadow-sm text-xs">
+                <div>
+                  <span className="text-gray-400 font-bold uppercase text-[9px] block mb-0.5">Customer Name</span>
+                  <span className="font-bold text-gray-900">{historyModal.customerName || '-'}</span>
                 </div>
-              ) : (
-                <div className="text-center py-10 text-gray-400">
-                  <Activity className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                  <p className="text-sm">No timeline available</p>
+                <div>
+                  <span className="text-gray-400 font-bold uppercase text-[9px] block mb-0.5">Phone Number</span>
+                  <span className="font-bold text-gray-900">{historyModal.customerPhone || '-'}</span>
+                </div>
+                <div>
+                  <span className="text-gray-400 font-bold uppercase text-[9px] block mb-0.5">Project / Unit</span>
+                  <span className="font-bold text-emerald-700">{historyModal.projectName} ({formatUnitWithLabel(historyModal.unitId, historyModal.projectType)})</span>
+                </div>
+                <div>
+                  <span className="text-gray-400 font-bold uppercase text-[9px] block mb-0.5">Quoted Price</span>
+                  <span className="font-black text-[#006838]">
+                    {historyModal.pedPrice > 0 ? `Rs. ${historyModal.pedPrice.toLocaleString()}` : (historyModal.noPrice ? 'No Price (Free)' : '-')}
+                  </span>
+                </div>
+              </div>
+
+              {/* Full Description Box */}
+              <div className="bg-white p-5 rounded-2xl border border-gray-200/80 shadow-sm">
+                <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                  <FileText className="w-4 h-4 text-emerald-600" /> Full Issue Description
+                </h4>
+                <p className="text-sm text-gray-800 leading-relaxed font-medium whitespace-pre-wrap bg-gray-50/80 p-4 rounded-xl border border-gray-100">
+                  {historyModal.description || 'No description provided.'}
+                </p>
+              </div>
+
+              {/* Uploaded Complaint Images Gallery */}
+              {historyModal.images && historyModal.images.length > 0 && (
+                <div className="bg-white p-5 rounded-2xl border border-gray-200/80 shadow-sm">
+                  <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                    <Image className="w-4 h-4 text-emerald-600" /> Uploaded Complaint Images ({historyModal.images.length})
+                  </h4>
+                  <div className="flex gap-4 overflow-x-auto pb-2 custom-scrollbar">
+                    {historyModal.images.map((imgUrl, i) => (
+                      <a key={i} href={imgUrl} target="_blank" rel="noopener noreferrer" className="flex-shrink-0 group relative block">
+                        <img src={imgUrl} alt={`Complaint Attachment ${i+1}`} className="w-36 h-36 object-cover rounded-xl border-2 border-gray-200 shadow-sm group-hover:border-[#006838] transition" />
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition rounded-xl flex items-center justify-center text-white font-bold text-xs gap-1.5">
+                          <Eye className="w-4 h-4" /> Open Image
+                        </div>
+                      </a>
+                    ))}
+                  </div>
                 </div>
               )}
+
+              {/* Activity History Timeline */}
+              <div className="bg-white p-5 rounded-2xl border border-gray-200/80 shadow-sm">
+                <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4 flex items-center gap-1.5">
+                  <Activity className="w-4 h-4 text-emerald-600" /> Activity History Timeline
+                </h4>
+                {historyModal.history && historyModal.history.length > 0 ? (
+                  <div className="relative border-l-2 border-emerald-200 ml-2 space-y-4">
+                    {historyModal.history.map((h, i) => (
+                      <div key={i} className="relative pl-5">
+                        <div className="absolute -left-[9px] top-1 w-4 h-4 rounded-full bg-[#006838] border-4 border-white shadow-sm" />
+                        <div className="bg-gray-50 p-3 rounded-xl border border-gray-100">
+                          <div className="flex justify-between items-start mb-1">
+                            <span className="font-bold text-gray-800 text-xs">{h.action}</span>
+                            <span className="text-[10px] font-bold text-gray-500 bg-white px-2 py-0.5 rounded-full border border-gray-200">
+                              {new Date(h.timestamp || h.date).toLocaleString('en-GB', {
+                                day: '2-digit', month: '2-digit', year: 'numeric',
+                                hour: '2-digit', minute: '2-digit', hour12: true
+                              })}
+                            </span>
+                          </div>
+                          <p className="text-xs text-gray-600 mt-1 leading-relaxed whitespace-pre-wrap">{h.notes}</p>
+                          {h.user && (
+                            <div className="mt-1 text-[10px] text-gray-400 font-bold uppercase tracking-wide">
+                              By {h.user}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-gray-400 italic">No timeline entries yet.</p>
+                )}
+              </div>
             </div>
           </div>
         </div>
       )}
+
+      {/* Stage Transfer Assign Person Modal */}
+      {assignModal && (
+        <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl border border-emerald-100 space-y-5 animate-scale-up">
+            <div className="flex justify-between items-start border-b border-gray-100 pb-3">
+              <div>
+                <div className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider">Complaint Assignment</div>
+                <h3 className="text-base font-bold text-gray-900 mt-0.5">{assignModal.title}</h3>
+              </div>
+              <button
+                onClick={() => { setAssignModal(null); setSelectedAssignee(''); }}
+                className="text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-100 transition"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-2">
+              <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider">
+                Assign Person to handle complaint <span className="text-red-500">*</span>
+              </label>
+              <select
+                value={selectedAssignee}
+                onChange={(e) => setSelectedAssignee(e.target.value)}
+                className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-300 rounded-xl text-xs font-bold text-gray-900 focus:ring-2 focus:ring-[#006838] focus:bg-white focus:outline-none transition shadow-sm cursor-pointer"
+              >
+                <option value="">-- Select Assigned Staff Member --</option>
+                {staffList.map(emp => (
+                  <option key={emp._id} value={emp._id}>
+                    {emp.name} ({emp.role || emp.department || 'Staff'})
+                  </option>
+                ))}
+              </select>
+              <p className="text-[11px] text-gray-500 italic mt-1">
+                Only the assigned person (and Superadmin) will see this complaint in their dashboard queue.
+              </p>
+            </div>
+
+            <div className="flex items-center justify-end gap-3 pt-3 border-t border-gray-100">
+              <button
+                onClick={() => { setAssignModal(null); setSelectedAssignee(''); }}
+                className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold rounded-xl transition cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={async () => {
+                  if (!selectedAssignee) {
+                    alert('Please select an assigned staff member before proceeding!');
+                    return;
+                  }
+                  const assigneeId = selectedAssignee;
+                  const modalData = assignModal;
+                  setAssignModal(null);
+                  setSelectedAssignee('');
+                  await modalData.onConfirm(assigneeId);
+                }}
+                disabled={!selectedAssignee}
+                className="px-5 py-2 bg-[#006838] hover:bg-[#00512c] text-white text-xs font-bold rounded-xl shadow-md shadow-emerald-600/20 transition disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
+              >
+                <Send className="w-4 h-4" />
+                <span>Assign & Send</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };

@@ -588,7 +588,7 @@ const ProjectDetail = () => {
                 Prefix: {project.code}
               </span>
               <span className="text-xs font-bold text-black-400">
-                • {project.projectType} Inventory
+                • {Array.isArray(project.projectType) ? project.projectType.join(', ') : project.projectType} Inventory
               </span>
             </div>
             <h1 className="text-xl font-bold text-black-800">{project.name}</h1>
@@ -709,21 +709,28 @@ const ProjectDetail = () => {
 
       {activeTab === 'project' && (() => {
         const activeType = selectedInventoryType || projectTypesArray[0] || 'Plot';
-        const displayedUnits = project.units.filter(u => {
+        let displayedUnits = (project.units || []).filter(u => {
           if (projectTypesArray.length === 1) {
             return true;
           }
-          if (activeType === 'Flat') {
-            return u.unitType === 'Flat' || u.unitType?.includes('BHK') || (!u.unitType && !projectTypesArray.includes('Plot') && !projectTypesArray.includes('House'));
+          const uType = (u.unitType || '').toLowerCase();
+          const aType = activeType.toLowerCase();
+
+          if (aType === 'flat') {
+            return uType === 'flat' || uType.includes('bhk') || (!uType && !projectTypesArray.some(p => ['plot', 'unit', 'house'].includes(p.toLowerCase())));
           }
-          if (activeType === 'Plot') {
-            return u.unitType === 'Plot' || (!u.unitType && (projectTypesArray.includes('Plot') || projectTypesArray.length === 0));
+          if (aType === 'plot' || aType === 'unit') {
+            return uType === 'plot' || uType === 'unit' || (!uType && (projectTypesArray.some(p => ['plot', 'unit'].includes(p.toLowerCase())) || projectTypesArray.length === 0));
           }
-          if (activeType === 'House') {
-            return u.unitType === 'House' || u.unitType === 'Villa' || u.unitType?.includes('BHK');
+          if (aType === 'house' || aType === 'villa') {
+            return uType === 'house' || uType === 'villa' || uType.includes('bhk');
           }
-          return u.unitType === activeType;
+          return uType === aType || !uType;
         });
+
+        if (displayedUnits.length === 0 && project.units && project.units.length > 0) {
+          displayedUnits = project.units;
+        }
         return (
           <>
 
@@ -739,7 +746,7 @@ const ProjectDetail = () => {
             <Ruler className="w-4 h-4 text-black-400" />
             <span>{project.totalLandArea.toLocaleString()} sq.ft</span>
           </div>
-          {projectTypesArray.includes('Plot') && (
+          {(projectTypesArray.includes('Plot') || projectTypesArray.includes('Unit')) && (
             <>
               <span>•</span>
               <span className="font-medium text-amber-600">Remaining Land: {project.remainingLand.toLocaleString()} sq.ft</span>
@@ -782,7 +789,7 @@ const ProjectDetail = () => {
                   : 'text-black-500 hover:text-black-800'
               }`}
             >
-              {type === 'Plot' ? 'Plots Composition' : type === 'House' ? 'Houses Composition' : 'Flats Composition'}
+              {type === 'Plot' ? 'Plots Composition' : type === 'House' ? 'Houses Composition' : type === 'Flat' ? 'Flats Composition' : `${type}s Composition`}
             </button>
           ))}
         </div>
@@ -791,8 +798,8 @@ const ProjectDetail = () => {
       {/* Grid / Table Layout Views based on type */}
 
       
-      {/* 🟢 PLOT PROJECT VIEW */}
-      {activeType === 'Plot' && (
+      {/* 🟢 PLOT / UNIT PROJECT VIEW */}
+      {(activeType === 'Plot' || activeType === 'Unit' || (!['Flat', 'House'].includes(activeType))) && (
         <>
           {viewMode === 'grid' ? (
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
@@ -847,7 +854,12 @@ const ProjectDetail = () => {
 
               {/* Grid cards */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:col-span-3">
-                {displayedUnits.map((unit) => (
+                {displayedUnits.length === 0 ? (
+                  <div className="lg:col-span-3 bg-white border border-black-100 shadow-sm rounded-3xl p-12 text-center text-black-400 font-semibold">
+                    No units registered for this category yet.
+                  </div>
+                ) : (
+                  displayedUnits.map((unit) => (
                   <div key={unit.unitId} className="bg-white border border-black-100 shadow-sm rounded-3xl p-6 hover:shadow-md transition space-y-4">
                     <div className="flex items-center justify-between">
                       <div>
@@ -872,7 +884,7 @@ const ProjectDetail = () => {
                       </div>
                       <div>
                         <span className="text-[11px] text-black-400 uppercase tracking-wider block">Value</span>
-                        <span className="text-sm font-bold text-[#0e623a]">${Math.round(unit.price).toLocaleString()}</span>
+                        <span className="text-sm font-bold text-[#0e623a]">Rs. {Math.round(unit.price).toLocaleString()}</span>
                       </div>
                     </div>
 
@@ -915,7 +927,7 @@ const ProjectDetail = () => {
                       )}
                     </div>
                   </div>
-                ))}
+                )))}
               </div>
             </div>
           ) : (
@@ -933,7 +945,14 @@ const ProjectDetail = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-black-50 text-sm">
-                  {displayedUnits.map((unit) => (
+                  {displayedUnits.length === 0 ? (
+                    <tr>
+                      <td colSpan="7" className="p-8 text-center text-black-400 font-semibold">
+                        No units registered for this category yet.
+                      </td>
+                    </tr>
+                  ) : (
+                    displayedUnits.map((unit) => (
                     <tr key={unit.unitId} className="hover:bg-black-50/50">
                       <td className="p-5 font-bold text-black-800">
                         <div className="flex items-center gap-1.5">
@@ -942,7 +961,7 @@ const ProjectDetail = () => {
                         </div>
                       </td>
                       <td className="p-5 text-black-600">{Math.round(unit.size).toLocaleString()} sq.ft</td>
-                      <td className="p-5 font-bold text-[#0e623a]">${Math.round(unit.price).toLocaleString()}</td>
+                      <td className="p-5 font-bold text-[#0e623a]">Rs. {Math.round(unit.price).toLocaleString()}</td>
                       <td className="p-5">
                         <span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full border ${getStatusBadge(unit.status)}`}>
                           {unit.status}
@@ -982,7 +1001,7 @@ const ProjectDetail = () => {
                         </div>
                       </td>
                     </tr>
-                  ))}
+                  )))}
                 </tbody>
               </table>
             </div>

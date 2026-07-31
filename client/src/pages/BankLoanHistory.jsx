@@ -77,7 +77,6 @@ const BankLoanHistory = () => {
   };
 
   useEffect(() => {
-
     fetchCRDFlows();
   }, [token]);
 

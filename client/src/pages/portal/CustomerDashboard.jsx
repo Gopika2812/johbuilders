@@ -138,12 +138,25 @@ const CustomerDashboard = () => {
   const [reviewModal, setReviewModal] = useState({ open: false, stageIdx: null, workId: null });
   const [reviewNote, setReviewNote] = useState('');
 
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
 
   // Complaints Filtration State
   const [complaintStartDate, setComplaintStartDate] = useState('');
   const [complaintEndDate, setComplaintEndDate] = useState('');
   const [complaintSearchText, setComplaintSearchText] = useState('');
+
+  // Client Pricing Update Notification State
+  const [clientPriceNotif, setClientPriceNotif] = useState(null);
+  const [notifiedPricedIds, setNotifiedPricedIds] = useState([]);
+  const [selectedClientWorkIds, setSelectedClientWorkIds] = useState([]);
+  const [actionToast, setActionToast] = useState(null);
+
+  const showActionToast = (message, type = 'success') => {
+    setActionToast({ message, type });
+    setTimeout(() => {
+      setActionToast(prev => (prev?.message === message ? null : prev));
+    }, 4500);
+  };
 
   const handleFeedbackSubmit = async (e) => {
     if (e) e.preventDefault();
@@ -216,6 +229,64 @@ const CustomerDashboard = () => {
   useEffect(() => {
     fetchFlow();
   }, []);
+
+  // Request browser Notification permissions
+  useEffect(() => {
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
+  }, []);
+
+  // Monitor for priced extra works sent to client (Consolidated Single Popup)
+  useEffect(() => {
+    if (flow && flow.stages) {
+      const pricedItems = [];
+      flow.stages.forEach(stage => {
+        stage.extraWorks?.forEach(work => {
+          if (work.status === 'Sent to Customer' && !notifiedPricedIds.includes(work._id)) {
+            pricedItems.push({
+              work,
+              ewId: work.ewId || `REQ-${work._id.substring(0, 6)}`
+            });
+          }
+        });
+      });
+
+      if (pricedItems.length > 0) {
+        const groupsMap = {};
+        pricedItems.forEach(item => {
+          const id = item.ewId;
+          if (!groupsMap[id]) {
+            groupsMap[id] = {
+              ewId: id,
+              works: [],
+              totalAmount: 0
+            };
+          }
+          groupsMap[id].works.push(item.work);
+          groupsMap[id].totalAmount += (item.work.amount || 0);
+        });
+
+        const groupsList = Object.values(groupsMap);
+        setClientPriceNotif(groupsList);
+
+        // Fire Chrome Desktop Notification
+        if ('Notification' in window && Notification.permission === 'granted') {
+          try {
+            const reqIdsStr = groupsList.map(g => g.ewId).join(', ');
+            new Notification("Extra Work Pricing Updated!", {
+              body: `You received estimation pricing updates for your raised Extra Works (${reqIdsStr}). Please check and proceed.`,
+              icon: '/favicon.ico'
+            });
+          } catch (e) {
+            console.error("Browser notification failed", e);
+          }
+        }
+      } else {
+        setClientPriceNotif(null);
+      }
+    }
+  }, [flow, notifiedPricedIds]);
 
   const handleCopyToken = () => {
     if (complaintSuccessToken) {
@@ -328,7 +399,7 @@ const CustomerDashboard = () => {
       
       setBulkSelections({});
       fetchFlow();
-      alert("Items successfully requested! They are now Pending approval from the admin.");
+      showActionToast(`Extra Work items successfully requested for customer ${flow.lead?.name || ''}! Sent to CRD team.`);
     } catch (err) {
       alert(err.message);
     } finally {
@@ -351,6 +422,7 @@ const CustomerDashboard = () => {
       setReviewModal({ open: false, stageIdx: null, workId: null });
       setReviewNote('');
       await fetchFlow();
+      showActionToast(`Review notes submitted to CRD team for repricing!`);
     } catch (err) {
       alert(err.message);
     } finally {
@@ -367,7 +439,10 @@ const CustomerDashboard = () => {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (!res.ok) throw new Error('Failed to approve extra work');
+      const ew = allExtraWorks?.find(w => w._id === workId);
+      const ewIdStr = ew?.ewId || 'Extra Work';
       await fetchFlow();
+      showActionToast(`Successfully agreed ${ewIdStr} for customer ${flow.lead?.name || ''}!`);
     } catch (err) {
       alert(err.message);
     } finally {
@@ -386,8 +461,71 @@ const CustomerDashboard = () => {
       });
       if (!res.ok) throw new Error('Failed to remove extra work');
       await fetchFlow();
+      showActionToast(`Extra Work request successfully cancelled!`);
     } catch (err) {
       alert(err.message);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleBulkCustomerApprove = async () => {
+    const idsToApprove = selectedClientWorkIds.length > 0
+      ? selectedClientWorkIds
+      : allExtraWorks.filter(ew => ew.status === 'Sent to Customer').map(ew => ew._id);
+
+    if (idsToApprove.length === 0) {
+      alert("Please select at least one item to agree.");
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      const token = localStorage.getItem('customerToken');
+      for (const workId of idsToApprove) {
+        const ew = allExtraWorks.find(w => w._id === workId);
+        if (ew) {
+          await fetch(`${API_URL}/customer/extra-work/${ew.stageIdx}/${ew._id}/approve`, {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${token}` }
+          });
+        }
+      }
+      setSelectedClientWorkIds([]);
+      await fetchFlow();
+      showActionToast(`Successfully agreed ${idsToApprove.length} Extra Work request(s) for customer ${flow.lead?.name || ''}!`);
+    } catch (err) {
+      alert('Failed to approve selected items');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleBulkCustomerRemove = async () => {
+    if (selectedClientWorkIds.length === 0) {
+      alert("Please select at least one item to cancel.");
+      return;
+    }
+
+    if (!window.confirm(`Are you sure you want to cancel the ${selectedClientWorkIds.length} selected extra work request(s)?`)) return;
+
+    try {
+      setSubmitting(true);
+      const token = localStorage.getItem('customerToken');
+      for (const workId of selectedClientWorkIds) {
+        const ew = allExtraWorks.find(w => w._id === workId);
+        if (ew) {
+          await fetch(`${API_URL}/customer/extra-work/${ew.stageIdx}/${ew._id}/remove`, {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${token}` }
+          });
+        }
+      }
+      setSelectedClientWorkIds([]);
+      await fetchFlow();
+      showActionToast(`Successfully cancelled ${selectedClientWorkIds.length} Extra Work request(s)!`);
+    } catch (err) {
+      alert('Failed to cancel selected items');
     } finally {
       setSubmitting(false);
     }
@@ -415,7 +553,7 @@ const CustomerDashboard = () => {
       
       setCustomWorkDesc('');
       fetchFlow();
-      alert("Custom request submitted! The admin will review it and assign a rate.");
+      showActionToast(`Custom request successfully submitted for customer ${flow.lead?.name || ''}! Sent to CRD team.`);
     } catch (err) {
       alert(err.message);
     } finally {
@@ -593,6 +731,27 @@ const CustomerDashboard = () => {
   return (
     <div className="min-h-screen flex bg-gradient-to-br from-[#f1f5f9] via-[#f8fafc] to-[#e2e8f0] font-sans selection:bg-[#006838] selection:text-white relative overflow-hidden print:bg-white print:block">
       
+      {/* INSTANT ACTION CONFIRMATION MODAL POPUP (CENTERED) */}
+      {actionToast && (
+        <div className="fixed inset-0 z-[999999] bg-black/70 backdrop-blur-md flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-white rounded-3xl p-6 md:p-8 max-w-md w-full shadow-2xl border-2 border-[#006838] text-center flex flex-col items-center gap-4 animate-scale-up">
+            <div className="w-16 h-16 bg-emerald-100 text-[#006838] rounded-full flex items-center justify-center shadow-inner border border-emerald-200">
+              <CheckCircle className="w-10 h-10 text-[#006838]" />
+            </div>
+            <div>
+              <h3 className="text-lg font-black text-emerald-950 uppercase tracking-wider">Action Successful</h3>
+              <p className="text-sm font-bold text-gray-800 mt-2 leading-relaxed">{actionToast.message}</p>
+            </div>
+            <button
+              onClick={() => setActionToast(null)}
+              className="w-full py-3.5 bg-[#006838] hover:bg-[#00512c] text-white font-extrabold rounded-2xl shadow-lg transition cursor-pointer text-sm"
+            >
+              OK
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Subtle Glacier Background Elements */}
       <div className="fixed top-[-20%] left-[-10%] w-[60%] h-[60%] bg-[#006838]/5 rounded-full blur-[120px] pointer-events-none z-0 print:hidden"></div>
       <div className="fixed bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-blue-400/5 rounded-full blur-[100px] pointer-events-none z-0 print:hidden"></div>
@@ -1318,7 +1477,7 @@ const CustomerDashboard = () => {
             {/* TAB: REQUESTED WORKS */}
             {activeTab === 'requestedworks' && (() => {
               const AGREED_STATUSES = ['Client Approved', 'Sent to Accounts', 'Added to CRD', 'Execution Sent to PED', 'Start Work', 'In Progress', 'Completed', 'Approved'];
-              const CANCELLED_STATUSES = ['Rejected', 'Removed by Client', 'Cancelled by Superadmin'];
+              const CANCELLED_STATUSES = ['Rejected', 'Removed by Client', 'Cancelled by Superadmin', 'Cancelled by Client', 'Cancelled'];
 
               const filteredRequestedWorks = allExtraWorks.filter(ew => {
                 if (requestedWorksTab === 'new') {
@@ -1341,7 +1500,15 @@ const CustomerDashboard = () => {
                   if (ewDate < start || ewDate > end) return false;
                 }
                 return true;
-              }).sort((a, b) => new Date(b.addedAt) - new Date(a.addedAt));
+              }).sort((a, b) => {
+                const aSent = a.status === 'Sent to Customer';
+                const bSent = b.status === 'Sent to Customer';
+                if (aSent && !bSent) return -1;
+                if (!aSent && bSent) return 1;
+                const aTime = new Date(a.customerSentDate || a.pricingDate || a.addedAt || 0).getTime();
+                const bTime = new Date(b.customerSentDate || b.pricingDate || b.addedAt || 0).getTime();
+                return bTime - aTime;
+              });
 
               const groupedRequestedWorks = Object.values(filteredRequestedWorks.reduce((acc, ew) => {
                 const id = ew.ewId || `NO_ID_${ew._id}`;
@@ -1359,7 +1526,15 @@ const CustomerDashboard = () => {
                 acc[id].items.push(ew);
                 acc[id].totalAmount += (ew.amount || 0);
                 return acc;
-              }, {})).sort((a, b) => new Date(b.addedAt) - new Date(a.addedAt));
+              }, {})).sort((a, b) => {
+                const aSent = a.items.some(i => i.status === 'Sent to Customer');
+                const bSent = b.items.some(i => i.status === 'Sent to Customer');
+                if (aSent && !bSent) return -1;
+                if (!aSent && bSent) return 1;
+                const aMaxTime = Math.max(...a.items.map(i => new Date(i.customerSentDate || i.pricingDate || i.addedAt || 0).getTime()));
+                const bMaxTime = Math.max(...b.items.map(i => new Date(i.customerSentDate || i.pricingDate || i.addedAt || 0).getTime()));
+                return bMaxTime - aMaxTime;
+              });
 
               return (
               <div className="space-y-6">
@@ -1453,7 +1628,28 @@ const CustomerDashboard = () => {
                       <table className="w-full text-left text-sm whitespace-nowrap">
                         <thead className="bg-[#006838] text-white text-[10px] tracking-wider border-b border-[#00512c]">
                           <tr>
-                            <th className="p-4 w-16 text-center font-bold uppercase">S.No</th>
+                            <th className="p-4 w-12 text-center font-bold uppercase">
+                              {(() => {
+                                const clientPricedWorks = filteredRequestedWorks.filter(ew => requestedWorksTab === 'new' && ew.status === 'Sent to Customer');
+                                if (clientPricedWorks.length === 0) return 'S.No';
+                                const allSelected = clientPricedWorks.length > 0 && clientPricedWorks.every(w => selectedClientWorkIds.includes(w._id));
+                                return (
+                                  <input
+                                    type="checkbox"
+                                    className="w-4 h-4 rounded border-gray-300 text-[#006838] focus:ring-[#006838] cursor-pointer"
+                                    checked={allSelected}
+                                    onChange={(e) => {
+                                      if (e.target.checked) {
+                                        setSelectedClientWorkIds(clientPricedWorks.map(w => w._id));
+                                      } else {
+                                        setSelectedClientWorkIds([]);
+                                      }
+                                    }}
+                                    title="Select All Items"
+                                  />
+                                );
+                              })()}
+                            </th>
                             <th className="p-4 font-bold uppercase">Req ID</th>
                             <th className="p-4 font-bold uppercase">Date</th>
                             <th className="p-4 font-bold uppercase">Category</th>
@@ -1463,17 +1659,37 @@ const CustomerDashboard = () => {
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-emerald-50">
-                          {groupedRequestedWorks.map((group, idx) => (
+                          {groupedRequestedWorks.map((group, idx) => {
+                            const hasSentToCustomer = group.items.some(i => i.status === 'Sent to Customer');
+                            const hasPending = group.items.some(i => i.status === 'Pending' || i.status === 'Sent to PED');
+                            let groupBgClass = 'bg-white hover:bg-emerald-50/30';
+                            if (hasSentToCustomer) {
+                              groupBgClass = 'bg-amber-100/90 hover:bg-amber-200/90 border-l-4 border-l-amber-500 font-medium shadow-sm';
+                            } else if (hasPending && requestedWorksTab === 'new') {
+                              groupBgClass = 'bg-yellow-50/80 hover:bg-yellow-100/80 border-l-4 border-l-yellow-400';
+                            }
+
+                            return (
                             <React.Fragment key={idx}>
                               <tr 
-                                className="hover:bg-emerald-50/30 transition cursor-pointer bg-white"
+                                className={`transition cursor-pointer ${groupBgClass}`}
                                 onClick={() => setExpandedReqIds(prev => ({ ...prev, [group.ewId]: !prev[group.ewId] }))}
                               >
                                 <td className="p-4 text-center text-gray-400 font-bold flex items-center justify-center gap-2">
                                   {idx + 1}
                                   {expandedReqIds[group.ewId] ? <ChevronUp className="w-4 h-4 text-emerald-600" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
                                 </td>
-                                <td className="p-4 text-xs font-bold text-[#006838]">{group.displayId || '-'}</td>
+                                <td className="p-4 text-xs font-bold text-[#006838]">
+                                  <div className="flex items-center gap-1.5">
+                                    <span>{group.displayId || '-'}</span>
+                                    {hasSentToCustomer && (
+                                      <span className="px-2 py-0.5 bg-amber-500 text-white rounded text-[9px] font-black uppercase tracking-wider animate-pulse shadow-sm">NEW PRICE</span>
+                                    )}
+                                    {hasPending && !hasSentToCustomer && (
+                                      <span className="px-2 py-0.5 bg-yellow-400 text-yellow-950 rounded text-[9px] font-black uppercase tracking-wider shadow-sm">NEW</span>
+                                    )}
+                                  </div>
+                                </td>
                                 <td className="p-4 text-xs font-bold text-gray-600">{new Date(group.addedAt).toLocaleDateString()}</td>
                                 <td className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider">{group.items.length === 1 ? group.items[0].category : 'Multiple'}</td>
                                 <td className="p-4"><div className="font-bold text-gray-900">{group.items.length} Items Requested</div></td>
@@ -1490,9 +1706,15 @@ const CustomerDashboard = () => {
                                           {allItemsSentToClient ? `Rs. ${group.totalAmount.toLocaleString()}` : (clientVisibleAmount > 0 ? `Rs. ${clientVisibleAmount.toLocaleString()}` : <span className="text-gray-400 font-normal italic text-xs">Under Estimation</span>)}
                                         </td>
                                         <td className="p-4 text-center">
-                                          <span className="inline-flex px-3 py-1 text-[10px] font-bold uppercase tracking-widest rounded-lg border bg-gray-50 text-gray-600 border-gray-200">
-                                            {allItemsSentToClient ? (group.items.length === 1 ? group.items[0].status || 'Pending' : 'Grouped Request') : 'Under Estimation'}
-                                          </span>
+                                          {hasSentToCustomer ? (
+                                            <span className="inline-flex px-3 py-1 text-[10px] font-black uppercase tracking-widest rounded-lg bg-amber-500 text-white border border-amber-600 animate-pulse shadow-sm">
+                                              PRICE UPDATED (ACTION NEEDED)
+                                            </span>
+                                          ) : (
+                                            <span className="inline-flex px-3 py-1 text-[10px] font-bold uppercase tracking-widest rounded-lg border bg-gray-50 text-gray-600 border-gray-200">
+                                              {allItemsSentToClient ? (group.items.length === 1 ? group.items[0].status || 'Pending' : 'Grouped Request') : 'Under Estimation'}
+                                            </span>
+                                          )}
                                         </td>
                                       </>
                                     );
@@ -1500,15 +1722,46 @@ const CustomerDashboard = () => {
                               </tr>
                               {expandedReqIds[group.ewId] && group.items.map((ew, childIdx) => {
                                 const isSentToClient = ['Sent to Customer', 'Client Approved', 'Sent to Accounts', 'Added to CRD', 'Execution Sent to PED', 'Start Work', 'In Progress', 'Completed', 'Approved'].includes(ew.status);
+                                const isCancelled = CANCELLED_STATUSES.includes(ew.status);
+                                const subRowBgClass = ew.status === 'Sent to Customer'
+                                  ? 'bg-amber-200/90 hover:bg-amber-300/90 border-l-4 border-l-amber-600 text-amber-950 font-bold shadow-sm'
+                                  : (isCancelled
+                                    ? 'bg-red-100/80 hover:bg-red-200/60 border-l-4 border-l-red-500 transition-colors text-red-950 font-medium'
+                                    : 'bg-emerald-100/80 hover:bg-emerald-200/70 transition-colors border-l-4 border-l-[#006838]');
 
                                 return (
-                                <tr key={`${idx}-${childIdx}`} className="bg-gray-50/50 hover:bg-white transition border-l-4 border-[#006838]">
-                                  <td className="p-4 text-center text-gray-400 font-bold text-xs">{idx + 1}.{childIdx + 1}</td>
-                                  <td className="p-4 text-xs font-bold text-[#006838]/50">↳ {ew.ewId || '-'}</td>
-                                  <td className="p-4 text-xs font-bold text-gray-400">{new Date(ew.addedAt).toLocaleDateString()}</td>
-                                  <td className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider">{ew.category || 'General'}</td>
+                                <tr key={`${idx}-${childIdx}`} className={subRowBgClass}>
+                                  <td className="p-4 text-center">
+                                    {requestedWorksTab === 'new' && ew.status === 'Sent to Customer' ? (
+                                      <input
+                                        type="checkbox"
+                                        className="w-4 h-4 rounded border-gray-300 text-[#006838] focus:ring-[#006838] cursor-pointer"
+                                        checked={selectedClientWorkIds.includes(ew._id)}
+                                        onChange={(e) => {
+                                          e.stopPropagation();
+                                          if (e.target.checked) {
+                                            setSelectedClientWorkIds(prev => [...new Set([...prev, ew._id])]);
+                                          } else {
+                                            setSelectedClientWorkIds(prev => prev.filter(id => id !== ew._id));
+                                          }
+                                        }}
+                                      />
+                                    ) : (
+                                      <span className="text-gray-500 font-bold text-xs">{idx + 1}.{childIdx + 1}</span>
+                                    )}
+                                  </td>
+                                  <td className="p-4 text-xs font-bold text-[#006838]/70">↳ {ew.ewId || '-'}</td>
+                                  <td className="p-4 text-xs font-bold text-gray-500">{new Date(ew.addedAt).toLocaleDateString()}</td>
+                                  <td className="p-4 text-xs font-bold text-gray-600 uppercase tracking-wider">{ew.category || 'General'}</td>
                                   <td className="p-4">
-                                    <div className="font-bold text-gray-900">{ew.name}</div>
+                                    <div className="flex flex-wrap items-center gap-2">
+                                      <span className="font-bold text-gray-900">{ew.name}</span>
+                                      {isCancelled && (
+                                        <span className="px-2 py-0.5 bg-red-200 text-red-900 border border-red-300 rounded text-[10px] font-extrabold uppercase tracking-wider">
+                                          {ew.status === 'Removed by Client' || ew.status === 'Cancelled by Client' ? 'Cancelled by Client' : ew.status}
+                                        </span>
+                                      )}
+                                    </div>
                                     <div className="text-[10px] text-gray-500 mt-0.5">
                                       Qty: {ew.quantity || 1} {ew.unit ? `x ${ew.unit}` : ''} {isSentToClient ? `@ Rs. ${ew.rate || 0}` : ''}
                                     </div>
@@ -1569,41 +1822,37 @@ const CustomerDashboard = () => {
                                 </tr>
                                 );
                               })}
-                            </React.Fragment>
-                          ))}
+                             </React.Fragment>
+                           );
+                         })}
                         </tbody>
                       </table>
                     </div>
                     {filteredRequestedWorks.filter(ew => requestedWorksTab === 'new' && ew.status === 'Sent to Customer').length > 0 && (
-                      <div className="p-4 bg-white/40 border-t border-gray-100 flex flex-wrap items-center justify-end gap-4">
+                      <div className="p-4 bg-white/40 border-t border-gray-100 flex flex-wrap items-center justify-end gap-3">
                         <button
                           onClick={() => setActiveTab('quotation')}
-                          className="px-5 py-2 bg-white text-gray-700 font-bold rounded-lg border border-gray-200 hover:bg-gray-50 transition flex items-center gap-2 text-sm shadow-sm"
+                          className="px-4 py-2 bg-white text-gray-700 font-bold rounded-xl border border-gray-200 hover:bg-gray-50 transition flex items-center gap-2 text-xs shadow-sm cursor-pointer"
                         >
                           <FileText className="w-4 h-4" /> Preview Quotation
                         </button>
+
+                        {selectedClientWorkIds.length > 0 && (
+                          <button
+                            onClick={handleBulkCustomerRemove}
+                            disabled={submitting}
+                            className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl transition flex items-center gap-2 text-xs shadow-sm disabled:opacity-50 cursor-pointer"
+                          >
+                            {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <><X className="w-4 h-4" /> Cancel Selected ({selectedClientWorkIds.length})</>}
+                          </button>
+                        )}
+
                         <button
-                          onClick={async () => {
-                            try {
-                              setSubmitting(true);
-                              const worksToApprove = allExtraWorks.filter(ew => ew.status === 'Sent to Customer');
-                              for (const work of worksToApprove) {
-                                await fetch(`${API_URL}/customer/extra-work/${work.stageIdx}/${work._id}/approve`, {
-                                  method: 'POST',
-                                  headers: { Authorization: `Bearer ${localStorage.getItem('customerToken')}` }
-                                });
-                              }
-                              await fetchFlow();
-                            } catch (err) {
-                              alert('Failed to approve some items');
-                            } finally {
-                              setSubmitting(false);
-                            }
-                          }}
+                          onClick={handleBulkCustomerApprove}
                           disabled={submitting}
-                          className="px-5 py-2 bg-[#006838] text-white font-bold rounded-lg hover:bg-[#00522c] transition flex items-center gap-2 shadow-sm text-sm disabled:opacity-50"
+                          className="px-5 py-2 bg-[#006838] text-white font-bold rounded-xl hover:bg-[#00522c] transition flex items-center gap-2 shadow-sm text-xs disabled:opacity-50 cursor-pointer"
                         >
-                          {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <><CheckCircle className="w-4 h-4" /> I Agree to All & Send</>}
+                          {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <><CheckCircle className="w-4 h-4" /> {selectedClientWorkIds.length > 0 ? `I Agree to Selected (${selectedClientWorkIds.length}) & Send` : 'I Agree to All & Send'}</>}
                         </button>
                       </div>
                     )}
@@ -1624,10 +1873,23 @@ const CustomerDashboard = () => {
                   matchesDate = compDate >= start && compDate <= end;
                 }
                 const matchesSearch = !complaintSearchText || 
-                  comp.description.toLowerCase().includes(complaintSearchText.toLowerCase()) || 
+                  (comp.title && comp.title.toLowerCase().includes(complaintSearchText.toLowerCase())) ||
+                  (comp.description && comp.description.toLowerCase().includes(complaintSearchText.toLowerCase())) || 
                   (comp.token && comp.token.toLowerCase().includes(complaintSearchText.toLowerCase()));
+
                 return matchesDate && matchesSearch;
-              }).sort((a, b) => new Date(b.reportedAt) - new Date(a.reportedAt)) || [];
+              }).sort((a, b) => {
+                const getScore = (c) => {
+                  if (c.status === 'Sent to Customer' || c.status === 'Sent to Client (Completed)') return 100;
+                  if (['Pending', 'Sent to PED', 'Returned to CRD'].includes(c.status)) return 50;
+                  return 10;
+                };
+                const scoreDiff = getScore(b) - getScore(a);
+                if (scoreDiff !== 0) return scoreDiff;
+                const aTime = new Date(a.customerSentDate || a.pricingDate || a.reportedAt || 0).getTime();
+                const bTime = new Date(b.customerSentDate || b.pricingDate || b.reportedAt || 0).getTime();
+                return bTime - aTime;
+              }) || [];
 
               return (
               <div className="space-y-6">
@@ -1650,6 +1912,23 @@ const CustomerDashboard = () => {
                     >
                       <Plus className="w-4 h-4" /> Raise A Complaint
                     </button>
+                  </div>
+                </div>
+
+                {/* Status Color Legend Bar */}
+                <div className="flex flex-wrap items-center gap-3 bg-white/70 backdrop-blur-xl p-3.5 rounded-2xl border border-white/60 shadow-sm text-xs">
+                  <span className="text-gray-400 font-bold uppercase text-[10px] tracking-wider shrink-0">Status Color Legend:</span>
+                  <div className="flex items-center gap-1.5 px-2.5 py-1 bg-emerald-100/90 text-emerald-950 border border-emerald-300 rounded-xl font-bold shadow-sm">
+                    <span className="w-2.5 h-2.5 rounded-full bg-[#006838] shrink-0"></span>
+                    <span>Green: New Complaint (Under Process)</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 px-2.5 py-1 bg-amber-100/90 text-amber-950 border border-amber-300 rounded-xl font-bold shadow-sm">
+                    <span className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse shrink-0"></span>
+                    <span>Amber: Price Updated (Action Required)</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 px-2.5 py-1 bg-blue-100/90 text-blue-950 border border-blue-300 rounded-xl font-bold shadow-sm">
+                    <span className="w-2.5 h-2.5 rounded-full bg-blue-600 shrink-0"></span>
+                    <span>Blue: Work Completed (Give Feedback)</span>
                   </div>
                 </div>
 
@@ -1734,28 +2013,61 @@ const CustomerDashboard = () => {
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-emerald-50">
-                          {filteredComplaints.map((comp, idx) => (
-                            <tr key={idx} className="hover:bg-emerald-50/50 transition-colors cursor-pointer" onClick={() => setSelectedComplaint(comp)}>
-                              <td className="px-6 py-4 text-center text-gray-400 font-bold">{idx + 1}</td>
+                          {filteredComplaints.map((comp, idx) => {
+                            const isNewComplaint = !comp.status || ['Pending', 'Pending (CRD)', 'Sent to PED', 'Returned to CRD'].includes(comp.status);
+                            const isPriceActionNeeded = comp.status === 'Sent to Customer';
+                            const isCompletedActionNeeded = ['Completed', 'Sent to Client (Completed)'].includes(comp.status) && !comp.clientRating && comp.status !== 'Feedback Received';
+
+                            let compRowBgClass = 'bg-white hover:bg-emerald-50/50';
+                            if (isPriceActionNeeded) {
+                              compRowBgClass = 'bg-amber-100/90 hover:bg-amber-200/90 font-medium shadow-sm';
+                            } else if (isCompletedActionNeeded) {
+                              compRowBgClass = 'bg-blue-100/90 hover:bg-blue-200/90 font-medium shadow-sm';
+                            } else if (isNewComplaint) {
+                              compRowBgClass = 'bg-emerald-100/90 hover:bg-emerald-200/80 font-medium shadow-sm';
+                            }
+
+                            return (
+                            <tr key={idx} className={`transition-colors cursor-pointer ${compRowBgClass}`} onClick={() => setSelectedComplaint(comp)}>
+                              <td className={`px-6 py-4 text-center font-bold ${
+                                isPriceActionNeeded ? 'border-l-4 border-l-amber-500 text-amber-900' :
+                                isCompletedActionNeeded ? 'border-l-4 border-l-blue-500 text-blue-900' :
+                                isNewComplaint ? 'border-l-4 border-l-emerald-600 text-emerald-950' : 'text-gray-400'
+                              }`}>
+                                {idx + 1}
+                              </td>
                               <td className="px-6 py-4 font-mono font-bold text-[#006838]">
-                                <button
-                                  onClick={(e) => { e.stopPropagation(); setSelectedComplaint(comp); }}
-                                  className="flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 text-emerald-700 rounded-lg text-xs font-bold hover:bg-emerald-100 transition-colors border border-emerald-100 shadow-sm"
-                                  title="View Details & History"
-                                >
-                                  <Activity className="w-3.5 h-3.5" />
-                                  {comp.token || '-'}
-                                </button>
+                                <div className="flex items-center gap-2">
+                                  <button
+                                    onClick={(e) => { e.stopPropagation(); setSelectedComplaint(comp); }}
+                                    className="flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 text-emerald-700 rounded-lg text-xs font-bold hover:bg-emerald-100 transition-colors border border-emerald-100 shadow-sm shrink-0"
+                                    title="View Details & History"
+                                  >
+                                    <Activity className="w-3.5 h-3.5" />
+                                    {comp.token || '-'}
+                                  </button>
+                                  {isPriceActionNeeded && (
+                                    <span className="px-2.5 py-1 bg-amber-500 text-white rounded-full text-[10px] font-black uppercase tracking-wider animate-pulse shadow-md flex items-center gap-1 shrink-0 whitespace-nowrap">
+                                      <Sparkles className="w-3 h-3" /> ACTION NEEDED
+                                    </span>
+                                  )}
+                                  {isNewComplaint && (
+                                    <span className="px-2.5 py-1 bg-[#006838] text-white rounded-full text-[10px] font-black uppercase tracking-wider shadow-sm flex items-center gap-1 shrink-0 whitespace-nowrap">
+                                      <Sparkles className="w-3 h-3 text-yellow-300" /> NEW COMPLAINT
+                                    </span>
+                                  )}
+                                </div>
                               </td>
                               <td className="px-6 py-4 font-medium text-gray-900">{new Date(comp.reportedAt).toLocaleDateString()}</td>
                               <td className="px-6 py-4 font-medium text-gray-900">{flow.project?.name || 'N/A'}</td>
                               <td className="px-6 py-4 font-bold text-emerald-600">{flow.unitId}</td>
-                              <td className="px-6 py-4 text-gray-800 whitespace-normal min-w-[250px]">
-                                <div className="font-bold mb-1">{comp.title || 'Complaint'}</div>
-                                <div>{comp.description}</div>
+                              <td className="px-6 py-4 text-gray-800 whitespace-normal min-w-[200px]">
+                                <div className="font-bold text-gray-900">{comp.title || 'Complaint'}</div>
                               </td>
                               <td className="px-6 py-4 text-right font-black text-[#006838]">
-                                {comp.pedPrice > 0 ? `Rs. ${comp.pedPrice.toLocaleString()}` : (['Pending', 'Sent to PED'].includes(comp.status) ? 'TBD' : 'Rs. 0')}
+                                {comp.noPrice || (comp.pedPrice === 0 && !['Pending', 'Sent to PED'].includes(comp.status)) ? (
+                                  <span className="px-2.5 py-1 bg-slate-100 text-slate-700 rounded-lg text-xs font-bold border border-slate-200">No Price</span>
+                                ) : (comp.pedPrice > 0 ? `Rs. ${comp.pedPrice.toLocaleString()}` : 'TBD')}
                               </td>
                               <td className="px-6 py-4 text-center">
                                 {comp.status === 'Sent to Customer' ? (
@@ -1814,7 +2126,8 @@ const CustomerDashboard = () => {
                                 )}
                               </td>
                             </tr>
-                          ))}
+                          );
+                        })}
                         </tbody>
                       </table>
                     </div>
@@ -2523,6 +2836,80 @@ const CustomerDashboard = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* CLIENT PRICING UPDATE NOTIFICATION POPUP (SINGLE CONSOLIDATED MODAL) */}
+      {clientPriceNotif && (
+        <div className="fixed inset-0 z-[9999] bg-black/70 backdrop-blur-md flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-white border-2 border-[#006838] rounded-3xl shadow-2xl max-w-lg w-full p-6 md:p-8 animate-scale-up relative flex flex-col max-h-[90vh]">
+            <div className="text-center shrink-0 mb-3">
+              <div className="w-14 h-14 bg-emerald-100 text-[#006838] rounded-full flex items-center justify-center mx-auto mb-3 border border-emerald-200 shadow-md">
+                <Sparkles className="w-7 h-7 animate-pulse text-[#006838]" />
+              </div>
+              
+              <span className="px-3 py-1 bg-emerald-100 text-[#006838] text-xs font-extrabold uppercase tracking-wider rounded-full border border-emerald-200 inline-block mb-2">
+                Price Estimation Updated
+              </span>
+
+              <h3 className="text-lg font-bold text-gray-900 leading-snug">
+                You received estimation pricing updates for your raised Extra Works.
+              </h3>
+            </div>
+
+            {/* Scrollable list of all updated request groups / items */}
+            <div className="max-h-[50vh] overflow-y-auto space-y-3 my-2 pr-1 custom-scrollbar flex-1">
+              {(Array.isArray(clientPriceNotif) ? clientPriceNotif : [clientPriceNotif]).map((group, idx) => (
+                <div key={idx} className="bg-emerald-50/70 p-4 rounded-2xl border border-emerald-100 text-left">
+                  <div className="flex items-center justify-between gap-2 mb-2">
+                    <span className="text-xs font-mono font-bold text-emerald-900 bg-white px-2.5 py-1 rounded-lg border border-emerald-200 shadow-sm">
+                      {group.ewId}
+                    </span>
+                    {group.totalAmount !== undefined && (
+                      <span className="text-xs font-extrabold text-[#006838]">
+                        Total: Rs. {group.totalAmount.toLocaleString()}
+                      </span>
+                    )}
+                  </div>
+                  {group.works ? (
+                    <div className="space-y-1 text-xs text-gray-700 font-medium">
+                      {group.works.map((w, wIdx) => (
+                        <div key={w._id || wIdx} className="flex justify-between items-center py-0.5 border-b border-emerald-100/60 last:border-0">
+                          <span>• {w.name}</span>
+                          <span className="font-bold text-gray-900">Rs. {(w.amount || 0).toLocaleString()}</span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : group.work ? (
+                    <div className="text-xs text-gray-700 font-medium flex justify-between items-center">
+                      <span>• {group.work.name}</span>
+                      <span className="font-bold text-[#006838]">Rs. {(group.work.amount || 0).toLocaleString()}</span>
+                    </div>
+                  ) : null}
+                </div>
+              ))}
+            </div>
+
+            <div className="pt-3 shrink-0">
+              <button
+                onClick={() => {
+                  const groupsList = Array.isArray(clientPriceNotif) ? clientPriceNotif : [clientPriceNotif];
+                  const allWorkIds = groupsList.flatMap(g => g.works ? g.works.map(w => w._id) : (g.work ? [g.work._id] : []));
+                  const allGroupIdsMap = {};
+                  groupsList.forEach(g => { if (g.ewId) allGroupIdsMap[g.ewId] = true; });
+
+                  setActiveTab('requestedworks');
+                  setRequestedWorksTab('new');
+                  setExpandedReqIds(prev => ({ ...prev, ...allGroupIdsMap }));
+                  setNotifiedPricedIds(prev => [...prev, ...allWorkIds]);
+                  setClientPriceNotif(null);
+                }}
+                className="w-full py-3.5 bg-[#006838] hover:bg-[#00522c] text-white text-sm font-black rounded-2xl shadow-xl shadow-[#006838]/20 transition flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <CheckCircle className="w-5 h-5" /> Check & Proceed
+              </button>
+            </div>
           </div>
         </div>
       )}

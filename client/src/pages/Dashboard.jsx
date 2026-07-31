@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth, API_URL } from '../context/AuthContext';
+import { LOGO_BASE64 } from '../utils/logoBase64';
 import { useNavigate } from 'react-router-dom';
 import {
   TrendingUp,
@@ -314,6 +315,72 @@ const ObservedPieChart = ({
   );
 };
 
+const groupUnitsByCustomer = (unitsList) => {
+  if (!unitsList || !Array.isArray(unitsList)) return [];
+
+  const map = new Map();
+  unitsList.forEach(unit => {
+    const name = (unit.customerName || 'N/A').trim();
+    const phone = (unit.customerPhone || 'N/A').trim();
+    const proj = (unit.projectName || 'N/A').trim();
+    const key = `${name.toLowerCase()}_${phone}_${proj.toLowerCase()}`;
+
+    if (!map.has(key)) {
+      map.set(key, {
+        customerName: name,
+        customerPhone: phone,
+        projectName: proj,
+        projectCode: unit.projectCode || '',
+        bookingDate: unit.bookingDate || null,
+        units: [],
+        totalPrice: 0
+      });
+    }
+
+    const group = map.get(key);
+    group.units.push(unit);
+    group.totalPrice += (Number(unit.price) || 0);
+
+    if (!group.bookingDate && unit.bookingDate) {
+      group.bookingDate = unit.bookingDate;
+    }
+  });
+
+  return Array.from(map.values()).map(group => {
+    const unitIdsStr = group.units.map(u => u.unitId).filter(Boolean).join(', ');
+
+    const typesSet = [...new Set(group.units.map(u => u.unitType).filter(Boolean))];
+    const typesStr = typesSet.join(', ');
+
+    const sizes = group.units.map(u => u.size).filter(s => s != null);
+    let sizeStr = '';
+    if (sizes.length > 0) {
+      const uniqueSizes = [...new Set(sizes)];
+      if (uniqueSizes.length === 1 && group.units.length > 1) {
+        sizeStr = `${uniqueSizes[0].toLocaleString()} Sq.Ft (${group.units.length} Units)`;
+      } else {
+        sizeStr = sizes.map(s => `${Number(s).toLocaleString()} Sq.Ft`).join(', ');
+      }
+    }
+
+    let dateStr = '—';
+    if (group.bookingDate) {
+      const d = new Date(group.bookingDate);
+      if (!isNaN(d.getTime())) {
+        dateStr = d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+      }
+    }
+
+    return {
+      ...group,
+      unitIdsStr,
+      typesStr,
+      sizeStr,
+      dateStr
+    };
+  });
+};
+
 const Dashboard = () => {
   const { token, user } = useAuth();
   const navigate = useNavigate();
@@ -556,6 +623,7 @@ const Dashboard = () => {
         hotList: 0,
         booked: 0,
         handover: 0,
+        siteConversions: 0,
         lost: 0
       };
       userPerformanceData.forEach(u => {
@@ -578,6 +646,7 @@ const Dashboard = () => {
       hotList: 0,
       booked: 0,
       handover: 0,
+      siteConversions: 0,
       lost: 0
     };
   }, [selectedUserPerfName, userPerformanceData]);
@@ -713,9 +782,9 @@ const Dashboard = () => {
       </head>
       <body>
         <table>
-          <tr style="height: 120px;">
-            <td colspan="3" style="background-color: #0e623a; border: none; text-align: center; vertical-align: middle; height: 120px;">
-              <img src="${logoPath}" height="95" style="height: 95px; width: auto; display: block; margin: 0 auto;" />
+          <tr style="height: 60px;">
+            <td colspan="3" bgcolor="#0B4D2D" style="background-color: #0B4D2D; color: #FFFFFF; font-family: 'Segoe UI', Arial, sans-serif; font-size: 14pt; font-weight: bold; text-align: center; vertical-align: middle; height: 60px; border: 1px solid #000000;">
+              JOHN BUILDWELL
             </td>
             <td colspan="5" class="title-row" style="border:none; vertical-align:middle; text-align:center; font-size: 14pt; font-weight: bold; color: #0e623a; height: 120px;">
               JohnBuildwell ERP - USER PERFORMANCE DETAILS
@@ -821,9 +890,9 @@ const Dashboard = () => {
       </head>
       <body>
         <table>
-          <tr style="height: 120px;">
-            <td colspan="3" style="background-color: #0e623a; border: none; text-align: center; vertical-align: middle; height: 120px;">
-              <img src="${logoPath}" height="95" style="height: 95px; width: auto; display: block; margin: 0 auto;" />
+          <tr style="height: 60px;">
+            <td colspan="3" bgcolor="#0B4D2D" style="background-color: #0B4D2D; color: #FFFFFF; font-family: 'Segoe UI', Arial, sans-serif; font-size: 14pt; font-weight: bold; text-align: center; vertical-align: middle; height: 60px; border: 1px solid #000000;">
+              JOHN BUILDWELL
             </td>
             <td colspan="6" class="title-row" style="border:none; vertical-align:middle; text-align:center; font-size: 14pt; font-weight: bold; color: #0e623a; height: 120px;">
               JohnBuildwell ERP - MARKETING SOURCE PERFORMANCE DETAILS
@@ -935,8 +1004,8 @@ const Dashboard = () => {
     fetchPendingFollowUps();
   }, [fromDate, toDate, selectedUser, selectedProject, selectedProjectType, selectedSource]);
 
-  const fetchDashboardStats = async () => {
-    setLoading(true);
+  const fetchDashboardStats = async (isSilent = false) => {
+    if (!isSilent) setLoading(true);
     try {
       let url = `${API_URL}/dashboard/stats?fromDate=${fromDate}&toDate=${toDate}`;
       if (selectedUser) url += `&userId=${selectedUser}`;
@@ -1019,7 +1088,7 @@ const Dashboard = () => {
     setToDate(lastDay);
   };
 
-  const logoPath = window.location.origin + "/jb_logo.jpg";
+  const logoPath = LOGO_BASE64;
 
   const handleExportExcel = async () => {
     const inventory = stats.cards.inventory || {};
@@ -1046,9 +1115,11 @@ const Dashboard = () => {
       </head>
       <body>
         <table>
-          <tr style="height: 120px;">
-            <td colspan="3" style="background-color: #0e623a; border: none; text-align: center; vertical-align: middle; height: 120px;">
-              <img src="${logoPath}" height="95" style="height: 95px; width: auto; display: block; margin: 0 auto;" />
+          <tr style="height: 70px;">
+            <td colspan="3" bgcolor="#0b4d2d" style="background-color: #0b4d2d; border: none; text-align: center; vertical-align: middle; height: 70px;">
+              <div style="font-family: 'Georgia', 'Times New Roman', serif; font-size: 24pt; font-weight: bold; color: #ffffff; letter-spacing: 2px;">
+                JB <span style="font-family: 'Segoe UI', Arial, sans-serif; font-size: 11pt; font-weight: 700; color: #fde047; letter-spacing: 1px;">JOHN BUILDWELL</span>
+              </div>
             </td>
             <td colspan="6" class="title-row" style="border:none; vertical-align:middle; text-align:center; font-size: 22pt; font-weight: bold; color: #0e623a; height: 120px;">
               JohnBuildwell ERP - OVERALL STATUS REPORT
@@ -1074,14 +1145,9 @@ const Dashboard = () => {
             <td colspan="3">Rs. ${(inventory.availableValueByType?.Plot || 0).toLocaleString()}</td>
           </tr>
           <tr>
-            <td colspan="3" class="bold-label">Available Projects (Flat)</td>
-            <td colspan="3">${inventory.projectsByType?.Flat || 0}</td>
-            <td colspan="3">Rs. ${(inventory.availableValueByType?.Flat || 0).toLocaleString()}</td>
-          </tr>
-          <tr class="even-row">
-            <td colspan="3" class="bold-label">Available Projects (Villa)</td>
-            <td colspan="3">${(inventory.projectsByType?.Villa || 0) + (inventory.projectsByType?.House || 0)}</td>
-            <td colspan="3">Rs. ${((inventory.availableValueByType?.Villa || 0) + (inventory.availableValueByType?.House || 0)).toLocaleString()}</td>
+            <td colspan="3" class="bold-label">Available Projects (Unit)</td>
+            <td colspan="3">${(inventory.projectsByType?.Flat || 0) + (inventory.projectsByType?.Villa || 0) + (inventory.projectsByType?.House || 0) + (inventory.projectsByType?.Unit || 0)}</td>
+            <td colspan="3">Rs. ${((inventory.availableValueByType?.Flat || 0) + (inventory.availableValueByType?.Villa || 0) + (inventory.availableValueByType?.House || 0) + (inventory.availableValueByType?.Unit || 0)).toLocaleString()}</td>
           </tr>
           <tr><td colspan="9" style="border:none; height: 10px;"></td></tr>
           
@@ -1225,9 +1291,11 @@ const Dashboard = () => {
       </head>
       <body>
         <table>
-          <tr style="height: 120px;">
-            <td colspan="3" style="background-color: #0e623a; border: none; text-align: center; vertical-align: middle; height: 120px;">
-              <img src="${logoPath}" height="95" style="height: 95px; width: auto; display: block; margin: 0 auto;" />
+          <tr style="height: 70px;">
+            <td colspan="3" bgcolor="#0b4d2d" style="background-color: #0b4d2d; border: none; text-align: center; vertical-align: middle; height: 70px;">
+              <div style="font-family: 'Georgia', 'Times New Roman', serif; font-size: 24pt; font-weight: bold; color: #ffffff; letter-spacing: 2px;">
+                JB <span style="font-family: 'Segoe UI', Arial, sans-serif; font-size: 11pt; font-weight: 700; color: #fde047; letter-spacing: 1px;">JOHN BUILDWELL</span>
+              </div>
             </td>
             <td colspan="4" class="title-row" style="border:none; vertical-align:middle; text-align:center; font-size: 22pt; font-weight: bold; color: #0e623a; height: 120px;">
               JohnBuildwell ERP - USER WISE PERFORMANCE REPORT
@@ -1326,9 +1394,11 @@ const Dashboard = () => {
       </head>
       <body>
         <table>
-          <tr style="height: 120px;">
-            <td colspan="3" style="background-color: #0e623a; border: none; text-align: center; vertical-align: middle; height: 120px;">
-              <img src="${logoPath}" height="95" style="height: 95px; width: auto; display: block; margin: 0 auto;" />
+          <tr style="height: 70px;">
+            <td colspan="3" bgcolor="#0b4d2d" style="background-color: #0b4d2d; border: none; text-align: center; vertical-align: middle; height: 70px;">
+              <div style="font-family: 'Georgia', 'Times New Roman', serif; font-size: 24pt; font-weight: bold; color: #ffffff; letter-spacing: 2px;">
+                JB <span style="font-family: 'Segoe UI', Arial, sans-serif; font-size: 11pt; font-weight: 700; color: #fde047; letter-spacing: 1px;">JOHN BUILDWELL</span>
+              </div>
             </td>
             <td colspan="4" class="title-row" style="border:none; vertical-align:middle; text-align:center; font-size: 22pt; font-weight: bold; color: #0e623a; height: 120px;">
               JohnBuildwell ERP - PROJECT WISE PERFORMANCE REPORT
@@ -1930,9 +2000,8 @@ const Dashboard = () => {
                       { label: 'Site Visit', count: selectedUserPerfData.siteVisits, color: 'bg-blue-500', icon: MapPin },
                       { label: 'Hot List', count: selectedUserPerfData.hotList, color: 'bg-amber-500', icon: Target },
                       { label: 'Booked', count: selectedUserPerfData.booked || 0, color: 'bg-yellow-500', icon: DollarSign },
-                      { label: 'Site Conversion', count: selectedUserPerfData.siteConversions || 0, color: 'bg-teal-600', icon: Building },
                       { label: 'Lost', count: selectedUserPerfData.lost, color: 'bg-red-500', icon: TrendingDown }
-                    ].filter(m => m.label === 'Total Leads' || m.label === 'Site Conversion' || m.count > 0).map((m, idx) => {
+                    ].filter(m => m.label === 'Total Leads' || m.count > 0).map((m, idx) => {
                       const IconComponent = m.icon;
                       const percentageOfTotal = selectedUserPerfData.totalLeads > 0
                         ? (m.count / selectedUserPerfData.totalLeads) * 100
@@ -2074,9 +2143,8 @@ const Dashboard = () => {
                       { label: 'Site Visit', count: selectedSourcePerfData.siteVisits, color: 'bg-blue-500', icon: MapPin },
                       { label: 'Hot List', count: selectedSourcePerfData.hotList, color: 'bg-amber-500', icon: Target },
                       { label: 'Booked', count: selectedSourcePerfData.booked || 0, color: 'bg-yellow-500', icon: DollarSign },
-                      { label: 'Site Conversion', count: selectedSourcePerfData.siteConversions || 0, color: 'bg-teal-600', icon: Building },
                       { label: 'Lost', count: selectedSourcePerfData.lost, color: 'bg-red-500', icon: TrendingDown }
-                    ].filter(m => m.label === 'Total Leads' || m.label === 'Site Conversion' || m.count > 0).map((m, idx) => {
+                    ].filter(m => m.label === 'Total Leads' || m.count > 0).map((m, idx) => {
                       const IconComponent = m.icon;
                       const percentageOfTotal = selectedSourcePerfData.totalLeads > 0
                         ? (m.count / selectedSourcePerfData.totalLeads) * 100
@@ -2150,12 +2218,12 @@ const Dashboard = () => {
                           <td className="p-4 font-extrabold text-black-800 uppercase">{pCode}</td>
                           <td className="p-4">
                             <div className="flex flex-wrap gap-2">
-                              {Object.keys(p.stages || {}).map(stageName => (
+                              {Object.keys(p.stages || {}).filter(stageName => stageName !== 'Site Conversion').map(stageName => (
                                 <span
                                   key={stageName}
                                   className="text-[13px] font-bold px-2.5 py-1 bg-black-50 border-none text-black-650 rounded-xl"
                                 >
-                                  {stageName === 'Booking' ? 'Booked' : stageName === 'Won' || stageName === 'Handover' ? 'Site Conversion' : stageName}: <span className="text-[15px] font-black text-black-900 ml-1">{p.stages[stageName]}</span>
+                                  {stageName === 'Booking' ? 'Booked' : stageName === 'Won' ? 'Handover' : stageName}: <span className="text-[15px] font-black text-black-900 ml-1">{p.stages[stageName]}</span>
                                 </span>
                               ))}
                             </div>
@@ -2946,7 +3014,7 @@ const Dashboard = () => {
       {/* Booked Units Modal Popup */}
       {bookedModalOpen && (
         <div className="fixed inset-0 bg-black-900/60 backdrop-blur-sm z-[999] flex items-center justify-center p-4">
-          <div className="bg-[#f0fbf4] rounded-3xl border-none shadow-2xl w-full max-w-3xl max-h-[85vh] flex flex-col overflow-hidden text-left animate-fadeIn">
+          <div className="bg-[#f0fbf4] rounded-3xl border-none shadow-2xl w-full max-w-4xl max-h-[85vh] flex flex-col overflow-hidden text-left animate-fadeIn">
             {/* Header */}
             <div className="p-6 border-b border-black-150 flex items-center justify-between bg-amber-500/10">
               <div>
@@ -2968,37 +3036,43 @@ const Dashboard = () => {
                   <table className="w-full text-left border-collapse">
                     <thead>
                       <tr className="border-b border-black-100 text-[11px] font-bold text-black-400 uppercase tracking-wider">
+                        <th className="pb-3 pl-2">Booked Date</th>
                         <th className="pb-3">Customer Details</th>
                         <th className="pb-3">Project / Unit</th>
                         <th className="pb-3">Unit Specifications</th>
-                        <th className="pb-3 text-right">Booking Value</th>
+                        <th className="pb-3 text-right pr-2">Booking Value</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-black-50 text-xs font-semibold text-black-700">
-                      {stats.cards.inventory.bookedUnitsList.map((unit, idx) => (
+                      {groupUnitsByCustomer(stats.cards.inventory.bookedUnitsList).map((unitGroup, idx) => (
                         <tr key={idx} className="hover:bg-black-50/50 transition">
+                          <td className="py-3.5 pl-2">
+                            <span className="text-[11px] font-bold text-black-650 bg-black-100/80 px-2.5 py-1 rounded-md inline-block whitespace-nowrap">
+                              {unitGroup.dateStr}
+                            </span>
+                          </td>
                           <td className="py-3.5">
                             <div className="flex flex-col gap-0.5">
-                              <span className="font-bold text-black-850">{unit.customerName}</span>
-                              <span className="text-[11px] text-black-500 font-bold">{unit.customerPhone}</span>
+                              <span className="font-bold text-black-850">{unitGroup.customerName}</span>
+                              <span className="text-[11px] text-black-500 font-bold">{unitGroup.customerPhone}</span>
                             </div>
                           </td>
                           <td className="py-3.5">
                             <div className="flex flex-col gap-0.5">
-                              <span className="font-bold text-black-800">{unit.projectName}</span>
+                              <span className="font-bold text-black-800">{unitGroup.projectName}</span>
                               <span className="text-[11px] text-black-450 font-bold uppercase tracking-wide">
-                                Unit: {unit.unitId}
+                                {unitGroup.units.length > 1 ? 'Units: ' : 'Unit: '}{unitGroup.unitIdsStr}
                               </span>
                             </div>
                           </td>
                           <td className="py-3.5">
                             <div className="flex flex-col gap-0.5">
-                              <span className="font-bold text-black-755">{unit.unitType}</span>
-                              <span className="text-[11px] text-black-450 font-semibold">{unit.size.toLocaleString()} Sq.Ft</span>
+                              <span className="font-bold text-black-755">{unitGroup.typesStr}</span>
+                              <span className="text-[11px] text-black-450 font-semibold">{unitGroup.sizeStr}</span>
                             </div>
                           </td>
-                          <td className="py-3.5 text-right font-extrabold text-[#0e623a] text-sm">
-                            ₹{Math.round(unit.price).toLocaleString()}
+                          <td className="py-3.5 text-right pr-2 font-extrabold text-[#0e623a] text-sm">
+                            ₹{Math.round(unitGroup.totalPrice).toLocaleString()}
                           </td>
                         </tr>
                       ))}
@@ -3031,7 +3105,7 @@ const Dashboard = () => {
       {/* Handover Units Modal Popup */}
       {handoverModalOpen && (
         <div className="fixed inset-0 bg-black-900/60 backdrop-blur-sm z-[999] flex items-center justify-center p-4">
-          <div className="bg-[#f0fbf4] rounded-3xl border-none shadow-2xl w-full max-w-3xl max-h-[85vh] flex flex-col overflow-hidden text-left animate-fadeIn">
+          <div className="bg-[#f0fbf4] rounded-3xl border-none shadow-2xl w-full max-w-4xl max-h-[85vh] flex flex-col overflow-hidden text-left animate-fadeIn">
             {/* Header */}
             <div className="p-6 border-b border-black-150 flex items-center justify-between bg-rose-500/10">
               <div>
@@ -3053,37 +3127,43 @@ const Dashboard = () => {
                   <table className="w-full text-left border-collapse">
                     <thead>
                       <tr className="border-b border-black-100 text-[11px] font-bold text-black-400 uppercase tracking-wider">
+                        <th className="pb-3 pl-2">Handover Date</th>
                         <th className="pb-3">Customer Details</th>
                         <th className="pb-3">Project / Unit</th>
                         <th className="pb-3">Unit Specifications</th>
-                        <th className="pb-3 text-right">Value (Consideration)</th>
+                        <th className="pb-3 text-right pr-2">Value (Consideration)</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-black-50 text-xs font-semibold text-black-700">
-                      {stats.cards.inventory.handoverUnitsList.map((unit, idx) => (
+                      {groupUnitsByCustomer(stats.cards.inventory.handoverUnitsList).map((unitGroup, idx) => (
                         <tr key={idx} className="hover:bg-black-50/50 transition">
+                          <td className="py-3.5 pl-2">
+                            <span className="text-[11px] font-bold text-black-650 bg-black-100/80 px-2.5 py-1 rounded-md inline-block whitespace-nowrap">
+                              {unitGroup.dateStr}
+                            </span>
+                          </td>
                           <td className="py-3.5">
                             <div className="flex flex-col gap-0.5">
-                              <span className="font-bold text-black-850">{unit.customerName}</span>
-                              <span className="text-[11px] text-black-500 font-bold">{unit.customerPhone}</span>
+                              <span className="font-bold text-black-850">{unitGroup.customerName}</span>
+                              <span className="text-[11px] text-black-500 font-bold">{unitGroup.customerPhone}</span>
                             </div>
                           </td>
                           <td className="py-3.5">
                             <div className="flex flex-col gap-0.5">
-                              <span className="font-bold text-black-800">{unit.projectName}</span>
+                              <span className="font-bold text-black-800">{unitGroup.projectName}</span>
                               <span className="text-[11px] text-black-450 font-bold uppercase tracking-wide">
-                                Unit: {unit.unitId}
+                                {unitGroup.units.length > 1 ? 'Units: ' : 'Unit: '}{unitGroup.unitIdsStr}
                               </span>
                             </div>
                           </td>
                           <td className="py-3.5">
                             <div className="flex flex-col gap-0.5">
-                              <span className="font-bold text-black-755">{unit.unitType}</span>
-                              <span className="text-[11px] text-black-450 font-semibold">{unit.size.toLocaleString()} Sq.Ft</span>
+                              <span className="font-bold text-black-755">{unitGroup.typesStr}</span>
+                              <span className="text-[11px] text-black-450 font-semibold">{unitGroup.sizeStr}</span>
                             </div>
                           </td>
-                          <td className="py-3.5 text-right font-extrabold text-[#0e623a] text-sm">
-                            ₹{Math.round(unit.price).toLocaleString()}
+                          <td className="py-3.5 text-right pr-2 font-extrabold text-[#0e623a] text-sm">
+                            ₹{Math.round(unitGroup.totalPrice).toLocaleString()}
                           </td>
                         </tr>
                       ))}

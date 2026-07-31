@@ -181,6 +181,17 @@ thead th {
   font-weight: 700 !important;
 }
 
+/* Dropdown & sub-table grey headers override */
+thead.sub-table-header,
+thead.sub-table-header tr,
+thead.sub-table-header th,
+.sub-table-header,
+.sub-table-header th {
+  background-color: #4b5563 !important;
+  border-bottom: 2px solid #6b7280 !important;
+  color: #ffffff !important;
+}
+
 /* Ensure table cells inherit row background highlight colors */
 table tbody tr td {
   background-color: inherit !important;

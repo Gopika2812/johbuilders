@@ -45,7 +45,7 @@ import LandingPage from './pages/portal/LandingPage';
 import CustomerDashboard from './pages/portal/CustomerDashboard';
 
 const Layout = ({ children }) => {
-  const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth >= 768);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
     <div className="min-h-screen flex bg-gradient-to-br from-[#f1f5f9] via-[#f8fafc] to-[#e2e8f0] font-sans selection:bg-[#006838] selection:text-white relative overflow-hidden print:bg-white print:block">

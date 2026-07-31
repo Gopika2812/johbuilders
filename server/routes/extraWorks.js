@@ -68,19 +68,58 @@ router.get('/', protect, checkPermission('extra_works', 'view'), async (req, res
       .populate('project')
       .populate('lead')
       .lean();
-    
-    // We can filter flows that have extraWorks in any stage
-    const flowsWithExtraWorks = flows.filter(flow => {
-      // Exclude cancelled flows or flows with cancelled/lost leads
+
+    const Quotation = require('../models/Quotation');
+    const User = require('../models/User');
+
+    // Strict user filtering: if not Superadmin, user sees ONLY extra works assigned to them or their assigned leads/quotations
+    let filteredFlows = flows.filter(flow => {
       if (flow.status === 'Cancelled' || flow.status === 'Returned') return false;
       if (flow.lead && ['Lost', 'Cancelled'].includes(flow.lead.status)) return false;
-
       return flow.stages.some(stage => stage.extraWorks && stage.extraWorks.length > 0);
     });
 
-    const Quotation = require('../models/Quotation');
-    
-    for (const flow of flowsWithExtraWorks) {
+    if (req.user.role !== 'Superadmin') {
+      const userStr = req.user._id.toString();
+
+      const userQuotations = await Quotation.find({
+        $or: [
+          { crdPerson: req.user._id },
+          { pedPerson: req.user._id },
+          { accountsPerson: req.user._id }
+        ]
+      }, 'lead').lean();
+      const userQuotationLeadIds = new Set(userQuotations.map(q => q.lead?.toString()).filter(Boolean));
+
+      filteredFlows = filteredFlows.filter(flow => {
+        const leadAssignedTo = flow.lead?.assignedTo?.toString();
+        const isLeadOwner = leadAssignedTo === userStr;
+        const isQuotationPerson = flow.lead && userQuotationLeadIds.has(flow.lead._id.toString());
+        if (isLeadOwner || isQuotationPerson) return true;
+
+        // Otherwise check if any extraWork item is directly assigned to req.user
+        return flow.stages.some(stage =>
+          stage.extraWorks && stage.extraWorks.some(ew => ew.assignedTo && ew.assignedTo.toString() === userStr)
+        );
+      });
+
+      // Filter individual extraWorks list if user is not lead/quotation owner
+      filteredFlows.forEach(flow => {
+        const leadAssignedTo = flow.lead?.assignedTo?.toString();
+        const isLeadOwner = leadAssignedTo === userStr;
+        const isQuotationPerson = flow.lead && userQuotationLeadIds.has(flow.lead._id.toString());
+
+        if (!isLeadOwner && !isQuotationPerson) {
+          flow.stages.forEach(stage => {
+            if (stage.extraWorks) {
+              stage.extraWorks = stage.extraWorks.filter(ew => ew.assignedTo && ew.assignedTo.toString() === userStr);
+            }
+          });
+        }
+      });
+    }
+
+    for (const flow of filteredFlows) {
       if (flow.lead && flow.lead._id) {
         const quotation = await Quotation.findOne({ lead: flow.lead._id }).populate('crdPerson', 'name');
         flow.crdPersonName = quotation && quotation.crdPerson ? quotation.crdPerson.name : 'Unassigned';
@@ -89,7 +128,7 @@ router.get('/', protect, checkPermission('extra_works', 'view'), async (req, res
       }
     }
 
-    res.json(flowsWithExtraWorks);
+    res.json(filteredFlows);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -118,10 +157,19 @@ router.put('/:flowId/:stageIdx/:workId/send-to-ped', protect, checkPermission('e
     extraWork.status = 'Sent to PED';
     extraWork.sentToPedDate = new Date();
 
+    if (req.body.assignedTo) {
+      const User = require('../models/User');
+      const targetUser = await User.findById(req.body.assignedTo);
+      if (targetUser) {
+        extraWork.assignedTo = targetUser._id;
+        extraWork.assignedPersonName = targetUser.name;
+      }
+    }
+
     flow.history.push({
       action: 'Sent to PED',
-      notes: `Forwarded extra work: ${extraWork.name} to PED team for pricing`,
-      user: 'Superadmin'
+      notes: `Forwarded extra work: ${extraWork.name} to PED team for pricing${extraWork.assignedPersonName ? ' (Assigned: ' + extraWork.assignedPersonName + ')' : ''}`,
+      user: req.user ? req.user.name : 'Superadmin'
     });
 
     await flow.save();
@@ -136,7 +184,7 @@ router.put('/:flowId/:stageIdx/:workId/send-to-ped', protect, checkPermission('e
 router.put('/:flowId/:stageIdx/:workId/price', protect, checkPermission('extra_works_ped', 'edit'), async (req, res) => {
 
   const { flowId, stageIdx, workId } = req.params;
-  const { rate, quantity } = req.body;
+  const { rate, quantity, assignedTo } = req.body;
 
   try {
     const flow = await CRDFlow.findById(flowId);
@@ -155,10 +203,19 @@ router.put('/:flowId/:stageIdx/:workId/price', protect, checkPermission('extra_w
     extraWork.clientNotes = '';
     extraWork.pricingDate = new Date();
 
+    if (assignedTo) {
+      const User = require('../models/User');
+      const targetUser = await User.findById(assignedTo);
+      if (targetUser) {
+        extraWork.assignedTo = targetUser._id;
+        extraWork.assignedPersonName = targetUser.name;
+      }
+    }
+
     flow.history.push({
       action: 'PED Priced Extra Work',
       notes: `Priced extra work: ${extraWork.name} at Rs. ${rate}`,
-      user: 'Superadmin'
+      user: req.user ? req.user.name : 'Superadmin'
     });
 
     await flow.save();
@@ -172,6 +229,7 @@ router.put('/:flowId/:stageIdx/:workId/price', protect, checkPermission('extra_w
 // @desc    Send priced extra work to CRD (from PED) or customer (from CRD)
 router.put('/:flowId/:stageIdx/:workId/send', protect, async (req, res) => {
   const { flowId, stageIdx, workId } = req.params;
+  const { assignedTo } = req.body;
 
   try {
     const flow = await CRDFlow.findById(flowId);
@@ -182,6 +240,15 @@ router.put('/:flowId/:stageIdx/:workId/send', protect, async (req, res) => {
 
     const extraWork = stage.extraWorks.id(workId);
     if (!extraWork) return res.status(404).json({ message: 'Extra work not found' });
+
+    if (assignedTo) {
+      const User = require('../models/User');
+      const targetUser = await User.findById(assignedTo);
+      if (targetUser) {
+        extraWork.assignedTo = targetUser._id;
+        extraWork.assignedPersonName = targetUser.name;
+      }
+    }
 
     const { getMergedPermissions } = require('../utils/permissionHelper');
     const permissions = req.user.role === 'Superadmin' ? [] : await getMergedPermissions(req.user);
@@ -197,7 +264,7 @@ router.put('/:flowId/:stageIdx/:workId/send', protect, async (req, res) => {
 
       flow.history.push({
         action: 'Returned to CRD',
-        notes: `Returned extra work: ${extraWork.name} to CRD team after pricing`,
+        notes: `Returned extra work: ${extraWork.name} to CRD team after pricing${extraWork.assignedPersonName ? ' (Assigned: ' + extraWork.assignedPersonName + ')' : ''}`,
         user: req.user ? req.user.name : 'Superadmin'
       });
     } else if (extraWork.status === 'Returned to CRD') {
@@ -229,6 +296,7 @@ router.put('/:flowId/:stageIdx/:workId/send', protect, async (req, res) => {
 router.put('/:flowId/:stageIdx/:workId/send-to-accounts', protect, checkPermission('extra_works_crd', 'edit'), async (req, res) => {
 
   const { flowId, stageIdx, workId } = req.params;
+  const { assignedTo } = req.body;
 
   try {
     const flow = await CRDFlow.findById(flowId);
@@ -247,10 +315,19 @@ router.put('/:flowId/:stageIdx/:workId/send-to-accounts', protect, checkPermissi
     extraWork.status = 'Sent to Accounts';
     extraWork.sentToAccountsDate = new Date();
 
+    if (assignedTo) {
+      const User = require('../models/User');
+      const targetUser = await User.findById(assignedTo);
+      if (targetUser) {
+        extraWork.assignedTo = targetUser._id;
+        extraWork.assignedPersonName = targetUser.name;
+      }
+    }
+
     flow.history.push({
       action: 'Sent to Accounts Team',
-      notes: `Sent extra work: ${extraWork.name} to Accounts team for work order creation`,
-      user: 'Superadmin'
+      notes: `Sent extra work: ${extraWork.name} to Accounts team for work order creation${extraWork.assignedPersonName ? ' (Assigned: ' + extraWork.assignedPersonName + ')' : ''}`,
+      user: req.user ? req.user.name : 'Superadmin'
     });
 
     await flow.save();
@@ -283,7 +360,6 @@ router.put('/:flowId/:stageIdx/:workId/add-to-crd', protect, checkPermission('ex
     stage.amount += extraWork.amount;
     flow.totalCurrentValue += extraWork.amount;
     flow.totalExtraWorksValue += extraWork.amount;
-    flow.debtorsAmount += extraWork.amount;
 
     extraWork.status = 'Added to CRD';
     extraWork.crdAddedDate = new Date();
@@ -291,7 +367,7 @@ router.put('/:flowId/:stageIdx/:workId/add-to-crd', protect, checkPermission('ex
     flow.history.push({
       action: 'Work Order Created',
       notes: `Created Work Order for extra work: ${extraWork.name} (Rs. ${extraWork.amount})`,
-      user: 'Superadmin'
+      user: req.user ? req.user.name : 'Superadmin'
     });
 
     await flow.save();
@@ -302,12 +378,19 @@ router.put('/:flowId/:stageIdx/:workId/add-to-crd', protect, checkPermission('ex
 });
 
 // @route   PUT /api/extra-works/:flowId/:stageIdx/:workId/send-to-ped-execution
-// @desc    CRD team sends work order to PED team for execution
-router.put('/:flowId/:stageIdx/:workId/send-to-ped-execution', protect, checkPermission('extra_works_crd', 'edit'), async (req, res) => {
-
+// @desc    CRD or Accounts team sends work order to PED team for execution
+router.put('/:flowId/:stageIdx/:workId/send-to-ped-execution', protect, async (req, res) => {
   const { flowId, stageIdx, workId } = req.params;
+  const { assignedTo } = req.body;
 
   try {
+    const { getMergedPermissions } = require('../utils/permissionHelper');
+    const userPermissions = req.user.role === 'Superadmin' ? [] : await getMergedPermissions(req.user);
+    const canEdit = req.user.role === 'Superadmin' || userPermissions.some(p => ['extra_works', 'extra_works_crd', 'extra_works_accounts'].includes(p.pageId) && p.canEdit);
+    if (!canEdit) {
+      return res.status(403).json({ message: 'Access denied to send to PED execution.' });
+    }
+
     const flow = await CRDFlow.findById(flowId);
     if (!flow) return res.status(404).json({ message: 'CRD Flow not found' });
 
@@ -323,10 +406,19 @@ router.put('/:flowId/:stageIdx/:workId/send-to-ped-execution', protect, checkPer
 
     extraWork.status = 'Execution Sent to PED';
 
+    if (assignedTo) {
+      const User = require('../models/User');
+      const targetUser = await User.findById(assignedTo);
+      if (targetUser) {
+        extraWork.assignedTo = targetUser._id;
+        extraWork.assignedPersonName = targetUser.name;
+      }
+    }
+
     flow.history.push({
       action: 'Sent to PED for Execution',
-      notes: `Sent extra work: ${extraWork.name} to PED team for execution`,
-      user: 'Superadmin'
+      notes: `Sent extra work: ${extraWork.name} to PED team for execution${extraWork.assignedPersonName ? ' (Assigned: ' + extraWork.assignedPersonName + ')' : ''}`,
+      user: req.user ? req.user.name : 'Superadmin'
     });
 
     await flow.save();

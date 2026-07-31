@@ -4,6 +4,7 @@ import { useAuth, API_URL } from '../context/AuthContext';
 import * as XLSX from 'xlsx-js-style';
 import { htmlToStyledSheet } from '../utils/htmlToSheet';
 import { LOGO_BASE64 } from '../utils/logoBase64';
+import { formatUnitWithLabel } from '../utils/formatUtils';
 import { 
   TrendingUp, 
   Calendar, 
@@ -54,16 +55,11 @@ const getExcelStyles = (titleBg, monthBg, headerBg, execBg) => {
 const getExcelHeader = (titleText, monthTitle, totalColumns, themeColor, logoPath) => {
     const safeCols = Math.max(3, totalColumns);
     const webLogo = LOGO_BASE64;
-    const excelLogo = "file:///E:/builders/client/public/jb_logo.jpg";
     return `
       <tr style="height: 60px;">
-        <td colspan="2" class="title-row" style="background-color: #FFFFFF; border: 1px solid #000000; border-right: none; vertical-align:middle; text-align:center; height: 60px;">
-          <!--[if gte mso 9]>
-            <img src="${excelLogo}" width="150" height="52" style="vertical-align: middle;" />
-          <![endif]-->
-          <!--[if !mso]><!-->
-            <img src="${webLogo}" width="150" height="52" style="vertical-align: middle;" />
-          <!--<![endif]-->
+        <td colspan="2" bgcolor="#0B4D2D" class="title-row" style="background-color: #0B4D2D; color: #FFFFFF; font-family: 'Segoe UI', Arial, sans-serif; font-size: 12pt; font-weight: bold; text-align: center; vertical-align: middle; border: 1px solid #000000; height: 60px; padding: 4px;">
+          ${webLogo ? `<img src="${webLogo}" style="max-height: 34px; max-width: 100%; width: auto; object-fit: contain; margin: 0 auto 2px auto; display: block;" alt="JOHN BUILDWELL" />` : ''}
+          <div style="color: #FFFFFF; font-size: 10.5pt; font-weight: bold; font-family: 'Segoe UI', Arial, sans-serif; text-align: center; text-transform: uppercase; line-height: 1.1;">John Buildwell</div>
         </td>
         <td colspan="${safeCols - 2}" class="title-row text-center" style="background-color: #FCE4D6; color: #000000; border: 1px solid #000000; border-left: none; vertical-align:middle; text-align:center; font-size: 14pt; font-weight: bold; height: 60px;">
           ${titleText}
@@ -315,7 +311,7 @@ const ObservedBarChart = ({ dataArray, xKey, yKey, barColor, isPercent = false }
 const KPIInsights = () => {
   const { token, user } = useAuth();
   // Use the absolute local file path provided by the user so Excel can render it locally
-  const logoPath = "file:///E:/builders/client/public/jb_logo.jpg";
+  const logoPath = LOGO_BASE64;
   
   // Date filters - default to current month
   const [fromDate, setFromDate] = useState(() => new Date().toISOString().split('T')[0]);
@@ -579,8 +575,8 @@ const KPIInsights = () => {
     fetchInsightsData();
   }, [fromDate, toDate, selectedUser, selectedProject]);
 
-  const fetchInsightsData = async () => {
-    setLoading(true);
+  const fetchInsightsData = async (isSilent = false) => {
+    if (!isSilent) setLoading(true);
     try {
       let url = `${API_URL}/dashboard/stats?fromDate=${fromDate}&toDate=${toDate}`;
       if (selectedUser) url += `&userId=${selectedUser}`;
@@ -1090,7 +1086,7 @@ const KPIInsights = () => {
             <!-- Table Headers -->
             <tr class="table-headers">
               <th>S.NO.</th>
-              <th>BOOKING DATE</th>
+              <th>BOOKED DATE</th>
               <th>CUSTOMER NAME</th>
               <th>CONTACT NO.</th>
               <th>Attended by</th>
@@ -1184,14 +1180,38 @@ const KPIInsights = () => {
 
       const currentAchieved = {
         salesValue: statsData.current?.salesValue || 0,
+        flatsCount: statsData.current?.flatsCount || 0,
         villasCount: statsData.current?.villasCount || statsData.current?.housesCount || 0,
         plotsCount: statsData.current?.plotsCount || 0
       };
       const lastMonthAchieved = {
         salesValue: statsData.lastMonth?.salesValue || 0,
+        flatsCount: statsData.lastMonth?.flatsCount || 0,
         villasCount: statsData.lastMonth?.villasCount || statsData.lastMonth?.housesCount || 0,
         plotsCount: statsData.lastMonth?.plotsCount || 0
       };
+
+      const selectedProjObj = stats.projects?.find(p => p._id === selectedProject);
+      const isPlotComposition = selectedProjObj 
+        ? (Array.isArray(selectedProjObj.projectType) 
+            ? selectedProjObj.projectType.some(t => String(t).toLowerCase().includes('plot')) 
+            : String(selectedProjObj.projectType || '').toLowerCase().includes('plot'))
+        : (
+            stats.projects?.some(p => {
+              const pTypes = Array.isArray(p.projectType) ? p.projectType : [p.projectType];
+              return pTypes.some(t => String(t).toLowerCase().includes('plot'));
+            }) || currentAchieved.plotsCount > 0 || pTarget > 0
+          );
+
+      const row2Title = isPlotComposition ? 'Total Plots to be Sold' : 'Total Units to be Sold';
+      const row2Unit = isPlotComposition ? 'Plots' : 'Units';
+      const row2Target = isPlotComposition ? (pTarget || hTarget) : hTarget;
+      const row2AchievedCurrent = isPlotComposition 
+        ? (currentAchieved.plotsCount || (currentAchieved.flatsCount + currentAchieved.villasCount) || 0)
+        : ((currentAchieved.flatsCount || 0) + (currentAchieved.villasCount || 0) || currentAchieved.plotsCount || 0);
+      const row2AchievedLastMonth = isPlotComposition
+        ? (lastMonthAchieved.plotsCount || (lastMonthAchieved.flatsCount + lastMonthAchieved.villasCount) || 0)
+        : ((lastMonthAchieved.flatsCount || 0) + (lastMonthAchieved.villasCount || 0) || lastMonthAchieved.plotsCount || 0);
 
       // Project wise targets map
       const projectTargetsMap = {};
@@ -1213,14 +1233,16 @@ const KPIInsights = () => {
       // Marketing targets map
       const marketingTargetsMap = {};
       Object.keys(marketingStatsData.groups || {}).forEach(name => {
-        marketingTargetsMap[name] = 0;
+        marketingTargetsMap[name] = marketingStatsData.groups[name]?.budget || 0;
       });
       marketingTargetsMap['LEADS GENERATED'] = 0;
       marketingTargetsMap['SITE VISIT CONVERSIONS'] = 0;
 
       if (targetData.marketingTargets) {
         targetData.marketingTargets.forEach(mt => {
-          marketingTargetsMap[mt.name] = mt.target || 0;
+          if (mt.target !== undefined && mt.target !== null && mt.target > 0) {
+            marketingTargetsMap[mt.name] = mt.target;
+          }
         });
       }
 
@@ -1310,54 +1332,52 @@ const KPIInsights = () => {
         <body>
           <table>
             <thead>
-              <tr style="height: 80px;">
-                <td colspan="10" class="bg-header-blue font-bold" style="font-size: 14pt; font-weight: bold; height: 80px; text-align: center; vertical-align: middle;">
-                  <img src="${logoPath}" width="250" height="80" style="vertical-align: middle; margin-right: 15px;" />
+              <tr style="height: 60px;">
+                <td colspan="2" bgcolor="#0B4D2D" class="bg-header-green" style="background-color: #0B4D2D; color: #FFFFFF; font-family: 'Segoe UI', Arial, sans-serif; font-size: 14pt; font-weight: bold; text-align: center; vertical-align: middle; border: 1px solid #000000; height: 60px;">
+                  JOHN BUILDWELL
+                </td>
+                <td colspan="8" bgcolor="#9BC2E6" class="bg-header-blue font-bold" style="background-color: #9BC2E6; font-size: 14pt; font-weight: bold; height: 60px; text-align: center; vertical-align: middle; border: 1px solid #000000;">
                   SALES PARAMETER REPORT
                 </td>
               </tr>
               <tr>
-                <th class="bg-header-green" style="width: 50px;">S.No</th>
-                <th class="bg-header-green" style="width: 250px;">TOTAL SALES PROJECTION ${dateForMonth.getFullYear() - 1} - ${dateForMonth.getFullYear().toString().substring(2)}</th>
-                <th class="bg-header-green" style="width: 180px;">TOTAL</th>
-                <th class="bg-header-green" style="width: 80px;">UNIT</th>
-                <th class="bg-header-green" style="width: 100px;">ACHIEVED</th>
-                <th class="bg-header-green" style="width: 100px;">BALANCE</th>
-                <th class="bg-header-green" style="width: 130px;">LAST MONTH ACHIEVED</th>
-                <th colspan="3" rowspan="3" class="bg-header-green font-bold" style="font-size: 11pt; vertical-align: middle; text-align: center;">
-                  ${shortMonthHeader}
+                <th bgcolor="#C6E0B4" class="bg-header-green" style="background-color: #C6E0B4; width: 50px; border: 1px solid #000000;">S.No</th>
+                <th colspan="2" bgcolor="#C6E0B4" class="bg-header-green" style="background-color: #C6E0B4; width: 250px; border: 1px solid #000000;">TOTAL SALES PROJECTION ${dateForMonth.getFullYear() - 1} - ${dateForMonth.getFullYear().toString().substring(2)}</th>
+                <th bgcolor="#C6E0B4" class="bg-header-green" style="background-color: #C6E0B4; width: 180px; border: 1px solid #000000;">TOTAL</th>
+                <th bgcolor="#C6E0B4" class="bg-header-green" style="background-color: #C6E0B4; width: 80px; border: 1px solid #000000;">UNIT</th>
+                <th bgcolor="#C6E0B4" class="bg-header-green" style="background-color: #C6E0B4; width: 100px; border: 1px solid #000000;">ACHIEVED</th>
+                <th bgcolor="#C6E0B4" class="bg-header-green" style="background-color: #C6E0B4; width: 130px; border: 1px solid #000000;">LAST MONTH ACHIEVED</th>
+                <th colspan="3" rowspan="2" bgcolor="#C6E0B4" class="bg-header-green font-bold" style="background-color: #C6E0B4; font-size: 12pt; vertical-align: middle; text-align: center; text-transform: uppercase; border: 1px solid #000000;">
+                  ${shortMonthHeader.toUpperCase()}
                 </th>
               </tr>
             </thead>
             <tbody>
               <tr>
-                <td>1</td>
-                <td class="text-left font-bold">Overall Sales Target</td>
-                <td class="text-right font-bold">${sTarget}</td>
-                <td>Crores</td>
-                <td class="text-right">${currentAchieved.salesValue.toFixed(2)}</td>
-                <td class="text-right">${Math.max(0, sTarget - currentAchieved.salesValue).toFixed(2)}</td>
-                <td class="text-right">${lastMonthAchieved.salesValue.toFixed(2)}</td>
+                <td style="border: 1px solid #000000;">1</td>
+                <td colspan="2" class="text-left font-bold" style="border: 1px solid #000000;">Overall Sales Target</td>
+                <td class="text-right font-bold" style="border: 1px solid #000000;">${sTarget}</td>
+                <td style="border: 1px solid #000000;">Crores</td>
+                <td class="text-right" style="border: 1px solid #000000;">${currentAchieved.salesValue.toFixed(2)}</td>
+                <td class="text-right" style="border: 1px solid #000000;">${lastMonthAchieved.salesValue.toFixed(2)}</td>
               </tr>
               <tr>
-                <td>2</td>
-                <td class="text-left font-bold">Total Houses to be Sold</td>
-                <td class="text-right font-bold">${hTarget}</td>
-                <td>Units</td>
-                <td class="text-right">${currentAchieved.villasCount}</td>
-                <td class="text-right">${Math.max(0, hTarget - currentAchieved.villasCount)}</td>
-                <td class="text-right">${lastMonthAchieved.villasCount}</td>
+                <td class="text-center" style="border: 1px solid #000000;">2</td>
+                <td colspan="2" class="text-left font-bold" style="border: 1px solid #000000;">Total Units to be Sold</td>
+                <td class="text-center font-bold" style="border: 1px solid #000000;">${hTarget}</td>
+                <td class="text-center" style="border: 1px solid #000000;">Units</td>
+                <td class="text-center" style="border: 1px solid #000000;">${(currentAchieved.flatsCount || 0) + (currentAchieved.villasCount || 0)}</td>
+                <td class="text-center" style="border: 1px solid #000000;">${(lastMonthAchieved.flatsCount || 0) + (lastMonthAchieved.villasCount || 0)}</td>
               </tr>
               <tr>
-                <td>3</td>
-                <td class="text-left font-bold">Total Plots to be Sold</td>
-                <td class="text-right font-bold">${pTarget}</td>
-                <td>Units</td>
-                <td class="text-right">${currentAchieved.plotsCount}</td>
-                <td class="text-right">${Math.max(0, pTarget - currentAchieved.plotsCount)}</td>
-                <td class="text-right">${lastMonthAchieved.plotsCount}</td>
-                <td colspan="2" class="font-bold bg-header-green" style="font-size: 10pt;">DATE:</td>
-                <td class="bg-header-green" style="font-size: 10pt;">${todayFormatted}</td>
+                <td class="text-center" style="border: 1px solid #000000;">3</td>
+                <td colspan="2" class="text-left font-bold" style="border: 1px solid #000000;">Total Plots to be Sold</td>
+                <td class="text-center font-bold" style="border: 1px solid #000000;">${pTarget}</td>
+                <td class="text-center" style="border: 1px solid #000000;">Plots</td>
+                <td class="text-center" style="border: 1px solid #000000;">${currentAchieved.plotsCount || 0}</td>
+                <td class="text-center" style="border: 1px solid #000000;">${lastMonthAchieved.plotsCount || 0}</td>
+                <td colspan="1" bgcolor="#C6E0B4" class="font-bold bg-header-green text-center" style="background-color: #C6E0B4; font-size: 10pt; border: 1px solid #000000;">DATE:</td>
+                <td colspan="2" bgcolor="#C6E0B4" class="bg-header-green text-center" style="background-color: #C6E0B4; font-size: 10pt; border: 1px solid #000000;">${todayFormatted}</td>
               </tr>
 
               <!-- Spacing row -->
@@ -1365,16 +1385,16 @@ const KPIInsights = () => {
 
               <!-- PHASE 2: Project wise Report Headers -->
               <tr>
-                <th class="bg-header-blue">S.NO.</th>
-                <th class="bg-header-blue">PROJECT</th>
-                <th class="bg-header-blue">DESCRIPTION</th>
-                <th class="bg-header-blue">TARGET</th>
-                <th class="bg-header-blue">ACTUAL</th>
-                <th class="bg-header-blue">% ACHIEVED</th>
-                <th class="bg-header-blue">1st Week Actual</th>
-                <th class="bg-header-blue">2nd Week Actual</th>
-                <th class="bg-header-blue">3rd Week Actual</th>
-                <th class="bg-header-blue">4th Week Actual</th>
+                <th bgcolor="#9BC2E6" class="bg-header-blue" style="background-color: #9BC2E6;">S.NO.</th>
+                <th bgcolor="#9BC2E6" class="bg-header-blue" style="background-color: #9BC2E6;">PROJECT</th>
+                <th bgcolor="#9BC2E6" class="bg-header-blue" style="background-color: #9BC2E6;">DESCRIPTION</th>
+                <th bgcolor="#9BC2E6" class="bg-header-blue" style="background-color: #9BC2E6;">TARGET</th>
+                <th bgcolor="#9BC2E6" class="bg-header-blue" style="background-color: #9BC2E6;">ACTUAL</th>
+                <th bgcolor="#9BC2E6" class="bg-header-blue" style="background-color: #9BC2E6;">% ACHIEVED</th>
+                <th bgcolor="#9BC2E6" class="bg-header-blue" style="background-color: #9BC2E6;">1st Week Actual</th>
+                <th bgcolor="#9BC2E6" class="bg-header-blue" style="background-color: #9BC2E6;">2nd Week Actual</th>
+                <th bgcolor="#9BC2E6" class="bg-header-blue" style="background-color: #9BC2E6;">3rd Week Actual</th>
+                <th bgcolor="#9BC2E6" class="bg-header-blue" style="background-color: #9BC2E6;">4th Week Actual</th>
               </tr>
       `;
 
@@ -1401,15 +1421,15 @@ const KPIInsights = () => {
 
           html += `
             <tr>
-              ${rIdx === 0 ? `<td rowspan="4" style="vertical-align: middle;">${index + 1}</td><td rowspan="4" class="font-bold" style="vertical-align: middle;">${proj.code || proj.name}</td>` : ''}
-              <td class="text-left">${row.label}</td>
-              <td class="text-right">${row.target}${row.isFloat ? ' Cr' : ''}</td>
-              <td class="text-right">${row.isFloat ? row.actual.toFixed(2) : row.actual}</td>
+              ${rIdx === 0 ? `<td rowspan="4" bgcolor="#E2EFDA" class="bg-light-green text-center" style="background-color: #E2EFDA; vertical-align: middle;">${index + 1}</td><td rowspan="4" bgcolor="#E2EFDA" class="bg-light-green font-bold text-center" style="background-color: #E2EFDA; vertical-align: middle;">${proj.code || proj.name}</td>` : ''}
+              <td bgcolor="#E2EFDA" class="text-left bg-light-green" style="background-color: #E2EFDA;">${row.label}</td>
+              <td bgcolor="#E2EFDA" class="text-right bg-light-green" style="background-color: #E2EFDA;">${row.target}${row.isFloat ? ' Cr' : ''}</td>
+              <td bgcolor="#E2EFDA" class="text-right bg-light-green" style="background-color: #E2EFDA;">${row.isFloat ? row.actual.toFixed(2) : row.actual}</td>
               <td class="font-bold">${pctText}</td>
-              <td class="text-right">${row.isFloat ? row.w1.toFixed(2) : row.w1}</td>
-              <td class="text-right">${row.isFloat ? row.w2.toFixed(2) : row.w2}</td>
-              <td class="text-right">${row.isFloat ? row.w3.toFixed(2) : row.w3}</td>
-              <td class="text-right">${row.isFloat ? row.w4.toFixed(2) : row.w4}</td>
+              <td bgcolor="#E2EFDA" class="text-right bg-light-green" style="background-color: #E2EFDA;">${row.isFloat ? row.w1.toFixed(2) : row.w1}</td>
+              <td bgcolor="#E2EFDA" class="text-right bg-light-green" style="background-color: #E2EFDA;">${row.isFloat ? row.w2.toFixed(2) : row.w2}</td>
+              <td bgcolor="#E2EFDA" class="text-right bg-light-green" style="background-color: #E2EFDA;">${row.isFloat ? row.w3.toFixed(2) : row.w3}</td>
+              <td bgcolor="#E2EFDA" class="text-right bg-light-green" style="background-color: #E2EFDA;">${row.isFloat ? row.w4.toFixed(2) : row.w4}</td>
             </tr>
           `;
         });
@@ -1420,34 +1440,43 @@ const KPIInsights = () => {
       html += `
             <!-- Phase 2 Overall Average achieved -->
             <tr>
-              <td class="bg-black-row">&nbsp;</td><td class="bg-black-row">&nbsp;</td><td class="bg-black-row">&nbsp;</td><td class="bg-black-row">&nbsp;</td><td class="bg-black-row">&nbsp;</td>
-              <td class="bg-orange-pct" style="font-size: 10pt; font-weight: bold; border: 1px solid #000000; text-align: center; vertical-align: middle;">${projectPerformanceText}</td>
-              <td class="bg-black-row">&nbsp;</td><td class="bg-black-row">&nbsp;</td><td class="bg-black-row">&nbsp;</td><td class="bg-black-row">&nbsp;</td>
+              <td bgcolor="#D9D9D9" class="bg-black-row" style="background-color: #D9D9D9;">&nbsp;</td>
+              <td bgcolor="#D9D9D9" class="bg-black-row" style="background-color: #D9D9D9;">&nbsp;</td>
+              <td bgcolor="#D9D9D9" class="bg-black-row" style="background-color: #D9D9D9;">&nbsp;</td>
+              <td bgcolor="#D9D9D9" class="bg-black-row" style="background-color: #D9D9D9;">&nbsp;</td>
+              <td bgcolor="#D9D9D9" class="bg-black-row" style="background-color: #D9D9D9;">&nbsp;</td>
+              <td bgcolor="#F4B084" class="bg-orange-pct" style="background-color: #F4B084; font-size: 10pt; font-weight: bold; border: 1px solid #000000; text-align: center; vertical-align: middle;">${projectPerformanceText}</td>
+              <td bgcolor="#D9D9D9" class="bg-black-row" style="background-color: #D9D9D9;">&nbsp;</td>
+              <td bgcolor="#D9D9D9" class="bg-black-row" style="background-color: #D9D9D9;">&nbsp;</td>
+              <td bgcolor="#D9D9D9" class="bg-black-row" style="background-color: #D9D9D9;">&nbsp;</td>
+              <td bgcolor="#D9D9D9" class="bg-black-row" style="background-color: #D9D9D9;">&nbsp;</td>
             </tr>
 
             <!-- Spacing row -->
             <tr><td colspan="10" style="border: none; height: 15px;"></td></tr>
 
             <!-- PHASE 3: Marketing Plan Table -->
-            <tr style="height: 80px;">
-              <td colspan="10" class="bg-header-blue font-bold" style="font-size: 14pt; font-weight: bold; height: 80px; text-align: center; vertical-align: middle;">
-                <img src="${logoPath}" width="250" height="80" style="vertical-align: middle; margin-right: 15px;" />
+            <tr style="height: 60px;">
+              <td colspan="2" bgcolor="#0B4D2D" class="bg-header-green" style="background-color: #0B4D2D; color: #FFFFFF; font-family: 'Segoe UI', Arial, sans-serif; font-size: 14pt; font-weight: bold; text-align: center; vertical-align: middle; border: 1px solid #000000; height: 60px;">
+                JOHN BUILDWELL
+              </td>
+              <td colspan="8" bgcolor="#9BC2E6" class="bg-header-blue font-bold" style="background-color: #9BC2E6; font-size: 14pt; font-weight: bold; height: 60px; text-align: center; vertical-align: middle; border: 1px solid #000000;">
                 JB MARKETING PARAMETER REPORT
               </td>
             </tr>
             <tr style="height: 22px;">
-              <td colspan="10" class="bg-header-green font-bold" style="font-size: 10pt; height: 22px; text-align: center; vertical-align: middle; text-transform: uppercase;">MONTH OF ${monthNames[dateForMonth.getMonth()].toUpperCase()} ${dateForMonth.getFullYear()}</td>
+              <td colspan="10" bgcolor="#C6E0B4" class="bg-header-green font-bold" style="background-color: #C6E0B4; font-size: 10pt; height: 22px; text-align: center; vertical-align: middle; text-transform: uppercase;">MONTH OF ${monthNames[dateForMonth.getMonth()].toUpperCase()} ${dateForMonth.getFullYear()}</td>
             </tr>
             <tr>
-              <th class="bg-header-blue">S.NO.</th>
-              <th colspan="2" class="bg-header-blue">DESCRIPTION</th>
-              <th class="bg-header-blue">BUDGET/ TARGET</th>
-              <th class="bg-header-blue">ACTUAL</th>
-              <th class="bg-header-blue">% ACHIEVED</th>
-              <th class="bg-header-blue">1st Week Actual</th>
-              <th class="bg-header-blue">2nd Week Actual</th>
-              <th class="bg-header-blue">3rd Week Actual</th>
-              <th class="bg-header-blue">4th Week Actual</th>
+              <th bgcolor="#9BC2E6" class="bg-header-blue" style="background-color: #9BC2E6;">S.NO.</th>
+              <th colspan="2" bgcolor="#9BC2E6" class="bg-header-blue" style="background-color: #9BC2E6;">DESCRIPTION</th>
+              <th bgcolor="#9BC2E6" class="bg-header-blue" style="background-color: #9BC2E6;">BUDGET/ TARGET</th>
+              <th bgcolor="#9BC2E6" class="bg-header-blue" style="background-color: #9BC2E6;">ACTUAL</th>
+              <th bgcolor="#9BC2E6" class="bg-header-blue" style="background-color: #9BC2E6;">% ACHIEVED</th>
+              <th bgcolor="#9BC2E6" class="bg-header-blue" style="background-color: #9BC2E6;">1st Week Actual</th>
+              <th bgcolor="#9BC2E6" class="bg-header-blue" style="background-color: #9BC2E6;">2nd Week Actual</th>
+              <th bgcolor="#9BC2E6" class="bg-header-blue" style="background-color: #9BC2E6;">3rd Week Actual</th>
+              <th bgcolor="#9BC2E6" class="bg-header-blue" style="background-color: #9BC2E6;">4th Week Actual</th>
             </tr>
       `;
 
@@ -1455,24 +1484,30 @@ const KPIInsights = () => {
         const pctText = getPct(row.actual, row.target);
         html += `
           <tr>
-            <td>${row.sNo}</td>
-            <td colspan="2" class="text-left font-bold">${row.name}</td>
-            <td class="text-right">${row.isFloat ? '₹ ' : ''}${row.target.toLocaleString()}</td>
-            <td class="text-right">${row.isFloat ? '₹ ' : ''}${row.isFloat ? row.actual.toFixed(2) : row.actual}</td>
-            <td class="font-bold">${pctText}</td>
-            <td class="text-right">${row.isFloat ? '₹ ' : ''}${row.isFloat ? row.w1.toFixed(2) : row.w1}</td>
-            <td class="text-right">${row.isFloat ? '₹ ' : ''}${row.isFloat ? row.w2.toFixed(2) : row.w2}</td>
-            <td class="text-right">${row.isFloat ? '₹ ' : ''}${row.isFloat ? row.w3.toFixed(2) : row.w3}</td>
-            <td class="text-right">${row.isFloat ? '₹ ' : ''}${row.isFloat ? row.w4.toFixed(2) : row.w4}</td>
+            <td style="border: 1px solid #000000;">${row.sNo}</td>
+            <td colspan="2" class="text-left font-bold" style="border: 1px solid #000000;">${row.name}</td>
+            <td class="text-right" style="border: 1px solid #000000;">${row.isFloat ? '₹ ' : ''}${row.target.toLocaleString()}</td>
+            <td class="text-right" style="border: 1px solid #000000;">${row.isFloat ? '₹ ' : ''}${row.isFloat ? row.actual.toFixed(2) : row.actual}</td>
+            <td bgcolor="#E2EFDA" class="font-bold bg-light-green" style="background-color: #E2EFDA; border: 1px solid #000000;">${pctText}</td>
+            <td class="text-right" style="border: 1px solid #000000;">${row.isFloat ? '₹ ' : ''}${row.isFloat ? row.w1.toFixed(2) : row.w1}</td>
+            <td class="text-right" style="border: 1px solid #000000;">${row.isFloat ? '₹ ' : ''}${row.isFloat ? row.w2.toFixed(2) : row.w2}</td>
+            <td class="text-right" style="border: 1px solid #000000;">${row.isFloat ? '₹ ' : ''}${row.isFloat ? row.w3.toFixed(2) : row.w3}</td>
+            <td class="text-right" style="border: 1px solid #000000;">${row.isFloat ? '₹ ' : ''}${row.isFloat ? row.w4.toFixed(2) : row.w4}</td>
           </tr>
         `;
       });
 
       html += `
             <tr>
-              <td class="bg-black-row">&nbsp;</td><td class="bg-black-row">&nbsp;</td><td class="bg-black-row">&nbsp;</td><td class="bg-black-row">&nbsp;</td><td class="bg-black-row">&nbsp;</td>
-              <td class="bg-orange-pct" style="font-size: 10pt; font-weight: bold; border: 1px solid #000000; text-align: center; vertical-align: middle;">${marketingPerformanceText}</td>
-              <td class="bg-black-row">&nbsp;</td><td class="bg-black-row">&nbsp;</td><td class="bg-black-row">&nbsp;</td><td class="bg-black-row">&nbsp;</td>
+              <td bgcolor="#D9D9D9" class="bg-black-row" style="background-color: #D9D9D9; border: 1px solid #000000;">&nbsp;</td>
+              <td colspan="2" bgcolor="#D9D9D9" class="bg-black-row" style="background-color: #D9D9D9; border: 1px solid #000000;">&nbsp;</td>
+              <td bgcolor="#D9D9D9" class="bg-black-row" style="background-color: #D9D9D9; border: 1px solid #000000;">&nbsp;</td>
+              <td bgcolor="#D9D9D9" class="bg-black-row" style="background-color: #D9D9D9; border: 1px solid #000000;">&nbsp;</td>
+              <td bgcolor="#F4B084" class="bg-orange-pct" style="background-color: #F4B084; font-size: 10pt; font-weight: bold; border: 1px solid #000000; text-align: center; vertical-align: middle;">${marketingPerformanceText}</td>
+              <td bgcolor="#D9D9D9" class="bg-black-row" style="background-color: #D9D9D9; border: 1px solid #000000;">&nbsp;</td>
+              <td bgcolor="#D9D9D9" class="bg-black-row" style="background-color: #D9D9D9; border: 1px solid #000000;">&nbsp;</td>
+              <td bgcolor="#D9D9D9" class="bg-black-row" style="background-color: #D9D9D9; border: 1px solid #000000;">&nbsp;</td>
+              <td bgcolor="#D9D9D9" class="bg-black-row" style="background-color: #D9D9D9; border: 1px solid #000000;">&nbsp;</td>
             </tr>
           </tbody>
           </table>
@@ -2011,16 +2046,6 @@ const KPIInsights = () => {
             const plotNo = flow.unitId || lead.bookingInfo?.selectedUnits?.join(' & ') || '';
             const custName = lead.name || '';
             
-            // Mapping projectType to Plots/Villa/Flat
-            const pType = flow.project?.projectType;
-            const typeRaw = (Array.isArray(pType) ? pType.join(', ') : pType || '').toLowerCase();
-            let houseType = 'Plots';
-            if (typeRaw.includes('villa') || typeRaw.includes('house') || typeRaw.includes('individual')) {
-              houseType = 'Villa';
-            } else if (typeRaw.includes('apartment') || typeRaw.includes('flat')) {
-              houseType = 'Flat';
-            }
-
             const lastFlowNote = (flow.history && flow.history.length > 0) 
               ? flow.history[flow.history.length - 1].notes || flow.history[flow.history.length - 1].action 
               : '';
@@ -2034,7 +2059,7 @@ const KPIInsights = () => {
                 <td>${projCode}</td>
                 <td>${plotNo}</td>
                 <td class="text-left bold-label">${custName}</td>
-                <td>${houseType}</td>
+                <td>${projCode}</td>
               </tr>
             `;
           });
@@ -2200,17 +2225,8 @@ const KPIInsights = () => {
         const isCompleted = handoverStage && handoverStage.isCompleted;
         const statusText = isCompleted ? 'Completed' : 'Key Handover Pending';
 
-        // Determine Project Type
-        const pType = flow.project?.projectType;
-        const typeRaw = (Array.isArray(pType) ? pType.join(', ') : pType || '').toLowerCase();
-        let projectType = 'Villa';
-        if (typeRaw.includes('villa') || typeRaw.includes('house') || typeRaw.includes('individual')) {
-          projectType = 'Villa';
-        } else if (typeRaw.includes('apartment') || typeRaw.includes('flat')) {
-          projectType = 'Flat';
-        } else {
-          projectType = 'Land';
-        }
+        // Determine Project Type Code (e.g. JLB, JMD)
+        const projectType = flow.project?.code || 'UNASSIGNED';
 
         const rowClass = index % 2 === 1 ? 'class="even-row"' : '';
         
@@ -2607,15 +2623,21 @@ const KPIInsights = () => {
               if (addedDate > end) return;
             }
 
+            const completedDate = (ew.status === 'Completed' || stage.isCompleted)
+              ? (ew.completedDate ? new Date(ew.completedDate) : (stage.completedDate ? new Date(stage.completedDate) : (ew.crdAddedDate ? new Date(ew.crdAddedDate) : null)))
+              : null;
+
             extraWorksList.push({
               projectCode: flow.project?.code || 'UNASSIGNED',
-              projectType: flow.project?.projectType || 'Land',
               customerName: lead.name || '',
               contactNumber: lead.phone || '',
+              unitId: ew.forUnit || flow.unitId || 'N/A',
               extraWorkName: ew.name || '',
               value: ew.amount || 0,
-              status: stage.isCompleted ? 'Completed' : 'Pending',
-              addedAt: addedDate
+              raisedDate: addedDate,
+              completedDate: completedDate,
+              remarks: ew.clientNotes || ew.remarks || ew.status || (stage.isCompleted ? 'Completed' : 'Pending'),
+              addedAt: addedDate || new Date(0)
             });
           });
         });
@@ -2643,16 +2665,19 @@ const KPIInsights = () => {
         </head>
         <body>
           <table>
-            ${getExcelHeader(titleText, "", 7, "#7c3aed", logoPath)}
+            ${getExcelHeader(titleText, "", 10, "#7c3aed", logoPath)}
             <!-- Table Headers -->
             <tr class="table-headers">
               <th>S No</th>
               <th>Project Type</th>
               <th>Customer Name</th>
               <th>Contact Number</th>
+              <th>Unit</th>
               <th>Extra Work</th>
               <th>Value of Work</th>
-              <th>Status</th>
+              <th>Extra Work Raised On</th>
+              <th>Completed On</th>
+              <th>Remarks</th>
             </tr>
       `;
 
@@ -2661,17 +2686,22 @@ const KPIInsights = () => {
       extraWorksList.forEach((ew, index) => {
         totalValue += ew.value;
         const phoneStr = ew.contactNumber ? `'${ew.contactNumber}` : '';
+        const raisedDateStr = ew.raisedDate ? ew.raisedDate.toLocaleDateString('en-GB').replace(/\//g, '.') : '-';
+        const completedDateStr = ew.completedDate ? ew.completedDate.toLocaleDateString('en-GB').replace(/\//g, '.') : '-';
         const rowClass = index % 2 === 1 ? 'class="even-row"' : '';
 
         html += `
           <tr ${rowClass}>
             <td>${index + 1}</td>
-            <td>${ew.projectType} (${ew.projectCode})</td>
+            <td>${ew.projectCode}</td>
             <td class="text-left bold-label">${ew.customerName}</td>
             <td>${phoneStr}</td>
+            <td>${ew.unitId}</td>
             <td class="text-left">${ew.extraWorkName}</td>
             <td class="text-right">₹ ${ew.value.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-            <td style="font-weight: bold; color: ${ew.status === 'Completed' ? '#16a34a' : '#ea580c'}">${ew.status}</td>
+            <td>${raisedDateStr}</td>
+            <td>${completedDateStr}</td>
+            <td class="text-left">${ew.remarks}</td>
           </tr>
         `;
       });
@@ -2679,9 +2709,9 @@ const KPIInsights = () => {
       // Total Row
       html += `
         <tr class="subtotal-row">
-          <td colspan="5" class="text-right">TOTAL VALUE OF EXTRA WORKS</td>
+          <td colspan="6" class="text-right">TOTAL VALUE OF EXTRA WORKS</td>
           <td class="text-right">₹ ${totalValue.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-          <td></td>
+          <td colspan="3"></td>
         </tr>
       `;
 
@@ -2744,9 +2774,10 @@ const KPIInsights = () => {
             customerName: lead.name || '',
             projectType: flow.project?.projectType || 'Land',
             projectCode: flow.project?.code || 'UNASSIGNED',
-            unitId: flow.unitId || '',
+            unitId: formatUnitWithLabel(flow.unitId || '', flow.project?.projectType),
             description: comp.description || '',
-            status: comp.status || 'Pending'
+            status: comp.status || 'Pending',
+            resolvedAt: comp.resolvedAt ? new Date(comp.resolvedAt) : null
           });
         });
       });
@@ -2772,34 +2803,37 @@ const KPIInsights = () => {
         </head>
         <body>
           <table>
-            ${getExcelHeader(titleText, "", 7, "#7c3aed", logoPath)}
+            ${getExcelHeader(titleText, "", 8, "#7c3aed", logoPath)}
             <!-- Table Headers -->
             <tr class="table-headers">
               <th>S No</th>
-              <th>Reported Date</th>
               <th>Customer Name</th>
               <th>Project Type</th>
               <th>Unit / Flat / Plot No</th>
               <th>Complaint</th>
+              <th>Complaint Raised On</th>
+              <th>Completed On</th>
               <th>Status</th>
             </tr>
       `;
 
       complaintsList.forEach((comp, index) => {
-        const dateStr = comp.reportedDate.toLocaleDateString('en-GB').replace(/\//g, '.');
+        const raisedDateStr = comp.reportedDate ? comp.reportedDate.toLocaleDateString('en-GB').replace(/\//g, '.') : '-';
+        const completedDateStr = comp.resolvedAt ? comp.resolvedAt.toLocaleDateString('en-GB').replace(/\//g, '.') : '-';
         let statusColor = '#ea580c'; // Orange
-        if (comp.status === 'Resolved') statusColor = '#16a34a'; // Green
-        else if (comp.status === 'In Progress') statusColor = '#2563eb'; // Blue
+        if (comp.status === 'Resolved' || comp.status === 'Completed' || comp.status === 'Sent to Client (Completed)') statusColor = '#16a34a'; // Green
+        else if (comp.status === 'In Progress' || comp.status === 'Start Work') statusColor = '#2563eb'; // Blue
         const rowClass = index % 2 === 1 ? 'class="even-row"' : '';
 
         html += `
           <tr ${rowClass}>
             <td>${index + 1}</td>
-            <td>${dateStr}</td>
             <td class="text-left bold-label">${comp.customerName}</td>
             <td>${comp.projectType} (${comp.projectCode})</td>
             <td>${comp.unitId}</td>
             <td class="text-left">${comp.description}</td>
+            <td>${raisedDateStr}</td>
+            <td>${completedDateStr}</td>
             <td style="font-weight: bold; color: ${statusColor};">${comp.status}</td>
           </tr>
         `;
@@ -2904,7 +2938,7 @@ const KPIInsights = () => {
       filteredFlows.forEach((flow, index) => {
         const weeks = getWeeklyCollections(flow);
         const rowClass = index % 2 === 1 ? 'class="even-row"' : '';
-        const projectType = Array.isArray(flow.project?.projectType) ? flow.project.projectType.join(', ') : (flow.project?.projectType || 'N/A');
+        const projectType = flow.project?.code || 'UNASSIGNED';
         
         html += `
           <tr ${rowClass}>
@@ -2957,8 +2991,13 @@ const KPIInsights = () => {
       const data = await res.json();
 
       const fmt = (val, isFloat) => {
-          if (val === undefined || val === null) return 0;
-          return isFloat ? Number(val).toFixed(2) : Math.round(val);
+          if (val === undefined || val === null || val === 0) return '0';
+          if (!isFloat) return Math.round(val).toLocaleString('en-IN');
+          const num = Number(val);
+          if (num > 0 && num < 0.01) {
+            return parseFloat(num.toFixed(4)).toString();
+          }
+          return num.toFixed(2);
       };
       
       const calculatePercentage = (actual, target) => {

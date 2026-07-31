@@ -152,8 +152,13 @@ const ParameterPlanning = () => {
 
   // Helper to format values
   const fmt = (val, isFloat) => {
-      if (val === undefined || val === null) return 0;
-      return isFloat ? Number(val).toFixed(2) : Math.round(val);
+      if (val === undefined || val === null || val === 0) return '0';
+      if (!isFloat) return Math.round(val).toLocaleString('en-IN');
+      const num = Number(val);
+      if (num > 0 && num < 0.01) {
+        return parseFloat(num.toFixed(4)).toString();
+      }
+      return num.toFixed(2);
   };
 
   const monthNames = ["JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE", "JULY", "AUGUST", "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER"];

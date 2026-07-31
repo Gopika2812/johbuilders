@@ -27,7 +27,7 @@ const QuotationSchema = new mongoose.Schema({
   },
   projectType: {
     type: String,
-    enum: ['Plot', 'Flat', 'House', 'Villa'],
+    enum: ['Plot', 'Flat', 'House', 'Villa', 'Unit'],
     required: true
   },
   selectedUnits: [{
@@ -80,6 +80,14 @@ const QuotationSchema = new mongoose.Schema({
     ref: 'User'
   },
   crdPerson: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  },
+  pedPerson: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  },
+  accountsPerson: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'
   },

@@ -30,6 +30,8 @@ router.get('/', protect, async (req, res) => {
             customerName: flow.lead?.name || 'Unknown',
             customerPhone: flow.lead?.phone || 'Unknown',
             projectName: flow.project?.name || 'Unknown',
+            projectType: flow.project?.projectType || flow.project?.type || 'Flat',
+            projectCode: flow.project?.code || '',
             unitId: flow.unitId,
             history: flow.history ? flow.history.filter(h => h.notes && h.notes.includes(complaint.token)) : [],
             ...complaint.toObject()
@@ -47,14 +49,24 @@ router.get('/', protect, async (req, res) => {
     // if the user has `extra_works_crd` or `extra_works_ped` permission.
     // To not break existing stuff, if they don't have CRD/PED role, filter by assignedTo.
     // If user is not Superadmin, check UserPermission model or staff role
+    // If user is not Superadmin, filter complaints to only those assigned to them or their assigned leads/quotations
     if (req.user.role !== 'Superadmin') {
-      const UserPermission = require('../models/UserPermission');
-      const userPerms = await UserPermission.find({ userId: req.user._id });
-      const hasTeamView = userPerms.some(p => ['extra_works_crd', 'extra_works_ped', 'extra_works_client', 'crd_flow'].includes(p.pageId) && (p.canView || p.canEdit)) ||
-                          Boolean(req.user.role);
-      if (!hasTeamView) {
-        allTasks = allTasks.filter(t => t.assignedTo?.toString() === req.user._id.toString());
-      }
+      const userStr = req.user._id.toString();
+      const Quotation = require('../models/Quotation');
+      const userQuotations = await Quotation.find({
+        $or: [
+          { crdPerson: req.user._id },
+          { pedPerson: req.user._id },
+          { accountsPerson: req.user._id }
+        ]
+      }, 'lead').lean();
+      const userQuotationLeadIds = new Set(userQuotations.map(q => q.lead?.toString()).filter(Boolean));
+
+      allTasks = allTasks.filter(t => {
+        const isDirectlyAssigned = t.assignedTo?.toString() === userStr;
+        const isQuotationPerson = t.flowId && userQuotationLeadIds.has(t.leadId?.toString() || t.lead?.toString());
+        return isDirectlyAssigned || isQuotationPerson;
+      });
     }
 
     // Filter by date if provided
@@ -114,6 +126,7 @@ router.put('/:flowId/:complaintId/assign', protect, authorize('Superadmin', 'Sup
 // @desc    CRD sends a complaint to the PED team for pricing
 // @access  Private
 router.put('/:flowId/:complaintId/send-to-ped', protect, async (req, res) => {
+  const { assignedTo } = req.body;
   try {
     const flow = await CRDFlow.findById(req.params.flowId);
     if (!flow) return res.status(404).json({ message: 'Flow not found' });
@@ -124,9 +137,17 @@ router.put('/:flowId/:complaintId/send-to-ped', protect, async (req, res) => {
     complaint.status = 'Sent to PED';
     complaint.sentToPedAt = Date.now();
 
+    if (assignedTo) {
+      const targetUser = await User.findById(assignedTo);
+      if (targetUser) {
+        complaint.assignedTo = targetUser._id;
+        complaint.assignedPersonName = targetUser.name;
+      }
+    }
+
     flow.history.push({
       action: 'Sent to PED Team',
-      notes: `Complaint ${complaint.token} sent to PED team for pricing`,
+      notes: `Complaint ${complaint.token} sent to PED team for pricing${complaint.assignedPersonName ? ' (Assigned: ' + complaint.assignedPersonName + ')' : ''}`,
       user: req.user.name
     });
 
@@ -141,7 +162,7 @@ router.put('/:flowId/:complaintId/send-to-ped', protect, async (req, res) => {
 // @desc    PED updates price and returns to CRD
 // @access  Private
 router.put('/:flowId/:complaintId/ped-price', protect, async (req, res) => {
-  const { pedPrice } = req.body;
+  const { pedPrice, noPrice, assignedTo } = req.body;
   try {
     const flow = await CRDFlow.findById(req.params.flowId);
     if (!flow) return res.status(404).json({ message: 'Flow not found' });
@@ -149,14 +170,25 @@ router.put('/:flowId/:complaintId/ped-price', protect, async (req, res) => {
     const complaint = flow.complaints.id(req.params.complaintId);
     if (!complaint) return res.status(404).json({ message: 'Complaint not found' });
 
-    complaint.pedPrice = Number(pedPrice) || 0;
+    complaint.pedPrice = noPrice ? 0 : (Number(pedPrice) || 0);
+    complaint.noPrice = Boolean(noPrice || (Number(pedPrice) === 0));
     complaint.status = 'Returned to CRD';
     complaint.clientNotes = '';
     complaint.pricingDate = Date.now();
 
+    if (assignedTo) {
+      const targetUser = await User.findById(assignedTo);
+      if (targetUser) {
+        complaint.assignedTo = targetUser._id;
+        complaint.assignedPersonName = targetUser.name;
+      }
+    }
+
     flow.history.push({
       action: 'PED Pricing Updated',
-      notes: `PED team updated price (Rs. ${pedPrice}) for complaint ${complaint.token}`,
+      notes: (noPrice || Number(pedPrice) === 0)
+        ? `PED marked complaint ${complaint.token} as No Price (Free)`
+        : `PED team updated price (Rs. ${pedPrice}) for complaint ${complaint.token}`,
       user: req.user.name
     });
 
@@ -233,6 +265,7 @@ router.put('/:flowId/:complaintId/client-decision', protect, async (req, res) =>
 // @desc    CRD sends approved complaint to PED for execution
 // @access  Private
 router.put('/:flowId/:complaintId/send-to-ped-execution', protect, async (req, res) => {
+  const { assignedTo } = req.body;
   try {
     const flow = await CRDFlow.findById(req.params.flowId);
     if (!flow) return res.status(404).json({ message: 'Flow not found' });
@@ -242,6 +275,14 @@ router.put('/:flowId/:complaintId/send-to-ped-execution', protect, async (req, r
 
     complaint.status = 'Execution Sent to PED';
     complaint.executionSentDate = Date.now();
+
+    if (assignedTo) {
+      const targetUser = await User.findById(assignedTo);
+      if (targetUser) {
+        complaint.assignedTo = targetUser._id;
+        complaint.assignedPersonName = targetUser.name;
+      }
+    }
 
     flow.history.push({
       action: 'Execution Sent to PED',

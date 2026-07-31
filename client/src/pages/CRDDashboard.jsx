@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth, API_URL } from '../context/AuthContext';
+import { LOGO_BASE64 } from '../utils/logoBase64';
 import { useNavigate } from 'react-router-dom';
 import { 
   TrendingUp, 
@@ -690,9 +691,9 @@ const CRDDashboard = () => {
       </head>
       <body>
         <table>
-          <tr style="height: 120px;">
-            <td colspan="3" style="background-color: #0e623a; border: none; text-align: center; vertical-align: middle; height: 120px;">
-              <img src="${logoPath}" height="95" style="height: 95px; width: auto; display: block; margin: 0 auto;" />
+          <tr style="height: 60px;">
+            <td colspan="3" bgcolor="#0B4D2D" style="background-color: #0B4D2D; color: #FFFFFF; font-family: 'Segoe UI', Arial, sans-serif; font-size: 14pt; font-weight: bold; text-align: center; vertical-align: middle; height: 60px; border: 1px solid #000000;">
+              JOHN BUILDWELL
             </td>
             <td colspan="5" class="title-row" style="border:none; vertical-align:middle; text-align:center; font-size: 14pt; font-weight: bold; color: #0e623a; height: 120px;">
               JohnBuildwell ERP - USER PERFORMANCE DETAILS
@@ -798,9 +799,9 @@ const CRDDashboard = () => {
       </head>
       <body>
         <table>
-          <tr style="height: 120px;">
-            <td colspan="3" style="background-color: #0e623a; border: none; text-align: center; vertical-align: middle; height: 120px;">
-              <img src="${logoPath}" height="95" style="height: 95px; width: auto; display: block; margin: 0 auto;" />
+          <tr style="height: 60px;">
+            <td colspan="3" bgcolor="#0B4D2D" style="background-color: #0B4D2D; color: #FFFFFF; font-family: 'Segoe UI', Arial, sans-serif; font-size: 14pt; font-weight: bold; text-align: center; vertical-align: middle; height: 60px; border: 1px solid #000000;">
+              JOHN BUILDWELL
             </td>
             <td colspan="6" class="title-row" style="border:none; vertical-align:middle; text-align:center; font-size: 14pt; font-weight: bold; color: #0e623a; height: 120px;">
               JohnBuildwell ERP - MARKETING SOURCE PERFORMANCE DETAILS
@@ -915,8 +916,8 @@ const CRDDashboard = () => {
     fetchDashboardStats();
   }, [fromDate, toDate, selectedUser, selectedProject, selectedProjectType, selectedSource]);
 
-  const fetchDashboardStats = async () => {
-    setLoading(true);
+  const fetchDashboardStats = async (isSilent = false) => {
+    if (!isSilent) setLoading(true);
     try {
       let url = `${API_URL}/dashboard/stats?fromDate=${fromDate}&toDate=${toDate}`;
       if (selectedUser) url += `&userId=${selectedUser}`;
@@ -985,7 +986,7 @@ const CRDDashboard = () => {
     setToDate(lastDay);
   };
 
-  const logoPath = window.location.origin + "/jb_logo.jpg";
+  const logoPath = LOGO_BASE64;
 
   const handleExportExcel = async () => {
     const inventory = stats.cards.inventory || {};
@@ -1012,9 +1013,9 @@ const CRDDashboard = () => {
       </head>
       <body>
         <table>
-          <tr style="height: 120px;">
-            <td colspan="3" style="background-color: #0e623a; border: none; text-align: center; vertical-align: middle; height: 120px;">
-              <img src="${logoPath}" height="95" style="height: 95px; width: auto; display: block; margin: 0 auto;" />
+          <tr style="height: 60px;">
+            <td colspan="3" bgcolor="#0B4D2D" style="background-color: #0B4D2D; color: #FFFFFF; font-family: 'Segoe UI', Arial, sans-serif; font-size: 14pt; font-weight: bold; text-align: center; vertical-align: middle; height: 60px; border: 1px solid #000000;">
+              JOHN BUILDWELL
             </td>
             <td colspan="6" class="title-row" style="border:none; vertical-align:middle; text-align:center; font-size: 22pt; font-weight: bold; color: #0e623a; height: 120px;">
               JohnBuildwell ERP - OVERALL STATUS REPORT
@@ -1040,14 +1041,9 @@ const CRDDashboard = () => {
             <td colspan="3">Rs. ${(inventory.availableValueByType?.Plot || 0).toLocaleString()}</td>
           </tr>
           <tr>
-            <td colspan="3" class="bold-label">Available Projects (Flat)</td>
-            <td colspan="3">${inventory.projectsByType?.Flat || 0}</td>
-            <td colspan="3">Rs. ${(inventory.availableValueByType?.Flat || 0).toLocaleString()}</td>
-          </tr>
-          <tr class="even-row">
-            <td colspan="3" class="bold-label">Available Projects (Villa)</td>
-            <td colspan="3">${(inventory.projectsByType?.Villa || 0) + (inventory.projectsByType?.House || 0)}</td>
-            <td colspan="3">Rs. ${((inventory.availableValueByType?.Villa || 0) + (inventory.availableValueByType?.House || 0)).toLocaleString()}</td>
+            <td colspan="3" class="bold-label">Available Projects (Unit)</td>
+            <td colspan="3">${(inventory.projectsByType?.Flat || 0) + (inventory.projectsByType?.Villa || 0) + (inventory.projectsByType?.House || 0) + (inventory.projectsByType?.Unit || 0)}</td>
+            <td colspan="3">Rs. ${((inventory.availableValueByType?.Flat || 0) + (inventory.availableValueByType?.Villa || 0) + (inventory.availableValueByType?.House || 0) + (inventory.availableValueByType?.Unit || 0)).toLocaleString()}</td>
           </tr>
           <tr><td colspan="9" style="border:none; height: 10px;"></td></tr>
           
@@ -1191,9 +1187,9 @@ const CRDDashboard = () => {
       </head>
       <body>
         <table>
-          <tr style="height: 120px;">
-            <td colspan="3" style="background-color: #0e623a; border: none; text-align: center; vertical-align: middle; height: 120px;">
-              <img src="${logoPath}" height="95" style="height: 95px; width: auto; display: block; margin: 0 auto;" />
+          <tr style="height: 60px;">
+            <td colspan="3" bgcolor="#0B4D2D" style="background-color: #0B4D2D; color: #FFFFFF; font-family: 'Segoe UI', Arial, sans-serif; font-size: 14pt; font-weight: bold; text-align: center; vertical-align: middle; height: 60px; border: 1px solid #000000;">
+              JOHN BUILDWELL
             </td>
             <td colspan="4" class="title-row" style="border:none; vertical-align:middle; text-align:center; font-size: 22pt; font-weight: bold; color: #0e623a; height: 120px;">
               JohnBuildwell ERP - USER WISE PERFORMANCE REPORT
@@ -1292,9 +1288,9 @@ const CRDDashboard = () => {
       </head>
       <body>
         <table>
-          <tr style="height: 120px;">
-            <td colspan="3" style="background-color: #0e623a; border: none; text-align: center; vertical-align: middle; height: 120px;">
-              <img src="${logoPath}" height="95" style="height: 95px; width: auto; display: block; margin: 0 auto;" />
+          <tr style="height: 60px;">
+            <td colspan="3" bgcolor="#0B4D2D" style="background-color: #0B4D2D; color: #FFFFFF; font-family: 'Segoe UI', Arial, sans-serif; font-size: 14pt; font-weight: bold; text-align: center; vertical-align: middle; height: 60px; border: 1px solid #000000;">
+              JOHN BUILDWELL
             </td>
             <td colspan="4" class="title-row" style="border:none; vertical-align:middle; text-align:center; font-size: 22pt; font-weight: bold; color: #0e623a; height: 120px;">
               JohnBuildwell ERP - PROJECT WISE PERFORMANCE REPORT
@@ -1404,9 +1400,9 @@ const CRDDashboard = () => {
       </head>
       <body>
         <table>
-          <tr style="height: 120px;">
-            <td colspan="2" style="background-color: #0e623a; border: none; text-align: center; vertical-align: middle; height: 120px;">
-              <img src="${logoPath}" height="95" style="height: 95px; width: auto; display: block; margin: 0 auto;" />
+          <tr style="height: 60px;">
+            <td colspan="2" bgcolor="#0B4D2D" style="background-color: #0B4D2D; color: #FFFFFF; font-family: 'Segoe UI', Arial, sans-serif; font-size: 14pt; font-weight: bold; text-align: center; vertical-align: middle; height: 60px; border: 1px solid #000000;">
+              JOHN BUILDWELL
             </td>
             <td colspan="2" class="title-row" style="border:none; vertical-align:middle; text-align:center; font-size: 22pt; font-weight: bold; color: #0e623a; height: 120px;">
               JohnBuildwell ERP - SOURCE WISE PERFORMANCE REPORT

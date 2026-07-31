@@ -17,13 +17,16 @@ const ExtraWorkSchema = new mongoose.Schema({
   customerApprovalDate: { type: Date },
   sentToAccountsDate: { type: Date },
   crdAddedDate: { type: Date },
-  clientNotes: { type: String, default: '' }
+  clientNotes: { type: String, default: '' },
+  assignedTo: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  assignedPersonName: { type: String }
 });
 
 const PaymentSplitSchema = new mongoose.Schema({
   method: { type: String, enum: ['Bank Transfer', 'Bank Loan', 'Customer Transfer'], required: true },
   amount: { type: Number, required: true },
   date: { type: Date, default: Date.now },
+  receivedBy: { type: String },
   details: {
     accountNumber: String,
     customerName: String,
@@ -47,7 +50,9 @@ const StageSchema = new mongoose.Schema({
     generatedAt: Date,
     subject: String,
     content: String
-  }
+  },
+  billedStatus: { type: String, enum: ['Not Billed', 'Billed'], default: 'Not Billed' },
+  stageStatus: { type: String, enum: ['Start', 'In Progress', 'Completed'], default: 'Start' }
 });
 
 const ComplaintSchema = new mongoose.Schema({
