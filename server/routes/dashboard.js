@@ -97,7 +97,7 @@ router.get('/stats', protect, async (req, res) => {
       (userId || source) ? Lead.find(userId && source ? { assignedTo: userId, leadSource: source } : (userId ? { assignedTo: userId } : { leadSource: source }), '_id').lean() : Promise.resolve([]),
       BudgetPlan.find(budgetQuery).lean(),
       User.find({}, 'name role').lean(),
-      Project.find({}, 'name code').lean()
+      Project.find({}, 'name code projectType').lean()
     ]);
 
     if (userId || source) {

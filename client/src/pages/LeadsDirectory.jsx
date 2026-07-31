@@ -357,12 +357,6 @@ const LeadsDirectory = () => {
       fetchEmployees();
       fetchQuotations();
       fetchStageColors();
-
-      const intervalId = setInterval(() => {
-        fetchLeads();
-      }, 8000);
-
-      return () => clearInterval(intervalId);
     }
   }, [token]);
 

@@ -1135,14 +1135,38 @@ const KPIInsights = () => {
 
       const currentAchieved = {
         salesValue: statsData.current?.salesValue || 0,
+        flatsCount: statsData.current?.flatsCount || 0,
         villasCount: statsData.current?.villasCount || statsData.current?.housesCount || 0,
         plotsCount: statsData.current?.plotsCount || 0
       };
       const lastMonthAchieved = {
         salesValue: statsData.lastMonth?.salesValue || 0,
+        flatsCount: statsData.lastMonth?.flatsCount || 0,
         villasCount: statsData.lastMonth?.villasCount || statsData.lastMonth?.housesCount || 0,
         plotsCount: statsData.lastMonth?.plotsCount || 0
       };
+
+      const selectedProjObj = stats.projects?.find(p => p._id === selectedProject);
+      const isPlotComposition = selectedProjObj 
+        ? (Array.isArray(selectedProjObj.projectType) 
+            ? selectedProjObj.projectType.some(t => String(t).toLowerCase().includes('plot')) 
+            : String(selectedProjObj.projectType || '').toLowerCase().includes('plot'))
+        : (
+            stats.projects?.some(p => {
+              const pTypes = Array.isArray(p.projectType) ? p.projectType : [p.projectType];
+              return pTypes.some(t => String(t).toLowerCase().includes('plot'));
+            }) || currentAchieved.plotsCount > 0 || pTarget > 0
+          );
+
+      const row2Title = isPlotComposition ? 'Total Plots to be Sold' : 'Total Units to be Sold';
+      const row2Unit = isPlotComposition ? 'Plots' : 'Units';
+      const row2Target = isPlotComposition ? (pTarget || hTarget) : hTarget;
+      const row2AchievedCurrent = isPlotComposition 
+        ? (currentAchieved.plotsCount || (currentAchieved.flatsCount + currentAchieved.villasCount) || 0)
+        : ((currentAchieved.flatsCount || 0) + (currentAchieved.villasCount || 0) || currentAchieved.plotsCount || 0);
+      const row2AchievedLastMonth = isPlotComposition
+        ? (lastMonthAchieved.plotsCount || (lastMonthAchieved.flatsCount + lastMonthAchieved.villasCount) || 0)
+        : ((lastMonthAchieved.flatsCount || 0) + (lastMonthAchieved.villasCount || 0) || lastMonthAchieved.plotsCount || 0);
 
       // Project wise targets map
       const projectTargetsMap = {};
@@ -1164,14 +1188,16 @@ const KPIInsights = () => {
       // Marketing targets map
       const marketingTargetsMap = {};
       Object.keys(marketingStatsData.groups || {}).forEach(name => {
-        marketingTargetsMap[name] = 0;
+        marketingTargetsMap[name] = marketingStatsData.groups[name]?.budget || 0;
       });
       marketingTargetsMap['LEADS GENERATED'] = 0;
       marketingTargetsMap['SITE VISIT CONVERSIONS'] = 0;
 
       if (targetData.marketingTargets) {
         targetData.marketingTargets.forEach(mt => {
-          marketingTargetsMap[mt.name] = mt.target || 0;
+          if (mt.target !== undefined && mt.target !== null && mt.target > 0) {
+            marketingTargetsMap[mt.name] = mt.target;
+          }
         });
       }
 
@@ -1292,10 +1318,18 @@ const KPIInsights = () => {
               <tr>
                 <td class="text-center" style="border: 1px solid #000000;">2</td>
                 <td colspan="2" class="text-left font-bold" style="border: 1px solid #000000;">Total Units to be Sold</td>
-                <td class="text-center font-bold" style="border: 1px solid #000000;">${totalUnitsTarget}</td>
+                <td class="text-center font-bold" style="border: 1px solid #000000;">${hTarget}</td>
                 <td class="text-center" style="border: 1px solid #000000;">Units</td>
-                <td class="text-center" style="border: 1px solid #000000;">${currentAchieved.totalUnitsCount}</td>
-                <td class="text-center" style="border: 1px solid #000000;">${lastMonthAchieved.totalUnitsCount}</td>
+                <td class="text-center" style="border: 1px solid #000000;">${(currentAchieved.flatsCount || 0) + (currentAchieved.villasCount || 0)}</td>
+                <td class="text-center" style="border: 1px solid #000000;">${(lastMonthAchieved.flatsCount || 0) + (lastMonthAchieved.villasCount || 0)}</td>
+              </tr>
+              <tr>
+                <td class="text-center" style="border: 1px solid #000000;">3</td>
+                <td colspan="2" class="text-left font-bold" style="border: 1px solid #000000;">Total Plots to be Sold</td>
+                <td class="text-center font-bold" style="border: 1px solid #000000;">${pTarget}</td>
+                <td class="text-center" style="border: 1px solid #000000;">Plots</td>
+                <td class="text-center" style="border: 1px solid #000000;">${currentAchieved.plotsCount || 0}</td>
+                <td class="text-center" style="border: 1px solid #000000;">${lastMonthAchieved.plotsCount || 0}</td>
                 <td colspan="1" bgcolor="#C6E0B4" class="bg-header-green font-bold text-center" style="background-color: #C6E0B4; font-size: 10pt; border: 1px solid #000000;">DATE:</td>
                 <td colspan="2" bgcolor="#C6E0B4" class="bg-header-green text-center" style="background-color: #C6E0B4; font-size: 10pt; border: 1px solid #000000;">${todayFormatted}</td>
               </tr>

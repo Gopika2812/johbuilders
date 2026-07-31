@@ -57,12 +57,6 @@ const TasksBoard = () => {
   useEffect(() => {
     fetchTasks();
     fetchEmployees();
-
-    const intervalId = setInterval(() => {
-      fetchTasks(true);
-    }, 5000);
-
-    return () => clearInterval(intervalId);
   }, [token, startDate, endDate]);
 
   const fetchTasks = async (isSilent = false) => {

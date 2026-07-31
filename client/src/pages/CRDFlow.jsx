@@ -147,12 +147,6 @@ const CRDFlow = () => {
   useEffect(() => {
     if (!token) return;
     fetchProjectsAndBookings();
-
-    const intervalId = setInterval(() => {
-      fetchProjectsAndBookings(true);
-    }, 5000);
-
-    return () => clearInterval(intervalId);
   }, [token]);
 
   useEffect(() => {

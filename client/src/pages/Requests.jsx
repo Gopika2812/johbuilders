@@ -33,12 +33,6 @@ const Requests = () => {
 
   useEffect(() => {
     fetchRequests();
-
-    const intervalId = setInterval(() => {
-      fetchRequests();
-    }, 5000);
-
-    return () => clearInterval(intervalId);
   }, []);
 
   const handleApprove = async (id) => {

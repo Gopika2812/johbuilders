@@ -155,12 +155,6 @@ const ProjectsDictionary = () => {
 
   useEffect(() => {
     fetchProjects();
-
-    const intervalId = setInterval(() => {
-      fetchProjects();
-    }, 8000);
-
-    return () => clearInterval(intervalId);
   }, [token]);
 
   const displayProjectType = (typeVal) => {

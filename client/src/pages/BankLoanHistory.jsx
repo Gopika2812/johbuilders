@@ -78,12 +78,6 @@ const BankLoanHistory = () => {
 
   useEffect(() => {
     fetchCRDFlows();
-
-    const intervalId = setInterval(() => {
-      fetchCRDFlows();
-    }, 8000);
-
-    return () => clearInterval(intervalId);
   }, [token]);
 
   const fetchCRDFlows = async () => {

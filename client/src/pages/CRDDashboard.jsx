@@ -914,12 +914,6 @@ const CRDDashboard = () => {
 
   useEffect(() => {
     fetchDashboardStats();
-
-    const intervalId = setInterval(() => {
-      fetchDashboardStats(true);
-    }, 8000);
-
-    return () => clearInterval(intervalId);
   }, [fromDate, toDate, selectedUser, selectedProject, selectedProjectType, selectedSource]);
 
   const fetchDashboardStats = async (isSilent = false) => {

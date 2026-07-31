@@ -5,6 +5,7 @@ const Lead = require('../models/Lead');
 const Quotation = require('../models/Quotation');
 const Project = require('../models/Project');
 const LeadGroup = require('../models/LeadGroup');
+const BudgetPlan = require('../models/BudgetPlan');
 const { protect } = require('../middleware/auth');
 
 // Helper to get week bucket (1 to 4)
@@ -116,10 +117,13 @@ router.get('/marketing-stats/:month', protect, async (req, res) => {
     const endDate = new Date(year, monthNum, 1);
 
     const groups = await LeadGroup.find({});
+    const budgetPlan = await BudgetPlan.findOne({ month });
 
     const groupStats = {};
     groups.forEach(g => {
       groupStats[g.name] = {
+        budget: 0,
+        spent: 0,
         actual: 0,
         w1: 0,
         w2: 0,
@@ -128,6 +132,36 @@ router.get('/marketing-stats/:month', protect, async (req, res) => {
         sources: g.sources || []
       };
     });
+
+    if (budgetPlan && budgetPlan.allocations) {
+      budgetPlan.allocations.forEach(alloc => {
+        const groupName = alloc.groupName;
+        const allocSrc = alloc.source;
+
+        for (let gName in groupStats) {
+          const srcMatch = allocSrc && groupStats[gName].sources.some(s => s.toLowerCase() === allocSrc.toLowerCase());
+          const groupMatch = groupName && gName.toLowerCase() === groupName.toLowerCase();
+          if (srcMatch || groupMatch) {
+            groupStats[gName].budget += alloc.budget || 0;
+            groupStats[gName].spent += alloc.spent || 0;
+
+            if (alloc.expenses && alloc.expenses.length > 0) {
+              alloc.expenses.forEach(exp => {
+                const amt = exp.amount || 0;
+                const week = getWeekBucket(exp.date);
+                groupStats[gName].actual += amt;
+                groupStats[gName][week] += amt;
+              });
+            } else if (alloc.spent > 0) {
+              const amt = alloc.spent;
+              groupStats[gName].actual += amt;
+              groupStats[gName].w4 += amt;
+            }
+            break;
+          }
+        }
+      });
+    }
 
     const staticStats = {
       leadsGenerated: { actual: 0, w1: 0, w2: 0, w3: 0, w4: 0 },
@@ -167,27 +201,6 @@ router.get('/marketing-stats/:month', protect, async (req, res) => {
         const week = getWeekBucket(match.timestamp);
         staticStats.conversions.actual += 1;
         staticStats.conversions[week] += 1;
-      }
-    });
-
-    const quotations = await Quotation.find({
-      createdAt: { $gte: startDate, $lt: endDate }
-    }).populate('lead');
-
-    quotations.forEach(q => {
-      if (!q.lead || q.lead.status !== 'Booking') return;
-
-      const leadSource = q.lead.leadSource;
-      const week = getWeekBucket(q.createdAt);
-      const val = q.totalValue || 0; // value in rupees
-
-      // 1. Group Stats (Booking value in Cr by source group)
-      for (let gName in groupStats) {
-        if (groupStats[gName].sources.includes(leadSource)) {
-          groupStats[gName].actual += val;
-          groupStats[gName][week] += val;
-          break;
-        }
       }
     });
 

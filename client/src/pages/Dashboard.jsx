@@ -1002,13 +1002,6 @@ const Dashboard = () => {
   useEffect(() => {
     fetchDashboardStats();
     fetchPendingFollowUps();
-
-    const intervalId = setInterval(() => {
-      fetchDashboardStats(true);
-      fetchPendingFollowUps();
-    }, 8000);
-
-    return () => clearInterval(intervalId);
   }, [fromDate, toDate, selectedUser, selectedProject, selectedProjectType, selectedSource]);
 
   const fetchDashboardStats = async (isSilent = false) => {

@@ -314,10 +314,10 @@ router.get('/summary-stats/:month', protect, async (req, res) => {
       // Find all quotations created in this range
       const quotations = await Quotation.find({
         createdAt: { $gte: startDate, $lt: endDate }
-      }).populate('lead');
+      }).populate('lead').populate('project');
 
       // Filter only those whose lead status is 'Booking'
-      const bookingQuotations = quotations.filter(q => q.lead && q.lead.status === 'Booking');
+      const bookingQuotations = quotations.filter(q => q.lead && (q.lead.status === 'Booking' || q.lead.status === 'Won'));
 
       let salesValue = 0; // In rupees
       let flatsCount = 0;  // count of Flat units
@@ -328,12 +328,20 @@ router.get('/summary-stats/:month', protect, async (req, res) => {
         salesValue += q.totalValue || 0;
         const unitCount = q.selectedUnits?.length || 1;
         const pType = (q.projectType || '').toLowerCase();
-        if (pType.includes('flat') || pType.includes('apartment')) {
-          flatsCount += unitCount;
-        } else if (pType.includes('villa')) {
-          villasCount += unitCount;
-        } else if (pType.includes('plot')) {
+        const projTypes = Array.isArray(q.project?.projectType)
+          ? q.project.projectType.map(t => String(t).toLowerCase())
+          : (q.project?.projectType ? [String(q.project.projectType).toLowerCase()] : []);
+
+        const isPlot = pType.includes('plot') || projTypes.includes('plot');
+        const isVilla = pType.includes('villa') || pType.includes('house') || projTypes.includes('villa') || projTypes.includes('house');
+        const isFlat = pType.includes('flat') || pType.includes('apartment') || projTypes.includes('flat') || projTypes.includes('apartment');
+
+        if (isPlot) {
           plotsCount += unitCount;
+        } else if (isVilla) {
+          villasCount += unitCount;
+        } else if (isFlat) {
+          flatsCount += unitCount;
         } else {
           flatsCount += unitCount;
         }

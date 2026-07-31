@@ -145,12 +145,6 @@ const ProjectDetail = () => {
 
   useEffect(() => {
     fetchProjectDetails();
-
-    const intervalId = setInterval(() => {
-      fetchProjectDetails();
-    }, 8000);
-
-    return () => clearInterval(intervalId);
   }, [id, token]);
 
   const fetchProjectDetails = async () => {
@@ -715,21 +709,28 @@ const ProjectDetail = () => {
 
       {activeTab === 'project' && (() => {
         const activeType = selectedInventoryType || projectTypesArray[0] || 'Plot';
-        const displayedUnits = (project.units || []).filter(u => {
+        let displayedUnits = (project.units || []).filter(u => {
           if (projectTypesArray.length === 1) {
             return true;
           }
-          if (activeType === 'Flat') {
-            return u.unitType === 'Flat' || u.unitType?.includes('BHK') || (!u.unitType && !projectTypesArray.includes('Plot') && !projectTypesArray.includes('House'));
+          const uType = (u.unitType || '').toLowerCase();
+          const aType = activeType.toLowerCase();
+
+          if (aType === 'flat') {
+            return uType === 'flat' || uType.includes('bhk') || (!uType && !projectTypesArray.some(p => ['plot', 'unit', 'house'].includes(p.toLowerCase())));
           }
-          if (activeType === 'Plot' || activeType === 'Unit') {
-            return u.unitType === 'Plot' || u.unitType === 'Unit' || (!u.unitType && (projectTypesArray.includes('Plot') || projectTypesArray.includes('Unit') || projectTypesArray.length === 0));
+          if (aType === 'plot' || aType === 'unit') {
+            return uType === 'plot' || uType === 'unit' || (!uType && (projectTypesArray.some(p => ['plot', 'unit'].includes(p.toLowerCase())) || projectTypesArray.length === 0));
           }
-          if (activeType === 'House') {
-            return u.unitType === 'House' || u.unitType === 'Villa' || u.unitType?.includes('BHK');
+          if (aType === 'house' || aType === 'villa') {
+            return uType === 'house' || uType === 'villa' || uType.includes('bhk');
           }
-          return u.unitType === activeType || !u.unitType;
+          return uType === aType || !uType;
         });
+
+        if (displayedUnits.length === 0 && project.units && project.units.length > 0) {
+          displayedUnits = project.units;
+        }
         return (
           <>
 
@@ -883,7 +884,7 @@ const ProjectDetail = () => {
                       </div>
                       <div>
                         <span className="text-[11px] text-black-400 uppercase tracking-wider block">Value</span>
-                        <span className="text-sm font-bold text-[#0e623a]">${Math.round(unit.price).toLocaleString()}</span>
+                        <span className="text-sm font-bold text-[#0e623a]">Rs. {Math.round(unit.price).toLocaleString()}</span>
                       </div>
                     </div>
 
@@ -960,7 +961,7 @@ const ProjectDetail = () => {
                         </div>
                       </td>
                       <td className="p-5 text-black-600">{Math.round(unit.size).toLocaleString()} sq.ft</td>
-                      <td className="p-5 font-bold text-[#0e623a]">${Math.round(unit.price).toLocaleString()}</td>
+                      <td className="p-5 font-bold text-[#0e623a]">Rs. {Math.round(unit.price).toLocaleString()}</td>
                       <td className="p-5">
                         <span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full border ${getStatusBadge(unit.status)}`}>
                           {unit.status}
