@@ -87,12 +87,8 @@ router.put('/:id', protect, authorize('Superadmin'), async (req, res) => {
       return res.status(404).json({ message: 'Employee not found' });
     }
 
-    // Check email uniqueness if modified
-    if (email && email.trim().toLowerCase() !== employee.email.toLowerCase()) {
-      const existingEmail = await User.findOne({ email: email.trim().toLowerCase(), _id: { $ne: req.params.id } });
-      if (existingEmail) {
-        return res.status(400).json({ message: 'Email address is already used by another user' });
-      }
+    // Update email if provided (multiple accounts can share the same email)
+    if (email && email.trim()) {
       employee.email = email.trim();
     }
 
