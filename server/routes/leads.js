@@ -80,15 +80,13 @@ router.get('/today-assigned', protect, async (req, res) => {
     const todayEnd = new Date();
     todayEnd.setHours(23, 59, 59, 999);
 
-    let query = {};
-    if (req.user.role !== 'Superadmin') {
-      query.assignedTo = req.user._id;
-    }
-
-    query.status = { $in: ['New', 'Assigned'] };
+    let query = {
+      assignedTo: req.user._id,
+      status: { $in: ['New', 'Assigned'] }
+    };
 
     query.$or = [
-      { createdAt: { $gte: todayStart, $lte: todayEnd }, assignedTo: { $exists: true, $ne: null } },
+      { createdAt: { $gte: todayStart, $lte: todayEnd } },
       { 
         history: { 
           $elemMatch: { 
@@ -115,13 +113,10 @@ router.get('/today-assigned', protect, async (req, res) => {
 router.get('/due-followups', protect, async (req, res) => {
   try {
     let query = {
+      assignedTo: req.user._id,
       isClosed: false,
       'followUpInfo.nextFollowUpDate': { $lte: new Date() }
     };
-
-    if (req.user.role !== 'Superadmin') {
-      query.assignedTo = req.user._id;
-    }
 
     const leads = await Lead.find(query)
       .populate('project', 'name code')
