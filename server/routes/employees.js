@@ -76,6 +76,79 @@ router.put('/:id/role', protect, authorize('Superadmin'), async (req, res) => {
   }
 });
 
+// @route   PUT /api/employees/:id
+// @desc    Update full employee details (Name, Email, Phone, Role, Password, Approval)
+router.put('/:id', protect, authorize('Superadmin'), async (req, res) => {
+  const { name, email, phone, role, password, isApproved } = req.body;
+
+  try {
+    const employee = await User.findById(req.params.id);
+    if (!employee) {
+      return res.status(404).json({ message: 'Employee not found' });
+    }
+
+    // Check email uniqueness if modified
+    if (email && email.trim().toLowerCase() !== employee.email.toLowerCase()) {
+      const existingEmail = await User.findOne({ email: email.trim().toLowerCase(), _id: { $ne: req.params.id } });
+      if (existingEmail) {
+        return res.status(400).json({ message: 'Email address is already used by another user' });
+      }
+      employee.email = email.trim();
+    }
+
+    // Check phone uniqueness if modified
+    if (phone && phone.trim() !== '' && phone.trim() !== employee.phone) {
+      const existingPhone = await User.findOne({ phone: phone.trim(), _id: { $ne: req.params.id } });
+      if (existingPhone) {
+        return res.status(400).json({ message: 'Phone number is already used by another user' });
+      }
+      employee.phone = phone.trim();
+    } else if (phone && phone.trim() !== '') {
+      employee.phone = phone.trim();
+    }
+
+    if (name && name.trim()) {
+      employee.name = name.trim();
+    }
+    
+    if (role) {
+      const validRoles = ['Superadmin', 'Crd team', 'sales person', 'ped team', 'accounts team'];
+      if (!validRoles.includes(role)) {
+        return res.status(400).json({ message: 'Invalid role selected' });
+      }
+      employee.role = role;
+    }
+
+    if (typeof isApproved === 'boolean') {
+      employee.isApproved = isApproved;
+    }
+
+    if (password && password.trim() !== '') {
+      if (password.trim().length < 4) {
+        return res.status(400).json({ message: 'Password must be at least 4 characters long' });
+      }
+      employee.password = password.trim();
+    }
+
+    await employee.save();
+
+    await AuditLog.create({
+      user: req.user._id,
+      userName: req.user.name,
+      userRole: req.user.role,
+      action: 'Update Employee Profile',
+      description: `Updated employee details for ${employee.name} (${employee.email})`
+    });
+
+    const updatedUser = await User.findById(employee._id).select('-password');
+    res.json({ message: 'Employee details updated successfully', employee: updatedUser });
+  } catch (err) {
+    console.error('Error updating employee:', err);
+    res.status(500).json({ message: err.message || 'Server error updating employee' });
+  }
+});
+
+
 // @route   GET /api/employees/history
 // @desc    Get activity logs (Employee History)
 router.get('/history', protect, async (req, res) => {
