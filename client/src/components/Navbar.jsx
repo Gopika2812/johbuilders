@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth, API_URL } from '../context/AuthContext';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Calendar, User, Menu, Bell, ClipboardList, CheckCircle2, Clock } from 'lucide-react';
+import { Calendar, User, Menu, Bell, ClipboardList, CheckCircle2, Clock, LogOut } from 'lucide-react';
 
 const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
-  const { user, token } = useAuth();
+  const { user, token, logout } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -341,14 +341,24 @@ const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
             )}
           </div>
 
-          <div className="glass-card px-4 py-2 rounded-full flex items-center gap-3 md:gap-4 pointer-events-auto shadow-sm hover:shadow-md transition-all border border-white/60 cursor-pointer bg-white/60 backdrop-blur-xl">
-            <div className="flex flex-col items-end hidden sm:flex">
-              <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">{user?.role}</span>
-              <span className="text-sm font-black text-black">{user?.name}</span>
+          <div className="flex items-center gap-2">
+            <div className="glass-card px-3 sm:px-4 py-1.5 sm:py-2 rounded-full flex items-center gap-2 sm:gap-3 pointer-events-auto shadow-sm hover:shadow-md transition-all border border-white/60 bg-white/60 backdrop-blur-xl">
+              <div className="flex flex-col items-end hidden sm:flex">
+                <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">{user?.role}</span>
+                <span className="text-sm font-black text-black">{user?.name}</span>
+              </div>
+              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-gradient-to-br from-[#006838] to-[#008c4a] flex items-center justify-center text-white shadow-inner font-bold text-xs">
+                {user?.name?.slice(0, 2).toUpperCase() || <User className="w-4 h-4" />}
+              </div>
             </div>
-            <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-gradient-to-br from-[#006838] to-[#008c4a] flex items-center justify-center text-white shadow-inner">
-              <User className="w-4 h-4 md:w-5 md:h-5" />
-            </div>
+
+            <button
+              onClick={logout}
+              className="p-2 sm:p-2.5 text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 rounded-full transition flex items-center justify-center border border-red-200 cursor-pointer shadow-sm"
+              title="Logout"
+            >
+              <LogOut className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-red-600" />
+            </button>
           </div>
         </div>
       </header>

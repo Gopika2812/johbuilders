@@ -276,6 +276,7 @@ const LeadsDirectory = () => {
   const [editActiveAds, setEditActiveAds] = useState([]);
   const [editStatus, setEditStatus] = useState('New');
   const [editLeadCategory, setEditLeadCategory] = useState('Cold');
+  const [editRemarks, setEditRemarks] = useState('');
 
   // Booked & Quotation Modal States
   const [BookedModalOpen, setBookedModalOpen] = useState(false);
@@ -469,6 +470,7 @@ const LeadsDirectory = () => {
     setEditLeadCost(String(lead.leadCost || '0'));
     setEditProjectLocation(lead.projectLocation || '');
     setEditLeadCategory(lead.leadCategory || 'Cold');
+    setEditRemarks(lead.followUpInfo?.remarks || lead.closeRemarks || '');
 
     // Prepopulate ad id if matches ad name
     const proj = projects.find(p => p._id === (lead.project?._id || lead.project));
@@ -533,7 +535,11 @@ const LeadsDirectory = () => {
       leadCost: Number(editLeadCost) || 0,
       leadSource: editLeadSource,
       leadCategory: editLeadCategory,
-      activeAd: editLeadType === 'Lead' && adObj ? { name: adObj.name, link: adObj.link } : { name: '', link: '' }
+      activeAd: editLeadType === 'Lead' && adObj ? { name: adObj.name, link: adObj.link } : { name: '', link: '' },
+      followUpInfo: {
+        ...(selectedLeadForEdit?.followUpInfo || {}),
+        remarks: editRemarks || ''
+      }
     };
 
     try {
@@ -2715,6 +2721,18 @@ const LeadsDirectory = () => {
                     <option value="Cold">Cold</option>
                   </select>
                 </div>
+              </div>
+
+              {/* Remarks / Interaction Notes */}
+              <div className="flex flex-col text-left">
+                <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Remarks / Interaction Notes</label>
+                <textarea
+                  rows="3"
+                  placeholder="Add remarks, customer feedback or interaction notes..."
+                  value={editRemarks}
+                  onChange={(e) => setEditRemarks(e.target.value)}
+                  className="w-full px-4 py-3 bg-black-55 border border-black-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-600 text-sm"
+                />
               </div>
 
               {/* Submit Buttons */}

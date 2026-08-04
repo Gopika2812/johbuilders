@@ -42,13 +42,13 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
     <aside 
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      className={`bg-[#050907]/95 backdrop-blur-3xl border-r border-white/10 shadow-[4px_0_30px_rgba(0,0,0,0.5)] text-white flex flex-col h-screen fixed left-0 top-0 z-50 transition-all duration-300 ${isExpanded ? 'w-64 translate-x-0' : 'w-20 -translate-x-full md:translate-x-0 overflow-hidden'}`}>
+      className={`bg-[#050907]/95 backdrop-blur-3xl border-r border-white/10 shadow-[4px_0_30px_rgba(0,0,0,0.5)] text-white flex flex-col h-[100dvh] max-h-[100dvh] fixed left-0 top-0 bottom-0 z-50 transition-all duration-300 ${isExpanded ? 'w-64 translate-x-0' : 'w-20 -translate-x-full md:translate-x-0 overflow-hidden'}`}>
       {/* Decorative background glows inside sidebar */}
       <div className="absolute top-[-10%] left-[-20%] w-[100%] h-[40%] bg-[#006838]/20 rounded-full blur-[80px] pointer-events-none z-0"></div>
       <div className="absolute bottom-[-10%] right-[-10%] w-[80%] h-[30%] bg-emerald-600/10 rounded-full blur-[70px] pointer-events-none z-0"></div>
 
       {/* Brand Logo Header */}
-      <div className={`px-0 py-4 flex items-center justify-center w-full relative z-10 border-b border-white/5`}>
+      <div className={`px-0 py-4 flex items-center justify-center w-full relative z-10 border-b border-white/5 shrink-0`}>
         {isExpanded ? (
           <img src="/jb_logo.jpg" alt="JB Logo" className="w-full h-auto object-contain" />
         ) : (
@@ -57,7 +57,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
       </div>
 
       {/* Navigation Items */}
-      <nav className="flex-1 px-4 py-6 overflow-y-auto space-y-3 relative z-10 custom-scrollbar" onClick={handleNavClick}>
+      <nav className="flex-1 min-h-0 px-4 py-6 overflow-y-auto space-y-3 relative z-10 custom-scrollbar" onClick={handleNavClick}>
         {/* Dashboard */}
         {hasPermission('dashboard') && (
           <Link
@@ -464,25 +464,40 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
       </nav>
 
       {/* User Footer Profile & Logout */}
-      <div className="p-4 border-t border-white/5 relative z-10 bg-[#020403]/50 backdrop-blur-md">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 overflow-hidden">
-            <div className="w-9 h-9 rounded-full bg-white text-[#0e623a] flex items-center justify-center font-bold text-sm shrink-0 shadow-sm">
-              {user?.name?.slice(0, 2).toUpperCase()}
-            </div>
-            <div className="overflow-hidden">
-              <p className="font-semibold text-sm truncate leading-tight text-white">{user?.name}</p>
-              <span className="text-[11px] text-white font-light block">{user?.role}</span>
-            </div>
-          </div>
+      <div className="p-3.5 pb-8 md:pb-3.5 border-t border-white/10 relative z-20 bg-[#020403]/95 backdrop-blur-md shrink-0 mt-auto sticky bottom-0">
+        <div className="flex items-center justify-between gap-2">
+          {isExpanded ? (
+            <>
+              <div className="flex items-center gap-2.5 min-w-0 flex-1 overflow-hidden">
+                <div className="w-9 h-9 rounded-full bg-white text-[#0e623a] flex items-center justify-center font-extrabold text-sm shrink-0 shadow-sm border border-emerald-600/30">
+                  {user?.name?.slice(0, 2).toUpperCase()}
+                </div>
+                <div className="min-w-0 flex-1 overflow-hidden">
+                  <p className="font-semibold text-sm truncate leading-tight text-white" title={user?.name}>{user?.name}</p>
+                  <span className="text-[11px] text-white/70 font-light block truncate">{user?.role}</span>
+                </div>
+              </div>
 
-          <button
-            onClick={logout}
-            className="p-2 text-white hover:text-white hover:bg-white/10 rounded-lg transition"
-            title="Logout"
-          >
-            <LogOut className="w-5 h-5" />
-          </button>
+              <button
+                onClick={logout}
+                className="p-2 px-2.5 text-red-400 hover:text-white bg-red-500/10 hover:bg-red-600/30 rounded-xl transition flex items-center gap-1.5 shrink-0 border border-red-500/30 cursor-pointer"
+                title="Logout"
+              >
+                <LogOut className="w-4 h-4 text-red-400" />
+                <span className="text-xs font-bold text-red-400">Logout</span>
+              </button>
+            </>
+          ) : (
+            <div className="flex items-center justify-center w-full">
+              <button
+                onClick={logout}
+                className="p-2.5 text-red-400 hover:text-white bg-red-500/10 hover:bg-red-600/30 rounded-xl transition flex items-center justify-center shrink-0 border border-red-500/30 cursor-pointer"
+                title="Logout"
+              >
+                <LogOut className="w-5 h-5 text-red-400" />
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </aside>
