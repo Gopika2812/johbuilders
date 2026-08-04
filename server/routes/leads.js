@@ -281,6 +281,9 @@ router.post('/', protect, async (req, res) => {
     if (leadType === 'Lead') {
       lead.leadSource = leadSource || '';
       lead.activeAd = activeAd || { name: '', link: '' };
+      if (followUpInfo) {
+        lead.followUpInfo = followUpInfo;
+      }
     } else {
       lead.projectLocation = '';
       lead.leadSource = leadSource || 'Direct Visit';
@@ -294,7 +297,7 @@ router.post('/', protect, async (req, res) => {
       assignedTo: (finalAssignedTo && finalAssignedTo.toString().trim() !== '') ? finalAssignedTo : undefined,
       updatedBy: req.user._id,
       timestamp: new Date(),
-      note: 'Initial Lead Creation'
+      note: (followUpInfo && followUpInfo.remarks) ? `Initial Lead Creation: ${followUpInfo.remarks}` : 'Initial Lead Creation'
     });
 
     await lead.save();

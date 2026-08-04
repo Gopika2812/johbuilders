@@ -805,6 +805,10 @@ const LeadsDirectory = () => {
         contactedThrough: 'On Spot',
         remarks: directFollowRemarks
       };
+    } else if (directFollowRemarks && directFollowRemarks.trim()) {
+      payload.followUpInfo = {
+        remarks: directFollowRemarks
+      };
     }
 
     try {
@@ -2360,6 +2364,20 @@ const LeadsDirectory = () => {
                   <span className="font-extrabold text-[#0e623a] bg-white px-3 py-1 rounded-xl border border-[#bce2cb]">
                     {previouslyAssignedExecutive ? `${previouslyAssignedExecutive.name} (Previous Relationship)` : `${user?.name || 'Current User'} (Logged In)`}
                   </span>
+                </div>
+              )}
+
+              {/* Notes (Narration) / Remarks for Lead Type */}
+              {leadType === 'Lead' && (
+                <div className="flex flex-col">
+                  <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Notes (Narration) / Remarks</label>
+                  <textarea
+                    rows="2"
+                    placeholder="Interaction notes or initial lead remarks..."
+                    value={directFollowRemarks}
+                    onChange={(e) => setDirectFollowRemarks(e.target.value)}
+                    className="w-full px-4 py-3 bg-black-55 border border-black-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0e623a] text-sm"
+                  />
                 </div>
               )}
 
