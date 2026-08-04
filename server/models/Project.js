@@ -50,6 +50,18 @@ const UnitSchema = new mongoose.Schema({
     type: Number,
     default: 0
   },
+  cents: {
+    type: Number,
+    default: 0
+  },
+  ratePerCent: {
+    type: Number,
+    default: 0
+  },
+  buildupArea: {
+    type: Number,
+    default: 0
+  },
   soldRatePerUom: {
     type: Number,
     default: 0
@@ -145,9 +157,13 @@ const ProjectSchema = new mongoose.Schema({
 
 // Calculate total valuation and remaining land before saving
 ProjectSchema.pre('save', function (next) {
-  // Update unit values based on size and price
+  // Update unit values based on price, cents, or size and ratePerUom
   this.units.forEach(unit => {
-    if (unit.ratePerUom && unit.ratePerUom > 0) {
+    if (unit.price && unit.price > 0) {
+      // Keep price if set directly
+    } else if (unit.cents && unit.ratePerCent && unit.ratePerCent > 0) {
+      unit.price = unit.cents * unit.ratePerCent;
+    } else if (unit.ratePerUom && unit.ratePerUom > 0) {
       unit.price = unit.size * unit.ratePerUom;
     } else {
       unit.price = unit.size * this.pricePerSqFt;

@@ -78,26 +78,43 @@ const RegisterProject = () => {
 
   const handleUpdateUnitField = (index, field, value) => {
     const updated = [...parsedUnits];
-    const numericFields = ['size', 'price', 'ratePerUom', 'soldRatePerUom', 'soldConsideration'];
+    const numericFields = ['size', 'cents', 'buildupArea', 'ratePerCent', 'price', 'ratePerUom', 'soldRatePerUom', 'soldConsideration'];
     updated[index][field] = numericFields.includes(field) ? (Number(value) || 0) : value;
     
-    // Automatically recalculate price if size or ratePerUom changes
-    if (field === 'size' || field === 'ratePerUom') {
-      const uRate = updated[index].ratePerUom || Number(pricePerSqFt) || 2000;
-      updated[index].price = (updated[index].size || 0) * uRate;
+    // Automatically recalculate price and size depending on what edited
+    if (field === 'cents' || field === 'ratePerCent') {
+      const c = updated[index].cents || 0;
+      const r = updated[index].ratePerCent || 0;
+      if (r > 0) {
+        updated[index].price = c * r;
+      }
+      if (c > 0 && (!updated[index].size || updated[index].size === 0)) {
+        updated[index].size = Math.round(c * 435.6 * 10) / 10;
+      }
+    } else if (field === 'size' || field === 'ratePerUom') {
+      const s = updated[index].size || 0;
+      const r = updated[index].ratePerUom || Number(pricePerSqFt) || 2000;
+      if (r > 0 && !updated[index].ratePerCent) {
+        updated[index].price = s * r;
+      }
     }
     
     setParsedUnits(updated);
   };
 
   const handleAddUnitRow = () => {
+    const defaultType = projectTypes.includes('Unit') ? 'Unit' : projectTypes.includes('Plot') ? 'Plot' : 'Flat';
+    const defaultFloor = projectTypes.includes('Unit') ? 'Unit' : projectTypes.includes('Plot') ? 'Plot' : 'Floor 1';
     setParsedUnits([
       ...parsedUnits,
       {
         unitId: `${code ? code.toUpperCase() : 'UNIT'}-${parsedUnits.length + 1}`,
-        floor: 'Floor 1',
-        unitType: '2 BHK',
+        floor: defaultFloor,
+        unitType: defaultType,
+        cents: 0,
         size: 1000,
+        buildupArea: 0,
+        ratePerCent: 0,
         price: 1000 * (Number(pricePerSqFt) || 2000),
         status: 'New',
         remarks: '',
@@ -130,7 +147,7 @@ const RegisterProject = () => {
     
     // Detect tabular headers
     const isTabularHeaders = firstLineCols.some(h => 
-      h.includes('unit no') || h.includes('sub project') || h.includes('floor') || h.includes('sale area') || h.includes('status') || h.includes('rate per uom')
+      h.includes('unit no') || h.includes('plot no') || h.includes('sub project') || h.includes('floor') || h.includes('land area') || h.includes('cent') || h.includes('status') || h.includes('rate') || h.includes('amount')
     );
 
     const units = [];
@@ -139,14 +156,21 @@ const RegisterProject = () => {
     let autoPricePerSqFt = 0;
     let rateUomCount = 0;
 
-    if (isTabularHeaders || firstLineCols.length >= 5) {
+    if (isTabularHeaders || firstLineCols.length >= 4) {
       const headers = firstLineCols;
       const idxSubProject = headers.findIndex(h => h.includes('sub project') || h.includes('project name') || h.includes('project'));
       const idxFloor = headers.findIndex(h => h.includes('floor'));
-      const idxUnitNo = headers.findIndex(h => h.includes('unit no') || h.includes('unitno') || h.includes('flat no') || h.includes('plot no') || h.includes('unit'));
+      const idxUnitNo = headers.findIndex(h => h.includes('plot no') || h.includes('plotno') || h.includes('unit no') || h.includes('unitno') || h.includes('flat no') || h.includes('plot') || h.includes('unit'));
       const idxUnitType = headers.findIndex(h => h.includes('unit type') || h.includes('unittype') || h.includes('type') || h.includes('bhk'));
-      const idxSaleArea = headers.findIndex(h => h.includes('sale area') || h.includes('area') || h.includes('sq.ft') || h.includes('sqft') || h.includes('size'));
-      const idxRatePerUom = headers.findIndex(h => h.includes('rate per uom') || h.includes('rate') || h.includes('std price') || h.includes('price per uom') || h.includes('price/sqft'));
+      
+      const idxCent = headers.findIndex(h => h.includes('cent') || h.includes('cents'));
+      const idxLandAreaSqft = headers.findIndex(h => h.includes('land area in sqft') || h.includes('land area') || h.includes('sqft') || h.includes('sq.ft') || h.includes('sale area') || h.includes('area') || h.includes('size'));
+      const idxBuildupArea = headers.findIndex(h => h.includes('buildup area') || h.includes('builtup area') || h.includes('buildup') || h.includes('builtup') || h.includes('built-up'));
+
+      const idxRatePerCent = headers.findIndex(h => h.includes('rate per cent') || h.includes('rate/cent') || h.includes('rate cent'));
+      const idxRatePerUom = headers.findIndex(h => h.includes('rate per uom') || h.includes('rate per sqft') || h.includes('rate/sqft') || h.includes('rate') || h.includes('std price') || h.includes('price/sqft'));
+      const idxTotalAmount = headers.findIndex(h => h.includes('total unit amount') || h.includes('total amount') || h.includes('total price') || h.includes('amount') || h.includes('price'));
+
       const idxSoldRate = headers.findIndex(h => h.includes('sold rate') || h.includes('selling price'));
       const idxSoldConsideration = headers.findIndex(h => h.includes('sold consideration') || h.includes('sold amount'));
       const idxStatus = headers.findIndex(h => h.includes('status'));
@@ -160,23 +184,67 @@ const RegisterProject = () => {
         if (cols.length < 2) continue;
 
         const subProject = idxSubProject !== -1 ? cols[idxSubProject] : '';
-        const floor = idxFloor !== -1 ? cols[idxFloor] : 'Floor 1';
+        const rawFloor = idxFloor !== -1 ? cols[idxFloor] : '';
         const unitNo = idxUnitNo !== -1 ? cols[idxUnitNo] : '';
-        const unitType = idxUnitType !== -1 ? cols[idxUnitType] : 'Flat';
-        const saleArea = idxSaleArea !== -1 ? Number(cols[idxSaleArea].replace(/,/g, '')) || 0 : 0;
+        const unitType = idxUnitType !== -1 ? cols[idxUnitType] : '';
+        
+        const cents = idxCent !== -1 ? Number(cols[idxCent].replace(/,/g, '')) || 0 : 0;
+        let saleArea = idxLandAreaSqft !== -1 ? Number(cols[idxLandAreaSqft].replace(/,/g, '')) || 0 : 0;
+        if (saleArea === 0 && cents > 0) {
+          saleArea = Math.round(cents * 435.6 * 10) / 10;
+        }
+
+        const buildupArea = idxBuildupArea !== -1 ? Number(cols[idxBuildupArea].replace(/,/g, '')) || 0 : 0;
+        const ratePerCent = idxRatePerCent !== -1 ? Number(cols[idxRatePerCent].replace(/,/g, '')) || 0 : 0;
         const ratePerUom = idxRatePerUom !== -1 ? Number(cols[idxRatePerUom].replace(/,/g, '')) || 0 : 0;
+        const explicitTotalAmount = idxTotalAmount !== -1 ? Number(cols[idxTotalAmount].replace(/,/g, '')) || 0 : 0;
+
         const soldRate = idxSoldRate !== -1 ? Number(cols[idxSoldRate].replace(/,/g, '')) || 0 : 0;
         const soldConsideration = idxSoldConsideration !== -1 ? Number(cols[idxSoldConsideration].replace(/,/g, '')) || 0 : 0;
         const rawStatus = idxStatus !== -1 ? cols[idxStatus].toLowerCase() : '';
         const direction = idxRemarks !== -1 ? cols[idxRemarks] : '';
 
-        if (!unitNo) continue;
+        if (!unitNo || unitNo.toLowerCase().startsWith('sr') || unitNo.toLowerCase() === 'plot no' || unitNo.toLowerCase() === 'unit no') continue;
+
+        // Default floor handling: if Project Type is Unit or Plot, default floor accordingly unless Flat floor is specified
+        let floor = rawFloor;
+        if (
+          !floor || 
+          floor.toUpperCase() === 'PLOT' || 
+          floor.toUpperCase() === 'UNIT' || 
+          (projectTypes.includes('Unit') && !projectTypes.includes('Flat') && (floor.toLowerCase().startsWith('floor') || !isNaN(floor))) ||
+          (projectTypes.includes('Plot') && !projectTypes.includes('Flat') && floor.toLowerCase().startsWith('floor'))
+        ) {
+          if (projectTypes.includes('Unit')) {
+            floor = 'Unit';
+          } else if (projectTypes.includes('Plot')) {
+            floor = 'Plot';
+          } else {
+            floor = 'Floor 1';
+          }
+        }
+
+        let effectiveType = unitType;
+        if (!effectiveType) {
+          effectiveType = projectTypes.includes('Plot') ? 'Plot' : projectTypes.includes('Unit') ? 'Unit' : 'Flat';
+        }
 
         let status = 'New';
         if (rawStatus.includes('sold') || rawStatus.includes('booked') || soldConsideration > 0) {
-          status = 'Sold Out';
+          status = rawStatus.includes('booked') ? 'Booked' : 'Sold Out';
         } else if (rawStatus.includes('construction') || rawStatus.includes('under')) {
           status = 'Under Construction';
+        }
+
+        let price = 0;
+        if (explicitTotalAmount > 0) {
+          price = explicitTotalAmount;
+        } else if (cents > 0 && ratePerCent > 0) {
+          price = cents * ratePerCent;
+        } else if (saleArea > 0 && ratePerUom > 0) {
+          price = saleArea * ratePerUom;
+        } else {
+          price = saleArea * (Number(pricePerSqFt) || 2000);
         }
 
         let remarksStr = direction ? `Direction: ${direction}` : '';
@@ -193,15 +261,18 @@ const RegisterProject = () => {
         calculatedTotalArea += saleArea;
 
         units.push({
-          unitId: unitNo.toUpperCase(),
-          floor: floor.startsWith('Floor') || !isNaN(floor) ? (floor.startsWith('Floor') ? floor : `Floor ${floor}`) : floor,
-          unitType: unitType || 'Flat',
+          unitId: unitNo.toUpperCase().trim(),
+          floor,
+          unitType: effectiveType,
+          cents,
           size: saleArea,
-          price: saleArea * (ratePerUom || Number(pricePerSqFt) || 2000),
+          buildupArea,
+          ratePerCent,
+          ratePerUom: ratePerUom || (saleArea > 0 ? Math.round(price / saleArea) : (Number(pricePerSqFt) || 2000)),
+          price,
           status,
           remarks: remarksStr,
           isLocked: false,
-          ratePerUom: ratePerUom || Number(pricePerSqFt) || 2000,
           soldRatePerUom: soldRate,
           soldConsideration: soldConsideration
         });
@@ -215,9 +286,16 @@ const RegisterProject = () => {
         }
       }
 
-      if (rateUomCount > 0) {
-        const avgPrice = Math.round(autoPricePerSqFt / rateUomCount);
-        setPricePerSqFt(avgPrice.toString());
+      if (units.length > 0) {
+        const totalP = units.reduce((sum, u) => sum + (u.price || 0), 0);
+        const totalS = units.reduce((sum, u) => sum + (u.size || 0), 0);
+        if (totalS > 0) {
+          const avgPrice = Math.round(totalP / totalS);
+          setPricePerSqFt(avgPrice.toString());
+        } else if (rateUomCount > 0) {
+          const avgPrice = Math.round(autoPricePerSqFt / rateUomCount);
+          setPricePerSqFt(avgPrice.toString());
+        }
       }
     } else {
       lines.forEach((line) => {
@@ -310,6 +388,16 @@ const RegisterProject = () => {
       return;
     }
 
+    let effectivePricePerSqFt = Number(pricePerSqFt) || 0;
+    if (effectivePricePerSqFt <= 0 && parsedUnits.length > 0) {
+      const totalP = parsedUnits.reduce((sum, u) => sum + (Number(u.price) || 0), 0);
+      const totalS = parsedUnits.reduce((sum, u) => sum + (Number(u.size) || 0), 0);
+      if (totalS > 0) {
+        effectivePricePerSqFt = Math.round(totalP / totalS);
+      }
+    }
+    if (effectivePricePerSqFt <= 0) effectivePricePerSqFt = 1;
+
     const payload = {
       name,
       code: code.toUpperCase().trim(),
@@ -317,7 +405,7 @@ const RegisterProject = () => {
       layoutPlanImage,
       location,
       totalLandArea: Number(totalLandArea),
-      pricePerSqFt: Number(pricePerSqFt),
+      pricePerSqFt: effectivePricePerSqFt,
       marketingInfo: {
         sourceType,
         videos: videos.filter(v => v.name || v.link),
@@ -572,15 +660,14 @@ const RegisterProject = () => {
 
             {/* Price per sq.ft */}
             <div>
-              <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-2">Price per sq.ft (MANDATORY)</label>
+              <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-2">Price per sq.ft (Auto-Calculated / Optional)</label>
               <div className="relative">
                 <span className="absolute inset-y-0 left-0 flex items-center pl-3.5 text-gray-400">
                   <DollarSign className="w-5 h-5" />
                 </span>
                 <input
                   type="number"
-                  required
-                  placeholder="e.g. 150"
+                  placeholder="Auto-calculated from Excel rate"
                   value={pricePerSqFt}
                   onChange={(e) => handlePricePerSqFtChange(e.target.value)}
                   className="w-full pl-11 pr-4 py-3 bg-white/20 border border-[#0e623a]/20 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0e623a] focus:border-transparent transition"
@@ -682,13 +769,13 @@ const RegisterProject = () => {
               <div className="bg-white/20 backdrop-blur-sm border-2 border-[#0e623a]/30 rounded-2xl p-6 space-y-6 text-left animate-fadeIn">
                 <div className="space-y-1">
                   <h4 className="text-xs font-bold text-[#0e623a] uppercase tracking-wider">Bulk Import Custom Unit Specifications</h4>
-                  <p className="text-[12px] text-gray-500">Copy rows directly from your Excel spreadsheet (including Floor, Unit No, BHK/Type, Size/Area, and Sold details) and paste them below.</p>
+                  <p className="text-[12px] text-gray-500">Copy rows directly from your Excel spreadsheet (Supported columns: Plot/Unit No, Floor, Type, Land Area in Cent, Land Area in SQFT, Buildup Area, Rate per Cent, Rate per SQFT, Total Unit Amount, Status).</p>
                 </div>
 
                 <div>
                   <textarea
                     rows="4"
-                    placeholder="Paste spreadsheet data here (e.g. 1	1848	4.24)"
+                    placeholder="Paste Excel data here (e.g., PLOT NO | Land Area in Cent | Land Area in SQFT | RATE PER CENT | TOTAL UNIT AMOUNT | STATUS)"
                     value={pastedData}
                     onChange={(e) => handlePasteChange(e.target.value)}
                     className="w-full p-4 bg-white/50 border border-[#0e623a]/25 focus:border-[#0e623a] focus:outline-none focus:ring-1 focus:ring-[#0e623a] rounded-xl text-xs font-mono"
@@ -858,16 +945,18 @@ const RegisterProject = () => {
                     {/* TABLE INITIAL EDITABLE VIEW */}
                     {importViewMode === 'table' ? (
                       <div className="max-h-[420px] overflow-auto border border-gray-200 rounded-2xl shadow-inner bg-white">
-                        <table className="w-full text-left border-collapse min-w-[1000px]">
+                        <table className="w-full text-left border-collapse min-w-[1100px]">
                           <thead className="bg-gray-100 border-b text-gray-500 font-bold uppercase tracking-wider text-[10px] sticky top-0 z-10">
                             <tr>
-                              <th className="p-3 w-28">Unit No</th>
+                              <th className="p-3 w-28">Unit / Plot No</th>
                               <th className="p-3 w-24">Floor</th>
-                              <th className="p-3 w-24">Type (BHK)</th>
-                              <th className="p-3 w-24">Area (sq.ft)</th>
-                              <th className="p-3 w-28">Rate / UOM</th>
-                              <th className="p-3 w-32">Calculated Price</th>
-                              <th className="p-3 w-28">Sold Rate</th>
+                              <th className="p-3 w-24">Type</th>
+                              <th className="p-3 w-24">Cent</th>
+                              <th className="p-3 w-28">Land Area (sq.ft)</th>
+                              <th className="p-3 w-28">Buildup Area</th>
+                              <th className="p-3 w-28">Rate / Cent</th>
+                              <th className="p-3 w-28">Rate / SQFT</th>
+                              <th className="p-3 w-32">Total Unit Amount</th>
                               <th className="p-3 w-28">Status</th>
                               <th className="p-3">Remarks</th>
                               <th className="p-3 w-12 text-center">Action</th>
@@ -888,7 +977,7 @@ const RegisterProject = () => {
                                   <input
                                     type="text"
                                     value={u.floor}
-                                    placeholder="e.g. Floor 1"
+                                    placeholder="Floor / Plot"
                                     onChange={(e) => handleUpdateUnitField(index, 'floor', e.target.value)}
                                     className="w-full px-2 py-1.5 bg-gray-50 border border-gray-250 rounded focus:ring-1 focus:ring-[#0e623a] focus:outline-none text-xs"
                                   />
@@ -897,9 +986,19 @@ const RegisterProject = () => {
                                   <input
                                     type="text"
                                     value={u.unitType}
-                                    placeholder="e.g. 3 BHK"
+                                    placeholder="Plot/Flat/Villa"
                                     onChange={(e) => handleUpdateUnitField(index, 'unitType', e.target.value)}
                                     className="w-full px-2 py-1.5 bg-gray-50 border border-gray-250 rounded focus:ring-1 focus:ring-[#0e623a] focus:outline-none text-xs"
+                                  />
+                                </td>
+                                <td className="p-2.5">
+                                  <input
+                                    type="number"
+                                    step="0.01"
+                                    value={u.cents || ''}
+                                    placeholder="0"
+                                    onChange={(e) => handleUpdateUnitField(index, 'cents', e.target.value)}
+                                    className="w-full px-2 py-1.5 bg-gray-50 border border-gray-250 rounded focus:ring-1 focus:ring-[#0e623a] focus:outline-none text-xs font-semibold"
                                   />
                                 </td>
                                 <td className="p-2.5">
@@ -908,6 +1007,24 @@ const RegisterProject = () => {
                                     value={u.size || ''}
                                     onChange={(e) => handleUpdateUnitField(index, 'size', e.target.value)}
                                     className="w-full px-2 py-1.5 bg-gray-50 border border-gray-250 rounded focus:ring-1 focus:ring-[#0e623a] focus:outline-none text-xs font-semibold"
+                                  />
+                                </td>
+                                <td className="p-2.5">
+                                  <input
+                                    type="number"
+                                    value={u.buildupArea || ''}
+                                    placeholder="0"
+                                    onChange={(e) => handleUpdateUnitField(index, 'buildupArea', e.target.value)}
+                                    className="w-full px-2 py-1.5 bg-gray-50 border border-gray-250 rounded focus:ring-1 focus:ring-[#0e623a] focus:outline-none text-xs"
+                                  />
+                                </td>
+                                <td className="p-2.5">
+                                  <input
+                                    type="number"
+                                    value={u.ratePerCent || ''}
+                                    placeholder="0"
+                                    onChange={(e) => handleUpdateUnitField(index, 'ratePerCent', e.target.value)}
+                                    className="w-full px-2 py-1.5 bg-gray-50 border border-gray-250 rounded focus:ring-1 focus:ring-[#0e623a] focus:outline-none text-xs"
                                   />
                                 </td>
                                 <td className="p-2.5">
@@ -924,14 +1041,6 @@ const RegisterProject = () => {
                                     value={u.price || ''}
                                     onChange={(e) => handleUpdateUnitField(index, 'price', e.target.value)}
                                     className="w-full px-2 py-1.5 bg-gray-50 border border-gray-250 rounded focus:ring-1 focus:ring-[#0e623a] focus:outline-none text-xs font-bold text-[#0e623a]"
-                                  />
-                                </td>
-                                <td className="p-2.5">
-                                  <input
-                                    type="number"
-                                    value={u.soldRatePerUom || ''}
-                                    onChange={(e) => handleUpdateUnitField(index, 'soldRatePerUom', e.target.value)}
-                                    className="w-full px-2 py-1.5 bg-gray-50 border border-gray-250 rounded focus:ring-1 focus:ring-[#0e623a] focus:outline-none text-xs font-semibold text-red-650"
                                   />
                                 </td>
                                 <td className="p-2.5">

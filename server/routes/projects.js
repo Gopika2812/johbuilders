@@ -52,13 +52,20 @@ router.post('/', protect, checkPermission('projects', 'edit'), async (req, res) 
     }
 
     const area = Number(totalLandArea);
-    const price = Number(pricePerSqFt);
+    let price = Number(pricePerSqFt) || 0;
     if (!area || isNaN(area) || area <= 0) {
       return res.status(400).json({ message: 'Invalid Total Land Area' });
     }
-    if (!price || isNaN(price) || price <= 0) {
-      return res.status(400).json({ message: 'Price per sq.ft is mandatory and must be greater than 0' });
+    
+    // Auto-calculate average price per sq.ft if missing
+    if (price <= 0 && req.body.units && req.body.units.length > 0) {
+      const totalP = req.body.units.reduce((sum, u) => sum + (Number(u.price) || 0), 0);
+      const totalS = req.body.units.reduce((sum, u) => sum + (Number(u.size) || 0), 0);
+      if (totalS > 0) {
+        price = Math.round(totalP / totalS);
+      }
     }
+    if (price <= 0) price = 1;
 
     let units = [];
 
@@ -66,7 +73,7 @@ router.post('/', protect, checkPermission('projects', 'edit'), async (req, res) 
       units = req.body.units.map(u => ({
         unitId: u.unitId,
         size: Number(u.size) || 0,
-        price: (Number(u.size) || 0) * (Number(u.ratePerUom) || price),
+        price: Number(u.price) || ((Number(u.cents) || 0) * (Number(u.ratePerCent) || 0)) || ((Number(u.size) || 0) * (Number(u.ratePerUom) || price)),
         status: u.status || 'New',
         floor: u.floor || '',
         remarks: u.remarks || '',
@@ -74,6 +81,9 @@ router.post('/', protect, checkPermission('projects', 'edit'), async (req, res) 
         mapCoordinates: u.mapCoordinates,
         unitType: u.unitType || (projectType.includes('Plot') ? 'Plot' : (projectType.includes('House') || projectType.includes('Villa')) ? 'Villa' : projectType.includes('Unit') ? 'Unit' : 'Flat'),
         ratePerUom: Number(u.ratePerUom) || 0,
+        cents: Number(u.cents) || 0,
+        ratePerCent: Number(u.ratePerCent) || 0,
+        buildupArea: Number(u.buildupArea) || 0,
         soldRatePerUom: Number(u.soldRatePerUom) || 0,
         soldConsideration: Number(u.soldConsideration) || 0
       }));
