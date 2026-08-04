@@ -63,8 +63,18 @@ const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
         return false;
       });
 
-      setNotifications(uniqueLeads);
+      // Filter leads to ONLY those assigned specifically to the logged in user
+      const assignedToMe = uniqueLeads.filter(lead => {
+        const assignedId = typeof lead.assignedTo === 'object' ? lead.assignedTo?._id : lead.assignedTo;
+        return assignedId && String(assignedId) === String(user?._id);
+      });
+
+      setNotifications(assignedToMe);
       setTaskNotifications(dataTasks);
+
+      // Admin / Superadmin does not get lead assignment popups/notifications
+      const isSuperadmin = user?.role === 'Superadmin';
+      const myLeadsToNotify = isSuperadmin ? [] : assignedToMe;
 
       // Check ignored leads
       let ignoredIds = [...ignoredLeads];
@@ -79,7 +89,7 @@ const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
       } catch (e) {
         console.warn('sessionStorage is not accessible', e);
       }
-      const newLeads = uniqueLeads.filter(lead => !ignoredIds.includes(lead._id));
+      const newLeads = myLeadsToNotify.filter(lead => !ignoredIds.includes(lead._id));
 
       if (newLeads.length > 0 || dataTasks.length > 0) {
         setPopupLeads(newLeads);

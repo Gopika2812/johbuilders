@@ -165,4 +165,63 @@ router.post('/customer-login', async (req, res) => {
   }
 });
 
+// @route   POST /api/auth/forgot-password
+// @desc    Reset user password using username, email, or registered phone number
+router.post('/forgot-password', async (req, res) => {
+  const { identifier, phone, newPassword } = req.body;
+
+  try {
+    if (!identifier || !identifier.trim()) {
+      return res.status(400).json({ message: 'Username, Email, or Phone number is required' });
+    }
+
+    if (!newPassword || newPassword.trim().length < 4) {
+      return res.status(400).json({ message: 'New password must be at least 4 characters long' });
+    }
+
+    const cleanId = identifier.trim();
+
+    // Find user by name, email, or phone
+    let query = {
+      $or: [
+        { name: new RegExp(`^${cleanId}$`, 'i') },
+        { email: cleanId.toLowerCase() },
+        { phone: cleanId }
+      ]
+    };
+
+    // If phone verification is also provided, enforce matching phone number
+    if (phone && phone.trim()) {
+      query = {
+        $and: [
+          { $or: [{ name: new RegExp(`^${cleanId}$`, 'i') }, { email: cleanId.toLowerCase() }, { phone: cleanId }] },
+          { phone: phone.trim() }
+        ]
+      };
+    }
+
+    const user = await User.findOne(query);
+
+    if (!user) {
+      return res.status(404).json({ message: 'No account found matching the provided details.' });
+    }
+
+    user.password = newPassword.trim();
+    await user.save();
+
+    await AuditLog.create({
+      user: user._id,
+      userName: user.name,
+      userRole: user.role,
+      action: 'Password Reset',
+      description: `Reset password for user account: ${user.name} (${user.email})`
+    });
+
+    res.json({ message: 'Password reset successfully! You can now log in with your new password.' });
+  } catch (err) {
+    console.error('Error resetting password:', err);
+    res.status(500).json({ message: err.message || 'Server error resetting password' });
+  }
+});
+
 module.exports = router;

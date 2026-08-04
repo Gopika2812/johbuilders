@@ -1,13 +1,25 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import { Building2, Lock, User, Eye, EyeOff, Loader2 } from 'lucide-react';
+import { useAuth, API_URL } from '../context/AuthContext';
+import { Building2, Lock, User, Eye, EyeOff, Loader2, KeyRound, Phone, X, CheckCircle2 } from 'lucide-react';
 
 const Login = () => {
   const [name, setName] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  
+  // Forgot Password modal state
+  const [showForgotModal, setShowForgotModal] = useState(false);
+  const [forgotIdentifier, setForgotIdentifier] = useState('');
+  const [forgotPhone, setForgotPhone] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [forgotError, setForgotError] = useState('');
+  const [forgotSuccess, setForgotSuccess] = useState('');
+  const [resetting, setResetting] = useState(false);
+
   const { login, loading } = useAuth();
   const navigate = useNavigate();
 
@@ -19,6 +31,57 @@ const Login = () => {
       navigate('/');
     } catch (err) {
       setError(err.message || 'Invalid name or password');
+    }
+  };
+
+  const handleForgotPasswordSubmit = async (e) => {
+    e.preventDefault();
+    setForgotError('');
+    setForgotSuccess('');
+
+    if (newPassword !== confirmPassword) {
+      setForgotError('New passwords do not match!');
+      return;
+    }
+
+    if (newPassword.length < 4) {
+      setForgotError('Password must be at least 4 characters long.');
+      return;
+    }
+
+    setResetting(true);
+    try {
+      const res = await fetch(`${API_URL}/auth/forgot-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          identifier: forgotIdentifier,
+          phone: forgotPhone,
+          newPassword: newPassword
+        })
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        setForgotSuccess(data.message || 'Password reset successfully!');
+        if (forgotIdentifier) setName(forgotIdentifier);
+        setTimeout(() => {
+          setShowForgotModal(false);
+          setForgotIdentifier('');
+          setForgotPhone('');
+          setNewPassword('');
+          setConfirmPassword('');
+          setForgotSuccess('');
+        }, 1500);
+      } else {
+        setForgotError(data.message || 'Failed to reset password. Please check your details.');
+      }
+    } catch (err) {
+      console.error(err);
+      setForgotError('Server error resetting password. Please try again.');
+    } finally {
+      setResetting(false);
     }
   };
 
@@ -65,7 +128,7 @@ const Login = () => {
             )}
             
             <div className="space-y-2">
-              <label className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] ml-2">Username</label>
+              <label className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] ml-2">Username / Email / Phone</label>
               <div className="relative group/input">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-500 group-focus-within/input:text-emerald-400 transition-colors">
                   <User className="w-5 h-5" />
@@ -74,7 +137,7 @@ const Login = () => {
                   type="text" 
                   value={name}
                   onChange={e => setName(e.target.value)}
-                  placeholder="Username"
+                  placeholder="Username, Email, or Phone"
                   className="w-full pl-12 pr-4 py-4 bg-black/40 border border-white/5 text-white placeholder-gray-600 rounded-2xl focus:outline-none focus:border-emerald-500/50 focus:bg-black/60 focus:ring-1 focus:ring-emerald-500/50 transition-all duration-300 text-sm"
                   required
                 />
@@ -82,7 +145,16 @@ const Login = () => {
             </div>
             
             <div className="space-y-2">
-              <label className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] ml-2">Password</label>
+              <div className="flex items-center justify-between ml-2 pr-1">
+                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em]">Password</label>
+                <button
+                  type="button"
+                  onClick={() => setShowForgotModal(true)}
+                  className="text-[10px] font-bold text-emerald-400 hover:text-emerald-300 hover:underline uppercase tracking-wider transition-colors"
+                >
+                  Forgot Password?
+                </button>
+              </div>
               <div className="relative group/input">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-500 group-focus-within/input:text-emerald-400 transition-colors">
                   <Lock className="w-5 h-5" />
@@ -137,6 +209,156 @@ const Login = () => {
           </form>
         </div>
       </div>
+
+      {/* Forgot Password Modal */}
+      {showForgotModal && (
+        <div className="fixed inset-0 z-[999] bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-[#0c1611] border border-white/10 shadow-[0_16px_48px_0_rgba(0,0,0,0.7)] rounded-[2rem] w-full max-w-md p-6 md:p-8 relative animate-fadeIn">
+            {/* Header */}
+            <div className="flex items-center justify-between mb-6 pb-4 border-b border-white/10">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 bg-emerald-500/10 text-emerald-400 rounded-xl border border-emerald-500/20">
+                  <KeyRound className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-white tracking-wide">Reset Password</h3>
+                  <p className="text-[11px] text-gray-400">Recover your account credentials</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowForgotModal(false);
+                  setForgotError('');
+                  setForgotSuccess('');
+                }}
+                className="text-gray-400 hover:text-white p-1 rounded-lg transition"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Form */}
+            <form onSubmit={handleForgotPasswordSubmit} className="space-y-4">
+              {forgotError && (
+                <div className="p-3 bg-red-500/10 border border-red-500/30 text-red-200 rounded-xl text-xs font-medium">
+                  {forgotError}
+                </div>
+              )}
+
+              {forgotSuccess && (
+                <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 text-emerald-200 rounded-xl text-xs font-medium flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <span>{forgotSuccess}</span>
+                </div>
+              )}
+
+              <div>
+                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1.5">
+                  Username, Email, or Phone *
+                </label>
+                <div className="relative">
+                  <User className="w-4 h-4 text-gray-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    required
+                    value={forgotIdentifier}
+                    onChange={(e) => setForgotIdentifier(e.target.value)}
+                    placeholder="Enter your registered Name or Email"
+                    className="w-full pl-10 pr-4 py-3 bg-black/40 border border-white/10 text-white placeholder-gray-600 rounded-xl focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 text-xs"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1.5">
+                  Registered Phone Number (Verification)
+                </label>
+                <div className="relative">
+                  <Phone className="w-4 h-4 text-gray-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    value={forgotPhone}
+                    onChange={(e) => setForgotPhone(e.target.value)}
+                    placeholder="e.g. 9876543210 (Optional if exact Username used)"
+                    className="w-full pl-10 pr-4 py-3 bg-black/40 border border-white/10 text-white placeholder-gray-600 rounded-xl focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 text-xs"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1.5">
+                  New Password *
+                </label>
+                <div className="relative">
+                  <Lock className="w-4 h-4 text-gray-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type={showNewPassword ? "text" : "password"}
+                    required
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="Enter new password"
+                    className="w-full pl-10 pr-10 py-3 bg-black/40 border border-white/10 text-white placeholder-gray-600 rounded-xl focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 text-xs"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowNewPassword(!showNewPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white"
+                  >
+                    {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1.5">
+                  Confirm New Password *
+                </label>
+                <div className="relative">
+                  <Lock className="w-4 h-4 text-gray-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type={showNewPassword ? "text" : "password"}
+                    required
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="Re-enter new password"
+                    className="w-full pl-10 pr-4 py-3 bg-black/40 border border-white/10 text-white placeholder-gray-600 rounded-xl focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 text-xs"
+                  />
+                </div>
+              </div>
+
+              <div className="pt-4 flex items-center justify-end gap-3 border-t border-white/10 mt-6">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowForgotModal(false);
+                    setForgotError('');
+                    setForgotSuccess('');
+                  }}
+                  disabled={resetting}
+                  className="px-4 py-2.5 bg-white/5 hover:bg-white/10 text-gray-300 rounded-xl text-xs font-bold transition disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={resetting}
+                  className="px-5 py-2.5 bg-gradient-to-r from-[#006838] to-[#008c4a] hover:from-[#007b42] hover:to-[#00a356] text-white rounded-xl text-xs font-bold uppercase tracking-wider transition disabled:opacity-50 flex items-center gap-2 shadow-lg"
+                >
+                  {resetting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Updating...</span>
+                    </>
+                  ) : (
+                    <span>Reset Password</span>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
