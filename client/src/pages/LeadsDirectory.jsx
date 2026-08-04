@@ -758,16 +758,9 @@ const LeadsDirectory = () => {
     setError('');
     setSuccessMsg('');
 
-    if (leadType === 'Direct Visit') {
-      if (!name || !address || !leadLocation || !leadSource || !selectedProjectId) {
-        setError('Please fill in all mandatory fields.');
-        return;
-      }
-    } else {
-      if (!name || !leadSource || !selectedProjectId) {
-        setError('Please fill in all mandatory fields.');
-        return;
-      }
+    if (!name || !leadSource || !selectedProjectId) {
+      setError('Please fill in all mandatory fields (Name, Lead Source, Project Code).');
+      return;
     }
     if (leadType === 'Direct Visit' && (!directFollowRemarks || !directFollowRemarks.trim())) {
       setError('Notes (Narration) is required for Direct Visit.');
@@ -2061,7 +2054,7 @@ const LeadsDirectory = () => {
               </button>
             </div>
 
-            <form onSubmit={handleCreateLead} className="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
+            <form onSubmit={handleCreateLead} noValidate className="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
               {/* Lead Type Radio Group */}
               <div className="bg-black-50 p-4 rounded-2xl border border-black-150">
                 <label className="text-[11px] font-bold text-black-400 uppercase tracking-wider block mb-2">Lead Record Category</label>
@@ -2177,9 +2170,8 @@ const LeadsDirectory = () => {
               {/* Address & Location */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Customer Address {leadType === 'Direct Visit' && <span className="text-red-500">*</span>}</label>
+                  <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Customer Address</label>
                   <textarea
-                    required={leadType === 'Direct Visit'}
                     rows="2"
                     placeholder="Street details, pincode..."
                     value={address}
@@ -2188,9 +2180,8 @@ const LeadsDirectory = () => {
                   />
                 </div>
                 <div>
-                  <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Location (City/Area) {leadType === 'Direct Visit' && <span className="text-red-500">*</span>}</label>
+                  <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Location (City/Area)</label>
                   <textarea
-                    required={leadType === 'Direct Visit'}
                     rows="2"
                     placeholder="e.g. Downtown"
                     value={leadLocation}
@@ -2440,7 +2431,7 @@ const LeadsDirectory = () => {
               </button>
             </div>
 
-            <form onSubmit={handleUpdateLead} className="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
+            <form onSubmit={handleUpdateLead} noValidate className="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
               {/* Lead Type Radio Group */}
               <div className="bg-black-50 p-4 rounded-2xl border border-black-150">
                 <label className="text-[11px] font-bold text-black-400 uppercase tracking-wider block mb-2 font-extrabold text-[#0e623a]">Lead Record Category [LOCKED]</label>
@@ -2527,9 +2518,8 @@ const LeadsDirectory = () => {
 
               {/* Address */}
               <div className="text-left">
-                <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Customer Address {editLeadType === 'Direct Visit' && <span className="text-red-500">*</span>}</label>
+                <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Customer Address</label>
                 <textarea
-                  required={editLeadType === 'Direct Visit'}
                   rows="2"
                   placeholder="Street details, city, pincode..."
                   value={editAddress}

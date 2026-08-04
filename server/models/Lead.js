@@ -19,7 +19,7 @@ const LeadSchema = new mongoose.Schema({
   },
   address: {
     type: String,
-    required: true,
+    default: '',
     trim: true
   },
   profession: {
