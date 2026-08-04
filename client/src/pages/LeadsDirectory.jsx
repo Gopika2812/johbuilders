@@ -490,9 +490,16 @@ const LeadsDirectory = () => {
     setError('');
     setSuccessMsg('');
 
-    if (!editName || !editPhoneLocal || !editAddress || !editLeadSource || !editProjectId || !editStatus || !editLeadCategory) {
-      setError('Please fill in all mandatory fields.');
-      return;
+    if (editLeadType === 'Direct Visit') {
+      if (!editName || !editPhoneLocal || !editAddress || !editLeadSource || !editProjectId || !editStatus || !editLeadCategory) {
+        setError('Please fill in all mandatory fields.');
+        return;
+      }
+    } else {
+      if (!editName || !editPhoneLocal || !editLeadSource || !editProjectId || !editStatus || !editLeadCategory) {
+        setError('Please fill in all mandatory fields.');
+        return;
+      }
     }
     if (!editAssignedToId) {
       setError('Please select an assigned executive.');
@@ -746,12 +753,12 @@ const LeadsDirectory = () => {
     setSuccessMsg('');
 
     if (leadType === 'Direct Visit') {
-      if (!name || !profession || !email || !address || !leadLocation || !leadSource || !selectedProjectId) {
+      if (!name || !address || !leadLocation || !leadSource || !selectedProjectId) {
         setError('Please fill in all mandatory fields.');
         return;
       }
     } else {
-      if (!name || !address || !leadLocation || !leadSource || !selectedProjectId) {
+      if (!name || !leadSource || !selectedProjectId) {
         setError('Please fill in all mandatory fields.');
         return;
       }
@@ -2098,10 +2105,9 @@ const LeadsDirectory = () => {
                   />
                 </div>
                 <div>
-                  <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Profession {leadType === 'Direct Visit' && <span className="text-red-500">*</span>}</label>
+                  <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Profession</label>
                   <input
                     type="text"
-                    required={leadType === 'Direct Visit'}
                     placeholder="e.g. Software Engineer"
                     value={profession}
                     onChange={(e) => setProfession(e.target.value)}
@@ -2150,10 +2156,9 @@ const LeadsDirectory = () => {
                   )}
                 </div>
                 <div>
-                  <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Email Address {leadType === 'Direct Visit' && <span className="text-red-500">*</span>}</label>
+                  <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Email Address</label>
                   <input
                     type="email"
-                    required={leadType === 'Direct Visit'}
                     placeholder="e.g. user@example.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
@@ -2166,9 +2171,9 @@ const LeadsDirectory = () => {
               {/* Address & Location */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Customer Address <span className="text-red-500">*</span></label>
+                  <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Customer Address {leadType === 'Direct Visit' && <span className="text-red-500">*</span>}</label>
                   <textarea
-                    required
+                    required={leadType === 'Direct Visit'}
                     rows="2"
                     placeholder="Street details, pincode..."
                     value={address}
@@ -2177,9 +2182,9 @@ const LeadsDirectory = () => {
                   />
                 </div>
                 <div>
-                  <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Location (City/Area) <span className="text-red-500">*</span></label>
+                  <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Location (City/Area) {leadType === 'Direct Visit' && <span className="text-red-500">*</span>}</label>
                   <textarea
-                    required
+                    required={leadType === 'Direct Visit'}
                     rows="2"
                     placeholder="e.g. Downtown"
                     value={leadLocation}
@@ -2516,9 +2521,9 @@ const LeadsDirectory = () => {
 
               {/* Address */}
               <div className="text-left">
-                <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Customer Address <span className="text-red-500">*</span></label>
+                <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Customer Address {editLeadType === 'Direct Visit' && <span className="text-red-500">*</span>}</label>
                 <textarea
-                  required
+                  required={editLeadType === 'Direct Visit'}
                   rows="2"
                   placeholder="Street details, city, pincode..."
                   value={editAddress}
