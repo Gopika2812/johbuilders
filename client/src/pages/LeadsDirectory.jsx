@@ -494,7 +494,7 @@ const LeadsDirectory = () => {
       setError('Please fill in all mandatory fields.');
       return;
     }
-    if ((user?.role === 'Superadmin' || user?.role === 'Crd team') && !editAssignedToId) {
+    if (!editAssignedToId) {
       setError('Please select an assigned executive.');
       return;
     }
@@ -753,7 +753,7 @@ const LeadsDirectory = () => {
       setError('Notes (Narration) is required for Direct Visit.');
       return;
     }
-    if ((user?.role === 'Superadmin' || user?.role === 'Crd team') && !assignedToId && !previouslyAssignedExecutive) {
+    if (!assignedToId && !previouslyAssignedExecutive) {
       setError('Please select an assigned executive.');
       return;
     }
@@ -779,7 +779,7 @@ const LeadsDirectory = () => {
       phone,
       address,
       project: selectedProjectId,
-      assignedTo: previouslyAssignedExecutive ? previouslyAssignedExecutive._id : ((user?.role === 'Superadmin' || user?.role === 'Crd team') ? assignedToId : user?._id),
+      assignedTo: previouslyAssignedExecutive ? previouslyAssignedExecutive._id : (assignedToId || user?._id),
       leadCost: Number(leadCost) || 0,
       leadSource: leadSource,
       leadCategory: leadCategory,
@@ -1435,7 +1435,7 @@ const LeadsDirectory = () => {
     setPhoneLocal('');
     setAddress('');
     setSelectedProjectId('');
-    setAssignedToId('');
+    setAssignedToId(user?._id || '');
     setLeadSource('');
     setSelectedAdId('');
     setFetchedAdLink('');
@@ -1599,21 +1599,17 @@ const LeadsDirectory = () => {
         <div className="bg-white p-4 border border-black-150 shadow-sm rounded-3xl grid grid-cols-2 lg:grid-cols-5 gap-4 items-end">
           {/* Assigned Executive */}
           <div className="space-y-1">
-            {(user?.role === 'Superadmin' || user?.role === 'Crd team') && (
-              <div className="space-y-1">
-                <label className="text-[11px] font-bold text-black-400 uppercase tracking-wider block">Assigned Executive</label>
-                <select
-                  value={assignedFilter}
-                  onChange={(e) => setAssignedFilter(e.target.value)}
-                  className="w-full max-w-full truncate px-3 py-2 bg-black-50 border border-black-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-xs font-bold text-black-700"
-                >
-                  <option value="">All Executives</option>
-                  {employees.map(emp => (
-                    <option key={emp._id} value={emp._id}>{emp.name}</option>
-                  ))}
-                </select>
-              </div>
-            )}
+            <label className="text-[11px] font-bold text-black-400 uppercase tracking-wider block">Assigned Executive</label>
+            <select
+              value={assignedFilter}
+              onChange={(e) => setAssignedFilter(e.target.value)}
+              className="w-full max-w-full truncate px-3 py-2 bg-black-50 border border-black-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-xs font-bold text-black-700"
+            >
+              <option value="">All Executives</option>
+              {employees.map(emp => (
+                <option key={emp._id} value={emp._id}>{emp.name}</option>
+              ))}
+            </select>
           </div>
 
           {/* Workflow Status */}
@@ -2333,23 +2329,21 @@ const LeadsDirectory = () => {
               )}
 
               {/* Assigned Executive */}
-              {(user?.role === 'Superadmin' || user?.role === 'Crd team') && (
-                <div className="flex flex-col">
-                  <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Assigned Executive / Member <span className="text-red-500">*</span></label>
-                  {previouslyAssignedExecutive ? (
-                    <div className="px-4 py-3 bg-black-50 border border-black-200 rounded-xl text-xs font-bold text-black-700">
-                      {previouslyAssignedExecutive.name} ({previouslyAssignedExecutive.role}) [LOCKED]
-                    </div>
-                  ) : (
-                    <SearchableSelect
-                      options={employees.map(emp => ({ value: emp._id, label: `${emp.name} (${emp.role})` }))}
-                      value={assignedToId}
-                      onChange={setAssignedToId}
-                      placeholder="Select Executive"
-                    />
-                  )}
-                </div>
-              )}
+              <div className="flex flex-col">
+                <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Assigned Executive / Member <span className="text-red-500">*</span></label>
+                {previouslyAssignedExecutive ? (
+                  <div className="px-4 py-3 bg-black-50 border border-black-200 rounded-xl text-xs font-bold text-black-700">
+                    {previouslyAssignedExecutive.name} ({previouslyAssignedExecutive.role}) [LOCKED]
+                  </div>
+                ) : (
+                  <SearchableSelect
+                    options={employees.map(emp => ({ value: emp._id, label: `${emp.name} (${emp.role})` }))}
+                    value={assignedToId}
+                    onChange={setAssignedToId}
+                    placeholder="Select Executive"
+                  />
+                )}
+              </div>
 
               {/* Submit Buttons */}
               <div className="flex items-center gap-3 pt-4 border-t">
@@ -2644,17 +2638,15 @@ const LeadsDirectory = () => {
               </div>
 
               {/* Assigned Executive */}
-              {(user?.role === 'Superadmin' || user?.role === 'Crd team') && (
-                <div className="flex flex-col text-left">
-                  <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Assigned Executive / Member <span className="text-red-500">*</span></label>
-                  <SearchableSelect
-                    options={employees.map(emp => ({ value: emp._id, label: `${emp.name} (${emp.role})` }))}
-                    value={editAssignedToId}
-                    onChange={setEditAssignedToId}
-                    placeholder="Select Executive"
-                  />
-                </div>
-              )}
+              <div className="flex flex-col text-left">
+                <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Assigned Executive / Member <span className="text-red-500">*</span></label>
+                <SearchableSelect
+                  options={employees.map(emp => ({ value: emp._id, label: `${emp.name} (${emp.role})` }))}
+                  value={editAssignedToId}
+                  onChange={setEditAssignedToId}
+                  placeholder="Select Executive"
+                />
+              </div>
 
               {/* Workflow Status & Lead Category */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-left">
