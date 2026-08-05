@@ -237,6 +237,21 @@ const LeadsDirectory = () => {
   const [leadLocation, setLeadLocation] = useState('');
   const [selectedProjectId, setSelectedProjectId] = useState('');
   const [assignedToId, setAssignedToId] = useState('');
+  const [creationDate, setCreationDate] = useState(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  });
+
+  const getMinCreationDate = () => {
+    const d = new Date();
+    d.setDate(d.getDate() - 5);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  };
+
+  const getMaxCreationDate = () => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  };
 
   // Lead-specific fields
   const [leadSource, setLeadSource] = useState('');
@@ -796,6 +811,7 @@ const LeadsDirectory = () => {
       leadCost: Number(leadCost) || 0,
       leadSource: leadSource,
       leadCategory: leadCategory,
+      creationDate: creationDate,
       activeAd: leadType === 'Lead' && adObj ? { name: adObj.name, link: adObj.link } : undefined
     };
 
@@ -1465,6 +1481,7 @@ const LeadsDirectory = () => {
     const month = String(now.getMonth() + 1).padStart(2, '0');
     const day = String(now.getDate()).padStart(2, '0');
     setDirectFollowDate(`${year}-${month}-${day}`);
+    setCreationDate(`${year}-${month}-${day}`);
     setDirectFollowRemarks('');
   };
 
@@ -1478,13 +1495,12 @@ const LeadsDirectory = () => {
         lead.phone?.includes(searchTerm) ||
         lead.project?.code?.toLowerCase().includes(searchTerm.toLowerCase());
 
-      const itemDate = new Date(lead.updatedAt || lead.createdAt);
-      const itemTime = itemDate.setHours(0, 0, 0, 0);
-      const startTime = startDate ? new Date(startDate).setHours(0, 0, 0, 0) : null;
-      const endTime = endDate ? new Date(endDate).setHours(23, 59, 59, 999) : null;
+      const itemTime = lead.createdAt ? new Date(lead.createdAt).getTime() : null;
+      const startTime = startDate ? new Date(startDate + 'T00:00:00').getTime() : null;
+      const endTime = endDate ? new Date(endDate + 'T23:59:59.999').getTime() : null;
 
-      const matchesStartDate = !startTime || itemTime >= startTime;
-      const matchesEndDate = !endTime || itemTime <= endTime;
+      const matchesStartDate = !startTime || !itemTime || itemTime >= startTime;
+      const matchesEndDate = !endTime || !itemTime || itemTime <= endTime;
 
       const matchesAssigned = !assignedFilter || lead.assignedTo?._id === assignedFilter;
       const matchesCampaign = !campaignFilter || lead.leadSource === campaignFilter;
@@ -2059,38 +2075,54 @@ const LeadsDirectory = () => {
             </div>
 
             <form onSubmit={handleCreateLead} noValidate className="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
-              {/* Lead Type Radio Group */}
-              <div className="bg-black-50 p-4 rounded-2xl border border-black-150">
-                <label className="text-[11px] font-bold text-black-400 uppercase tracking-wider block mb-2">Lead Record Category</label>
-                <div className="flex gap-6">
-                  <label className="flex items-center gap-2 text-sm font-semibold text-black-700 cursor-pointer">
-                    <input
-                      type="radio"
-                      name="leadType"
-                      value="Lead"
-                      checked={leadType === 'Lead'}
-                      onChange={() => {
-                        setLeadType('Lead');
-                        setDuplicateWarning(null);
-                      }}
-                      className="text-[#0e623a] focus:ring-[#0e623a] w-4 h-4"
-                    />
-                    <span>Lead (Campaigns & Referrals)</span>
+              {/* Lead Category & Lead Date */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="bg-black-50 p-4 rounded-2xl border border-black-150">
+                  <label className="text-[11px] font-bold text-black-400 uppercase tracking-wider block mb-2">Lead Record Category</label>
+                  <div className="flex gap-4 flex-wrap">
+                    <label className="flex items-center gap-1.5 text-xs font-semibold text-black-700 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="leadType"
+                        value="Lead"
+                        checked={leadType === 'Lead'}
+                        onChange={() => {
+                          setLeadType('Lead');
+                          setDuplicateWarning(null);
+                        }}
+                        className="text-[#0e623a] focus:ring-[#0e623a] w-4 h-4"
+                      />
+                      <span>Lead (Campaigns)</span>
+                    </label>
+                    <label className="flex items-center gap-1.5 text-xs font-semibold text-black-700 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="leadType"
+                        value="Direct Visit"
+                        checked={leadType === 'Direct Visit'}
+                        onChange={() => {
+                          setLeadType('Direct Visit');
+                          setDuplicateWarning(null);
+                        }}
+                        className="text-[#0e623a] focus:ring-[#0e623a] w-4 h-4"
+                      />
+                      <span>Direct Visit</span>
+                    </label>
+                  </div>
+                </div>
+
+                <div className="bg-black-50 p-4 rounded-2xl border border-black-150 flex flex-col justify-between">
+                  <label className="text-[11px] font-bold text-black-400 uppercase tracking-wider block mb-1">
+                    Registration Date <span className="text-black-400 font-normal lowercase">(up to 5 days past)</span>
                   </label>
-                  <label className="flex items-center gap-2 text-sm font-semibold text-black-700 cursor-pointer">
-                    <input
-                      type="radio"
-                      name="leadType"
-                      value="Direct Visit"
-                      checked={leadType === 'Direct Visit'}
-                      onChange={() => {
-                        setLeadType('Direct Visit');
-                        setDuplicateWarning(null);
-                      }}
-                      className="text-[#0e623a] focus:ring-[#0e623a] w-4 h-4"
-                    />
-                    <span>Direct Visit</span>
-                  </label>
+                  <input
+                    type="date"
+                    min={getMinCreationDate()}
+                    max={getMaxCreationDate()}
+                    value={creationDate}
+                    onChange={(e) => setCreationDate(e.target.value)}
+                    className="w-full px-3 py-2 bg-white border border-black-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-xs font-bold text-black-700"
+                  />
                 </div>
               </div>
 

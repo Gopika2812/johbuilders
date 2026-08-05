@@ -146,9 +146,22 @@ router.get('/phone/:phone', protect, async (req, res) => {
 // @route   POST /api/leads
 // @desc    Create a new lead (or reopen existing if duplicate phone)
 router.post('/', protect, async (req, res) => {
-  const { leadType, name, phone, address, profession, email, location, bankLoan, bankLoanPercentage, leadSource, activeAd, projectLocation, project, assignedTo, leadCost, followUpInfo, leadCategory } = req.body;
+  const { leadType, name, phone, address, profession, email, location, bankLoan, bankLoanPercentage, leadSource, activeAd, projectLocation, project, assignedTo, leadCost, followUpInfo, leadCategory, creationDate } = req.body;
 
   try {
+    let targetCreatedAt = undefined;
+    if (creationDate) {
+      const parsedDate = new Date(creationDate + 'T12:00:00.000Z');
+      const minAllowed = new Date();
+      minAllowed.setDate(minAllowed.getDate() - 6);
+      minAllowed.setHours(0, 0, 0, 0);
+      const maxAllowed = new Date();
+      maxAllowed.setHours(23, 59, 59, 999);
+      if (parsedDate >= minAllowed && parsedDate <= maxAllowed) {
+        targetCreatedAt = parsedDate;
+      }
+    }
+
     if (leadType === 'Direct Visit') {
       if (!followUpInfo || !followUpInfo.remarks || !followUpInfo.remarks.trim()) {
         return res.status(400).json({ message: 'Notes (Narration) is required for Direct Visit.' });
@@ -210,6 +223,9 @@ router.post('/', protect, async (req, res) => {
       lead.bankLoan = bankLoan || 'No';
       lead.bankLoanPercentage = Number(bankLoanPercentage) || 0;
       lead.project = project;
+      if (targetCreatedAt) {
+        lead.createdAt = targetCreatedAt;
+      }
       if (finalAssignedTo && finalAssignedTo.toString().trim() !== '') {
         lead.assignedBy = req.user._id;
       }
@@ -237,7 +253,7 @@ router.post('/', protect, async (req, res) => {
         status: defaultStatus,
         assignedTo: (finalAssignedTo && finalAssignedTo.toString().trim() !== '') ? finalAssignedTo : undefined,
         updatedBy: req.user._id,
-        timestamp: new Date(),
+        timestamp: targetCreatedAt || new Date(),
         note: `Lead Reopened (Previous status: ${oldStatus}). Details updated.`
       });
 
@@ -275,7 +291,8 @@ router.post('/', protect, async (req, res) => {
       assignedBy: (finalAssignedTo && finalAssignedTo.toString().trim() !== '') ? req.user._id : undefined,
       status: defaultStatus,
       leadCost: Number(leadCost) || 0,
-      leadCategory: leadCategory || 'Cold'
+      leadCategory: leadCategory || 'Cold',
+      createdAt: targetCreatedAt || undefined
     });
 
     if (leadType === 'Lead') {
