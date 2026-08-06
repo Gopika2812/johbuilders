@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useAuth, API_URL } from '../context/AuthContext';
 import { LOGO_BASE64 } from '../utils/logoBase64';
 import { useNavigate } from 'react-router-dom';
+import DateRangeFilter from '../components/DateRangeFilter';
 import {
   TrendingUp,
   Users,
@@ -1723,24 +1724,17 @@ const Dashboard = () => {
             </div>
           </div> */}
 
-          {/* Range picker */}
-          <div className="flex flex-col gap-1 w-full">
-            <label className="text-[11px] font-bold text-black-400 uppercase tracking-wider">Custom Date Range</label>
-            <div className="flex items-center gap-2 bg-black-50 border-none px-3 py-1.5 rounded-xl">
-              <input
-                type="date"
-                value={fromDate}
-                onChange={(e) => setFromDate(e.target.value)}
-                className="w-1/2 min-w-[125px] bg-transparent text-xs text-black-700 font-bold focus:outline-none focus:ring-0 border-0 p-0 text-center"
-              />
-              <span className="text-[11px] text-black-400 font-bold">to</span>
-              <input
-                type="date"
-                value={toDate}
-                onChange={(e) => setToDate(e.target.value)}
-                className="w-1/2 min-w-[125px] bg-transparent text-xs text-black-700 font-bold focus:outline-none focus:ring-0 border-0 p-0 text-center"
-              />
-            </div>
+          {/* Advanced Date Filtration (From-To Date, Month wise, Quarterly, Half-Yearly, Yearly, Financial Year) */}
+          <div className="col-span-1 sm:col-span-2 lg:col-span-2 w-full">
+            <DateRangeFilter
+              fromDate={fromDate}
+              toDate={toDate}
+              onDateChange={(newFrom, newTo) => {
+                setFromDate(newFrom);
+                setToDate(newTo);
+              }}
+              label="Date Filtration Mode"
+            />
           </div>
 
         </div>

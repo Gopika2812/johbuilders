@@ -197,6 +197,24 @@ table tbody tr td {
   background-color: inherit !important;
 }
 
+/* Light shaded highlighting for Date column */
+table tbody tr td.highlight-date-col {
+  background-color: #eaf4ee !important; /* Soft light shaded green background */
+  border-left: 1px solid rgba(10, 76, 44, 0.12) !important;
+  border-right: 1px solid rgba(10, 76, 44, 0.12) !important;
+}
+
+tr.dark-row td.highlight-date-col {
+  background-color: rgba(255, 255, 255, 0.15) !important;
+}
+
+table thead th.highlight-date-header {
+  background-color: #073b22 !important;
+  color: #f59e0b !important; /* Highlighted text color for Date header */
+  border-left: 1px solid rgba(255, 255, 255, 0.2) !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.2) !important;
+}
+
 /* Style all notification alerts as beautiful floating toasts */
 div.bg-emerald-50.border-emerald-200:not(.rounded-full),
 div.bg-red-50.border-red-200:not(.rounded-full) {

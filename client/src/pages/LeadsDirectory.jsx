@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth, API_URL } from '../context/AuthContext';
 import { LOGO_BASE64 } from '../utils/logoBase64';
 import SearchableSelect from '../components/SearchableSelect';
+import DateRangeFilter from '../components/DateRangeFilter';
 import { sendLeadAssignmentEmail } from '../utils/emailService';
 import {
   Users,
@@ -1124,17 +1125,6 @@ const LeadsDirectory = () => {
       return;
     }
 
-    if (BookedHasLoan === 'Yes') {
-      if (!loanAmount || Number(loanAmount) <= 0) {
-        alert('Loan Amount Required (Rs.) is mandatory and must be greater than 0!');
-        return;
-      }
-      if (!loanBank || !loanBank.trim()) {
-        alert('Preferred Bank name is mandatory!');
-        return;
-      }
-    }
-
     if (BookedAltLocal) {
       const phoneError = validatePhone(BookedAltCountryCode, BookedAltLocal, 'Alternative Contact');
       if (phoneError) {
@@ -1273,6 +1263,8 @@ const LeadsDirectory = () => {
     let initialMode = 'Completed';
     if (targetStatus === 'Site Visit') {
       initialMode = 'SiteVisit';
+    } else if (targetStatus === 'Future Follow-up') {
+      initialMode = 'FutureFollowUp';
     } else if (hasFollowUp) {
       initialMode = 'FollowUp';
     }
@@ -1282,8 +1274,6 @@ const LeadsDirectory = () => {
     const year = now.getFullYear();
     const month = String(now.getMonth() + 1).padStart(2, '0');
     const day = String(now.getDate()).padStart(2, '0');
-    const hours = String(now.getHours()).padStart(2, '0');
-    const minutes = String(now.getMinutes()).padStart(2, '0');
     setNextFollowDate(`${year}-${month}-${day}`);
     setFollowThrough('Call');
     setLeadCategory(lead.leadCategory || 'Cold');
@@ -1300,19 +1290,21 @@ const LeadsDirectory = () => {
 
     let payload = {};
 
-    if (followMode === 'FollowUp' || followMode === 'SiteVisit') {
-      if (!nextFollowDate) {
+    if (followMode === 'FollowUp' || followMode === 'SiteVisit' || followMode === 'FutureFollowUp') {
+      if ((followMode === 'FollowUp' || followMode === 'SiteVisit') && !nextFollowDate) {
         alert('Please select the next date!');
         return;
       }
 
-      const selectedDate = new Date(nextFollowDate);
-      selectedDate.setHours(0, 0, 0, 0);
-      const currentDate = new Date();
-      currentDate.setHours(0, 0, 0, 0);
-      if (selectedDate < currentDate) {
-        alert('Please select a valid future date!');
-        return;
+      if ((followMode === 'FollowUp' || followMode === 'SiteVisit') && nextFollowDate) {
+        const selectedDate = new Date(nextFollowDate);
+        selectedDate.setHours(0, 0, 0, 0);
+        const currentDate = new Date();
+        currentDate.setHours(0, 0, 0, 0);
+        if (selectedDate < currentDate) {
+          alert('Please select a valid future date!');
+          return;
+        }
       }
 
       if (!followRemarks || !followRemarks.trim()) {
@@ -1323,6 +1315,8 @@ const LeadsDirectory = () => {
       let finalStatus = followTargetStatus;
       if (followMode === 'SiteVisit') {
         finalStatus = 'Site Visit';
+      } else if (followMode === 'FutureFollowUp') {
+        finalStatus = 'Future Follow-up';
       } else if (followMode === 'FollowUp' && !['Follow-Up', 'Future Follow-up'].includes(followTargetStatus)) {
         finalStatus = 'Follow-Up';
       }
@@ -1330,7 +1324,7 @@ const LeadsDirectory = () => {
       payload = {
         status: finalStatus,
         followUpInfo: {
-          nextFollowUpDate: new Date(nextFollowDate),
+          nextFollowUpDate: (followMode !== 'FutureFollowUp' && nextFollowDate) ? new Date(nextFollowDate) : undefined,
           contactedThrough: followThrough,
           remarks: followRemarks
         },
@@ -1363,8 +1357,12 @@ const LeadsDirectory = () => {
 
       if (res.ok) {
         setFollowModalOpen(false);
-        if (followMode === 'FollowUp') {
+        if (followMode === 'FutureFollowUp') {
+          setSuccessMsg('Lead moved to Future Follow-up successfully!');
+        } else if (followMode === 'FollowUp') {
           setSuccessMsg(`Follow-up scheduled successfully for ${new Date(nextFollowDate).toLocaleDateString()}!`);
+        } else if (followMode === 'SiteVisit') {
+          setSuccessMsg('Moved to Site Visit successfully!');
         } else {
           setSuccessMsg('Lead has been marked as Lost successfully.');
         }
@@ -1777,22 +1775,15 @@ const LeadsDirectory = () => {
               />
             </div>
           </div>
-          <div className="space-y-1">
-            <label className="text-[11px] font-bold text-black-400 uppercase tracking-wider block">Start Date</label>
-            <input
-              type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              className="w-full px-3 py-2 bg-black-50 border border-black-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-sm font-semibold text-black-600"
-            />
-          </div>
-          <div className="space-y-1">
-            <label className="text-[11px] font-bold text-black-400 uppercase tracking-wider block">End Date</label>
-            <input
-              type="date"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-              className="w-full px-3 py-2 bg-black-50 border border-black-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-sm font-semibold text-black-600"
+          <div className="md:col-span-2 w-full">
+            <DateRangeFilter
+              fromDate={startDate}
+              toDate={endDate}
+              onDateChange={(newStart, newEnd) => {
+                setStartDate(newStart);
+                setEndDate(newEnd);
+              }}
+              label="Date Range & Presets"
             />
           </div>
         </div>
@@ -1917,7 +1908,7 @@ const LeadsDirectory = () => {
             <thead>
               <tr className="bg-black-50 border-b border-black-150 text-[11px] font-bold text-black-500 uppercase tracking-wider">
                 {hasColumnPermission('leads', 'sno') && <th className="px-3 py-2 w-10 text-center">S.No</th>}
-                {hasColumnPermission('leads', 'date') && <th className="px-3 py-2">Date</th>}
+                {hasColumnPermission('leads', 'date') && <th className="px-3 py-2 highlight-date-header">Date</th>}
                 {hasColumnPermission('leads', 'customerName') && <th className="px-3 py-2">Customer Name</th>}
                 {hasColumnPermission('leads', 'phoneNumber') && <th className="px-3 py-2">Phone Number</th>}
                 {hasColumnPermission('leads', 'sourceDetails') && <th className="px-3 py-2">Source Details</th>}
@@ -1963,8 +1954,8 @@ const LeadsDirectory = () => {
 
                     {/* Date */}
                     {hasColumnPermission('leads', 'date') && (
-                      <td className="px-3 py-1.5 border-b border-black-100">
-                        <div className="text-[11px] font-semibold text-black-700 whitespace-nowrap">
+                      <td className="px-3 py-1.5 border-b border-black-100 highlight-date-col">
+                        <div className="text-[11px] font-bold text-black-800 whitespace-nowrap">
                           {lead.createdAt ? new Date(lead.createdAt).toLocaleDateString('en-GB') : '—'}
                         </div>
                       </td>
@@ -3128,13 +3119,13 @@ const LeadsDirectory = () => {
                     ) : (
                       <button
                         type="button"
-                        onClick={() => {
-                          setFollowModalOpen(false);
-                          initiateBooked(selectedLeadForFollow);
-                        }}
-                        className="py-3 rounded-xl text-xs font-bold transition bg-blue-600 text-white shadow hover:bg-blue-700"
+                        onClick={() => setFollowMode('FutureFollowUp')}
+                        className={`py-3 rounded-xl text-xs font-bold transition ${followMode === 'FutureFollowUp'
+                          ? 'bg-blue-600 text-white shadow'
+                          : 'bg-black-100 text-black-500 hover:bg-black-200'
+                          }`}
                       >
-                        Move to Booking
+                        Move to Future Follow-up
                       </button>
                     )}
                     <button
@@ -3166,27 +3157,29 @@ const LeadsDirectory = () => {
                   </div>
                 </div>
 
-                {followMode === 'FollowUp' || followMode === 'SiteVisit' ? (
+                {followMode === 'FollowUp' || followMode === 'SiteVisit' || followMode === 'FutureFollowUp' ? (
                   <div className="space-y-4">
-                    <div>
-                      <label className="text-xs font-semibold text-black-600 block mb-1">
-                        {followMode === 'SiteVisit' ? 'Site Visit Scheduled Date' : 'Next Follow-up Date'}
-                      </label>
-                      <input
-                        type="date"
-                        required
-                        value={nextFollowDate}
-                        min={(() => {
-                          const now = new Date();
-                          const year = now.getFullYear();
-                          const month = String(now.getMonth() + 1).padStart(2, '0');
-                          const day = String(now.getDate()).padStart(2, '0');
-                          return `${year}-${month}-${day}`;
-                        })()}
-                        onChange={(e) => setNextFollowDate(e.target.value)}
-                        className="w-full px-3 py-2 bg-black-50 border border-black-200 rounded-xl focus:outline-none text-xs font-semibold text-black-600"
-                      />
-                    </div>
+                    {followMode !== 'FutureFollowUp' && (
+                      <div>
+                        <label className="text-xs font-semibold text-black-600 block mb-1">
+                          {followMode === 'SiteVisit' ? 'Site Visit Scheduled Date' : 'Next Follow-up Date'}
+                        </label>
+                        <input
+                          type="date"
+                          required
+                          value={nextFollowDate}
+                          min={(() => {
+                            const now = new Date();
+                            const year = now.getFullYear();
+                            const month = String(now.getMonth() + 1).padStart(2, '0');
+                            const day = String(now.getDate()).padStart(2, '0');
+                            return `${year}-${month}-${day}`;
+                          })()}
+                          onChange={(e) => setNextFollowDate(e.target.value)}
+                          className="w-full px-3 py-2 bg-black-50 border border-black-200 rounded-xl focus:outline-none text-xs font-semibold text-black-600"
+                        />
+                      </div>
+                    )}
 
                     <div>
                       <label className="text-xs font-semibold text-black-600 block mb-1">Contacted Through</label>
@@ -3552,10 +3545,9 @@ const LeadsDirectory = () => {
                         />
                       </div>
                       <div>
-                        <label className="text-[11px] font-semibold text-black-500 block mb-1">Loan Amount Required (Rs.) <span className="text-red-500">*</span></label>
+                        <label className="text-[11px] font-semibold text-black-500 block mb-1">Loan Amount Required (Rs.) (Optional)</label>
                         <input
                           type="number"
-                          required
                           placeholder="e.g. 1500000"
                           value={loanAmount}
                           onChange={(e) => setLoanAmount(e.target.value)}
@@ -3564,10 +3556,9 @@ const LeadsDirectory = () => {
                         />
                       </div>
                       <div>
-                        <label className="text-[11px] font-semibold text-black-500 block mb-1">Preferred Bank name <span className="text-red-500">*</span></label>
+                        <label className="text-[11px] font-semibold text-black-500 block mb-1">Preferred Bank name (Optional)</label>
                         <input
                           type="text"
-                          required
                           placeholder="e.g. SBI, HDFC"
                           value={loanBank}
                           onChange={(e) => setLoanBank(e.target.value)}
