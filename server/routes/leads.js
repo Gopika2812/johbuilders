@@ -617,10 +617,6 @@ router.delete('/:id', protect, authorize('Superadmin', 'Crd team'), async (req, 
     // 2. Delete related CRDFlows
     await CRDFlow.deleteMany({ lead: lead._id });
 
-    // 3. Delete related Quotations
-    await Quotation.deleteMany({ lead: lead._id });
-
-    // 4. Finally delete the lead itself
     await Lead.findByIdAndDelete(req.params.id);
 
     await AuditLog.create({
@@ -632,6 +628,168 @@ router.delete('/:id', protect, authorize('Superadmin', 'Crd team'), async (req, 
     });
 
     res.json({ message: 'Lead and associated records deleted successfully' });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// @route   POST /api/leads/bulk-import
+// @desc    Bulk import leads from Excel/CSV array data
+router.post('/bulk-import', protect, async (req, res) => {
+  const { leadsData } = req.body;
+  if (!Array.isArray(leadsData) || leadsData.length === 0) {
+    return res.status(400).json({ message: 'No lead data provided for import.' });
+  }
+
+  try {
+    const projects = await Project.find().lean();
+    const users = await User.find().lean();
+
+    let createdCount = 0;
+    let updatedCount = 0;
+    let errors = [];
+
+    for (let i = 0; i < leadsData.length; i++) {
+      const item = leadsData[i];
+      const rowNum = i + 1;
+
+      const rawDate = item.registrationDate || item['Registration Date'] || item.date || item.Date;
+      const rawProjectCode = item.projectCode || item['Project code'] || item.project || item.Project;
+      const rawCustomerName = item.customerName || item['Lead/ Customer name'] || item['Lead/Customer name'] || item['Customer Name'] || item.name || item.Name;
+      const rawPhone = item.phone || item['Phone number'] || item.Phone;
+      const rawLeadSource = item.leadSource || item['Lead source'] || item.source || item.Source;
+      const rawAssignedExecutive = item.assignedExecutive || item['Assigned executive'] || item.assignedTo || item.Executive;
+
+      if (!rawCustomerName || !rawPhone) {
+        errors.push(`Row ${rowNum}: Customer Name and Phone Number are required.`);
+        continue;
+      }
+
+      let cleanPhone = String(rawPhone).trim().replace(/\s+/g, '');
+      if (!cleanPhone.startsWith('+')) {
+        const digits = cleanPhone.replace(/\D/g, '');
+        cleanPhone = digits.length === 10 ? `+91${digits}` : `+${digits}`;
+      }
+
+      let matchedProject = null;
+      if (rawProjectCode) {
+        const pCodeStr = String(rawProjectCode).trim().toLowerCase();
+        matchedProject = projects.find(p => 
+          (p.code && p.code.toLowerCase() === pCodeStr) || 
+          (p.name && p.name.toLowerCase() === pCodeStr)
+        );
+      }
+      if (!matchedProject && projects.length > 0) {
+        matchedProject = projects[0];
+      }
+
+      if (!matchedProject) {
+        errors.push(`Row ${rowNum} (${rawCustomerName}): Project '${rawProjectCode}' not found.`);
+        continue;
+      }
+
+      let matchedUser = null;
+      if (rawAssignedExecutive) {
+        const execStr = String(rawAssignedExecutive).trim().toLowerCase();
+        matchedUser = users.find(u => 
+          u.name && u.name.toLowerCase().includes(execStr)
+        );
+      }
+
+      let parsedCreatedAt = new Date();
+      if (rawDate) {
+        const dStr = String(rawDate).trim();
+        let day, month, year;
+        if (dStr.includes('.')) {
+          const parts = dStr.split('.');
+          if (parts.length === 3) {
+            day = parseInt(parts[0], 10);
+            month = parseInt(parts[1], 10) - 1;
+            year = parseInt(parts[2], 10);
+          }
+        } else if (dStr.includes('/')) {
+          const parts = dStr.split('/');
+          if (parts.length === 3) {
+            day = parseInt(parts[0], 10);
+            month = parseInt(parts[1], 10) - 1;
+            year = parseInt(parts[2], 10);
+          }
+        } else if (dStr.includes('-')) {
+          const parts = dStr.split('-');
+          if (parts.length === 3 && parts[0].length === 4) {
+            year = parseInt(parts[0], 10);
+            month = parseInt(parts[1], 10) - 1;
+            day = parseInt(parts[2], 10);
+          } else if (parts.length === 3) {
+            day = parseInt(parts[0], 10);
+            month = parseInt(parts[1], 10) - 1;
+            year = parseInt(parts[2], 10);
+          }
+        }
+
+        if (year && month !== undefined && !isNaN(day)) {
+          parsedCreatedAt = new Date(Date.UTC(year, month, day, 12, 0, 0));
+        } else {
+          const dObj = new Date(dStr);
+          if (!isNaN(dObj.getTime())) {
+            parsedCreatedAt = dObj;
+          }
+        }
+      }
+
+      const defaultStatus = matchedUser ? 'Assigned' : 'New';
+
+      let existingLead = await Lead.findOne({ phone: cleanPhone, project: matchedProject._id });
+
+      if (existingLead) {
+        existingLead.name = String(rawCustomerName).trim();
+        if (rawLeadSource) existingLead.leadSource = String(rawLeadSource).trim();
+        if (matchedUser) {
+          existingLead.assignedTo = matchedUser._id;
+          existingLead.assignedBy = req.user._id;
+        }
+        existingLead.createdAt = parsedCreatedAt;
+        existingLead.isClosed = false;
+        await existingLead.save();
+        updatedCount++;
+      } else {
+        const newLead = new Lead({
+          leadType: 'Lead',
+          name: String(rawCustomerName).trim(),
+          phone: cleanPhone,
+          project: matchedProject._id,
+          leadSource: rawLeadSource ? String(rawLeadSource).trim() : 'Bulk Import',
+          assignedTo: matchedUser ? matchedUser._id : undefined,
+          assignedBy: matchedUser ? req.user._id : undefined,
+          status: defaultStatus,
+          createdAt: parsedCreatedAt,
+          history: [{
+            status: defaultStatus,
+            assignedTo: matchedUser ? matchedUser._id : undefined,
+            updatedBy: req.user._id,
+            timestamp: parsedCreatedAt,
+            note: 'Bulk imported from Excel'
+          }]
+        });
+        await newLead.save();
+        createdCount++;
+      }
+    }
+
+    await AuditLog.create({
+      user: req.user._id,
+      userName: req.user.name,
+      userRole: req.user.role,
+      action: 'Bulk Import Leads',
+      description: `Bulk imported ${createdCount + updatedCount} leads (${createdCount} created, ${updatedCount} updated).`
+    });
+
+    res.json({
+      message: `Bulk import completed successfully! ${createdCount} lead(s) created, ${updatedCount} updated.`,
+      createdCount,
+      updatedCount,
+      errors
+    });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

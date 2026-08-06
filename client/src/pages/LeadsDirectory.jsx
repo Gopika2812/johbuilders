@@ -31,9 +31,12 @@ import {
   MoreVertical,
   Edit2,
   Trash2,
-  Loader2,
-  XCircle
+  XCircle,
+  Upload,
+  FileUp,
+  ClipboardPaste
 } from 'lucide-react';
+import ExcelJS from 'exceljs';
 
 const SOURCE_TYPES = [
   'Paper Ad',
@@ -365,6 +368,157 @@ const LeadsDirectory = () => {
   const [stageTextColors, setStageTextColors] = useState({
     'Booking': '#ffffff'
   });
+
+  // Bulk Import States & Handlers
+  const [importModalOpen, setImportModalOpen] = useState(false);
+  const [importMode, setImportMode] = useState('file'); // 'file' | 'paste'
+  const [pastedText, setPastedText] = useState('');
+  const [parsedImportData, setParsedImportData] = useState([]);
+  const [importLoading, setImportLoading] = useState(false);
+
+  const parsePastedTextData = (text) => {
+    const lines = text.trim().split(/\r?\n/).filter(line => line.trim());
+    if (lines.length === 0) return [];
+    
+    const firstLineCols = lines[0].split('\t').map(c => c.trim());
+    const hasHeaders = firstLineCols.some(h => 
+      /date|project|name|customer|phone|source|executive|assigned/i.test(h)
+    );
+
+    let headers = ['registrationDate', 'projectCode', 'customerName', 'phone', 'leadSource', 'assignedExecutive'];
+    let startIdx = 0;
+
+    if (hasHeaders) {
+      headers = firstLineCols.map(h => {
+        const lower = h.toLowerCase();
+        if (lower.includes('date')) return 'registrationDate';
+        if (lower.includes('project')) return 'projectCode';
+        if (lower.includes('name') || lower.includes('customer')) return 'customerName';
+        if (lower.includes('phone') || lower.includes('number') || lower.includes('mobile')) return 'phone';
+        if (lower.includes('source') || lower.includes('campaign')) return 'leadSource';
+        if (lower.includes('assigned') || lower.includes('executive')) return 'assignedExecutive';
+        return h;
+      });
+      startIdx = 1;
+    }
+
+    const rows = [];
+    for (let i = startIdx; i < lines.length; i++) {
+      const cols = lines[i].split('\t').map(c => c.trim());
+      if (cols.length < 2) continue;
+      const rowObj = {};
+      cols.forEach((val, idx) => {
+        const key = headers[idx] || `col${idx}`;
+        rowObj[key] = val;
+      });
+      rows.push(rowObj);
+    }
+    return rows;
+  };
+
+  const handlePasteTextChange = (val) => {
+    setPastedText(val);
+    if (val && val.trim()) {
+      const parsed = parsePastedTextData(val);
+      setParsedImportData(parsed);
+    } else {
+      setParsedImportData([]);
+    }
+  };
+
+  const handleExcelFileUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+      const workbook = new ExcelJS.Workbook();
+      const arrayBuffer = await file.arrayBuffer();
+      await workbook.xlsx.load(arrayBuffer);
+      const worksheet = workbook.worksheets[0];
+      const rows = [];
+      let headers = [];
+
+      worksheet.eachRow({ includeEmpty: false }, (row, rowNumber) => {
+        const rowValues = row.values.slice(1).map(val => {
+          if (val && typeof val === 'object' && val.result !== undefined) return String(val.result);
+          if (val && typeof val === 'object' && val.text !== undefined) return String(val.text);
+          if (val instanceof Date) {
+            const y = val.getFullYear();
+            const m = String(val.getMonth() + 1).padStart(2, '0');
+            const d = String(val.getDate()).padStart(2, '0');
+            return `${d}.${m}.${y}`;
+          }
+          return val !== null && val !== undefined ? String(val).trim() : '';
+        });
+
+        if (rowNumber === 1) {
+          const hasHeaders = rowValues.some(h => 
+            /date|project|name|customer|phone|source|executive|assigned/i.test(h)
+          );
+          if (hasHeaders) {
+            headers = rowValues.map(h => {
+              const lower = String(h).toLowerCase();
+              if (lower.includes('date')) return 'registrationDate';
+              if (lower.includes('project')) return 'projectCode';
+              if (lower.includes('name') || lower.includes('customer')) return 'customerName';
+              if (lower.includes('phone') || lower.includes('number') || lower.includes('mobile')) return 'phone';
+              if (lower.includes('source') || lower.includes('campaign')) return 'leadSource';
+              if (lower.includes('assigned') || lower.includes('executive')) return 'assignedExecutive';
+              return h;
+            });
+            return;
+          } else {
+            headers = ['registrationDate', 'projectCode', 'customerName', 'phone', 'leadSource', 'assignedExecutive'];
+          }
+        }
+
+        const rowObj = {};
+        rowValues.forEach((val, idx) => {
+          const key = headers[idx] || `col${idx}`;
+          rowObj[key] = val;
+        });
+        rows.push(rowObj);
+      });
+
+      setParsedImportData(rows);
+    } catch (err) {
+      alert('Error reading Excel file: ' + err.message);
+    }
+  };
+
+  const handleBulkImportSubmit = async () => {
+    if (parsedImportData.length === 0) {
+      alert('No valid lead rows found to import!');
+      return;
+    }
+    setError('');
+    setSuccessMsg('');
+    setImportLoading(true);
+    try {
+      const res = await fetch(`${API_URL}/leads/bulk-import`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ leadsData: parsedImportData })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setSuccessMsg(data.message);
+        setImportModalOpen(false);
+        setParsedImportData([]);
+        setPastedText('');
+        fetchLeads();
+        setTimeout(() => setSuccessMsg(''), 5000);
+      } else {
+        setError(data.message || 'Failed to bulk import leads');
+      }
+    } catch (err) {
+      setError('Connection error submitting bulk import');
+    } finally {
+      setImportLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (token) {
@@ -1562,6 +1716,18 @@ const LeadsDirectory = () => {
           >
             <FileSpreadsheet className="w-4 h-4 text-emerald-700" />
             <span>Export Excel</span>
+          </button>
+
+          <button
+            onClick={() => {
+              setImportModalOpen(true);
+              setParsedImportData([]);
+              setPastedText('');
+            }}
+            className="flex items-center justify-center gap-1.5 px-5 py-3 bg-[#0e623a]/10 hover:bg-[#0e623a]/20 text-[#0e623a] border border-[#0e623a]/30 text-xs font-bold rounded-2xl transition shadow-sm w-full sm:w-auto cursor-pointer"
+          >
+            <Upload className="w-4 h-4 text-[#0e623a]" />
+            <span>Import Excel</span>
           </button>
 
           <button
@@ -3443,6 +3609,168 @@ const LeadsDirectory = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      {/* 🔐 MODAL: Bulk Import Leads from Excel / Copy-Paste */}
+      {importModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl max-w-4xl w-full overflow-hidden shadow-2xl border border-black-100 flex flex-col max-h-[90vh]">
+            <div className="bg-[#0e623a] p-6 text-white flex justify-between items-center">
+              <div className="flex items-center gap-3">
+                <Upload className="w-6 h-6 text-emerald-200" />
+                <div>
+                  <h3 className="text-lg font-bold">Bulk Import Leads</h3>
+                  <p className="text-emerald-100 text-xs mt-0.5">Upload an Excel file (.xlsx / .csv) or paste table cells copied directly from Excel</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setImportModalOpen(false)}
+                className="text-emerald-100 hover:text-white transition cursor-pointer"
+                title="Close"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4 overflow-y-auto flex-grow">
+              {/* Mode Switcher */}
+              <div className="flex gap-2 bg-black-50 p-1 rounded-2xl border border-black-150 w-fit">
+                <button
+                  onClick={() => {
+                    setImportMode('file');
+                    setParsedImportData([]);
+                  }}
+                  className={`px-4 py-2 text-xs font-bold rounded-xl transition flex items-center gap-2 ${importMode === 'file'
+                    ? 'bg-[#0e623a] text-white shadow-sm'
+                    : 'text-black-600 hover:bg-black-100'
+                    }`}
+                >
+                  <FileUp className="w-4 h-4" /> Upload Excel / CSV File
+                </button>
+                <button
+                  onClick={() => {
+                    setImportMode('paste');
+                    setParsedImportData([]);
+                  }}
+                  className={`px-4 py-2 text-xs font-bold rounded-xl transition flex items-center gap-2 ${importMode === 'paste'
+                    ? 'bg-[#0e623a] text-white shadow-sm'
+                    : 'text-black-600 hover:bg-black-100'
+                    }`}
+                >
+                  <ClipboardPaste className="w-4 h-4" /> Copy & Paste from Excel
+                </button>
+              </div>
+
+              {/* Expected Format Guide */}
+              <div className="bg-emerald-50/60 border border-emerald-200/80 p-3.5 rounded-2xl text-xs text-emerald-950 space-y-1">
+                <div className="font-bold flex items-center gap-1.5">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-700 shrink-0" />
+                  <span>Expected Columns Order / Headers:</span>
+                </div>
+                <p className="text-[11px] text-emerald-800 font-mono pl-5">
+                  Registration Date | Project code | Lead/ Customer name | Phone number | Lead source | Assigned executive
+                </p>
+              </div>
+
+              {/* File Upload Option */}
+              {importMode === 'file' && (
+                <div className="border-2 border-dashed border-black-200 rounded-3xl p-8 text-center bg-black-50 hover:bg-emerald-50/30 transition-colors cursor-pointer relative">
+                  <input
+                    type="file"
+                    accept=".xlsx, .xls, .csv"
+                    onChange={handleExcelFileUpload}
+                    className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                  />
+                  <FileSpreadsheet className="w-12 h-12 text-[#0e623a] mx-auto mb-2" />
+                  <p className="text-sm font-bold text-black-800">Click or drop your Excel / CSV file here</p>
+                  <p className="text-xs text-black-400 mt-1">Supports .xlsx, .xls, and .csv files</p>
+                </div>
+              )}
+
+              {/* Copy-Paste Option */}
+              {importMode === 'paste' && (
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-black-500 uppercase tracking-wider block">
+                    Paste Cells from Excel (Ctrl + V)
+                  </label>
+                  <textarea
+                    rows="6"
+                    placeholder={`Paste copied rows here directly from Excel, e.g.:\n01.08.2026\tSSR\tMr. Naveen\t8754062548\t99 Acres\tNainar\n01.08.2026\tJMD\tMs. Vimala\t9952371911\tFacebook\tVelsamy`}
+                    value={pastedText}
+                    onChange={(e) => handlePasteTextChange(e.target.value)}
+                    className="w-full p-4 bg-black-55 border border-black-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#0e623a] text-xs font-mono"
+                  />
+                </div>
+              )}
+
+              {/* Parsed Data Preview Table */}
+              {parsedImportData.length > 0 && (
+                <div className="space-y-2 pt-2 border-t border-black-150">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-xs font-bold text-[#0e623a] uppercase tracking-wider">
+                      Preview Data ({parsedImportData.length} records ready to import)
+                    </h4>
+                    <button
+                      onClick={() => setParsedImportData([])}
+                      className="text-[11px] font-bold text-red-600 hover:underline"
+                    >
+                      Clear Preview
+                    </button>
+                  </div>
+                  <div className="max-h-60 overflow-y-auto border border-black-150 rounded-2xl">
+                    <table className="w-full text-left text-xs border-collapse">
+                      <thead className="bg-black-100 text-black-600 font-bold sticky top-0">
+                        <tr>
+                          <th className="p-2 border-b">#</th>
+                          <th className="p-2 border-b">Date</th>
+                          <th className="p-2 border-b">Project</th>
+                          <th className="p-2 border-b">Customer Name</th>
+                          <th className="p-2 border-b">Phone</th>
+                          <th className="p-2 border-b">Source</th>
+                          <th className="p-2 border-b">Assigned Executive</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-black-100">
+                        {parsedImportData.map((row, idx) => (
+                          <tr key={idx} className="hover:bg-black-50 text-[11px]">
+                            <td className="p-2 text-black-400 font-bold">{idx + 1}</td>
+                            <td className="p-2 font-semibold text-black-700">{row.registrationDate || '—'}</td>
+                            <td className="p-2 font-bold text-black-800">{row.projectCode || '—'}</td>
+                            <td className="p-2 font-semibold text-black-800">{row.customerName || '—'}</td>
+                            <td className="p-2 font-mono text-black-700">{row.phone || '—'}</td>
+                            <td className="p-2 text-black-600">{row.leadSource || '—'}</td>
+                            <td className="p-2 font-semibold text-black-800">{row.assignedExecutive || '—'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Modal Actions */}
+            <div className="p-6 bg-black-50 border-t border-black-150 flex items-center justify-between">
+              <span className="text-xs text-black-500 font-semibold">
+                {parsedImportData.length > 0 ? `${parsedImportData.length} records ready` : 'No file or data selected'}
+              </span>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setImportModalOpen(false)}
+                  className="px-5 py-2.5 bg-white border border-black-200 text-black-700 hover:bg-black-100 text-xs font-bold rounded-2xl transition cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleBulkImportSubmit}
+                  disabled={importLoading || parsedImportData.length === 0}
+                  className="px-6 py-2.5 bg-[#0e623a] hover:bg-[#0b4d2d] text-white text-xs font-bold rounded-2xl transition shadow-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 cursor-pointer"
+                >
+                  {importLoading && <Loader2 className="w-4 h-4 animate-spin" />}
+                  Confirm Bulk Import ({parsedImportData.length})
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
