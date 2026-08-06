@@ -34,7 +34,8 @@ import {
   XCircle,
   Upload,
   FileUp,
-  ClipboardPaste
+  ClipboardPaste,
+  Loader2
 } from 'lucide-react';
 import ExcelJS from 'exceljs';
 
