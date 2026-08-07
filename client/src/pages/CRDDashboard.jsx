@@ -453,8 +453,19 @@ const CRDDashboard = () => {
     const month = String(d.getMonth() + 1).padStart(2, '0');
     return `${year}-${month}`;
   });
-  const [fromDate, setFromDate] = useState(() => new Date().toISOString().split('T')[0]);
-  const [toDate, setToDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [fromDate, setFromDate] = useState(() => {
+    const d = new Date();
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    return `${year}-${month}-01`;
+  });
+  const [toDate, setToDate] = useState(() => {
+    const d = new Date();
+    const year = d.getFullYear();
+    const month = d.getMonth();
+    const lastD = new Date(year, month + 1, 0).getDate();
+    return `${year}-${String(month + 1).padStart(2, '0')}-${String(lastD).padStart(2, '0')}`;
+  });
 
   // User and Project filters
   const [selectedUser, setSelectedUser] = useState(() => {

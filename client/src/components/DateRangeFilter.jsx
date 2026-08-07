@@ -2,14 +2,24 @@ import React, { useState, useEffect } from 'react';
 import { Calendar, ChevronDown } from 'lucide-react';
 
 const DateRangeFilter = ({ fromDate, toDate, onDateChange, label = 'Date Filtration' }) => {
-  const [filterMode, setFilterMode] = useState('custom'); // 'custom', 'this_month', 'last_month', 'month', 'quarterly', 'half_yearly', 'yearly', 'financial_year'
+  const [filterMode, setFilterMode] = useState('month'); // 'month', 'custom', 'this_month', 'last_month', 'quarterly', 'half_yearly', 'yearly', 'financial_year'
   const [selectedYear, setSelectedYear] = useState(() => new Date().getFullYear());
   const [selectedMonthVal, setSelectedMonthVal] = useState(() => {
+    if (fromDate) return fromDate.substring(0, 7);
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
   });
   const [selectedQuarter, setSelectedQuarter] = useState('Q1');
   const [selectedHalfYear, setSelectedHalfYear] = useState('H1');
+
+  useEffect(() => {
+    if (fromDate && filterMode === 'month') {
+      const ym = fromDate.substring(0, 7);
+      if (ym && ym !== selectedMonthVal) {
+        setSelectedMonthVal(ym);
+      }
+    }
+  }, [fromDate, filterMode]);
 
   // Generate Year options (e.g. 2020 to 2030)
   const currentYear = new Date().getFullYear();
@@ -121,10 +131,10 @@ const DateRangeFilter = ({ fromDate, toDate, onDateChange, label = 'Date Filtrat
             onChange={(e) => handleModeChange(e.target.value)}
             className="bg-transparent text-xs text-black-800 font-bold focus:outline-none cursor-pointer border-0 p-0"
           >
+            <option value="month">Month Wise</option>
             <option value="custom">Custom Date Range</option>
             <option value="this_month">This Month</option>
             <option value="last_month">Last Month</option>
-            <option value="month">Month Wise</option>
             <option value="quarterly">Quarterly</option>
             <option value="half_yearly">Half Yearly</option>
             <option value="yearly">Yearly (Calendar)</option>
