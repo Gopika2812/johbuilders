@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth, API_URL } from '../context/AuthContext';
 import { LOGO_BASE64 } from '../utils/logoBase64';
 import SearchableSelect from '../components/SearchableSelect';
+import SearchableMultiSelect from '../components/SearchableMultiSelect';
 import DateRangeFilter from '../components/DateRangeFilter';
 import { sendLeadAssignmentEmail } from '../utils/emailService';
 import {
@@ -198,7 +199,7 @@ const LeadsDirectory = () => {
   });
   const [assignedFilter, setAssignedFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
-  const [campaignFilter, setCampaignFilter] = useState('');
+  const [campaignFilter, setCampaignFilter] = useState([]);
   const [categoryFilter, setCategoryFilter] = useState('');
   const [locationFilter, setLocationFilter] = useState('');
   const [bankLoanFilter, setBankLoanFilter] = useState('');
@@ -1662,7 +1663,7 @@ const LeadsDirectory = () => {
       const matchesEndDate = !endTime || !itemTime || itemTime <= endTime;
 
       const matchesAssigned = !assignedFilter || lead.assignedTo?._id === assignedFilter;
-      const matchesCampaign = !campaignFilter || lead.leadSource === campaignFilter;
+      const matchesCampaign = !campaignFilter || campaignFilter.length === 0 || (Array.isArray(campaignFilter) ? campaignFilter.includes(lead.leadSource) : lead.leadSource === campaignFilter);
       const matchesCategory = !categoryFilter || lead.leadCategory === categoryFilter;
       const matchesLocation = !locationFilter || lead.projectLocation === locationFilter || lead.project?.location === locationFilter;
       const matchesBankLoan = !bankLoanFilter || lead.bankLoan === bankLoanFilter;
@@ -1842,16 +1843,13 @@ const LeadsDirectory = () => {
           {/* Campaign / Source */}
           <div className="space-y-1">
             <label className="text-[11px] font-bold text-black-400 uppercase tracking-wider block">Campaign / Source</label>
-            <select
-              value={campaignFilter}
-              onChange={(e) => setCampaignFilter(e.target.value)}
-              className="w-full max-w-full truncate px-3 py-2 bg-black-50 border border-black-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-xs font-bold text-black-700"
-            >
-              <option value="">All Campaigns</option>
-              {SOURCE_TYPES.map(src => (
-                <option key={src} value={src}>{src}</option>
-              ))}
-            </select>
+            <SearchableMultiSelect
+              options={SOURCE_TYPES}
+              selectedOptions={campaignFilter}
+              onChange={(selected) => setCampaignFilter(selected)}
+              placeholder="All Campaigns / Sources"
+              allLabel="All Campaigns"
+            />
           </div>
 
           {/* Lead Category */}

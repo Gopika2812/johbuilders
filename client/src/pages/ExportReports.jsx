@@ -677,6 +677,18 @@ const ExportReports = () => {
       let globalSNo = 1;
 
       Object.keys(groupedByExec).forEach(execName => {
+        const leadsList = groupedByExec[execName];
+        // Sort chronologically by date (1st to 31st)
+        leadsList.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+
+        // Pre-calculate date counts for date cell collapsing
+        const dateCounts = {};
+        leadsList.forEach(lead => {
+          const dStr = new Date(lead.createdAt).toLocaleDateString('en-GB').replace(/\//g, '.');
+          dateCounts[dStr] = (dateCounts[dStr] || 0) + 1;
+        });
+        const renderedDates = new Set();
+
         // Executive banner row
         html += `
           <tr>
@@ -694,8 +706,15 @@ const ExportReports = () => {
         `;
 
         // Lead rows
-        groupedByExec[execName].forEach((lead, idx) => {
+        leadsList.forEach((lead, idx) => {
           const dateStr = new Date(lead.createdAt).toLocaleDateString('en-GB').replace(/\//g, '.');
+          let dateCellHtml = '';
+          if (!renderedDates.has(dateStr)) {
+            renderedDates.add(dateStr);
+            const count = dateCounts[dateStr];
+            dateCellHtml = `<td class="text-left" ${count > 1 ? `rowspan="${count}"` : ''} style="vertical-align: middle;">${dateStr}</td>`;
+          }
+
           const phoneStr = lead.phone || '&nbsp;';
           const sourceStr = lead.leadSource || '&nbsp;';
           const projectStr = lead.project?.code || '&nbsp;';
@@ -705,13 +724,11 @@ const ExportReports = () => {
           let remarksStr = lead.followUpInfo?.remarks || lead.closeRemarks || '&nbsp;';
           if (remarksStr.match(/\[Lost at (.*?) stage\]/)) remarksStr = remarksStr.replace(/\[Lost at .*? stage\]( - )?/, '');
           const rowClass = idx % 2 === 1 ? 'class="even-row"' : '';
-          
-          const assignerStr = lead.assignedBy?.name || 'Superadmin';
 
           html += `
             <tr ${rowClass}>
               <td class="text-center">${globalSNo++}</td>
-              <td class="text-left">${dateStr}</td>
+              ${dateCellHtml}
               <td class="text-left bold-label">${lead.name || '&nbsp;'}</td>
               <td class="text-left">${phoneStr}</td>
               <td class="text-left">${execName.toUpperCase()}</td>
@@ -820,6 +837,17 @@ const ExportReports = () => {
       let globalSNo = 1;
 
       Object.keys(groupedByExec).forEach(execName => {
+        const leadsList = groupedByExec[execName];
+        // Sort chronologically by date (1st to 31st)
+        leadsList.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+
+        const dateCounts = {};
+        leadsList.forEach(lead => {
+          const dStr = new Date(lead.createdAt).toLocaleDateString('en-GB').replace(/\//g, '.');
+          dateCounts[dStr] = (dateCounts[dStr] || 0) + 1;
+        });
+        const renderedDates = new Set();
+
         // Executive banner row
         html += `
           <tr>
@@ -840,13 +868,19 @@ const ExportReports = () => {
         `;
 
         // Lead rows
-        groupedByExec[execName].forEach((lead, idx) => {
+        leadsList.forEach((lead, idx) => {
           const dateStr = new Date(lead.createdAt).toLocaleDateString('en-GB').replace(/\//g, '.');
+          let dateCellHtml = '';
+          if (!renderedDates.has(dateStr)) {
+            renderedDates.add(dateStr);
+            const count = dateCounts[dateStr];
+            dateCellHtml = `<td class="text-center" ${count > 1 ? `rowspan="${count}"` : ''} style="vertical-align: middle;">${dateStr}</td>`;
+          }
+
           const phoneStr = lead.phone || '&nbsp;';
           const placeStr = lead.address ? lead.address.split(',')[0] : '&nbsp;';
           const visitedBy = execName;
           
-          // Enquiry Status column is completed/followup (or lead.status lowercase)
           const isLeadClosed = lead.status === 'Lost' || lead.status === 'Closed' || lead.isClosed;
           const statusStr = isLeadClosed ? 'completed' : (lead.status === 'Site Visit Follow-up' ? 'followup' : 'completed');
           let remarksStr = lead.followUpInfo?.remarks || lead.closeRemarks || '&nbsp;';
@@ -857,7 +891,7 @@ const ExportReports = () => {
           html += `
             <tr ${rowClass}>
               <td>${globalSNo++}</td>
-              <td>${dateStr}</td>
+              ${dateCellHtml}
               <td class="text-left bold-label">${lead.name || '&nbsp;'}</td>
               <td>${phoneStr}</td>
               <td>${visitedBy}</td>
@@ -963,6 +997,19 @@ const ExportReports = () => {
       let globalSNo = 1;
 
       Object.keys(groupedByExec).forEach(execName => {
+        const leadsList = groupedByExec[execName];
+        // Sort chronologically by date (1st to 31st)
+        leadsList.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+
+        const dateCounts = {};
+        leadsList.forEach(lead => {
+          const dStr = lead.updatedAt 
+            ? new Date(lead.updatedAt).toLocaleDateString('en-GB').replace(/\//g, '.') 
+            : new Date(lead.createdAt).toLocaleDateString('en-GB').replace(/\//g, '.');
+          dateCounts[dStr] = (dateCounts[dStr] || 0) + 1;
+        });
+        const renderedDates = new Set();
+
         // Executive banner row
         html += `
           <tr>
@@ -981,15 +1028,21 @@ const ExportReports = () => {
         `;
 
         // Lead rows
-        groupedByExec[execName].forEach((lead, idx) => {
+        leadsList.forEach((lead, idx) => {
           const nameStr = lead.name || '';
           const phoneStr = lead.phone || '';
           const followBy = execName;
           
-          // Last Called Date: either lead.updatedAt or latest follow-up date
           const lastCalledStr = lead.updatedAt 
             ? new Date(lead.updatedAt).toLocaleDateString('en-GB').replace(/\//g, '.') 
             : new Date(lead.createdAt).toLocaleDateString('en-GB').replace(/\//g, '.');
+
+          let dateCellHtml = '';
+          if (!renderedDates.has(lastCalledStr)) {
+            renderedDates.add(lastCalledStr);
+            const count = dateCounts[lastCalledStr];
+            dateCellHtml = `<td class="text-center" ${count > 1 ? `rowspan="${count}"` : ''} style="vertical-align: middle;">${lastCalledStr}</td>`;
+          }
             
           const followUpDateStr = lead.followUpInfo?.nextFollowUpDate 
             ? new Date(lead.followUpInfo.nextFollowUpDate).toLocaleDateString('en-GB').replace(/\//g, '.') 
@@ -1005,7 +1058,7 @@ const ExportReports = () => {
               <td class="text-left bold-label">${nameStr}</td>
               <td>${phoneStr}</td>
               <td>${followBy}</td>
-              <td>${lastCalledStr}</td>
+              ${dateCellHtml}
               <td>${followUpDateStr}</td>
               <td class="text-left">${remarksStr}</td>
             </tr>
@@ -1113,6 +1166,21 @@ const ExportReports = () => {
             </tr>
       `;
 
+      // Sort chronologically by booked/created date (1st to 31st)
+      filtered.sort((a, b) => {
+        const dA = a.bookingInfo?.bookingDate ? new Date(a.bookingInfo.bookingDate) : new Date(a.createdAt);
+        const dB = b.bookingInfo?.bookingDate ? new Date(b.bookingInfo.bookingDate) : new Date(b.createdAt);
+        return dA - dB;
+      });
+
+      const dateCounts = {};
+      filtered.forEach(lead => {
+        const bDate = lead.bookingInfo?.bookingDate ? new Date(lead.bookingInfo.bookingDate) : new Date(lead.createdAt);
+        const dStr = bDate.toLocaleDateString('en-GB').replace(/\//g, '.');
+        dateCounts[dStr] = (dateCounts[dStr] || 0) + 1;
+      });
+      const renderedDates = new Set();
+
       // Lead rows sequentially without exec banner groupings
       filtered.forEach((lead, index) => {
         const bDate = lead.bookingInfo?.bookingDate 
@@ -1120,6 +1188,13 @@ const ExportReports = () => {
           : new Date(lead.createdAt);
           
         const dateStr = bDate.toLocaleDateString('en-GB').replace(/\//g, '.');
+        let dateCellHtml = '';
+        if (!renderedDates.has(dateStr)) {
+          renderedDates.add(dateStr);
+          const count = dateCounts[dateStr];
+          dateCellHtml = `<td class="text-center" ${count > 1 ? `rowspan="${count}"` : ''} style="vertical-align: middle;">${dateStr}</td>`;
+        }
+
         const custName = lead.name || '';
         const phoneStr = lead.phone || '';
         const attendedBy = lead.assignedTo?.name || 'UNASSIGNED';
@@ -1136,7 +1211,7 @@ const ExportReports = () => {
         html += `
           <tr ${rowClass}>
             <td>${index + 1}</td>
-            <td>${dateStr}</td>
+            ${dateCellHtml}
             <td class="text-left bold-label">${custName}</td>
             <td>${phoneStr}</td>
             <td>${attendedBy}</td>
