@@ -57,10 +57,9 @@ const getExcelHeader = (titleText, monthTitle, totalColumns, themeColor, logoPat
     const safeCols = Math.max(3, totalColumns);
     const webLogo = LOGO_BASE64;
     return `
-      <tr style="height: 60px;">
-        <td colspan="2" bgcolor="#0B4D2D" class="title-row" style="background-color: #0B4D2D; color: #FFFFFF; font-family: 'Segoe UI', Arial, sans-serif; font-size: 12pt; font-weight: bold; text-align: center; vertical-align: middle; border: 1px solid #000000; height: 60px; padding: 4px;">
-          ${webLogo ? `<img src="${webLogo}" style="max-height: 34px; max-width: 100%; width: auto; object-fit: contain; margin: 0 auto 2px auto; display: block;" alt="JOHN BUILDWELL" />` : ''}
-          <div style="color: #FFFFFF; font-size: 10.5pt; font-weight: bold; font-family: 'Segoe UI', Arial, sans-serif; text-align: center; text-transform: uppercase; line-height: 1.1;">John Buildwell</div>
+      <tr style="height: 65px;">
+        <td colspan="2" bgcolor="#0B4D2D" class="title-row" style="background-color: #0B4D2D; padding: 2px; text-align: center; vertical-align: middle; border: 1px solid #000000; height: 65px; width: 140px;">
+          ${webLogo ? `<img src="${webLogo}" style="max-height: 60px; max-width: 100%; width: 100%; height: 60px; object-fit: contain; display: block; margin: 0 auto;" alt="JOHN BUILDWELL" />` : `<div style="color: #FFFFFF; font-size: 11pt; font-weight: bold; text-align: center;">John Buildwell</div>`}
         </td>
         <td colspan="${safeCols - 2}" class="title-row text-center" style="background-color: #FCE4D6; color: #000000; border: 1px solid #000000; border-left: none; vertical-align:middle; text-align:center; font-size: 14pt; font-weight: bold; height: 60px;">
           ${titleText}
