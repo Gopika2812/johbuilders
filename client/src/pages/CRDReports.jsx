@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth, API_URL } from '../context/AuthContext';
+import DateRangeFilter from '../components/DateRangeFilter';
 import * as XLSX from 'xlsx-js-style';
 import { htmlToStyledSheet } from '../utils/htmlToSheet';
 import { LOGO_BASE64 } from '../utils/logoBase64';
@@ -3234,22 +3235,16 @@ const KPIInsights = () => {
 
         {/* Filters Panel */}
         <div className="flex flex-wrap items-center gap-4 bg-white p-3 rounded-2xl border border-black-150 shadow-xs">
-          {/* Month Picker */}
-          <div className="flex items-center gap-2 px-2">
-            <Calendar className="w-3.5 h-3.5 text-[#0e623a]" />
-            <span className="text-xs font-bold text-black-700">Range:</span>
-            <input
-              type="date"
-              value={fromDate}
-              onChange={(e) => setFromDate(e.target.value)}
-              className="text-xs font-bold text-black-700 bg-transparent border-b border-black-300 focus:outline-none focus:border-[#0e623a] px-1"
-            />
-            <span className="text-xs font-bold text-black-500">to</span>
-            <input
-              type="date"
-              value={toDate}
-              onChange={(e) => setToDate(e.target.value)}
-              className="text-xs font-bold text-black-700 bg-transparent border-b border-black-300 focus:outline-none focus:border-[#0e623a] px-1"
+          {/* Date Range & Presets Filter */}
+          <div className="w-full lg:w-auto">
+            <DateRangeFilter
+              fromDate={fromDate}
+              toDate={toDate}
+              onDateChange={(newFrom, newTo) => {
+                setFromDate(newFrom);
+                setToDate(newTo);
+              }}
+              label="Date Range & Presets"
             />
           </div>
         </div>

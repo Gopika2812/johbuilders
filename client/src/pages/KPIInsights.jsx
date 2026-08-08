@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useAuth, API_URL } from '../context/AuthContext';
 import { LOGO_BASE64 } from '../utils/logoBase64';
 import { formatUnitWithLabel } from '../utils/formatUtils';
+import SearchableMultiSelect from '../components/SearchableMultiSelect';
 import { 
   TrendingUp, 
   Calendar, 
@@ -414,7 +415,10 @@ const KPIInsights = () => {
     try {
       let url = `${API_URL}/dashboard/lead-cost-analysis?fromDate=${fromDate}&toDate=${toDate}`;
       if (selectedProject) url += `&projectId=${selectedProject}`;
-      if (selectedSource) url += `&source=${encodeURIComponent(selectedSource)}`;
+      if (selectedSource && (Array.isArray(selectedSource) ? selectedSource.length > 0 : selectedSource)) {
+        const srcParam = Array.isArray(selectedSource) ? selectedSource.join(',') : selectedSource;
+        url += `&source=${encodeURIComponent(srcParam)}`;
+      }
       
       const response = await fetch(url, {
         headers: { 'Authorization': `Bearer ${token}` }
@@ -434,7 +438,10 @@ const KPIInsights = () => {
       let url = `${API_URL}/dashboard/stats?fromDate=${fromDate}&toDate=${toDate}`;
       if (selectedUser) url += `&userId=${selectedUser}`;
       if (selectedProject) url += `&projectId=${selectedProject}`;
-      if (selectedSource) url += `&source=${encodeURIComponent(selectedSource)}`;
+      if (selectedSource && (Array.isArray(selectedSource) ? selectedSource.length > 0 : selectedSource)) {
+        const srcParam = Array.isArray(selectedSource) ? selectedSource.join(',') : selectedSource;
+        url += `&source=${encodeURIComponent(srcParam)}`;
+      }
       
       const response = await fetch(url, {
         headers: { 'Authorization': `Bearer ${token}` }
@@ -2767,7 +2774,8 @@ const KPIInsights = () => {
     setToDate(lastDay);
   };
   const filteredSourceStats = Object.entries(stats.sourceStats || {}).reduce((acc, [src, data]) => {
-    if (selectedSource && src.toLowerCase() !== selectedSource.toLowerCase()) return acc;
+    const selArr = Array.isArray(selectedSource) ? selectedSource : (selectedSource ? selectedSource.split(',').map(s => s.trim()).filter(Boolean) : []);
+    if (selArr.length > 0 && !selArr.some(s => s.toLowerCase() === src.toLowerCase())) return acc;
     acc[src] = data;
     return acc;
   }, {});
@@ -2853,18 +2861,14 @@ const KPIInsights = () => {
           </div>
 
           {/* Source Select */}
-          <div className="flex items-center gap-1">
-            <Filter className="w-3.5 h-3.5 text-black-400" />
-            <select
-              value={selectedSource}
-              onChange={(e) => setSelectedSource(e.target.value)}
-              className="px-2.5 py-1.5 text-xs bg-black-50 border border-black-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-black-700 font-bold max-w-[150px]"
-            >
-              <option value="">All Sources</option>
-              {SOURCE_TYPES.map(src => (
-                <option key={src} value={src}>{src}</option>
-              ))}
-            </select>
+          <div className="w-[180px]">
+            <SearchableMultiSelect
+              options={Array.from(new Set([...SOURCE_TYPES, ...Object.keys(stats.sourceStats || {})])).sort()}
+              selectedValues={selectedSource}
+              onChange={(newSources) => setSelectedSource(newSources)}
+              placeholder="All Sources"
+              icon={Filter}
+            />
           </div>
 
           <div className="border-l border-black-200 h-5"></div>
@@ -2942,16 +2946,15 @@ const KPIInsights = () => {
                 <span>Daily Lead Cost Analysis Report</span>
               </h3>
               <div className="flex items-center gap-3">
-                <select
-                  value={selectedSource}
-                  onChange={(e) => setSelectedSource(e.target.value)}
-                  className="px-3 py-2 bg-black-50 border border-black-200 rounded-xl text-xs font-bold text-black-700 focus:outline-none focus:ring-1 focus:ring-[#0e623a]"
-                >
-                  <option value="">All Lead Sources</option>
-                  {SOURCE_TYPES.map(src => (
-                    <option key={src} value={src}>{src}</option>
-                  ))}
-                </select>
+                <div className="w-[200px]">
+                  <SearchableMultiSelect
+                    options={Array.from(new Set([...SOURCE_TYPES, ...Object.keys(stats.sourceStats || {})])).sort()}
+                    selectedValues={selectedSource}
+                    onChange={(newSources) => setSelectedSource(newSources)}
+                    placeholder="All Lead Sources"
+                    icon={Filter}
+                  />
+                </div>
                 <button
                   onClick={handleExportLeadCostAnalysis}
                   className="px-4 py-2 bg-[#0e623a] text-white rounded-xl text-xs font-bold hover:bg-[#0b4d2d] transition flex items-center gap-2 shadow-sm"

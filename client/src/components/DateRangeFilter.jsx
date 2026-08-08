@@ -114,22 +114,24 @@ const DateRangeFilter = ({ fromDate, toDate, onDateChange, label = 'Date Filtrat
   return (
     <div className="flex flex-col gap-1.5 w-full">
       <div className="flex items-center justify-between">
-        <label className="text-[11px] font-bold text-black-600 uppercase tracking-wider block">
-          {label}
+        <label className="text-[11px] font-black text-[#0e623a] uppercase tracking-wider flex items-center gap-1.5">
+          <Calendar className="w-3.5 h-3.5 text-[#0e623a]" />
+          <span>{label}</span>
         </label>
-        <span className="text-[10px] text-[#0e623a] font-extrabold bg-[#0e623a]/10 px-2 py-0.5 rounded-full">
+        <span className="text-[10px] text-white font-extrabold bg-gradient-to-r from-[#0e623a] to-[#0b4d2d] px-2.5 py-0.5 rounded-full shadow-xs tracking-tight">
           {fromDate === toDate ? fromDate : `${fromDate} to ${toDate}`}
         </span>
       </div>
 
-      <div className="flex flex-wrap items-center gap-2">
+      {/* Date UI Container highlighted slightly */}
+      <div className="flex flex-wrap items-center gap-2 bg-[#f0fbf4] border border-[#0e623a]/25 p-1.5 rounded-2xl shadow-[0_2px_10px_rgba(14,98,58,0.06)] transition-all hover:border-[#0e623a]/40">
         {/* Preset Selector Dropdown */}
-        <div className="flex items-center gap-1.5 bg-black-50 border border-black-200 px-3 py-1.5 rounded-xl shadow-xs shrink-0">
+        <div className="flex items-center gap-1.5 bg-white border border-[#0e623a]/30 px-3 py-1.5 rounded-xl shadow-xs shrink-0 hover:border-[#0e623a] transition">
           <Calendar className="w-4 h-4 text-[#0e623a] shrink-0" />
           <select
             value={filterMode}
             onChange={(e) => handleModeChange(e.target.value)}
-            className="bg-transparent text-xs text-black-800 font-bold focus:outline-none cursor-pointer border-0 p-0"
+            className="bg-transparent text-xs text-[#0e623a] font-extrabold focus:outline-none cursor-pointer border-0 p-0"
           >
             <option value="month">Month Wise</option>
             <option value="custom">Custom Date Range</option>
@@ -144,7 +146,7 @@ const DateRangeFilter = ({ fromDate, toDate, onDateChange, label = 'Date Filtrat
 
         {/* Dynamic Controls based on selected mode */}
         {filterMode === 'month' && (
-          <div className="flex items-center gap-1.5 bg-black-50 border border-black-200 px-3 py-1.5 rounded-xl">
+          <div className="flex items-center gap-1.5 bg-white border border-[#0e623a]/30 px-3 py-1.5 rounded-xl shadow-xs hover:border-[#0e623a] transition">
             <input
               type="month"
               value={selectedMonthVal}
@@ -152,7 +154,7 @@ const DateRangeFilter = ({ fromDate, toDate, onDateChange, label = 'Date Filtrat
                 setSelectedMonthVal(e.target.value);
                 applyFilterMode('month', selectedYear, e.target.value);
               }}
-              className="bg-transparent text-xs text-black-800 font-bold focus:outline-none cursor-pointer p-0 border-0"
+              className="bg-transparent text-xs text-[#0e623a] font-extrabold focus:outline-none cursor-pointer p-0 border-0"
             />
           </div>
         )}
@@ -166,7 +168,7 @@ const DateRangeFilter = ({ fromDate, toDate, onDateChange, label = 'Date Filtrat
                 setSelectedYear(y);
                 applyFilterMode('quarterly', y);
               }}
-              className="bg-black-50 border border-black-200 px-2 py-1.5 rounded-xl text-xs text-black-800 font-bold cursor-pointer"
+              className="bg-white border border-[#0e623a]/30 px-2 py-1.5 rounded-xl text-xs text-[#0e623a] font-bold cursor-pointer"
             >
               {yearOptions.map(y => (
                 <option key={y} value={y}>{y}</option>
@@ -179,7 +181,7 @@ const DateRangeFilter = ({ fromDate, toDate, onDateChange, label = 'Date Filtrat
                 setSelectedQuarter(q);
                 applyFilterMode('quarterly', selectedYear, selectedMonthVal, q);
               }}
-              className="bg-black-50 border border-black-200 px-2 py-1.5 rounded-xl text-xs text-black-800 font-bold cursor-pointer"
+              className="bg-white border border-[#0e623a]/30 px-2 py-1.5 rounded-xl text-xs text-[#0e623a] font-bold cursor-pointer"
             >
               <option value="Q1">Q1 (Jan - Mar)</option>
               <option value="Q2">Q2 (Apr - Jun)</option>
@@ -202,7 +204,7 @@ const DateRangeFilter = ({ fromDate, toDate, onDateChange, label = 'Date Filtrat
                 setSelectedYear(y);
                 applyFilterMode('half_yearly', y);
               }}
-              className="bg-black-50 border border-black-200 px-2 py-1.5 rounded-xl text-xs text-black-800 font-bold cursor-pointer"
+              className="bg-white border border-[#0e623a]/30 px-2 py-1.5 rounded-xl text-xs text-[#0e623a] font-bold cursor-pointer"
             >
               {yearOptions.map(y => (
                 <option key={y} value={y}>{y}</option>
@@ -215,7 +217,7 @@ const DateRangeFilter = ({ fromDate, toDate, onDateChange, label = 'Date Filtrat
                 setSelectedHalfYear(h);
                 applyFilterMode('half_yearly', selectedYear, selectedMonthVal, selectedQuarter, h);
               }}
-              className="bg-black-50 border border-black-200 px-2 py-1.5 rounded-xl text-xs text-black-800 font-bold cursor-pointer"
+              className="bg-white border border-[#0e623a]/30 px-2 py-1.5 rounded-xl text-xs text-[#0e623a] font-bold cursor-pointer"
             >
               <option value="H1">H1 (Jan - Jun)</option>
               <option value="H2">H2 (Jul - Dec)</option>
@@ -226,7 +228,7 @@ const DateRangeFilter = ({ fromDate, toDate, onDateChange, label = 'Date Filtrat
         )}
 
         {(filterMode === 'yearly' || filterMode === 'financial_year') && (
-          <div className="flex items-center gap-1.5 bg-black-50 border border-black-200 px-3 py-1.5 rounded-xl">
+          <div className="flex items-center gap-1.5 bg-white border border-[#0e623a]/30 px-3 py-1.5 rounded-xl">
             <select
               value={selectedYear}
               onChange={(e) => {
@@ -234,7 +236,7 @@ const DateRangeFilter = ({ fromDate, toDate, onDateChange, label = 'Date Filtrat
                 setSelectedYear(y);
                 applyFilterMode(filterMode, y);
               }}
-              className="bg-transparent text-xs text-black-800 font-bold focus:outline-none cursor-pointer border-0 p-0"
+              className="bg-transparent text-xs text-[#0e623a] font-bold focus:outline-none cursor-pointer border-0 p-0"
             >
               {yearOptions.map(y => (
                 <option key={y} value={y}>
@@ -246,7 +248,7 @@ const DateRangeFilter = ({ fromDate, toDate, onDateChange, label = 'Date Filtrat
         )}
 
         {/* Date Inputs for Custom or Fine-tuning */}
-        <div className="flex items-center gap-1.5 bg-black-50 border border-black-200 px-3 py-1.5 rounded-xl">
+        <div className="flex items-center gap-1.5 bg-white border border-[#0e623a]/30 px-3 py-1.5 rounded-xl shadow-xs hover:border-[#0e623a] transition">
           <input
             type="date"
             value={fromDate}
@@ -254,9 +256,9 @@ const DateRangeFilter = ({ fromDate, toDate, onDateChange, label = 'Date Filtrat
               setFilterMode('custom');
               onDateChange(e.target.value, toDate);
             }}
-            className="w-[125px] bg-transparent text-xs text-black-800 font-bold focus:outline-none border-0 p-0 text-center cursor-pointer"
+            className="w-[125px] bg-transparent text-xs text-[#0e623a] font-extrabold focus:outline-none border-0 p-0 text-center cursor-pointer"
           />
-          <span className="text-[11px] text-black-400 font-bold">to</span>
+          <span className="text-[11px] text-[#0e623a]/70 font-black uppercase">to</span>
           <input
             type="date"
             value={toDate}
@@ -264,7 +266,7 @@ const DateRangeFilter = ({ fromDate, toDate, onDateChange, label = 'Date Filtrat
               setFilterMode('custom');
               onDateChange(fromDate, e.target.value);
             }}
-            className="w-[125px] bg-transparent text-xs text-black-800 font-bold focus:outline-none border-0 p-0 text-center cursor-pointer"
+            className="w-[125px] bg-transparent text-xs text-[#0e623a] font-extrabold focus:outline-none border-0 p-0 text-center cursor-pointer"
           />
         </div>
       </div>

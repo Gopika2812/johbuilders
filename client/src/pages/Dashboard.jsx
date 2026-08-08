@@ -3,6 +3,7 @@ import { useAuth, API_URL } from '../context/AuthContext';
 import { LOGO_BASE64 } from '../utils/logoBase64';
 import { useNavigate } from 'react-router-dom';
 import DateRangeFilter from '../components/DateRangeFilter';
+import SearchableMultiSelect from '../components/SearchableMultiSelect';
 import {
   TrendingUp,
   Users,
@@ -1023,7 +1024,10 @@ const Dashboard = () => {
       if (selectedUser) url += `&userId=${selectedUser}`;
       if (selectedProject) url += `&projectId=${selectedProject}`;
       if (selectedProjectType) url += `&projectType=${selectedProjectType}`;
-      if (selectedSource) url += `&source=${selectedSource}`;
+      if (selectedSource && (Array.isArray(selectedSource) ? selectedSource.length > 0 : selectedSource)) {
+        const srcParam = Array.isArray(selectedSource) ? selectedSource.join(',') : selectedSource;
+        url += `&source=${encodeURIComponent(srcParam)}`;
+      }
 
       const response = await fetch(url, {
         headers: { 'Authorization': `Bearer ${token}` }
@@ -1705,20 +1709,17 @@ const Dashboard = () => {
 
           {/* Source Select */}
           <div className="flex flex-col gap-1 w-full">
-            <label className="text-[11px] font-bold text-black-400 uppercase tracking-wider">Filtered Source</label>
-            <div className="flex items-center gap-2 bg-black-50 border-none px-3 py-1.5 rounded-xl">
-              <Target className="w-4 h-4 text-black-455 shrink-0" />
-              <select
-                value={selectedSource}
-                onChange={(e) => setSelectedSource(e.target.value)}
-                className="w-full bg-transparent text-xs text-black-700 font-bold focus:outline-none focus:ring-0 border-0 p-0"
-              >
-                <option value="">All Sources</option>
-                {Object.keys(stats.sourceStats || {}).map(src => (
-                  <option key={src} value={src}>{src}</option>
-                ))}
-              </select>
-            </div>
+            <SearchableMultiSelect
+              label="Filtered Source"
+              options={Array.from(new Set([
+                ...Object.keys(stats.sourceStats || {}),
+                'Paper Ad', 'Railway station Hoardings (Rental)', 'Notice distribution', '99acres', 'Housing.com', 'Website', 'Flexboard/banner', 'Stall', 'Facebook', 'Instagram', 'Youtube', 'Banner', 'Old customer', 'Direct', 'Reference'
+              ])).sort()}
+              selectedValues={selectedSource}
+              onChange={(newSources) => setSelectedSource(newSources)}
+              placeholder="All Sources"
+              icon={Target}
+            />
           </div>
 
           {/* Month Wise */}

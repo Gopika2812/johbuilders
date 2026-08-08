@@ -50,7 +50,21 @@ router.get('/stats', protect, async (req, res) => {
     }
 
     if (userId) query.assignedTo = userId;
-    if (source) query.leadSource = source;
+
+    let sourceFilter = null;
+    if (source) {
+      const sourceArr = String(source).split(',').map(s => s.trim()).filter(Boolean);
+      if (sourceArr.length === 1) {
+        sourceFilter = new RegExp(`^${sourceArr[0].replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')}$`, 'i');
+      } else if (sourceArr.length > 1) {
+        sourceFilter = {
+          $in: sourceArr.map(s => new RegExp(`^${s.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')}$`, 'i'))
+        };
+      }
+      if (sourceFilter) {
+        query.leadSource = sourceFilter;
+      }
+    }
 
     // Build quotations query
     let qQuery = {};
@@ -94,13 +108,13 @@ router.get('/stats', protect, async (req, res) => {
     ] = await Promise.all([
       Project.find({}, 'units').lean(),
       Lead.find(query).populate('project', 'name code').populate('assignedTo', 'name role').lean(),
-      (userId || source) ? Lead.find(userId && source ? { assignedTo: userId, leadSource: source } : (userId ? { assignedTo: userId } : { leadSource: source }), '_id').lean() : Promise.resolve([]),
+      (userId || sourceFilter) ? Lead.find(userId && sourceFilter ? { assignedTo: userId, leadSource: sourceFilter } : (userId ? { assignedTo: userId } : { leadSource: sourceFilter }), '_id').lean() : Promise.resolve([]),
       BudgetPlan.find(budgetQuery).lean(),
       User.find({}, 'name role').lean(),
       Project.find({}, 'name code projectType').lean()
     ]);
 
-    if (userId || source) {
+    if (userId || sourceFilter) {
       const leadIds = userLeads.map(ul => ul._id);
       qQuery.lead = { $in: leadIds };
     }

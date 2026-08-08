@@ -4,6 +4,7 @@ import { htmlToStyledSheet } from '../utils/htmlToSheet';
 import { LOGO_BASE64 } from '../utils/logoBase64';
 import { formatUnitWithLabel } from '../utils/formatUtils';
 import { useAuth, API_URL } from '../context/AuthContext';
+import DateRangeFilter from '../components/DateRangeFilter';
 import { TrendingUp, Download, Calendar, MapPin,   DollarSign, 
   Target,
   User,
@@ -2867,22 +2868,16 @@ const ExportReports = () => {
             </select>
           </div>
 
-          {/* Date Range Filter */}
-          <div className="flex items-center bg-black-50 border border-black-200 rounded-xl px-3 py-2 gap-2">
-            <Calendar className="w-4 h-4 text-black-400" />
-            <span className="text-xs font-bold text-black-500">Range:</span>
-            <input
-              type="date"
-              value={fromDate}
-              onChange={(e) => setFromDate(e.target.value)}
-              className="bg-transparent text-xs font-bold text-black-700 focus:outline-none cursor-pointer"
-            />
-            <span className="text-xs font-bold text-black-400">to</span>
-            <input
-              type="date"
-              value={toDate}
-              onChange={(e) => setToDate(e.target.value)}
-              className="bg-transparent text-xs font-bold text-black-700 focus:outline-none cursor-pointer"
+          {/* Date Range & Presets Filter */}
+          <div className="w-full lg:w-auto">
+            <DateRangeFilter
+              fromDate={fromDate}
+              toDate={toDate}
+              onDateChange={(newFrom, newTo) => {
+                setFromDate(newFrom);
+                setToDate(newTo);
+              }}
+              label="Date Range & Presets"
             />
           </div>
         </div>

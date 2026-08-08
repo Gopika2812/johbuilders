@@ -1299,10 +1299,15 @@ const LeadsDirectory = () => {
       if ((followMode === 'FollowUp' || followMode === 'SiteVisit') && nextFollowDate) {
         const selectedDate = new Date(nextFollowDate);
         selectedDate.setHours(0, 0, 0, 0);
-        const currentDate = new Date();
-        currentDate.setHours(0, 0, 0, 0);
-        if (selectedDate < currentDate) {
-          alert('Please select a valid future date!');
+        const minAllowedDate = new Date();
+        minAllowedDate.setHours(0, 0, 0, 0);
+        if (followMode === 'SiteVisit' || followTargetStatus === 'Site Visit') {
+          minAllowedDate.setDate(minAllowedDate.getDate() - 5);
+        }
+        if (selectedDate < minAllowedDate) {
+          alert((followMode === 'SiteVisit' || followTargetStatus === 'Site Visit')
+            ? 'Site Visit date cannot be older than 5 days ago!'
+            : 'Please select a valid date!');
           return;
         }
       }
@@ -2491,10 +2496,13 @@ const LeadsDirectory = () => {
                       <input
                         type="date"
                         min={(() => {
-                          const now = new Date();
-                          const year = now.getFullYear();
-                          const month = String(now.getMonth() + 1).padStart(2, '0');
-                          const day = String(now.getDate()).padStart(2, '0');
+                          const d = new Date();
+                          if (directStatus === 'Site Visit') {
+                            d.setDate(d.getDate() - 5);
+                          }
+                          const year = d.getFullYear();
+                          const month = String(d.getMonth() + 1).padStart(2, '0');
+                          const day = String(d.getDate()).padStart(2, '0');
                           return `${year}-${month}-${day}`;
                         })()}
                         required
@@ -3169,10 +3177,13 @@ const LeadsDirectory = () => {
                           required
                           value={nextFollowDate}
                           min={(() => {
-                            const now = new Date();
-                            const year = now.getFullYear();
-                            const month = String(now.getMonth() + 1).padStart(2, '0');
-                            const day = String(now.getDate()).padStart(2, '0');
+                            const d = new Date();
+                            if (followMode === 'SiteVisit' || followTargetStatus === 'Site Visit') {
+                              d.setDate(d.getDate() - 5);
+                            }
+                            const year = d.getFullYear();
+                            const month = String(d.getMonth() + 1).padStart(2, '0');
+                            const day = String(d.getDate()).padStart(2, '0');
                             return `${year}-${month}-${day}`;
                           })()}
                           onChange={(e) => setNextFollowDate(e.target.value)}
