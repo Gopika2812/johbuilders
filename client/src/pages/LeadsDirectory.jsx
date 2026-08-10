@@ -2495,9 +2495,7 @@ const LeadsDirectory = () => {
                         type="date"
                         min={(() => {
                           const d = new Date();
-                          if (directStatus === 'Site Visit') {
-                            d.setDate(d.getDate() - 5);
-                          }
+                          d.setDate(d.getDate() - 5);
                           const year = d.getFullYear();
                           const month = String(d.getMonth() + 1).padStart(2, '0');
                           const day = String(d.getDate()).padStart(2, '0');
