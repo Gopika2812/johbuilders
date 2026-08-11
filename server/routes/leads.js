@@ -118,6 +118,7 @@ router.get('/due-followups', protect, async (req, res) => {
     let query = {
       assignedTo: req.user._id,
       isClosed: false,
+      status: { $nin: ['Booking', 'Won', 'Booked', 'Lost'] },
       'followUpInfo.nextFollowUpDate': { $lte: new Date() }
     };
 

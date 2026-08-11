@@ -216,17 +216,20 @@ const LeadsDirectory = () => {
     setCurrentPage(1);
   }, [activeTab, searchTerm, startDate, endDate, assignedFilter, statusFilter, campaignFilter, categoryFilter, locationFilter, bankLoanFilter, reopenedFilter, projectFilter]);
 
-  // Sync activeTab with URL search params status
+  // Sync activeTab and searchTerm with URL search params (e.g. from notification redirects)
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const statusParam = params.get('status');
+    const searchParam = params.get('search');
+    if (searchParam) {
+      setSearchTerm(searchParam);
+      setActiveTab('All');
+    }
     if (statusParam) {
       const matchedStatus = LEAD_STATUSES.find(s => s.toLowerCase() === statusParam.toLowerCase());
       if (matchedStatus) {
         setActiveTab(matchedStatus);
       }
-    } else {
-      setActiveTab('All');
     }
   }, [location.search]);
 
@@ -1660,12 +1663,9 @@ const LeadsDirectory = () => {
         lead.phone?.includes(searchTerm) ||
         lead.project?.code?.toLowerCase().includes(searchTerm.toLowerCase());
 
-      const itemTime = lead.createdAt ? new Date(lead.createdAt).getTime() : null;
-      const startTime = startDate ? new Date(startDate + 'T00:00:00').getTime() : null;
-      const endTime = endDate ? new Date(endDate + 'T23:59:59.999').getTime() : null;
-
-      const matchesStartDate = !startTime || !itemTime || itemTime >= startTime;
-      const matchesEndDate = !endTime || !itemTime || itemTime <= endTime;
+      const hasSearch = Boolean(searchTerm && searchTerm.trim());
+      const matchesStartDate = !hasSearch ? (!startTime || !itemTime || itemTime >= startTime) : true;
+      const matchesEndDate = !hasSearch ? (!endTime || !itemTime || itemTime <= endTime) : true;
 
       const matchesAssigned = !assignedFilter || lead.assignedTo?._id === assignedFilter;
       const matchesCampaign = !campaignFilter || campaignFilter.length === 0 || (Array.isArray(campaignFilter) ? campaignFilter.includes(lead.leadSource) : lead.leadSource === campaignFilter);

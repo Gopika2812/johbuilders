@@ -63,10 +63,12 @@ const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
         return false;
       });
 
-      // Filter leads to ONLY those assigned specifically to the logged in user
+      // Filter leads to ONLY those assigned specifically to the logged in user & NOT Booked/Won/Closed
       const assignedToMe = uniqueLeads.filter(lead => {
         const assignedId = typeof lead.assignedTo === 'object' ? lead.assignedTo?._id : lead.assignedTo;
-        return assignedId && String(assignedId) === String(user?._id);
+        const isAssignedToUser = assignedId && String(assignedId) === String(user?._id);
+        const isBookedOrClosed = ['Booking', 'Won', 'Booked', 'Lost'].includes(lead.status) || lead.isClosed;
+        return isAssignedToUser && !isBookedOrClosed;
       });
 
       setNotifications(assignedToMe);
@@ -313,7 +315,7 @@ const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
                           key={lead._id}
                           onClick={() => {
                             setShowDropdown(false);
-                            navigate(`/leads?search=${lead.name}`);
+                            navigate(`/leads?search=${encodeURIComponent(lead.name || lead.phone || '')}`);
                           }}
                           className="p-2.5 bg-gray-50 hover:bg-gray-100 border border-gray-100 rounded-xl cursor-pointer transition text-xs space-y-1"
                         >
@@ -414,15 +416,25 @@ const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
 
               {/* Lead Alerts */}
               {popupLeads.map(lead => (
-                <div key={lead._id} className="p-3 bg-amber-50/30 border border-amber-100 rounded-2xl text-xs space-y-1">
+                <div 
+                  key={lead._id}
+                  onClick={() => {
+                    setShowPopup(false);
+                    navigate(`/leads?search=${encodeURIComponent(lead.name || lead.phone || '')}`);
+                  }}
+                  className="p-3 bg-amber-50/60 hover:bg-amber-100/70 border border-amber-200 rounded-2xl text-xs space-y-1 cursor-pointer transition shadow-sm"
+                >
                   <div className="flex justify-between font-bold text-gray-850">
-                    <span>{lead.name}</span>
-                    <span className="text-[10px] text-[#0e623a] bg-[#0e623a]/10 px-1.5 py-0.5 rounded">
-                      {lead.project?.code}
+                    <span className="text-[#0e623a] font-extrabold hover:underline">{lead.name}</span>
+                    <span className="text-[10px] text-[#0e623a] bg-[#0e623a]/10 px-1.5 py-0.5 rounded font-bold">
+                      {lead.project?.code || 'No Proj'}
                     </span>
                   </div>
-                  <div className="text-[11px] text-gray-500 flex justify-between">
+                  <div className="text-[11px] text-gray-500 flex justify-between items-center">
                     <span>Phone: {lead.phone}</span>
+                    <span className="text-[10px] text-amber-800 font-extrabold flex items-center gap-0.5">
+                      Redirect to Lead Directory →
+                    </span>
                   </div>
                 </div>
               ))}
