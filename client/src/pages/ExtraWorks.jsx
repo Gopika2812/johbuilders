@@ -719,7 +719,7 @@ const ExtraWorksInner = () => {
       // Add Header with Logo
       let logoId = null;
       try {
-        const logoRes = await fetch('/jb_logo.jpg');
+        const logoRes = await fetch('/logo_white.jpg');
         const logoBlob = await logoRes.blob();
 
         // Convert blob to base64 and strip the data URI prefix
@@ -1075,7 +1075,7 @@ const ExtraWorksInner = () => {
             <div className="p-6 overflow-y-auto flex-1 bg-gray-50">
               <div className="bg-white border border-emerald-100 rounded-2xl shadow-sm overflow-hidden">
                 <div className="bg-[#006838] p-4 flex items-center gap-4 text-white">
-                  <img src="/jb_logo.jpg" alt="Logo" className="h-14 rounded-xl bg-white p-1 shadow-sm" />
+                  <img src="/logo_white.jpg" alt="Logo" className="h-14 rounded-xl bg-white p-1 shadow-sm" />
                   <div>
                     <h3 className="text-lg font-black tracking-wider uppercase">JOHN BUILDWELL</h3>
                     <p className="text-sm font-semibold text-emerald-100">EXTRA WORKS REPORT {startDate && endDate ? `(${startDate} to ${endDate})` : ''}</p>

@@ -865,43 +865,94 @@ router.get('/stats', protect, async (req, res) => {
     // Calculate Group-wise stats for marketing spend drill-down
     const leadGroups = await LeadGroup.find({});
     const groupStats = {};
+    const processedSources = new Set();
 
-    leadGroups.forEach(g => {
+    const findInSourceStats = (srcName) => {
+      if (!srcName) return null;
+      const keys = Object.keys(sourceStats);
+      const matchKey = keys.find(k => k.toLowerCase() === srcName.toLowerCase());
+      return matchKey ? sourceStats[matchKey] : null;
+    };
+
+    let effectiveGroups = leadGroups;
+    if (!effectiveGroups || effectiveGroups.length === 0) {
+      effectiveGroups = [
+        {
+          name: 'DIGITAL MARKETING',
+          sources: ['Facebook', 'Instagram', 'Youtube']
+        },
+        {
+          name: 'PROMOTION ACTIVITIES',
+          sources: ['Paper Ad', 'Railway Station Hoardings (rental)', 'Notice Distribution', '99acres', 'Housing.com', 'Website', 'Flexboard/banner', 'Stall']
+        }
+      ];
+    }
+
+    effectiveGroups.forEach(g => {
       groupStats[g.name] = { budget: 0, spent: 0, value: 0, sources: [] };
-    });
-    groupStats['Other / Unassigned'] = { budget: 0, spent: 0, value: 0, sources: [] };
+      
+      (g.sources || []).forEach(srcName => {
+        const statsObj = findInSourceStats(srcName) || { budget: 0, spent: 0, value: 0 };
+        processedSources.add(srcName.toLowerCase());
 
-    Object.keys(sourceStats).forEach(srcName => {
-      const statsObj = sourceStats[srcName];
+        const b = statsObj.budget || 0;
+        const s = statsObj.spent || 0;
+        const v = statsObj.value || 0;
 
-      const matchingGroup = leadGroups.find(g =>
-        g.sources?.some(s => s.toLowerCase() === srcName.toLowerCase())
-      );
+        groupStats[g.name].budget += b;
+        groupStats[g.name].spent += s;
+        groupStats[g.name].value += v;
 
-      const groupName = matchingGroup ? matchingGroup.name : 'Other / Unassigned';
-
-      groupStats[groupName].budget += statsObj.budget || 0;
-      groupStats[groupName].spent += statsObj.spent || 0;
-      groupStats[groupName].value += statsObj.value || 0;
-      groupStats[groupName].sources.push({
-        source: srcName,
-        budget: statsObj.budget || 0,
-        spent: statsObj.spent || 0,
-        value: statsObj.value || 0,
-        leadCost: statsObj.leadCost || 0,
-        cpe: statsObj.cpe || 0,
-        leads: statsObj.leads || [],
-        count: statsObj.count || 0,
-        enquiries: statsObj.enquiries || 0,
-        siteVisits: statsObj.siteVisits || 0,
-        hotList: statsObj.hotList || 0,
-        booked: statsObj.booked || 0,
-        handover: statsObj.handover || 0,
-        lost: statsObj.lost || 0
+        groupStats[g.name].sources.push({
+          source: srcName,
+          budget: b,
+          spent: s,
+          value: v,
+          leadCost: statsObj.leadCost || 0,
+          cpe: statsObj.cpe || 0,
+          leads: statsObj.leads || [],
+          count: statsObj.count || 0,
+          enquiries: statsObj.enquiries || 0,
+          siteVisits: statsObj.siteVisits || 0,
+          hotList: statsObj.hotList || 0,
+          booked: statsObj.booked || 0,
+          handover: statsObj.handover || 0,
+          lost: statsObj.lost || 0
+        });
       });
     });
 
-    if (groupStats['Other / Unassigned'].budget === 0 && groupStats['Other / Unassigned'].spent === 0 && groupStats['Other / Unassigned'].value === 0) {
+    groupStats['Other / Unassigned'] = { budget: 0, spent: 0, value: 0, sources: [] };
+    Object.keys(sourceStats).forEach(srcName => {
+      if (!processedSources.has(srcName.toLowerCase())) {
+        const statsObj = sourceStats[srcName];
+        const b = statsObj.budget || 0;
+        const s = statsObj.spent || 0;
+        const v = statsObj.value || 0;
+
+        groupStats['Other / Unassigned'].budget += b;
+        groupStats['Other / Unassigned'].spent += s;
+        groupStats['Other / Unassigned'].value += v;
+        groupStats['Other / Unassigned'].sources.push({
+          source: srcName,
+          budget: b,
+          spent: s,
+          value: v,
+          leadCost: statsObj.leadCost || 0,
+          cpe: statsObj.cpe || 0,
+          leads: statsObj.leads || [],
+          count: statsObj.count || 0,
+          enquiries: statsObj.enquiries || 0,
+          siteVisits: statsObj.siteVisits || 0,
+          hotList: statsObj.hotList || 0,
+          booked: statsObj.booked || 0,
+          handover: statsObj.handover || 0,
+          lost: statsObj.lost || 0
+        });
+      }
+    });
+
+    if (groupStats['Other / Unassigned'].sources.length === 0) {
       delete groupStats['Other / Unassigned'];
     }
 

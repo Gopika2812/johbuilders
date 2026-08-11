@@ -41,6 +41,7 @@ router.get('/', protect, async (req, res) => {
     let tasks = await UserTask.find(query)
       .populate('assignedTo', 'name email role phone')
       .populate('assignedBy', 'name email role phone')
+      .populate('history.updatedBy', 'name email role')
       .sort({ dueDate: 1, createdAt: -1 });
 
     if (search) {
@@ -49,7 +50,8 @@ router.get('/', protect, async (req, res) => {
         (task.title || '').toLowerCase().includes(term) ||
         (task.description || '').toLowerCase().includes(term) ||
         (task.assignedTo?.name || '').toLowerCase().includes(term) ||
-        (task.assignedBy?.name || '').toLowerCase().includes(term)
+        (task.assignedBy?.name || '').toLowerCase().includes(term) ||
+        (task.history && task.history.some(h => (h.note || '').toLowerCase().includes(term)))
       );
     }
 
@@ -72,6 +74,7 @@ router.get('/notifications', protect, async (req, res) => {
     })
       .populate('assignedBy', 'name role')
       .populate('assignedTo', 'name role')
+      .populate('history.updatedBy', 'name email role')
       .sort({ createdAt: -1 });
 
     res.json(tasks);
@@ -84,7 +87,7 @@ router.get('/notifications', protect, async (req, res) => {
 // @desc    Create a new task
 // @access  Private (All authenticated users)
 router.post('/', protect, async (req, res) => {
-  const { title, description, dueDate, assignedTo, status } = req.body;
+  const { title, description, dueDate, assignedTo, status, note } = req.body;
 
   if (!title || !dueDate || !assignedTo) {
     return res.status(400).json({ message: 'Title, Due Date, and Assigned Person are required' });
@@ -104,13 +107,23 @@ router.post('/', protect, async (req, res) => {
       assignedBy: req.user._id,
       status: status || 'New',
       actionTaken: false,
-      snoozedBy: []
+      snoozedBy: [],
+      history: [
+        {
+          action: 'Task Created',
+          status: status || 'New',
+          updatedBy: req.user._id,
+          note: note || (description ? `Task created: ${description}` : `Task created and assigned to ${targetUser.name}`),
+          timestamp: new Date()
+        }
+      ]
     });
 
     await newTask.save();
     const populated = await UserTask.findById(newTask._id)
       .populate('assignedTo', 'name email role phone')
-      .populate('assignedBy', 'name email role phone');
+      .populate('assignedBy', 'name email role phone')
+      .populate('history.updatedBy', 'name email role');
 
     res.status(201).json(populated);
   } catch (err) {
@@ -122,7 +135,7 @@ router.post('/', protect, async (req, res) => {
 // @desc    Update task details or status
 // @access  Private
 router.put('/:id', protect, async (req, res) => {
-  const { title, description, dueDate, assignedTo, status, actionTaken } = req.body;
+  const { title, description, dueDate, assignedTo, status, actionTaken, note } = req.body;
 
   try {
     const task = await UserTask.findById(req.params.id);
@@ -130,21 +143,30 @@ router.put('/:id', protect, async (req, res) => {
       return res.status(404).json({ message: 'Task not found' });
     }
 
-    if (title !== undefined) task.title = title;
-    if (description !== undefined) task.description = description;
-    if (dueDate !== undefined) task.dueDate = dueDate;
-    if (assignedTo !== undefined) {
+    let changeDesc = [];
+    if (title !== undefined && title !== task.title) {
+      changeDesc.push(`Title changed from "${task.title}" to "${title}"`);
+      task.title = title;
+    }
+    if (description !== undefined && description !== task.description) {
+      changeDesc.push(`Description updated`);
+      task.description = description;
+    }
+    if (dueDate !== undefined && new Date(dueDate).toISOString() !== new Date(task.dueDate).toISOString()) {
+      changeDesc.push(`Due date updated to ${new Date(dueDate).toLocaleDateString()}`);
+      task.dueDate = dueDate;
+    }
+    if (assignedTo !== undefined && task.assignedTo.toString() !== assignedTo.toString()) {
       const targetUser = await User.findById(assignedTo);
       if (targetUser) {
-        // If assigned person changes, reset snoozedBy and actionTaken so new assignee gets notified
-        if (task.assignedTo.toString() !== targetUser._id.toString()) {
-          task.snoozedBy = [];
-          task.actionTaken = false;
-        }
+        changeDesc.push(`Reassigned to ${targetUser.name} (${targetUser.role})`);
+        task.snoozedBy = [];
+        task.actionTaken = false;
         task.assignedTo = targetUser._id;
       }
     }
-    if (status !== undefined) {
+    if (status !== undefined && status !== task.status) {
+      changeDesc.push(`Status changed from ${task.status} to ${status}`);
       task.status = status;
       if (status === 'Completed') {
         task.actionTaken = true;
@@ -152,11 +174,59 @@ router.put('/:id', protect, async (req, res) => {
     }
     if (actionTaken !== undefined) task.actionTaken = actionTaken;
 
+    // Record history log if changes occurred or note was provided
+    if (changeDesc.length > 0 || note) {
+      task.history.push({
+        action: status !== undefined ? `Status: ${status}` : 'Task Updated',
+        status: task.status,
+        updatedBy: req.user._id,
+        note: note ? note.trim() : changeDesc.join('; '),
+        timestamp: new Date()
+      });
+    }
+
     await task.save();
 
     const populated = await UserTask.findById(task._id)
       .populate('assignedTo', 'name email role phone')
-      .populate('assignedBy', 'name email role phone');
+      .populate('assignedBy', 'name email role phone')
+      .populate('history.updatedBy', 'name email role');
+
+    res.json(populated);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// @route   POST /api/user-tasks/:id/comments
+// @desc    Add comment / login history note to task
+// @access  Private
+router.post('/:id/comments', protect, async (req, res) => {
+  const { note } = req.body;
+  if (!note || !note.trim()) {
+    return res.status(400).json({ message: 'Comment note is required' });
+  }
+
+  try {
+    const task = await UserTask.findById(req.params.id);
+    if (!task) {
+      return res.status(404).json({ message: 'Task not found' });
+    }
+
+    task.history.push({
+      action: 'Comment Added',
+      status: task.status,
+      updatedBy: req.user._id,
+      note: note.trim(),
+      timestamp: new Date()
+    });
+
+    await task.save();
+
+    const populated = await UserTask.findById(task._id)
+      .populate('assignedTo', 'name email role phone')
+      .populate('assignedBy', 'name email role phone')
+      .populate('history.updatedBy', 'name email role');
 
     res.json(populated);
   } catch (err) {

@@ -37,6 +37,21 @@ const UserTaskSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'
   }],
+  history: [
+    {
+      action: { type: String, default: '' },
+      status: { type: String, default: '' },
+      updatedBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
+      },
+      note: { type: String, default: '' },
+      timestamp: {
+        type: Date,
+        default: Date.now
+      }
+    }
+  ],
   createdAt: {
     type: Date,
     default: Date.now

@@ -118,9 +118,6 @@ const DateRangeFilter = ({ fromDate, toDate, onDateChange, label = 'Date Filtrat
           <Calendar className="w-3.5 h-3.5 text-[#0e623a]" />
           <span>{label}</span>
         </label>
-        <span className="text-[10px] text-white font-extrabold bg-gradient-to-r from-[#0e623a] to-[#0b4d2d] px-2.5 py-0.5 rounded-full shadow-xs tracking-tight">
-          {fromDate === toDate ? fromDate : `${fromDate} to ${toDate}`}
-        </span>
       </div>
 
       {/* Date UI Container highlighted slightly */}

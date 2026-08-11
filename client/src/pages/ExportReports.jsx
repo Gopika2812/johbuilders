@@ -18,7 +18,8 @@ import { TrendingUp, Download, Calendar, MapPin,   DollarSign,
   FileText,
   CheckCircle,
   Key,
-  AlertCircle
+  AlertCircle,
+  Loader2
 } from 'lucide-react';
 
 const getCoordinatesForPercent = (percent) => {
@@ -953,7 +954,7 @@ const ExportReports = () => {
         </head>
         <body>
           <table>
-            ${getExcelHeader(titleText, monthTitle, 7, "#ea580c")}
+            ${getExcelHeader(titleText, monthTitle, 8, "#ea580c")}
       `;
 
       // Group leads by assigned executive
@@ -974,7 +975,7 @@ const ExportReports = () => {
         // Executive banner row
         html += `
           <tr>
-            <td colspan="7" class="exec-banner">${execName.toUpperCase()}</td>
+            <td colspan="8" class="exec-banner">${execName.toUpperCase()}</td>
           </tr>
           <!-- Table Headers -->
           <tr class="table-headers">
@@ -982,6 +983,7 @@ const ExportReports = () => {
             <th>Customer Name</th>
             <th>Contact Number</th>
             <th>Followup By</th>
+            <th>Enquiry Mode</th>
             <th>Last Called Date</th>
             <th>Follow up Date</th>
             <th>Remarks</th>
@@ -993,6 +995,7 @@ const ExportReports = () => {
           const nameStr = lead.name || '';
           const phoneStr = lead.phone || '';
           const followBy = execName;
+          const sourceStr = lead.leadSource || 'Direct Visit';
           
           const lastCalledStr = lead.updatedAt 
             ? new Date(lead.updatedAt).toLocaleDateString('en-GB').replace(/\//g, '.') 
@@ -1012,6 +1015,7 @@ const ExportReports = () => {
               <td class="text-left bold-label">${nameStr}</td>
               <td>${phoneStr}</td>
               <td>${followBy}</td>
+              <td class="text-left">${sourceStr}</td>
               <td class="text-center">${lastCalledStr}</td>
               <td>${followUpDateStr}</td>
               <td class="text-left">${remarksStr}</td>
@@ -1106,7 +1110,7 @@ const ExportReports = () => {
         </head>
         <body>
           <table>
-            ${getExcelHeader(titleText, monthTitle, 8, "#15803d")}
+            ${getExcelHeader(titleText, monthTitle, 9, "#15803d")}
             <!-- Table Headers -->
             <tr class="table-headers">
               <th>S.NO.</th>
@@ -1114,6 +1118,7 @@ const ExportReports = () => {
               <th>CUSTOMER NAME</th>
               <th>CONTACT NO.</th>
               <th>Attended by</th>
+              <th>ENQUIRY MODE</th>
               <th>PROJECT</th>
               <th>UNIT NO.</th>
               <th>UNIT VALUE</th>
@@ -1137,6 +1142,7 @@ const ExportReports = () => {
         const custName = lead.name || '';
         const phoneStr = lead.phone || '';
         const attendedBy = lead.assignedTo?.name || 'UNASSIGNED';
+        const enquiryMode = lead.leadSource || 'Direct Visit';
         const projectStr = lead.project?.code || '';
         const unitNo = lead.bookingInfo?.selectedUnits?.join(', ') || '';
         
@@ -1154,6 +1160,7 @@ const ExportReports = () => {
             <td class="text-left bold-label">${custName}</td>
             <td>${phoneStr}</td>
             <td>${attendedBy}</td>
+            <td class="text-left">${enquiryMode}</td>
             <td>${projectStr}</td>
             <td>${unitNo}</td>
             <td class="text-right">${unitValStr}</td>
@@ -1577,11 +1584,6 @@ const ExportReports = () => {
       setLoading(true);
       
       const groupData = stats.groupStats || {};
-
-      if (Object.keys(groupData).length === 0) {
-        alert('No marketing spend data found for the selected filters.');
-        return;
-      }
 
       // Generate the styled HTML sheet
       const projectTitle = selectedProject 
@@ -3065,6 +3067,21 @@ const ExportReports = () => {
               </button>
             </div>
 
+          </div>
+        </div>
+      )}
+
+      {/* ⏳ Loading Spinner Overlay */}
+      {loading && !previewModalOpen && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/50 backdrop-blur-xs animate-fadeIn">
+          <div className="bg-white rounded-3xl p-8 shadow-2xl border border-black-100 flex flex-col items-center gap-4 text-center max-w-xs animate-in zoom-in-95 duration-200">
+            <div className="w-14 h-14 bg-emerald-50 rounded-full flex items-center justify-center border border-emerald-100">
+              <Loader2 className="w-8 h-8 text-[#0e623a] animate-spin" />
+            </div>
+            <div>
+              <h3 className="text-base font-extrabold text-black-800">Generating Report Preview</h3>
+              <p className="text-xs font-semibold text-black-450 mt-1">Please wait while data is processed...</p>
+            </div>
           </div>
         </div>
       )}

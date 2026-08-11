@@ -59,6 +59,10 @@ const SettingsPage = () => {
   const [selectedSources, setSelectedSources] = useState([]);
   const [sourceSearch, setSourceSearch] = useState('');
   const [editSourceSearch, setEditSourceSearch] = useState('');
+  const [allSources, setAllSources] = useState(SOURCE_TYPES);
+  const [customSourceInput, setCustomSourceInput] = useState('');
+  const [editCustomSourceInput, setEditCustomSourceInput] = useState('');
+
   // Edit mode for groups
   const [editingGroupId, setEditingGroupId] = useState(null);
   const [editGroupForm, setEditGroupForm] = useState({ name: '', sources: [] });
@@ -97,7 +101,54 @@ const SettingsPage = () => {
   useEffect(() => {
     fetchLeadGroups();
     fetchStageColors();
+    fetchAllSystemSources();
   }, []);
+
+  const fetchAllSystemSources = async () => {
+    try {
+      const res = await fetch(`${API_URL}/leads`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      let dbSources = [];
+      if (res.ok) {
+        const leadsData = await res.json();
+        dbSources = leadsData.map(l => l.leadSource).filter(Boolean);
+      }
+      
+      const groupSources = leadGroups.flatMap(g => g.sources || []);
+      const merged = Array.from(new Set([...SOURCE_TYPES, ...dbSources, ...groupSources])).filter(Boolean);
+      setAllSources(merged);
+    } catch (err) {
+      console.error('Error fetching system lead sources:', err);
+    }
+  };
+
+  const handleAddCustomSource = () => {
+    const trimmed = customSourceInput.trim();
+    if (!trimmed) return;
+    if (!allSources.some(s => s.toLowerCase() === trimmed.toLowerCase())) {
+      setAllSources(prev => [...prev, trimmed]);
+    }
+    if (!selectedSources.includes(trimmed)) {
+      setSelectedSources(prev => [...prev, trimmed]);
+    }
+    setCustomSourceInput('');
+  };
+
+  const handleAddEditCustomSource = () => {
+    const trimmed = editCustomSourceInput.trim();
+    if (!trimmed) return;
+    if (!allSources.some(s => s.toLowerCase() === trimmed.toLowerCase())) {
+      setAllSources(prev => [...prev, trimmed]);
+    }
+    if (!editGroupForm.sources.includes(trimmed)) {
+      setEditGroupForm(prev => ({
+        ...prev,
+        sources: [...prev.sources, trimmed]
+      }));
+    }
+    setEditCustomSourceInput('');
+  };
 
   const fetchStageColors = async () => {
     try {
@@ -458,7 +509,7 @@ const SettingsPage = () => {
                             </td>
                             <td className="p-4">
                               {isEditing ? (
-                                <div className="space-y-1">
+                                <div className="space-y-2">
                                   <div className="flex items-center justify-between gap-1 mb-1">
                                     <input
                                       type="text"
@@ -470,7 +521,7 @@ const SettingsPage = () => {
                                     <button
                                       type="button"
                                       onClick={() => {
-                                        const visible = SOURCE_TYPES.filter(src => src.toLowerCase().includes(editSourceSearch.toLowerCase()));
+                                        const visible = allSources.filter(src => src.toLowerCase().includes(editSourceSearch.toLowerCase()));
                                         const allVisibleSelected = visible.every(s => editGroupForm.sources.includes(s));
                                         let updated;
                                         if (allVisibleSelected) {
@@ -485,8 +536,8 @@ const SettingsPage = () => {
                                       Toggle All
                                     </button>
                                   </div>
-                                  <div className="max-h-24 overflow-y-auto border border-black-200 rounded p-1 space-y-1">
-                                    {SOURCE_TYPES.filter(src => src.toLowerCase().includes(editSourceSearch.toLowerCase())).map(src => (
+                                  <div className="max-h-28 overflow-y-auto border border-black-200 rounded p-1.5 space-y-1">
+                                    {allSources.filter(src => src.toLowerCase().includes(editSourceSearch.toLowerCase())).map(src => (
                                       <label key={src} className="flex items-center gap-1.5 text-[11px] cursor-pointer">
                                         <input
                                           type="checkbox"
@@ -497,6 +548,28 @@ const SettingsPage = () => {
                                         <span>{src}</span>
                                       </label>
                                     ))}
+                                  </div>
+                                  <div className="flex gap-1 pt-1">
+                                    <input
+                                      type="text"
+                                      placeholder="Add custom source..."
+                                      value={editCustomSourceInput}
+                                      onChange={(e) => setEditCustomSourceInput(e.target.value)}
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Enter') {
+                                          e.preventDefault();
+                                          handleAddEditCustomSource();
+                                        }
+                                      }}
+                                      className="px-2 py-1 bg-white border border-black-200 rounded text-[11px] w-full focus:outline-none focus:ring-1 focus:ring-[#0e623a]"
+                                    />
+                                    <button
+                                      type="button"
+                                      onClick={handleAddEditCustomSource}
+                                      className="px-2 py-1 bg-[#0e623a] text-white rounded text-[10px] font-bold hover:bg-[#0b4d2d]"
+                                    >
+                                      +Add
+                                    </button>
                                   </div>
                                 </div>
                               ) : (
@@ -586,15 +659,13 @@ const SettingsPage = () => {
                   />
                 </div>
 
-
-
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
                     <label className="text-[11px] font-bold text-black-400 uppercase tracking-wider">Select Lead Sources</label>
                     <button
                       type="button"
                       onClick={() => {
-                        const visible = SOURCE_TYPES.filter(src => src.toLowerCase().includes(sourceSearch.toLowerCase()));
+                        const visible = allSources.filter(src => src.toLowerCase().includes(sourceSearch.toLowerCase()));
                         const allVisibleSelected = visible.every(s => selectedSources.includes(s));
                         let updated;
                         if (allVisibleSelected) {
@@ -606,7 +677,7 @@ const SettingsPage = () => {
                       }}
                       className="text-[11px] font-bold text-[#0e623a] hover:underline"
                     >
-                      {SOURCE_TYPES.filter(src => src.toLowerCase().includes(sourceSearch.toLowerCase())).every(s => selectedSources.includes(s)) ? 'Toggle Off' : 'Toggle All'}
+                      {allSources.filter(src => src.toLowerCase().includes(sourceSearch.toLowerCase())).every(s => selectedSources.includes(s)) ? 'Toggle Off' : 'Toggle All'}
                     </button>
                   </div>
                   <input
@@ -616,8 +687,8 @@ const SettingsPage = () => {
                     onChange={(e) => setSourceSearch(e.target.value)}
                     className="w-full px-3 py-1.5 mb-2 bg-black-50 border border-black-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-xs font-semibold"
                   />
-                  <div className="grid grid-cols-1 gap-2 max-h-40 overflow-y-auto border border-black-150 rounded-xl p-3 bg-black-50/50">
-                    {SOURCE_TYPES.filter(src => src.toLowerCase().includes(sourceSearch.toLowerCase())).map(src => (
+                  <div className="grid grid-cols-1 gap-2 max-h-40 overflow-y-auto border border-black-150 rounded-xl p-3 bg-black-50/50 mb-3">
+                    {allSources.filter(src => src.toLowerCase().includes(sourceSearch.toLowerCase())).map(src => (
                       <label key={src} className="flex items-center gap-2 text-xs text-black-700 cursor-pointer select-none">
                         <input
                           type="checkbox"
@@ -628,6 +699,33 @@ const SettingsPage = () => {
                         <span>{src}</span>
                       </label>
                     ))}
+                  </div>
+
+                  {/* Add Custom Source Option */}
+                  <div className="pt-2.5 border-t border-black-150 space-y-1.5">
+                    <label className="text-[10px] font-bold text-black-450 uppercase tracking-wider block">Add Custom Lead Source</label>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        placeholder="Enter custom lead source..."
+                        value={customSourceInput}
+                        onChange={(e) => setCustomSourceInput(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            handleAddCustomSource();
+                          }
+                        }}
+                        className="flex-1 px-3 py-1.5 bg-white border border-black-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-xs font-semibold"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleAddCustomSource}
+                        className="px-3 py-1.5 bg-[#0e623a] text-white rounded-xl text-xs font-bold hover:bg-[#0b4d2d] transition"
+                      >
+                        + Add
+                      </button>
+                    </div>
                   </div>
                 </div>
 

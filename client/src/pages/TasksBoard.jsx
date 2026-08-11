@@ -17,7 +17,10 @@ import {
   Loader2,
   CheckCircle,
   AlertCircle,
-  UserCheck
+  UserCheck,
+  History,
+  MessageSquare,
+  Send
 } from 'lucide-react';
 
 const TasksBoard = () => {
@@ -44,6 +47,12 @@ const TasksBoard = () => {
   const [showModal, setShowModal] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
   const [modalLoading, setModalLoading] = useState(false);
+
+  // Task History & Comments Modal State
+  const [historyModalOpen, setHistoryModalOpen] = useState(false);
+  const [selectedTaskForHistory, setSelectedTaskForHistory] = useState(null);
+  const [newCommentNote, setNewCommentNote] = useState('');
+  const [commentSubmitting, setCommentSubmitting] = useState(false);
 
   // Form Fields
   const [formData, setFormData] = useState({
@@ -206,6 +215,45 @@ const TasksBoard = () => {
       }
     } catch (err) {
       setError('Error deleting task');
+    }
+  };
+
+  const handleOpenHistoryModal = (task) => {
+    setSelectedTaskForHistory(task);
+    setNewCommentNote('');
+    setHistoryModalOpen(true);
+  };
+
+  const handleAddComment = async (e) => {
+    e.preventDefault();
+    if (!newCommentNote || !newCommentNote.trim() || !selectedTaskForHistory) return;
+
+    try {
+      setCommentSubmitting(true);
+      const res = await fetch(`${API_URL}/user-tasks/${selectedTaskForHistory._id}/comments`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ note: newCommentNote })
+      });
+
+      if (res.ok) {
+        const updatedTask = await res.json();
+        setSelectedTaskForHistory(updatedTask);
+        setTasks(prev => prev.map(t => t._id === updatedTask._id ? updatedTask : t));
+        setNewCommentNote('');
+        setSuccessMsg('Comment added to task history');
+        setTimeout(() => setSuccessMsg(''), 3000);
+      } else {
+        const data = await res.json();
+        setError(data.message || 'Failed to add comment');
+      }
+    } catch (err) {
+      setError('Error adding comment');
+    } finally {
+      setCommentSubmitting(false);
     }
   };
 
@@ -535,6 +583,13 @@ const TasksBoard = () => {
                       <td className="p-3.5 text-center">
                         <div className="flex items-center justify-center gap-1">
                           <button
+                            onClick={() => handleOpenHistoryModal(task)}
+                            className="p-1.5 text-gray-500 hover:text-emerald-700 hover:bg-emerald-50 rounded-lg transition"
+                            title="Task History & Comments"
+                          >
+                            <History className="w-4 h-4" />
+                          </button>
+                          <button
                             onClick={() => handleOpenEditModal(task)}
                             className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition"
                             title="Edit Task"
@@ -678,6 +733,158 @@ const TasksBoard = () => {
                 >
                   {modalLoading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                   <span>{editingTask ? 'Update Task' : 'Assign Task'}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Task History & Comments Modal */}
+      {historyModalOpen && selectedTaskForHistory && (
+        <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm z-[999] flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl border border-gray-150 shadow-2xl w-full max-w-2xl overflow-hidden animate-fadeIn flex flex-col max-h-[85vh]">
+            {/* Modal Header */}
+            <div className="px-6 py-4 bg-[#0e623a] text-white flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-2.5">
+                <History className="w-5 h-5 text-emerald-300" />
+                <div>
+                  <h3 className="font-bold text-base">Task History & Comments</h3>
+                  <p className="text-emerald-100 text-xs truncate max-w-md">{selectedTaskForHistory.title}</p>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  setHistoryModalOpen(false);
+                  setSelectedTaskForHistory(null);
+                }}
+                className="p-1 hover:bg-white/20 rounded-lg transition text-white cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Task Info Summary Bar */}
+            <div className="bg-emerald-50/70 border-b border-emerald-100 px-6 py-3 flex flex-wrap items-center justify-between gap-3 text-xs shrink-0">
+              <div className="flex items-center gap-4">
+                <div>
+                  <span className="text-gray-500 font-medium block text-[10px] uppercase">Assigned To</span>
+                  <span className="font-bold text-gray-800">{selectedTaskForHistory.assignedTo?.name || 'Unassigned'}</span>
+                </div>
+                <div>
+                  <span className="text-gray-500 font-medium block text-[10px] uppercase">Assigned By</span>
+                  <span className="font-bold text-gray-800">{selectedTaskForHistory.assignedBy?.name || 'Admin'}</span>
+                </div>
+                <div>
+                  <span className="text-gray-500 font-medium block text-[10px] uppercase">Status</span>
+                  <span className="font-extrabold text-[#0e623a]">{selectedTaskForHistory.status}</span>
+                </div>
+              </div>
+              {selectedTaskForHistory.dueDate && (
+                <div className="text-right">
+                  <span className="text-gray-500 font-medium block text-[10px] uppercase">Due Date</span>
+                  <span className="font-bold text-gray-800">
+                    {new Date(selectedTaskForHistory.dueDate).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* History Timeline Stream */}
+            <div className="p-6 overflow-y-auto space-y-4 flex-1">
+              {(!selectedTaskForHistory.history || selectedTaskForHistory.history.length === 0) ? (
+                <div className="space-y-4">
+                  {/* Default fallback timeline item if no history array yet */}
+                  <div className="flex gap-3 items-start bg-gray-50 p-3.5 rounded-2xl border border-gray-150">
+                    <div className="w-8 h-8 rounded-full bg-[#0e623a]/10 text-[#0e623a] flex items-center justify-center font-bold text-xs shrink-0">
+                      {selectedTaskForHistory.assignedBy?.name?.slice(0, 2).toUpperCase() || 'U'}
+                    </div>
+                    <div className="flex-1 text-xs space-y-1">
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-gray-800">{selectedTaskForHistory.assignedBy?.name || 'Admin'}</span>
+                        <span className="text-[10px] text-gray-400 font-semibold">
+                          {selectedTaskForHistory.createdAt ? new Date(selectedTaskForHistory.createdAt).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' }) : 'Creation'}
+                        </span>
+                      </div>
+                      <span className="inline-block px-2 py-0.5 text-[10px] font-extrabold rounded bg-emerald-100 text-emerald-800 uppercase">
+                        Task Created
+                      </span>
+                      <p className="text-gray-600 font-medium mt-1">
+                        {selectedTaskForHistory.description || `Task created and assigned to ${selectedTaskForHistory.assignedTo?.name || 'user'}`}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-3.5 relative before:absolute before:left-4 before:top-2 before:bottom-2 before:w-0.5 before:bg-gray-200">
+                  {selectedTaskForHistory.history.slice().reverse().map((item, hIdx) => {
+                    const author = item.updatedBy?.name || user?.name || 'System User';
+                    const role = item.updatedBy?.role || 'Member';
+
+                    return (
+                      <div key={item._id || hIdx} className="relative flex items-start gap-3 pl-2">
+                        <div className="w-8 h-8 rounded-full bg-[#0e623a] text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-sm z-10">
+                          {author.slice(0, 2).toUpperCase()}
+                        </div>
+
+                        <div className="flex-1 bg-gray-50 hover:bg-gray-100/80 transition p-3.5 rounded-2xl border border-gray-200/80 text-xs space-y-1.5">
+                          <div className="flex items-center justify-between flex-wrap gap-1">
+                            <div className="flex items-center gap-2">
+                              <span className="font-bold text-gray-850">{author}</span>
+                              <span className="text-[10px] font-semibold text-gray-500 bg-gray-200 px-2 py-0.5 rounded-md">
+                                {role}
+                              </span>
+                            </div>
+                            <span className="text-[10px] text-gray-400 font-medium">
+                              {item.timestamp ? new Date(item.timestamp).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' }) : 'Just now'}
+                            </span>
+                          </div>
+
+                          {item.action && (
+                            <span className={`inline-block px-2 py-0.5 text-[10px] font-bold rounded uppercase tracking-wider ${
+                              item.action === 'Task Created' ? 'bg-blue-100 text-blue-800' :
+                              item.action === 'Comment Added' ? 'bg-amber-100 text-amber-800' :
+                              'bg-emerald-100 text-emerald-800'
+                            }`}>
+                              {item.action}
+                            </span>
+                          )}
+
+                          {item.note && (
+                            <p className="text-gray-700 font-medium whitespace-pre-wrap leading-relaxed mt-1">
+                              {item.note}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Add Comment Input Section */}
+            <form onSubmit={handleAddComment} className="p-4 bg-gray-50 border-t border-gray-200 shrink-0 space-y-3">
+              <div className="flex items-center gap-2">
+                <MessageSquare className="w-4 h-4 text-[#0e623a]" />
+                <span className="font-bold text-xs text-gray-700">Add Log Comment / Remark</span>
+              </div>
+              <div className="flex gap-2">
+                <textarea
+                  rows={2}
+                  required
+                  placeholder="Type comment or update remark..."
+                  value={newCommentNote}
+                  onChange={(e) => setNewCommentNote(e.target.value)}
+                  className="flex-1 px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-[#0e623a] resize-none"
+                />
+                <button
+                  type="submit"
+                  disabled={commentSubmitting || !newCommentNote.trim()}
+                  className="px-4 py-2 bg-[#0e623a] hover:bg-[#0b4d2d] text-white font-bold text-xs rounded-xl shadow transition cursor-pointer disabled:opacity-50 flex items-center gap-1.5 shrink-0 self-end"
+                >
+                  {commentSubmitting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+                  <span>Post</span>
                 </button>
               </div>
             </form>

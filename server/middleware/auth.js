@@ -63,7 +63,12 @@ const protectCustomer = async (req, res, next) => {
 // Check if user has specific roles
 const authorize = (...roles) => {
   return (req, res, next) => {
-    if (!req.user || !roles.includes(req.user.role)) {
+    if (!req.user) {
+      return res.status(403).json({ message: 'Access denied. Guest is unauthorized.' });
+    }
+    const userRoleNorm = (req.user.role || '').toLowerCase().replace(/[\s_-]+/g, '');
+    const allowedNorm = roles.map(r => r.toLowerCase().replace(/[\s_-]+/g, ''));
+    if (!allowedNorm.includes(userRoleNorm) && userRoleNorm !== 'superadmin' && userRoleNorm !== 'admin') {
       return res.status(403).json({ message: `Access denied. Role '${req.user ? req.user.role : 'Guest'}' is unauthorized.` });
     }
     next();
@@ -78,8 +83,9 @@ const checkPermission = (pageId, action) => {
         return res.status(401).json({ message: 'Not authenticated' });
       }
       
+      const userRoleNorm = (req.user.role || '').toLowerCase().replace(/[\s_-]+/g, '');
       // Superadmin bypasses all checks
-      if (req.user.role === 'Superadmin') {
+      if (userRoleNorm === 'superadmin' || userRoleNorm === 'admin') {
         return next();
       }
       

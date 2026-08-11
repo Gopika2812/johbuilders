@@ -29,8 +29,11 @@ router.get('/', protect, async (req, res) => {
     ];
   }
 
+  const userRoleNorm = (req.user?.role || '').toLowerCase().replace(/[\s_-]+/g, '');
+  const isSuperAdminUser = userRoleNorm === 'superadmin' || userRoleNorm === 'admin';
+
   // Restrict to assigned leads for non-Superadmin users
-  if (req.user.role !== 'Superadmin') {
+  if (!isSuperAdminUser) {
     if (crdView === 'true') {
       const Quotation = require('../models/Quotation');
       const userQuotations = await Quotation.find({
@@ -385,7 +388,9 @@ router.put('/:id', protect, async (req, res) => {
       ];
       const currentIndex = LEAD_STATUSES.indexOf(lead.status);
       const newIndex = LEAD_STATUSES.indexOf(status);
-      if (!isRevert && currentIndex !== -1 && newIndex !== -1 && newIndex < currentIndex) {
+      const userRoleNorm = (req.user?.role || '').toLowerCase().replace(/[\s_-]+/g, '');
+      const isSuperAdminUser = userRoleNorm === 'superadmin' || userRoleNorm === 'admin';
+      if (!isRevert && !isSuperAdminUser && currentIndex !== -1 && newIndex !== -1 && newIndex < currentIndex) {
         return res.status(400).json({ message: 'Cannot move backward to a previous stage' });
       }
       lead.status = status;

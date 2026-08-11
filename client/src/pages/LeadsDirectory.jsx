@@ -37,7 +37,8 @@ import {
   Upload,
   FileUp,
   ClipboardPaste,
-  Loader2
+  Loader2,
+  RotateCcw
 } from 'lucide-react';
 import ExcelJS from 'exceljs';
 
@@ -1323,8 +1324,12 @@ const LeadsDirectory = () => {
         finalStatus = 'Site Visit';
       } else if (followMode === 'FutureFollowUp') {
         finalStatus = 'Future Follow-up';
-      } else if (followMode === 'FollowUp' && !['Follow-Up', 'Future Follow-up'].includes(followTargetStatus)) {
-        finalStatus = 'Follow-Up';
+      } else if (followMode === 'FollowUp') {
+        if (followTargetStatus && followTargetStatus !== 'New' && followTargetStatus !== 'Assigned') {
+          finalStatus = followTargetStatus;
+        } else {
+          finalStatus = 'Follow-Up';
+        }
       }
 
       payload = {
@@ -1628,7 +1633,7 @@ const LeadsDirectory = () => {
     setPhoneLocal('');
     setAddress('');
     setSelectedProjectId('');
-    setAssignedToId(user?._id || '');
+    setAssignedToId(user?.role?.toLowerCase() === 'sales person' ? user._id : '');
     setLeadSource('');
     setSelectedAdId('');
     setFetchedAdLink('');
@@ -1911,7 +1916,7 @@ const LeadsDirectory = () => {
             <thead>
               <tr className="bg-black-50 border-b border-black-150 text-[11px] font-bold text-black-500 uppercase tracking-wider">
                 {hasColumnPermission('leads', 'sno') && <th className="px-3 py-2 w-10 text-center">S.No</th>}
-                {hasColumnPermission('leads', 'date') && <th className="px-3 py-2 highlight-date-header">Date</th>}
+                {hasColumnPermission('leads', 'date') && <th className="px-3 py-2">Date</th>}
                 {hasColumnPermission('leads', 'customerName') && <th className="px-3 py-2">Customer Name</th>}
                 {hasColumnPermission('leads', 'phoneNumber') && <th className="px-3 py-2">Phone Number</th>}
                 {hasColumnPermission('leads', 'sourceDetails') && <th className="px-3 py-2">Source Details</th>}
@@ -1943,7 +1948,7 @@ const LeadsDirectory = () => {
                 return (
                   <tr
                     key={lead._id}
-                    className={`transition duration-150 border-b border-black-100 custom-text-row hover:opacity-90`}
+                    className={`transition duration-150 border-b border-black-100 custom-text-row hover:opacity-90 ${contrastClass === 'dark-row' ? 'dark-row' : ''}`}
                     style={{ backgroundColor: rowColor, color: rowTextColor }}
                   >
                     {/* S.No */}
@@ -1957,8 +1962,8 @@ const LeadsDirectory = () => {
 
                     {/* Date */}
                     {hasColumnPermission('leads', 'date') && (
-                      <td className="px-3 py-1.5 border-b border-black-100 highlight-date-col">
-                        <div className="text-[11px] font-bold text-black-800 whitespace-nowrap">
+                      <td className="px-3 py-1.5 border-b border-black-100">
+                        <div className="text-[11px] font-bold whitespace-nowrap">
                           {lead.createdAt ? new Date(lead.createdAt).toLocaleDateString('en-GB') : '—'}
                         </div>
                       </td>
@@ -2143,6 +2148,21 @@ const LeadsDirectory = () => {
                             >
                               <Edit2 className="w-3.5 h-3.5" /> Edit
                             </button>
+                            {(() => {
+                              const roleNorm = (user?.role || '').toLowerCase().replace(/[\s_-]+/g, '');
+                              const isSuperAdmin = roleNorm === 'superadmin' || roleNorm === 'admin';
+                              const prevSt = getPreviousStatus(lead);
+                              if (!isSuperAdmin || !prevSt || lead.isClosed) return null;
+                              return (
+                                <button
+                                  onClick={() => handleStatusChange(lead._id, prevSt, true)}
+                                  disabled={statusChangingId === lead._id}
+                                  className="w-full text-left px-4 py-2 text-[11px] font-bold hover:bg-blue-50 flex items-center gap-2 text-blue-600 disabled:opacity-50"
+                                >
+                                  <RotateCcw className="w-3.5 h-3.5" /> Revert to {prevSt}
+                                </button>
+                              );
+                            })()}
                             {lead.status === 'Booking' && !lead.isClosed && (
                               <button
                                 onClick={() => handleCancelBooking(lead)}
@@ -2546,7 +2566,9 @@ const LeadsDirectory = () => {
                     </div>
                   ) : (
                     <SearchableSelect
-                      options={employees.map(emp => ({ value: emp._id, label: `${emp.name} (${emp.role})` }))}
+                      options={employees
+                        .filter(emp => emp.role?.toLowerCase() === 'sales person')
+                        .map(emp => ({ value: emp._id, label: `${emp.name} (${emp.role})` }))}
                       value={assignedToId}
                       onChange={setAssignedToId}
                       placeholder="Select Executive"
@@ -2871,7 +2893,9 @@ const LeadsDirectory = () => {
               <div className="flex flex-col text-left">
                 <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Assigned Executive / Member <span className="text-red-500">*</span></label>
                 <SearchableSelect
-                  options={employees.map(emp => ({ value: emp._id, label: `${emp.name} (${emp.role})` }))}
+                  options={employees
+                    .filter(emp => emp.role?.toLowerCase() === 'sales person' || emp._id === editAssignedToId)
+                    .map(emp => ({ value: emp._id, label: `${emp.name} (${emp.role})` }))}
                   value={editAssignedToId}
                   onChange={setEditAssignedToId}
                   placeholder="Select Executive"
@@ -2902,7 +2926,9 @@ const LeadsDirectory = () => {
                   >
                     {LEAD_STATUSES.map((status, idx) => {
                       const currentIdx = selectedLeadForEdit ? LEAD_STATUSES.indexOf(selectedLeadForEdit.status) : 0;
-                      if (idx < currentIdx && currentIdx !== -1) return null;
+                      const roleNorm = (user?.role || '').toLowerCase().replace(/[\s_-]+/g, '');
+                      const isSuperAdmin = roleNorm === 'superadmin' || roleNorm === 'admin';
+                      if (!isSuperAdmin && idx < currentIdx && currentIdx !== -1) return null;
                       return <option key={status} value={status}>{status === 'Booking' ? 'Booked' : status}</option>;
                     })}
                     {selectedLeadForEdit && (
@@ -3146,6 +3172,30 @@ const LeadsDirectory = () => {
                 )}
 
                 <div className="space-y-4 mb-4">
+                  {(() => {
+                    const roleNorm = (user?.role || '').toLowerCase().replace(/[\s_-]+/g, '');
+                    const isSuperAdmin = roleNorm === 'superadmin' || roleNorm === 'admin';
+                    if (!isSuperAdmin) return null;
+                    return (
+                      <div className="bg-amber-50 border border-amber-200/80 p-3 rounded-2xl">
+                        <label className="text-[11px] font-bold text-amber-900 uppercase tracking-wider block mb-1">
+                          Superadmin Workflow Stage Option
+                        </label>
+                        <select
+                          value={followTargetStatus}
+                          onChange={(e) => setFollowTargetStatus(e.target.value)}
+                          className="w-full px-3 py-2 bg-white border border-amber-300 rounded-xl text-xs font-bold text-amber-900 focus:outline-none focus:ring-2 focus:ring-amber-500 cursor-pointer"
+                        >
+                          {LEAD_STATUSES.map(st => (
+                            <option key={st} value={st}>
+                              {st === 'Booking' ? 'Booked' : st} {selectedLeadForFollow?.status === st ? '(Current)' : ''}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    );
+                  })()}
+
                   <div>
                     <label className="text-xs font-semibold text-black-600 block mb-1">Lead Category <span className="text-red-500">*</span></label>
                     <select
