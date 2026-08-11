@@ -608,6 +608,42 @@ const CRDReports = () => {
     }
   };
 
+  const formatLeadStatusForReport = (lead) => {
+    if (!lead) return 'followup';
+    const status = lead.status || '';
+    if (status === 'Future Follow-up' || status === 'Future Followup') {
+      return 'future followup';
+    }
+    if (status === 'Lost' || status === 'Closed' || lead.isClosed) {
+      return 'lost';
+    }
+    if (status === 'Follow-Up' || status === 'Followup') {
+      return 'followup';
+    }
+    if (status === 'Site Visit Follow-up') {
+      return 'site visit followup';
+    }
+    if (status === 'Site Visit') {
+      return 'site visit';
+    }
+    if (status === 'Won' || status === 'Booked') {
+      return 'booked';
+    }
+    if (status === 'Booking') {
+      return 'booking';
+    }
+    if (status === 'Negotiation') {
+      return 'negotiation';
+    }
+    if (status === 'Contacted') {
+      return 'contacted';
+    }
+    if (status === 'New' || status === 'New Lead') {
+      return 'new lead';
+    }
+    return status.toLowerCase().replace(/[\-_]+/g, ' ');
+  };
+
   const handleExportEnquiriesExcel = async () => {
     try {
       setLoading(true);
@@ -711,7 +747,7 @@ const CRDReports = () => {
           const sourceStr = lead.leadSource || '&nbsp;';
           const projectStr = lead.project?.code || '&nbsp;';
           const placeStr = lead.address ? lead.address.split(',')[0] : '&nbsp;';
-          const statusStr = (lead.status || '&nbsp;').toLowerCase().replace('-', '');
+          const statusStr = formatLeadStatusForReport(lead);
           const remarksStr = lead.followUpInfo?.remarks || lead.closeRemarks || '&nbsp;';
           const rowClass = idx % 2 === 1 ? 'class="even-row"' : '';
 
@@ -851,8 +887,8 @@ const CRDReports = () => {
           const placeStr = lead.address ? lead.address.split(',')[0] : '&nbsp;';
           const visitedBy = execName;
           
-          // Enquiry Status column is completed/followup (or lead.status lowercase)
-          const statusStr = lead.status === 'Site Visit Follow-up' ? 'followup' : 'completed';
+          // Enquiry Status column is workflow status (e.g. lost, future followup, followup)
+          const statusStr = formatLeadStatusForReport(lead);
           const remarksStr = lead.followUpInfo?.remarks || lead.closeRemarks || '&nbsp;';
           const sourceStr = lead.leadSource || '&nbsp;';
           const rowClass = idx % 2 === 1 ? 'class="even-row"' : '';

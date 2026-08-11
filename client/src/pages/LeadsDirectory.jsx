@@ -1655,6 +1655,9 @@ const LeadsDirectory = () => {
 
   // Filter list matching Search & Date & Advanced Filters (excluding Tab)
   const getBaseFilteredLeads = () => {
+    const startTime = startDate ? new Date(startDate).setHours(0, 0, 0, 0) : null;
+    const endTime = endDate ? new Date(endDate).setHours(23, 59, 59, 999) : null;
+
     return leads.filter(lead => {
       const matchesStatus = !statusFilter || lead.status === statusFilter;
 
@@ -1664,6 +1667,7 @@ const LeadsDirectory = () => {
         lead.project?.code?.toLowerCase().includes(searchTerm.toLowerCase());
 
       const hasSearch = Boolean(searchTerm && searchTerm.trim());
+      const itemTime = lead.createdAt ? new Date(lead.createdAt).getTime() : null;
       const matchesStartDate = !hasSearch ? (!startTime || !itemTime || itemTime >= startTime) : true;
       const matchesEndDate = !hasSearch ? (!endTime || !itemTime || itemTime <= endTime) : true;
 
