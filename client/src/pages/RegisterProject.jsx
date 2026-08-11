@@ -1050,6 +1050,7 @@ const RegisterProject = () => {
                                     className="w-full px-2 py-1.5 bg-gray-50 border border-gray-250 rounded focus:ring-1 focus:ring-[#0e623a] focus:outline-none text-xs"
                                   >
                                     <option value="New">Available</option>
+                                    <option value="Hold">Hold / Reserved</option>
                                     <option value="Sold Out">Sold Out</option>
                                     <option value="Booked">Booked</option>
                                     <option value="Under Construction">Under Construction</option>

@@ -3357,7 +3357,7 @@ const LeadsDirectory = () => {
                       </div>
                       <div className="overflow-y-auto p-1 max-h-48">
                         {BookedProjectDetails?.units
-                          ?.filter(u => u.status !== 'Booked' && u.status !== 'Sold Out')
+                          ?.filter(u => u.status !== 'Booked' && u.status !== 'Sold Out' && u.status !== 'Hold' && u.status !== 'On Hold')
                           .filter(u => !typedBookedUnits || u.unitId.toLowerCase().includes(typedBookedUnits.toLowerCase()))
                           .map(u => (
                             <label key={u.unitId} className="flex items-center gap-2 px-3 py-2 hover:bg-emerald-50 cursor-pointer transition rounded-lg">
@@ -3377,10 +3377,10 @@ const LeadsDirectory = () => {
                             </label>
                           ))
                         }
-                        {(!BookedProjectDetails?.units || BookedProjectDetails.units.filter(u => u.status !== 'Booked' && u.status !== 'Sold Out').length === 0) && (
+                        {(!BookedProjectDetails?.units || BookedProjectDetails.units.filter(u => u.status !== 'Booked' && u.status !== 'Sold Out' && u.status !== 'Hold' && u.status !== 'On Hold').length === 0) && (
                           <div className="px-3 py-3 text-xs text-black-500 text-center">No available units found.</div>
                         )}
-                        {(BookedProjectDetails?.units && typedBookedUnits && BookedProjectDetails.units.filter(u => u.status !== 'Booked' && u.status !== 'Sold Out' && u.unitId.toLowerCase().includes(typedBookedUnits.toLowerCase())).length === 0) && (
+                        {(BookedProjectDetails?.units && typedBookedUnits && BookedProjectDetails.units.filter(u => u.status !== 'Booked' && u.status !== 'Sold Out' && u.status !== 'Hold' && u.status !== 'On Hold' && u.unitId.toLowerCase().includes(typedBookedUnits.toLowerCase())).length === 0) && (
                           <div className="px-3 py-3 text-xs text-black-500 text-center">No units match your search.</div>
                         )}
                       </div>

@@ -530,6 +530,9 @@ const ProjectDetail = () => {
         return 'bg-emerald-50 text-emerald-700 border-emerald-200';
       case 'Booked':
         return 'bg-yellow-50 text-yellow-700 border-yellow-200';
+      case 'Hold':
+      case 'On Hold':
+        return 'bg-amber-50 text-amber-800 border-amber-300';
       case 'Under Construction':
         return 'bg-purple-50 text-purple-700 border-purple-200';
       case 'Sold Out':
@@ -830,6 +833,7 @@ const ProjectDetail = () => {
                           className={`h-4 rounded-sm border text-[9px] flex items-center justify-center font-bold ${
                             unit.status === 'New' ? 'bg-emerald-100 border-emerald-300 text-emerald-800' :
                             unit.status === 'Booked' ? 'bg-yellow-100 border-yellow-300 text-yellow-800' :
+                            (unit.status === 'Hold' || unit.status === 'On Hold') ? 'bg-amber-100 border-amber-300 text-amber-800' :
                             unit.status === 'Under Construction' ? 'bg-purple-100 border-purple-300 text-purple-800' :
                             'bg-red-100 border-red-300 text-red-800'
                           }`}
@@ -846,6 +850,7 @@ const ProjectDetail = () => {
                   <div className="flex flex-wrap gap-2 mt-1.5">
                     <span className="flex items-center gap-1"><span className="w-2 h-2 rounded bg-emerald-500"></span>New</span>
                     <span className="flex items-center gap-1"><span className="w-2 h-2 rounded bg-yellow-400"></span>Booked</span>
+                    <span className="flex items-center gap-1"><span className="w-2 h-2 rounded bg-amber-500"></span>Hold</span>
                     <span className="flex items-center gap-1"><span className="w-2 h-2 rounded bg-purple-500"></span>Build</span>
                     <span className="flex items-center gap-1"><span className="w-2 h-2 rounded bg-red-500"></span>Sold</span>
                   </div>
@@ -1646,6 +1651,7 @@ const ProjectDetail = () => {
                 >
                   <option value="New">New / Available</option>
                   <option value="Booked">Booked</option>
+                  <option value="Hold">Hold / Reserved</option>
                   <option value="Under Construction">Under Construction</option>
                   <option value="Sold Out">Sold Out</option>
                 </select>

@@ -546,7 +546,7 @@ const QuotationForm = () => {
                         {getFilteredUnits(projectType).map((u, idx) => {
                           if (!u.mapCoordinates) return null;
                           const isSelected = selectedUnits.includes(u.unitId);
-                          const isBooked = u.status === 'Booked' || u.status === 'Sold Out';
+                          const isBooked = u.status === 'Booked' || u.status === 'Sold Out' || u.status === 'Hold' || u.status === 'On Hold';
                           
                           const pinColor = isBooked 
                             ? 'bg-yellow-400 border-yellow-600' 
@@ -586,7 +586,7 @@ const QuotationForm = () => {
                     <div className="grid grid-cols-4 sm:grid-cols-6 gap-3">
                       {getFilteredUnits('Plot').map(u => {
                         const isSelected = selectedUnits.includes(u.unitId);
-                        const isBooked = u.status === 'Booked' || u.status === 'Sold Out';
+                        const isBooked = u.status === 'Booked' || u.status === 'Sold Out' || u.status === 'Hold' || u.status === 'On Hold';
                         return (
                           <button
                             key={u.unitId}
@@ -624,7 +624,7 @@ const QuotationForm = () => {
                           <div className="grid grid-cols-4 sm:grid-cols-6 gap-3">
                             {getFilteredUnits('Flat').filter(u => (u.floor || 'G') === floor).map(u => {
                               const isSelected = selectedUnits.includes(u.unitId);
-                              const isBooked = u.status === 'Booked' || u.status === 'Sold Out';
+                              const isBooked = u.status === 'Booked' || u.status === 'Sold Out' || u.status === 'Hold' || u.status === 'On Hold';
                               return (
                                 <button
                                   key={u.unitId}
@@ -663,10 +663,13 @@ const QuotationForm = () => {
                         const isSelected = selectedUnits.includes(u.unitId);
                         const isBooked = u.status === 'Booked';
                         const isSold = u.status === 'Sold Out';
+                        const isHold = u.status === 'Hold' || u.status === 'On Hold';
                         
                         let bgClass = 'bg-gradient-to-br from-emerald-500 to-emerald-600 border-emerald-400 text-white shadow-[0_3px_8px_rgba(16,185,129,0.15)] hover:shadow-[0_6px_15px_rgba(16,185,129,0.3)] hover:-translate-y-1 hover:scale-105';
                         if (isSold) {
                           bgClass = 'bg-gradient-to-br from-red-500 to-rose-600 border-red-400 text-white shadow-[0_3px_8px_rgba(239,68,68,0.15)] cursor-not-allowed opacity-90';
+                        } else if (isHold) {
+                          bgClass = 'bg-gradient-to-br from-amber-600 to-orange-600 border-amber-500 text-white shadow-[0_3px_8px_rgba(245,158,11,0.15)] cursor-not-allowed opacity-90';
                         } else if (isBooked) {
                           bgClass = 'bg-gradient-to-br from-amber-400 to-yellow-500 border-amber-300 text-white shadow-[0_3px_8px_rgba(245,158,11,0.15)] cursor-not-allowed opacity-90';
                         } else if (isSelected) {
@@ -677,7 +680,7 @@ const QuotationForm = () => {
                           <button
                             key={u.unitId}
                             type="button"
-                            disabled={isSold || isBooked}
+                            disabled={isSold || isBooked || isHold}
                             onClick={() => toggleUnitSelection(u.unitId)}
                             className={`w-[90px] h-[90px] flex flex-col items-center justify-center rounded-2xl text-[14px] font-black tracking-wide border transition-all duration-200 active:scale-95 cursor-pointer gap-1 ${bgClass}`}
                           >
