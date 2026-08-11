@@ -588,7 +588,7 @@
         Object.keys(groupedByExec).forEach((execName) => {
           html += `
           <tr>
-            <td colspan="9" class="exec-banner">${execName.toUpperCase()}</td>
+            <td colspan="10" class="exec-banner">${execName.toUpperCase()}</td>
           </tr>
           <!-- Table Headers -->
           <tr class="table-headers">
@@ -597,6 +597,7 @@
             <th>Name</th>
             <th>Contact</th>
             <th>Site Visited By</th>
+            <th>Project</th>
             <th>Place</th>
             <th>Enquiry Status</th>
             <th>Remarks</th>
@@ -608,6 +609,7 @@
             const phoneStr = lead.phone || "";
             const placeStr = lead.address ? lead.address.split(",")[0] : "";
             const visitedBy = execName;
+            const projectStr = lead.project?.code || lead.project?.name || "";
             const statusStr = lead.status === "Site Visit Follow-up" ? "followup" : "completed";
             const remarksStr = lead.followUpInfo?.remarks || lead.closeRemarks || "";
             const sourceStr = lead.leadSource || "";
@@ -619,6 +621,7 @@
               <td class="text-left bold-label">${lead.name || ""}</td>
               <td>${phoneStr}</td>
               <td>${visitedBy}</td>
+              <td>${projectStr}</td>
               <td>${placeStr}</td>
               <td>${statusStr}</td>
               <td class="text-left">${remarksStr}</td>
@@ -682,7 +685,7 @@
         </head>
         <body>
           <table>
-            ${getExcelHeader(titleText, monthTitle, 7, "#ea580c", logoPath)}
+            ${getExcelHeader(titleText, monthTitle, 9, "#ea580c", logoPath)}
       `;
         const groupedByExec = {};
         filtered.forEach((lead) => {
@@ -694,7 +697,7 @@
         Object.keys(groupedByExec).forEach((execName) => {
           html += `
           <tr>
-            <td colspan="7" class="exec-banner">${execName.toUpperCase()}</td>
+            <td colspan="9" class="exec-banner">${execName.toUpperCase()}</td>
           </tr>
           <!-- Table Headers -->
           <tr class="table-headers">
@@ -702,6 +705,8 @@
             <th>Customer Name</th>
             <th>Contact Number</th>
             <th>Followup By</th>
+            <th>Enquiry Mode</th>
+            <th>Project</th>
             <th>Last Called Date</th>
             <th>Follow up Date</th>
             <th>Remarks</th>
@@ -711,6 +716,8 @@
             const nameStr = lead.name || "";
             const phoneStr = lead.phone || "";
             const followBy = execName;
+            const sourceStr = lead.leadSource || "Direct Visit";
+            const projectStr = lead.project?.code || lead.project?.name || "";
             const lastCalledStr = lead.updatedAt ? new Date(lead.updatedAt).toLocaleDateString("en-GB").replace(/\//g, ".") : new Date(lead.createdAt).toLocaleDateString("en-GB").replace(/\//g, ".");
             const followUpDateStr = lead.followUpInfo?.nextFollowUpDate ? new Date(lead.followUpInfo.nextFollowUpDate).toLocaleDateString("en-GB").replace(/\//g, ".") : "";
             const remarksStr = lead.followUpInfo?.remarks || lead.closeRemarks || "";
@@ -721,6 +728,8 @@
               <td class="text-left bold-label">${nameStr}</td>
               <td>${phoneStr}</td>
               <td>${followBy}</td>
+              <td class="text-left">${sourceStr}</td>
+              <td>${projectStr}</td>
               <td>${lastCalledStr}</td>
               <td>${followUpDateStr}</td>
               <td class="text-left">${remarksStr}</td>

@@ -622,6 +622,26 @@ const ExportReports = () => {
     return status.toLowerCase().replace(/[\-_]+/g, ' ');
   };
 
+  const getFormattedLeadRemarks = (lead, defaultEmpty = '') => {
+    if (!lead) return defaultEmpty;
+    const isLostOrClosed = lead.status === 'Lost' || lead.status === 'Closed' || lead.isClosed;
+    let remarks = '';
+    if (isLostOrClosed) {
+      remarks = (lead.closeRemarks && lead.closeRemarks.trim()) 
+        ? lead.closeRemarks 
+        : (lead.followUpInfo?.remarks || '');
+    } else {
+      remarks = (lead.followUpInfo?.remarks && lead.followUpInfo.remarks.trim()) 
+        ? lead.followUpInfo.remarks 
+        : (lead.closeRemarks || '');
+    }
+    if (!remarks || !remarks.trim()) return defaultEmpty;
+    if (remarks.match(/\[Lost at (.*?) stage\]/)) {
+      remarks = remarks.replace(/\[Lost at .*? stage\]( - )?/, '');
+    }
+    return remarks || defaultEmpty;
+  };
+
   const handleExportEnquiriesExcel = async (returnHtml = false) => {
     try {
       setLoading(true);
@@ -741,8 +761,7 @@ const ExportReports = () => {
           const projectStr = lead.project?.code || '&nbsp;';
           const placeStr = lead.address ? lead.address.split(',')[0] : '&nbsp;';
           const statusStr = formatLeadStatusForReport(lead);
-          let remarksStr = lead.followUpInfo?.remarks || lead.closeRemarks || '&nbsp;';
-          if (remarksStr.match(/\[Lost at (.*?) stage\]/)) remarksStr = remarksStr.replace(/\[Lost at .*? stage\]( - )?/, '');
+          const remarksStr = getFormattedLeadRemarks(lead, '&nbsp;');
           const rowClass = idx % 2 === 1 ? 'class="even-row"' : '';
 
           html += `
@@ -843,7 +862,7 @@ const ExportReports = () => {
         </head>
         <body>
           <table>
-            ${getExcelHeader(titleText, monthTitle, 9, "#2563eb")}
+            ${getExcelHeader(titleText, monthTitle, 10, "#2563eb")}
       `;
 
       // Group leads by assigned executive
@@ -864,7 +883,7 @@ const ExportReports = () => {
         // Executive banner row
         html += `
           <tr>
-            <td colspan="9" class="exec-banner">${execName.toUpperCase()}</td>
+            <td colspan="10" class="exec-banner">${execName.toUpperCase()}</td>
           </tr>
           <!-- Table Headers -->
           <tr class="table-headers">
@@ -873,6 +892,7 @@ const ExportReports = () => {
             <th>Name</th>
             <th>Contact</th>
             <th>Site Visited By</th>
+            <th>Project</th>
             <th>Place</th>
             <th>Enquiry Status</th>
             <th>Remarks</th>
@@ -886,10 +906,10 @@ const ExportReports = () => {
           const phoneStr = lead.phone || '&nbsp;';
           const placeStr = lead.address ? lead.address.split(',')[0] : '&nbsp;';
           const visitedBy = execName;
+          const projectStr = lead.project?.code || lead.project?.name || '&nbsp;';
           
           const statusStr = formatLeadStatusForReport(lead);
-          let remarksStr = lead.followUpInfo?.remarks || lead.closeRemarks || '&nbsp;';
-          if (remarksStr.match(/\[Lost at (.*?) stage\]/)) remarksStr = remarksStr.replace(/\[Lost at .*? stage\]( - )?/, '');
+          const remarksStr = getFormattedLeadRemarks(lead, '&nbsp;');
           const sourceStr = lead.leadSource || '&nbsp;';
           const rowClass = idx % 2 === 1 ? 'class="even-row"' : '';
 
@@ -900,6 +920,7 @@ const ExportReports = () => {
               <td class="text-left bold-label">${lead.name || '&nbsp;'}</td>
               <td>${phoneStr}</td>
               <td>${visitedBy}</td>
+              <td>${projectStr}</td>
               <td>${placeStr}</td>
               <td>${statusStr}</td>
               <td class="text-left">${remarksStr}</td>
@@ -988,7 +1009,7 @@ const ExportReports = () => {
         </head>
         <body>
           <table>
-            ${getExcelHeader(titleText, monthTitle, 8, "#ea580c")}
+            ${getExcelHeader(titleText, monthTitle, 9, "#ea580c")}
       `;
 
       // Group leads by assigned executive
@@ -1009,7 +1030,7 @@ const ExportReports = () => {
         // Executive banner row
         html += `
           <tr>
-            <td colspan="8" class="exec-banner">${execName.toUpperCase()}</td>
+            <td colspan="9" class="exec-banner">${execName.toUpperCase()}</td>
           </tr>
           <!-- Table Headers -->
           <tr class="table-headers">
@@ -1018,6 +1039,7 @@ const ExportReports = () => {
             <th>Contact Number</th>
             <th>Followup By</th>
             <th>Enquiry Mode</th>
+            <th>Project</th>
             <th>Last Called Date</th>
             <th>Follow up Date</th>
             <th>Remarks</th>
@@ -1030,6 +1052,7 @@ const ExportReports = () => {
           const phoneStr = lead.phone || '';
           const followBy = execName;
           const sourceStr = lead.leadSource || 'Direct Visit';
+          const projectStr = lead.project?.code || lead.project?.name || '&nbsp;';
           
           const lastCalledStr = lead.updatedAt 
             ? new Date(lead.updatedAt).toLocaleDateString('en-GB').replace(/\//g, '.') 
@@ -1039,8 +1062,7 @@ const ExportReports = () => {
             ? new Date(lead.followUpInfo.nextFollowUpDate).toLocaleDateString('en-GB').replace(/\//g, '.') 
             : '';
             
-          let remarksStr = lead.followUpInfo?.remarks || lead.closeRemarks || '';
-          if (remarksStr.match(/\[Lost at (.*?) stage\]/)) remarksStr = remarksStr.replace(/\[Lost at .*? stage\]( - )?/, '');
+          const remarksStr = getFormattedLeadRemarks(lead, '');
           const rowClass = idx % 2 === 1 ? 'class="even-row"' : '';
 
           html += `
@@ -1050,6 +1072,7 @@ const ExportReports = () => {
               <td>${phoneStr}</td>
               <td>${followBy}</td>
               <td class="text-left">${sourceStr}</td>
+              <td>${projectStr}</td>
               <td class="text-center">${lastCalledStr}</td>
               <td>${followUpDateStr}</td>
               <td class="text-left">${remarksStr}</td>
@@ -1987,7 +2010,7 @@ const ExportReports = () => {
             const plotNo = flow.unitId || lead.bookingInfo?.selectedUnits?.join(' & ') || '';
             const custName = lead.name || '';
             
-            const commentsStr = lead.closeRemarks || '';
+            const commentsStr = getFormattedLeadRemarks(lead, '');
             const rowClass = idx % 2 === 1 ? 'class="even-row"' : '';
 
             rowsHtml += `

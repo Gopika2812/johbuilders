@@ -3,9 +3,11 @@ import { Search, ChevronDown, Check, X, Filter } from 'lucide-react';
 
 const SearchableMultiSelect = ({
   options = [],
-  selectedValues = [],
+  selectedValues,
+  selectedOptions,
   onChange,
   placeholder = 'All Sources',
+  allLabel = '',
   label = '',
   icon: IconComponent = Filter,
   className = ''
@@ -14,15 +16,17 @@ const SearchableMultiSelect = ({
   const [searchQuery, setSearchQuery] = useState('');
   const containerRef = useRef(null);
 
+  const activeSelected = selectedValues !== undefined ? selectedValues : selectedOptions;
+
   // Normalize selectedValues to an array of strings
   const currentSelected = React.useMemo(() => {
-    if (!selectedValues) return [];
-    if (Array.isArray(selectedValues)) return selectedValues;
-    if (typeof selectedValues === 'string' && selectedValues.trim()) {
-      return selectedValues.split(',').map(s => s.trim()).filter(Boolean);
+    if (!activeSelected) return [];
+    if (Array.isArray(activeSelected)) return activeSelected;
+    if (typeof activeSelected === 'string' && activeSelected.trim()) {
+      return activeSelected.split(',').map(s => s.trim()).filter(Boolean);
     }
     return [];
-  }, [selectedValues]);
+  }, [activeSelected]);
 
   // Normalize options to [{ value, label }]
   const normalizedOptions = React.useMemo(() => {

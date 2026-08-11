@@ -569,6 +569,26 @@ const KPIInsights = () => {
     return status.toLowerCase().replace(/[\-_]+/g, ' ');
   };
 
+  const getFormattedLeadRemarks = (lead, defaultEmpty = '') => {
+    if (!lead) return defaultEmpty;
+    const isLostOrClosed = lead.status === 'Lost' || lead.status === 'Closed' || lead.isClosed;
+    let remarks = '';
+    if (isLostOrClosed) {
+      remarks = (lead.closeRemarks && lead.closeRemarks.trim()) 
+        ? lead.closeRemarks 
+        : (lead.followUpInfo?.remarks || '');
+    } else {
+      remarks = (lead.followUpInfo?.remarks && lead.followUpInfo.remarks.trim()) 
+        ? lead.followUpInfo.remarks 
+        : (lead.closeRemarks || '');
+    }
+    if (!remarks || !remarks.trim()) return defaultEmpty;
+    if (remarks.match(/\[Lost at (.*?) stage\]/)) {
+      remarks = remarks.replace(/\[Lost at .*? stage\]( - )?/, '');
+    }
+    return remarks || defaultEmpty;
+  };
+
   const handleExportEnquiriesExcel = async () => {
     try {
       setLoading(true);
@@ -673,7 +693,7 @@ const KPIInsights = () => {
           const projectStr = lead.project?.code || '';
           const placeStr = lead.address ? lead.address.split(',')[0] : '';
           const statusStr = formatLeadStatusForReport(lead);
-          const remarksStr = lead.followUpInfo?.remarks || lead.closeRemarks || '';
+          const remarksStr = getFormattedLeadRemarks(lead, '');
           const rowClass = idx % 2 === 1 ? 'class="even-row"' : '';
 
           html += `
@@ -781,7 +801,7 @@ const KPIInsights = () => {
         </head>
         <body>
           <table>
-            ${getExcelHeader(titleText, monthTitle, 9, "#2563eb", logoPath)}
+            ${getExcelHeader(titleText, monthTitle, 10, "#2563eb", logoPath)}
       `;
 
       // Group leads by assigned executive
@@ -798,7 +818,7 @@ const KPIInsights = () => {
         // Executive banner row
         html += `
           <tr>
-            <td colspan="9" class="exec-banner">${execName.toUpperCase()}</td>
+            <td colspan="10" class="exec-banner">${execName.toUpperCase()}</td>
           </tr>
           <!-- Table Headers -->
           <tr class="table-headers">
@@ -807,6 +827,7 @@ const KPIInsights = () => {
             <th>Name</th>
             <th>Contact</th>
             <th>Site Visited By</th>
+            <th>Project</th>
             <th>Place</th>
             <th>Enquiry Status</th>
             <th>Remarks</th>
@@ -820,10 +841,11 @@ const KPIInsights = () => {
           const phoneStr = lead.phone || '';
           const placeStr = lead.address ? lead.address.split(',')[0] : '';
           const visitedBy = execName;
+          const projectStr = lead.project?.code || lead.project?.name || '';
           
           // Enquiry Status column is workflow status (e.g. lost, future followup, followup)
           const statusStr = formatLeadStatusForReport(lead);
-          const remarksStr = lead.followUpInfo?.remarks || lead.closeRemarks || '';
+          const remarksStr = getFormattedLeadRemarks(lead, '');
           const sourceStr = lead.leadSource || '';
           const rowClass = idx % 2 === 1 ? 'class="even-row"' : '';
 
@@ -834,6 +856,7 @@ const KPIInsights = () => {
               <td class="text-left bold-label">${lead.name || ''}</td>
               <td>${phoneStr}</td>
               <td>${visitedBy}</td>
+              <td>${projectStr}</td>
               <td>${placeStr}</td>
               <td>${statusStr}</td>
               <td class="text-left">${remarksStr}</td>
@@ -931,7 +954,7 @@ const KPIInsights = () => {
         </head>
         <body>
           <table>
-            ${getExcelHeader(titleText, monthTitle, 8, "#ea580c", logoPath)}
+            ${getExcelHeader(titleText, monthTitle, 9, "#ea580c", logoPath)}
       `;
 
       // Group leads by assigned executive
@@ -948,7 +971,7 @@ const KPIInsights = () => {
         // Executive banner row
         html += `
           <tr>
-            <td colspan="8" class="exec-banner">${execName.toUpperCase()}</td>
+            <td colspan="9" class="exec-banner">${execName.toUpperCase()}</td>
           </tr>
           <!-- Table Headers -->
           <tr class="table-headers">
@@ -957,6 +980,7 @@ const KPIInsights = () => {
             <th>Contact Number</th>
             <th>Followup By</th>
             <th>Enquiry Mode</th>
+            <th>Project</th>
             <th>Last Called Date</th>
             <th>Follow up Date</th>
             <th>Remarks</th>
@@ -969,6 +993,7 @@ const KPIInsights = () => {
           const phoneStr = lead.phone || '';
           const followBy = execName;
           const sourceStr = lead.leadSource || 'Direct Visit';
+          const projectStr = lead.project?.code || lead.project?.name || '';
           
           // Last Called Date: either lead.updatedAt or latest follow-up date
           const lastCalledStr = lead.updatedAt 
@@ -979,7 +1004,7 @@ const KPIInsights = () => {
             ? new Date(lead.followUpInfo.nextFollowUpDate).toLocaleDateString('en-GB').replace(/\//g, '.') 
             : '';
             
-          const remarksStr = lead.followUpInfo?.remarks || lead.closeRemarks || '';
+          const remarksStr = getFormattedLeadRemarks(lead, '');
           const rowClass = idx % 2 === 1 ? 'class="even-row"' : '';
 
           html += `
@@ -989,6 +1014,7 @@ const KPIInsights = () => {
               <td>${phoneStr}</td>
               <td>${followBy}</td>
               <td class="text-left">${sourceStr}</td>
+              <td>${projectStr}</td>
               <td>${lastCalledStr}</td>
               <td>${followUpDateStr}</td>
               <td class="text-left">${remarksStr}</td>
@@ -1953,7 +1979,7 @@ const KPIInsights = () => {
             const plotNo = flow.unitId || lead.bookingInfo?.selectedUnits?.join(' & ') || '';
             const custName = lead.name || '';
             
-            const commentsStr = lead.closeRemarks || '';
+            const commentsStr = lead.closeRemarks || getFormattedLeadRemarks(lead, '');
             const rowClass = idx % 2 === 1 ? 'class="even-row"' : '';
 
             rowsHtml += `

@@ -1584,8 +1584,13 @@ const LeadsDirectory = () => {
         const assignerName = lead.assignedBy?.name || '—';
         const wStatus = lead.status || '';
 
-        const regDate = lead.createdAt ? new Date(lead.createdAt).toLocaleDateString('en-GB').replace(/\//g, '.') : '';
-        const remarksStr = [lead.followUpInfo?.remarks, lead.closeRemarks].filter(Boolean).join(' / ') || '';
+        const isLostOrClosed = lead.status === 'Lost' || lead.status === 'Closed' || lead.isClosed;
+        let remarksStr = isLostOrClosed 
+          ? (lead.closeRemarks || lead.followUpInfo?.remarks || '')
+          : (lead.followUpInfo?.remarks || lead.closeRemarks || '');
+        if (remarksStr.match(/\[Lost at (.*?) stage\]/)) {
+          remarksStr = remarksStr.replace(/\[Lost at .*? stage\]( - )?/, '');
+        }
         const rowClass = index % 2 === 1 ? 'class="even-row"' : '';
 
         html += `
@@ -1854,6 +1859,7 @@ const LeadsDirectory = () => {
             <label className="text-[11px] font-bold text-black-400 uppercase tracking-wider block">Campaign / Source</label>
             <SearchableMultiSelect
               options={SOURCE_TYPES}
+              selectedValues={campaignFilter}
               selectedOptions={campaignFilter}
               onChange={(selected) => setCampaignFilter(selected)}
               placeholder="All Campaigns / Sources"

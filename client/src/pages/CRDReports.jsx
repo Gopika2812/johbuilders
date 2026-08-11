@@ -644,6 +644,26 @@ const CRDReports = () => {
     return status.toLowerCase().replace(/[\-_]+/g, ' ');
   };
 
+  const getFormattedLeadRemarks = (lead, defaultEmpty = '') => {
+    if (!lead) return defaultEmpty;
+    const isLostOrClosed = lead.status === 'Lost' || lead.status === 'Closed' || lead.isClosed;
+    let remarks = '';
+    if (isLostOrClosed) {
+      remarks = (lead.closeRemarks && lead.closeRemarks.trim()) 
+        ? lead.closeRemarks 
+        : (lead.followUpInfo?.remarks || '');
+    } else {
+      remarks = (lead.followUpInfo?.remarks && lead.followUpInfo.remarks.trim()) 
+        ? lead.followUpInfo.remarks 
+        : (lead.closeRemarks || '');
+    }
+    if (!remarks || !remarks.trim()) return defaultEmpty;
+    if (remarks.match(/\[Lost at (.*?) stage\]/)) {
+      remarks = remarks.replace(/\[Lost at .*? stage\]( - )?/, '');
+    }
+    return remarks || defaultEmpty;
+  };
+
   const handleExportEnquiriesExcel = async () => {
     try {
       setLoading(true);
@@ -748,7 +768,7 @@ const CRDReports = () => {
           const projectStr = lead.project?.code || '&nbsp;';
           const placeStr = lead.address ? lead.address.split(',')[0] : '&nbsp;';
           const statusStr = formatLeadStatusForReport(lead);
-          const remarksStr = lead.followUpInfo?.remarks || lead.closeRemarks || '&nbsp;';
+          const remarksStr = getFormattedLeadRemarks(lead, '&nbsp;');
           const rowClass = idx % 2 === 1 ? 'class="even-row"' : '';
 
           html += `
@@ -847,7 +867,7 @@ const CRDReports = () => {
         </head>
         <body>
           <table>
-            ${getExcelHeader(titleText, monthTitle, 9, "#2563eb", logoPath)}
+            ${getExcelHeader(titleText, monthTitle, 10, "#2563eb", logoPath)}
       `;
 
       // Group leads by assigned executive
@@ -864,7 +884,7 @@ const CRDReports = () => {
         // Executive banner row
         html += `
           <tr>
-            <td colspan="9" class="exec-banner">${execName.toUpperCase()}</td>
+            <td colspan="10" class="exec-banner">${execName.toUpperCase()}</td>
           </tr>
           <!-- Table Headers -->
           <tr class="table-headers">
@@ -873,6 +893,7 @@ const CRDReports = () => {
             <th>Name</th>
             <th>Contact</th>
             <th>Site Visited By</th>
+            <th>Project</th>
             <th>Place</th>
             <th>Enquiry Status</th>
             <th>Remarks</th>
@@ -886,10 +907,11 @@ const CRDReports = () => {
           const phoneStr = lead.phone || '&nbsp;';
           const placeStr = lead.address ? lead.address.split(',')[0] : '&nbsp;';
           const visitedBy = execName;
+          const projectStr = lead.project?.code || lead.project?.name || '&nbsp;';
           
           // Enquiry Status column is workflow status (e.g. lost, future followup, followup)
           const statusStr = formatLeadStatusForReport(lead);
-          const remarksStr = lead.followUpInfo?.remarks || lead.closeRemarks || '&nbsp;';
+          const remarksStr = getFormattedLeadRemarks(lead, '&nbsp;');
           const sourceStr = lead.leadSource || '&nbsp;';
           const rowClass = idx % 2 === 1 ? 'class="even-row"' : '';
 
@@ -900,6 +922,7 @@ const CRDReports = () => {
               <td class="text-left bold-label">${lead.name || '&nbsp;'}</td>
               <td>${phoneStr}</td>
               <td>${visitedBy}</td>
+              <td>${projectStr}</td>
               <td>${placeStr}</td>
               <td>${statusStr}</td>
               <td class="text-left">${remarksStr}</td>
@@ -988,7 +1011,7 @@ const CRDReports = () => {
         </head>
         <body>
           <table>
-            ${getExcelHeader(titleText, monthTitle, 8, "#ea580c", logoPath)}
+            ${getExcelHeader(titleText, monthTitle, 9, "#ea580c", logoPath)}
       `;
 
       // Group leads by assigned executive
@@ -1005,7 +1028,7 @@ const CRDReports = () => {
         // Executive banner row
         html += `
           <tr>
-            <td colspan="8" class="exec-banner">${execName.toUpperCase()}</td>
+            <td colspan="9" class="exec-banner">${execName.toUpperCase()}</td>
           </tr>
           <!-- Table Headers -->
           <tr class="table-headers">
@@ -1014,6 +1037,7 @@ const CRDReports = () => {
             <th>Contact Number</th>
             <th>Followup By</th>
             <th>Enquiry Mode</th>
+            <th>Project</th>
             <th>Last Called Date</th>
             <th>Follow up Date</th>
             <th>Remarks</th>
@@ -1026,6 +1050,7 @@ const CRDReports = () => {
           const phoneStr = lead.phone || '';
           const followBy = execName;
           const sourceStr = lead.leadSource || 'Direct Visit';
+          const projectStr = lead.project?.code || lead.project?.name || '&nbsp;';
           
           // Last Called Date: either lead.updatedAt or latest follow-up date
           const lastCalledStr = lead.updatedAt 
@@ -1036,7 +1061,7 @@ const CRDReports = () => {
             ? new Date(lead.followUpInfo.nextFollowUpDate).toLocaleDateString('en-GB').replace(/\//g, '.') 
             : '';
             
-          const remarksStr = lead.followUpInfo?.remarks || lead.closeRemarks || '';
+          const remarksStr = getFormattedLeadRemarks(lead, '');
           const rowClass = idx % 2 === 1 ? 'class="even-row"' : '';
 
           html += `
@@ -1046,6 +1071,7 @@ const CRDReports = () => {
               <td>${phoneStr}</td>
               <td>${followBy}</td>
               <td class="text-left">${sourceStr}</td>
+              <td>${projectStr}</td>
               <td>${lastCalledStr}</td>
               <td>${followUpDateStr}</td>
               <td class="text-left">${remarksStr}</td>
@@ -2107,7 +2133,7 @@ const CRDReports = () => {
             const lastFlowNote = (flow.history && flow.history.length > 0) 
               ? flow.history[flow.history.length - 1].notes || flow.history[flow.history.length - 1].action 
               : '';
-            const commentsStr = lastFlowNote || lead.closeRemarks || '';
+            const commentsStr = lastFlowNote || getFormattedLeadRemarks(lead, '');
             const rowClass = idx % 2 === 1 ? 'class="even-row"' : '';
 
             rowsHtml += `
