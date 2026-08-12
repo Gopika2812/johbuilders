@@ -396,7 +396,13 @@ router.put('/:id', protect, async (req, res) => {
       }
       lead.status = status;
     }
-    if (assignedTo !== undefined) {
+
+    const userRoleNorm = (req.user?.role || '').toLowerCase().replace(/[\s_-]+/g, '');
+    const isSuperAdminUser = userRoleNorm === 'superadmin' || userRoleNorm === 'admin';
+    const isLeadAssigned = Boolean(lead.assignedTo) || (lead.status && lead.status !== 'New');
+    const canEditLockedFields = !isLeadAssigned || isSuperAdminUser;
+
+    if (canEditLockedFields && assignedTo !== undefined) {
       const prevAssigned = lead.assignedTo?.toString();
       if (assignedTo && assignedTo !== prevAssigned) {
         lead.assignedBy = req.user._id;
@@ -404,7 +410,7 @@ router.put('/:id', protect, async (req, res) => {
       lead.assignedTo = (assignedTo && assignedTo.toString().trim() !== '') ? assignedTo : undefined;
     }
     if (name) lead.name = name;
-    if (phone) lead.phone = phone;
+    if (canEditLockedFields && phone) lead.phone = phone;
     if (leadType) lead.leadType = leadType;
     if (leadCost !== undefined) lead.leadCost = Number(leadCost) || 0;
     if (address) lead.address = address;
@@ -413,7 +419,7 @@ router.put('/:id', protect, async (req, res) => {
     if (location) lead.location = location;
     if (bankLoan) lead.bankLoan = bankLoan;
     if (bankLoanPercentage !== undefined) lead.bankLoanPercentage = Number(bankLoanPercentage) || 0;
-    if (project) lead.project = project;
+    if (canEditLockedFields && project) lead.project = project;
     if (leadCategory) lead.leadCategory = leadCategory;
 
     if (followUpInfo !== undefined) lead.followUpInfo = followUpInfo;
@@ -465,9 +471,9 @@ router.put('/:id', protect, async (req, res) => {
       }
     }
     
-    if (leadSource) lead.leadSource = leadSource;
+    if (canEditLockedFields && leadSource) lead.leadSource = leadSource;
     if (lead.leadType === 'Lead') {
-      if (activeAd) lead.activeAd = activeAd;
+      if (canEditLockedFields && activeAd) lead.activeAd = activeAd;
     } else {
       lead.projectLocation = '';
     }

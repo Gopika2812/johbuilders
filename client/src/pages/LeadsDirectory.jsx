@@ -286,6 +286,10 @@ const LeadsDirectory = () => {
   // Edit Lead Modal State
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [selectedLeadForEdit, setSelectedLeadForEdit] = useState(null);
+  const roleNorm = (user?.role || '').toLowerCase().replace(/[\s_-]+/g, '');
+  const isSuperAdmin = roleNorm === 'superadmin' || roleNorm === 'admin';
+  const isSelectedLeadAssigned = Boolean(selectedLeadForEdit?.assignedTo) || (selectedLeadForEdit?.status && selectedLeadForEdit?.status !== 'New');
+  const isLockedForNonAdmin = isSelectedLeadAssigned && !isSuperAdmin;
   const [editName, setEditName] = useState('');
   const [editPhoneCountryCode, setEditPhoneCountryCode] = useState('+91');
   const [editPhoneLocal, setEditPhoneLocal] = useState('');
@@ -2661,256 +2665,299 @@ const LeadsDirectory = () => {
       {/* 🔐 MODAL: Edit Lead Record */}
       {editModalOpen && selectedLeadForEdit && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="bg-white rounded-3xl max-w-xl w-full overflow-hidden shadow-2xl border border-black-100">
-            <div className="bg-amber-600 p-6 text-white flex justify-between items-start">
-              <div>
-                <h3 className="text-lg font-bold">Edit Lead Information</h3>
-                <p className="text-amber-100 text-xs mt-1">Modify details for: {selectedLeadForEdit.name}</p>
-              </div>
-              <button
-                onClick={() => setEditModalOpen(false)}
-                className="text-amber-100 hover:text-white transition cursor-pointer"
-                title="Close"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <form onSubmit={handleUpdateLead} noValidate className="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
-              {/* Lead Type Radio Group */}
-              <div className="bg-black-50 p-4 rounded-2xl border border-black-150">
-                <label className="text-[11px] font-bold text-black-400 uppercase tracking-wider block mb-2 font-extrabold text-[#0e623a]">Lead Record Category [LOCKED]</label>
-                <div className="flex gap-6">
-                  <label className="flex items-center gap-2 text-sm font-semibold text-black-700 cursor-not-allowed opacity-70">
-                    <input
-                      type="radio"
-                      name="editLeadType"
-                      value="Lead"
-                      checked={editLeadType === 'Lead'}
-                      disabled
-                      className="text-amber-600 focus:ring-amber-600 w-4 h-4 cursor-not-allowed"
-                    />
-                    <span>Lead (Campaigns & Referrals)</span>
-                  </label>
-                  <label className="flex items-center gap-2 text-sm font-semibold text-black-700 cursor-not-allowed opacity-70">
-                    <input
-                      type="radio"
-                      name="editLeadType"
-                      value="Direct Visit"
-                      checked={editLeadType === 'Direct Visit'}
-                      disabled
-                      className="text-amber-600 focus:ring-amber-600 w-4 h-4 cursor-not-allowed"
-                    />
-                    <span>Direct Visit</span>
-                  </label>
+            <div className="bg-white rounded-3xl max-w-xl w-full overflow-hidden shadow-2xl border border-black-100">
+              <div className="bg-amber-600 p-6 text-white flex justify-between items-start">
+                <div>
+                  <h3 className="text-lg font-bold">Edit Lead Information</h3>
+                  <p className="text-amber-100 text-xs mt-1">Modify details for: {selectedLeadForEdit.name}</p>
                 </div>
+                <button
+                  onClick={() => setEditModalOpen(false)}
+                  className="text-amber-100 hover:text-white transition cursor-pointer"
+                  title="Close"
+                >
+                  <X className="w-5 h-5" />
+                </button>
               </div>
 
-              {/* Name & Phone */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-left">
-                <div>
-                  <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Lead / Customer Name <span className="text-red-500">*</span></label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. David Brown"
-                    value={editName}
-                    onChange={(e) => setEditName(e.target.value)}
-                    className="w-full px-4 py-3 bg-black-55 border border-black-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-600 text-sm"
-                  />
+              <form onSubmit={handleUpdateLead} noValidate className="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
+                {isLockedForNonAdmin && (
+                  <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900 font-semibold flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+                    <span>After lead assignment, Phone Number, Lead Source, Project Code, and Assigned Executive are locked for sales team and editable only by Super Admin.</span>
+                  </div>
+                )}
+
+                {/* Lead Type Radio Group */}
+                <div className="bg-black-50 p-4 rounded-2xl border border-black-150">
+                  <label className="text-[11px] font-bold text-black-400 uppercase tracking-wider block mb-2 font-extrabold text-[#0e623a]">Lead Record Category [LOCKED]</label>
+                  <div className="flex gap-6">
+                    <label className="flex items-center gap-2 text-sm font-semibold text-black-700 cursor-not-allowed opacity-70">
+                      <input
+                        type="radio"
+                        name="editLeadType"
+                        value="Lead"
+                        checked={editLeadType === 'Lead'}
+                        disabled
+                        className="text-amber-600 focus:ring-amber-600 w-4 h-4 cursor-not-allowed"
+                      />
+                      <span>Lead (Campaigns & Referrals)</span>
+                    </label>
+                    <label className="flex items-center gap-2 text-sm font-semibold text-black-700 cursor-not-allowed opacity-70">
+                      <input
+                        type="radio"
+                        name="editLeadType"
+                        value="Direct Visit"
+                        checked={editLeadType === 'Direct Visit'}
+                        disabled
+                        className="text-amber-600 focus:ring-amber-600 w-4 h-4 cursor-not-allowed"
+                      />
+                      <span>Direct Visit</span>
+                    </label>
+                  </div>
                 </div>
-                <div>
-                  <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Phone Number <span className="text-red-500">*</span></label>
-                  <div className={`flex items-center bg-black-55 border rounded-xl focus-within:ring-2 transition-all overflow-hidden ${editPhoneErr ? 'border-red-500 focus-within:ring-red-500' : 'border-black-200 focus-within:ring-amber-600 focus-within:border-transparent'}`}>
-                    <select
-                      value={editPhoneCountryCode}
-                      onChange={(e) => {
-                        setEditPhoneCountryCode(e.target.value);
-                        setEditPhoneLocal('');
-                        setEditPhoneErr('');
-                      }}
-                      className="bg-transparent pl-4 pr-6 py-3 text-sm font-bold text-black-700 outline-none cursor-pointer border-r border-black-200/80 hover:bg-black-100/50 transition-colors w-24 appearance-none"
-                      style={{ backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 6px center', backgroundSize: '12px' }}
-                    >
-                      <option value="+91">🇮🇳 +91</option>
-                      <option value="+971">🇦🇪 +971</option>
-                      <option value="+1">🇺🇸 +1</option>
-                      <option value="+44">🇬🇧 +44</option>
-                      <option value="+966">🇸🇦 +966</option>
-                      <option value="+">Other</option>
-                    </select>
+
+                {/* Name & Phone */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-left">
+                  <div>
+                    <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Lead / Customer Name <span className="text-red-500">*</span></label>
                     <input
                       type="text"
                       required
-                      placeholder={editPhoneCountryCode === '+91' ? '10 digit number' : editPhoneCountryCode === '+971' ? '9 digit number' : 'Phone number'}
-                      value={editPhoneLocal}
-                      onChange={(e) => {
-                        handleLocalPhoneChange(e.target.value, editPhoneCountryCode, setEditPhoneLocal);
-                        setEditPhoneErr('');
-                      }}
-                      onBlur={() => {
-                        const err = validatePhone(editPhoneCountryCode, editPhoneLocal, 'Phone number');
-                        setEditPhoneErr(err || '');
-                      }}
-                      className="flex-grow px-4 py-3 bg-transparent border-none focus:outline-none focus:ring-0 text-sm"
+                      placeholder="e.g. David Brown"
+                      value={editName}
+                      onChange={(e) => setEditName(e.target.value)}
+                      className="w-full px-4 py-3 bg-black-55 border border-black-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-600 text-sm"
                     />
                   </div>
-                  {editPhoneErr && (
-                    <p className="text-[11px] text-red-500 font-bold mt-1">{editPhoneErr}</p>
-                  )}
-                </div>
-              </div>
-
-              {/* Address */}
-              <div className="text-left">
-                <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Customer Address</label>
-                <textarea
-                  rows="2"
-                  placeholder="Street details, city, pincode..."
-                  value={editAddress}
-                  onChange={(e) => setEditAddress(e.target.value)}
-                  className="w-full px-4 py-3 bg-black-55 border border-black-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-600 text-sm"
-                />
-              </div>
-
-              {/* Conditionally rendered details based on Lead Type */}
-              {editLeadType === 'Lead' ? (
-                <>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-left">
-                    {/* Lead Source */}
-                    <div className="flex flex-col">
-                      <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Lead Source <span className="text-red-500">*</span></label>
-                      <SearchableSelect
-                        options={SOURCE_TYPES}
-                        value={editLeadSource}
-                        onChange={setEditLeadSource}
-                        placeholder="Select Ad Source / Campaign"
+                  <div>
+                    <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5 flex items-center justify-between">
+                      <span>Phone Number <span className="text-red-500">*</span></span>
+                      {isLockedForNonAdmin && <span className="text-[10px] text-amber-800 bg-amber-100 font-extrabold px-2 py-0.5 rounded border border-amber-300">[LOCKED]</span>}
+                    </label>
+                    <div className={`flex items-center border rounded-xl overflow-hidden transition-all ${
+                      isLockedForNonAdmin
+                        ? 'bg-gray-100 border-gray-300 opacity-75 cursor-not-allowed'
+                        : editPhoneErr
+                        ? 'bg-black-55 border-red-500 focus-within:ring-2 focus-within:ring-red-500'
+                        : 'bg-black-55 border-black-200 focus-within:ring-2 focus-within:ring-amber-600 focus-within:border-transparent'
+                    }`}>
+                      <select
+                        disabled={isLockedForNonAdmin}
+                        value={editPhoneCountryCode}
+                        onChange={(e) => {
+                          setEditPhoneCountryCode(e.target.value);
+                          setEditPhoneLocal('');
+                          setEditPhoneErr('');
+                        }}
+                        className={`bg-transparent pl-4 pr-6 py-3 text-sm font-bold text-black-700 outline-none border-r border-black-200/80 ${isLockedForNonAdmin ? 'cursor-not-allowed' : 'cursor-pointer hover:bg-black-100/50'} transition-colors w-24 appearance-none`}
+                        style={{ backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 6px center', backgroundSize: '12px' }}
+                      >
+                        <option value="+91">🇮🇳 +91</option>
+                        <option value="+971">🇦🇪 +971</option>
+                        <option value="+1">🇺🇸 +1</option>
+                        <option value="+44">🇬🇧 +44</option>
+                        <option value="+966">🇸🇦 +966</option>
+                        <option value="+">Other</option>
+                      </select>
+                      <input
+                        type="text"
+                        required
+                        disabled={isLockedForNonAdmin}
+                        readOnly={isLockedForNonAdmin}
+                        placeholder={editPhoneCountryCode === '+91' ? '10 digit number' : editPhoneCountryCode === '+971' ? '9 digit number' : 'Phone number'}
+                        value={editPhoneLocal}
+                        onChange={(e) => {
+                          handleLocalPhoneChange(e.target.value, editPhoneCountryCode, setEditPhoneLocal);
+                          setEditPhoneErr('');
+                        }}
+                        onBlur={() => {
+                          const err = validatePhone(editPhoneCountryCode, editPhoneLocal, 'Phone number');
+                          setEditPhoneErr(err || '');
+                        }}
+                        className={`flex-grow px-4 py-3 bg-transparent border-none focus:outline-none focus:ring-0 text-sm ${isLockedForNonAdmin ? 'cursor-not-allowed text-gray-600 font-medium' : ''}`}
                       />
                     </div>
-
-                    {/* Project Code selection */}
-                    <div className="flex flex-col">
-                      <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Project Code <span className="text-red-500">*</span></label>
-                      <SearchableSelect
-                        options={projects.map(p => ({ value: p._id, label: `${p.code} - ${p.name} (${formatProjectTypeLabel(p.projectType)})` }))}
-                        value={editProjectId}
-                        onChange={setEditProjectId}
-                        placeholder="Select Project"
-                      />
-                    </div>
+                    {editPhoneErr && (
+                      <p className="text-[11px] text-red-500 font-bold mt-1">{editPhoneErr}</p>
+                    )}
                   </div>
+                </div>
 
-                  {/* Ads Sub-dropdown (dynamic based on project) */}
-                  {editProjectId && editLeadSource === 'Digital Marketing' && (
-                    <div className="bg-amber-50/50 p-4 rounded-2xl border border-amber-200/40 space-y-3 text-left">
+                {/* Address */}
+                <div className="text-left">
+                  <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Customer Address</label>
+                  <textarea
+                    rows="2"
+                    placeholder="Street details, city, pincode..."
+                    value={editAddress}
+                    onChange={(e) => setEditAddress(e.target.value)}
+                    className="w-full px-4 py-3 bg-black-55 border border-black-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-600 text-sm"
+                  />
+                </div>
+
+                {/* Conditionally rendered details based on Lead Type */}
+                {editLeadType === 'Lead' ? (
+                  <>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-left">
+                      {/* Lead Source */}
                       <div className="flex flex-col">
-                        <label className="text-xs font-bold text-amber-800 uppercase tracking-wider block mb-1.5">Active Ad Campaign</label>
+                        <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5 flex items-center justify-between">
+                          <span>Lead Source <span className="text-red-500">*</span></span>
+                          {isLockedForNonAdmin && <span className="text-[10px] text-amber-800 bg-amber-100 font-extrabold px-2 py-0.5 rounded border border-amber-300">[LOCKED]</span>}
+                        </label>
                         <SearchableSelect
-                          options={editActiveAds.map(ad => ({ value: ad.id, label: `[${ad.type}] ${ad.name} (₹${ad.cost || 0})` }))}
-                          value={editAdId}
-                          onChange={setEditAdId}
-                          placeholder="Select Active Campaign Ad"
+                          disabled={isLockedForNonAdmin}
+                          options={SOURCE_TYPES}
+                          value={editLeadSource}
+                          onChange={setEditLeadSource}
+                          placeholder="Select Ad Source / Campaign"
+                        />
+                      </div>
+
+                      {/* Project Code selection */}
+                      <div className="flex flex-col">
+                        <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5 flex items-center justify-between">
+                          <span>Project Code <span className="text-red-500">*</span></span>
+                          {isLockedForNonAdmin && <span className="text-[10px] text-amber-800 bg-amber-100 font-extrabold px-2 py-0.5 rounded border border-amber-300">[LOCKED]</span>}
+                        </label>
+                        <SearchableSelect
+                          disabled={isLockedForNonAdmin}
+                          options={projects.map(p => ({ value: p._id, label: `${p.code} - ${p.name} (${formatProjectTypeLabel(p.projectType)})` }))}
+                          value={editProjectId}
+                          onChange={setEditProjectId}
+                          placeholder="Select Project"
                         />
                       </div>
                     </div>
-                  )}
-                </>
-              ) : (
-                <>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-left">
-                    {/* Lead Source */}
-                    <div className="flex flex-col">
-                      <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Lead Source <span className="text-red-500">*</span></label>
-                      <SearchableSelect
-                        options={SOURCE_TYPES}
-                        value={editLeadSource}
-                        onChange={setEditLeadSource}
-                        placeholder="Select Ad Source / Campaign"
-                      />
-                    </div>
 
-                    {/* Project Code selection */}
-                    <div className="flex flex-col">
-                      <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Project Code <span className="text-red-500">*</span></label>
-                      <SearchableSelect
-                        options={projects.map(p => ({ value: p._id, label: `${p.code} - ${p.name} (${formatProjectTypeLabel(p.projectType)})` }))}
-                        value={editProjectId}
-                        onChange={setEditProjectId}
-                        placeholder="Select Project"
-                      />
+                    {/* Ads Sub-dropdown (dynamic based on project) */}
+                    {editProjectId && editLeadSource === 'Digital Marketing' && (
+                      <div className="bg-amber-50/50 p-4 rounded-2xl border border-amber-200/40 space-y-3 text-left">
+                        <div className="flex flex-col">
+                          <label className="text-xs font-bold text-amber-800 uppercase tracking-wider block mb-1.5 flex items-center justify-between">
+                            <span>Active Ad Campaign</span>
+                            {isLockedForNonAdmin && <span className="text-[10px] text-amber-800 bg-amber-100 font-extrabold px-2 py-0.5 rounded border border-amber-300">[LOCKED]</span>}
+                          </label>
+                          <SearchableSelect
+                            disabled={isLockedForNonAdmin}
+                            options={editActiveAds.map(ad => ({ value: ad.id, label: `[${ad.type}] ${ad.name} (₹${ad.cost || 0})` }))}
+                            value={editAdId}
+                            onChange={setEditAdId}
+                            placeholder="Select Active Campaign Ad"
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-left">
+                      {/* Lead Source */}
+                      <div className="flex flex-col">
+                        <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5 flex items-center justify-between">
+                          <span>Lead Source <span className="text-red-500">*</span></span>
+                          {isLockedForNonAdmin && <span className="text-[10px] text-amber-800 bg-amber-100 font-extrabold px-2 py-0.5 rounded border border-amber-300">[LOCKED]</span>}
+                        </label>
+                        <SearchableSelect
+                          disabled={isLockedForNonAdmin}
+                          options={SOURCE_TYPES}
+                          value={editLeadSource}
+                          onChange={setEditLeadSource}
+                          placeholder="Select Ad Source / Campaign"
+                        />
+                      </div>
+
+                      {/* Project Code selection */}
+                      <div className="flex flex-col">
+                        <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5 flex items-center justify-between">
+                          <span>Project Code <span className="text-red-500">*</span></span>
+                          {isLockedForNonAdmin && <span className="text-[10px] text-amber-800 bg-amber-100 font-extrabold px-2 py-0.5 rounded border border-amber-300">[LOCKED]</span>}
+                        </label>
+                        <SearchableSelect
+                          disabled={isLockedForNonAdmin}
+                          options={projects.map(p => ({ value: p._id, label: `${p.code} - ${p.name} (${formatProjectTypeLabel(p.projectType)})` }))}
+                          value={editProjectId}
+                          onChange={setEditProjectId}
+                          placeholder="Select Project"
+                        />
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                {/* Bank Loan Selection */}
+                <div className="bg-black-50 p-4 rounded-2xl border border-black-150 text-left space-y-3">
+                  <div>
+                    <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-2">Requires Bank Loan?</label>
+                    <div className="flex gap-6">
+                      <label className="flex items-center gap-2 text-sm font-semibold text-black-700 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="editBankLoan"
+                          value="Yes"
+                          checked={editBankLoan === 'Yes'}
+                          onChange={() => setEditBankLoan('Yes')}
+                          className="text-amber-600 focus:ring-amber-600 w-4 h-4"
+                        />
+                        <span>Yes</span>
+                      </label>
+                      <label className="flex items-center gap-2 text-sm font-semibold text-black-700 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="editBankLoan"
+                          value="No"
+                          checked={editBankLoan === 'No'}
+                          onChange={() => {
+                            setEditBankLoan('No');
+                            setEditBankLoanPercentage(0);
+                          }}
+                          className="text-amber-600 focus:ring-amber-600 w-4 h-4"
+                        />
+                        <span>No</span>
+                      </label>
                     </div>
                   </div>
-                </>
-              )}
 
-              {/* Bank Loan Selection */}
-              <div className="bg-black-50 p-4 rounded-2xl border border-black-150 text-left space-y-3">
-                <div>
-                  <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-2">Requires Bank Loan?</label>
-                  <div className="flex gap-6">
-                    <label className="flex items-center gap-2 text-sm font-semibold text-black-700 cursor-pointer">
+                  {editBankLoan === 'Yes' && (
+                    <div className="pt-2 border-t border-black-200/50">
+                      <label className="text-xs font-semibold text-[#4b5563] block mb-1">Bank Loan Percentage (%) <span className="text-red-500">*</span></label>
                       <input
-                        type="radio"
-                        name="editBankLoan"
-                        value="Yes"
-                        checked={editBankLoan === 'Yes'}
-                        onChange={() => setEditBankLoan('Yes')}
-                        className="text-amber-600 focus:ring-amber-600 w-4 h-4"
-                      />
-                      <span>Yes</span>
-                    </label>
-                    <label className="flex items-center gap-2 text-sm font-semibold text-black-700 cursor-pointer">
-                      <input
-                        type="radio"
-                        name="editBankLoan"
-                        value="No"
-                        checked={editBankLoan === 'No'}
-                        onChange={() => {
-                          setEditBankLoan('No');
-                          setEditBankLoanPercentage(0);
+                        type="number"
+                        placeholder="e.g. 30"
+                        value={editBankLoanPercentage}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          if (val === '') {
+                            setEditBankLoanPercentage('');
+                          } else {
+                            const num = Number(val);
+                            if (num >= 0 && num <= 100) setEditBankLoanPercentage(num);
+                          }
                         }}
-                        className="text-amber-600 focus:ring-amber-600 w-4 h-4"
+                        onBlur={() => setEditBankLoanPercentage(prev => prev === '' ? 0 : Number(prev))}
+                        className="w-full px-3 py-2 bg-white border border-[#d1d5db] rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-600 text-sm"
                       />
-                      <span>No</span>
-                    </label>
-                  </div>
+                    </div>
+                  )}
                 </div>
 
-                {editBankLoan === 'Yes' && (
-                  <div className="pt-2 border-t border-black-200/50">
-                    <label className="text-xs font-semibold text-[#4b5563] block mb-1">Bank Loan Percentage (%) <span className="text-red-500">*</span></label>
-                    <input
-                      type="number"
-                      placeholder="e.g. 30"
-                      value={editBankLoanPercentage}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        if (val === '') {
-                          setEditBankLoanPercentage('');
-                        } else {
-                          const num = Number(val);
-                          if (num >= 0 && num <= 100) setEditBankLoanPercentage(num);
-                        }
-                      }}
-                      onBlur={() => setEditBankLoanPercentage(prev => prev === '' ? 0 : Number(prev))}
-                      className="w-full px-3 py-2 bg-white border border-[#d1d5db] rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-600 text-sm"
-                    />
-                  </div>
-                )}
-              </div>
-
-              {/* Assigned Executive */}
-              <div className="flex flex-col text-left">
-                <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Assigned Executive / Member <span className="text-red-500">*</span></label>
-                <SearchableSelect
-                  options={employees
-                    .filter(emp => emp.role?.toLowerCase() === 'sales person' || emp._id === editAssignedToId)
-                    .map(emp => ({ value: emp._id, label: `${emp.name} (${emp.role})` }))}
-                  value={editAssignedToId}
-                  onChange={setEditAssignedToId}
-                  placeholder="Select Executive"
-                />
-              </div>
+                {/* Assigned Executive */}
+                <div className="flex flex-col text-left">
+                  <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5 flex items-center justify-between">
+                    <span>Assigned Executive / Member <span className="text-red-500">*</span></span>
+                    {isLockedForNonAdmin && <span className="text-[10px] text-amber-800 bg-amber-100 font-extrabold px-2 py-0.5 rounded border border-amber-300">[LOCKED]</span>}
+                  </label>
+                  <SearchableSelect
+                    disabled={isLockedForNonAdmin}
+                    options={employees
+                      .filter(emp => emp.role?.toLowerCase() === 'sales person' || emp._id === editAssignedToId)
+                      .map(emp => ({ value: emp._id, label: `${emp.name} (${emp.role})` }))}
+                    value={editAssignedToId}
+                    onChange={setEditAssignedToId}
+                    placeholder="Select Executive"
+                  />
+                </div>
 
               {/* Workflow Status & Lead Category */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-left">

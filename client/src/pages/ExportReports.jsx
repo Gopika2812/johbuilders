@@ -337,6 +337,7 @@ const ExportReports = () => {
 
   const [selectedProject, setSelectedProject] = useState('');
   const [loading, setLoading] = useState(true);
+  const [reportLoading, setReportLoading] = useState(false);
   const fileCode = 'ALL_PROJECTS';
   const [previewHtml, setPreviewHtml] = useState('');
   const [previewFilename, setPreviewFilename] = useState('');
@@ -644,7 +645,7 @@ const ExportReports = () => {
 
   const handleExportEnquiriesExcel = async (returnHtml = false) => {
     try {
-      setLoading(true);
+      setReportLoading(true);
       const res = await fetch(`${API_URL}/leads`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -794,13 +795,13 @@ const ExportReports = () => {
       console.error(err);
       alert('Error exporting enquiry sheet');
     } finally {
-      setLoading(false);
+      setReportLoading(false);
     }
   };
 
   const handleExportSiteVisitsExcel = async (returnHtml = false) => {
     try {
-      setLoading(true);
+      setReportLoading(true);
       const res = await fetch(`${API_URL}/leads`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -943,13 +944,13 @@ const ExportReports = () => {
       console.error(err);
       alert('Error exporting site visit report');
     } finally {
-      setLoading(false);
+      setReportLoading(false);
     }
   };
 
   const handleExportHotListExcel = async (returnHtml = false) => {
     try {
-      setLoading(true);
+      setReportLoading(true);
       const res = await fetch(`${API_URL}/leads`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -1094,13 +1095,13 @@ const ExportReports = () => {
       console.error(err);
       alert('Error exporting hot list report');
     } finally {
-      setLoading(false);
+      setReportLoading(false);
     }
   };
 
   const handleExportBookingsExcel = async (returnHtml = false) => {
     try {
-      setLoading(true);
+      setReportLoading(true);
       const res = await fetch(`${API_URL}/leads`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -1238,13 +1239,13 @@ const ExportReports = () => {
       console.error(err);
       alert('Error exporting bookings report');
     } finally {
-      setLoading(false);
+      setReportLoading(false);
     }
   };
 
   const handleExportSummaryReport = async (returnHtml = false) => {
     try {
-      setLoading(true);
+      setReportLoading(true);
       const activeMonthStr = fromDate.substring(0, 7);
 
       // Fetch all required data points in parallel for the active month
@@ -1760,13 +1761,13 @@ const ExportReports = () => {
       console.error(err);
       alert('Error exporting marketing returns report');
     } finally {
-      setLoading(false);
+      setReportLoading(false);
     }
   };
 
   const handleExportLeadSourcesReport = async (returnHtml = false) => {
     try {
-      setLoading(true);
+      setReportLoading(true);
       
       const activeMonthStr = fromDate.substring(0, 7);
 
@@ -2256,13 +2257,13 @@ const ExportReports = () => {
       console.error(err);
       alert('Error exporting key handover report');
     } finally {
-      setLoading(false);
+      setReportLoading(false);
     }
   };
 
   const handleExportCollectionReport = async (returnHtml = false) => {
     try {
-      setLoading(true);
+      setReportLoading(true);
       const res = await fetch(`${API_URL}/crd-flow`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -2408,13 +2409,13 @@ const ExportReports = () => {
       console.error(err);
       alert('Error exporting collection report');
     } finally {
-      setLoading(false);
+      setReportLoading(false);
     }
   };
 
   const handleExportBankLoansExcel = async (returnHtml = false) => {
     try {
-      setLoading(true);
+      setReportLoading(true);
       const res = await fetch(`${API_URL}/crd-flow`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -2542,13 +2543,13 @@ const ExportReports = () => {
       console.error(err);
       alert('Error exporting bank loan report');
     } finally {
-      setLoading(false);
+      setReportLoading(false);
     }
   };
 
   const handleExportExtraWorksReport = async (returnHtml = false) => {
     try {
-      setLoading(true);
+      setReportLoading(true);
       const res = await fetch(`${API_URL}/crd-flow`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -2687,13 +2688,13 @@ const ExportReports = () => {
       console.error(err);
       alert('Error exporting extra works report');
     } finally {
-      setLoading(false);
+      setReportLoading(false);
     }
   };
 
   const handleExportComplaintsReport = async (returnHtml = false) => {
     try {
-      setLoading(true);
+      setReportLoading(true);
       const res = await fetch(`${API_URL}/crd-flow`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -2808,13 +2809,13 @@ const ExportReports = () => {
       console.error(err);
       alert('Error exporting customer complaints report');
     } finally {
-      setLoading(false);
+      setReportLoading(false);
     }
   };
 
   const handleDownloadAll = async () => {
     try {
-      setLoading(true);
+      setReportLoading(true);
       window.__isDownloadingAll = true;
       const allSheets = [];
 
@@ -2846,7 +2847,7 @@ const ExportReports = () => {
       alert('Error previewing combined report');
     } finally {
       window.__isDownloadingAll = false;
-      setLoading(false);
+      setReportLoading(false);
     }
   };
 
@@ -3129,7 +3130,7 @@ const ExportReports = () => {
       )}
 
       {/* ⏳ Loading Spinner Overlay */}
-      {loading && !previewModalOpen && (
+      {reportLoading && !previewModalOpen && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/50 backdrop-blur-xs animate-fadeIn">
           <div className="bg-white rounded-3xl p-8 shadow-2xl border border-black-100 flex flex-col items-center gap-4 text-center max-w-xs animate-in zoom-in-95 duration-200">
             <div className="w-14 h-14 bg-emerald-50 rounded-full flex items-center justify-center border border-emerald-100">

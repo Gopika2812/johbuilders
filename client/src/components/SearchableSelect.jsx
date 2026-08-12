@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Search, ChevronDown, Check } from 'lucide-react';
 
-const SearchableSelect = ({ options = [], value, onChange, placeholder = 'Select an option' }) => {
+const SearchableSelect = ({ options = [], value, onChange, placeholder = 'Select an option', disabled = false }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const containerRef = useRef(null);
@@ -36,11 +36,17 @@ const SearchableSelect = ({ options = [], value, onChange, placeholder = 'Select
     <div className="relative w-full" ref={containerRef}>
       <button
         type="button"
+        disabled={disabled}
         onClick={() => {
+          if (disabled) return;
           setIsOpen(!isOpen);
           setSearchQuery('');
         }}
-        className="w-full flex items-center justify-between px-4 py-3 bg-[#f9fafb] border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0e623a] transition text-left text-sm"
+        className={`w-full flex items-center justify-between px-4 py-3 border rounded-xl transition text-left text-sm ${
+          disabled
+            ? 'bg-gray-100 border-gray-300 text-gray-500 cursor-not-allowed opacity-75'
+            : 'bg-[#f9fafb] border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#0e623a]'
+        }`}
       >
         <span className={selectedOption ? 'text-gray-800 font-semibold' : 'text-gray-400 font-medium'}>
           {selectedOption ? selectedOption.label : placeholder}

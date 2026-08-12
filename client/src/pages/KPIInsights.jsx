@@ -369,6 +369,7 @@ const KPIInsights = () => {
   const [selectedProject, setSelectedProject] = useState('');
   const [selectedSource, setSelectedSource] = useState('');
   const [loading, setLoading] = useState(true);
+  const [reportLoading, setReportLoading] = useState(false);
   const [selectedGroup, setSelectedGroup] = useState(null);
   const [activeCpeDrillDown, setActiveCpeDrillDown] = useState(null);
   const [exportMenuOpen, setExportMenuOpen] = useState(false);
@@ -3277,7 +3278,7 @@ const KPIInsights = () => {
         </div>
       )}
       {/* ⏳ Loading Spinner Overlay */}
-      {loading && !previewModalOpen && (
+      {reportLoading && !previewModalOpen && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/50 backdrop-blur-xs animate-fadeIn">
           <div className="bg-white rounded-3xl p-8 shadow-2xl border border-black-100 flex flex-col items-center gap-4 text-center max-w-xs animate-in zoom-in-95 duration-200">
             <div className="w-14 h-14 bg-emerald-50 rounded-full flex items-center justify-center border border-emerald-100">
