@@ -1596,6 +1596,7 @@ const LeadsDirectory = () => {
           remarksStr = remarksStr.replace(/\[Lost at .*? stage\]( - )?/, '');
         }
         const rowClass = index % 2 === 1 ? 'class="even-row"' : '';
+        const regDate = lead.createdAt ? new Date(lead.createdAt).toLocaleDateString('en-GB') : '';
 
         html += `
           <tr ${rowClass}>
