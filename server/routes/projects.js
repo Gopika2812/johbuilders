@@ -157,6 +157,7 @@ router.post('/', protect, checkPermission('projects', 'edit'), async (req, res) 
       name,
       code,
       projectType,
+      hasReadyBuilt: req.body.hasReadyBuilt !== undefined ? !!req.body.hasReadyBuilt : true,
       layoutPlanImage: req.body.layoutPlanImage || '',
       location,
       totalLandArea: area,
@@ -484,7 +485,7 @@ router.put('/:id/extra-work-catalog', protect, async (req, res) => {
 // @route   PUT /api/projects/:id
 // @desc    Update project details
 router.put('/:id', protect, async (req, res) => {
-  const { name, location, totalLandArea, pricePerSqFt, layoutPlanImage } = req.body;
+  const { name, location, totalLandArea, pricePerSqFt, layoutPlanImage, hasReadyBuilt } = req.body;
   try {
     const project = await Project.findById(req.params.id);
     if (!project) {
@@ -496,6 +497,7 @@ router.put('/:id', protect, async (req, res) => {
     if (totalLandArea !== undefined) project.totalLandArea = Number(totalLandArea);
     if (pricePerSqFt !== undefined) project.pricePerSqFt = Number(pricePerSqFt);
     if (layoutPlanImage !== undefined) project.layoutPlanImage = layoutPlanImage;
+    if (hasReadyBuilt !== undefined) project.hasReadyBuilt = !!hasReadyBuilt;
 
     await project.save();
 

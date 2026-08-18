@@ -38,6 +38,7 @@ const RegisterProject = () => {
   const [name, setName] = useState('');
   const [code, setCode] = useState('');
   const [projectTypes, setProjectTypes] = useState(['Plot']);
+  const [hasReadyBuilt, setHasReadyBuilt] = useState(true);
   const handleToggleProjectType = (type) => {
     if (projectTypes.includes(type)) {
       if (projectTypes.length > 1) {
@@ -404,6 +405,7 @@ const RegisterProject = () => {
       name,
       code: code.toUpperCase().trim(),
       projectType: projectTypes,
+      hasReadyBuilt,
       layoutPlanImage,
       location,
       totalLandArea: Number(totalLandArea),
@@ -545,6 +547,22 @@ const RegisterProject = () => {
                     className="w-4 h-4 text-[#0e623a] focus:ring-[#0e623a] border-gray-300 rounded"
                   />
                   <span>Unit</span>
+                </label>
+              </div>
+            </div>
+
+            {/* Workflow Status Settings */}
+            <div>
+              <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-2">Workflow Status Options</label>
+              <div className="flex flex-wrap gap-4 px-4 py-3 bg-white/20 border border-[#0e623a]/20 rounded-xl justify-start items-center">
+                <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={hasReadyBuilt}
+                    onChange={(e) => setHasReadyBuilt(e.target.checked)}
+                    className="w-4 h-4 text-[#0e623a] focus:ring-[#0e623a] border-gray-300 rounded"
+                  />
+                  <span>Enable "Ready Built" Status Option</span>
                 </label>
               </div>
             </div>

@@ -860,12 +860,40 @@ const ProjectDetail = () => {
                   </div>
                 )}
                 <div className="text-[11px] text-black-500 leading-relaxed bg-black-50 p-3 rounded-lg border">
-                  <strong>Color Legend:</strong>
-                  <div className="flex flex-wrap gap-2 mt-1.5">
+                  <div className="flex items-center justify-between gap-2 border-b border-black-100 pb-2 mb-2">
+                    <strong>Color Legend:</strong>
+                    <label className="flex items-center gap-1.5 cursor-pointer text-[10px] font-extrabold text-[#0e623a] bg-[#0e623a]/5 hover:bg-[#0e623a]/10 px-2 py-0.5 rounded-md transition select-none">
+                      <input
+                        type="checkbox"
+                        checked={project?.hasReadyBuilt !== false}
+                        onChange={async (e) => {
+                          const val = e.target.checked;
+                          setProject({ ...project, hasReadyBuilt: val });
+                          try {
+                            await fetch(`${API_URL}/projects/${project._id}`, {
+                              method: 'PUT',
+                              headers: {
+                                'Content-Type': 'application/json',
+                                Authorization: `Bearer ${token}`
+                              },
+                              body: JSON.stringify({ hasReadyBuilt: val })
+                            });
+                          } catch (err) {
+                            console.error(err);
+                          }
+                        }}
+                        className="w-3.5 h-3.5 rounded text-[#0e623a] focus:ring-[#0e623a] cursor-pointer"
+                      />
+                      <span>Enable Ready Built</span>
+                    </label>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
                     <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>Available</span>
                     <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-yellow-400"></span>Hold</span>
                     <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-red-500"></span>Booked</span>
-                    <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-purple-500"></span>Ready Built</span>
+                    {project?.hasReadyBuilt !== false && (
+                      <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-purple-500"></span>Ready Built</span>
+                    )}
                   </div>
                 </div>
               </div>
@@ -1663,7 +1691,7 @@ const ProjectDetail = () => {
                   <option value="Available">Available</option>
                   <option value="Hold">Hold</option>
                   <option value="Booked">Booked</option>
-                  <option value="Ready Built">Ready Built</option>
+                  {project?.hasReadyBuilt !== false && <option value="Ready Built">Ready Built</option>}
                 </select>
                 {user.role === 'ped team' && (
                   <span className="text-[11px] text-red-500 mt-1 block">

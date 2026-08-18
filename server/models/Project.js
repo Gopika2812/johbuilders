@@ -88,6 +88,10 @@ const ProjectSchema = new mongoose.Schema({
     type: String,
     enum: ['Plot', 'Flat', 'House', 'Villa', 'Unit']
   }],
+  hasReadyBuilt: {
+    type: Boolean,
+    default: true
+  },
   layoutPlanImage: {
     type: String,
     default: ''
