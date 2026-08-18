@@ -883,7 +883,7 @@ const ProjectDetail = () => {
                         </div>
                       </div>
                       <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full border ${getStatusBadge(unit.status)}`}>
-                        {unit.status}
+                        {normalizeStatus(unit.status)}
                       </span>
                     </div>
 
@@ -898,7 +898,7 @@ const ProjectDetail = () => {
                       </div>
                     </div>
 
-                    {unit.status === 'Booked' && unit.customerName && (
+                    {normalizeStatus(unit.status) === 'Booked' && unit.customerName && (
                       <div className="text-[12px] text-amber-700 font-bold bg-amber-50 border border-amber-200 p-3 rounded-2xl flex flex-col gap-0.5">
                         <span className="text-[10px] text-amber-500 uppercase tracking-wide">Customer Details</span>
                         <span>Name: {unit.customerName}</span>
@@ -910,7 +910,7 @@ const ProjectDetail = () => {
                       <button
                         onClick={() => {
                           setSelectedUnit(unit);
-                          setUnitStatus(unit.status);
+                          setUnitStatus(normalizeStatus(unit.status));
                           setCustomerName(unit.customerName || '');
                           setCustomerPhone(unit.customerPhone || '');
                           setLeadName(unit.leadName || '');
@@ -974,7 +974,7 @@ const ProjectDetail = () => {
                       <td className="p-5 font-bold text-[#0e623a]">Rs. {Math.round(unit.price).toLocaleString()}</td>
                       <td className="p-5">
                         <span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full border ${getStatusBadge(unit.status)}`}>
-                          {unit.status}
+                          {normalizeStatus(unit.status)}
                         </span>
                       </td>
                       <td className="p-5 text-black-600">{unit.customerName || '—'}</td>
@@ -984,7 +984,7 @@ const ProjectDetail = () => {
                           <button
                             onClick={() => {
                               setSelectedUnit(unit);
-                              setUnitStatus(unit.status);
+                              setUnitStatus(normalizeStatus(unit.status));
                               setCustomerName(unit.customerName || '');
                               setCustomerPhone(unit.customerPhone || '');
                               setLeadName(unit.leadName || '');
@@ -1054,13 +1054,13 @@ const ProjectDetail = () => {
                               type="button"
                               onClick={() => {
                                 setSelectedUnit(unit);
-                                setUnitStatus(unit.status);
+                                setUnitStatus(normalizeStatus(unit.status));
                                 setCustomerName(unit.customerName || '');
                                 setCustomerPhone(unit.customerPhone || '');
                                 setLeadName(unit.leadName || '');
                                 setBookingModalOpen(true);
                               }}
-                              title={`Unit ${unit.unitId} - ${unit.status} (${unit.size} sq.ft) - ${unit.unitType} ${unit.customerName ? '- Customer: ' + unit.customerName : ''}`}
+                              title={`Unit ${unit.unitId} - ${normalizeStatus(unit.status)} (${unit.size} sq.ft) - ${unit.unitType} ${unit.customerName ? '- Customer: ' + unit.customerName : ''}`}
                               className={`w-[75px] h-[75px] flex flex-col items-center justify-center rounded-xl text-[13px] font-black tracking-wide border transition-all duration-200 hover:-translate-y-1 hover:scale-110 active:scale-95 cursor-pointer gap-1 ${bgClass}`}
                             >
                               <Building className="w-4 h-4 opacity-90" />
@@ -1103,7 +1103,7 @@ const ProjectDetail = () => {
                       <td className="p-5 font-bold text-[#0e623a]">${Math.round(unit.price).toLocaleString()}</td>
                       <td className="p-5">
                         <span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full border ${getStatusBadge(unit.status)}`}>
-                          {unit.status}
+                          {normalizeStatus(unit.status)}
                         </span>
                       </td>
                       <td className="p-5 text-black-600">{unit.customerName || '—'}</td>
@@ -1111,7 +1111,7 @@ const ProjectDetail = () => {
                         <button
                           onClick={() => {
                             setSelectedUnit(unit);
-                            setUnitStatus(unit.status);
+                            setUnitStatus(normalizeStatus(unit.status));
                             setCustomerName(unit.customerName || '');
                             setCustomerPhone(unit.customerPhone || '');
                             setLeadName(unit.leadName || '');
@@ -1164,13 +1164,13 @@ const ProjectDetail = () => {
                             type="button"
                             onClick={() => {
                               setSelectedUnit(unit);
-                              setUnitStatus(unit.status);
+                              setUnitStatus(normalizeStatus(unit.status));
                               setCustomerName(unit.customerName || '');
                               setCustomerPhone(unit.customerPhone || '');
                               setLeadName(unit.leadName || '');
                               setBookingModalOpen(true);
                             }}
-                            title={`Unit ${unit.unitId} - ${unit.status} (${unit.size} sq.ft) - ${unit.unitType} ${unit.customerName ? '- Customer: ' + unit.customerName : ''}`}
+                            title={`Unit ${unit.unitId} - ${normalizeStatus(unit.status)} (${unit.size} sq.ft) - ${unit.unitType} ${unit.customerName ? '- Customer: ' + unit.customerName : ''}`}
                             className={`w-[90px] h-[90px] flex flex-col items-center justify-center rounded-2xl text-[16px] font-black tracking-wide border transition-all duration-200 hover:-translate-y-1.5 hover:scale-110 active:scale-95 cursor-pointer gap-1 ${bgClass}`}
                           >
                             <Home className="w-6 h-6 opacity-90" />
@@ -1211,7 +1211,7 @@ const ProjectDetail = () => {
                       <td className="p-5 font-bold text-[#0e623a]">${Math.round(unit.price).toLocaleString()}</td>
                       <td className="p-5">
                         <span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full border ${getStatusBadge(unit.status)}`}>
-                          {unit.status}
+                          {normalizeStatus(unit.status)}
                         </span>
                       </td>
                       <td className="p-5 text-black-600">{unit.customerName || '—'}</td>
@@ -1219,7 +1219,7 @@ const ProjectDetail = () => {
                         <button
                           onClick={() => {
                             setSelectedUnit(unit);
-                            setUnitStatus(unit.status);
+                            setUnitStatus(normalizeStatus(unit.status));
                             setCustomerName(unit.customerName || '');
                             setCustomerPhone(unit.customerPhone || '');
                             setLeadName(unit.leadName || '');
