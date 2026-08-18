@@ -598,33 +598,89 @@ const Dashboard = () => {
       };
     });
 
-    Object.keys(stats.personProjectStages || {}).forEach(key => {
-      const row = stats.personProjectStages[key];
-      const uName = row.personName;
-      if (!data[uName]) {
-        data[uName] = {
-          userName: uName,
-          totalLeads: 0,
-          enquiries: 0,
-          siteVisits: 0,
-          hotList: 0,
-          booked: 0,
-          handover: 0,
-          siteConversions: 0,
-          lost: 0
-        };
-      }
-      data[uName].totalLeads += row.totalLeads || 0;
-      data[uName].enquiries += row.enquiries || 0;
-      data[uName].siteVisits += row.siteVisits || 0;
-      data[uName].hotList += row.hotList || 0;
-      data[uName].booked += row.booked || 0;
-      data[uName].handover += row.handover || 0;
-      data[uName].siteConversions += row.siteConversions || 0;
-      data[uName].lost += row.lost || 0;
-    });
-    return Object.values(data).filter(u => u.totalLeads > 0);
-  }, [stats.personProjectStages, stats.users]);
+    const rangeStart = fromDate ? new Date(fromDate) : null;
+    let rangeEnd = null;
+    if (toDate) {
+      rangeEnd = new Date(toDate);
+      rangeEnd.setHours(23, 59, 59, 999);
+    }
+
+    const inDateRange = (dateStr) => {
+      if (!fromDate && !toDate) return true;
+      if (!dateStr) return false;
+      const d = new Date(dateStr);
+      if (rangeStart && d < rangeStart) return false;
+      if (rangeEnd && d > rangeEnd) return false;
+      return true;
+    };
+
+    if (stats.cards?.leadsList && Array.isArray(stats.cards.leadsList)) {
+      stats.cards.leadsList.forEach(lead => {
+        const isCreated = inDateRange(lead.createdAt);
+        if (!isCreated) return;
+
+        const uName = lead.assignedTo || 'Unassigned';
+        if (!data[uName]) {
+          data[uName] = {
+            userName: uName,
+            totalLeads: 0,
+            enquiries: 0,
+            siteVisits: 0,
+            hotList: 0,
+            booked: 0,
+            handover: 0,
+            siteConversions: 0,
+            lost: 0
+          };
+        }
+
+        data[uName].totalLeads += 1;
+
+        const status = lead.status || '';
+        if (status === 'Contacted' || status === 'Follow-Up') {
+          data[uName].enquiries += 1;
+        } else if (status === 'Site Visit' || status === 'Site Visit Follow-up') {
+          data[uName].siteVisits += 1;
+        } else if (status === 'Hot List') {
+          data[uName].hotList += 1;
+        } else if (status === 'Booking') {
+          data[uName].booked += 1;
+        } else if (status === 'Won') {
+          data[uName].handover += 1;
+        } else if (status === 'Lost' || status === 'Closed') {
+          data[uName].lost += 1;
+        }
+      });
+    } else {
+      Object.keys(stats.personProjectStages || {}).forEach(key => {
+        const row = stats.personProjectStages[key];
+        const uName = row.personName;
+        if (!data[uName]) {
+          data[uName] = {
+            userName: uName,
+            totalLeads: 0,
+            enquiries: 0,
+            siteVisits: 0,
+            hotList: 0,
+            booked: 0,
+            handover: 0,
+            siteConversions: 0,
+            lost: 0
+          };
+        }
+        data[uName].totalLeads += row.totalLeads || 0;
+        data[uName].enquiries += row.enquiries || 0;
+        data[uName].siteVisits += row.siteVisits || 0;
+        data[uName].hotList += row.hotList || 0;
+        data[uName].booked += row.booked || 0;
+        data[uName].handover += row.handover || 0;
+        data[uName].siteConversions += row.siteConversions || 0;
+        data[uName].lost += row.lost || 0;
+      });
+    }
+
+    return Object.values(data).filter(u => u.totalLeads > 0 || u.enquiries > 0 || u.siteVisits > 0 || u.hotList > 0 || u.booked > 0 || u.handover > 0 || u.lost > 0);
+  }, [stats.personProjectStages, stats.cards?.leadsList, stats.users, fromDate, toDate]);
 
   const selectedUserPerfData = React.useMemo(() => {
     if (!selectedUserPerfName) {
@@ -672,7 +728,7 @@ const Dashboard = () => {
     const usersData = [];
     Object.keys(stats.personProjectStages || {}).forEach(key => {
       const row = stats.personProjectStages[key];
-      if (row.projectName === selectedProjectPerfCode && row.totalLeads > 0) {
+      if (row.projectName === selectedProjectPerfCode && (row.totalLeads > 0 || row.enquiries > 0 || row.siteVisits > 0 || row.hotList > 0 || row.booked > 0 || row.handover > 0 || row.lost > 0)) {
         usersData.push(row);
       }
     });
@@ -689,6 +745,86 @@ const Dashboard = () => {
 
   // Group-level totals
   const sourceGroupsPerformanceData = React.useMemo(() => {
+    const rangeStart = fromDate ? new Date(fromDate) : null;
+    let rangeEnd = null;
+    if (toDate) {
+      rangeEnd = new Date(toDate);
+      rangeEnd.setHours(23, 59, 59, 999);
+    }
+
+    const inDateRange = (dateStr) => {
+      if (!fromDate && !toDate) return true;
+      if (!dateStr) return false;
+      const d = new Date(dateStr);
+      if (rangeStart && d < rangeStart) return false;
+      if (rangeEnd && d > rangeEnd) return false;
+      return true;
+    };
+
+    if (stats.cards?.leadsList && Array.isArray(stats.cards.leadsList)) {
+      const groupMap = {};
+      Object.keys(stats.groupStats || {}).forEach(gName => {
+        groupMap[gName] = {
+          groupName: gName,
+          totalLeads: 0,
+          enquiries: 0,
+          siteVisits: 0,
+          hotList: 0,
+          booked: 0,
+          handover: 0,
+          siteConversions: 0,
+          lost: 0
+        };
+      });
+
+      stats.cards.leadsList.forEach(lead => {
+        const isCreated = inDateRange(lead.createdAt);
+        if (!isCreated) return;
+
+        const src = lead.leadSource || 'Direct Visit';
+        let matchedGroupName = 'Other / Unassigned';
+        Object.keys(stats.groupStats || {}).forEach(gName => {
+          const g = stats.groupStats[gName];
+          if (g.sources?.some(s => s.source?.toLowerCase() === src.toLowerCase())) {
+            matchedGroupName = gName;
+          }
+        });
+
+        if (!groupMap[matchedGroupName]) {
+          groupMap[matchedGroupName] = {
+            groupName: matchedGroupName,
+            totalLeads: 0,
+            enquiries: 0,
+            siteVisits: 0,
+            hotList: 0,
+            booked: 0,
+            handover: 0,
+            siteConversions: 0,
+            lost: 0
+          };
+        }
+
+        groupMap[matchedGroupName].totalLeads += 1;
+
+        const status = lead.status || '';
+        if (status === 'Contacted' || status === 'Follow-Up') {
+          groupMap[matchedGroupName].enquiries += 1;
+        } else if (status === 'Site Visit' || status === 'Site Visit Follow-up') {
+          groupMap[matchedGroupName].siteVisits += 1;
+        } else if (status === 'Hot List') {
+          groupMap[matchedGroupName].hotList += 1;
+        } else if (status === 'Booking') {
+          groupMap[matchedGroupName].booked += 1;
+        } else if (status === 'Won') {
+          groupMap[matchedGroupName].handover += 1;
+        } else if (status === 'Lost' || status === 'Closed') {
+          groupMap[matchedGroupName].lost += 1;
+        }
+      });
+
+      return Object.values(groupMap).filter(g => g.totalLeads > 0 || g.enquiries > 0 || g.siteVisits > 0 || g.hotList > 0 || g.booked > 0 || g.handover > 0 || g.lost > 0);
+    }
+
     return Object.keys(stats.groupStats || {}).map(groupName => {
       const g = stats.groupStats[groupName];
       const totals = {
@@ -713,12 +849,74 @@ const Dashboard = () => {
         totals.lost += src.lost || 0;
       });
       return totals;
-    }).filter(g => g.totalLeads > 0);
-  }, [stats.groupStats]);
+    }).filter(g => g.totalLeads > 0 || g.enquiries > 0 || g.siteVisits > 0 || g.hotList > 0 || g.booked > 0 || g.handover > 0 || g.lost > 0);
+  }, [stats.groupStats, stats.cards?.leadsList, fromDate, toDate]);
 
   // Sub-sources data under the selected group
   const subSourcesPerformanceData = React.useMemo(() => {
     if (!selectedSourceGroup) return [];
+
+    const rangeStart = fromDate ? new Date(fromDate) : null;
+    let rangeEnd = null;
+    if (toDate) {
+      rangeEnd = new Date(toDate);
+      rangeEnd.setHours(23, 59, 59, 999);
+    }
+
+    const inDateRange = (dateStr) => {
+      if (!fromDate && !toDate) return true;
+      if (!dateStr) return false;
+      const d = new Date(dateStr);
+      if (rangeStart && d < rangeStart) return false;
+      if (rangeEnd && d > rangeEnd) return false;
+      return true;
+    };
+
+    if (stats.cards?.leadsList && Array.isArray(stats.cards.leadsList)) {
+      const subMap = {};
+      const g = stats.groupStats?.[selectedSourceGroup];
+      (g?.sources || []).forEach(s => {
+        subMap[s.source] = {
+          subSourceName: s.source,
+          totalLeads: 0,
+          enquiries: 0,
+          siteVisits: 0,
+          hotList: 0,
+          booked: 0,
+          handover: 0,
+          siteConversions: 0,
+          lost: 0
+        };
+      });
+
+      stats.cards.leadsList.forEach(lead => {
+        const isCreated = inDateRange(lead.createdAt);
+        if (!isCreated) return;
+
+        const src = lead.leadSource || 'Direct Visit';
+        if (!subMap[src]) return;
+
+        subMap[src].totalLeads += 1;
+
+        const status = lead.status || '';
+        if (status === 'Contacted' || status === 'Follow-Up') {
+          subMap[src].enquiries += 1;
+        } else if (status === 'Site Visit' || status === 'Site Visit Follow-up') {
+          subMap[src].siteVisits += 1;
+        } else if (status === 'Hot List') {
+          subMap[src].hotList += 1;
+        } else if (status === 'Booking') {
+          subMap[src].booked += 1;
+        } else if (status === 'Won') {
+          subMap[src].handover += 1;
+        } else if (status === 'Lost' || status === 'Closed') {
+          subMap[src].lost += 1;
+        }
+      });
+
+      return Object.values(subMap).filter(s => s.totalLeads > 0 || s.enquiries > 0 || s.siteVisits > 0 || s.hotList > 0 || s.booked > 0 || s.handover > 0 || s.lost > 0);
+    }
+
     const g = stats.groupStats[selectedSourceGroup];
     if (!g) return [];
     return (g.sources || []).map(src => ({
@@ -731,8 +929,8 @@ const Dashboard = () => {
       handover: src.handover || 0,
       siteConversions: src.siteConversions || 0,
       lost: src.lost || 0
-    })).filter(s => s.totalLeads > 0);
-  }, [selectedSourceGroup, stats.groupStats]);
+    })).filter(s => s.totalLeads > 0 || s.enquiries > 0 || s.siteVisits > 0 || s.hotList > 0 || s.booked > 0 || s.handover > 0 || s.lost > 0);
+  }, [selectedSourceGroup, stats.groupStats, stats.cards?.leadsList, fromDate, toDate]);
 
   // The metrics to display on the details card
   const selectedSourcePerfData = React.useMemo(() => {
@@ -1175,8 +1373,6 @@ const Dashboard = () => {
             <th>Available Value (INR)</th>
             <th>Booked Count</th>
             <th>Booked Value (INR)</th>
-            <th>Sold Out Count</th>
-            <th>Sold Out Value (INR)</th>
           </tr>
      `;
 
@@ -1187,8 +1383,6 @@ const Dashboard = () => {
       const availVal = (inventory.availableValueByType?.[type] || 0) + (type === 'Villa' ? (inventory.availableValueByType?.House || 0) : 0);
       const bookedCount = (inventory.bookedByType?.[type] || 0) + (type === 'Villa' ? (inventory.bookedByType?.House || 0) : 0);
       const bookedVal = (inventory.bookedValueByType?.[type] || 0) + (type === 'Villa' ? (inventory.bookedValueByType?.House || 0) : 0);
-      const soldCount = (inventory.handoverByType?.[type] || 0) + (type === 'Villa' ? (inventory.handoverByType?.House || 0) : 0);
-      const soldVal = (inventory.handoverValueByType?.[type] || 0) + (type === 'Villa' ? (inventory.handoverValueByType?.House || 0) : 0);
 
       const rowClass = idx % 2 === 1 ? 'class="even-row"' : '';
 
@@ -1201,8 +1395,6 @@ const Dashboard = () => {
           <td>Rs. ${availVal.toLocaleString()}</td>
           <td>${bookedCount}</td>
           <td>Rs. ${bookedVal.toLocaleString()}</td>
-          <td>${soldCount}</td>
-          <td>Rs. ${soldVal.toLocaleString()}</td>
         </tr>
       `;
     });

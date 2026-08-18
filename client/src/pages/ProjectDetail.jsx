@@ -527,16 +527,20 @@ const ProjectDetail = () => {
   const getStatusBadge = (status) => {
     switch (status) {
       case 'New':
+      case 'Available':
         return 'bg-emerald-50 text-emerald-700 border-emerald-200';
       case 'Booked':
-        return 'bg-yellow-50 text-yellow-700 border-yellow-200';
+        return 'bg-red-50 text-red-700 border-red-200';
       case 'Hold':
       case 'On Hold':
-        return 'bg-amber-50 text-amber-800 border-amber-300';
+        return 'bg-yellow-50 text-yellow-800 border-yellow-300';
       case 'Under Construction':
+      case 'Ready Built':
+      case 'Build':
         return 'bg-purple-50 text-purple-700 border-purple-200';
       case 'Sold Out':
-        return 'bg-red-50 text-red-700 border-red-200';
+      case 'Sold':
+        return 'bg-gray-50 text-gray-700 border-gray-200';
       default:
         return 'bg-black-50 text-black-700 border-black-200';
     }
@@ -831,11 +835,11 @@ const ProjectDetail = () => {
                         <div
                           key={idx}
                           className={`h-4 rounded-sm border text-[9px] flex items-center justify-center font-bold ${
-                            unit.status === 'New' ? 'bg-emerald-100 border-emerald-300 text-emerald-800' :
-                            unit.status === 'Booked' ? 'bg-yellow-100 border-yellow-300 text-yellow-800' :
-                            (unit.status === 'Hold' || unit.status === 'On Hold') ? 'bg-amber-100 border-amber-300 text-amber-800' :
-                            unit.status === 'Under Construction' ? 'bg-purple-100 border-purple-300 text-purple-800' :
-                            'bg-red-100 border-red-300 text-red-800'
+                            (unit.status === 'New' || unit.status === 'Available') ? 'bg-emerald-100 border-emerald-300 text-emerald-800' :
+                            unit.status === 'Booked' ? 'bg-red-100 border-red-300 text-red-800' :
+                            (unit.status === 'Hold' || unit.status === 'On Hold') ? 'bg-yellow-100 border-yellow-300 text-yellow-800' :
+                            (unit.status === 'Under Construction' || unit.status === 'Ready Built' || unit.status === 'Build') ? 'bg-purple-100 border-purple-300 text-purple-800' :
+                            'bg-gray-100 border-gray-300 text-gray-800'
                           }`}
                           title={unit.unitId}
                         >
@@ -848,11 +852,10 @@ const ProjectDetail = () => {
                 <div className="text-[11px] text-black-500 leading-relaxed bg-black-50 p-3 rounded-lg border">
                   <strong>Color Legend:</strong>
                   <div className="flex flex-wrap gap-2 mt-1.5">
-                    <span className="flex items-center gap-1"><span className="w-2 h-2 rounded bg-emerald-500"></span>New</span>
-                    <span className="flex items-center gap-1"><span className="w-2 h-2 rounded bg-yellow-400"></span>Booked</span>
-                    <span className="flex items-center gap-1"><span className="w-2 h-2 rounded bg-amber-500"></span>Hold</span>
-                    <span className="flex items-center gap-1"><span className="w-2 h-2 rounded bg-purple-500"></span>Build</span>
-                    <span className="flex items-center gap-1"><span className="w-2 h-2 rounded bg-red-500"></span>Sold</span>
+                    <span className="flex items-center gap-1"><span className="w-2 h-2 rounded bg-emerald-500"></span>Available</span>
+                    <span className="flex items-center gap-1"><span className="w-2 h-2 rounded bg-yellow-400"></span>Hold</span>
+                    <span className="flex items-center gap-1"><span className="w-2 h-2 rounded bg-red-500"></span>Booked</span>
+                    <span className="flex items-center gap-1"><span className="w-2 h-2 rounded bg-purple-500"></span>Ready Built</span>
                   </div>
                 </div>
               </div>

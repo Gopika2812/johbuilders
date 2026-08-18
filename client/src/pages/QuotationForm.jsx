@@ -571,11 +571,13 @@ const QuotationForm = () => {
                       </div>
                       <div className="flex-1 space-y-2 text-xs text-gray-555 leading-relaxed text-left">
                         <h4 className="font-extrabold text-gray-800 text-sm">Interactive Project Map</h4>
-                        <p>You can click directly on the unit pins on the layout map to select them, or use the selection grid below. Available units are shown in green, selected in dark green, and booked/sold in yellow.</p>
+                        <p>You can click directly on the unit pins on the layout map to select them, or use the selection grid below. Available units are shown in green, selected in dark green, booked in red, and hold in yellow.</p>
                         <div className="flex flex-wrap gap-4 mt-2">
                           <span className="flex items-center gap-1.5 font-bold"><span className="w-2.5 h-2.5 rounded bg-[#0e623a]"></span>Selected</span>
-                          <span className="flex items-center gap-1.5 font-bold"><span className="w-2.5 h-2.5 rounded bg-yellow-400"></span>Booked / Sold</span>
+                          <span className="flex items-center gap-1.5 font-bold"><span className="w-2.5 h-2.5 rounded bg-yellow-400"></span>Hold</span>
+                          <span className="flex items-center gap-1.5 font-bold"><span className="w-2.5 h-2.5 rounded bg-red-500"></span>Booked</span>
                           <span className="flex items-center gap-1.5 font-bold"><span className="w-2.5 h-2.5 rounded bg-[#10b981]"></span>Available</span>
+                          <span className="flex items-center gap-1.5 font-bold"><span className="w-2.5 h-2.5 rounded bg-purple-500"></span>Ready Built</span>
                         </div>
                       </div>
                     </div>
@@ -667,11 +669,11 @@ const QuotationForm = () => {
                         
                         let bgClass = 'bg-gradient-to-br from-emerald-500 to-emerald-600 border-emerald-400 text-white shadow-[0_3px_8px_rgba(16,185,129,0.15)] hover:shadow-[0_6px_15px_rgba(16,185,129,0.3)] hover:-translate-y-1 hover:scale-105';
                         if (isSold) {
-                          bgClass = 'bg-gradient-to-br from-red-500 to-rose-600 border-red-400 text-white shadow-[0_3px_8px_rgba(239,68,68,0.15)] cursor-not-allowed opacity-90';
+                          bgClass = 'bg-gradient-to-br from-gray-500 to-gray-600 border-gray-400 text-white shadow-[0_3px_8px_rgba(107,114,128,0.15)] cursor-not-allowed opacity-90';
                         } else if (isHold) {
-                          bgClass = 'bg-gradient-to-br from-amber-600 to-orange-600 border-amber-500 text-white shadow-[0_3px_8px_rgba(245,158,11,0.15)] cursor-not-allowed opacity-90';
+                          bgClass = 'bg-gradient-to-br from-yellow-400 to-amber-500 border-yellow-300 text-yellow-950 shadow-[0_3px_8px_rgba(245,158,11,0.15)] cursor-not-allowed opacity-90';
                         } else if (isBooked) {
-                          bgClass = 'bg-gradient-to-br from-amber-400 to-yellow-500 border-amber-300 text-white shadow-[0_3px_8px_rgba(245,158,11,0.15)] cursor-not-allowed opacity-90';
+                          bgClass = 'bg-gradient-to-br from-red-500 to-rose-600 border-red-400 text-white shadow-[0_3px_8px_rgba(239,68,68,0.15)] cursor-not-allowed opacity-90';
                         } else if (isSelected) {
                           bgClass = 'bg-[#0e623a] border-[#0a4d2c] text-white shadow-md font-bold scale-105 ring-2 ring-emerald-300';
                         }

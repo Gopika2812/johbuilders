@@ -1228,13 +1228,13 @@ const CRDReports = () => {
       console.error(err);
       alert('Error exporting bookings report');
     } finally {
-      setLoading(false);
+      setReportLoading(false);
     }
   };
 
   const handleExportSummaryReport = async () => {
     try {
-      setLoading(true);
+      setReportLoading(true);
       const activeMonthStr = fromDate.substring(0, 7);
 
       // Fetch all required data points in parallel for the active month
@@ -1612,13 +1612,13 @@ const CRDReports = () => {
       console.error(err);
       alert('Error exporting summary report');
     } finally {
-      setLoading(false);
+      setReportLoading(false);
     }
   };
 
   const handleExportMarketingReport = async () => {
     try {
-      setLoading(true);
+      setReportLoading(true);
       
       const groupData = stats.groupStats || {};
 
@@ -1740,13 +1740,13 @@ const CRDReports = () => {
       console.error(err);
       alert('Error exporting marketing returns report');
     } finally {
-      setLoading(false);
+      setReportLoading(false);
     }
   };
 
   const handleExportLeadSourcesExcel = async () => {
     try {
-      setLoading(true);
+      setReportLoading(true);
       
       const activeMonthStr = fromDate.substring(0, 7);
 
@@ -1871,13 +1871,13 @@ const CRDReports = () => {
       console.error(err);
       alert('Error exporting lead sources report');
     } finally {
-      setLoading(false);
+      setReportLoading(false);
     }
   };
 
   const handleExportNPACollectedReport = async () => {
     try {
-      setLoading(true);
+      setReportLoading(true);
       const res = await fetch(`${API_URL}/crd-flow`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -2011,14 +2011,14 @@ const CRDReports = () => {
       console.error(err);
       alert('Error exporting NPA Collected Report');
     } finally {
-      setLoading(false);
+      setReportLoading(false);
     }
   };
 
   const handleExportRegistrationReport = async (options = {}) => {
 
     try {
-      setLoading(true);
+      setReportLoading(true);
       const res = await fetch(`${API_URL}/crd-flow`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -2206,13 +2206,13 @@ const CRDReports = () => {
       console.error(err);
       alert('Error exporting registration report');
     } finally {
-      setLoading(false);
+      setReportLoading(false);
     }
   };
 
   const handleExportKeyHandoverReport = async (options = {}) => {
     try {
-      setLoading(true);
+      setReportLoading(true);
       const res = await fetch(`${API_URL}/crd-flow`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -2343,13 +2343,13 @@ const CRDReports = () => {
       console.error(err);
       alert('Error exporting key handover report');
     } finally {
-      setLoading(false);
+      setReportLoading(false);
     }
   };
 
   const handleExportCollectionReport = async (options = {}) => {
     try {
-      setLoading(true);
+      setReportLoading(true);
       const res = await fetch(`${API_URL}/crd-flow`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -2498,13 +2498,13 @@ const CRDReports = () => {
       console.error(err);
       alert('Error exporting collection report');
     } finally {
-      setLoading(false);
+      setReportLoading(false);
     }
   };
 
   const handleExportBankLoanReport = async (options = {}) => {
     try {
-      setLoading(true);
+      setReportLoading(true);
       const res = await fetch(`${API_URL}/crd-flow`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -2668,13 +2668,13 @@ const CRDReports = () => {
       console.error(err);
       alert('Error exporting bank loan report');
     } finally {
-      setLoading(false);
+      setReportLoading(false);
     }
   };
 
   const handleExportExtraWorksReport = async (options = {}) => {
     try {
-      setLoading(true);
+      setReportLoading(true);
       const res = await fetch(`${API_URL}/crd-flow`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -2816,13 +2816,13 @@ const CRDReports = () => {
       console.error(err);
       alert('Error exporting extra works report');
     } finally {
-      setLoading(false);
+      setReportLoading(false);
     }
   };
 
   const handleExportComplaintsReport = async (options = {}) => {
     try {
-      setLoading(true);
+      setReportLoading(true);
       const res = await fetch(`${API_URL}/crd-flow`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -2940,7 +2940,7 @@ const CRDReports = () => {
       console.error(err);
       alert('Error exporting customer complaints report');
     } finally {
-      setLoading(false);
+      setReportLoading(false);
     }
   };
 
@@ -2974,7 +2974,7 @@ const CRDReports = () => {
 
   const handleExportNPAReport = async (options = {}) => {
     try {
-      setLoading(true);
+      setReportLoading(true);
       const res = await fetch(`${API_URL}/crd-flow`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -3057,13 +3057,13 @@ const CRDReports = () => {
       console.error(err);
       alert('Error exporting NPA Collected Report');
     } finally {
-      setLoading(false);
+      setReportLoading(false);
     }
   };
 
   const handleExportParameterReport = async (options = {}) => {
     try {
-      setLoading(true);
+      setReportLoading(true);
 
       const dateForMonth = fromDate ? new Date(fromDate) : new Date();
       const monthNames = ["JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE", "JULY", "AUGUST", "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER"];
@@ -3193,7 +3193,7 @@ const CRDReports = () => {
       console.error(err);
       alert('Error exporting Parameter Report');
     } finally {
-      setLoading(false);
+      setReportLoading(false);
     }
   };
 
@@ -3241,7 +3241,7 @@ const CRDReports = () => {
 
   const handleDownloadAllReports = async () => {
     try {
-      setLoading(true);
+      setReportLoading(true);
       window.__isDownloadingAll = true;
       const allSheets = [];
 
@@ -3288,7 +3288,7 @@ const CRDReports = () => {
       alert('Error previewing consolidated reports file');
     } finally {
       window.__isDownloadingAll = false;
-      setLoading(false);
+      setReportLoading(false);
     }
   };
 

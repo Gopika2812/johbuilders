@@ -465,7 +465,7 @@ const KPIInsights = () => {
         return;
       }
 
-      setLoading(true);
+      setReportLoading(true);
       const dateForMonth = fromDate ? new Date(fromDate) : new Date();
       const monthNames = ["JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE", "JULY", "AUGUST", "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER"];
       const titleText = `DAILY LEAD COST ANALYSIS - ${monthNames[dateForMonth.getMonth()]} ${dateForMonth.getFullYear()}`;
@@ -530,7 +530,7 @@ const KPIInsights = () => {
       console.error(err);
       alert('Error exporting lead cost analysis');
     } finally {
-      setLoading(false);
+      setReportLoading(false);
     }
   };
 
@@ -592,7 +592,7 @@ const KPIInsights = () => {
 
   const handleExportEnquiriesExcel = async () => {
     try {
-      setLoading(true);
+      setReportLoading(true);
       const res = await fetch(`${API_URL}/leads`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -736,13 +736,13 @@ const KPIInsights = () => {
       console.error(err);
       alert('Error exporting enquiry sheet');
     } finally {
-      setLoading(false);
+      setReportLoading(false);
     }
   };
 
   const handleExportSiteVisitsExcel = async () => {
     try {
-      setLoading(true);
+      setReportLoading(true);
       const res = await fetch(`${API_URL}/leads`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -889,13 +889,13 @@ const KPIInsights = () => {
       console.error(err);
       alert('Error exporting site visit report');
     } finally {
-      setLoading(false);
+      setReportLoading(false);
     }
   };
 
   const handleExportHotListExcel = async () => {
     try {
-      setLoading(true);
+      setReportLoading(true);
       const res = await fetch(`${API_URL}/leads`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -1046,13 +1046,13 @@ const KPIInsights = () => {
       console.error(err);
       alert('Error exporting hot list report');
     } finally {
-      setLoading(false);
+      setReportLoading(false);
     }
   };
 
   const handleExportBookingsExcel = async () => {
     try {
-      setLoading(true);
+      setReportLoading(true);
       const res = await fetch(`${API_URL}/leads`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -1189,13 +1189,13 @@ const KPIInsights = () => {
       console.error(err);
       alert('Error exporting bookings report');
     } finally {
-      setLoading(false);
+      setReportLoading(false);
     }
   };
 
   const handleExportSummaryReport = async () => {
     try {
-      setLoading(true);
+      setReportLoading(true);
       const activeMonthStr = fromDate.substring(0, 7);
 
       // Fetch all required data points in parallel for the active month
@@ -1580,13 +1580,13 @@ const KPIInsights = () => {
       console.error(err);
       alert('Error exporting summary report');
     } finally {
-      setLoading(false);
+      setReportLoading(false);
     }
   };
 
   const handleExportMarketingReport = async () => {
     try {
-      setLoading(true);
+      setReportLoading(true);
       
       const groupData = stats.groupStats || {};
 
@@ -1722,13 +1722,13 @@ const KPIInsights = () => {
       console.error(err);
       alert('Error exporting marketing returns report');
     } finally {
-      setLoading(false);
+      setReportLoading(false);
     }
   };
 
   const handleExportLeadSourcesExcel = async () => {
     try {
-      setLoading(true);
+      setReportLoading(true);
       
       const activeMonthStr = fromDate.substring(0, 7);
 
@@ -1861,13 +1861,13 @@ const KPIInsights = () => {
       console.error(err);
       alert('Error exporting lead sources report');
     } finally {
-      setLoading(false);
+      setReportLoading(false);
     }
   };
 
   const handleExportRegistrationReport = async () => {
     try {
-      setLoading(true);
+      setReportLoading(true);
       const res = await fetch(`${API_URL}/crd-flow`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -2061,13 +2061,13 @@ const KPIInsights = () => {
       console.error(err);
       alert('Error exporting registration report');
     } finally {
-      setLoading(false);
+      setReportLoading(false);
     }
   };
 
   const handleExportKeyHandoverReport = async () => {
     try {
-      setLoading(true);
+      setReportLoading(true);
       const res = await fetch(`${API_URL}/crd-flow`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -2244,13 +2244,13 @@ const KPIInsights = () => {
       console.error(err);
       alert('Error exporting key handover report');
     } finally {
-      setLoading(false);
+      setReportLoading(false);
     }
   };
 
   const handleExportCollectionReport = async () => {
     try {
-      setLoading(true);
+      setReportLoading(true);
       const res = await fetch(`${API_URL}/crd-flow`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -2412,13 +2412,13 @@ const KPIInsights = () => {
       console.error(err);
       alert('Error exporting collection report');
     } finally {
-      setLoading(false);
+      setReportLoading(false);
     }
   };
 
   const handleExportBankLoanReport = async () => {
     try {
-      setLoading(true);
+      setReportLoading(true);
       const res = await fetch(`${API_URL}/crd-flow`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -2554,13 +2554,13 @@ const KPIInsights = () => {
       console.error(err);
       alert('Error exporting bank loan report');
     } finally {
-      setLoading(false);
+      setReportLoading(false);
     }
   };
 
   const handleExportExtraWorksReport = async () => {
     try {
-      setLoading(true);
+      setReportLoading(true);
       const res = await fetch(`${API_URL}/crd-flow`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -2707,13 +2707,13 @@ const KPIInsights = () => {
       console.error(err);
       alert('Error exporting extra works report');
     } finally {
-      setLoading(false);
+      setReportLoading(false);
     }
   };
 
   const handleExportComplaintsReport = async () => {
     try {
-      setLoading(true);
+      setReportLoading(true);
       const res = await fetch(`${API_URL}/crd-flow`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -2836,7 +2836,7 @@ const KPIInsights = () => {
       console.error(err);
       alert('Error exporting customer complaints report');
     } finally {
-      setLoading(false);
+      setReportLoading(false);
     }
   };
 

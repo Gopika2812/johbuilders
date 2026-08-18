@@ -1070,8 +1070,6 @@ const CRDDashboard = () => {
             <th>Available Value (INR)</th>
             <th>Booked Count</th>
             <th>Booked Value (INR)</th>
-            <th>Sold Out Count</th>
-            <th>Sold Out Value (INR)</th>
           </tr>
      `;
 
@@ -1082,8 +1080,6 @@ const CRDDashboard = () => {
       const availVal = (inventory.availableValueByType?.[type] || 0) + (type === 'Villa' ? (inventory.availableValueByType?.House || 0) : 0);
       const bookedCount = (inventory.bookedByType?.[type] || 0) + (type === 'Villa' ? (inventory.bookedByType?.House || 0) : 0);
       const bookedVal = (inventory.bookedValueByType?.[type] || 0) + (type === 'Villa' ? (inventory.bookedValueByType?.House || 0) : 0);
-      const soldCount = (inventory.handoverByType?.[type] || 0) + (type === 'Villa' ? (inventory.handoverByType?.House || 0) : 0);
-      const soldVal = (inventory.handoverValueByType?.[type] || 0) + (type === 'Villa' ? (inventory.handoverValueByType?.House || 0) : 0);
       
       const rowClass = idx % 2 === 1 ? 'class="even-row"' : '';
       
@@ -1096,8 +1092,6 @@ const CRDDashboard = () => {
           <td>Rs. ${availVal.toLocaleString()}</td>
           <td>${bookedCount}</td>
           <td>Rs. ${bookedVal.toLocaleString()}</td>
-          <td>${soldCount}</td>
-          <td>Rs. ${soldVal.toLocaleString()}</td>
         </tr>
       `;
     });

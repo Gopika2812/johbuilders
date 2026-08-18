@@ -1633,13 +1633,13 @@ const ExportReports = () => {
       console.error(err);
       alert('Error exporting summary report');
     } finally {
-      setLoading(false);
+      setReportLoading(false);
     }
   };
 
   const handleExportMarketingReturnsReport = async (returnHtml = false) => {
     try {
-      setLoading(true);
+      setReportLoading(true);
       
       const groupData = stats.groupStats || {};
 
@@ -1892,13 +1892,13 @@ const ExportReports = () => {
       console.error(err);
       alert('Error exporting lead sources report');
     } finally {
-      setLoading(false);
+      setReportLoading(false);
     }
   };
 
   const handleExportRegistrationReport = async (returnHtml = false) => {
     try {
-      setLoading(true);
+      setReportLoading(true);
       const res = await fetch(`${API_URL}/crd-flow`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -2083,13 +2083,13 @@ const ExportReports = () => {
       console.error(err);
       alert('Error exporting registration report');
     } finally {
-      setLoading(false);
+      setReportLoading(false);
     }
   };
 
   const handleExportKeyHandoverReport = async (returnHtml = false) => {
     try {
-      setLoading(true);
+      setReportLoading(true);
       const res = await fetch(`${API_URL}/crd-flow`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });

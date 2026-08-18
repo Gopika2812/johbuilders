@@ -1087,8 +1087,14 @@ const RegisterProject = () => {
                             <div className="flex items-center justify-between">
                               <span className="font-extrabold text-gray-800 text-sm">{u.unitId || '—'}</span>
                               <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase ${
-                                u.status === 'Sold Out'
+                                u.status === 'Booked'
                                   ? 'bg-red-50 text-red-700 border border-red-200'
+                                  : (u.status === 'Hold' || u.status === 'On Hold')
+                                  ? 'bg-yellow-50 text-yellow-800 border border-yellow-200'
+                                  : (u.status === 'Under Construction' || u.status === 'Ready Built' || u.status === 'Build')
+                                  ? 'bg-purple-50 text-purple-700 border border-purple-200'
+                                  : u.status === 'Sold Out'
+                                  ? 'bg-gray-50 text-gray-700 border border-gray-200'
                                   : 'bg-emerald-50 text-emerald-800 border border-emerald-200'
                               }`}>
                                 {u.status}
