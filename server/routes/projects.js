@@ -74,7 +74,7 @@ router.post('/', protect, checkPermission('projects', 'edit'), async (req, res) 
         unitId: u.unitId,
         size: Number(u.size) || 0,
         price: Number(u.price) || ((Number(u.cents) || 0) * (Number(u.ratePerCent) || 0)) || ((Number(u.size) || 0) * (Number(u.ratePerUom) || price)),
-        status: u.status || 'New',
+        status: u.status || 'Available',
         floor: u.floor || '',
         remarks: u.remarks || '',
         isLocked: !!u.isLocked,
@@ -98,7 +98,7 @@ router.post('/', protect, checkPermission('projects', 'edit'), async (req, res) 
               unitId: `${code}P${i}`,
               size: initialSize,
               price: initialSize * price,
-              status: 'New',
+              status: 'Available',
               isLocked: false,
               unitType: 'Plot'
             });
@@ -111,7 +111,7 @@ router.post('/', protect, checkPermission('projects', 'edit'), async (req, res) 
               unitId: `${code}V${i}`,
               size: initialSize,
               price: initialSize * price,
-              status: 'New',
+              status: 'Available',
               isLocked: false,
               unitType: 'Villa'
             });
@@ -124,7 +124,7 @@ router.post('/', protect, checkPermission('projects', 'edit'), async (req, res) 
               unitId: `${code}U${i}`,
               size: initialSize,
               price: initialSize * price,
-              status: 'New',
+              status: 'Available',
               isLocked: false,
               unitType: 'Unit'
             });
@@ -143,7 +143,7 @@ router.post('/', protect, checkPermission('projects', 'edit'), async (req, res) 
                 floor: `Floor ${f}`,
                 size: initialSize,
                 price: initialSize * price,
-                status: 'New',
+                status: 'Available',
                 isLocked: false,
                 unitType: 'Flat'
               });

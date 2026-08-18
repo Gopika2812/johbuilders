@@ -524,25 +524,27 @@ const ProjectDetail = () => {
     }
   };
 
+  const normalizeStatus = (status) => {
+    if (!status || status === 'New' || status === 'Available') return 'Available';
+    if (status === 'Hold' || status === 'On Hold' || status === 'Hold / Reserved') return 'Hold';
+    if (status === 'Booked' || status === 'Sold Out' || status === 'Sold') return 'Booked';
+    if (status === 'Ready Built' || status === 'Under Construction' || status === 'Build') return 'Ready Built';
+    return 'Available';
+  };
+
   const getStatusBadge = (status) => {
-    switch (status) {
-      case 'New':
+    const norm = normalizeStatus(status);
+    switch (norm) {
       case 'Available':
         return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+      case 'Hold':
+        return 'bg-yellow-50 text-yellow-800 border-yellow-300';
       case 'Booked':
         return 'bg-red-50 text-red-700 border-red-200';
-      case 'Hold':
-      case 'On Hold':
-        return 'bg-yellow-50 text-yellow-800 border-yellow-300';
-      case 'Under Construction':
       case 'Ready Built':
-      case 'Build':
         return 'bg-purple-50 text-purple-700 border-purple-200';
-      case 'Sold Out':
-      case 'Sold':
-        return 'bg-gray-50 text-gray-700 border-gray-200';
       default:
-        return 'bg-black-50 text-black-700 border-black-200';
+        return 'bg-emerald-50 text-emerald-700 border-emerald-200';
     }
   };
 
@@ -569,13 +571,13 @@ const ProjectDetail = () => {
   // Billing and Value metrics
   const totalValue = project.units.reduce((sum, u) => sum + (u.price || 0), 0);
   const achievedValue = project.units.reduce((sum, u) => {
-    if (u.status === 'Sold Out' || u.status === 'Booked') {
+    if (normalizeStatus(u.status) === 'Booked') {
       return sum + (u.soldConsideration || u.price || 0);
     }
     return sum;
   }, 0);
   const pendingValue = project.units.reduce((sum, u) => {
-    if (u.status === 'New' || u.status === 'Under Construction') {
+    if (normalizeStatus(u.status) !== 'Booked') {
       return sum + (u.price || 0);
     }
     return sum;
@@ -835,11 +837,11 @@ const ProjectDetail = () => {
                         <div
                           key={idx}
                           className={`h-4 rounded-sm border text-[9px] flex items-center justify-center font-bold ${
-                            (unit.status === 'New' || unit.status === 'Available') ? 'bg-emerald-100 border-emerald-300 text-emerald-800' :
-                            unit.status === 'Booked' ? 'bg-red-100 border-red-300 text-red-800' :
-                            (unit.status === 'Hold' || unit.status === 'On Hold') ? 'bg-yellow-100 border-yellow-300 text-yellow-800' :
-                            (unit.status === 'Under Construction' || unit.status === 'Ready Built' || unit.status === 'Build') ? 'bg-purple-100 border-purple-300 text-purple-800' :
-                            'bg-gray-100 border-gray-300 text-gray-800'
+                            normalizeStatus(unit.status) === 'Available' ? 'bg-emerald-100 border-emerald-300 text-emerald-800' :
+                            normalizeStatus(unit.status) === 'Hold' ? 'bg-yellow-100 border-yellow-300 text-yellow-800' :
+                            normalizeStatus(unit.status) === 'Booked' ? 'bg-red-100 border-red-300 text-red-800' :
+                            normalizeStatus(unit.status) === 'Ready Built' ? 'bg-purple-100 border-purple-300 text-purple-800' :
+                            'bg-emerald-100 border-emerald-300 text-emerald-800'
                           }`}
                           title={unit.unitId}
                         >
@@ -852,10 +854,10 @@ const ProjectDetail = () => {
                 <div className="text-[11px] text-black-500 leading-relaxed bg-black-50 p-3 rounded-lg border">
                   <strong>Color Legend:</strong>
                   <div className="flex flex-wrap gap-2 mt-1.5">
-                    <span className="flex items-center gap-1"><span className="w-2 h-2 rounded bg-emerald-500"></span>Available</span>
-                    <span className="flex items-center gap-1"><span className="w-2 h-2 rounded bg-yellow-400"></span>Hold</span>
-                    <span className="flex items-center gap-1"><span className="w-2 h-2 rounded bg-red-500"></span>Booked</span>
-                    <span className="flex items-center gap-1"><span className="w-2 h-2 rounded bg-purple-500"></span>Ready Built</span>
+                    <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>Available</span>
+                    <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-yellow-400"></span>Hold</span>
+                    <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-red-500"></span>Booked</span>
+                    <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-purple-500"></span>Ready Built</span>
                   </div>
                 </div>
               </div>
@@ -1034,16 +1036,15 @@ const ProjectDetail = () => {
                       </h3>
                       <div className="flex flex-wrap gap-3 pt-2 justify-center w-full">
                         {displayedUnits.filter(u => u.floor === floor).map(unit => {
-                          const isBooked = unit.status === 'Booked';
-                          const isSold = unit.status === 'Sold Out';
-                          const isUnderConstruction = unit.status === 'Under Construction';
+                          const normStatus = normalizeStatus(unit.status);
+                          const isBooked = normStatus === 'Booked';
                           
                           let bgClass = 'bg-gradient-to-br from-emerald-500 to-emerald-600 border-emerald-400 text-white shadow-[0_3px_8px_rgba(16,185,129,0.15)] hover:shadow-[0_6px_15px_rgba(16,185,129,0.3)]';
-                          if (isSold) {
-                            bgClass = 'bg-gradient-to-br from-red-500 to-rose-600 border-red-400 text-white shadow-[0_3px_8px_rgba(239,68,68,0.15)] hover:shadow-[0_6px_15px_rgba(239,68,68,0.3)]';
-                          } else if (isBooked) {
+                          if (normStatus === 'Hold') {
                             bgClass = 'bg-gradient-to-br from-amber-400 to-yellow-500 border-amber-300 text-white shadow-[0_3px_8px_rgba(245,158,11,0.15)] hover:shadow-[0_6px_15px_rgba(245,158,11,0.3)]';
-                          } else if (isUnderConstruction) {
+                          } else if (normStatus === 'Booked') {
+                            bgClass = 'bg-gradient-to-br from-red-500 to-rose-600 border-red-400 text-white shadow-[0_3px_8px_rgba(239,68,68,0.15)] hover:shadow-[0_6px_15px_rgba(239,68,68,0.3)]';
+                          } else if (normStatus === 'Ready Built') {
                             bgClass = 'bg-gradient-to-br from-purple-500 to-indigo-600 border-purple-400 text-white shadow-[0_3px_8px_rgba(139,92,246,0.15)] hover:shadow-[0_6px_15px_rgba(139,92,246,0.3)]';
                           }
                           
@@ -1145,16 +1146,15 @@ const ProjectDetail = () => {
                     </h3>
                     <div className="grid grid-cols-2 sm:grid-cols-5 md:grid-cols-10 gap-5 pt-2 justify-center w-full max-w-[1120px] mx-auto">
                       {displayedUnits.filter(u => (u.floor || 'Houses') === floor).map(unit => {
-                        const isBooked = unit.status === 'Booked';
-                        const isSold = unit.status === 'Sold Out';
-                        const isUnderConstruction = unit.status === 'Under Construction';
+                        const normStatus = normalizeStatus(unit.status);
+                        const isBooked = normStatus === 'Booked';
                         
                         let bgClass = 'bg-gradient-to-br from-emerald-500 to-emerald-600 border-emerald-400 text-white shadow-[0_3px_8px_rgba(16,185,129,0.15)] hover:shadow-[0_6px_15px_rgba(16,185,129,0.3)]';
-                        if (isSold) {
-                          bgClass = 'bg-gradient-to-br from-red-500 to-rose-600 border-red-400 text-white shadow-[0_3px_8px_rgba(239,68,68,0.15)] hover:shadow-[0_6px_15px_rgba(239,68,68,0.3)]';
-                        } else if (isBooked) {
+                        if (normStatus === 'Hold') {
                           bgClass = 'bg-gradient-to-br from-amber-400 to-yellow-500 border-amber-300 text-white shadow-[0_3px_8px_rgba(245,158,11,0.15)] hover:shadow-[0_6px_15px_rgba(245,158,11,0.3)]';
-                        } else if (isUnderConstruction) {
+                        } else if (normStatus === 'Booked') {
+                          bgClass = 'bg-gradient-to-br from-red-500 to-rose-600 border-red-400 text-white shadow-[0_3px_8px_rgba(239,68,68,0.15)] hover:shadow-[0_6px_15px_rgba(239,68,68,0.3)]';
+                        } else if (normStatus === 'Ready Built') {
                           bgClass = 'bg-gradient-to-br from-purple-500 to-indigo-600 border-purple-400 text-white shadow-[0_3px_8px_rgba(139,92,246,0.15)] hover:shadow-[0_6px_15px_rgba(139,92,246,0.3)]';
                         }
                         
@@ -1648,19 +1648,18 @@ const ProjectDetail = () => {
               <div>
                 <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-2 text-left">Workflow Status</label>
                 <select
-                  value={unitStatus}
+                  value={normalizeStatus(unitStatus)}
                   onChange={(e) => setUnitStatus(e.target.value)}
                   className="w-full px-4 py-3 bg-black-50 border border-black-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0e623a]"
                 >
-                  <option value="New">New / Available</option>
+                  <option value="Available">Available</option>
+                  <option value="Hold">Hold</option>
                   <option value="Booked">Booked</option>
-                  <option value="Hold">Hold / Reserved</option>
-                  <option value="Under Construction">Under Construction</option>
-                  <option value="Sold Out">Sold Out</option>
+                  <option value="Ready Built">Ready Built</option>
                 </select>
                 {user.role === 'ped team' && (
                   <span className="text-[11px] text-red-500 mt-1 block">
-                    * Site Engineers cannot change status to Booked or Sold Out.
+                    * Site Engineers cannot change status to Booked.
                   </span>
                 )}
               </div>

@@ -229,11 +229,13 @@ const RegisterProject = () => {
           effectiveType = projectTypes.includes('Plot') ? 'Plot' : projectTypes.includes('Unit') ? 'Unit' : 'Flat';
         }
 
-        let status = 'New';
+        let status = 'Available';
         if (rawStatus.includes('sold') || rawStatus.includes('booked') || soldConsideration > 0) {
-          status = rawStatus.includes('booked') ? 'Booked' : 'Sold Out';
-        } else if (rawStatus.includes('construction') || rawStatus.includes('under')) {
-          status = 'Under Construction';
+          status = 'Booked';
+        } else if (rawStatus.includes('hold') || rawStatus.includes('reserved')) {
+          status = 'Hold';
+        } else if (rawStatus.includes('ready') || rawStatus.includes('construction') || rawStatus.includes('under')) {
+          status = 'Ready Built';
         }
 
         let price = 0;
@@ -1045,16 +1047,15 @@ const RegisterProject = () => {
                                 </td>
                                 <td className="p-2.5">
                                   <select
-                                    value={u.status}
-                                    onChange={(e) => handleUpdateUnitField(index, 'status', e.target.value)}
-                                    className="w-full px-2 py-1.5 bg-gray-50 border border-gray-250 rounded focus:ring-1 focus:ring-[#0e623a] focus:outline-none text-xs"
-                                  >
-                                    <option value="New">Available</option>
-                                    <option value="Hold">Hold / Reserved</option>
-                                    <option value="Sold Out">Sold Out</option>
-                                    <option value="Booked">Booked</option>
-                                    <option value="Under Construction">Under Construction</option>
-                                  </select>
+                                     value={u.status === 'New' ? 'Available' : (u.status === 'Hold' || u.status === 'On Hold') ? 'Hold' : (u.status === 'Under Construction' || u.status === 'Build') ? 'Ready Built' : u.status || 'Available'}
+                                     onChange={(e) => handleUpdateUnitField(index, 'status', e.target.value)}
+                                     className="w-full px-2 py-1.5 bg-gray-50 border border-gray-250 rounded focus:ring-1 focus:ring-[#0e623a] focus:outline-none text-xs"
+                                   >
+                                     <option value="Available">Available</option>
+                                     <option value="Hold">Hold</option>
+                                     <option value="Booked">Booked</option>
+                                     <option value="Ready Built">Ready Built</option>
+                                   </select>
                                 </td>
                                 <td className="p-2.5">
                                   <input

@@ -15,8 +15,8 @@ const UnitSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['New', 'Booked', 'Under Construction', 'Sold Out', 'Hold', 'On Hold'],
-    default: 'New'
+    enum: ['Available', 'Hold', 'Booked', 'Ready Built', 'New', 'Under Construction', 'Sold Out', 'On Hold'],
+    default: 'Available'
   },
   floor: {
     type: String, // relevant for flats
