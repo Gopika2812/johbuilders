@@ -832,16 +832,16 @@ const ProjectDetail = () => {
                     <Building className="w-12 h-12 text-[#0e623a]/30 mb-2" />
                     <span className="text-xs font-semibold text-[#0e623a]">{project.code} Master Plan</span>
                     <span className="text-[11px] text-black-400 mt-1">Grid units generate auto-proportions</span>
-                    <div className="grid grid-cols-5 gap-1 w-full mt-4">
+                    <div className="grid grid-cols-4 sm:grid-cols-5 gap-1.5 w-full mt-4 max-h-[520px] overflow-y-auto pr-1 scrollbar-thin">
                       {displayedUnits.map((unit, idx) => (
                         <div
                           key={idx}
-                          className={`h-4 rounded-sm border text-[9px] flex items-center justify-center font-bold transition-all hover:scale-110 cursor-pointer ${
-                            normalizeStatus(unit.status) === 'Available' ? 'bg-emerald-100 border-emerald-300 text-emerald-800' :
-                            normalizeStatus(unit.status) === 'Hold' ? 'bg-yellow-100 border-yellow-300 text-yellow-800' :
-                            normalizeStatus(unit.status) === 'Booked' ? 'bg-red-100 border-red-300 text-red-800' :
-                            normalizeStatus(unit.status) === 'Ready Built' ? 'bg-purple-100 border-purple-300 text-purple-800' :
-                            'bg-emerald-100 border-emerald-300 text-emerald-800'
+                          className={`min-h-[36px] py-1 px-1 rounded-md border text-[11px] flex items-center justify-center text-center font-bold transition-all duration-150 hover:scale-105 hover:z-10 shadow-2xs cursor-pointer leading-tight break-words ${
+                            normalizeStatus(unit.status) === 'Available' ? 'bg-emerald-100 border-emerald-300 text-emerald-800 hover:bg-emerald-200' :
+                            normalizeStatus(unit.status) === 'Hold' ? 'bg-yellow-100 border-yellow-300 text-yellow-800 hover:bg-yellow-200' :
+                            normalizeStatus(unit.status) === 'Booked' ? 'bg-red-100 border-red-300 text-red-800 hover:bg-red-200' :
+                            normalizeStatus(unit.status) === 'Ready Built' ? 'bg-purple-100 border-purple-300 text-purple-800 hover:bg-purple-200' :
+                            'bg-emerald-100 border-emerald-300 text-emerald-800 hover:bg-emerald-200'
                           }`}
                           title={`Unit ${unit.unitId} - ${normalizeStatus(unit.status)}`}
                           onClick={() => {
