@@ -836,16 +836,24 @@ const ProjectDetail = () => {
                       {displayedUnits.map((unit, idx) => (
                         <div
                           key={idx}
-                          className={`h-4 rounded-sm border text-[9px] flex items-center justify-center font-bold ${
+                          className={`h-4 rounded-sm border text-[9px] flex items-center justify-center font-bold transition-all hover:scale-110 cursor-pointer ${
                             normalizeStatus(unit.status) === 'Available' ? 'bg-emerald-100 border-emerald-300 text-emerald-800' :
                             normalizeStatus(unit.status) === 'Hold' ? 'bg-yellow-100 border-yellow-300 text-yellow-800' :
                             normalizeStatus(unit.status) === 'Booked' ? 'bg-red-100 border-red-300 text-red-800' :
                             normalizeStatus(unit.status) === 'Ready Built' ? 'bg-purple-100 border-purple-300 text-purple-800' :
                             'bg-emerald-100 border-emerald-300 text-emerald-800'
                           }`}
-                          title={unit.unitId}
+                          title={`Unit ${unit.unitId} - ${normalizeStatus(unit.status)}`}
+                          onClick={() => {
+                            setSelectedUnit(unit);
+                            setUnitStatus(normalizeStatus(unit.status));
+                            setCustomerName(unit.customerName || '');
+                            setCustomerPhone(unit.customerPhone || '');
+                            setLeadName(unit.leadName || '');
+                            setBookingModalOpen(true);
+                          }}
                         >
-                          {idx + 1}
+                          {unit.unitId}
                         </div>
                       ))}
                     </div>
