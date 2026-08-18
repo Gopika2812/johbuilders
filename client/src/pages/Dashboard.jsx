@@ -2917,17 +2917,7 @@ const Dashboard = () => {
             {/* List Content */}
             <div className="flex-grow p-6 overflow-y-auto max-h-[50vh] scrollbar-thin">
               {(() => {
-                const filteredLeadsList = (stats.cards.leadsList || []).filter(lead => {
-                  if (!lead.createdAt) return true;
-                  const d = new Date(lead.createdAt);
-                  if (fromDate && d < new Date(fromDate)) return false;
-                  if (toDate) {
-                    const end = new Date(toDate);
-                    end.setHours(23, 59, 59, 999);
-                    if (d > end) return false;
-                  }
-                  return true;
-                });
+                const filteredLeadsList = stats.cards.leadsList || [];
 
                 return filteredLeadsList.length > 0 ? (
                   <div className="overflow-x-auto">
@@ -3037,17 +3027,8 @@ const Dashboard = () => {
             <div className="flex-grow p-6 overflow-y-auto max-h-[50vh] scrollbar-thin">
               {(() => {
                 const followupLeadsList = (stats.cards.leadsList || []).filter(lead => {
-                  const isFollowup = ['Contacted', 'Follow-Up', 'Followup', 'Site Visit', 'Site Visit Follow-up'].includes(lead.status);
-                  if (!isFollowup) return false;
-                  if (!lead.createdAt) return true;
-                  const d = new Date(lead.createdAt);
-                  if (fromDate && d < new Date(fromDate)) return false;
-                  if (toDate) {
-                    const end = new Date(toDate);
-                    end.setHours(23, 59, 59, 999);
-                    if (d > end) return false;
-                  }
-                  return true;
+                  const s = lead.status || '';
+                  return ['Contacted', 'Follow-Up', 'Followup', 'Site Visit', 'Site Visit Follow-up', 'Assigned', 'New Followup'].includes(s) || (!['Closed', 'Lost', 'Rejected', 'Booking', 'Booked', 'Won', 'Handover'].includes(s) && !lead.isClosed);
                 });
 
                 return followupLeadsList.length > 0 ? (
@@ -3134,17 +3115,8 @@ const Dashboard = () => {
             <div className="flex-grow p-6 overflow-y-auto max-h-[50vh] scrollbar-thin">
               {(() => {
                 const lostLeadsList = (stats.cards.leadsList || []).filter(lead => {
-                  const isLost = ['Closed', 'Lost', 'Rejected'].includes(lead.status);
-                  if (!isLost) return false;
-                  if (!lead.createdAt) return true;
-                  const d = new Date(lead.createdAt);
-                  if (fromDate && d < new Date(fromDate)) return false;
-                  if (toDate) {
-                    const end = new Date(toDate);
-                    end.setHours(23, 59, 59, 999);
-                    if (d > end) return false;
-                  }
-                  return true;
+                  const s = lead.status || '';
+                  return ['Closed', 'Lost', 'Rejected', 'Lead Lost'].includes(s) || !!lead.isClosed;
                 });
 
                 return lostLeadsList.length > 0 ? (

@@ -1053,6 +1053,7 @@ router.get('/stats', protect, async (req, res) => {
             projectName: l.project?.name || 'N/A',
             assignedTo: l.assignedTo?.name || 'Unassigned',
             status: l.status,
+            isClosed: !!l.isClosed,
             createdAt: l.createdAt
           })),
         enquiries: { total: cumulativeEnquiries, live: liveEnquiries, contacted: contactedCount, followup: followupCount, closed: closedEnquiries },
