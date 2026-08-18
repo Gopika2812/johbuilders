@@ -2924,6 +2924,7 @@ const Dashboard = () => {
                     <table className="w-full text-left border-collapse">
                       <thead>
                         <tr className="border-b border-black-100 text-[11px] font-bold text-black-400 uppercase tracking-wider">
+                          <th className="pb-3 pl-2">Date</th>
                           <th className="pb-3">Lead Name</th>
                           <th className="pb-3">Lead Source</th>
                           <th className="pb-3">Project Details</th>
@@ -2933,6 +2934,11 @@ const Dashboard = () => {
                       <tbody className="divide-y divide-black-50 text-xs font-semibold text-black-700">
                         {filteredLeadsList.map((lead, idx) => (
                           <tr key={lead._id || idx} className="hover:bg-black-50/50 transition">
+                            <td className="py-3.5 pl-2">
+                              <span className="text-[11px] font-bold text-black-650 bg-black-100/80 px-2 py-0.5 rounded-md inline-block whitespace-nowrap">
+                                {lead.createdAt ? new Date(lead.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}
+                              </span>
+                            </td>
                             <td className="py-3.5 font-bold text-black-850">{lead.name}</td>
                             <td className="py-3.5">
                               <span className="bg-black-100 text-black-600 px-2.5 py-0.5 rounded-full text-[11px] font-bold">
@@ -3036,6 +3042,7 @@ const Dashboard = () => {
                     <table className="w-full text-left border-collapse">
                       <thead>
                         <tr className="border-b border-black-100 text-[11px] font-bold text-black-400 uppercase tracking-wider">
+                          <th className="pb-3 pl-2">Date</th>
                           <th className="pb-3">Lead Name</th>
                           <th className="pb-3">Lead Source</th>
                           <th className="pb-3">Project Details</th>
@@ -3045,6 +3052,11 @@ const Dashboard = () => {
                       <tbody className="divide-y divide-black-50 text-xs font-semibold text-black-700">
                         {followupLeadsList.map((lead, idx) => (
                           <tr key={lead._id || idx} className="hover:bg-black-50/50 transition">
+                            <td className="py-3.5 pl-2">
+                              <span className="text-[11px] font-bold text-black-650 bg-black-100/80 px-2 py-0.5 rounded-md inline-block whitespace-nowrap">
+                                {lead.createdAt ? new Date(lead.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}
+                              </span>
+                            </td>
                             <td className="py-3.5 font-bold text-black-850">{lead.name}</td>
                             <td className="py-3.5">
                               <span className="bg-black-100 text-black-600 px-2.5 py-0.5 rounded-full text-[11px] font-bold">
@@ -3124,6 +3136,7 @@ const Dashboard = () => {
                     <table className="w-full text-left border-collapse">
                       <thead>
                         <tr className="border-b border-black-100 text-[11px] font-bold text-black-400 uppercase tracking-wider">
+                          <th className="pb-3 pl-2">Date</th>
                           <th className="pb-3">Lead Name</th>
                           <th className="pb-3">Lead Source</th>
                           <th className="pb-3">Project Details</th>
@@ -3133,6 +3146,11 @@ const Dashboard = () => {
                       <tbody className="divide-y divide-black-50 text-xs font-semibold text-black-700">
                         {lostLeadsList.map((lead, idx) => (
                           <tr key={lead._id || idx} className="hover:bg-black-50/50 transition">
+                            <td className="py-3.5 pl-2">
+                              <span className="text-[11px] font-bold text-black-650 bg-black-100/80 px-2 py-0.5 rounded-md inline-block whitespace-nowrap">
+                                {lead.createdAt ? new Date(lead.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}
+                              </span>
+                            </td>
                             <td className="py-3.5 font-bold text-black-850">{lead.name}</td>
                             <td className="py-3.5">
                               <span className="bg-black-100 text-black-600 px-2.5 py-0.5 rounded-full text-[11px] font-bold">
