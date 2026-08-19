@@ -2917,7 +2917,16 @@ const Dashboard = () => {
             {/* List Content */}
             <div className="flex-grow p-6 overflow-y-auto max-h-[50vh] scrollbar-thin">
               {(() => {
-                const filteredLeadsList = stats.cards.leadsList || [];
+                const filteredLeadsList = (stats.cards.leadsList || []).filter(lead => {
+                  if (!fromDate && !toDate) return true;
+                  if (!lead.createdAt) return true;
+                  const leadDate = new Date(lead.createdAt);
+                  const tzOffset = leadDate.getTimezoneOffset() * 60000;
+                  const leadDateStr = (new Date(leadDate - tzOffset)).toISOString().split('T')[0];
+                  if (fromDate && leadDateStr < fromDate) return false;
+                  if (toDate && leadDateStr > toDate) return false;
+                  return true;
+                });
 
                 return filteredLeadsList.length > 0 ? (
                   <div className="overflow-x-auto">
