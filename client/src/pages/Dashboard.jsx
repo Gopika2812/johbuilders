@@ -22,7 +22,8 @@ import {
   FolderOpen,
   Layers,
   Download,
-  Clock
+  Clock,
+  UserCheck
 } from 'lucide-react';
 
 const getCoordinatesForPercent = (percent) => {
@@ -464,12 +465,16 @@ const Dashboard = () => {
     }
 
     // 2. Filter by Stage
-    if (stageLabel === 'Enquiries') {
-      filtered = filtered.filter(l => l.status === 'Contacted' || l.status === 'Follow-Up');
+    if (stageLabel === 'Assigned') {
+      filtered = filtered.filter(l => l.status === 'Assigned');
+    } else if (stageLabel === 'Enquiries') {
+      filtered = filtered.filter(l => l.status === 'Contacted' || l.status === 'Follow-Up' || l.status === 'Followup');
     } else if (stageLabel === 'Site Visit') {
       filtered = filtered.filter(l => l.status === 'Site Visit' || l.status === 'Site Visit Follow-up');
     } else if (stageLabel === 'Hot List') {
       filtered = filtered.filter(l => l.status === 'Hot List');
+    } else if (stageLabel === 'Future Follow-up' || stageLabel === 'Future Followup') {
+      filtered = filtered.filter(l => l.status === 'Future Follow-up' || l.status === 'Future Followup' || (l.status && l.status.toLowerCase().includes('future')));
     } else if (stageLabel === 'Booking' || stageLabel === 'Booked') {
       filtered = filtered.filter(l => l.status === 'Booking');
     } else if (stageLabel === 'Handover' || stageLabel === 'Site Conversion') {
@@ -589,9 +594,11 @@ const Dashboard = () => {
       data[u.name] = {
         userName: u.name,
         totalLeads: 0,
+        assigned: 0,
         enquiries: 0,
         siteVisits: 0,
         hotList: 0,
+        futureFollowup: 0,
         booked: 0,
         handover: 0,
         lost: 0
@@ -624,9 +631,11 @@ const Dashboard = () => {
           data[uName] = {
             userName: uName,
             totalLeads: 0,
+            assigned: 0,
             enquiries: 0,
             siteVisits: 0,
             hotList: 0,
+            futureFollowup: 0,
             booked: 0,
             handover: 0,
             siteConversions: 0,
@@ -637,17 +646,21 @@ const Dashboard = () => {
         data[uName].totalLeads += 1;
 
         const status = lead.status || '';
-        if (status === 'Contacted' || status === 'Follow-Up') {
+        if (status === 'Assigned') {
+          data[uName].assigned += 1;
+        } else if (status === 'Contacted' || status === 'Follow-Up' || status === 'Followup') {
           data[uName].enquiries += 1;
         } else if (status === 'Site Visit' || status === 'Site Visit Follow-up') {
           data[uName].siteVisits += 1;
         } else if (status === 'Hot List') {
           data[uName].hotList += 1;
-        } else if (status === 'Booking') {
+        } else if (status === 'Future Follow-up' || status === 'Future Followup' || status.toLowerCase().includes('future')) {
+          data[uName].futureFollowup += 1;
+        } else if (status === 'Booking' || status === 'Booked') {
           data[uName].booked += 1;
-        } else if (status === 'Won') {
+        } else if (status === 'Won' || status === 'Handover') {
           data[uName].handover += 1;
-        } else if (status === 'Lost' || status === 'Closed') {
+        } else if (status === 'Lost' || status === 'Closed' || status === 'Cancelled') {
           data[uName].lost += 1;
         }
       });
@@ -659,9 +672,11 @@ const Dashboard = () => {
           data[uName] = {
             userName: uName,
             totalLeads: 0,
+            assigned: 0,
             enquiries: 0,
             siteVisits: 0,
             hotList: 0,
+            futureFollowup: 0,
             booked: 0,
             handover: 0,
             siteConversions: 0,
@@ -669,9 +684,11 @@ const Dashboard = () => {
           };
         }
         data[uName].totalLeads += row.totalLeads || 0;
+        data[uName].assigned += row.assigned || 0;
         data[uName].enquiries += row.enquiries || 0;
         data[uName].siteVisits += row.siteVisits || 0;
         data[uName].hotList += row.hotList || 0;
+        data[uName].futureFollowup += row.futureFollowup || 0;
         data[uName].booked += row.booked || 0;
         data[uName].handover += row.handover || 0;
         data[uName].siteConversions += row.siteConversions || 0;
@@ -679,7 +696,7 @@ const Dashboard = () => {
       });
     }
 
-    return Object.values(data).filter(u => u.totalLeads > 0 || u.enquiries > 0 || u.siteVisits > 0 || u.hotList > 0 || u.booked > 0 || u.handover > 0 || u.lost > 0);
+    return Object.values(data).filter(u => u.totalLeads > 0 || u.assigned > 0 || u.enquiries > 0 || u.siteVisits > 0 || u.hotList > 0 || u.futureFollowup > 0 || u.booked > 0 || u.handover > 0 || u.lost > 0);
   }, [stats.personProjectStages, stats.cards?.leadsList, stats.users, fromDate, toDate]);
 
   const selectedUserPerfData = React.useMemo(() => {
@@ -687,9 +704,11 @@ const Dashboard = () => {
       const totals = {
         userName: 'All Users Combined',
         totalLeads: 0,
+        assigned: 0,
         enquiries: 0,
         siteVisits: 0,
         hotList: 0,
+        futureFollowup: 0,
         booked: 0,
         handover: 0,
         siteConversions: 0,
@@ -697,9 +716,11 @@ const Dashboard = () => {
       };
       userPerformanceData.forEach(u => {
         totals.totalLeads += u.totalLeads;
+        totals.assigned += u.assigned || 0;
         totals.enquiries += u.enquiries;
         totals.siteVisits += u.siteVisits;
         totals.hotList += u.hotList;
+        totals.futureFollowup += u.futureFollowup || 0;
         totals.booked += u.booked;
         totals.handover += u.handover;
         totals.siteConversions += u.siteConversions || 0;
@@ -710,9 +731,11 @@ const Dashboard = () => {
     return userPerformanceData.find(u => u.userName === selectedUserPerfName) || {
       userName: selectedUserPerfName,
       totalLeads: 0,
+      assigned: 0,
       enquiries: 0,
       siteVisits: 0,
       hotList: 0,
+      futureFollowup: 0,
       booked: 0,
       handover: 0,
       siteConversions: 0,
@@ -2194,9 +2217,11 @@ const Dashboard = () => {
                   <div className="space-y-3">
                     {[
                       { label: 'Total Leads', count: selectedUserPerfData.totalLeads, color: 'bg-black-400', icon: TrendingUp },
+                      { label: 'Assigned', count: selectedUserPerfData.assigned || 0, color: 'bg-purple-500', icon: UserCheck },
                       { label: 'Enquiries', count: selectedUserPerfData.enquiries, color: 'bg-emerald-600', icon: Users },
                       { label: 'Site Visit', count: selectedUserPerfData.siteVisits, color: 'bg-blue-500', icon: MapPin },
                       { label: 'Hot List', count: selectedUserPerfData.hotList, color: 'bg-amber-500', icon: Target },
+                      { label: 'Future Follow-up', count: selectedUserPerfData.futureFollowup || 0, color: 'bg-cyan-600', icon: Clock },
                       { label: 'Booked', count: selectedUserPerfData.booked || 0, color: 'bg-yellow-500', icon: DollarSign },
                       { label: 'Lost', count: selectedUserPerfData.lost, color: 'bg-red-500', icon: TrendingDown }
                     ].filter(m => m.label === 'Total Leads' || m.count > 0).map((m, idx) => {
@@ -3417,9 +3442,11 @@ const Dashboard = () => {
                       <th className="p-3 w-10 text-center">S.No</th>
                       <th className="p-3">User Name</th>
                       <th className="p-3 text-center">Total Leads</th>
+                      <th className="p-3 text-center">Assigned</th>
                       <th className="p-3 text-center">Enquiries</th>
                       <th className="p-3 text-center">Site Visit</th>
                       <th className="p-3 text-center">Hot List</th>
+                      <th className="p-3 text-center">Future Followup</th>
                       <th className="p-3 text-center">Booking</th>
                       <th className="p-3 text-center">Handover</th>
                       <th className="p-3 text-center text-red-500">Lost</th>
@@ -3431,9 +3458,11 @@ const Dashboard = () => {
                         <td className="p-3 text-center font-bold text-black-450">{idx + 1}</td>
                         <td className="p-3 font-extrabold text-black-850 uppercase">{row.userName}</td>
                         <td className="p-3 text-center font-bold text-black-700">{row.totalLeads}</td>
+                        <td className="p-3 text-center text-purple-700">{row.assigned || 0}</td>
                         <td className="p-3 text-center text-emerald-700">{row.enquiries}</td>
                         <td className="p-3 text-center text-blue-700">{row.siteVisits}</td>
                         <td className="p-3 text-center text-amber-700">{row.hotList}</td>
+                        <td className="p-3 text-center text-cyan-700">{row.futureFollowup || 0}</td>
                         <td className="p-3 text-center text-rose-700">{row.booked}</td>
                         <td className="p-3 text-center text-emerald-800">{row.handover}</td>
                         <td className="p-3 text-center text-red-600">{row.lost}</td>
@@ -3446,9 +3475,11 @@ const Dashboard = () => {
                         <td className="p-3 text-center"></td>
                         <td className="p-3 uppercase">Total Sum</td>
                         <td className="p-3 text-center">{selectedUserPerfData.userName === 'All Users Combined' ? selectedUserPerfData.totalLeads : userPerformanceData.reduce((sum, u) => sum + u.totalLeads, 0)}</td>
+                        <td className="p-3 text-center">{selectedUserPerfData.userName === 'All Users Combined' ? selectedUserPerfData.assigned : userPerformanceData.reduce((sum, u) => sum + (u.assigned || 0), 0)}</td>
                         <td className="p-3 text-center">{selectedUserPerfData.userName === 'All Users Combined' ? selectedUserPerfData.enquiries : userPerformanceData.reduce((sum, u) => sum + u.enquiries, 0)}</td>
                         <td className="p-3 text-center">{selectedUserPerfData.userName === 'All Users Combined' ? selectedUserPerfData.siteVisits : userPerformanceData.reduce((sum, u) => sum + u.siteVisits, 0)}</td>
                         <td className="p-3 text-center">{selectedUserPerfData.userName === 'All Users Combined' ? selectedUserPerfData.hotList : userPerformanceData.reduce((sum, u) => sum + u.hotList, 0)}</td>
+                        <td className="p-3 text-center">{selectedUserPerfData.userName === 'All Users Combined' ? selectedUserPerfData.futureFollowup : userPerformanceData.reduce((sum, u) => sum + (u.futureFollowup || 0), 0)}</td>
                         <td className="p-3 text-center">{selectedUserPerfData.userName === 'All Users Combined' ? selectedUserPerfData.booked : userPerformanceData.reduce((sum, u) => sum + u.booked, 0)}</td>
                         <td className="p-3 text-center">{selectedUserPerfData.userName === 'All Users Combined' ? selectedUserPerfData.handover : userPerformanceData.reduce((sum, u) => sum + u.handover, 0)}</td>
                         <td className="p-3 text-center text-red-650">{selectedUserPerfData.userName === 'All Users Combined' ? selectedUserPerfData.lost : userPerformanceData.reduce((sum, u) => sum + u.lost, 0)}</td>

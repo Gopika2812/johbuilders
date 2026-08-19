@@ -227,9 +227,11 @@ router.get('/stats', protect, async (req, res) => {
 
       const createdInRange = (fromDate || toDate) ? inRange(lead.createdAt) : true;
 
+      let enteredAssigned = false;
       let enteredEnquiry = false;
       let enteredSiteVisit = false;
       let enteredHotList = false;
+      let enteredFutureFollowup = false;
       let enteredBooked = false;
       let enteredHandover = false;
       let enteredLost = false;
@@ -238,22 +240,26 @@ router.get('/stats', protect, async (req, res) => {
         lead.history.forEach(entry => {
           if (inRange(entry.timestamp)) {
             const s = entry.status;
-            if (s === 'Contacted' || s === 'Follow-Up') enteredEnquiry = true;
+            if (s === 'Assigned') enteredAssigned = true;
+            if (s === 'Contacted' || s === 'Follow-Up' || s === 'Followup') enteredEnquiry = true;
             if (s === 'Site Visit' || s === 'Site Visit Follow-up') enteredSiteVisit = true;
             if (s === 'Hot List') enteredHotList = true;
-            if (s === 'Booking') enteredBooked = true;
-            if (s === 'Won') enteredHandover = true;
-            if (s === 'Lost' || s === 'Cancelled') enteredLost = true;
+            if (s === 'Future Follow-up' || s === 'Future Followup' || (s && s.toLowerCase().includes('future'))) enteredFutureFollowup = true;
+            if (s === 'Booking' || s === 'Booked') enteredBooked = true;
+            if (s === 'Won' || s === 'Handover') enteredHandover = true;
+            if (s === 'Lost' || s === 'Cancelled' || s === 'Closed') enteredLost = true;
           }
         });
       }
 
       if (createdInRange) {
-        if (status === 'Contacted' || status === 'Follow-Up') enteredEnquiry = true;
+        if (status === 'Assigned') enteredAssigned = true;
+        if (status === 'Contacted' || status === 'Follow-Up' || status === 'Followup') enteredEnquiry = true;
         if (status === 'Site Visit' || status === 'Site Visit Follow-up') enteredSiteVisit = true;
         if (status === 'Hot List') enteredHotList = true;
-        if (status === 'Booking') enteredBooked = true;
-        if (status === 'Won') enteredHandover = true;
+        if (status === 'Future Follow-up' || status === 'Future Followup' || (status && status.toLowerCase().includes('future'))) enteredFutureFollowup = true;
+        if (status === 'Booking' || status === 'Booked') enteredBooked = true;
+        if (status === 'Won' || status === 'Handover') enteredHandover = true;
         if (status === 'Lost' || lead.isClosed) enteredLost = true;
       }
 
@@ -360,9 +366,11 @@ router.get('/stats', protect, async (req, res) => {
           personName: uName,
           projectName: pCodeVal,
           totalLeads: 0,
+          assigned: 0,
           enquiries: 0,
           siteVisits: 0,
           hotList: 0,
+          futureFollowup: 0,
           booked: 0,
           handover: 0,
           siteConversions: 0,
@@ -373,9 +381,11 @@ router.get('/stats', protect, async (req, res) => {
       if (createdInRange) {
         personProjectStages[personProjectKey].totalLeads += 1;
       }
+      if (enteredAssigned) personProjectStages[personProjectKey].assigned += 1;
       if (enteredEnquiry) personProjectStages[personProjectKey].enquiries += 1;
       if (enteredSiteVisit) personProjectStages[personProjectKey].siteVisits += 1;
       if (enteredHotList) personProjectStages[personProjectKey].hotList += 1;
+      if (enteredFutureFollowup) personProjectStages[personProjectKey].futureFollowup += 1;
       if (enteredBooked) personProjectStages[personProjectKey].booked += 1;
       if (enteredHandover || (createdInRange && isLeadHandover)) personProjectStages[personProjectKey].handover += 1;
       if (isSiteConversion && (createdInRange || enteredSiteVisit || enteredBooked || enteredHandover)) {
@@ -386,14 +396,16 @@ router.get('/stats', protect, async (req, res) => {
       if (lead.project) {
         const pCodeStr = lead.project.code || lead.project.name;
         if (!projectStages[pCodeStr]) {
-          projectStages[pCodeStr] = { totalLeads: 0, enquiries: 0, siteVisits: 0, hotList: 0, booked: 0, handover: 0, lost: 0 };
+          projectStages[pCodeStr] = { totalLeads: 0, assigned: 0, enquiries: 0, siteVisits: 0, hotList: 0, futureFollowup: 0, booked: 0, handover: 0, lost: 0 };
         }
         if (createdInRange) {
           projectStages[pCodeStr].totalLeads += 1;
         }
+        if (enteredAssigned) projectStages[pCodeStr].assigned += 1;
         if (enteredEnquiry) projectStages[pCodeStr].enquiries += 1;
         if (enteredSiteVisit) projectStages[pCodeStr].siteVisits += 1;
         if (enteredHotList) projectStages[pCodeStr].hotList += 1;
+        if (enteredFutureFollowup) projectStages[pCodeStr].futureFollowup += 1;
         if (enteredBooked) projectStages[pCodeStr].booked += 1;
         if (enteredHandover || (createdInRange && isLeadHandover)) projectStages[pCodeStr].handover += 1;
         if (enteredLost || (createdInRange && (status === 'Lost' || lead.isClosed))) projectStages[pCodeStr].lost += 1;
