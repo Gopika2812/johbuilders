@@ -315,9 +315,11 @@ router.get('/stats', protect, async (req, res) => {
         });
       }
 
+      if (enteredAssigned) sourceStats[src].assigned = (sourceStats[src].assigned || 0) + 1;
       if (enteredEnquiry) sourceStats[src].enquiries = (sourceStats[src].enquiries || 0) + 1;
       if (enteredSiteVisit) sourceStats[src].siteVisits = (sourceStats[src].siteVisits || 0) + 1;
       if (enteredHotList) sourceStats[src].hotList = (sourceStats[src].hotList || 0) + 1;
+      if (enteredFutureFollowup) sourceStats[src].futureFollowup = (sourceStats[src].futureFollowup || 0) + 1;
       if (enteredBooked) sourceStats[src].booked = (sourceStats[src].booked || 0) + 1;
       if (enteredHandover || (createdInRange && isLeadHandover)) sourceStats[src].handover = (sourceStats[src].handover || 0) + 1;
       if (isSiteConversion && (createdInRange || enteredSiteVisit || enteredBooked || enteredHandover)) {
@@ -347,9 +349,11 @@ router.get('/stats', protect, async (req, res) => {
           if (createdInRange) {
             projectStats[pCode].count += 1;
           }
+          if (enteredAssigned) projectStats[pCode].stages['Assigned'] = (projectStats[pCode].stages['Assigned'] || 0) + 1;
           if (enteredEnquiry) projectStats[pCode].stages['Contacted'] = (projectStats[pCode].stages['Contacted'] || 0) + 1;
           if (enteredSiteVisit) projectStats[pCode].stages['Site Visit'] = (projectStats[pCode].stages['Site Visit'] || 0) + 1;
           if (enteredHotList) projectStats[pCode].stages['Hot List'] = (projectStats[pCode].stages['Hot List'] || 0) + 1;
+          if (enteredFutureFollowup) projectStats[pCode].stages['Future Follow-up'] = (projectStats[pCode].stages['Future Follow-up'] || 0) + 1;
           if (enteredBooked) projectStats[pCode].stages['Booking'] = (projectStats[pCode].stages['Booking'] || 0) + 1;
           if (enteredHandover || (createdInRange && isLeadHandover)) projectStats[pCode].stages['Won'] = (projectStats[pCode].stages['Won'] || 0) + 1;
           if (enteredLost || (createdInRange && (status === 'Lost' || lead.isClosed))) projectStats[pCode].stages['Lost'] = (projectStats[pCode].stages['Lost'] || 0) + 1;
@@ -896,9 +900,11 @@ router.get('/stats', protect, async (req, res) => {
           cpe: statsObj.cpe || 0,
           leads: statsObj.leads || [],
           count: statsObj.count || 0,
+          assigned: statsObj.assigned || 0,
           enquiries: statsObj.enquiries || 0,
           siteVisits: statsObj.siteVisits || 0,
           hotList: statsObj.hotList || 0,
+          futureFollowup: statsObj.futureFollowup || 0,
           booked: statsObj.booked || 0,
           handover: statsObj.handover || 0,
           lost: statsObj.lost || 0
@@ -926,9 +932,11 @@ router.get('/stats', protect, async (req, res) => {
           cpe: statsObj.cpe || 0,
           leads: statsObj.leads || [],
           count: statsObj.count || 0,
+          assigned: statsObj.assigned || 0,
           enquiries: statsObj.enquiries || 0,
           siteVisits: statsObj.siteVisits || 0,
           hotList: statsObj.hotList || 0,
+          futureFollowup: statsObj.futureFollowup || 0,
           booked: statsObj.booked || 0,
           handover: statsObj.handover || 0,
           lost: statsObj.lost || 0

@@ -830,22 +830,26 @@ const Dashboard = () => {
         groupMap[matchedGroupName].totalLeads += 1;
 
         const status = lead.status || '';
-        if (status === 'Contacted' || status === 'Follow-Up') {
+        if (status === 'Assigned') {
+          groupMap[matchedGroupName].assigned = (groupMap[matchedGroupName].assigned || 0) + 1;
+        } else if (status === 'Contacted' || status === 'Follow-Up' || status === 'Followup') {
           groupMap[matchedGroupName].enquiries += 1;
         } else if (status === 'Site Visit' || status === 'Site Visit Follow-up') {
           groupMap[matchedGroupName].siteVisits += 1;
         } else if (status === 'Hot List') {
           groupMap[matchedGroupName].hotList += 1;
-        } else if (status === 'Booking') {
+        } else if (status === 'Future Follow-up' || status === 'Future Followup' || status.toLowerCase().includes('future')) {
+          groupMap[matchedGroupName].futureFollowup = (groupMap[matchedGroupName].futureFollowup || 0) + 1;
+        } else if (status === 'Booking' || status === 'Booked') {
           groupMap[matchedGroupName].booked += 1;
-        } else if (status === 'Won') {
+        } else if (status === 'Won' || status === 'Handover') {
           groupMap[matchedGroupName].handover += 1;
-        } else if (status === 'Lost' || status === 'Closed') {
+        } else if (status === 'Lost' || status === 'Closed' || status === 'Cancelled') {
           groupMap[matchedGroupName].lost += 1;
         }
       });
 
-      return Object.values(groupMap).filter(g => g.totalLeads > 0 || g.enquiries > 0 || g.siteVisits > 0 || g.hotList > 0 || g.booked > 0 || g.handover > 0 || g.lost > 0);
+      return Object.values(groupMap).filter(g => g.totalLeads > 0 || (g.assigned || 0) > 0 || g.enquiries > 0 || g.siteVisits > 0 || g.hotList > 0 || (g.futureFollowup || 0) > 0 || g.booked > 0 || g.handover > 0 || g.lost > 0);
     }
 
     return Object.keys(stats.groupStats || {}).map(groupName => {
@@ -853,9 +857,11 @@ const Dashboard = () => {
       const totals = {
         groupName: groupName,
         totalLeads: 0,
+        assigned: 0,
         enquiries: 0,
         siteVisits: 0,
         hotList: 0,
+        futureFollowup: 0,
         booked: 0,
         handover: 0,
         siteConversions: 0,
@@ -863,16 +869,18 @@ const Dashboard = () => {
       };
       (g.sources || []).forEach(src => {
         totals.totalLeads += src.count || 0;
+        totals.assigned += src.assigned || 0;
         totals.enquiries += src.enquiries || 0;
         totals.siteVisits += src.siteVisits || 0;
         totals.hotList += src.hotList || 0;
+        totals.futureFollowup += src.futureFollowup || 0;
         totals.booked += src.booked || 0;
         totals.handover += src.handover || 0;
         totals.siteConversions += src.siteConversions || 0;
         totals.lost += src.lost || 0;
       });
       return totals;
-    }).filter(g => g.totalLeads > 0 || g.enquiries > 0 || g.siteVisits > 0 || g.hotList > 0 || g.booked > 0 || g.handover > 0 || g.lost > 0);
+    }).filter(g => g.totalLeads > 0 || (g.assigned || 0) > 0 || g.enquiries > 0 || g.siteVisits > 0 || g.hotList > 0 || (g.futureFollowup || 0) > 0 || g.booked > 0 || g.handover > 0 || g.lost > 0);
   }, [stats.groupStats, stats.cards?.leadsList, fromDate, toDate]);
 
   // Sub-sources data under the selected group
@@ -922,22 +930,26 @@ const Dashboard = () => {
         subMap[src].totalLeads += 1;
 
         const status = lead.status || '';
-        if (status === 'Contacted' || status === 'Follow-Up') {
+        if (status === 'Assigned') {
+          subMap[src].assigned = (subMap[src].assigned || 0) + 1;
+        } else if (status === 'Contacted' || status === 'Follow-Up' || status === 'Followup') {
           subMap[src].enquiries += 1;
         } else if (status === 'Site Visit' || status === 'Site Visit Follow-up') {
           subMap[src].siteVisits += 1;
         } else if (status === 'Hot List') {
           subMap[src].hotList += 1;
-        } else if (status === 'Booking') {
+        } else if (status === 'Future Follow-up' || status === 'Future Followup' || status.toLowerCase().includes('future')) {
+          subMap[src].futureFollowup = (subMap[src].futureFollowup || 0) + 1;
+        } else if (status === 'Booking' || status === 'Booked') {
           subMap[src].booked += 1;
-        } else if (status === 'Won') {
+        } else if (status === 'Won' || status === 'Handover') {
           subMap[src].handover += 1;
-        } else if (status === 'Lost' || status === 'Closed') {
+        } else if (status === 'Lost' || status === 'Closed' || status === 'Cancelled') {
           subMap[src].lost += 1;
         }
       });
 
-      return Object.values(subMap).filter(s => s.totalLeads > 0 || s.enquiries > 0 || s.siteVisits > 0 || s.hotList > 0 || s.booked > 0 || s.handover > 0 || s.lost > 0);
+      return Object.values(subMap).filter(s => s.totalLeads > 0 || (s.assigned || 0) > 0 || s.enquiries > 0 || s.siteVisits > 0 || s.hotList > 0 || (s.futureFollowup || 0) > 0 || s.booked > 0 || s.handover > 0 || s.lost > 0);
     }
 
     const g = stats.groupStats[selectedSourceGroup];
@@ -945,14 +957,16 @@ const Dashboard = () => {
     return (g.sources || []).map(src => ({
       subSourceName: src.source,
       totalLeads: src.count || 0,
+      assigned: src.assigned || 0,
       enquiries: src.enquiries || 0,
       siteVisits: src.siteVisits || 0,
       hotList: src.hotList || 0,
+      futureFollowup: src.futureFollowup || 0,
       booked: src.booked || 0,
       handover: src.handover || 0,
       siteConversions: src.siteConversions || 0,
       lost: src.lost || 0
-    })).filter(s => s.totalLeads > 0 || s.enquiries > 0 || s.siteVisits > 0 || s.hotList > 0 || s.booked > 0 || s.handover > 0 || s.lost > 0);
+    })).filter(s => s.totalLeads > 0 || (s.assigned || 0) > 0 || s.enquiries > 0 || s.siteVisits > 0 || s.hotList > 0 || (s.futureFollowup || 0) > 0 || s.booked > 0 || s.handover > 0 || s.lost > 0);
   }, [selectedSourceGroup, stats.groupStats, stats.cards?.leadsList, fromDate, toDate]);
 
   // The metrics to display on the details card
@@ -962,9 +976,11 @@ const Dashboard = () => {
       const totals = {
         displayName: 'All Sources Combined',
         totalLeads: 0,
+        assigned: 0,
         enquiries: 0,
         siteVisits: 0,
         hotList: 0,
+        futureFollowup: 0,
         booked: 0,
         handover: 0,
         siteConversions: 0,
@@ -972,9 +988,11 @@ const Dashboard = () => {
       };
       sourceGroupsPerformanceData.forEach(g => {
         totals.totalLeads += g.totalLeads;
+        totals.assigned += g.assigned || 0;
         totals.enquiries += g.enquiries;
         totals.siteVisits += g.siteVisits;
         totals.hotList += g.hotList;
+        totals.futureFollowup += g.futureFollowup || 0;
         totals.booked += g.booked;
         totals.handover += g.handover;
         totals.siteConversions += g.siteConversions || 0;
@@ -987,7 +1005,7 @@ const Dashboard = () => {
       const match = subSourcesPerformanceData.find(s => s.subSourceName === selectedSubSource);
       return match ? { ...match, displayName: `${selectedSourceGroup} - ${selectedSubSource}` } : {
         displayName: selectedSubSource,
-        totalLeads: 0, enquiries: 0, siteVisits: 0, hotList: 0, booked: 0, handover: 0, lost: 0
+        totalLeads: 0, assigned: 0, enquiries: 0, siteVisits: 0, hotList: 0, futureFollowup: 0, booked: 0, handover: 0, lost: 0
       };
     }
 
@@ -2362,9 +2380,11 @@ const Dashboard = () => {
                   <div className="space-y-3">
                     {[
                       { label: 'Total Leads', count: selectedSourcePerfData.totalLeads, color: 'bg-black-400', icon: TrendingUp },
+                      { label: 'Assigned', count: selectedSourcePerfData.assigned || 0, color: 'bg-purple-500', icon: UserCheck },
                       { label: 'Enquiries', count: selectedSourcePerfData.enquiries, color: 'bg-emerald-600', icon: Users },
                       { label: 'Site Visit', count: selectedSourcePerfData.siteVisits, color: 'bg-blue-500', icon: MapPin },
                       { label: 'Hot List', count: selectedSourcePerfData.hotList, color: 'bg-amber-500', icon: Target },
+                      { label: 'Future Follow-up', count: selectedSourcePerfData.futureFollowup || 0, color: 'bg-cyan-600', icon: Clock },
                       { label: 'Booked', count: selectedSourcePerfData.booked || 0, color: 'bg-yellow-500', icon: DollarSign },
                       { label: 'Lost', count: selectedSourcePerfData.lost, color: 'bg-red-500', icon: TrendingDown }
                     ].filter(m => m.label === 'Total Leads' || m.count > 0).map((m, idx) => {
@@ -2524,14 +2544,16 @@ const Dashboard = () => {
                           { label: 'Total Leads', count: stats.projectStats[selectedProjectPerfCode].count, color: 'bg-black-400', icon: TrendingUp },
                           ...Object.keys(stats.projectStats[selectedProjectPerfCode].stages || {})
                             .sort((a, b) => {
-                              const order = { 'Assigned': 1, 'Contacted': 2, 'Follow-Up': 3, 'Site Visit': 4, 'Hot List': 5, 'Booking': 6, 'Booked': 6, 'Site Conversion': 7, 'Handover': 7, 'Won': 7, 'Lost': 8 };
+                              const order = { 'Assigned': 1, 'Contacted': 2, 'Follow-Up': 3, 'Site Visit': 4, 'Hot List': 5, 'Future Follow-up': 6, 'Booking': 7, 'Booked': 7, 'Site Conversion': 8, 'Handover': 8, 'Won': 8, 'Lost': 9 };
                               return (order[a] || 99) - (order[b] || 99);
                             })
                             .map((stageName) => {
                               const getStageColor = (label) => {
                                 const cleanLabel = label.toLowerCase();
                                 if (cleanLabel.includes('assign')) return 'bg-purple-500';
-                                if (cleanLabel.includes('follow')) return 'bg-emerald-600';
+                                if (cleanLabel.includes('future')) return 'bg-cyan-600';
+                                if (cleanLabel.includes('follow') || cleanLabel.includes('contact')) return 'bg-emerald-600';
+                                if (cleanLabel.includes('hot')) return 'bg-amber-500';
                                 if (cleanLabel.includes('book')) return 'bg-yellow-500';
                                 if (cleanLabel.includes('conversion') || cleanLabel.includes('handover') || cleanLabel.includes('won')) return 'bg-emerald-700';
                                 if (cleanLabel.includes('lost')) return 'bg-red-500';
