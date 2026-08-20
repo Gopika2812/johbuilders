@@ -33,11 +33,11 @@ const getExcelStyles = (titleBg, monthBg, headerBg, execBg) => {
   return `
     <style>
       table { border-collapse: collapse; width: 100%; font-family: 'Segoe UI', Calibri, Arial, sans-serif; }
-      td, th { border: 1px solid #CBD5E1; padding: 6px 10px; font-size: 9.5pt; color: #1E293B; }
-      th, .table-headers th { font-weight: bold; background-color: ${headerBg || '#0F5233'}; color: #FFFFFF; border: 1px solid #0D4329; text-align: center; }
-      .title-row { font-size: 13pt; font-weight: bold; color: #FFFFFF; background-color: ${titleBg || '#0F5233'}; text-align: center; }
-      .month-header { height: 26px; vertical-align: middle; font-size: 10pt; font-weight: bold; background-color: ${monthBg || '#E6F4EA'}; color: #0F5233; border: 1px solid #C3E6CB; text-align: center; text-transform: uppercase; letter-spacing: 0.5px; }
-      .exec-banner { background-color: ${execBg || '#E6F4EA'}; font-weight: bold; text-align: left; color: #0F5233; border: 1px solid #CBD5E1; }
+      td, th { border: 1px solid #CBD5E1; padding: 8px 12px; font-size: 9.5pt; color: #1E293B; }
+      th, .table-headers th { font-weight: bold; background-color: #0F5233 !important; color: #FFFFFF !important; border: 1px solid #0D4329 !important; text-align: center; height: 34px; font-size: 10pt; vertical-align: middle; }
+      .title-row { font-size: 14pt; font-weight: bold; color: #FFFFFF !important; background-color: #0F5233 !important; text-align: center; border: 1px solid #0D4329 !important; height: 65px; vertical-align: middle; }
+      .month-header { height: 28px; vertical-align: middle; font-size: 10pt; font-weight: bold; background-color: #E6F4EA !important; color: #0F5233 !important; border: 1px solid #C3E6CB !important; text-align: center; text-transform: uppercase; letter-spacing: 0.5px; }
+      .exec-banner { background-color: #E6F4EA !important; font-weight: bold; text-align: left; color: #0F5233 !important; border: 1px solid #CBD5E1; }
       .logo-cell { background-color: #FFFFFF !important; border: 1px solid #CBD5E1; text-align: center; vertical-align: middle; padding: 4px 8px; }
       .bg-header-blue { background-color: #0F5233 !important; color: #FFFFFF !important; font-weight: bold; text-align: center; border: 1px solid #0D4329 !important; }
       .bg-header-green { background-color: #0F5233 !important; color: #FFFFFF !important; font-weight: bold; text-align: center; border: 1px solid #0D4329 !important; }
@@ -45,7 +45,7 @@ const getExcelStyles = (titleBg, monthBg, headerBg, execBg) => {
       .bg-orange-pct { background-color: #D1E7DD !important; color: #0F5233 !important; font-weight: bold; text-align: center; border: 1px solid #A3CFBB !important; }
       .bg-light-green { background-color: #F8FAF8 !important; color: #1E293B !important; border: 1px solid #CBD5E1 !important; }
       
-      .font-bold { font-weight: bold; color: #0F5233; }
+      .font-bold { font-weight: bold; }
       .text-left { text-align: left; }
       .text-right { text-align: right; }
       .text-center { text-align: center; }
@@ -61,13 +61,13 @@ const getExcelHeader = (titleText, monthTitle, totalColumns, themeColor) => {
         <td colspan="2" bgcolor="#FFFFFF" class="logo-cell" style="background-color: #FFFFFF; padding: 4px 8px; text-align: center; vertical-align: middle; border: 1px solid #CBD5E1; height: 65px; width: 150px;">
           ${webLogo ? `<img src="${webLogo}" style="max-height: 55px; max-width: 100%; width: auto; height: 55px; object-fit: contain; display: block; margin: 0 auto;" alt="JOHN BUILDWELL" />` : `<div style="color: #0F5233; font-size: 11pt; font-weight: bold; text-align: center;">JOHN BUILDWELL</div>`}
         </td>
-        <td colspan="${safeCols - 2}" class="title-row text-center" style="background-color: ${themeColor || '#0F5233'}; color: #FFFFFF; border: 1px solid #0D4329; border-left: none; vertical-align:middle; text-align:center; font-size: 14pt; font-weight: bold; height: 65px; letter-spacing: 0.5px;">
+        <td colspan="${safeCols - 2}" class="title-row text-center" style="background-color: #0F5233; color: #FFFFFF; border: 1px solid #0D4329; border-left: none; vertical-align:middle; text-align:center; font-size: 14pt; font-weight: bold; height: 65px; letter-spacing: 0.5px;">
           ${titleText}
         </td>
       </tr>
       ${monthTitle ? `
       <tr>
-        <td colspan="${safeCols}" class="month-header" style="height: 26px; vertical-align: middle; font-size: 10pt; font-weight: bold; background-color: #E6F4EA; color: #0F5233; border: 1px solid #C3E6CB; text-align: center; text-transform: uppercase; letter-spacing: 0.5px;">
+        <td colspan="${safeCols}" class="month-header" style="height: 28px; vertical-align: middle; font-size: 10pt; font-weight: bold; background-color: #E6F4EA; color: #0F5233; border: 1px solid #C3E6CB; text-align: center; text-transform: uppercase; letter-spacing: 0.5px;">
           ${monthTitle}
         </td>
       </tr>` : ''}
