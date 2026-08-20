@@ -140,21 +140,27 @@ export const exportHtmlSheetsToExcel = async (sheets, filename) => {
             }
           }
 
-          // 3. Logo Cell & Image Embedding
+          // 3. Logo Cell & Formatting
           const hasImg = Boolean(cell.querySelector('img'));
           const isLogoCell = cellClasses.includes('logo-cell') || hasImg || (rIdx === 0 && cIdx < 2 && (cellText.toUpperCase() === 'JOHN BUILDWELL' || cellText === ''));
 
-          if (isLogoCell && logoImageId) {
-            excelCell.value = 'JOHN BUILDWELL';
+          if (isLogoCell) {
+            excelCell.value = 'JB  |  JOHN BUILDWELL';
             bgHex = 'FFFFFF';
             fontColor = '0F5233';
             ws.getRow(rIdx + 1).height = 55;
 
-            ws.addImage(logoImageId, {
-              tl: { col: cIdx + 0.1, row: rIdx + 0.1 },
-              ext: { width: 140, height: 48 },
-              editAs: 'oneCell'
-            });
+            if (logoImageId) {
+              try {
+                ws.addImage(logoImageId, {
+                  tl: { col: cIdx + 0.1, row: rIdx + 0.1 },
+                  ext: { width: 140, height: 48 },
+                  editAs: 'oneCell'
+                });
+              } catch (e) {
+                console.warn('Could not overlay image, formatted cell text active:', e);
+              }
+            }
           } else {
             // Value parsing
             const rawVal = cellText.replace(/^₹\s*/, '').replace(/,/g, '');
@@ -171,11 +177,11 @@ export const exportHtmlSheetsToExcel = async (sheets, filename) => {
           }
 
           // 4. Font styling
-          let isBold = cellClasses.includes('font-bold') || cell.tagName === 'TH' || styleAttr.includes('font-weight: bold') || styleAttr.includes('font-weight: 700');
+          let isBold = isLogoCell || cellClasses.includes('font-bold') || cell.tagName === 'TH' || styleAttr.includes('font-weight: bold') || styleAttr.includes('font-weight: 700');
 
           excelCell.font = {
             name: 'Segoe UI',
-            size: (cellClasses.includes('title-row') || rIdx === 0) ? 13 : 10,
+            size: (isLogoCell || cellClasses.includes('title-row') || rIdx === 0) ? 13 : 10,
             bold: isBold,
             color: { argb: 'FF' + fontColor }
           };
