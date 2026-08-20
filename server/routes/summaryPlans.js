@@ -8,12 +8,25 @@ const LeadGroup = require('../models/LeadGroup');
 const BudgetPlan = require('../models/BudgetPlan');
 const { protect } = require('../middleware/auth');
 
-// Helper to get week bucket (1 to 4)
-const getWeekBucket = (date) => {
-  const day = new Date(date).getUTCDate();
-  if (day <= 7) return 'w1';
-  if (day <= 14) return 'w2';
-  if (day <= 21) return 'w3';
+// Helper to get week bucket (w1, w2, w3, w4) based on 1st Monday to 1st Sunday calendar weeks
+const getWeekBucket = (dateInput) => {
+  const d = new Date(dateInput);
+  const dayOfMonth = d.getUTCDate();
+  const year = d.getUTCFullYear();
+  const month = d.getUTCMonth();
+
+  let firstSunday = 1;
+  while (new Date(Date.UTC(year, month, firstSunday)).getUTCDay() !== 0) {
+    firstSunday++;
+  }
+
+  if (dayOfMonth <= firstSunday) return 'w1';
+
+  const daysAfterFirstSunday = dayOfMonth - firstSunday;
+  const weekNum = 1 + Math.ceil(daysAfterFirstSunday / 7);
+
+  if (weekNum === 2) return 'w2';
+  if (weekNum === 3) return 'w3';
   return 'w4';
 };
 

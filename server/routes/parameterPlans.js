@@ -38,12 +38,25 @@ router.get('/:month', protect, async (req, res) => {
         obj.total += amount;
         if (date >= startDate) {
           obj.actual += amount;
-          const day = date.getDate();
-          if (day <= 7) obj.w1 += amount;
-          else if (day <= 14) obj.w2 += amount;
-          else if (day <= 21) obj.w3 += amount;
-          else if (day <= 28) obj.w4 += amount;
-          else obj.w5 += amount;
+          const dayOfMonth = date.getDate();
+          const year = date.getFullYear();
+          const month = date.getMonth();
+
+          let firstSunday = 1;
+          while (new Date(year, month, firstSunday).getDay() !== 0) {
+            firstSunday++;
+          }
+
+          if (dayOfMonth <= firstSunday) {
+            obj.w1 += amount;
+          } else {
+            const daysAfter = dayOfMonth - firstSunday;
+            const weekNum = 1 + Math.ceil(daysAfter / 7);
+            if (weekNum === 2) obj.w2 += amount;
+            else if (weekNum === 3) obj.w3 += amount;
+            else if (weekNum === 4) obj.w4 += amount;
+            else obj.w5 += amount;
+          }
         }
       }
     };

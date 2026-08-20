@@ -1748,12 +1748,23 @@ const CRDReports = () => {
               stage.payments.forEach(p => {
                 const pDate = new Date(p.date);
                 if (pDate.getMonth() === targetMonth && pDate.getFullYear() === targetYear) {
-                  const day = pDate.getDate();
+                  const dayOfMonth = pDate.getDate();
                   const amt = Number(p.amount) || 0;
-                  if (day >= 1 && day <= 7) w1 += amt;
-                  else if (day >= 8 && day <= 14) w2 += amt;
-                  else if (day >= 15 && day <= 21) w3 += amt;
-                  else w4 += amt;
+                  
+                  let firstSunday = 1;
+                  while (new Date(targetYear, targetMonth, firstSunday).getDay() !== 0) {
+                    firstSunday++;
+                  }
+
+                  if (dayOfMonth <= firstSunday) {
+                    w1 += amt;
+                  } else {
+                    const daysAfter = dayOfMonth - firstSunday;
+                    const weekNum = 1 + Math.ceil(daysAfter / 7);
+                    if (weekNum === 2) w2 += amt;
+                    else if (weekNum === 3) w3 += amt;
+                    else w4 += amt;
+                  }
                 }
               });
             }
@@ -2790,12 +2801,23 @@ const CRDReports = () => {
           stage.payments.forEach(p => {
             const pDate = new Date(p.date);
             if (pDate.getMonth() === currentMonth && pDate.getFullYear() === currentYear) {
-              const day = pDate.getDate();
+              const dayOfMonth = pDate.getDate();
               const amt = Number(p.amount) || 0;
-              if (day >= 1 && day <= 7) w1 += amt;
-              else if (day >= 8 && day <= 14) w2 += amt;
-              else if (day >= 15 && day <= 21) w3 += amt;
-              else w4 += amt;
+
+              let firstSunday = 1;
+              while (new Date(currentYear, currentMonth, firstSunday).getDay() !== 0) {
+                firstSunday++;
+              }
+
+              if (dayOfMonth <= firstSunday) {
+                w1 += amt;
+              } else {
+                const daysAfter = dayOfMonth - firstSunday;
+                const weekNum = 1 + Math.ceil(daysAfter / 7);
+                if (weekNum === 2) w2 += amt;
+                else if (weekNum === 3) w3 += amt;
+                else w4 += amt;
+              }
             }
           });
         }
