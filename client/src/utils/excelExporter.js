@@ -1,38 +1,57 @@
 import ExcelJS from 'exceljs';
+import { saveAs } from 'file-saver';
 import { LOGO_BASE64 } from './logoBase64';
 
-// Helper to convert base64 image string to ArrayBuffer natively in browser
-const base64ToArrayBuffer = (base64) => {
+let cachedLogoArrayBuffer = null;
+
+// Helper to fetch logo ArrayBuffer directly from public folder or base64 fallback
+const getLogoArrayBuffer = async () => {
+  if (cachedLogoArrayBuffer) return cachedLogoArrayBuffer;
+  
+  // Method 1: Fetch directly from /logo_white.jpg in public directory
   try {
-    const cleanBase64 = base64.replace(/^data:image\/\w+;base64,/, '');
-    const binaryString = window.atob(cleanBase64);
-    const len = binaryString.length;
-    const bytes = new Uint8Array(len);
-    for (let i = 0; i < len; i++) {
-      bytes[i] = binaryString.charCodeAt(i);
+    const res = await fetch('/logo_white.jpg');
+    if (res.ok) {
+      const blob = await res.blob();
+      cachedLogoArrayBuffer = await blob.arrayBuffer();
+      return cachedLogoArrayBuffer;
     }
-    return bytes.buffer;
   } catch (e) {
-    console.error('Failed to convert base64 to ArrayBuffer:', e);
-    return null;
+    console.warn('Could not fetch /logo_white.jpg, trying base64 fallback:', e);
   }
+
+  // Method 2: Fallback from LOGO_BASE64 string
+  if (LOGO_BASE64) {
+    try {
+      const cleanBase64 = LOGO_BASE64.replace(/^data:image\/\w+;base64,/, '');
+      const binaryString = window.atob(cleanBase64);
+      const len = binaryString.length;
+      const bytes = new Uint8Array(len);
+      for (let i = 0; i < len; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+      cachedLogoArrayBuffer = bytes.buffer;
+      return cachedLogoArrayBuffer;
+    } catch (e) {
+      console.error('Failed to convert base64 to ArrayBuffer:', e);
+    }
+  }
+  return null;
 };
 
 export const exportHtmlSheetsToExcel = async (sheets, filename) => {
   try {
     const wb = new ExcelJS.Workbook();
 
-    // Prepare logo image using native ArrayBuffer in browser
+    // Fetch logo ArrayBuffer
+    const logoArrayBuffer = await getLogoArrayBuffer();
     let logoImageId = null;
-    if (LOGO_BASE64) {
+    if (logoArrayBuffer) {
       try {
-        const imageBuffer = base64ToArrayBuffer(LOGO_BASE64);
-        if (imageBuffer) {
-          logoImageId = wb.addImage({
-            buffer: imageBuffer,
-            extension: 'jpeg',
-          });
-        }
+        logoImageId = wb.addImage({
+          buffer: logoArrayBuffer,
+          extension: 'jpeg',
+        });
       } catch (e) {
         console.error('Failed to add logo image to Excel workbook:', e);
       }
@@ -132,7 +151,7 @@ export const exportHtmlSheetsToExcel = async (sheets, filename) => {
             ws.getRow(rIdx + 1).height = 55;
 
             ws.addImage(logoImageId, {
-              tl: { col: cIdx + 0.05, row: rIdx + 0.05 },
+              tl: { col: cIdx + 0.1, row: rIdx + 0.1 },
               ext: { width: 140, height: 48 },
               editAs: 'oneCell'
             });
@@ -194,18 +213,11 @@ export const exportHtmlSheetsToExcel = async (sheets, filename) => {
       }
     }
 
-    // Write file & trigger browser download
+    // Write file & trigger browser download via file-saver saveAs
     const buffer = await wb.xlsx.writeBuffer();
     const finalFilename = filename.endsWith('.xlsx') ? filename : filename.replace(/\.xls$/, '.xlsx');
     const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = finalFilename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    saveAs(blob, finalFilename);
   } catch (err) {
     console.error('Error exporting ExcelJS workbook:', err);
   }
