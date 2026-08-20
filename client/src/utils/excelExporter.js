@@ -29,10 +29,9 @@ export const exportHtmlSheetsToExcel = async (sheets, filename) => {
 
       const rowCount = table.rows.length;
       const occupied = [];
-      for (let i = 0; i < rowCount + 20; i++) occupied[i] = [];
+      for (let i = 0; i < rowCount + 50; i++) occupied[i] = [];
 
       let maxCol = 0;
-      let logoAddedInSheet = false;
 
       for (let rIdx = 0; rIdx < table.rows.length; rIdx++) {
         const tr = table.rows[rIdx];
@@ -61,13 +60,13 @@ export const exportHtmlSheetsToExcel = async (sheets, filename) => {
           const styleAttr = cell.getAttribute('style') || '';
           const bgcolorAttr = cell.getAttribute('bgcolor') || '';
 
-          // Background color detection
+          // 1. Background color detection
           let bgHex = null;
-          if (bgcolorAttr && bgcolorAttr !== 'transparent') {
-            bgHex = bgcolorAttr.replace('#', '');
-          } else if (styleAttr.includes('background-color:')) {
-            const m = styleAttr.match(/background-color:\s*#([0-9a-fA-F]{6})/);
-            if (m) bgHex = m[1];
+          const bgMatch = styleAttr.match(/background-color:\s*#([0-9a-fA-F]{6})/i);
+          if (bgMatch) {
+            bgHex = bgMatch[1].toUpperCase();
+          } else if (bgcolorAttr && bgcolorAttr !== 'transparent') {
+            bgHex = bgcolorAttr.replace('#', '').toUpperCase();
           }
 
           if (!bgHex) {
@@ -81,25 +80,45 @@ export const exportHtmlSheetsToExcel = async (sheets, filename) => {
               bgHex = 'F8FAFC';
             } else if (cellClasses.includes('bg-light-green')) {
               bgHex = 'F8FAF8';
+            } else {
+              bgHex = 'FFFFFF';
             }
           }
 
-          const isLogoCell = cellClasses.includes('logo-cell') || cell.querySelector('img') || (rIdx === 0 && cIdx < 2 && cellText.toUpperCase() === 'JOHN BUILDWELL');
+          // 2. Font color detection
+          let fontColor = null;
+          const colorMatch = styleAttr.match(/(?:^|;\s*)color:\s*#([0-9a-fA-F]{6})/i);
+          if (colorMatch) {
+            fontColor = colorMatch[1].toUpperCase();
+          }
+
+          if (!fontColor) {
+            if (bgHex === '0F5233' || bgHex === '0B4D2D' || bgHex === '000000') {
+              fontColor = 'FFFFFF';
+            } else if (bgHex === 'E6F4EA' || bgHex === 'D1E7DD') {
+              fontColor = '0F5233';
+            } else {
+              fontColor = '1E293B';
+            }
+          }
+
+          // 3. Logo Cell & Image Embedding
+          const hasImg = Boolean(cell.querySelector('img'));
+          const isLogoCell = cellClasses.includes('logo-cell') || hasImg || (rIdx === 0 && cIdx < 2 && (cellText.toUpperCase() === 'JOHN BUILDWELL' || cellText === ''));
 
           if (isLogoCell && logoImageId) {
             excelCell.value = '';
             bgHex = 'FFFFFF';
-            if (!logoAddedInSheet) {
-              ws.getRow(rIdx + 1).height = 55;
-              ws.addImage(logoImageId, {
-                tl: { col: cIdx + 0.1, row: rIdx + 0.1 },
-                ext: { width: 140, height: 48 },
-                editAs: 'oneCell'
-              });
-              logoAddedInSheet = true;
-            }
+            fontColor = '0F5233';
+            ws.getRow(rIdx + 1).height = 55;
+
+            ws.addImage(logoImageId, {
+              tl: { col: cIdx + 0.05, row: rIdx + 0.05 },
+              br: { col: cIdx + cSpan - 0.05, row: rIdx + rSpan - 0.05 },
+              editAs: 'oneCell'
+            });
           } else {
-            // Clean value formatting
+            // Value parsing
             const rawVal = cellText.replace(/^₹\s*/, '').replace(/,/g, '');
             if (!isNaN(rawVal) && rawVal !== '' && !cellText.includes('DATE:') && !cellText.includes('TOTAL') && !cellText.includes('S.No') && !cellText.includes('S.NO.')) {
               excelCell.value = Number(rawVal);
@@ -113,14 +132,8 @@ export const exportHtmlSheetsToExcel = async (sheets, filename) => {
             }
           }
 
-          // Font styling
+          // 4. Font styling
           let isBold = cellClasses.includes('font-bold') || cell.tagName === 'TH' || styleAttr.includes('font-weight: bold') || styleAttr.includes('font-weight: 700');
-          let fontColor = '1E293B';
-          if (styleAttr.includes('color: #FFFFFF') || styleAttr.includes('color: white') || bgHex === '0F5233' || bgHex === '0B4D2D') {
-            fontColor = 'FFFFFF';
-          } else if (bgHex === 'E6F4EA' || bgHex === 'D1E7DD') {
-            fontColor = '0F5233';
-          }
 
           excelCell.font = {
             name: 'Segoe UI',
@@ -129,16 +142,14 @@ export const exportHtmlSheetsToExcel = async (sheets, filename) => {
             color: { argb: 'FF' + fontColor }
           };
 
-          // Fill background
-          if (bgHex) {
-            excelCell.fill = {
-              type: 'pattern',
-              pattern: 'solid',
-              fgColor: { argb: 'FF' + bgHex.toUpperCase() }
-            };
-          }
+          // 5. Fill background
+          excelCell.fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: 'FF' + bgHex }
+          };
 
-          // Alignment
+          // 6. Alignment
           let hAlign = 'center';
           if (cellClasses.includes('text-left') || styleAttr.includes('text-align: left')) hAlign = 'left';
           if (cellClasses.includes('text-right') || styleAttr.includes('text-align: right')) hAlign = 'right';
@@ -149,7 +160,7 @@ export const exportHtmlSheetsToExcel = async (sheets, filename) => {
             wrapText: true
           };
 
-          // Borders
+          // 7. Borders
           const borderStyle = { style: 'thin', color: { argb: 'FFCBD5E1' } };
           excelCell.border = { top: borderStyle, bottom: borderStyle, left: borderStyle, right: borderStyle };
 
