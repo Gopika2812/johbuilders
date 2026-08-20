@@ -542,7 +542,7 @@ const ExportReports = () => {
         <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
         <head>
           <meta charset="utf-8">
-          ${getExcelStyles("#FCE4D6", "#DDEBF7", "#FADADD", "#00B0F0")}
+          ${getExcelStyles("#0F5233", "#E6F4EA", "#0F5233", "#E6F4EA")}
         </head>
         <body>
           <table>
@@ -698,7 +698,7 @@ const ExportReports = () => {
         <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
         <head>
           <meta charset="utf-8">
-          ${getExcelStyles("#FF99CC", "#F8CBAD", "#FF99CC", "#00B0F0")}
+          ${getExcelStyles("#0F5233", "#E6F4EA", "#0F5233", "#E6F4EA")}
         </head>
         <body>
           <table>
@@ -845,7 +845,7 @@ const ExportReports = () => {
         <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
         <head>
           <meta charset="utf-8">
-          ${getExcelStyles("#9BC2E6", "#F8CBAD", "#E6B8B7", "#9BC2E6")}
+          ${getExcelStyles("#0F5233", "#E6F4EA", "#0F5233", "#E6F4EA")}
         </head>
         <body>
           <table>
@@ -1003,7 +1003,7 @@ const ExportReports = () => {
         <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
         <head>
           <meta charset="utf-8">
-          ${getExcelStyles("#92D050", "#C6E0B4", "#92D050", "#C6E0B4")}
+          ${getExcelStyles("#0F5233", "#E6F4EA", "#0F5233", "#E6F4EA")}
         </head>
         <body>
           <table>
@@ -1499,7 +1499,7 @@ const ExportReports = () => {
         <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
         <head>
           <meta charset="utf-8">
-          ${getExcelStyles("#9BC2E6", "#C6E0B4", "#9BC2E6", "#9BC2E6")}
+          ${getExcelStyles("#0F5233", "#E6F4EA", "#0F5233", "#E6F4EA")}
         </head>
         <body>
           <table>
@@ -1665,7 +1665,7 @@ const ExportReports = () => {
         <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
         <head>
           <meta charset="utf-8">
-          ${getExcelStyles("#9BC2E6", "#C6E0B4", "#9BC2E6", "#9BC2E6")}
+          ${getExcelStyles("#0F5233", "#E6F4EA", "#0F5233", "#E6F4EA")}
         </head>
         <body>
           <table>
@@ -1874,7 +1874,7 @@ const ExportReports = () => {
         <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
         <head>
           <meta charset="utf-8">
-          ${getExcelStyles("#9BC2E6", "#C6E0B4", "#9BC2E6", "#9BC2E6")}
+          ${getExcelStyles("#0F5233", "#E6F4EA", "#0F5233", "#E6F4EA")}
         </head>
         <body>
           <table>
@@ -1996,7 +1996,7 @@ const ExportReports = () => {
         <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
         <head>
           <meta charset="utf-8">
-          ${getExcelStyles("#9BC2E6", "#C6E0B4", "#9BC2E6", "#9BC2E6")}
+          ${getExcelStyles("#0F5233", "#E6F4EA", "#0F5233", "#E6F4EA")}
         </head>
         <body>
           <table>
@@ -2188,7 +2188,7 @@ const ExportReports = () => {
         <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
         <head>
           <meta charset="utf-8">
-          ${getExcelStyles("#9BC2E6", "#C6E0B4", "#9BC2E6", "#9BC2E6")}
+          ${getExcelStyles("#0F5233", "#E6F4EA", "#0F5233", "#E6F4EA")}
         </head>
         <body>
           <table>
@@ -2321,7 +2321,7 @@ const ExportReports = () => {
         <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
         <head>
           <meta charset="utf-8">
-          ${getExcelStyles("#9BC2E6", "#C6E0B4", "#9BC2E6", "#9BC2E6")}
+          ${getExcelStyles("#0F5233", "#E6F4EA", "#0F5233", "#E6F4EA")}
         </head>
         <body>
           <table>
@@ -2460,7 +2460,7 @@ const ExportReports = () => {
         <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
         <head>
           <meta charset="utf-8">
-          ${getExcelStyles("#9BC2E6", "#C6E0B4", "#9BC2E6", "#9BC2E6")}
+          ${getExcelStyles("#0F5233", "#E6F4EA", "#0F5233", "#E6F4EA")}
         </head>
         <body>
           <table>
@@ -2595,7 +2595,7 @@ const ExportReports = () => {
         <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
         <head>
           <meta charset="utf-8">
-          ${getExcelStyles("#9BC2E6", "#C6E0B4", "#9BC2E6", "#9BC2E6")}
+          ${getExcelStyles("#0F5233", "#E6F4EA", "#0F5233", "#E6F4EA")}
         </head>
         <body>
           <table>
