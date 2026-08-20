@@ -737,7 +737,7 @@ const ExportReports = () => {
           <!-- Table Headers -->
           <tr class="table-headers">
             <th>S.No.</th>
-            <th>Enquiry date</th>
+            <th>Site Visit Date</th>
             <th>Name</th>
             <th>Contact</th>
             <th>Site Visited By</th>
@@ -751,7 +751,19 @@ const ExportReports = () => {
 
         // Lead rows
         leadsList.forEach((lead, idx) => {
-          const dateStr = new Date(lead.createdAt).toLocaleDateString('en-GB').replace(/\//g, '.');
+          let svDate = lead.siteVisitDate ? new Date(lead.siteVisitDate) : null;
+          if (!svDate && lead.history) {
+            const svHist = lead.history.find(h => 
+              h.status === 'Site Visit' || 
+              h.status === 'Site Visit Follow-up' ||
+              (h.stageName && h.stageName.toLowerCase().includes('site visit'))
+            );
+            if (svHist && (svHist.timestamp || svHist.date)) {
+              svDate = new Date(svHist.timestamp || svHist.date);
+            }
+          }
+          if (!svDate) svDate = new Date(lead.createdAt);
+          const dateStr = svDate.toLocaleDateString('en-GB').replace(/\//g, '.');
           const phoneStr = lead.phone || '&nbsp;';
           const placeStr = lead.address ? lead.address.split(',')[0] : '&nbsp;';
           const visitedBy = execName;
