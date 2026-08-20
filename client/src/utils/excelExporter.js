@@ -114,7 +114,7 @@ export const exportHtmlSheetsToExcel = async (sheets, filename) => {
 
             ws.addImage(logoImageId, {
               tl: { col: cIdx + 0.05, row: rIdx + 0.05 },
-              br: { col: cIdx + cSpan - 0.05, row: rIdx + rSpan - 0.05 },
+              ext: { width: 140, height: 48 },
               editAs: 'oneCell'
             });
           } else {
