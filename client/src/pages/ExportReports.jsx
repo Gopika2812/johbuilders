@@ -546,7 +546,7 @@ const ExportReports = () => {
         </head>
         <body>
           <table>
-            ${getExcelHeader(titleText, monthTitle, 10, "#FCE4D6")}
+            ${getExcelHeader(titleText, monthTitle, 10, "#0F5233")}
           <!-- Table Headers -->
           <tr class="table-headers">
             <th>S.No</th>
@@ -702,7 +702,7 @@ const ExportReports = () => {
         </head>
         <body>
           <table>
-            ${getExcelHeader(titleText, monthTitle, 10, "#2563eb")}
+            ${getExcelHeader(titleText, monthTitle, 10, "#0F5233")}
       `;
 
       // Group leads by assigned executive
@@ -849,7 +849,7 @@ const ExportReports = () => {
         </head>
         <body>
           <table>
-            ${getExcelHeader(titleText, monthTitle, 9, "#ea580c")}
+            ${getExcelHeader(titleText, monthTitle, 9, "#0F5233")}
       `;
 
       // Group leads by assigned executive
@@ -1007,7 +1007,7 @@ const ExportReports = () => {
         </head>
         <body>
           <table>
-            ${getExcelHeader(titleText, monthTitle, 9, "#15803d")}
+            ${getExcelHeader(titleText, monthTitle, 9, "#0F5233")}
             <!-- Table Headers -->
             <tr class="table-headers">
               <th>S.NO.</th>
@@ -1503,7 +1503,7 @@ const ExportReports = () => {
         </head>
         <body>
           <table>
-            ${getExcelHeader(titleText, monthTitle, 7, "#1d4ed8")}
+            ${getExcelHeader(titleText, monthTitle, 7, "#0F5233")}
             <!-- Table Headers -->
             <tr class="table-headers">
               <th>S.No</th>
@@ -1669,7 +1669,7 @@ const ExportReports = () => {
         </head>
         <body>
           <table>
-            ${getExcelHeader("JB - LEAD SOURCES PERFORMANCE REPORT", monthTitle, 5, "#0d9488")}
+            ${getExcelHeader("JB - LEAD SOURCES PERFORMANCE REPORT", monthTitle, 5, "#0F5233")}
             <!-- Table Headers -->
             <tr class="table-headers">
               <th>S.No</th>
@@ -1878,7 +1878,7 @@ const ExportReports = () => {
         </head>
         <body>
           <table>
-            ${getExcelHeader(titleText, monthTitle, 7, "#7c3aed")}
+            ${getExcelHeader(titleText, monthTitle, 7, "#0F5233")}
             
             <!-- Table Headers -->
             <tr class="table-headers">
@@ -2000,7 +2000,7 @@ const ExportReports = () => {
         </head>
         <body>
           <table>
-            ${getExcelHeader("KEY HANDOVER THIS MONTH TARGET", monthTitle, 6, "#7c3aed")}
+            ${getExcelHeader("KEY HANDOVER THIS MONTH TARGET", monthTitle, 6, "#0F5233")}
             <tr class="table-headers">
               <th>S No</th>
               <th>Adv Date</th>
@@ -2192,7 +2192,7 @@ const ExportReports = () => {
         </head>
         <body>
           <table>
-            ${getExcelHeader(titleText, "", 8, "#7c3aed")}
+            ${getExcelHeader(titleText, "", 8, "#0F5233")}
             <!-- Table Headers -->
             <tr class="table-headers">
               <th>S No</th>
@@ -2325,7 +2325,7 @@ const ExportReports = () => {
         </head>
         <body>
           <table>
-            ${getExcelHeader(titleText, "", 8, "#7c3aed")}
+            ${getExcelHeader(titleText, "", 8, "#0F5233")}
             <!-- Table Headers -->
             <tr class="table-headers">
               <th>S No</th>
@@ -2464,7 +2464,7 @@ const ExportReports = () => {
         </head>
         <body>
           <table>
-            ${getExcelHeader(titleText, "", 10, "#7c3aed")}
+            ${getExcelHeader(titleText, "", 10, "#0F5233")}
             <!-- Table Headers -->
             <tr class="table-headers">
               <th>S No</th>
@@ -2599,7 +2599,7 @@ const ExportReports = () => {
         </head>
         <body>
           <table>
-            ${getExcelHeader(titleText, "", 8, "#7c3aed")}
+            ${getExcelHeader(titleText, "", 8, "#0F5233")}
             <!-- Table Headers -->
             <tr class="table-headers">
               <th>S No</th>

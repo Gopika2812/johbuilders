@@ -8,7 +8,6 @@ let cachedLogoArrayBuffer = null;
 const getLogoArrayBuffer = async () => {
   if (cachedLogoArrayBuffer) return cachedLogoArrayBuffer;
   
-  // Method 1: Fetch directly from /logo_white.jpg in public directory
   try {
     const res = await fetch('/logo_white.jpg');
     if (res.ok) {
@@ -20,7 +19,6 @@ const getLogoArrayBuffer = async () => {
     console.warn('Could not fetch /logo_white.jpg, trying base64 fallback:', e);
   }
 
-  // Method 2: Fallback from LOGO_BASE64 string
   if (LOGO_BASE64) {
     try {
       const cleanBase64 = LOGO_BASE64.replace(/^data:image\/\w+;base64,/, '');
@@ -43,7 +41,6 @@ export const exportHtmlSheetsToExcel = async (sheets, filename) => {
   try {
     const wb = new ExcelJS.Workbook();
 
-    // Fetch logo ArrayBuffer
     const logoArrayBuffer = await getLogoArrayBuffer();
     let logoImageId = null;
     if (logoArrayBuffer) {
@@ -107,9 +104,9 @@ export const exportHtmlSheetsToExcel = async (sheets, filename) => {
             bgHex = bgcolorAttr.replace('#', '').toUpperCase();
           }
 
-          if (!bgHex) {
+          if (!bgHex || cellClasses.includes('title-row')) {
             if (cellClasses.includes('title-row') || cellClasses.includes('bg-header-blue') || cellClasses.includes('bg-header-green') || cellClasses.includes('table-headers')) {
-              bgHex = '0F5233';
+              bgHex = '0F5233'; // Corporate Emerald Green
             } else if (cellClasses.includes('month-header') || cellClasses.includes('exec-banner') || cellClasses.includes('group-banner')) {
               bgHex = 'E6F4EA';
             } else if (cellClasses.includes('bg-orange-pct')) {
@@ -130,9 +127,9 @@ export const exportHtmlSheetsToExcel = async (sheets, filename) => {
             fontColor = colorMatch[1].toUpperCase();
           }
 
-          if (!fontColor) {
-            if (bgHex === '0F5233' || bgHex === '0B4D2D' || bgHex === '000000') {
-              fontColor = 'FFFFFF';
+          if (!fontColor || cellClasses.includes('title-row')) {
+            if (bgHex === '0F5233' || bgHex === '0B4D2D' || bgHex === '000000' || cellClasses.includes('title-row')) {
+              fontColor = 'FFFFFF'; // White text on dark emerald green title header
             } else if (bgHex === 'E6F4EA' || bgHex === 'D1E7DD') {
               fontColor = '0F5233';
             } else {
@@ -158,7 +155,7 @@ export const exportHtmlSheetsToExcel = async (sheets, filename) => {
                   editAs: 'oneCell'
                 });
               } catch (e) {
-                console.warn('Could not overlay image, formatted cell text active:', e);
+                console.warn('Could not overlay image:', e);
               }
             }
           } else {
@@ -201,7 +198,7 @@ export const exportHtmlSheetsToExcel = async (sheets, filename) => {
           excelCell.alignment = {
             horizontal: hAlign,
             vertical: 'middle',
-            wrapText: true
+            wrapText: cellText.length > 90 // Only wrap if extremely long text > 90 chars
           };
 
           // 7. Borders
@@ -213,13 +210,27 @@ export const exportHtmlSheetsToExcel = async (sheets, filename) => {
         }
       }
 
-      // Column widths
+      // Dynamic Auto-Column Width Calculation (Expand column until text finishes on 1 line)
+      const colMaxLens = [];
+      ws.eachRow((row, rowNumber) => {
+        if (rowNumber <= 2) return; // Skip title banner rows so header text doesn't over-expand narrow columns
+        row.eachCell((cell, colNumber) => {
+          const valStr = cell.value ? String(cell.value) : '';
+          const lines = valStr.split(/\r?\n/);
+          lines.forEach(l => {
+            colMaxLens[colNumber] = Math.max(colMaxLens[colNumber] || 10, l.length);
+          });
+        });
+      });
+
       for (let col = 1; col <= maxCol + 1; col++) {
-        ws.getColumn(col).width = col === 1 ? 8 : (col === 2 || col === 3 ? 24 : 16);
+        const maxLen = colMaxLens[col] || 15;
+        // Expand column generously (+5 padding) so full remarks fit on 1 single line
+        const calculatedWidth = Math.min(Math.max(maxLen + 5, 12), 100);
+        ws.getColumn(col).width = calculatedWidth;
       }
     }
 
-    // Write file & trigger browser download via file-saver saveAs
     const buffer = await wb.xlsx.writeBuffer();
     const finalFilename = filename.endsWith('.xlsx') ? filename : filename.replace(/\.xls$/, '.xlsx');
     const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
