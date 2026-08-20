@@ -1,19 +1,38 @@
 import ExcelJS from 'exceljs';
 import { LOGO_BASE64 } from './logoBase64';
 
+// Helper to convert base64 image string to ArrayBuffer natively in browser
+const base64ToArrayBuffer = (base64) => {
+  try {
+    const cleanBase64 = base64.replace(/^data:image\/\w+;base64,/, '');
+    const binaryString = window.atob(cleanBase64);
+    const len = binaryString.length;
+    const bytes = new Uint8Array(len);
+    for (let i = 0; i < len; i++) {
+      bytes[i] = binaryString.charCodeAt(i);
+    }
+    return bytes.buffer;
+  } catch (e) {
+    console.error('Failed to convert base64 to ArrayBuffer:', e);
+    return null;
+  }
+};
+
 export const exportHtmlSheetsToExcel = async (sheets, filename) => {
   try {
     const wb = new ExcelJS.Workbook();
 
-    // Prepare logo image if available
+    // Prepare logo image using native ArrayBuffer in browser
     let logoImageId = null;
     if (LOGO_BASE64) {
       try {
-        const base64Data = LOGO_BASE64.replace(/^data:image\/\w+;base64,/, '');
-        logoImageId = wb.addImage({
-          base64: base64Data,
-          extension: 'jpeg',
-        });
+        const imageBuffer = base64ToArrayBuffer(LOGO_BASE64);
+        if (imageBuffer) {
+          logoImageId = wb.addImage({
+            buffer: imageBuffer,
+            extension: 'jpeg',
+          });
+        }
       } catch (e) {
         console.error('Failed to add logo image to Excel workbook:', e);
       }
@@ -107,7 +126,7 @@ export const exportHtmlSheetsToExcel = async (sheets, filename) => {
           const isLogoCell = cellClasses.includes('logo-cell') || hasImg || (rIdx === 0 && cIdx < 2 && (cellText.toUpperCase() === 'JOHN BUILDWELL' || cellText === ''));
 
           if (isLogoCell && logoImageId) {
-            excelCell.value = '';
+            excelCell.value = 'JOHN BUILDWELL';
             bgHex = 'FFFFFF';
             fontColor = '0F5233';
             ws.getRow(rIdx + 1).height = 55;
