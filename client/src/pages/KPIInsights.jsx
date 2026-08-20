@@ -63,20 +63,23 @@ const getCoordinatesForPercent = (percent) => {
 const getExcelStyles = (titleBg, monthBg, headerBg, execBg) => {
   return `
     <style>
-      table { border-collapse: collapse; }
-      td, th { border: 1px solid #000000; padding: 6px 8px; font-family: 'Segoe UI', Calibri, sans-serif; font-size: 10pt; color: #000000; }
-      th, .table-headers th { font-weight: bold; background-color: ${headerBg || '#FCE4D6'}; color: #000000; border: 1px solid #000000; text-align: center; }
-      .title-row { font-size: 11pt; font-weight: bold; color: #000000; background-color: ${titleBg || '#FCE4D6'}; text-align: center; }
-      .month-header { height: 22px; vertical-align: middle; font-size: 10pt; font-weight: bold; background-color: ${monthBg || '#DDEBF7'}; border: 1px solid #000000; text-align: center; text-transform: uppercase; }
-      .exec-banner { background-color: ${execBg || '#DDEBF7'}; font-weight: bold; text-align: left; }
-      .bg-header-blue { background-color: #9BC2E6 !important; color: #000000 !important; font-weight: bold; text-align: center; }
-      .bg-header-green { background-color: #C6E0B4 !important; color: #000000 !important; font-weight: bold; text-align: center; }
-      .bg-black-row { background-color: #D9D9D9 !important; color: #000000 !important; }
-      .bg-orange-pct { background-color: #F8CBAD !important; color: #000000 !important; font-weight: bold; text-align: center; }
+      table { border-collapse: collapse; width: 100%; font-family: 'Segoe UI', Calibri, Arial, sans-serif; }
+      td, th { border: 1px solid #CBD5E1; padding: 6px 10px; font-size: 9.5pt; color: #1E293B; }
+      th, .table-headers th { font-weight: bold; background-color: ${headerBg || '#0F5233'}; color: #FFFFFF; border: 1px solid #0D4329; text-align: center; }
+      .title-row { font-size: 13pt; font-weight: bold; color: #FFFFFF; background-color: ${titleBg || '#0F5233'}; text-align: center; }
+      .month-header { height: 26px; vertical-align: middle; font-size: 10pt; font-weight: bold; background-color: ${monthBg || '#E6F4EA'}; color: #0F5233; border: 1px solid #C3E6CB; text-align: center; text-transform: uppercase; letter-spacing: 0.5px; }
+      .exec-banner { background-color: ${execBg || '#E6F4EA'}; font-weight: bold; text-align: left; color: #0F5233; border: 1px solid #CBD5E1; }
+      .logo-cell { background-color: #FFFFFF !important; border: 1px solid #CBD5E1; text-align: center; vertical-align: middle; padding: 4px 8px; }
+      .bg-header-blue { background-color: #0F5233 !important; color: #FFFFFF !important; font-weight: bold; text-align: center; border: 1px solid #0D4329 !important; }
+      .bg-header-green { background-color: #0F5233 !important; color: #FFFFFF !important; font-weight: bold; text-align: center; border: 1px solid #0D4329 !important; }
+      .bg-black-row { background-color: #F8FAFC !important; color: #64748B !important; border: 1px solid #E2E8F0 !important; }
+      .bg-orange-pct { background-color: #D1E7DD !important; color: #0F5233 !important; font-weight: bold; text-align: center; border: 1px solid #A3CFBB !important; }
+      .bg-light-green { background-color: #F8FAF8 !important; color: #1E293B !important; border: 1px solid #CBD5E1 !important; }
       
-      .font-bold { font-weight: bold; color: #000000; }
+      .font-bold { font-weight: bold; color: #0F5233; }
       .text-left { text-align: left; }
       .text-right { text-align: right; }
+      .text-center { text-align: center; }
     </style>
   `;
 };
@@ -86,20 +89,20 @@ const getExcelHeader = (titleText, monthTitle, totalColumns, themeColor, logoPat
     const webLogo = LOGO_BASE64;
     return `
       <tr style="height: 65px;">
-        <td colspan="2" bgcolor="#0B4D2D" class="title-row" style="background-color: #0B4D2D; padding: 2px; text-align: center; vertical-align: middle; border: 1px solid #000000; height: 65px; width: 140px;">
-          ${webLogo ? `<img src="${webLogo}" style="max-height: 60px; max-width: 100%; width: 100%; height: 60px; object-fit: contain; display: block; margin: 0 auto;" alt="JOHN BUILDWELL" />` : `<div style="color: #FFFFFF; font-size: 11pt; font-weight: bold; text-align: center;">John Buildwell</div>`}
+        <td colspan="2" bgcolor="#FFFFFF" class="logo-cell" style="background-color: #FFFFFF; padding: 4px 8px; text-align: center; vertical-align: middle; border: 1px solid #CBD5E1; height: 65px; width: 150px;">
+          ${webLogo ? `<img src="${webLogo}" style="max-height: 55px; max-width: 100%; width: auto; height: 55px; object-fit: contain; display: block; margin: 0 auto;" alt="JOHN BUILDWELL" />` : `<div style="color: #0F5233; font-size: 11pt; font-weight: bold; text-align: center;">JOHN BUILDWELL</div>`}
         </td>
-        <td colspan="${safeCols - 2}" class="title-row text-center" style="background-color: #FCE4D6; color: #000000; border: 1px solid #000000; border-left: none; vertical-align:middle; text-align:center; font-size: 14pt; font-weight: bold; height: 60px;">
+        <td colspan="${safeCols - 2}" class="title-row text-center" style="background-color: ${themeColor || '#0F5233'}; color: #FFFFFF; border: 1px solid #0D4329; border-left: none; vertical-align:middle; text-align:center; font-size: 14pt; font-weight: bold; height: 65px; letter-spacing: 0.5px;">
           ${titleText}
         </td>
       </tr>
       ${monthTitle ? `
       <tr>
-        <td colspan="${safeCols}" class="month-header" style="height: 22px; vertical-align: middle; font-size: 10pt; font-weight: bold; border: 1px solid #000000; text-align: center; text-transform: uppercase;">
+        <td colspan="${safeCols}" class="month-header" style="height: 26px; vertical-align: middle; font-size: 10pt; font-weight: bold; background-color: #E6F4EA; color: #0F5233; border: 1px solid #C3E6CB; text-align: center; text-transform: uppercase; letter-spacing: 0.5px;">
           ${monthTitle}
         </td>
       </tr>` : ''}
-      <tr><td colspan="${safeCols}" style="border:none; height: 15px;"></td></tr>
+      <tr><td colspan="${safeCols}" style="border:none; height: 12px; background-color: transparent;"></td></tr>
     `;
   };
 

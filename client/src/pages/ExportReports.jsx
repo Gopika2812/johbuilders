@@ -31,19 +31,20 @@ const getCoordinatesForPercent = (percent) => {
 const getExcelStyles = (titleBg, monthBg, headerBg, execBg) => {
   return `
     <style>
-      table { border-collapse: collapse; }
-      td, th { border: 1px solid #000000; padding: 6px 8px; font-family: 'Segoe UI', Calibri, sans-serif; font-size: 10pt; color: #000000; }
-      th, .table-headers th { font-weight: bold; background-color: ${headerBg || '#FCE4D6'}; color: #000000; border: 1px solid #000000; text-align: center; }
-      .title-row { font-size: 11pt; font-weight: bold; color: #000000; background-color: ${titleBg || '#FCE4D6'}; text-align: center; }
-      .month-header { height: 22px; vertical-align: middle; font-size: 10pt; font-weight: bold; background-color: ${monthBg || '#DDEBF7'}; border: 1px solid #000000; text-align: center; text-transform: uppercase; }
-      .exec-banner { background-color: ${execBg || '#DDEBF7'}; font-weight: bold; text-align: left; }
-      .bg-header-blue { background-color: #9BC2E6 !important; color: #000000 !important; font-weight: bold; text-align: center; }
-      .bg-header-green { background-color: #C6E0B4 !important; color: #000000 !important; font-weight: bold; text-align: center; }
-      .bg-black-row { background-color: #D9D9D9 !important; color: #000000 !important; }
-      .bg-orange-pct { background-color: #F4B084 !important; color: #000000 !important; font-weight: bold; text-align: center; }
-      .bg-light-green { background-color: #E2EFDA !important; }
+      table { border-collapse: collapse; width: 100%; font-family: 'Segoe UI', Calibri, Arial, sans-serif; }
+      td, th { border: 1px solid #CBD5E1; padding: 6px 10px; font-size: 9.5pt; color: #1E293B; }
+      th, .table-headers th { font-weight: bold; background-color: ${headerBg || '#0F5233'}; color: #FFFFFF; border: 1px solid #0D4329; text-align: center; }
+      .title-row { font-size: 13pt; font-weight: bold; color: #FFFFFF; background-color: ${titleBg || '#0F5233'}; text-align: center; }
+      .month-header { height: 26px; vertical-align: middle; font-size: 10pt; font-weight: bold; background-color: ${monthBg || '#E6F4EA'}; color: #0F5233; border: 1px solid #C3E6CB; text-align: center; text-transform: uppercase; letter-spacing: 0.5px; }
+      .exec-banner { background-color: ${execBg || '#E6F4EA'}; font-weight: bold; text-align: left; color: #0F5233; border: 1px solid #CBD5E1; }
+      .logo-cell { background-color: #FFFFFF !important; border: 1px solid #CBD5E1; text-align: center; vertical-align: middle; padding: 4px 8px; }
+      .bg-header-blue { background-color: #0F5233 !important; color: #FFFFFF !important; font-weight: bold; text-align: center; border: 1px solid #0D4329 !important; }
+      .bg-header-green { background-color: #0F5233 !important; color: #FFFFFF !important; font-weight: bold; text-align: center; border: 1px solid #0D4329 !important; }
+      .bg-black-row { background-color: #F8FAFC !important; color: #64748B !important; border: 1px solid #E2E8F0 !important; }
+      .bg-orange-pct { background-color: #D1E7DD !important; color: #0F5233 !important; font-weight: bold; text-align: center; border: 1px solid #A3CFBB !important; }
+      .bg-light-green { background-color: #F8FAF8 !important; color: #1E293B !important; border: 1px solid #CBD5E1 !important; }
       
-      .font-bold { font-weight: bold; color: #000000; }
+      .font-bold { font-weight: bold; color: #0F5233; }
       .text-left { text-align: left; }
       .text-right { text-align: right; }
       .text-center { text-align: center; }
@@ -56,20 +57,20 @@ const getExcelHeader = (titleText, monthTitle, totalColumns, themeColor) => {
     const webLogo = LOGO_BASE64;
     return `
       <tr style="height: 65px;">
-        <td colspan="2" bgcolor="#0B4D2D" class="title-row" style="background-color: #0B4D2D; padding: 2px; text-align: center; vertical-align: middle; border: 1px solid #000000; height: 65px; width: 140px;">
-          ${webLogo ? `<img src="${webLogo}" style="max-height: 60px; max-width: 100%; width: 100%; height: 60px; object-fit: contain; display: block; margin: 0 auto;" alt="JOHN BUILDWELL" />` : `<div style="color: #FFFFFF; font-size: 11pt; font-weight: bold; text-align: center;">John Buildwell</div>`}
+        <td colspan="2" bgcolor="#FFFFFF" class="logo-cell" style="background-color: #FFFFFF; padding: 4px 8px; text-align: center; vertical-align: middle; border: 1px solid #CBD5E1; height: 65px; width: 150px;">
+          ${webLogo ? `<img src="${webLogo}" style="max-height: 55px; max-width: 100%; width: auto; height: 55px; object-fit: contain; display: block; margin: 0 auto;" alt="JOHN BUILDWELL" />` : `<div style="color: #0F5233; font-size: 11pt; font-weight: bold; text-align: center;">JOHN BUILDWELL</div>`}
         </td>
-        <td colspan="${safeCols - 2}" class="title-row text-center" style="background-color: #FCE4D6; color: #000000; border: 1px solid #000000; border-left: none; vertical-align:middle; text-align:center; font-size: 14pt; font-weight: bold; height: 60px;">
+        <td colspan="${safeCols - 2}" class="title-row text-center" style="background-color: ${themeColor || '#0F5233'}; color: #FFFFFF; border: 1px solid #0D4329; border-left: none; vertical-align:middle; text-align:center; font-size: 14pt; font-weight: bold; height: 65px; letter-spacing: 0.5px;">
           ${titleText}
         </td>
       </tr>
       ${monthTitle ? `
       <tr>
-        <td colspan="${safeCols}" class="month-header" style="height: 22px; vertical-align: middle; font-size: 10pt; font-weight: bold; border: 1px solid #000000; text-align: center; text-transform: uppercase;">
+        <td colspan="${safeCols}" class="month-header" style="height: 26px; vertical-align: middle; font-size: 10pt; font-weight: bold; background-color: #E6F4EA; color: #0F5233; border: 1px solid #C3E6CB; text-align: center; text-transform: uppercase; letter-spacing: 0.5px;">
           ${monthTitle}
         </td>
       </tr>` : ''}
-      <tr><td colspan="${safeCols}" style="border:none; height: 15px;"></td></tr>
+      <tr><td colspan="${safeCols}" style="border:none; height: 12px; background-color: transparent;"></td></tr>
     `;
   };
 
@@ -442,15 +443,16 @@ const ExportReports = () => {
             const allClass = cellClasses + ' ' + rowClasses;
 
             if (allClass.includes('title-row') || rowNum === 0) {
-              cell.s.fill = { fgColor: { rgb: titleBg } };
+              cell.s.fill = { fgColor: { rgb: '0F5233' } };
               cell.s.font.bold = true;
               cell.s.font.sz = 14;
+              cell.s.font.color = { rgb: 'FFFFFF' };
               if (coord.c > 1) cell.s.alignment.horizontal = 'left';
               if (rowNum === 0 && coord.c < 2) {
-                 cell.s.fill = { fgColor: { rgb: '0E623A' } };
-                 cell.s.font.color = { rgb: 'FFFFFF' };
+                 cell.s.fill = { fgColor: { rgb: 'FFFFFF' } };
+                 cell.s.font.color = { rgb: '0F5233' };
                  cell.s.font.bold = true;
-                 cell.s.font.sz = 18;
+                 cell.s.font.sz = 14;
                  if (coord.c === 0 && (!cell.v || cell.v.trim() === '')) {
                    cell.v = "JOHN BUILDWELL";
                    cell.t = "s";
@@ -458,36 +460,38 @@ const ExportReports = () => {
               }
             }
             else if (allClass.includes('month-header')) {
-              cell.s.fill = { fgColor: { rgb: monthBg } };
+              cell.s.fill = { fgColor: { rgb: 'E6F4EA' } };
               cell.s.font.bold = true;
+              cell.s.font.color = { rgb: '0F5233' };
             }
             else if (allClass.includes('table-headers')) {
-              cell.s.fill = { fgColor: { rgb: headerBg } };
+              cell.s.fill = { fgColor: { rgb: '0F5233' } };
               cell.s.font.bold = true;
+              cell.s.font.color = { rgb: 'FFFFFF' };
             }
             else if (allClass.includes('exec-banner') || allClass.includes('group-banner')) {
-              cell.s.fill = { fgColor: { rgb: execBg } };
+              cell.s.fill = { fgColor: { rgb: 'E6F4EA' } };
               cell.s.font.bold = true;
               cell.s.alignment.horizontal = 'left';
-              if (allClass.includes('text-red')) cell.s.font.color = { rgb: 'FF0000' };
+              cell.s.font.color = { rgb: '0F5233' };
+              if (allClass.includes('text-red')) cell.s.font.color = { rgb: 'DC2626' };
             }
-            else if (allClass.includes('bg-header-blue')) {
-              cell.s.fill = { fgColor: { rgb: '9BC2E6' } };
+            else if (allClass.includes('bg-header-blue') || allClass.includes('bg-header-green')) {
+              cell.s.fill = { fgColor: { rgb: '0F5233' } };
               cell.s.font.bold = true;
-            }
-            else if (allClass.includes('bg-header-green')) {
-              cell.s.fill = { fgColor: { rgb: 'C6E0B4' } };
-              cell.s.font.bold = true;
+              cell.s.font.color = { rgb: 'FFFFFF' };
             }
             else if (allClass.includes('bg-black-row')) {
-              cell.s.fill = { fgColor: { rgb: 'D9D9D9' } };
+              cell.s.fill = { fgColor: { rgb: 'F8FAFC' } };
+              cell.s.font.color = { rgb: '64748B' };
             }
             else if (allClass.includes('bg-orange-pct')) {
-               cell.s.fill = { fgColor: { rgb: 'F4B084' } };
+               cell.s.fill = { fgColor: { rgb: 'D1E7DD' } };
                cell.s.font.bold = true;
+               cell.s.font.color = { rgb: '0F5233' };
             }
             else if (allClass.includes('bg-light-green')) {
-               cell.s.fill = { fgColor: { rgb: 'E2EFDA' } };
+               cell.s.fill = { fgColor: { rgb: 'F8FAF8' } };
             }
             
             if (allClass.includes('text-left')) cell.s.alignment.horizontal = 'left';
@@ -1428,55 +1432,55 @@ const ExportReports = () => {
         <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
         <head>
           <meta charset="utf-8">
-          ${getExcelStyles("#9BC2E6", "#e0e7ff", "#9BC2E6", "#c7d2fe")}
+          ${getExcelStyles("#0F5233", "#E6F4EA", "#0F5233", "#E6F4EA")}
         </head>
         <body>
           <table>
             <!-- PHASE 1: Turnover Plan Table -->
-              <tr style="height: 60px;">
-                <td colspan="2" bgcolor="#0B4D2D" class="bg-header-green" style="background-color: #0B4D2D; color: #FFFFFF; font-family: 'Segoe UI', Arial, sans-serif; font-size: 14pt; font-weight: bold; text-align: center; vertical-align: middle; border: 1px solid #000000; height: 60px;">
-                  JOHN BUILDWELL
+              <tr style="height: 65px;">
+                <td colspan="2" bgcolor="#FFFFFF" class="logo-cell" style="background-color: #FFFFFF; padding: 4px 8px; text-align: center; vertical-align: middle; border: 1px solid #CBD5E1; height: 65px; width: 150px;">
+                  <img src="${LOGO_BASE64}" style="max-height: 55px; max-width: 100%; width: auto; height: 55px; object-fit: contain; display: block; margin: 0 auto;" alt="JOHN BUILDWELL" />
                 </td>
-                <td colspan="8" bgcolor="#9BC2E6" class="bg-header-blue font-bold" style="background-color: #9BC2E6; font-size: 14pt; font-weight: bold; height: 60px; text-align: center; vertical-align: middle; border: 1px solid #000000;">
+                <td colspan="8" bgcolor="#0F5233" class="bg-header-blue font-bold" style="background-color: #0F5233; color: #FFFFFF; font-family: 'Segoe UI', Arial, sans-serif; font-size: 14pt; font-weight: bold; text-align: center; vertical-align: middle; border: 1px solid #0D4329; height: 65px; letter-spacing: 0.5px;">
                   JB ${projCode.toUpperCase()} SALES PARAMETER REPORT
                 </td>
               </tr>
               <tr>
-                <th bgcolor="#C6E0B4" class="bg-header-green font-bold text-center" style="background-color: #C6E0B4; width: 50px; border: 1px solid #000000;">S.No</th>
-                <th colspan="2" bgcolor="#C6E0B4" class="bg-header-green font-bold text-center" style="background-color: #C6E0B4; width: 250px; border: 1px solid #000000;">TOTAL SALES PROJECTION ${dateForMonth.getFullYear() - 1} - ${dateForMonth.getFullYear().toString().substring(2)}</th>
-                <th bgcolor="#C6E0B4" class="bg-header-green font-bold text-center" style="background-color: #C6E0B4; width: 120px; border: 1px solid #000000;">TOTAL</th>
-                <th bgcolor="#C6E0B4" class="bg-header-green font-bold text-center" style="background-color: #C6E0B4; width: 80px; border: 1px solid #000000;">UNIT</th>
-                <th bgcolor="#C6E0B4" class="bg-header-green font-bold text-center" style="background-color: #C6E0B4; width: 100px; border: 1px solid #000000;">ACHIEVED</th>
-                <th bgcolor="#C6E0B4" class="bg-header-green font-bold text-center" style="background-color: #C6E0B4; width: 140px; border: 1px solid #000000;">LAST MONTH ACHIEVED</th>
-                <th colspan="3" rowspan="2" bgcolor="#C6E0B4" class="bg-header-green font-bold" style="background-color: #C6E0B4; font-size: 12pt; vertical-align: middle; text-align: center; text-transform: uppercase; border: 1px solid #000000;">
+                <th bgcolor="#0F5233" class="bg-header-green font-bold text-center" style="background-color: #0F5233; color: #FFFFFF; width: 50px; border: 1px solid #0D4329;">S.No</th>
+                <th colspan="2" bgcolor="#0F5233" class="bg-header-green font-bold text-center" style="background-color: #0F5233; color: #FFFFFF; width: 250px; border: 1px solid #0D4329;">TOTAL SALES PROJECTION ${dateForMonth.getFullYear() - 1} - ${dateForMonth.getFullYear().toString().substring(2)}</th>
+                <th bgcolor="#0F5233" class="bg-header-green font-bold text-center" style="background-color: #0F5233; color: #FFFFFF; width: 120px; border: 1px solid #0D4329;">TOTAL</th>
+                <th bgcolor="#0F5233" class="bg-header-green font-bold text-center" style="background-color: #0F5233; color: #FFFFFF; width: 80px; border: 1px solid #0D4329;">UNIT</th>
+                <th bgcolor="#0F5233" class="bg-header-green font-bold text-center" style="background-color: #0F5233; color: #FFFFFF; width: 100px; border: 1px solid #0D4329;">ACHIEVED</th>
+                <th bgcolor="#0F5233" class="bg-header-green font-bold text-center" style="background-color: #0F5233; color: #FFFFFF; width: 140px; border: 1px solid #0D4329;">LAST MONTH ACHIEVED</th>
+                <th colspan="3" rowspan="2" bgcolor="#0F5233" class="bg-header-green font-bold" style="background-color: #0F5233; color: #FFFFFF; font-size: 12pt; vertical-align: middle; text-align: center; text-transform: uppercase; border: 1px solid #0D4329;">
                   ${shortMonthHeader.toUpperCase()}
                 </th>
               </tr>
               <tr>
-                <td class="text-center" style="border: 1px solid #000000;">1</td>
-                <td colspan="2" class="text-left font-bold" style="border: 1px solid #000000;">Overall Sales Target</td>
-                <td class="text-center font-bold" style="border: 1px solid #000000;">${sTarget}</td>
-                <td class="text-center" style="border: 1px solid #000000;">Crores</td>
-                <td class="text-center" style="border: 1px solid #000000;">${currentAchieved.salesValue.toFixed(2)}</td>
-                <td class="text-center" style="border: 1px solid #000000;">${lastMonthAchieved.salesValue.toFixed(2)}</td>
+                <td class="text-center" style="border: 1px solid #CBD5E1; background-color: #FFFFFF;">1</td>
+                <td colspan="2" class="text-left font-bold" style="border: 1px solid #CBD5E1; background-color: #FFFFFF; color: #1E293B;">Overall Sales Target</td>
+                <td class="text-center font-bold" style="border: 1px solid #CBD5E1; background-color: #FFFFFF; color: #0F5233;">${sTarget}</td>
+                <td class="text-center" style="border: 1px solid #CBD5E1; background-color: #FFFFFF;">Crores</td>
+                <td class="text-center" style="border: 1px solid #CBD5E1; background-color: #FFFFFF; color: #1E293B;">${currentAchieved.salesValue.toFixed(2)}</td>
+                <td class="text-center" style="border: 1px solid #CBD5E1; background-color: #FFFFFF; color: #1E293B;">${lastMonthAchieved.salesValue.toFixed(2)}</td>
               </tr>
               <tr>
-                <td class="text-center" style="border: 1px solid #000000;">2</td>
-                <td colspan="2" class="text-left font-bold" style="border: 1px solid #000000;">Total Units to be Sold</td>
-                <td class="text-center font-bold" style="border: 1px solid #000000;">${hTarget}</td>
-                <td class="text-center" style="border: 1px solid #000000;">Units</td>
-                <td class="text-center" style="border: 1px solid #000000;">${(currentAchieved.flatsCount || 0) + (currentAchieved.villasCount || 0)}</td>
-                <td class="text-center" style="border: 1px solid #000000;">${(lastMonthAchieved.flatsCount || 0) + (lastMonthAchieved.villasCount || 0)}</td>
+                <td class="text-center" style="border: 1px solid #CBD5E1; background-color: #FFFFFF;">2</td>
+                <td colspan="2" class="text-left font-bold" style="border: 1px solid #CBD5E1; background-color: #FFFFFF; color: #1E293B;">Total Units to be Sold</td>
+                <td class="text-center font-bold" style="border: 1px solid #CBD5E1; background-color: #FFFFFF; color: #0F5233;">${hTarget}</td>
+                <td class="text-center" style="border: 1px solid #CBD5E1; background-color: #FFFFFF;">Units</td>
+                <td class="text-center" style="border: 1px solid #CBD5E1; background-color: #FFFFFF; color: #1E293B;">${(currentAchieved.flatsCount || 0) + (currentAchieved.villasCount || 0)}</td>
+                <td class="text-center" style="border: 1px solid #CBD5E1; background-color: #FFFFFF; color: #1E293B;">${(lastMonthAchieved.flatsCount || 0) + (lastMonthAchieved.villasCount || 0)}</td>
               </tr>
               <tr>
-                <td class="text-center" style="border: 1px solid #000000;">3</td>
-                <td colspan="2" class="text-left font-bold" style="border: 1px solid #000000;">Total Plots to be Sold</td>
-                <td class="text-center font-bold" style="border: 1px solid #000000;">${pTarget}</td>
-                <td class="text-center" style="border: 1px solid #000000;">Plots</td>
-                <td class="text-center" style="border: 1px solid #000000;">${currentAchieved.plotsCount || 0}</td>
-                <td class="text-center" style="border: 1px solid #000000;">${lastMonthAchieved.plotsCount || 0}</td>
-                <td colspan="1" bgcolor="#C6E0B4" class="font-bold bg-header-green text-center" style="background-color: #C6E0B4; font-size: 10pt; border: 1px solid #000000;">DATE:</td>
-                <td colspan="2" bgcolor="#C6E0B4" class="bg-header-green text-center" style="background-color: #C6E0B4; font-size: 10pt; border: 1px solid #000000;">${todayFormatted}</td>
+                <td class="text-center" style="border: 1px solid #CBD5E1; background-color: #FFFFFF;">3</td>
+                <td colspan="2" class="text-left font-bold" style="border: 1px solid #CBD5E1; background-color: #FFFFFF; color: #1E293B;">Total Plots to be Sold</td>
+                <td class="text-center font-bold" style="border: 1px solid #CBD5E1; background-color: #FFFFFF; color: #0F5233;">${pTarget}</td>
+                <td class="text-center" style="border: 1px solid #CBD5E1; background-color: #FFFFFF;">Plots</td>
+                <td class="text-center" style="border: 1px solid #CBD5E1; background-color: #FFFFFF; color: #1E293B;">${currentAchieved.plotsCount || 0}</td>
+                <td class="text-center" style="border: 1px solid #CBD5E1; background-color: #FFFFFF; color: #1E293B;">${lastMonthAchieved.plotsCount || 0}</td>
+                <td colspan="1" bgcolor="#E6F4EA" class="font-bold text-center" style="background-color: #E6F4EA; color: #0F5233; font-size: 10pt; font-weight: bold; border: 1px solid #CBD5E1;">DATE:</td>
+                <td colspan="2" bgcolor="#E6F4EA" class="text-center" style="background-color: #E6F4EA; color: #0F5233; font-size: 10pt; font-weight: bold; border: 1px solid #CBD5E1;">${todayFormatted}</td>
               </tr>
 
               <!-- Spacing row -->
@@ -1484,16 +1488,16 @@ const ExportReports = () => {
 
               <!-- PHASE 2: Project wise Report Headers -->
               <tr>
-                <td bgcolor="#9BC2E6" class="bg-header-blue font-bold text-center" style="background-color: #9BC2E6;">S.NO.</td>
-                <td bgcolor="#9BC2E6" class="bg-header-blue font-bold text-center" style="background-color: #9BC2E6;">PROJECT</td>
-                <td bgcolor="#9BC2E6" class="bg-header-blue font-bold text-center" style="background-color: #9BC2E6;">DESCRIPTION</td>
-                <td bgcolor="#9BC2E6" class="bg-header-blue font-bold text-center" style="background-color: #9BC2E6;">TARGET</td>
-                <td bgcolor="#9BC2E6" class="bg-header-blue font-bold text-center" style="background-color: #9BC2E6;">ACTUAL</td>
-                <td bgcolor="#9BC2E6" class="bg-header-blue font-bold text-center" style="background-color: #9BC2E6;">% ACHIEVED</td>
-                <td bgcolor="#9BC2E6" class="bg-header-blue font-bold text-center" style="background-color: #9BC2E6;">1st Week Actual</td>
-                <td bgcolor="#9BC2E6" class="bg-header-blue font-bold text-center" style="background-color: #9BC2E6;">2nd Week Actual</td>
-                <td bgcolor="#9BC2E6" class="bg-header-blue font-bold text-center" style="background-color: #9BC2E6;">3rd Week Actual</td>
-                <td bgcolor="#9BC2E6" class="bg-header-blue font-bold text-center" style="background-color: #9BC2E6;">4th Week Actual</td>
+                <th bgcolor="#0F5233" class="bg-header-blue font-bold text-center" style="background-color: #0F5233; color: #FFFFFF; border: 1px solid #0D4329;">S.NO.</th>
+                <th bgcolor="#0F5233" class="bg-header-blue font-bold text-center" style="background-color: #0F5233; color: #FFFFFF; border: 1px solid #0D4329;">PROJECT</th>
+                <th bgcolor="#0F5233" class="bg-header-blue font-bold text-center" style="background-color: #0F5233; color: #FFFFFF; border: 1px solid #0D4329;">DESCRIPTION</th>
+                <th bgcolor="#0F5233" class="bg-header-blue font-bold text-center" style="background-color: #0F5233; color: #FFFFFF; border: 1px solid #0D4329;">TARGET</th>
+                <th bgcolor="#0F5233" class="bg-header-blue font-bold text-center" style="background-color: #0F5233; color: #FFFFFF; border: 1px solid #0D4329;">ACTUAL</th>
+                <th bgcolor="#0F5233" class="bg-header-blue font-bold text-center" style="background-color: #0F5233; color: #FFFFFF; border: 1px solid #0D4329;">% ACHIEVED</th>
+                <th bgcolor="#0F5233" class="bg-header-blue font-bold text-center" style="background-color: #0F5233; color: #FFFFFF; border: 1px solid #0D4329;">1st Week Actual</th>
+                <th bgcolor="#0F5233" class="bg-header-blue font-bold text-center" style="background-color: #0F5233; color: #FFFFFF; border: 1px solid #0D4329;">2nd Week Actual</th>
+                <th bgcolor="#0F5233" class="bg-header-blue font-bold text-center" style="background-color: #0F5233; color: #FFFFFF; border: 1px solid #0D4329;">3rd Week Actual</th>
+                <th bgcolor="#0F5233" class="bg-header-blue font-bold text-center" style="background-color: #0F5233; color: #FFFFFF; border: 1px solid #0D4329;">4th Week Actual</th>
               </tr>
       `;
 
@@ -1524,16 +1528,16 @@ const ExportReports = () => {
 
           html += `
             <tr>
-              <td bgcolor="#E2EFDA" class="bg-light-green text-center" style="background-color: #E2EFDA; vertical-align: middle;">${rIdx + 1}</td>
-              ${rIdx === 0 ? `<td rowspan="5" bgcolor="#E2EFDA" class="bg-light-green font-bold text-center" style="background-color: #E2EFDA; vertical-align: middle;">${proj.code || proj.name}</td>` : ''}
-              <td bgcolor="#E2EFDA" class="text-left bg-light-green" style="background-color: #E2EFDA;">${row.label}</td>
-              <td bgcolor="#E2EFDA" class="text-center bg-light-green" style="background-color: #E2EFDA;">${row.target}${row.isFloat ? ' Cr' : ''}</td>
-              <td bgcolor="#E2EFDA" class="text-center bg-light-green" style="background-color: #E2EFDA;">${row.isFloat ? row.actual.toFixed(2) : row.actual}</td>
-              <td class="font-bold text-right" style="background-color: #FFFFFF;">${pctText}</td>
-              <td bgcolor="#E2EFDA" class="text-center bg-light-green" style="background-color: #E2EFDA;">${row.isFloat ? row.w1.toFixed(2) : row.w1}</td>
-              <td bgcolor="#E2EFDA" class="text-center bg-light-green" style="background-color: #E2EFDA;">${row.isFloat ? row.w2.toFixed(2) : row.w2}</td>
-              <td bgcolor="#E2EFDA" class="text-center bg-light-green" style="background-color: #E2EFDA;">${row.isFloat ? row.w3.toFixed(2) : row.w3}</td>
-              <td bgcolor="#E2EFDA" class="text-center bg-light-green" style="background-color: #E2EFDA;">${row.isFloat ? row.w4.toFixed(2) : row.w4}</td>
+              <td bgcolor="#F8FAF8" class="bg-light-green text-center" style="background-color: #F8FAF8; color: #1E293B; vertical-align: middle; border: 1px solid #CBD5E1;">${rIdx + 1}</td>
+              ${rIdx === 0 ? `<td rowspan="5" bgcolor="#E6F4EA" class="bg-light-green font-bold text-center" style="background-color: #E6F4EA; color: #0F5233; font-weight: bold; vertical-align: middle; border: 1px solid #CBD5E1;">${proj.code || proj.name}</td>` : ''}
+              <td bgcolor="#F8FAF8" class="text-left bg-light-green" style="background-color: #F8FAF8; color: #1E293B; border: 1px solid #CBD5E1;">${row.label}</td>
+              <td bgcolor="#F8FAF8" class="text-center bg-light-green" style="background-color: #F8FAF8; color: #1E293B; border: 1px solid #CBD5E1;">${row.target}${row.isFloat ? ' Cr' : ''}</td>
+              <td bgcolor="#F8FAF8" class="text-center bg-light-green" style="background-color: #F8FAF8; color: #1E293B; border: 1px solid #CBD5E1;">${row.isFloat ? row.actual.toFixed(2) : row.actual}</td>
+              <td class="font-bold text-center" style="background-color: #FFFFFF; color: #0F5233; font-weight: bold; border: 1px solid #CBD5E1;">${pctText}</td>
+              <td bgcolor="#F8FAF8" class="text-center bg-light-green" style="background-color: #F8FAF8; color: #1E293B; border: 1px solid #CBD5E1;">${row.isFloat ? row.w1.toFixed(2) : row.w1}</td>
+              <td bgcolor="#F8FAF8" class="text-center bg-light-green" style="background-color: #F8FAF8; color: #1E293B; border: 1px solid #CBD5E1;">${row.isFloat ? row.w2.toFixed(2) : row.w2}</td>
+              <td bgcolor="#F8FAF8" class="text-center bg-light-green" style="background-color: #F8FAF8; color: #1E293B; border: 1px solid #CBD5E1;">${row.isFloat ? row.w3.toFixed(2) : row.w3}</td>
+              <td bgcolor="#F8FAF8" class="text-center bg-light-green" style="background-color: #F8FAF8; color: #1E293B; border: 1px solid #CBD5E1;">${row.isFloat ? row.w4.toFixed(2) : row.w4}</td>
             </tr>
           `;
         });
@@ -1542,16 +1546,16 @@ const ExportReports = () => {
 
         html += `
             <tr class="bg-black-row">
-              <td bgcolor="#D9D9D9" class="bg-black-row" style="background-color: #D9D9D9;">&nbsp;</td>
-              <td bgcolor="#D9D9D9" class="bg-black-row" style="background-color: #D9D9D9;">&nbsp;</td>
-              <td bgcolor="#D9D9D9" class="bg-black-row" style="background-color: #D9D9D9;">&nbsp;</td>
-              <td bgcolor="#D9D9D9" class="bg-black-row" style="background-color: #D9D9D9;">&nbsp;</td>
-              <td bgcolor="#D9D9D9" class="bg-black-row" style="background-color: #D9D9D9;">&nbsp;</td>
-              <td bgcolor="#F4B084" class="bg-orange-pct" style="background-color: #F4B084; font-size: 10pt; font-weight: bold; border: 1px solid #000000; text-align: center; vertical-align: middle;">${projPerformanceText}</td>
-              <td bgcolor="#D9D9D9" class="bg-black-row" style="background-color: #D9D9D9;">&nbsp;</td>
-              <td bgcolor="#D9D9D9" class="bg-black-row" style="background-color: #D9D9D9;">&nbsp;</td>
-              <td bgcolor="#D9D9D9" class="bg-black-row" style="background-color: #D9D9D9;">&nbsp;</td>
-              <td bgcolor="#D9D9D9" class="bg-black-row" style="background-color: #D9D9D9;">&nbsp;</td>
+              <td bgcolor="#F8FAFC" class="bg-black-row" style="background-color: #F8FAFC; border: 1px solid #E2E8F0;">&nbsp;</td>
+              <td bgcolor="#F8FAFC" class="bg-black-row" style="background-color: #F8FAFC; border: 1px solid #E2E8F0;">&nbsp;</td>
+              <td bgcolor="#F8FAFC" class="bg-black-row" style="background-color: #F8FAFC; border: 1px solid #E2E8F0;">&nbsp;</td>
+              <td bgcolor="#F8FAFC" class="bg-black-row" style="background-color: #F8FAFC; border: 1px solid #E2E8F0;">&nbsp;</td>
+              <td bgcolor="#F8FAFC" class="bg-black-row" style="background-color: #F8FAFC; border: 1px solid #E2E8F0;">&nbsp;</td>
+              <td bgcolor="#D1E7DD" class="bg-orange-pct" style="background-color: #D1E7DD; color: #0F5233; font-size: 10pt; font-weight: bold; border: 1px solid #A3CFBB; text-align: center; vertical-align: middle;">${projPerformanceText}</td>
+              <td bgcolor="#F8FAFC" class="bg-black-row" style="background-color: #F8FAFC; border: 1px solid #E2E8F0;">&nbsp;</td>
+              <td bgcolor="#F8FAFC" class="bg-black-row" style="background-color: #F8FAFC; border: 1px solid #E2E8F0;">&nbsp;</td>
+              <td bgcolor="#F8FAFC" class="bg-black-row" style="background-color: #F8FAFC; border: 1px solid #E2E8F0;">&nbsp;</td>
+              <td bgcolor="#F8FAFC" class="bg-black-row" style="background-color: #F8FAFC; border: 1px solid #E2E8F0;">&nbsp;</td>
             </tr>
         `;
       });
@@ -1561,27 +1565,27 @@ const ExportReports = () => {
             <tr><td colspan="10" style="border: none; height: 15px;"></td></tr>
 
             <!-- PHASE 3: Marketing Plan Table -->
-            <tr style="height: 60px;">
-              <td colspan="2" bgcolor="#0B4D2D" class="bg-header-green" style="background-color: #0B4D2D; color: #FFFFFF; font-family: 'Segoe UI', Arial, sans-serif; font-size: 14pt; font-weight: bold; text-align: center; vertical-align: middle; border: 1px solid #000000; height: 60px;">
-                JOHN BUILDWELL
+            <tr style="height: 65px;">
+              <td colspan="2" bgcolor="#FFFFFF" class="logo-cell" style="background-color: #FFFFFF; padding: 4px 8px; text-align: center; vertical-align: middle; border: 1px solid #CBD5E1; height: 65px; width: 150px;">
+                <img src="${LOGO_BASE64}" style="max-height: 55px; max-width: 100%; width: auto; height: 55px; object-fit: contain; display: block; margin: 0 auto;" alt="JOHN BUILDWELL" />
               </td>
-              <td colspan="8" bgcolor="#9BC2E6" class="bg-header-blue font-bold" style="background-color: #9BC2E6; font-size: 14pt; font-weight: bold; height: 60px; text-align: center; vertical-align: middle; border: 1px solid #000000;">
+              <td colspan="8" bgcolor="#0F5233" class="bg-header-blue font-bold" style="background-color: #0F5233; color: #FFFFFF; font-family: 'Segoe UI', Arial, sans-serif; font-size: 14pt; font-weight: bold; text-align: center; vertical-align: middle; border: 1px solid #0D4329; height: 65px; letter-spacing: 0.5px;">
                 JB MARKETING PARAMETER REPORT
               </td>
             </tr>
-            <tr style="height: 22px;">
-              <td colspan="10" bgcolor="#C6E0B4" class="bg-header-green font-bold" style="background-color: #C6E0B4; font-size: 10pt; height: 22px; text-align: center; vertical-align: middle; text-transform: uppercase;">MONTH OF ${monthNames[dateForMonth.getMonth()].toUpperCase()} ${dateForMonth.getFullYear()}</td>
+            <tr style="height: 26px;">
+              <td colspan="10" bgcolor="#E6F4EA" class="bg-header-green font-bold" style="background-color: #E6F4EA; color: #0F5233; font-size: 10pt; height: 26px; text-align: center; vertical-align: middle; font-weight: bold; text-transform: uppercase; border: 1px solid #C3E6CB;">MONTH OF ${monthNames[dateForMonth.getMonth()].toUpperCase()} ${dateForMonth.getFullYear()}</td>
             </tr>
             <tr>
-              <td bgcolor="#9BC2E6" class="bg-header-blue font-bold text-center" style="background-color: #9BC2E6;">S.NO.</td>
-              <td colspan="2" bgcolor="#9BC2E6" class="bg-header-blue font-bold text-center" style="background-color: #9BC2E6;">DESCRIPTION</td>
-              <td bgcolor="#9BC2E6" class="bg-header-blue font-bold text-center" style="background-color: #9BC2E6;">BUDGET/ TARGET</td>
-              <td bgcolor="#9BC2E6" class="bg-header-blue font-bold text-center" style="background-color: #9BC2E6;">ACTUAL</td>
-              <td bgcolor="#9BC2E6" class="bg-header-blue font-bold text-center" style="background-color: #9BC2E6;">% ACHIEVED</td>
-              <td bgcolor="#9BC2E6" class="bg-header-blue font-bold text-center" style="background-color: #9BC2E6;">1st Week Actual</td>
-              <td bgcolor="#9BC2E6" class="bg-header-blue font-bold text-center" style="background-color: #9BC2E6;">2nd Week Actual</td>
-              <td bgcolor="#9BC2E6" class="bg-header-blue font-bold text-center" style="background-color: #9BC2E6;">3rd Week Actual</td>
-              <td bgcolor="#9BC2E6" class="bg-header-blue font-bold text-center" style="background-color: #9BC2E6;">4th Week Actual</td>
+              <th bgcolor="#0F5233" class="bg-header-blue font-bold text-center" style="background-color: #0F5233; color: #FFFFFF; border: 1px solid #0D4329;">S.NO.</th>
+              <th colspan="2" bgcolor="#0F5233" class="bg-header-blue font-bold text-center" style="background-color: #0F5233; color: #FFFFFF; border: 1px solid #0D4329;">DESCRIPTION</th>
+              <th bgcolor="#0F5233" class="bg-header-blue font-bold text-center" style="background-color: #0F5233; color: #FFFFFF; border: 1px solid #0D4329;">BUDGET/ TARGET</th>
+              <th bgcolor="#0F5233" class="bg-header-blue font-bold text-center" style="background-color: #0F5233; color: #FFFFFF; border: 1px solid #0D4329;">ACTUAL</th>
+              <th bgcolor="#0F5233" class="bg-header-blue font-bold text-center" style="background-color: #0F5233; color: #FFFFFF; border: 1px solid #0D4329;">% ACHIEVED</th>
+              <th bgcolor="#0F5233" class="bg-header-blue font-bold text-center" style="background-color: #0F5233; color: #FFFFFF; border: 1px solid #0D4329;">1st Week Actual</th>
+              <th bgcolor="#0F5233" class="bg-header-blue font-bold text-center" style="background-color: #0F5233; color: #FFFFFF; border: 1px solid #0D4329;">2nd Week Actual</th>
+              <th bgcolor="#0F5233" class="bg-header-blue font-bold text-center" style="background-color: #0F5233; color: #FFFFFF; border: 1px solid #0D4329;">3rd Week Actual</th>
+              <th bgcolor="#0F5233" class="bg-header-blue font-bold text-center" style="background-color: #0F5233; color: #FFFFFF; border: 1px solid #0D4329;">4th Week Actual</th>
             </tr>
       `;
 
@@ -1596,30 +1600,30 @@ const ExportReports = () => {
 
         html += `
           <tr>
-            <td class="text-center" style="border: 1px solid #000000;">${row.sNo}</td>
-            <td colspan="2" class="text-left font-bold" style="border: 1px solid #000000;">${row.name}</td>
-            <td class="text-right" style="padding: 0 4px; border: 1px solid #000000;">${formatVal(row.target, row.isFloat)}</td>
-            <td class="text-right" style="padding: 0 4px; border: 1px solid #000000;">${formatVal(row.actual, row.isFloat)}</td>
-            <td bgcolor="#E2EFDA" class="font-bold text-right bg-light-green" style="background-color: #E2EFDA; border: 1px solid #000000;">${pctText}</td>
-            <td class="text-right" style="padding: 0 4px; border: 1px solid #000000;">${formatVal(row.w1, row.isFloat)}</td>
-            <td class="text-right" style="padding: 0 4px; border: 1px solid #000000;">${formatVal(row.w2, row.isFloat)}</td>
-            <td class="text-right" style="padding: 0 4px; border: 1px solid #000000;">${formatVal(row.w3, row.isFloat)}</td>
-            <td class="text-right" style="padding: 0 4px; border: 1px solid #000000;">${formatVal(row.w4, row.isFloat)}</td>
+            <td class="text-center" style="border: 1px solid #CBD5E1; background-color: #FFFFFF;">${row.sNo}</td>
+            <td colspan="2" class="text-left font-bold" style="border: 1px solid #CBD5E1; background-color: #FFFFFF; color: #1E293B;">${row.name}</td>
+            <td class="text-right" style="padding: 0 4px; border: 1px solid #CBD5E1; background-color: #FFFFFF;">${formatVal(row.target, row.isFloat)}</td>
+            <td class="text-right" style="padding: 0 4px; border: 1px solid #CBD5E1; background-color: #FFFFFF;">${formatVal(row.actual, row.isFloat)}</td>
+            <td bgcolor="#E6F4EA" class="font-bold text-right bg-light-green" style="background-color: #E6F4EA; color: #0F5233; font-weight: bold; border: 1px solid #CBD5E1;">${pctText}</td>
+            <td class="text-right" style="padding: 0 4px; border: 1px solid #CBD5E1; background-color: #FFFFFF;">${formatVal(row.w1, row.isFloat)}</td>
+            <td class="text-right" style="padding: 0 4px; border: 1px solid #CBD5E1; background-color: #FFFFFF;">${formatVal(row.w2, row.isFloat)}</td>
+            <td class="text-right" style="padding: 0 4px; border: 1px solid #CBD5E1; background-color: #FFFFFF;">${formatVal(row.w3, row.isFloat)}</td>
+            <td class="text-right" style="padding: 0 4px; border: 1px solid #CBD5E1; background-color: #FFFFFF;">${formatVal(row.w4, row.isFloat)}</td>
           </tr>
         `;
       });
 
       html += `
             <tr class="bg-black-row">
-              <td bgcolor="#D9D9D9" class="bg-black-row" style="background-color: #D9D9D9; border: 1px solid #000000;">&nbsp;</td>
-              <td colspan="2" bgcolor="#D9D9D9" class="bg-black-row" style="background-color: #D9D9D9; border: 1px solid #000000;">&nbsp;</td>
-              <td bgcolor="#D9D9D9" class="bg-black-row" style="background-color: #D9D9D9; border: 1px solid #000000;">&nbsp;</td>
-              <td bgcolor="#D9D9D9" class="bg-black-row" style="background-color: #D9D9D9; border: 1px solid #000000;">&nbsp;</td>
-              <td bgcolor="#F4B084" class="bg-orange-pct" style="background-color: #F4B084; font-size: 10pt; font-weight: bold; border: 1px solid #000000; text-align: center; vertical-align: middle;">${marketingPerformanceText}</td>
-              <td bgcolor="#D9D9D9" class="bg-black-row" style="background-color: #D9D9D9; border: 1px solid #000000;">&nbsp;</td>
-              <td bgcolor="#D9D9D9" class="bg-black-row" style="background-color: #D9D9D9; border: 1px solid #000000;">&nbsp;</td>
-              <td bgcolor="#D9D9D9" class="bg-black-row" style="background-color: #D9D9D9; border: 1px solid #000000;">&nbsp;</td>
-              <td bgcolor="#D9D9D9" class="bg-black-row" style="background-color: #D9D9D9; border: 1px solid #000000;">&nbsp;</td>
+              <td bgcolor="#F8FAFC" class="bg-black-row" style="background-color: #F8FAFC; border: 1px solid #E2E8F0;">&nbsp;</td>
+              <td colspan="2" bgcolor="#F8FAFC" class="bg-black-row" style="background-color: #F8FAFC; border: 1px solid #E2E8F0;">&nbsp;</td>
+              <td bgcolor="#F8FAFC" class="bg-black-row" style="background-color: #F8FAFC; border: 1px solid #E2E8F0;">&nbsp;</td>
+              <td bgcolor="#F8FAFC" class="bg-black-row" style="background-color: #F8FAFC; border: 1px solid #E2E8F0;">&nbsp;</td>
+              <td bgcolor="#D1E7DD" class="bg-orange-pct" style="background-color: #D1E7DD; color: #0F5233; font-size: 10pt; font-weight: bold; border: 1px solid #A3CFBB; text-align: center; vertical-align: middle;">${marketingPerformanceText}</td>
+              <td bgcolor="#F8FAFC" class="bg-black-row" style="background-color: #F8FAFC; border: 1px solid #E2E8F0;">&nbsp;</td>
+              <td bgcolor="#F8FAFC" class="bg-black-row" style="background-color: #F8FAFC; border: 1px solid #E2E8F0;">&nbsp;</td>
+              <td bgcolor="#F8FAFC" class="bg-black-row" style="background-color: #F8FAFC; border: 1px solid #E2E8F0;">&nbsp;</td>
+              <td bgcolor="#F8FAFC" class="bg-black-row" style="background-color: #F8FAFC; border: 1px solid #E2E8F0;">&nbsp;</td>
             </tr>
           </table>
         </body>
