@@ -178,7 +178,7 @@ const CRDFlow = () => {
       const quotRes = await fetch(`${API_URL}/quotations`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
-      const usersRes = await fetch(`${API_URL}/employees`, {
+      const usersRes = await fetch(`${API_URL}/employees?excludeSuperadmin=true`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       
@@ -189,7 +189,12 @@ const CRDFlow = () => {
         setBookings(leadData);
         if (usersRes.ok) {
           const usersData = await usersRes.json();
-          setUsers(usersData);
+          setUsers(usersData.filter(emp => 
+            emp.role !== 'Superadmin' && 
+            emp.role?.toLowerCase() !== 'super admin' && 
+            emp.name?.toLowerCase() !== 'super admin' && 
+            emp.name !== 'Super Admin'
+          ));
         }
       }
       if (flowsRes.ok) {

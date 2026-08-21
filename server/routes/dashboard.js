@@ -110,7 +110,7 @@ router.get('/stats', protect, async (req, res) => {
       Lead.find(query).populate('project', 'name code').populate('assignedTo', 'name role').lean(),
       (userId || sourceFilter) ? Lead.find(userId && sourceFilter ? { assignedTo: userId, leadSource: sourceFilter } : (userId ? { assignedTo: userId } : { leadSource: sourceFilter }), '_id').lean() : Promise.resolve([]),
       BudgetPlan.find(budgetQuery).lean(),
-      User.find({}, 'name role').lean(),
+      User.find({ role: { $nin: ['Superadmin', 'superadmin', 'Super Admin'] }, name: { $ne: 'Super Admin' } }, 'name role').lean(),
       Project.find({}, 'name code projectType').lean()
     ]);
 

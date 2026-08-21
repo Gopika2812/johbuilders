@@ -79,12 +79,17 @@ const ExtraWorksInner = () => {
 
   const fetchStaff = async () => {
     try {
-      const res = await fetch(`${API_URL}/employees`, {
+      const res = await fetch(`${API_URL}/employees?excludeSuperadmin=true`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (res.ok) {
         const data = await res.json();
-        setStaffList(data);
+        setStaffList(data.filter(emp => 
+          emp.role !== 'Superadmin' && 
+          emp.role?.toLowerCase() !== 'super admin' && 
+          emp.name?.toLowerCase() !== 'super admin' && 
+          emp.name !== 'Super Admin'
+        ));
       }
     } catch (err) {
       console.error('Failed to fetch staff list:', err);

@@ -33,12 +33,17 @@ const QuotationsDirectory = () => {
 
   const fetchUsers = async () => {
     try {
-      const res = await fetch(`${API_URL}/employees`, {
+      const res = await fetch(`${API_URL}/employees?excludeSuperadmin=true`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (res.ok) {
         const data = await res.json();
-        setUsers(data);
+        setUsers(data.filter(emp => 
+          emp.role !== 'Superadmin' && 
+          emp.role?.toLowerCase() !== 'super admin' && 
+          emp.name?.toLowerCase() !== 'super admin' && 
+          emp.name !== 'Super Admin'
+        ));
       }
     } catch (err) {
       console.error('Failed to fetch users', err);

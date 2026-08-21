@@ -8,7 +8,15 @@ const { protect, authorize } = require('../middleware/auth');
 // @desc    Get all employees
 router.get('/', protect, async (req, res) => {
   try {
-    const employees = await User.find({}).select('-password').sort({ createdAt: -1 });
+    const { excludeSuperadmin } = req.query;
+    let query = {};
+    if (excludeSuperadmin === 'true') {
+      query = {
+        role: { $nin: ['Superadmin', 'superadmin', 'Super Admin'] },
+        name: { $ne: 'Super Admin' }
+      };
+    }
+    const employees = await User.find(query).select('-password').sort({ createdAt: -1 });
     res.json(employees);
   } catch (err) {
     res.status(500).json({ message: err.message });

@@ -869,13 +869,19 @@ const LeadsDirectory = () => {
 
   const fetchEmployees = async () => {
     try {
-      const res = await fetch(`${API_URL}/employees`, {
+      const res = await fetch(`${API_URL}/employees?excludeSuperadmin=true`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (res.ok) {
         const data = await res.json();
-        // Only show approved employees
-        setEmployees(data.filter(emp => emp.isApproved));
+        // Only show approved employees and exclude Superadmin role users
+        setEmployees(data.filter(emp => 
+          emp.isApproved && 
+          emp.role !== 'Superadmin' && 
+          emp.role?.toLowerCase() !== 'super admin' && 
+          emp.name?.toLowerCase() !== 'super admin' && 
+          emp.name !== 'Super Admin'
+        ));
       }
     } catch (err) { }
   };
