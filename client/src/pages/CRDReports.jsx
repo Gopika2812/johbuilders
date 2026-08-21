@@ -1774,20 +1774,10 @@ const CRDReports = () => {
                   const dayOfMonth = pDate.getDate();
                   const amt = Number(p.amount) || 0;
                   
-                  let firstSunday = 1;
-                  while (new Date(targetYear, targetMonth, firstSunday).getDay() !== 0) {
-                    firstSunday++;
-                  }
-
-                  if (dayOfMonth <= firstSunday) {
-                    w1 += amt;
-                  } else {
-                    const daysAfter = dayOfMonth - firstSunday;
-                    const weekNum = 1 + Math.ceil(daysAfter / 7);
-                    if (weekNum === 2) w2 += amt;
-                    else if (weekNum === 3) w3 += amt;
-                    else w4 += amt;
-                  }
+                  if (dayOfMonth <= 7) w1 += amt;
+                  else if (dayOfMonth <= 14) w2 += amt;
+                  else if (dayOfMonth <= 21) w3 += amt;
+                  else w4 += amt;
                 }
               });
             }
@@ -2827,20 +2817,10 @@ const CRDReports = () => {
               const dayOfMonth = pDate.getDate();
               const amt = Number(p.amount) || 0;
 
-              let firstSunday = 1;
-              while (new Date(currentYear, currentMonth, firstSunday).getDay() !== 0) {
-                firstSunday++;
-              }
-
-              if (dayOfMonth <= firstSunday) {
-                w1 += amt;
-              } else {
-                const daysAfter = dayOfMonth - firstSunday;
-                const weekNum = 1 + Math.ceil(daysAfter / 7);
-                if (weekNum === 2) w2 += amt;
-                else if (weekNum === 3) w3 += amt;
-                else w4 += amt;
-              }
+              if (dayOfMonth <= 7) w1 += amt;
+              else if (dayOfMonth <= 14) w2 += amt;
+              else if (dayOfMonth <= 21) w3 += amt;
+              else w4 += amt;
             }
           });
         }
