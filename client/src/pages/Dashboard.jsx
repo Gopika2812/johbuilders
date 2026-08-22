@@ -1923,23 +1923,6 @@ const Dashboard = () => {
             </div>
           </div>
 
-          {/* Project Type Select */}
-          <div className="flex flex-col gap-1 w-full">
-            <label className="text-[11px] font-bold text-black-400 uppercase tracking-wider">Filtered Type</label>
-            <div className="flex items-center gap-2 bg-black-50 border-none px-3 py-1.5 rounded-xl">
-              <Layers className="w-4 h-4 text-black-455 shrink-0" />
-              <select
-                value={selectedProjectType}
-                onChange={(e) => setSelectedProjectType(e.target.value)}
-                className="w-full bg-transparent text-xs text-black-700 font-bold focus:outline-none focus:ring-0 border-0 p-0"
-              >
-                <option value="">All Types</option>
-                <option value="Plot">Plot</option>
-                <option value="Flat">Flat</option>
-                <option value="Villa">Villa</option>
-              </select>
-            </div>
-          </div>
 
           {/* Source Select */}
           <div className="flex flex-col gap-1 w-full">
