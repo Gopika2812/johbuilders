@@ -4,21 +4,9 @@ import { LOGO_BASE64 } from './logoBase64';
 
 let cachedLogoArrayBuffer = null;
 
-// Helper to fetch logo Uint8Array directly from public folder or base64 fallback
+// Helper to fetch logo ArrayBuffer directly from base64 fallback or public folder
 const getLogoArrayBuffer = async () => {
   if (cachedLogoArrayBuffer) return cachedLogoArrayBuffer;
-  
-  try {
-    const res = await fetch('/logo_white.jpg');
-    if (res.ok) {
-      const blob = await res.blob();
-      const arrayBuffer = await blob.arrayBuffer();
-      cachedLogoArrayBuffer = new Uint8Array(arrayBuffer);
-      return cachedLogoArrayBuffer;
-    }
-  } catch (e) {
-    console.warn('Could not fetch /logo_white.jpg, trying base64 fallback:', e);
-  }
 
   if (LOGO_BASE64) {
     try {
@@ -29,12 +17,24 @@ const getLogoArrayBuffer = async () => {
       for (let i = 0; i < len; i++) {
         bytes[i] = binaryString.charCodeAt(i);
       }
-      cachedLogoArrayBuffer = bytes;
+      cachedLogoArrayBuffer = bytes.buffer; // Pass ArrayBuffer directly to ExcelJS
       return cachedLogoArrayBuffer;
     } catch (e) {
-      console.error('Failed to convert base64 to Uint8Array:', e);
+      console.error('Failed to convert LOGO_BASE64 to ArrayBuffer:', e);
     }
   }
+  
+  try {
+    const res = await fetch('/logo_white.jpg');
+    if (res.ok) {
+      const blob = await res.blob();
+      cachedLogoArrayBuffer = await blob.arrayBuffer();
+      return cachedLogoArrayBuffer;
+    }
+  } catch (e) {
+    console.warn('Could not fetch /logo_white.jpg:', e);
+  }
+
   return null;
 };
 
@@ -104,6 +104,7 @@ export const exportHtmlSheetsToExcel = async (sheets, filename) => {
           const cellClasses = (cell.className || '') + ' ' + (tr.className || '');
           const styleAttr = cell.getAttribute('style') || '';
           const bgcolorAttr = cell.getAttribute('bgcolor') || '';
+          const isHeaderCell = cell.tagName === 'TH' || cellClasses.includes('table-headers') || cellClasses.includes('bg-header-blue') || cellClasses.includes('bg-header-green');
 
           // 1. Background color detection
           let bgHex = null;
@@ -154,18 +155,18 @@ export const exportHtmlSheetsToExcel = async (sheets, filename) => {
           if (isLogoCell) {
             bgHex = 'FFFFFF';
             fontColor = '0F5233';
-            ws.getRow(rIdx + 1).height = 45;
+            ws.getRow(rIdx + 1).height = 42;
 
             if (logoImageId) {
               excelCell.value = ''; // Clear text so image shows cleanly
               try {
                 ws.addImage(logoImageId, {
-                  tl: { col: cIdx + 0.1, row: rIdx + 0.1 },
-                  ext: { width: 130, height: 40 },
+                  tl: { col: cIdx + 0.05, row: rIdx + 0.05 },
+                  br: { col: cIdx + cSpan - 0.05, row: rIdx + rSpan - 0.05 },
                   editAs: 'oneCell'
                 });
               } catch (e) {
-                console.warn('Could not overlay image:', e);
+                console.warn('Could not overlay logo image:', e);
                 excelCell.value = 'JB  |  JOHN BUILDWELL';
               }
             } else {
@@ -203,7 +204,7 @@ export const exportHtmlSheetsToExcel = async (sheets, filename) => {
             fgColor: { argb: 'FF' + bgHex }
           };
 
-          // 6. Alignment
+          // 6. Alignment & Header Text Wrapping
           let hAlign = 'center';
           if (cellClasses.includes('text-left') || styleAttr.includes('text-align: left')) hAlign = 'left';
           if (cellClasses.includes('text-right') || styleAttr.includes('text-align: right')) hAlign = 'right';
@@ -211,7 +212,7 @@ export const exportHtmlSheetsToExcel = async (sheets, filename) => {
           excelCell.alignment = {
             horizontal: hAlign,
             vertical: 'middle',
-            wrapText: cellText.length > 60
+            wrapText: isHeaderCell || cellText.length > 50 // Wrap headers so columns can stay narrow
           };
 
           // 7. Borders
@@ -223,30 +224,32 @@ export const exportHtmlSheetsToExcel = async (sheets, filename) => {
         }
       }
 
-      // Dynamic Compact Column Width Calculation (Tight, fitted formatting)
-      const colMaxLens = [];
-      ws.eachRow((row, rowNumber) => {
-        if (rowNumber <= 2) return; // Skip title banner rows
-        row.eachCell((cell, colNumber) => {
-          const valStr = cell.value ? String(cell.value) : '';
-          const lines = valStr.split(/\r?\n/);
-          lines.forEach(l => {
-            colMaxLens[colNumber] = Math.max(colMaxLens[colNumber] || 5, l.length);
-          });
-        });
-      });
-
+      // Compact Column Width Calculation (Reduce all column widths except description)
       for (let col = 1; col <= maxCol + 1; col++) {
-        const maxLen = colMaxLens[col] || 8;
-        let calculatedWidth = maxLen + 2.5; // Compact 2.5 char padding
+        let dataMaxLen = 0;
+        ws.eachRow((row, rowNumber) => {
+          if (rowNumber <= 3) return; // Skip banner and header rows so long header text doesn't inflate column width
+          const cellVal = row.getCell(col).value;
+          if (cellVal !== null && cellVal !== undefined) {
+            const s = String(cellVal).trim();
+            dataMaxLen = Math.max(dataMaxLen, s.length);
+          }
+        });
 
+        // Determine column type
+        let calculatedWidth = 10;
         if (col === 1) {
-          calculatedWidth = Math.min(Math.max(maxLen + 2, 6), 8); // S.No column: width 6-8
+          calculatedWidth = 6; // S.NO column: tight width 6
         } else if (col === 2) {
-          calculatedWidth = Math.min(Math.max(maxLen + 2, 10), 16); // Project column: width 10-16
+          calculatedWidth = 9; // PROJECT column: tight width 9
+        } else if (col === 3) {
+          // DESCRIPTION column: spacious width to show full description
+          calculatedWidth = Math.max(dataMaxLen + 3, 24);
         } else {
-          calculatedWidth = Math.min(Math.max(calculatedWidth, 8), 35); // Data columns: min 8, max 35
+          // All numeric & week actual columns: compact 9-10 width
+          calculatedWidth = Math.min(Math.max(dataMaxLen + 2.5, 9), 11);
         }
+
         ws.getColumn(col).width = calculatedWidth;
       }
     }
