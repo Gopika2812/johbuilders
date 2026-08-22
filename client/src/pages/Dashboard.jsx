@@ -2210,9 +2210,18 @@ const Dashboard = () => {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
-                <div className="md:col-span-7">
+                <div className="md:col-span-7 flex flex-col items-start w-full relative">
+                  {selectedUserPerfName && (
+                    <button
+                      onClick={() => setSelectedUserPerfName(null)}
+                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-black text-white bg-[#0e623a] hover:bg-[#0b4d2d] rounded-xl transition shadow-md hover:shadow-lg active:scale-95 cursor-pointer mb-2 self-start"
+                    >
+                      <ArrowLeft className="w-4 h-4" />
+                      <span>Back to All Users</span>
+                    </button>
+                  )}
                   {userPerformanceData.length === 0 ? (
-                    <p className="text-black-400 italic text-xs py-8 text-center">No user performance recorded</p>
+                    <p className="text-black-400 italic text-xs py-8 text-center w-full">No user performance recorded</p>
                   ) : (
                     renderPieChart(
                       selectedUserPerfName ? userPerformanceData.filter(u => u.userName === selectedUserPerfName) : userPerformanceData,
