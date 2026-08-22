@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth, API_URL } from '../context/AuthContext';
 import { LOGO_BASE64 } from '../utils/logoBase64';
+import { exportHtmlSheetsToExcel } from '../utils/excelExporter';
 import { useNavigate } from 'react-router-dom';
 import DateRangeFilter from '../components/DateRangeFilter';
 import SearchableMultiSelect from '../components/SearchableMultiSelect';
@@ -1018,7 +1019,29 @@ const Dashboard = () => {
     };
   }, [selectedSourceGroup, selectedSubSource, sourceGroupsPerformanceData, subSourcesPerformanceData]);
 
-  const handleExportDetailedExcel = () => {
+  const getExcelHeader = (titleText, monthTitle = "", totalColumns = 7) => {
+    const safeCols = Math.max(3, totalColumns);
+    const webLogo = LOGO_BASE64;
+    return `
+      <tr style="height: 65px;">
+        <td colspan="2" bgcolor="#FFFFFF" class="logo-cell" style="background-color: #FFFFFF; padding: 4px 8px; text-align: center; vertical-align: middle; border: 1px solid #CBD5E1; height: 65px; width: 160px;">
+          ${webLogo ? `<img src="${webLogo}" style="max-height: 55px; max-width: 100%; width: auto; height: 55px; object-fit: contain; display: block; margin: 0 auto;" alt="JOHN BUILDWELL" />` : `<div style="color: #0F5233; font-size: 11pt; font-weight: bold; text-align: center;">JOHN BUILDWELL</div>`}
+        </td>
+        <td colspan="${safeCols - 2}" bgcolor="#0F5233" class="title-row text-center" style="background-color: #0F5233; color: #FFFFFF; border: 1px solid #0D4329; border-left: none; vertical-align:middle; text-align:center; font-size: 14pt; font-weight: bold; height: 65px; letter-spacing: 0.5px;">
+          ${titleText}
+        </td>
+      </tr>
+      ${monthTitle ? `
+      <tr>
+        <td colspan="${safeCols}" bgcolor="#E6F4EA" class="month-header" style="height: 28px; vertical-align: middle; font-size: 10pt; font-weight: bold; background-color: #E6F4EA; color: #0F5233; border: 1px solid #C3E6CB; text-align: center; text-transform: uppercase; letter-spacing: 0.5px;">
+          ${monthTitle}
+        </td>
+      </tr>` : ''}
+      <tr><td colspan="${safeCols}" style="border:none; height: 12px; background-color: transparent;"></td></tr>
+    `;
+  };
+
+  const handleExportDetailedExcel = async () => {
     let htmlContent = `
       <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
       <head>
@@ -1026,34 +1049,25 @@ const Dashboard = () => {
         <style>
           table { border-collapse: collapse; }
           td, th { border: 1px solid #cbd5e1; padding: 10px 14px; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; font-size: 10pt; color: #334155; }
-          th { font-weight: bold; background-color: #0e623a; color: white; border: 1px solid #0e623a; text-align: center; }
-          .title-row { font-size: 14pt; font-weight: bold; color: #0e623a; }
+          th { font-weight: bold; background-color: #0F5233; color: white; border: 1px solid #0F5233; text-align: center; }
+          .title-row { font-size: 14pt; font-weight: bold; background-color: #0F5233; color: #FFFFFF; }
           .even-row { background-color: #f8fafc; }
           .bold-label { font-weight: bold; color: #0f172a; }
-          .summary-row { font-weight: bold; background-color: #e2f0d9; color: #385723; }
+          .summary-row { font-weight: bold; background-color: #E6F4EA; color: #0F5233; }
         </style>
       </head>
       <body>
         <table>
-          <tr style="height: 60px;">
-            <td colspan="3" bgcolor="#0B4D2D" style="background-color: #0B4D2D; color: #FFFFFF; font-family: 'Segoe UI', Arial, sans-serif; font-size: 14pt; font-weight: bold; text-align: center; vertical-align: middle; height: 60px; border: 1px solid #000000;">
-              JOHN BUILDWELL
-            </td>
-            <td colspan="5" class="title-row" style="border:none; vertical-align:middle; text-align:center; font-size: 14pt; font-weight: bold; color: #0e623a; height: 120px;">
-              JohnBuildwell ERP - USER PERFORMANCE DETAILS
-            </td>
-          </tr>
-          <tr><td colspan="8" style="border:none; height: 15px;"></td></tr>
-          
+          ${getExcelHeader(`USER PERFORMANCE DETAILS - ${(selectedUserPerfName || 'ALL').toUpperCase()}`, '', 8)}
           <tr>
-            <th>User Name</th>
-            <th>Total Leads</th>
-            <th>Enquiries</th>
-            <th>Site Visit</th>
-            <th>Hot List</th>
-            <th>Booking</th>
-            <th>Handover</th>
-            <th>Lost</th>
+            <th class="text-left">User Name</th>
+            <th class="text-right">Total Leads</th>
+            <th class="text-right">Enquiries</th>
+            <th class="text-right">Site Visit</th>
+            <th class="text-right">Hot List</th>
+            <th class="text-right">Booking</th>
+            <th class="text-right">Handover</th>
+            <th class="text-right">Lost</th>
           </tr>
     `;
 
@@ -1065,28 +1079,20 @@ const Dashboard = () => {
       const rowClass = idx % 2 === 1 ? 'class="even-row"' : '';
       htmlContent += `
         <tr ${rowClass}>
-          <td class="bold-label">${row.userName}</td>
-          <td>${row.totalLeads}</td>
-          <td>${row.enquiries}</td>
-          <td>${row.siteVisits}</td>
-          <td>${row.hotList}</td>
-          <td>${row.booked}</td>
-          <td>${row.handover}</td>
-          <td>${row.lost}</td>
+          <td class="bold-label text-left">${row.userName}</td>
+          <td class="text-right">${row.totalLeads}</td>
+          <td class="text-right">${row.enquiries}</td>
+          <td class="text-right">${row.siteVisits}</td>
+          <td class="text-right">${row.hotList}</td>
+          <td class="text-right">${row.booked}</td>
+          <td class="text-right">${row.handover}</td>
+          <td class="text-right">${row.lost}</td>
         </tr>
       `;
     });
 
     if (dataToExport.length > 1) {
-      const totals = {
-        totalLeads: 0,
-        enquiries: 0,
-        siteVisits: 0,
-        hotList: 0,
-        booked: 0,
-        handover: 0,
-        lost: 0
-      };
+      const totals = { totalLeads: 0, enquiries: 0, siteVisits: 0, hotList: 0, booked: 0, handover: 0, lost: 0 };
       userPerformanceData.forEach(u => {
         totals.totalLeads += u.totalLeads;
         totals.enquiries += u.enquiries;
@@ -1098,14 +1104,14 @@ const Dashboard = () => {
       });
       htmlContent += `
         <tr class="summary-row">
-          <td class="bold-label">TOTAL</td>
-          <td>${totals.totalLeads}</td>
-          <td>${totals.enquiries}</td>
-          <td>${totals.siteVisits}</td>
-          <td>${totals.hotList}</td>
-          <td>${totals.booked}</td>
-          <td>${totals.handover}</td>
-          <td>${totals.lost}</td>
+          <td class="bold-label text-left">TOTAL</td>
+          <td class="text-right">${totals.totalLeads}</td>
+          <td class="text-right">${totals.enquiries}</td>
+          <td class="text-right">${totals.siteVisits}</td>
+          <td class="text-right">${totals.hotList}</td>
+          <td class="text-right">${totals.booked}</td>
+          <td class="text-right">${totals.handover}</td>
+          <td class="text-right">${totals.lost}</td>
         </tr>
       `;
     }
@@ -1116,17 +1122,10 @@ const Dashboard = () => {
       </html>
     `;
 
-    const blob = new Blob([htmlContent], { type: 'application/vnd.ms-excel;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute("download", `User_Performance_Detailed_${selectedUserPerfName || 'All'}_${new Date().toISOString().substring(0, 10)}.xls`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    await exportHtmlSheetsToExcel([{ name: 'User Details', html: htmlContent }], `User_Performance_Detailed_${selectedUserPerfName || 'All'}_${new Date().toISOString().substring(0, 10)}.xlsx`);
   };
 
-  const handleExportSourceDetailedExcel = () => {
+  const handleExportSourceDetailedExcel = async () => {
     let htmlContent = `
       <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
       <head>
@@ -1134,85 +1133,54 @@ const Dashboard = () => {
         <style>
           table { border-collapse: collapse; }
           td, th { border: 1px solid #cbd5e1; padding: 10px 14px; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; font-size: 10pt; color: #334155; }
-          th { font-weight: bold; background-color: #0e623a; color: white; border: 1px solid #0e623a; text-align: center; }
-          .title-row { font-size: 14pt; font-weight: bold; color: #0e623a; }
+          th { font-weight: bold; background-color: #0F5233; color: white; border: 1px solid #0F5233; text-align: center; }
+          .title-row { font-size: 14pt; font-weight: bold; background-color: #0F5233; color: #FFFFFF; }
           .even-row { background-color: #f8fafc; }
           .bold-label { font-weight: bold; color: #0f172a; }
-          .summary-row { font-weight: bold; background-color: #e2f0d9; color: #385723; }
+          .summary-row { font-weight: bold; background-color: #E6F4EA; color: #0F5233; }
         </style>
       </head>
       <body>
         <table>
-          <tr style="height: 60px;">
-            <td colspan="3" bgcolor="#0B4D2D" style="background-color: #0B4D2D; color: #FFFFFF; font-family: 'Segoe UI', Arial, sans-serif; font-size: 14pt; font-weight: bold; text-align: center; vertical-align: middle; height: 60px; border: 1px solid #000000;">
-              JOHN BUILDWELL
-            </td>
-            <td colspan="6" class="title-row" style="border:none; vertical-align:middle; text-align:center; font-size: 14pt; font-weight: bold; color: #0e623a; height: 120px;">
-              JohnBuildwell ERP - MARKETING SOURCE PERFORMANCE DETAILS
-            </td>
-          </tr>
-          <tr><td colspan="9" style="border:none; height: 15px;"></td></tr>
-          
+          ${getExcelHeader(`MARKETING SOURCE DETAILS - ${(selectedSourcePerfName || 'ALL').toUpperCase()}`, '', 9)}
           <tr>
-            <th>Group Name</th>
-            <th>Source Name</th>
-            <th>Total Leads</th>
-            <th>Enquiries</th>
-            <th>Site Visit</th>
-            <th>Hot List</th>
-            <th>Booking</th>
-            <th>Handover</th>
-            <th>Lost</th>
+            <th class="text-left">Group Name</th>
+            <th class="text-left">Source Name</th>
+            <th class="text-right">Total Leads</th>
+            <th class="text-right">Enquiries</th>
+            <th class="text-right">Site Visit</th>
+            <th class="text-right">Hot List</th>
+            <th class="text-right">Booking</th>
+            <th class="text-right">Handover</th>
+            <th class="text-right">Lost</th>
           </tr>
     `;
 
-    const rows = [];
-    Object.keys(stats.groupStats || {}).forEach(groupName => {
-      if (selectedSourceGroup && groupName !== selectedSourceGroup) return;
-      const g = stats.groupStats[groupName];
-      (g.sources || []).forEach(src => {
-        if (selectedSubSource && src.source !== selectedSubSource) return;
-        rows.push({
-          groupName: groupName,
-          sourceName: src.source,
-          totalLeads: src.count || 0,
-          enquiries: src.enquiries || 0,
-          siteVisits: src.siteVisits || 0,
-          hotList: src.hotList || 0,
-          booked: src.booked || 0,
-          handover: src.handover || 0,
-          lost: src.lost || 0
-        });
-      });
-    });
+    const rows = selectedSourceGroup
+      ? (selectedSubSource
+          ? subSourcesPerformanceData.filter(s => s.sourceName === selectedSubSource)
+          : subSourcesPerformanceData.filter(s => s.groupName === selectedSourceGroup))
+      : subSourcesPerformanceData;
 
     rows.forEach((row, idx) => {
       const rowClass = idx % 2 === 1 ? 'class="even-row"' : '';
       htmlContent += `
         <tr ${rowClass}>
-          <td class="bold-label">${row.groupName}</td>
-          <td>${row.sourceName}</td>
-          <td>${row.totalLeads}</td>
-          <td>${row.enquiries}</td>
-          <td>${row.siteVisits}</td>
-          <td>${row.hotList}</td>
-          <td>${row.booked}</td>
-          <td>${row.handover}</td>
-          <td>${row.lost}</td>
+          <td class="bold-label text-left">${row.groupName}</td>
+          <td class="text-left">${row.sourceName}</td>
+          <td class="text-right">${row.totalLeads}</td>
+          <td class="text-right">${row.enquiries}</td>
+          <td class="text-right">${row.siteVisits}</td>
+          <td class="text-right">${row.hotList}</td>
+          <td class="text-right">${row.booked}</td>
+          <td class="text-right">${row.handover}</td>
+          <td class="text-right">${row.lost}</td>
         </tr>
       `;
     });
 
     if (rows.length > 1) {
-      const totals = {
-        totalLeads: 0,
-        enquiries: 0,
-        siteVisits: 0,
-        hotList: 0,
-        booked: 0,
-        handover: 0,
-        lost: 0
-      };
+      const totals = { totalLeads: 0, enquiries: 0, siteVisits: 0, hotList: 0, booked: 0, handover: 0, lost: 0 };
       rows.forEach(r => {
         totals.totalLeads += r.totalLeads;
         totals.enquiries += r.enquiries;
@@ -1224,14 +1192,14 @@ const Dashboard = () => {
       });
       htmlContent += `
         <tr class="summary-row">
-          <td colspan="2" class="bold-label">TOTAL</td>
-          <td>${totals.totalLeads}</td>
-          <td>${totals.enquiries}</td>
-          <td>${totals.siteVisits}</td>
-          <td>${totals.hotList}</td>
-          <td>${totals.booked}</td>
-          <td>${totals.handover}</td>
-          <td>${totals.lost}</td>
+          <td colspan="2" class="bold-label text-left">TOTAL</td>
+          <td class="text-right">${totals.totalLeads}</td>
+          <td class="text-right">${totals.enquiries}</td>
+          <td class="text-right">${totals.siteVisits}</td>
+          <td class="text-right">${totals.hotList}</td>
+          <td class="text-right">${totals.booked}</td>
+          <td class="text-right">${totals.handover}</td>
+          <td class="text-right">${totals.lost}</td>
         </tr>
       `;
     }
@@ -1242,14 +1210,7 @@ const Dashboard = () => {
       </html>
     `;
 
-    const blob = new Blob([htmlContent], { type: 'application/vnd.ms-excel;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute("download", `Source_Performance_Detailed_${selectedSourceGroup || 'All'}_${new Date().toISOString().substring(0, 10)}.xls`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    await exportHtmlSheetsToExcel([{ name: 'Source Details', html: htmlContent }], `Source_Performance_Detailed_${selectedSourcePerfName || 'All'}_${new Date().toISOString().substring(0, 10)}.xlsx`);
   };
 
   useEffect(() => {
@@ -1344,8 +1305,6 @@ const Dashboard = () => {
     setToDate(lastDay);
   };
 
-  const logoPath = LOGO_BASE64;
-
   const handleExportExcel = async () => {
     const inventory = stats.cards.inventory || {};
 
@@ -1362,61 +1321,53 @@ const Dashboard = () => {
         <style>
           table { border-collapse: collapse; }
           td, th { border: 1px solid #cbd5e1; padding: 10px 14px; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; font-size: 10pt; color: #334155; }
-          th { font-weight: bold; background-color: #0e623a; color: white; border: 1px solid #0e623a; text-align: center; }
-          .title-row { font-size: 22pt; font-weight: bold; color: #0e623a; }
-          .section-banner { font-size: 11pt; font-weight: bold; background-color: #e2f0d9; color: #385723; padding: 12px; border: 1px solid #c5e1a5; text-align: center; text-transform: uppercase; letter-spacing: 0.5px; }
+          th { font-weight: bold; background-color: #0F5233; color: white; border: 1px solid #0F5233; text-align: center; }
+          .title-row { font-size: 14pt; font-weight: bold; background-color: #0F5233; color: #FFFFFF; }
+          .section-banner { font-size: 11pt; font-weight: bold; background-color: #E6F4EA; color: #0F5233; padding: 12px; border: 1px solid #C3E6CB; text-align: center; text-transform: uppercase; letter-spacing: 0.5px; }
           .even-row { background-color: #f8fafc; }
           .bold-label { font-weight: bold; color: #0f172a; }
         </style>
       </head>
       <body>
         <table>
-          <tr style="height: 70px;">
-            <td colspan="3" bgcolor="#0b4d2d" style="background-color: #0b4d2d; border: none; text-align: center; vertical-align: middle; height: 70px;">
-              <div style="font-family: 'Georgia', 'Times New Roman', serif; font-size: 24pt; font-weight: bold; color: #ffffff; letter-spacing: 2px;">
-                JB <span style="font-family: 'Segoe UI', Arial, sans-serif; font-size: 11pt; font-weight: 700; color: #fde047; letter-spacing: 1px;">JOHN BUILDWELL</span>
-              </div>
-            </td>
-            <td colspan="6" class="title-row" style="border:none; vertical-align:middle; text-align:center; font-size: 22pt; font-weight: bold; color: #0e623a; height: 120px;">
-              JohnBuildwell ERP - OVERALL STATUS REPORT
-            </td>
-          </tr>
-          <tr><td colspan="9" style="border:none; height: 15px;"></td></tr>
+          ${getExcelHeader('JOHN BUILDWELL ERP - PERFORMANCE SUMMARY REPORT', '', 9)}
           
           <!-- PART 1 -->
           <tr><td colspan="9" class="section-banner">PART 1: PROJECTS & UNIT TYPE SUMMARY</td></tr>
           <tr>
-            <th colspan="3">Metric</th>
-            <th colspan="3">Count</th>
-            <th colspan="3">Total Value (INR)</th>
+            <th colspan="3" class="text-left">Metric</th>
+            <th colspan="3" class="text-right">Count</th>
+            <th colspan="3" class="text-right">Total Value (INR)</th>
           </tr>
           <tr>
-            <td colspan="3" class="bold-label">Available Projects (Common)</td>
-            <td colspan="3">${availableProjCount}</td>
-            <td colspan="3">Rs. ${availableProjVal.toLocaleString()}</td>
+            <td colspan="3" class="bold-label text-left">Available Projects (Common)</td>
+            <td colspan="3" class="text-right">${availableProjCount}</td>
+            <td colspan="3" class="text-right">Rs. ${availableProjVal.toLocaleString()}</td>
           </tr>
           <tr class="even-row">
-            <td colspan="3" class="bold-label">Available Projects (Plot)</td>
-            <td colspan="3">${inventory.projectsByType?.Plot || 0}</td>
-            <td colspan="3">Rs. ${(inventory.availableValueByType?.Plot || 0).toLocaleString()}</td>
+            <td colspan="3" class="bold-label text-left">Available Projects (Plot)</td>
+            <td colspan="3" class="text-right">${inventory.projectsByType?.Plot || 0}</td>
+            <td colspan="3" class="text-right">Rs. ${(inventory.availableValueByType?.Plot || 0).toLocaleString()}</td>
           </tr>
           <tr>
-            <td colspan="3" class="bold-label">Available Projects (Unit)</td>
-            <td colspan="3">${(inventory.projectsByType?.Flat || 0) + (inventory.projectsByType?.Villa || 0) + (inventory.projectsByType?.House || 0) + (inventory.projectsByType?.Unit || 0)}</td>
-            <td colspan="3">Rs. ${((inventory.availableValueByType?.Flat || 0) + (inventory.availableValueByType?.Villa || 0) + (inventory.availableValueByType?.House || 0) + (inventory.availableValueByType?.Unit || 0)).toLocaleString()}</td>
+            <td colspan="3" class="bold-label text-left">Available Projects (Unit)</td>
+            <td colspan="3" class="text-right">${(inventory.projectsByType?.Flat || 0) + (inventory.projectsByType?.Villa || 0) + (inventory.projectsByType?.House || 0) + (inventory.projectsByType?.Unit || 0)}</td>
+            <td colspan="3" class="text-right">Rs. ${((inventory.availableValueByType?.Flat || 0) + (inventory.availableValueByType?.Villa || 0) + (inventory.availableValueByType?.House || 0) + (inventory.availableValueByType?.Unit || 0)).toLocaleString()}</td>
           </tr>
           <tr><td colspan="9" style="border:none; height: 10px;"></td></tr>
           
           <tr>
-            <th>Project Type</th>
-            <th>Overall Count</th>
-            <th>Overall Value (INR)</th>
-            <th>Available Count</th>
-            <th>Available Value (INR)</th>
-            <th>Booked Count</th>
-            <th>Booked Value (INR)</th>
+            <th class="text-left">Project Type</th>
+            <th class="text-right">Overall Count</th>
+            <th class="text-right">Overall Value (INR)</th>
+            <th class="text-right">Available Count</th>
+            <th class="text-right">Available Value (INR)</th>
+            <th class="text-right">Booked Count</th>
+            <th class="text-right">Booked Value (INR)</th>
+            <th class="text-right">Handover Count</th>
+            <th class="text-right">Handover Value (INR)</th>
           </tr>
-     `;
+    `;
 
     ['Plot', 'Flat', 'Villa'].forEach((type, idx) => {
       const overallCount = (inventory.totalByType?.[type] || 0) + (type === 'Villa' ? (inventory.totalByType?.House || 0) : 0);
@@ -1425,84 +1376,52 @@ const Dashboard = () => {
       const availVal = (inventory.availableValueByType?.[type] || 0) + (type === 'Villa' ? (inventory.availableValueByType?.House || 0) : 0);
       const bookedCount = (inventory.bookedByType?.[type] || 0) + (type === 'Villa' ? (inventory.bookedByType?.House || 0) : 0);
       const bookedVal = (inventory.bookedValueByType?.[type] || 0) + (type === 'Villa' ? (inventory.bookedValueByType?.House || 0) : 0);
+      const handCount = (inventory.handoverUnitsByType?.[type] || 0) + (type === 'Villa' ? (inventory.handoverUnitsByType?.House || 0) : 0);
+      const handVal = (inventory.handoverValueByType?.[type] || 0) + (type === 'Villa' ? (inventory.handoverValueByType?.House || 0) : 0);
 
       const rowClass = idx % 2 === 1 ? 'class="even-row"' : '';
 
       htmlContent += `
         <tr ${rowClass}>
-          <td class="bold-label">${type}</td>
-          <td>${overallCount}</td>
-          <td>Rs. ${overallVal.toLocaleString()}</td>
-          <td>${availCount}</td>
-          <td>Rs. ${availVal.toLocaleString()}</td>
-          <td>${bookedCount}</td>
-          <td>Rs. ${bookedVal.toLocaleString()}</td>
+          <td class="bold-label text-left">${type}</td>
+          <td class="text-right">${overallCount}</td>
+          <td class="text-right">Rs. ${overallVal.toLocaleString()}</td>
+          <td class="text-right">${availCount}</td>
+          <td class="text-right">Rs. ${availVal.toLocaleString()}</td>
+          <td class="text-right">${bookedCount}</td>
+          <td class="text-right">Rs. ${bookedVal.toLocaleString()}</td>
+          <td class="text-right">${handCount}</td>
+          <td class="text-right">Rs. ${handVal.toLocaleString()}</td>
         </tr>
       `;
     });
 
     htmlContent += `
-          <tr><td colspan="9" style="border:none; height: 10px;"></td></tr>
-          
           <!-- PART 2 -->
-          <tr><td colspan="9" class="section-banner">PART 2: PROJECT BASED WORKFLOW STAGES</td></tr>
+          <tr><td colspan="9" style="border:none; height: 15px;"></td></tr>
+          <tr><td colspan="9" class="section-banner">PART 2: USER PERFORMANCE SUMMARY</td></tr>
           <tr>
-            <th colspan="2">Project Name</th>
-            <th>Total Leads</th>
-            <th>Enquiries</th>
-            <th>Site Visit</th>
-            <th>Hot List</th>
-            <th>Booked</th>
-            <th colspan="2">Site Conversion (Handover)</th>
+            <th class="text-left">User Name</th>
+            <th class="text-right">Total Leads</th>
+            <th class="text-right">Enquiries</th>
+            <th class="text-right">Site Visit</th>
+            <th class="text-right">Hot List</th>
+            <th class="text-right">Booking</th>
+            <th colspan="3" class="text-right">Handover</th>
           </tr>
     `;
 
-    Object.keys(stats.projectStages || {}).forEach((projName, idx) => {
-      const stages = stats.projectStages[projName];
+    userPerformanceData.forEach((row, idx) => {
       const rowClass = idx % 2 === 1 ? 'class="even-row"' : '';
       htmlContent += `
         <tr ${rowClass}>
-          <td colspan="2" class="bold-label">${projName}</td>
-          <td>${stages.totalLeads}</td>
-          <td>${stages.enquiries}</td>
-          <td>${stages.siteVisits}</td>
-          <td>${stages.hotList}</td>
-          <td>${stages.booked}</td>
-          <td colspan="2">${stages.handover}</td>
-        </tr>
-      `;
-    });
-
-    htmlContent += `
-          <tr><td colspan="9" style="border:none; height: 10px;"></td></tr>
-          
-          <!-- PART 3 -->
-          <tr><td colspan="9" class="section-banner">PART 3: PERSONS WISE PROJECT BREAKDOWN</td></tr>
-          <tr>
-            <th>Person Name</th>
-            <th>Project Name</th>
-            <th>Total Leads</th>
-            <th>Enquiries</th>
-            <th>Site Visit</th>
-            <th>Hot List</th>
-            <th>Booked</th>
-            <th colspan="2">Site Conversion (Handover)</th>
-          </tr>
-    `;
-
-    Object.keys(stats.personProjectStages || {}).forEach((key, idx) => {
-      const row = stats.personProjectStages[key];
-      const rowClass = idx % 2 === 1 ? 'class="even-row"' : '';
-      htmlContent += `
-        <tr ${rowClass}>
-          <td class="bold-label">${row.personName}</td>
-          <td>${row.projectName}</td>
-          <td>${row.totalLeads}</td>
-          <td>${row.enquiries}</td>
-          <td>${row.siteVisits}</td>
-          <td>${row.hotList}</td>
-          <td>${row.booked}</td>
-          <td colspan="2">${row.handover}</td>
+          <td class="bold-label text-left">${row.userName}</td>
+          <td class="text-right">${row.totalLeads}</td>
+          <td class="text-right">${row.enquiries}</td>
+          <td class="text-right">${row.siteVisits}</td>
+          <td class="text-right">${row.hotList}</td>
+          <td class="text-right">${row.booked}</td>
+          <td colspan="3" class="text-right">${row.handover}</td>
         </tr>
       `;
     });
@@ -1513,14 +1432,7 @@ const Dashboard = () => {
       </html>
     `;
 
-    const blob = new Blob([htmlContent], { type: 'application/vnd.ms-excel;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute("download", `JohnBuildwell_ERP_Overall_Report_${new Date().toISOString().substring(0, 10)}.xls`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    await exportHtmlSheetsToExcel([{ name: 'Performance Summary', html: htmlContent }], `JohnBuildwell_ERP_Overall_Report_${new Date().toISOString().substring(0, 10)}.xlsx`);
   };
 
   const handleExportUserReport = async (selectedUserNames) => {
@@ -1531,27 +1443,17 @@ const Dashboard = () => {
         <style>
           table { border-collapse: collapse; }
           td, th { border: 1px solid #cbd5e1; padding: 10px 14px; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; font-size: 10pt; color: #334155; }
-          th { font-weight: bold; background-color: #0e623a; color: white; border: 1px solid #0e623a; text-align: center; }
-          .title-row { font-size: 22pt; font-weight: bold; color: #0e623a; }
-          .section-banner { font-size: 11pt; font-weight: bold; background-color: #e2f0d9; color: #385723; padding: 12px; border: 1px solid #c5e1a5; text-align: center; text-transform: uppercase; letter-spacing: 0.5px; }
+          th { font-weight: bold; background-color: #0F5233; color: white; border: 1px solid #0F5233; text-align: center; }
+          .title-row { font-size: 14pt; font-weight: bold; background-color: #0F5233; color: #FFFFFF; }
+          .section-banner { font-size: 11pt; font-weight: bold; background-color: #E6F4EA; color: #0F5233; padding: 12px; border: 1px solid #C3E6CB; text-align: center; text-transform: uppercase; letter-spacing: 0.5px; }
           .even-row { background-color: #f8fafc; }
           .bold-label { font-weight: bold; color: #0f172a; }
-          .summary-row { font-weight: bold; background-color: #e2f0d9; color: #385723; }
+          .summary-row { font-weight: bold; background-color: #E6F4EA; color: #0F5233; }
         </style>
       </head>
       <body>
         <table>
-          <tr style="height: 70px;">
-            <td colspan="3" bgcolor="#0b4d2d" style="background-color: #0b4d2d; border: none; text-align: center; vertical-align: middle; height: 70px;">
-              <div style="font-family: 'Georgia', 'Times New Roman', serif; font-size: 24pt; font-weight: bold; color: #ffffff; letter-spacing: 2px;">
-                JB <span style="font-family: 'Segoe UI', Arial, sans-serif; font-size: 11pt; font-weight: 700; color: #fde047; letter-spacing: 1px;">JOHN BUILDWELL</span>
-              </div>
-            </td>
-            <td colspan="4" class="title-row" style="border:none; vertical-align:middle; text-align:center; font-size: 22pt; font-weight: bold; color: #0e623a; height: 120px;">
-              JohnBuildwell ERP - USER WISE PERFORMANCE REPORT
-            </td>
-          </tr>
-          <tr><td colspan="7" style="border:none; height: 15px;"></td></tr>
+          ${getExcelHeader('JOHN BUILDWELL ERP - USER WISE PERFORMANCE REPORT', '', 7)}
     `;
 
     selectedUserNames.forEach(uName => {
@@ -1572,24 +1474,24 @@ const Dashboard = () => {
       });
 
       htmlContent += `
-        <tr><td colspan="7" class="section-banner">USER: ${uName}</td></tr>
+        <tr><td colspan="7" class="section-banner">USER: ${uName.toUpperCase()}</td></tr>
         <tr>
-          <th>Project Name</th>
-          <th>Total Leads</th>
-          <th>Enquiries</th>
-          <th>Site Visit</th>
-          <th>Hot List</th>
-          <th>Booked</th>
-          <th>Site Conversion (Handover)</th>
+          <th class="text-left">Project Name</th>
+          <th class="text-right">Total Leads</th>
+          <th class="text-right">Enquiries</th>
+          <th class="text-right">Site Visit</th>
+          <th class="text-right">Hot List</th>
+          <th class="text-right">Booked</th>
+          <th class="text-right">Site Conversion (Handover)</th>
         </tr>
         <tr class="summary-row">
-          <td class="bold-label">OVERALL SUMMARY</td>
-          <td>${uTotalLeads}</td>
-          <td>${uEnquiries}</td>
-          <td>${uSiteVisits}</td>
-          <td>${uHotList}</td>
-          <td>${uBooked}</td>
-          <td>${uHandover}</td>
+          <td class="bold-label text-left">OVERALL SUMMARY</td>
+          <td class="text-right">${uTotalLeads}</td>
+          <td class="text-right">${uEnquiries}</td>
+          <td class="text-right">${uSiteVisits}</td>
+          <td class="text-right">${uHotList}</td>
+          <td class="text-right">${uBooked}</td>
+          <td class="text-right">${uHandover}</td>
         </tr>
       `;
 
@@ -1597,13 +1499,13 @@ const Dashboard = () => {
         const rowClass = idx % 2 === 1 ? 'class="even-row"' : '';
         htmlContent += `
           <tr ${rowClass}>
-            <td class="bold-label">${row.projectName}</td>
-            <td>${row.totalLeads}</td>
-            <td>${row.enquiries}</td>
-            <td>${row.siteVisits}</td>
-            <td>${row.hotList}</td>
-            <td>${row.booked}</td>
-            <td>${row.handover}</td>
+            <td class="bold-label text-left">${row.projectName}</td>
+            <td class="text-right">${row.totalLeads}</td>
+            <td class="text-right">${row.enquiries}</td>
+            <td class="text-right">${row.siteVisits}</td>
+            <td class="text-right">${row.hotList}</td>
+            <td class="text-right">${row.booked}</td>
+            <td class="text-right">${row.handover}</td>
           </tr>
         `;
       });
@@ -1617,14 +1519,7 @@ const Dashboard = () => {
       </html>
     `;
 
-    const blob = new Blob([htmlContent], { type: 'application/vnd.ms-excel;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute("download", `User_Wise_Report_${new Date().toISOString().substring(0, 10)}.xls`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    await exportHtmlSheetsToExcel([{ name: 'User Performance', html: htmlContent }], `User_Wise_Report_${new Date().toISOString().substring(0, 10)}.xlsx`);
   };
 
   const handleExportProjectReport = async (selectedProjectNames) => {
@@ -1635,71 +1530,61 @@ const Dashboard = () => {
         <style>
           table { border-collapse: collapse; }
           td, th { border: 1px solid #cbd5e1; padding: 10px 14px; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; font-size: 10pt; color: #334155; }
-          th { font-weight: bold; background-color: #0e623a; color: white; border: 1px solid #0e623a; text-align: center; }
-          .title-row { font-size: 22pt; font-weight: bold; color: #0e623a; }
-          .section-banner { font-size: 11pt; font-weight: bold; background-color: #e2f0d9; color: #385723; padding: 12px; border: 1px solid #c5e1a5; text-align: center; text-transform: uppercase; letter-spacing: 0.5px; }
+          th { font-weight: bold; background-color: #0F5233; color: white; border: 1px solid #0F5233; text-align: center; }
+          .title-row { font-size: 14pt; font-weight: bold; background-color: #0F5233; color: #FFFFFF; }
+          .section-banner { font-size: 11pt; font-weight: bold; background-color: #E6F4EA; color: #0F5233; padding: 12px; border: 1px solid #C3E6CB; text-align: center; text-transform: uppercase; letter-spacing: 0.5px; }
           .even-row { background-color: #f8fafc; }
           .bold-label { font-weight: bold; color: #0f172a; }
         </style>
       </head>
       <body>
         <table>
-          <tr style="height: 70px;">
-            <td colspan="3" bgcolor="#0b4d2d" style="background-color: #0b4d2d; border: none; text-align: center; vertical-align: middle; height: 70px;">
-              <div style="font-family: 'Georgia', 'Times New Roman', serif; font-size: 24pt; font-weight: bold; color: #ffffff; letter-spacing: 2px;">
-                JB <span style="font-family: 'Segoe UI', Arial, sans-serif; font-size: 11pt; font-weight: 700; color: #fde047; letter-spacing: 1px;">JOHN BUILDWELL</span>
-              </div>
-            </td>
-            <td colspan="4" class="title-row" style="border:none; vertical-align:middle; text-align:center; font-size: 22pt; font-weight: bold; color: #0e623a; height: 120px;">
-              JohnBuildwell ERP - PROJECT WISE PERFORMANCE REPORT
-            </td>
-          </tr>
-          <tr><td colspan="7" style="border:none; height: 15px;"></td></tr>
+          ${getExcelHeader('JOHN BUILDWELL ERP - PROJECT WISE PERFORMANCE REPORT', '', 7)}
     `;
 
     selectedProjectNames.forEach(projName => {
       const stages = stats.projectStages[projName] || { totalLeads: 0, enquiries: 0, siteVisits: 0, hotList: 0, booked: 0, handover: 0 };
 
       htmlContent += `
-        <tr><td colspan="7" class="section-banner">PROJECT: ${projName}</td></tr>
+        <tr><td colspan="7" class="section-banner">PROJECT: ${projName.toUpperCase()}</td></tr>
         <tr>
-          <th colspan="3">Workflow Stage</th>
-          <th colspan="4">Count</th>
+          <th colspan="3" class="text-left">Workflow Stage</th>
+          <th colspan="4" class="text-right">Count</th>
         </tr>
         <tr>
-          <td colspan="3" class="bold-label">Total Leads</td>
-          <td colspan="4">${stages.totalLeads}</td>
+          <td colspan="3" class="bold-label text-left">Total Leads</td>
+          <td colspan="4" class="text-right">${stages.totalLeads}</td>
         </tr>
         <tr class="even-row">
-          <td colspan="3" class="bold-label">Enquiries</td>
-          <td colspan="4">${stages.enquiries}</td>
+          <td colspan="3" class="bold-label text-left">Enquiries</td>
+          <td colspan="4" class="text-right">${stages.enquiries}</td>
         </tr>
         <tr>
-          <td colspan="3" class="bold-label">Site Visits</td>
-          <td colspan="4">${stages.siteVisits}</td>
+          <td colspan="3" class="bold-label text-left">Site Visits</td>
+          <td colspan="4" class="text-right">${stages.siteVisits}</td>
         </tr>
         <tr class="even-row">
-          <td colspan="3" class="bold-label">Hot List</td>
-          <td colspan="4">${stages.hotList}</td>
+          <td colspan="3" class="bold-label text-left">Hot List</td>
+          <td colspan="4" class="text-right">${stages.hotList}</td>
         </tr>
         <tr>
-          <td colspan="3" class="bold-label">Booked Units</td>
-          <td colspan="4">${stages.booked}</td>
+          <td colspan="3" class="bold-label text-left">Booked Units</td>
+          <td colspan="4" class="text-right">${stages.booked}</td>
         </tr>
         <tr class="even-row">
-          <td colspan="3" class="bold-label">Site Conversion (Handover)</td>
-          <td colspan="4">${stages.handover}</td>
+          <td colspan="3" class="bold-label text-left">Site Conversion (Handover)</td>
+          <td colspan="4" class="text-right">${stages.handover}</td>
         </tr>
         
         <tr><td colspan="7" style="border:none; height:10px;"></td></tr>
         
         <tr>
-          <th colspan="2">Executive Name</th>
-          <th>Total Leads</th>
-          <th>Enquiries</th>
-          <th>Site Visit</th>
-          <th>Hot List</th>
-          <th>Booked</th>
+          <th colspan="2" class="text-left">Executive Name</th>
+          <th class="text-right">Total Leads</th>
+          <th class="text-right">Enquiries</th>
+          <th class="text-right">Site Visit</th>
+          <th class="text-right">Hot List</th>
+          <th class="text-right">Booked</th>
         </tr>
       `;
 
@@ -1711,12 +1596,12 @@ const Dashboard = () => {
           executiveIdx++;
           htmlContent += `
             <tr ${rowClass}>
-              <td colspan="2" class="bold-label">${row.personName}</td>
-              <td>${row.totalLeads}</td>
-              <td>${row.enquiries}</td>
-              <td>${row.siteVisits}</td>
-              <td>${row.hotList}</td>
-              <td>${row.booked}</td>
+              <td colspan="2" class="bold-label text-left">${row.personName}</td>
+              <td class="text-right">${row.totalLeads}</td>
+              <td class="text-right">${row.enquiries}</td>
+              <td class="text-right">${row.siteVisits}</td>
+              <td class="text-right">${row.hotList}</td>
+              <td class="text-right">${row.booked}</td>
             </tr>
           `;
         }
@@ -1731,14 +1616,7 @@ const Dashboard = () => {
       </html>
     `;
 
-    const blob = new Blob([htmlContent], { type: 'application/vnd.ms-excel;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute("download", `Project_Wise_Report_${new Date().toISOString().substring(0, 10)}.xls`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    await exportHtmlSheetsToExcel([{ name: 'Project Performance', html: htmlContent }], `Project_Wise_Report_${new Date().toISOString().substring(0, 10)}.xlsx`);
   };
 
   const handleExportSourceReport = async (selectedSources) => {
@@ -1749,30 +1627,22 @@ const Dashboard = () => {
         <style>
           table { border-collapse: collapse; }
           td, th { border: 1px solid #cbd5e1; padding: 10px 14px; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; font-size: 10pt; color: #334155; }
-          th { font-weight: bold; background-color: #0e623a; color: white; border: 1px solid #0e623a; text-align: center; }
-          .title-row { font-size: 22pt; font-weight: bold; color: #0e623a; }
-          .section-banner { font-size: 11pt; font-weight: bold; background-color: #e2f0d9; color: #385723; padding: 12px; border: 1px solid #c5e1a5; text-align: center; text-transform: uppercase; letter-spacing: 0.5px; }
+          th { font-weight: bold; background-color: #0F5233; color: white; border: 1px solid #0F5233; text-align: center; }
+          .title-row { font-size: 14pt; font-weight: bold; background-color: #0F5233; color: #FFFFFF; }
+          .section-banner { font-size: 11pt; font-weight: bold; background-color: #E6F4EA; color: #0F5233; padding: 12px; border: 1px solid #C3E6CB; text-align: center; text-transform: uppercase; letter-spacing: 0.5px; }
           .even-row { background-color: #f8fafc; }
           .bold-label { font-weight: bold; color: #0f172a; }
         </style>
       </head>
       <body>
         <table>
-          <tr style="height: 120px;">
-            <td colspan="2" style="background-color: #0e623a; border: none; text-align: center; vertical-align: middle; height: 120px;">
-              <img src="${logoPath}" height="95" style="height: 95px; width: auto; display: block; margin: 0 auto;" />
-            </td>
-            <td colspan="2" class="title-row" style="border:none; vertical-align:middle; text-align:center; font-size: 22pt; font-weight: bold; color: #0e623a; height: 120px;">
-              JohnBuildwell ERP - SOURCE WISE PERFORMANCE REPORT
-            </td>
-          </tr>
-          <tr><td colspan="4" style="border:none; height: 15px;"></td></tr>
+          ${getExcelHeader('JOHN BUILDWELL ERP - MARKETING SOURCE PERFORMANCE REPORT', '', 4)}
           
           <tr>
-            <th>Source Type</th>
-            <th>Budget Allocation</th>
-            <th>Spent Value</th>
-            <th>Networth Value</th>
+            <th class="text-left">Source Type</th>
+            <th class="text-right">Budget Allocation</th>
+            <th class="text-right">Spent Value</th>
+            <th class="text-right">Networth Value</th>
           </tr>
     `;
 
@@ -1781,10 +1651,10 @@ const Dashboard = () => {
       const rowClass = idx % 2 === 1 ? 'class="even-row"' : '';
       htmlContent += `
         <tr ${rowClass}>
-          <td class="bold-label">${src}</td>
-          <td>Rs. ${(s.budget || 0).toLocaleString()}</td>
-          <td>Rs. ${(s.spent || 0).toLocaleString()}</td>
-          <td>Rs. ${(s.value || 0).toLocaleString()}</td>
+          <td class="bold-label text-left">${src}</td>
+          <td class="text-right">Rs. ${(s.budget || 0).toLocaleString()}</td>
+          <td class="text-right">Rs. ${(s.spent || 0).toLocaleString()}</td>
+          <td class="text-right">Rs. ${(s.value || 0).toLocaleString()}</td>
         </tr>
       `;
     });
@@ -1795,14 +1665,7 @@ const Dashboard = () => {
       </html>
     `;
 
-    const blob = new Blob([htmlContent], { type: 'application/vnd.ms-excel;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute("download", `Source_Wise_Report_${new Date().toISOString().substring(0, 10)}.xls`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    await exportHtmlSheetsToExcel([{ name: 'Source Performance', html: htmlContent }], `Source_Wise_Report_${new Date().toISOString().substring(0, 10)}.xlsx`);
   };
 
   const getSourcesData = () => {
