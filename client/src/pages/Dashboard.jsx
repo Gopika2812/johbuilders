@@ -13,6 +13,7 @@ import {
   Target,
   Search,
   ArrowRight,
+  ArrowLeft,
   TrendingDown,
   Building,
   BarChart3,
@@ -2199,9 +2200,10 @@ const Dashboard = () => {
                   {selectedUserPerfName && (
                     <button
                       onClick={() => setSelectedUserPerfName(null)}
-                      className="px-2.5 py-1 text-[11px] font-bold text-emerald-600 hover:text-emerald-700 bg-emerald-50 hover:bg-emerald-100/80 rounded-xl transition"
+                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-black text-white bg-[#0e623a] hover:bg-[#0b4d2d] rounded-xl transition shadow-md hover:shadow-lg active:scale-95 cursor-pointer"
                     >
-                      Clear Filter
+                      <ArrowLeft className="w-4 h-4" />
+                      <span>Back to All Users</span>
                     </button>
                   )}
                 </div>
@@ -2225,11 +2227,22 @@ const Dashboard = () => {
                 </div>
 
                 <div className="md:col-span-5 bg-black-50/50 rounded-2xl p-4 border-none space-y-4">
-                  <div className="border-b border-black-200/60 pb-2">
-                    <span className="text-[10px] text-black-400 font-extrabold uppercase tracking-wider block">Currently Showing</span>
-                    <h4 className="text-xs font-extrabold text-black-800 uppercase tracking-wide truncate mt-0.5">
-                      {selectedUserPerfData.userName}
-                    </h4>
+                  <div className="flex items-center justify-between border-b border-black-200/60 pb-2">
+                    <div>
+                      <span className="text-[10px] text-black-400 font-extrabold uppercase tracking-wider block">Currently Showing</span>
+                      <h4 className="text-xs font-extrabold text-black-800 uppercase tracking-wide truncate mt-0.5">
+                        {selectedUserPerfData.userName}
+                      </h4>
+                    </div>
+                    {selectedUserPerfName && (
+                      <button
+                        onClick={() => setSelectedUserPerfName(null)}
+                        className="flex items-center gap-1 px-2.5 py-1 text-[11px] font-black text-white bg-[#0e623a] hover:bg-[#0b4d2d] rounded-xl transition shadow"
+                      >
+                        <ArrowLeft className="w-3.5 h-3.5" />
+                        <span>Back</span>
+                      </button>
+                    )}
                   </div>
 
                   <div className="space-y-3">
