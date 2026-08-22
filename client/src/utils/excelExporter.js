@@ -215,8 +215,25 @@ export const exportHtmlSheetsToExcel = async (sheets, filename) => {
 
           // 6. Alignment & Header Text Wrapping
           let hAlign = 'center';
-          if (cellClasses.includes('text-left') || styleAttr.includes('text-align: left')) hAlign = 'left';
-          if (cellClasses.includes('text-right') || styleAttr.includes('text-align: right')) hAlign = 'right';
+
+          const isNumericOrValue = (
+            typeof excelCell.value === 'number' || 
+            (!isNaN(rawVal) && rawVal !== '' && !cellText.includes('DATE:') && !cellText.includes('S.No') && !cellText.includes('S.NO.')) || 
+            cellText.endsWith('%') || 
+            /\d+\s*Cr$/i.test(cellText) || 
+            cellClasses.includes('text-right') || 
+            styleAttr.includes('text-align: right')
+          );
+
+          if (cellClasses.includes('text-left') || styleAttr.includes('text-align: left')) {
+            hAlign = 'left';
+          } else if (isLogoCell || isHeaderCell) {
+            hAlign = 'center';
+          } else if (isNumericOrValue) {
+            hAlign = 'right'; // Align all values, numbers, targets, actuals, and percentages to the RIGHT
+          } else if (cellClasses.includes('text-center') || styleAttr.includes('text-align: center')) {
+            hAlign = 'center';
+          }
 
           excelCell.alignment = {
             horizontal: hAlign,

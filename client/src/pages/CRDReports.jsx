@@ -1371,7 +1371,7 @@ const CRDReports = () => {
               <td bgcolor="#E2EFDA" class="text-left bg-light-green" style="background-color: #E2EFDA;">${row.label}</td>
               <td bgcolor="#E2EFDA" class="text-right bg-light-green" style="background-color: #E2EFDA;">${row.target}${row.isFloat ? ' Cr' : ''}</td>
               <td bgcolor="#E2EFDA" class="text-right bg-light-green" style="background-color: #E2EFDA;">${row.isFloat ? row.actual.toFixed(2) : row.actual}</td>
-              <td class="font-bold">${pctText}</td>
+              <td class="font-bold text-right">${pctText}</td>
               <td bgcolor="#E2EFDA" class="text-right bg-light-green" style="background-color: #E2EFDA;">${row.isFloat ? row.w1.toFixed(2) : row.w1}</td>
               <td bgcolor="#E2EFDA" class="text-right bg-light-green" style="background-color: #E2EFDA;">${row.isFloat ? row.w2.toFixed(2) : row.w2}</td>
               <td bgcolor="#E2EFDA" class="text-right bg-light-green" style="background-color: #E2EFDA;">${row.isFloat ? row.w3.toFixed(2) : row.w3}</td>
