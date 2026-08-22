@@ -4,7 +4,7 @@ import { LOGO_BASE64 } from './logoBase64';
 
 let cachedLogoArrayBuffer = null;
 
-// Helper to fetch logo ArrayBuffer directly from public folder or base64 fallback
+// Helper to fetch logo Uint8Array directly from public folder or base64 fallback
 const getLogoArrayBuffer = async () => {
   if (cachedLogoArrayBuffer) return cachedLogoArrayBuffer;
   
@@ -12,7 +12,8 @@ const getLogoArrayBuffer = async () => {
     const res = await fetch('/logo_white.jpg');
     if (res.ok) {
       const blob = await res.blob();
-      cachedLogoArrayBuffer = await blob.arrayBuffer();
+      const arrayBuffer = await blob.arrayBuffer();
+      cachedLogoArrayBuffer = new Uint8Array(arrayBuffer);
       return cachedLogoArrayBuffer;
     }
   } catch (e) {
@@ -28,10 +29,10 @@ const getLogoArrayBuffer = async () => {
       for (let i = 0; i < len; i++) {
         bytes[i] = binaryString.charCodeAt(i);
       }
-      cachedLogoArrayBuffer = bytes.buffer;
+      cachedLogoArrayBuffer = bytes;
       return cachedLogoArrayBuffer;
     } catch (e) {
-      console.error('Failed to convert base64 to ArrayBuffer:', e);
+      console.error('Failed to convert base64 to Uint8Array:', e);
     }
   }
   return null;
@@ -56,6 +57,15 @@ export const exportHtmlSheetsToExcel = async (sheets, filename) => {
 
     for (const sheetObj of sheets) {
       const ws = wb.addWorksheet(sheetObj.name || 'Report');
+
+      // Page Setup: Landscape & Fit to 1 Page Wide
+      ws.pageSetup = {
+        orientation: 'landscape',
+        fitToPage: true,
+        fitToWidth: 1,
+        fitToHeight: 0,
+        paperSize: 9 // A4
+      };
 
       const div = document.createElement('div');
       div.innerHTML = sheetObj.html;
@@ -142,21 +152,24 @@ export const exportHtmlSheetsToExcel = async (sheets, filename) => {
           const isLogoCell = cellClasses.includes('logo-cell') || hasImg || (rIdx === 0 && cIdx < 2 && (cellText.toUpperCase() === 'JOHN BUILDWELL' || cellText === ''));
 
           if (isLogoCell) {
-            excelCell.value = 'JB  |  JOHN BUILDWELL';
             bgHex = 'FFFFFF';
             fontColor = '0F5233';
-            ws.getRow(rIdx + 1).height = 55;
+            ws.getRow(rIdx + 1).height = 45;
 
             if (logoImageId) {
+              excelCell.value = ''; // Clear text so image shows cleanly
               try {
                 ws.addImage(logoImageId, {
                   tl: { col: cIdx + 0.1, row: rIdx + 0.1 },
-                  ext: { width: 140, height: 48 },
+                  ext: { width: 130, height: 40 },
                   editAs: 'oneCell'
                 });
               } catch (e) {
                 console.warn('Could not overlay image:', e);
+                excelCell.value = 'JB  |  JOHN BUILDWELL';
               }
+            } else {
+              excelCell.value = 'JB  |  JOHN BUILDWELL';
             }
           } else {
             // Value parsing
@@ -178,7 +191,7 @@ export const exportHtmlSheetsToExcel = async (sheets, filename) => {
 
           excelCell.font = {
             name: 'Segoe UI',
-            size: (isLogoCell || cellClasses.includes('title-row') || rIdx === 0) ? 13 : 10,
+            size: (isLogoCell || cellClasses.includes('title-row') || rIdx === 0) ? 12 : 9.5,
             bold: isBold,
             color: { argb: 'FF' + fontColor }
           };
@@ -198,7 +211,7 @@ export const exportHtmlSheetsToExcel = async (sheets, filename) => {
           excelCell.alignment = {
             horizontal: hAlign,
             vertical: 'middle',
-            wrapText: cellText.length > 90 // Only wrap if extremely long text > 90 chars
+            wrapText: cellText.length > 60
           };
 
           // 7. Borders
@@ -210,23 +223,30 @@ export const exportHtmlSheetsToExcel = async (sheets, filename) => {
         }
       }
 
-      // Dynamic Auto-Column Width Calculation (Expand column until text finishes on 1 line)
+      // Dynamic Compact Column Width Calculation (Tight, fitted formatting)
       const colMaxLens = [];
       ws.eachRow((row, rowNumber) => {
-        if (rowNumber <= 2) return; // Skip title banner rows so header text doesn't over-expand narrow columns
+        if (rowNumber <= 2) return; // Skip title banner rows
         row.eachCell((cell, colNumber) => {
           const valStr = cell.value ? String(cell.value) : '';
           const lines = valStr.split(/\r?\n/);
           lines.forEach(l => {
-            colMaxLens[colNumber] = Math.max(colMaxLens[colNumber] || 10, l.length);
+            colMaxLens[colNumber] = Math.max(colMaxLens[colNumber] || 5, l.length);
           });
         });
       });
 
       for (let col = 1; col <= maxCol + 1; col++) {
-        const maxLen = colMaxLens[col] || 15;
-        // Expand column generously (+5 padding) so full remarks fit on 1 single line
-        const calculatedWidth = Math.min(Math.max(maxLen + 5, 12), 100);
+        const maxLen = colMaxLens[col] || 8;
+        let calculatedWidth = maxLen + 2.5; // Compact 2.5 char padding
+
+        if (col === 1) {
+          calculatedWidth = Math.min(Math.max(maxLen + 2, 6), 8); // S.No column: width 6-8
+        } else if (col === 2) {
+          calculatedWidth = Math.min(Math.max(maxLen + 2, 10), 16); // Project column: width 10-16
+        } else {
+          calculatedWidth = Math.min(Math.max(calculatedWidth, 8), 35); // Data columns: min 8, max 35
+        }
         ws.getColumn(col).width = calculatedWidth;
       }
     }
