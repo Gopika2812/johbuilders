@@ -154,14 +154,14 @@ export const exportHtmlSheetsToExcel = async (sheets, filename) => {
           if (isLogoCell) {
             bgHex = 'FFFFFF';
             fontColor = '0F5233';
-            ws.getRow(rIdx + 1).height = 45;
+            ws.getRow(rIdx + 1).height = 65; // Enlarge title/logo row height to 65px
 
             if (logoImageId !== null) {
               excelCell.value = ''; // Clear text so logo image displays cleanly
               try {
                 ws.addImage(logoImageId, {
-                  tl: { col: cIdx + 0.1, row: rIdx + 0.1 },
-                  br: { col: cIdx + cSpan - 0.1, row: rIdx + rSpan - 0.1 },
+                  tl: { col: cIdx + 0.02, row: rIdx + 0.02 },
+                  br: { col: cIdx + cSpan - 0.02, row: rIdx + rSpan - 0.02 },
                   editAs: 'oneCell'
                 });
               } catch (e) {
@@ -233,7 +233,7 @@ export const exportHtmlSheetsToExcel = async (sheets, filename) => {
         }
       }
 
-      // Column Width Calculation (Increase Remarks column, fit Contact phone numbers, compact others)
+      // Spacious Column Width Calculation (Generous, well-spaced column widths)
       for (let col = 1; col <= maxCol + 1; col++) {
         let dataMaxLen = 0;
         let headerTitle = '';
@@ -242,49 +242,62 @@ export const exportHtmlSheetsToExcel = async (sheets, filename) => {
           const cellVal = row.getCell(col).value;
           if (cellVal !== null && cellVal !== undefined) {
             const s = String(cellVal).trim();
-            if (rowNumber <= 6 && (
-              s.toUpperCase().includes('REMARKS') || 
-              s.toUpperCase().includes('DESCRIPTION') || 
-              s.toUpperCase().includes('CONTACT') || 
-              s.toUpperCase().includes('NAME') || 
-              s.toUpperCase().includes('STATUS') || 
-              s.toUpperCase().includes('PROJECT') || 
-              s.toUpperCase().includes('DATE') || 
-              s.toUpperCase().includes('S.NO') ||
-              s.toUpperCase().includes('PLACE') ||
-              s.toUpperCase().includes('MODE')
-            )) {
-              headerTitle = s.toUpperCase();
+            if (rowNumber <= 7) {
+              if (s.toUpperCase().includes('REMARKS') || 
+                  s.toUpperCase().includes('DESCRIPTION') || 
+                  s.toUpperCase().includes('CONTACT') || 
+                  s.toUpperCase().includes('NAME') || 
+                  s.toUpperCase().includes('STATUS') || 
+                  s.toUpperCase().includes('PROJECT') || 
+                  s.toUpperCase().includes('DATE') || 
+                  s.toUpperCase().includes('S.NO') ||
+                  s.toUpperCase().includes('PLACE') ||
+                  s.toUpperCase().includes('MODE') ||
+                  s.toUpperCase().includes('ACHIEVED') ||
+                  s.toUpperCase().includes('TARGET') ||
+                  s.toUpperCase().includes('ACTUAL') ||
+                  s.toUpperCase().includes('WEEK')
+              ) {
+                headerTitle = s.toUpperCase();
+              }
             }
-            if (rowNumber > 6) {
+            if (rowNumber > 3) {
               const lines = s.split(/\r?\n/);
               lines.forEach(l => { dataMaxLen = Math.max(dataMaxLen, l.length); });
             }
           }
         });
 
-        let calculatedWidth = 10;
+        let calculatedWidth = 14;
 
         if (headerTitle.includes('REMARKS') || headerTitle.includes('NOTE') || headerTitle.includes('COMPLAINT')) {
-          // REMARKS column: Spacious width (45 - 60) so long comments fit comfortably!
-          calculatedWidth = Math.min(Math.max(dataMaxLen + 4, 45), 65);
+          // REMARKS column: Spacious width (50 - 70)
+          calculatedWidth = Math.min(Math.max(dataMaxLen + 5, 50), 70);
         } else if (headerTitle.includes('DESCRIPTION') || headerTitle.includes('NAME') || headerTitle.includes('CUSTOMER')) {
-          // DESCRIPTION / NAME column: Spacious width (22 - 32)
-          calculatedWidth = Math.min(Math.max(dataMaxLen + 3, 22), 35);
+          // DESCRIPTION / NAME column: Spacious width (28 - 38)
+          calculatedWidth = Math.min(Math.max(dataMaxLen + 4, 28), 38);
         } else if (headerTitle.includes('CONTACT') || headerTitle.includes('PHONE') || headerTitle.includes('MOBILE')) {
-          // CONTACT column: width 16 (fits 10-12 digit phone number cleanly)
+          // CONTACT column: width 18
+          calculatedWidth = 18;
+        } else if (headerTitle.includes('WEEK')) {
+          // 1st/2nd/3rd/4th Week Actual columns: width 16
           calculatedWidth = 16;
+        } else if (headerTitle.includes('ACHIEVED')) {
+          // % ACHIEVED column: width 15
+          calculatedWidth = 15;
+        } else if (headerTitle.includes('TARGET') || headerTitle.includes('ACTUAL')) {
+          // TARGET / ACTUAL columns: width 13
+          calculatedWidth = 13;
         } else if (headerTitle.includes('S.NO') || headerTitle.includes('S NO') || headerTitle === 'S.NO.') {
-          calculatedWidth = 6;
+          calculatedWidth = 7.5;
         } else if (headerTitle.includes('PROJECT') || headerTitle.includes('PLOT') || headerTitle.includes('UNIT') || headerTitle.includes('PLACE')) {
-          calculatedWidth = 10;
+          calculatedWidth = 12;
         } else if (headerTitle.includes('DATE')) {
-          calculatedWidth = 12;
+          calculatedWidth = 13;
         } else if (headerTitle.includes('STATUS') || headerTitle.includes('MODE') || headerTitle.includes('BY')) {
-          calculatedWidth = 12;
+          calculatedWidth = 14;
         } else {
-          // All numeric & week actual columns: compact 9-11 width
-          calculatedWidth = Math.min(Math.max(dataMaxLen + 2.5, 9), 11);
+          calculatedWidth = Math.min(Math.max(dataMaxLen + 3.5, 12), 16);
         }
 
         ws.getColumn(col).width = calculatedWidth;
