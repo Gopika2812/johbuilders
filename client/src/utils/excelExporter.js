@@ -147,7 +147,8 @@ export const exportHtmlSheetsToExcel = async (sheets, filename) => {
             }
           }
 
-          // 3. Logo Cell & Formatting
+          // 3. Raw value calculation & Logo Cell Formatting
+          const rawVal = cellText.replace(/^₹\s*/, '').replace(/,/g, '');
           const hasImg = Boolean(cell.querySelector('img'));
           const isLogoCell = cellClasses.includes('logo-cell') || hasImg || (rIdx === 0 && cIdx < 2 && (cellText.toUpperCase() === 'JOHN BUILDWELL' || cellText === ''));
 
@@ -173,7 +174,6 @@ export const exportHtmlSheetsToExcel = async (sheets, filename) => {
             }
           } else {
             // Value & Phone Number parsing
-            const rawVal = cellText.replace(/^₹\s*/, '').replace(/,/g, '');
             const isPhoneOrContact = (
               cellClasses.includes('contact') || 
               cellClasses.includes('phone') || 
