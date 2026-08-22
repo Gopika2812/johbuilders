@@ -1647,6 +1647,7 @@ const LeadsDirectory = () => {
     setAddress('');
     setSelectedProjectId('');
     setAssignedToId(user?.role?.toLowerCase() === 'sales person' ? user._id : '');
+    setLeadType(user?.role?.toLowerCase() === 'sales person' ? 'Direct Visit' : 'Lead');
     setLeadSource('');
     setSelectedAdId('');
     setFetchedAdLink('');
@@ -2277,17 +2278,19 @@ const LeadsDirectory = () => {
                 <div className="bg-black-50 p-4 rounded-2xl border border-black-150">
                   <label className="text-[11px] font-bold text-black-400 uppercase tracking-wider block mb-2">Lead Record Category</label>
                   <div className="flex gap-4 flex-wrap">
-                    <label className="flex items-center gap-1.5 text-xs font-semibold text-black-700 cursor-pointer">
+                    <label className={`flex items-center gap-1.5 text-xs font-semibold ${user?.role?.toLowerCase() === 'sales person' ? 'text-black-300 cursor-not-allowed opacity-40' : 'text-black-700 cursor-pointer'}`}>
                       <input
                         type="radio"
                         name="leadType"
                         value="Lead"
                         checked={leadType === 'Lead'}
+                        disabled={user?.role?.toLowerCase() === 'sales person'}
                         onChange={() => {
+                          if (user?.role?.toLowerCase() === 'sales person') return;
                           setLeadType('Lead');
                           setDuplicateWarning(null);
                         }}
-                        className="text-[#0e623a] focus:ring-[#0e623a] w-4 h-4"
+                        className="text-[#0e623a] focus:ring-[#0e623a] w-4 h-4 disabled:cursor-not-allowed"
                       />
                       <span>Lead (Campaigns)</span>
                     </label>
