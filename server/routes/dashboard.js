@@ -1103,6 +1103,7 @@ router.get('/stats', protect, async (req, res) => {
         },
         inventory: {
           totalProjects,
+          projectsByType,
           totalUnits,
           availableUnits,
           bookedUnits,

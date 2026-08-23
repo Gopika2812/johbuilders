@@ -1369,7 +1369,7 @@ const Dashboard = () => {
           </tr>
     `;
 
-    ['Plot', 'Flat', 'Villa'].forEach((type, idx) => {
+    ['Plot', 'Flat', 'Villa', 'Unit'].forEach((type, idx) => {
       const overallCount = (inventory.totalByType?.[type] || 0) + (type === 'Villa' ? (inventory.totalByType?.House || 0) : 0);
       const overallVal = (inventory.totalValueByType?.[type] || 0) + (type === 'Villa' ? (inventory.totalValueByType?.House || 0) : 0);
       const availCount = (inventory.availableByType?.[type] || 0) + (type === 'Villa' ? (inventory.availableByType?.House || 0) : 0);
