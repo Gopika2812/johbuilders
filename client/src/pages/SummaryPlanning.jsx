@@ -98,15 +98,78 @@ const SummaryPlanning = () => {
         setProjectStats(fetchedStats);
       }
 
-      // 4. Fetch Phase 3 Marketing Stats
-      const mStatsRes = await fetch(`${API_URL}/summary-plans/marketing-stats/${selectedMonth}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      // 4. Fetch Phase 3 Marketing Stats & Budget Plan
+      const [mStatsRes, bPlanRes] = await Promise.all([
+        fetch(`${API_URL}/summary-plans/marketing-stats/${selectedMonth}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        }),
+        fetch(`${API_URL}/budget-plans/${selectedMonth}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        })
+      ]);
+
       let fetchedMStats = { groups: {}, static: {} };
       if (mStatsRes.ok) {
         fetchedMStats = await mStatsRes.json();
-        setMarketingStats(fetchedMStats);
       }
+
+      if (bPlanRes.ok) {
+        const bPlanData = await bPlanRes.json();
+        if (bPlanData && bPlanData.allocations) {
+          const parseWeekBucketClient = (dateInput, description = '') => {
+            const descStr = (description || '').toLowerCase();
+            if (descStr.includes('1st week') || descStr.includes('1st wk') || descStr.includes('week 1') || descStr.includes('wk 1') || descStr.includes('week1')) return 'w1';
+            if (descStr.includes('2nd week') || descStr.includes('2nd wk') || descStr.includes('week 2') || descStr.includes('wk 2') || descStr.includes('week2')) return 'w2';
+            if (descStr.includes('3rd week') || descStr.includes('3rd wk') || descStr.includes('week 3') || descStr.includes('wk 3') || descStr.includes('week3')) return 'w3';
+            if (descStr.includes('4th week') || descStr.includes('4th wk') || descStr.includes('week 4') || descStr.includes('wk 4') || descStr.includes('week4')) return 'w4';
+
+            const d = new Date(dateInput);
+            const dayOfMonth = d.getDate() || d.getUTCDate();
+            if (dayOfMonth <= 8) return 'w1';
+            if (dayOfMonth <= 15) return 'w2';
+            if (dayOfMonth <= 22) return 'w3';
+            return 'w4';
+          };
+
+          // Reset and re-aggregate group weekly stats client-side with 100% precision
+          Object.keys(fetchedMStats.groups || {}).forEach(gName => {
+            if (fetchedMStats.groups[gName]) {
+              fetchedMStats.groups[gName].actual = 0;
+              fetchedMStats.groups[gName].w1 = 0;
+              fetchedMStats.groups[gName].w2 = 0;
+              fetchedMStats.groups[gName].w3 = 0;
+              fetchedMStats.groups[gName].w4 = 0;
+            }
+          });
+
+          bPlanData.allocations.forEach(alloc => {
+            const groupName = alloc.groupName;
+            const allocSrc = alloc.source;
+
+            for (let gName in fetchedMStats.groups) {
+              const srcMatch = allocSrc && fetchedMStats.groups[gName].sources?.some(s => s.toLowerCase() === allocSrc.toLowerCase());
+              const groupMatch = groupName && gName.toLowerCase() === groupName.toLowerCase();
+              if (srcMatch || groupMatch) {
+                if (alloc.expenses && alloc.expenses.length > 0) {
+                  alloc.expenses.forEach(exp => {
+                    const amt = exp.amount || 0;
+                    const week = parseWeekBucketClient(exp.date, exp.description);
+                    fetchedMStats.groups[gName].actual += amt;
+                    fetchedMStats.groups[gName][week] += amt;
+                  });
+                } else if (alloc.spent > 0) {
+                  const amt = alloc.spent;
+                  fetchedMStats.groups[gName].actual += amt;
+                  fetchedMStats.groups[gName].w4 += amt;
+                }
+                break;
+              }
+            }
+          });
+        }
+      }
+
+      setMarketingStats(fetchedMStats);
 
       // Map Phase 2 Targets
       const targetMap = {};

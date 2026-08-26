@@ -368,14 +368,16 @@ const QuotationsDirectory = () => {
                           >
                             <Edit3 className="w-4 h-4" />
                           </Link>
-                          <button
-                            onClick={() => handleDelete(q._id)}
-                            disabled={deletingId === q._id}
-                            className="p-2 text-black-500 hover:text-red-600 hover:bg-red-50 rounded-xl transition disabled:opacity-50"
-                            title="Delete Record"
-                          >
-                            {deletingId === q._id ? <Loader2 className="w-4 h-4 animate-spin text-red-500" /> : <Trash2 className="w-4 h-4" />}
-                          </button>
+                          {isAdmin && (
+                            <button
+                              onClick={() => handleDelete(q._id)}
+                              disabled={deletingId === q._id}
+                              className="p-2 text-black-500 hover:text-red-600 hover:bg-red-50 rounded-xl transition disabled:opacity-50"
+                              title="Delete Record"
+                            >
+                              {deletingId === q._id ? <Loader2 className="w-4 h-4 animate-spin text-red-500" /> : <Trash2 className="w-4 h-4" />}
+                            </button>
+                          )}
                         </div>
                       </td>
                     )}

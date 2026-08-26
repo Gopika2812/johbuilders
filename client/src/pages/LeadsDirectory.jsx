@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth, API_URL } from '../context/AuthContext';
 import { LOGO_BASE64 } from '../utils/logoBase64';
+import { exportHtmlSheetsToExcel } from '../utils/excelExporter';
 import SearchableSelect from '../components/SearchableSelect';
 import SearchableMultiSelect from '../components/SearchableMultiSelect';
 import DateRangeFilter from '../components/DateRangeFilter';
@@ -28,6 +29,7 @@ import {
   DollarSign,
   Building2,
   CalendarClock,
+  MessageCircle,
   FileSpreadsheet,
   X,
   MoreVertical,
@@ -252,6 +254,201 @@ const LeadsDirectory = () => {
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   });
+
+  const [sendWhatsAppAlert, setSendWhatsAppAlert] = useState(true);
+  const [waAlertModal, setWaAlertModal] = useState(null);
+
+  // Manual WhatsApp Sharing Modal State
+  const [waShareModalLead, setWaShareModalLead] = useState(null);
+  const [waPresetType, setWaPresetType] = useState('assignment'); // 'assignment' | 'sitevisit' | 'booking'
+  const [waRecipientName, setWaRecipientName] = useState('');
+  const [waRecipientPhone, setWaRecipientPhone] = useState('');
+  const [waCustomMessage, setWaCustomMessage] = useState('');
+
+  const getExecutiveName = (lead) => {
+    const assignedId = lead?.assignedTo?._id || (typeof lead?.assignedTo === 'string' ? lead.assignedTo : null);
+    const assignedName = (typeof lead?.assignedTo === 'object' ? lead.assignedTo.name : '') || '';
+
+    if (assignedId) {
+      const emp = employees.find(e => String(e._id) === String(assignedId));
+      if (emp && emp.name) return emp.name;
+    }
+    if (assignedName) return assignedName;
+    return 'Executive';
+  };
+
+  const getExecutivePhone = (lead) => {
+    const assignedId = lead?.assignedTo?._id || (typeof lead?.assignedTo === 'string' ? lead.assignedTo : null);
+    const assignedName = (typeof lead?.assignedTo === 'object' ? lead.assignedTo.name : '') || '';
+
+    // 1. Try finding in employees list by ID
+    if (assignedId) {
+      const emp = employees.find(e => String(e._id) === String(assignedId));
+      if (emp && (emp.phone || emp.mobile || emp.phoneNumber)) {
+        return emp.phone || emp.mobile || emp.phoneNumber;
+      }
+    }
+
+    // 2. Try finding in employees list by Name
+    if (assignedName) {
+      const emp = employees.find(e => e.name && e.name.toLowerCase().trim() === assignedName.toLowerCase().trim());
+      if (emp && (emp.phone || emp.mobile || emp.phoneNumber)) {
+        return emp.phone || emp.mobile || emp.phoneNumber;
+      }
+    }
+
+    // 3. Fallback to populated object properties
+    if (lead?.assignedTo && typeof lead.assignedTo === 'object') {
+      return lead.assignedTo.phone || lead.assignedTo.mobile || lead.assignedTo.phoneNumber || '';
+    }
+
+    return '';
+  };
+
+  const handleOpenWhatsAppShareModal = (lead, preset = 'assignment') => {
+    setWaShareModalLead(lead);
+    setWaPresetType(preset);
+
+    const execName = getExecutiveName(lead);
+    const execPhone = getExecutivePhone(lead);
+    const clientName = lead?.name || 'Client';
+    const clientPhone = lead?.phone || '';
+
+    if (preset === 'assignment') {
+      setWaRecipientName(`${execName} (Assigned Executive)`);
+      setWaRecipientPhone(execPhone);
+      setWaCustomMessage(`Dear ${execName},\n\nA lead named ${clientName} has been assigned to you today. Kindly follow up and update the status accordingly.`);
+    } else if (preset === 'sitevisit') {
+      setWaRecipientName(`${clientName} (Customer)`);
+      setWaRecipientPhone(clientPhone);
+      let dateVal = lead?.followUpInfo?.nextFollowUpDate || lead?.siteVisitDate;
+      let dateStr = 'scheduled date';
+      let timeStr = '';
+      if (dateVal) {
+        const d = new Date(dateVal);
+        if (!isNaN(d.getTime())) {
+          dateStr = d.toLocaleDateString('en-GB');
+          if (d.getHours() > 0 || d.getMinutes() > 0) {
+            timeStr = ` at ${d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+          }
+        }
+      }
+      setWaCustomMessage(`Dear Sir/Madam,\n\nThank you for choosing John Buildwell. Your site visit has been scheduled on ${dateStr}${timeStr}. Looking forward to meet you on sight`);
+    } else if (preset === 'booking') {
+      setWaRecipientName(`${clientName} (Customer)`);
+      setWaRecipientPhone(clientPhone);
+      setWaCustomMessage(`Dear Sir/Madam,\n\nThank you for choosing John Buildwell and booking your dream home with us. We are delighted to be a part of your building journey and look forward to serving you with the best experience throughout the process.`);
+    }
+  };
+
+  const handleSwitchWaPreset = (preset, lead = waShareModalLead) => {
+    if (!lead) return;
+    setWaPresetType(preset);
+    const execName = getExecutiveName(lead);
+    const execPhone = getExecutivePhone(lead);
+    const clientName = lead?.name || 'Client';
+    const clientPhone = lead?.phone || '';
+
+    if (preset === 'assignment') {
+      setWaRecipientName(`${execName} (Assigned Executive)`);
+      setWaRecipientPhone(execPhone);
+      setWaCustomMessage(`Dear ${execName},\n\nA lead named ${clientName} has been assigned to you today. Kindly follow up and update the status accordingly.`);
+    } else if (preset === 'sitevisit') {
+      setWaRecipientName(`${clientName} (Customer)`);
+      setWaRecipientPhone(clientPhone);
+      let dateVal = lead?.followUpInfo?.nextFollowUpDate || lead?.siteVisitDate;
+      let dateStr = 'scheduled date';
+      let timeStr = '';
+      if (dateVal) {
+        const d = new Date(dateVal);
+        if (!isNaN(d.getTime())) {
+          dateStr = d.toLocaleDateString('en-GB');
+          if (d.getHours() > 0 || d.getMinutes() > 0) {
+            timeStr = ` at ${d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+          }
+        }
+      }
+      setWaCustomMessage(`Dear Sir/Madam,\n\nThank you for choosing John Buildwell. Your site visit has been scheduled on ${dateStr}${timeStr}. Looking forward to meet you on sight`);
+    } else if (preset === 'booking') {
+      setWaRecipientName(`${clientName} (Customer)`);
+      setWaRecipientPhone(clientPhone);
+      setWaCustomMessage(`Dear Sir/Madam,\n\nThank you for choosing John Buildwell and booking your dream home with us. We are delighted to be a part of your building journey and look forward to serving you with the best experience throughout the process.`);
+    }
+  };
+
+  const handleLaunchWhatsApp = () => {
+    if (!waRecipientPhone) {
+      alert('No valid phone number found for sending WhatsApp message!');
+      return;
+    }
+    let cleanPhone = waRecipientPhone.replace(/\D/g, '');
+    if (cleanPhone.length === 10) cleanPhone = '91' + cleanPhone;
+
+    const waUrl = `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(waCustomMessage)}`;
+    window.open(waUrl, '_blank');
+    setWaShareModalLead(null);
+  };
+
+  const triggerSiteVisitWhatsAppNotification = (customerName, customerPhone, siteVisitDateStr) => {
+    if (!customerPhone) return;
+    let cleanPhone = customerPhone.replace(/\D/g, '');
+    if (cleanPhone.length === 10) cleanPhone = '91' + cleanPhone;
+
+    let formattedDate = siteVisitDateStr || '';
+    let timeStr = '';
+    if (siteVisitDateStr) {
+      try {
+        const d = new Date(siteVisitDateStr);
+        if (!isNaN(d.getTime())) {
+          const day = String(d.getDate()).padStart(2, '0');
+          const month = String(d.getMonth() + 1).padStart(2, '0');
+          const year = d.getFullYear();
+          formattedDate = `${day}/${month}/${year}`;
+          if (d.getHours() > 0 || d.getMinutes() > 0) {
+            timeStr = ` at ${d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+          }
+        }
+      } catch (e) {}
+    }
+
+    const msgText = `Dear Sir/Madam,\n\nThank you for choosing John Buildwell. Your site visit has been scheduled on ${formattedDate || 'scheduled date'}${timeStr}. Looking forward to meet you on sight`;
+    const waUrl = `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(msgText)}`;
+
+    try {
+      window.open(waUrl, '_blank');
+    } catch (err) {
+      console.error("Window open error:", err);
+    }
+
+    setWaAlertModal({
+      empName: `${customerName} (Client - Site Visit)`,
+      empPhone: customerPhone,
+      message: msgText,
+      waUrl: waUrl
+    });
+  };
+
+  const triggerBookedWhatsAppNotification = (customerName, customerPhone, unitNumberStr) => {
+    if (!customerPhone) return;
+    let cleanPhone = customerPhone.replace(/\D/g, '');
+    if (cleanPhone.length === 10) cleanPhone = '91' + cleanPhone;
+
+    const msgText = `Dear Sir/Madam,\n\nThank you for choosing John Buildwell and booking your dream home with us. We are delighted to be a part of your building journey and look forward to serving you with the best experience throughout the process.`;
+    const waUrl = `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(msgText)}`;
+
+    try {
+      window.open(waUrl, '_blank');
+    } catch (err) {
+      console.error("Window open error:", err);
+    }
+
+    setWaAlertModal({
+      empName: `${customerName} (Client - Booking Confirmed)`,
+      empPhone: customerPhone,
+      message: msgText,
+      waUrl: waUrl
+    });
+  };
 
   const getMinCreationDate = () => {
     const d = new Date();
@@ -757,6 +954,16 @@ const LeadsDirectory = () => {
           }
         }
 
+        // Trigger WhatsApp notification if moved to Site Visit or Booking
+        if (editStatus === 'Site Visit') {
+          const siteVisitDate = selectedLeadForEdit?.followUpInfo?.nextFollowUpDate || new Date();
+          triggerSiteVisitWhatsAppNotification(editName, editPhoneCountryCode + editPhoneLocal, siteVisitDate);
+        } else if (editStatus === 'Booking' || editStatus === 'Booked') {
+          const bookedUnits = selectedLeadForEdit?.bookingInfo?.selectedUnits || [];
+          const unitNumberStr = bookedUnits.join(', ');
+          triggerBookedWhatsAppNotification(editName, editPhoneCountryCode + editPhoneLocal, unitNumberStr);
+        }
+
         setTimeout(() => setSuccessMsg(''), 3000);
       } else {
         const data = await res.json();
@@ -806,7 +1013,7 @@ const LeadsDirectory = () => {
   };
 
   const handleDeleteLead = async (leadId, leadName) => {
-    if (!window.confirm(`Are you sure you want to permanently delete lead "${leadName}"?`)) {
+    if (!window.confirm(`Are you sure you want to permanently delete lead "${leadName}"?\n\nThis action will delete the lead record, release any booked project units back to Available status, and remove all linked quotations and CRD flows across all modules.`)) {
       return;
     }
     setError('');
@@ -820,9 +1027,11 @@ const LeadsDirectory = () => {
         }
       });
       if (res.ok) {
-        setSuccessMsg('Lead deleted successfully!');
+        const data = await res.json();
+        setSuccessMsg(data.message || 'Lead and all associated records deleted successfully!');
         fetchLeads();
-        setTimeout(() => setSuccessMsg(''), 3000);
+        fetchProjects();
+        setTimeout(() => setSuccessMsg(''), 4000);
       } else {
         const data = await res.json();
         setError(data.message || 'Failed to delete lead');
@@ -1012,7 +1221,7 @@ const LeadsDirectory = () => {
         const assignedId = payload.assignedTo || '';
         console.log("Email Notification Check (Create):", { assignedId });
         if (assignedId) {
-          const matchedEmployee = employees.find(emp => emp._id === assignedId);
+          const matchedEmployee = employees.find(emp => emp._id === assignedId) || (assignedId === user?._id ? user : null);
           console.log("Email Notification Employee (Create):", { employeeFound: !!matchedEmployee, employeeEmail: matchedEmployee?.email });
           if (matchedEmployee && matchedEmployee.email) {
             const proj = projects.find(p => p._id === selectedProjectId);
@@ -1023,6 +1232,28 @@ const LeadsDirectory = () => {
               user.name || 'System Admin',
               user.email
             ).catch(e => console.error("EmailJS Error:", e));
+          }
+
+          // 📲 Trigger WhatsApp Notification if enabled
+          if (sendWhatsAppAlert && matchedEmployee) {
+            const phoneRaw = matchedEmployee.phone || matchedEmployee.mobile || '';
+            if (phoneRaw) {
+              let cleanPhone = phoneRaw.replace(/\D/g, '');
+              if (cleanPhone.length === 10) cleanPhone = '91' + cleanPhone;
+              const msgText = `Dear ${matchedEmployee.name || 'Executive'},\n\nA lead named ${payload.name} has been assigned to you today. Kindly follow up and update the status accordingly.`;
+              const waUrl = `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(msgText)}`;
+              try {
+                window.open(waUrl, '_blank');
+              } catch (waErr) {
+                console.error("Window open error:", waErr);
+              }
+              setWaAlertModal({
+                empName: matchedEmployee.name || 'Executive',
+                empPhone: phoneRaw,
+                message: msgText,
+                waUrl: waUrl
+              });
+            }
           }
         }
 
@@ -1250,6 +1481,12 @@ const LeadsDirectory = () => {
       if (res.ok) {
         setBookedModalOpen(false);
         setSuccessMsg('Booked registered successfully & Quotation Generated!');
+        const unitNumberStr = (selectedBookedUnits || []).join(', ');
+        triggerBookedWhatsAppNotification(
+          selectedLeadForBooked?.name,
+          selectedLeadForBooked?.phone,
+          unitNumberStr
+        );
         fetchLeads();
         setTimeout(() => setSuccessMsg(''), 4000);
       } else {
@@ -1379,8 +1616,13 @@ const LeadsDirectory = () => {
           setSuccessMsg('Lead moved to Future Follow-up successfully!');
         } else if (followMode === 'FollowUp') {
           setSuccessMsg(`Follow-up scheduled successfully for ${new Date(nextFollowDate).toLocaleDateString()}!`);
-        } else if (followMode === 'SiteVisit') {
+        } else if (followMode === 'SiteVisit' || payload.status === 'Site Visit') {
           setSuccessMsg('Moved to Site Visit successfully!');
+          triggerSiteVisitWhatsAppNotification(
+            selectedLeadForFollow?.name,
+            selectedLeadForFollow?.phone,
+            nextFollowDate
+          );
         } else {
           setSuccessMsg('Lead has been marked as Lost successfully.');
         }
@@ -1503,7 +1745,7 @@ const LeadsDirectory = () => {
     }
   };
 
-  const handleExportExcel = () => {
+  const handleExportExcel = async () => {
     try {
       if (filteredLeadsList.length === 0) {
         alert('No leads found matching the active filters to export.');
@@ -1527,6 +1769,7 @@ const LeadsDirectory = () => {
             .text-left { text-align: left; }
             .text-center { text-align: center; }
             .text-right { text-align: right; }
+            .logo-cell { background-color: #FFFFFF !important; border: 1px solid #CBD5E1; text-align: center; vertical-align: middle; padding: 4px 8px; }
           </style>
         </head>
         <body>
@@ -1543,11 +1786,11 @@ const LeadsDirectory = () => {
             <col width="150" />
             <col width="300" />
 
-            <tr style="height: 60px;">
-              <td colspan="3" bgcolor="#0B4D2D" style="background-color: #0B4D2D; color: #FFFFFF; font-family: 'Segoe UI', Arial, sans-serif; font-size: 14pt; font-weight: bold; text-align: center; vertical-align: middle; height: 60px; border: 1px solid #000000;">
-                JOHN BUILDWELL
+            <tr style="height: 65px;">
+              <td colspan="2" bgcolor="#FFFFFF" class="logo-cell" style="background-color: #FFFFFF; padding: 4px 8px; text-align: center; vertical-align: middle; border: 1px solid #CBD5E1; height: 65px; width: 150px;">
+                ${logoPath ? `<img src="${logoPath}" style="max-height: 55px; max-width: 100%; width: auto; height: 55px; object-fit: contain; display: block; margin: 0 auto;" alt="JOHN BUILDWELL" />` : `<div style="color: #0F5233; font-size: 11pt; font-weight: bold; text-align: center;">JOHN BUILDWELL</div>`}
               </td>
-              <td colspan="7" class="title-row" style="background-color: #0b4d2d; border: 1px solid #000000; vertical-align: middle; text-align: center; font-size: 16pt; font-weight: 800; color: #ffffff; height: 60px; font-family: 'Segoe UI', sans-serif;">
+              <td colspan="8" class="title-row" style="background-color: #0b4d2d; border: 1px solid #000000; vertical-align: middle; text-align: center; font-size: 16pt; font-weight: 800; color: #ffffff; height: 65px; font-family: 'Segoe UI', sans-serif;">
                 LEADS DIRECTORY REPORT
               </td>
             </tr>
@@ -1620,16 +1863,8 @@ const LeadsDirectory = () => {
         </html>
       `;
 
-      // Trigger download
-      const blob = new Blob([html], { type: 'application/vnd.ms-excel' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `JB_LEADS_DIRECTORY_REPORT_${new Date().getFullYear()}_${new Date().getMonth() + 1}.xls`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      // Trigger download using ExcelJS engine with embedded PNG logo
+      await exportHtmlSheetsToExcel([{ name: 'Leads Directory', html: html }], `JB_LEADS_DIRECTORY_REPORT_${new Date().getFullYear()}_${new Date().getMonth() + 1}.xlsx`);
 
     } catch (err) {
       console.error(err);
@@ -1677,10 +1912,9 @@ const LeadsDirectory = () => {
         lead.phone?.includes(searchTerm) ||
         lead.project?.code?.toLowerCase().includes(searchTerm.toLowerCase());
 
-      const hasSearch = Boolean(searchTerm && searchTerm.trim());
       const itemTime = lead.createdAt ? new Date(lead.createdAt).getTime() : null;
-      const matchesStartDate = !hasSearch ? (!startTime || !itemTime || itemTime >= startTime) : true;
-      const matchesEndDate = !hasSearch ? (!endTime || !itemTime || itemTime <= endTime) : true;
+      const matchesStartDate = !startTime || !itemTime || itemTime >= startTime;
+      const matchesEndDate = !endTime || !itemTime || itemTime <= endTime;
 
       const matchesAssigned = !assignedFilter || lead.assignedTo?._id === assignedFilter;
       const matchesCampaign = !campaignFilter || campaignFilter.length === 0 || (Array.isArray(campaignFilter) ? campaignFilter.includes(lead.leadSource) : lead.leadSource === campaignFilter);
@@ -1809,6 +2043,7 @@ const LeadsDirectory = () => {
                 setStartDate(newStart);
                 setEndDate(newEnd);
               }}
+              onRefresh={fetchLeads}
               label="Date Range & Presets"
             />
           </div>
@@ -1942,6 +2177,7 @@ const LeadsDirectory = () => {
                 {hasColumnPermission('leads', 'assignedTo') && <th className="px-3 py-2">Assigned To</th>}
                 {hasColumnPermission('leads', 'leadStatus') && <th className="px-3 py-2">Lead Status</th>}
                 {hasColumnPermission('leads', 'nextFollowup') && <th className="px-3 py-2 text-center">Next Followup</th>}
+                <th className="px-3 py-2 text-center">WhatsApp</th>
                 {hasColumnPermission('leads', 'actions') && <th className="px-3 py-2 text-center">Actions</th>}
               </tr>
             </thead>
@@ -2002,11 +2238,9 @@ const LeadsDirectory = () => {
                     {/* Phone Number */}
                     {hasColumnPermission('leads', 'phoneNumber') && (
                       <td className="px-3 py-1.5 border-b border-black-100">
-                        <div className="flex flex-col gap-1 text-[11px] text-black-500">
-                          <div className="flex items-center gap-1 font-semibold">
-                            <Phone className="w-3 h-3 text-black-300" />
-                            <span>{lead.phone}</span>
-                          </div>
+                        <div className="flex items-center gap-1 font-semibold text-[11px] text-black-500">
+                          <Phone className="w-3 h-3 text-black-300" />
+                          <span>{lead.phone}</span>
                         </div>
                       </td>
                     )}
@@ -2139,6 +2373,18 @@ const LeadsDirectory = () => {
                       </td>
                     )}
 
+                    {/* Dedicated WhatsApp Column */}
+                    <td className="px-3 py-1.5 border-b border-black-100 text-center">
+                      <button
+                        onClick={() => handleOpenWhatsAppShareModal(lead, lead.status === 'Booking' ? 'booking' : lead.status === 'Site Visit' ? 'sitevisit' : 'assignment')}
+                        title="Share WhatsApp Alert"
+                        className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-50 hover:bg-[#0e623a] text-emerald-700 hover:text-white border border-emerald-300 font-bold text-[10px] rounded-lg transition shadow-sm cursor-pointer"
+                      >
+                        <MessageCircle className="w-3.5 h-3.5" />
+                        <span>Share</span>
+                      </button>
+                    </td>
+
                     {/* Action Triggers: History, Edit & Delete */}
                     {hasColumnPermission('leads', 'actions') && (
                       <td className="px-3 py-1.5 border-b border-black-100 text-center">
@@ -2156,6 +2402,12 @@ const LeadsDirectory = () => {
                               style={{ color: '#374151' }}
                             >
                               <History className="w-3.5 h-3.5" /> History
+                            </button>
+                            <button
+                              onClick={() => handleOpenWhatsAppShareModal(lead, 'assignment')}
+                              className="w-full text-left px-4 py-2 text-[11px] font-bold hover:bg-emerald-50 flex items-center gap-2 text-[#0e623a]"
+                            >
+                              <MessageCircle className="w-3.5 h-3.5 text-[#0e623a]" /> WhatsApp Share
                             </button>
                             <button
                               onClick={() => handleOpenEditModal(lead)}
@@ -2190,6 +2442,21 @@ const LeadsDirectory = () => {
                                 Cancel
                               </button>
                             )}
+                            {(() => {
+                              const roleNorm = (user?.role || '').toLowerCase().replace(/[\s_-]+/g, '');
+                              const isSuperAdmin = roleNorm === 'superadmin' || roleNorm === 'admin';
+                              if (!isSuperAdmin) return null;
+                              return (
+                                <button
+                                  onClick={() => handleDeleteLead(lead._id, lead.name)}
+                                  disabled={deletingId === lead._id}
+                                  className="w-full text-left px-4 py-2 text-[11px] font-bold hover:bg-red-50 flex items-center gap-2 text-red-600 border-t border-black-100 disabled:opacity-50 mt-1 pt-1.5 cursor-pointer"
+                                >
+                                  {deletingId === lead._id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5 text-red-600" />}
+                                  Delete Lead
+                                </button>
+                              );
+                            })()}
                           </div>
                         </div>
                       </td>
@@ -2616,6 +2883,32 @@ const LeadsDirectory = () => {
                 </div>
               )}
 
+              {/* WhatsApp Notification Option */}
+              <div className="flex items-center gap-2.5 px-4 py-3 bg-emerald-50/80 border border-emerald-200/90 rounded-2xl mt-4">
+                <input
+                  type="checkbox"
+                  id="sendWhatsAppAlert"
+                  checked={sendWhatsAppAlert}
+                  onChange={(e) => setSendWhatsAppAlert(e.target.checked)}
+                  className="w-4 h-4 text-[#0e623a] focus:ring-[#0e623a] rounded cursor-pointer shrink-0"
+                />
+                <label htmlFor="sendWhatsAppAlert" className="text-xs font-bold text-black-800 cursor-pointer flex flex-wrap items-center gap-1.5">
+                  <span className="text-[#0e623a] font-black flex items-center gap-1">
+                    <MessageCircle className="w-3.5 h-3.5 text-[#0e623a]" />
+                    Send WhatsApp Alert to Assigned Executive
+                  </span>
+                  {(() => {
+                    const targetId = previouslyAssignedExecutive ? previouslyAssignedExecutive._id : (leadType === 'Direct Visit' ? user?._id : assignedToId);
+                    const targetEmp = employees.find(e => e._id === targetId) || (targetId === user?._id ? user : null);
+                    return targetEmp && (targetEmp.phone || targetEmp.mobile) ? (
+                      <span className="text-[11px] font-bold text-emerald-800 bg-white px-2 py-0.5 rounded-lg border border-emerald-200/80 shadow-xs">
+                        ({targetEmp.name}: {targetEmp.phone || targetEmp.mobile})
+                      </span>
+                    ) : null;
+                  })()}
+                </label>
+              </div>
+
               {/* Submit Buttons */}
               <div className="flex items-center gap-3 pt-4 border-t">
                 <button
@@ -2634,6 +2927,139 @@ const LeadsDirectory = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* 📲 WhatsApp Alert Confirmation Modal */}
+      {waAlertModal && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl max-w-md w-full overflow-hidden shadow-2xl border border-black-100 p-6 text-center space-y-4 animate-in zoom-in-95 duration-200">
+            <div className="w-14 h-14 bg-emerald-100 rounded-full flex items-center justify-center mx-auto text-[#0e623a]">
+              <MessageCircle className="w-8 h-8" />
+            </div>
+            <h3 className="text-lg font-black text-black-800">Lead Saved & WhatsApp Ready!</h3>
+            <p className="text-xs text-black-600 font-medium">
+              WhatsApp alert message for <strong className="text-black-800">{waAlertModal.empName}</strong> ({waAlertModal.empPhone}):
+            </p>
+            <div className="bg-emerald-50 border border-emerald-200/90 rounded-2xl p-3 text-xs text-emerald-950 font-bold text-left italic leading-relaxed">
+              "{waAlertModal.message}"
+            </div>
+            <div className="flex gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setWaAlertModal(null)}
+                className="flex-1 py-2.5 border border-black-200 rounded-xl text-xs font-bold text-black-600 hover:bg-black-50 transition cursor-pointer"
+              >
+                Close
+              </button>
+              <a
+                href={waAlertModal.waUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => setWaAlertModal(null)}
+                className="flex-1 py-2.5 bg-[#0e623a] text-white rounded-xl text-xs font-black hover:bg-[#0b4d2d] transition shadow flex items-center justify-center gap-1.5 cursor-pointer text-decoration-none"
+              >
+                <MessageCircle className="w-4 h-4" />
+                <span>Open WhatsApp</span>
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* 📲 Manual WhatsApp Sharing Modal */}
+      {waShareModalLead && (
+        <div className="fixed inset-0 z-[115] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl max-w-lg w-full overflow-hidden shadow-2xl border border-black-100 p-6 space-y-4 animate-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between border-b border-black-100 pb-3">
+              <div className="flex items-center gap-2 text-[#0e623a]">
+                <MessageCircle className="w-5 h-5" />
+                <h3 className="text-base font-extrabold text-black-800">Share via WhatsApp</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setWaShareModalLead(null)}
+                className="text-black-400 hover:text-black-700 transition cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Target Preset Selector Tabs */}
+            <div className="space-y-1.5">
+              <label className="text-[11px] font-extrabold text-black-400 uppercase tracking-wider block">Message Preset Type</label>
+              <div className="grid grid-cols-3 gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleSwitchWaPreset('assignment')}
+                  className={`py-2 px-2 text-[11px] font-extrabold rounded-xl transition border text-center cursor-pointer ${waPresetType === 'assignment' ? 'bg-[#0e623a] text-white border-[#0e623a] shadow-xs' : 'bg-black-50 text-black-700 border-black-200 hover:bg-black-100'}`}
+                >
+                  👤 Executive Alert
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSwitchWaPreset('sitevisit')}
+                  className={`py-2 px-2 text-[11px] font-extrabold rounded-xl transition border text-center cursor-pointer ${waPresetType === 'sitevisit' ? 'bg-[#0e623a] text-white border-[#0e623a] shadow-xs' : 'bg-black-50 text-black-700 border-black-200 hover:bg-black-100'}`}
+                >
+                  📅 Site Visit Alert
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSwitchWaPreset('booking')}
+                  className={`py-2 px-2 text-[11px] font-extrabold rounded-xl transition border text-center cursor-pointer ${waPresetType === 'booking' ? 'bg-[#0e623a] text-white border-[#0e623a] shadow-xs' : 'bg-black-50 text-black-700 border-black-200 hover:bg-black-100'}`}
+                >
+                  🏡 Booking Alert
+                </button>
+              </div>
+            </div>
+
+            {/* Target Recipient Info */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-black-50 p-3.5 rounded-2xl border border-black-150 text-xs">
+              <div>
+                <label className="text-[10px] font-bold text-black-400 uppercase tracking-wider block mb-0.5">Recipient Target</label>
+                <span className="font-extrabold text-black-800 block truncate">{waRecipientName || 'N/A'}</span>
+              </div>
+              <div>
+                <label className="text-[10px] font-bold text-black-400 uppercase tracking-wider block mb-0.5">Phone Number</label>
+                <input
+                  type="text"
+                  value={waRecipientPhone}
+                  onChange={(e) => setWaRecipientPhone(e.target.value)}
+                  placeholder="Enter phone number"
+                  className="w-full bg-white border border-black-200 rounded-lg px-2.5 py-1 text-xs font-bold text-black-800 focus:outline-none focus:ring-1 focus:ring-[#0e623a]"
+                />
+              </div>
+            </div>
+
+            {/* Editable Message Body */}
+            <div className="space-y-1">
+              <label className="text-[11px] font-extrabold text-black-400 uppercase tracking-wider block">Message Text (Editable)</label>
+              <textarea
+                rows="4"
+                value={waCustomMessage}
+                onChange={(e) => setWaCustomMessage(e.target.value)}
+                className="w-full bg-emerald-50/60 border border-emerald-200/90 rounded-2xl p-3 text-xs font-semibold text-emerald-950 focus:outline-none focus:ring-2 focus:ring-[#0e623a] leading-relaxed"
+              />
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setWaShareModalLead(null)}
+                className="flex-1 py-2.5 border border-black-200 rounded-xl text-xs font-bold text-black-600 hover:bg-black-50 transition cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleLaunchWhatsApp}
+                className="flex-1 py-2.5 bg-[#0e623a] text-white rounded-xl text-xs font-black hover:bg-[#0b4d2d] transition shadow flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                <MessageCircle className="w-4 h-4" />
+                <span>Open WhatsApp Web</span>
+              </button>
+            </div>
           </div>
         </div>
       )}

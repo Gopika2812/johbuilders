@@ -1007,10 +1007,19 @@ const CRDDashboard = () => {
     const inventory = stats.cards.inventory || {};
     
     const availableProjCount = inventory.totalProjects || 0;
-    const availableProjVal = (inventory.availableValueByType?.Plot || 0) + 
-                             (inventory.availableValueByType?.Flat || 0) + 
-                             (inventory.availableValueByType?.Villa || 0) +
-                             (inventory.availableValueByType?.House || 0);
+    const availableProjVal = Object.values(inventory.totalValueByType || {}).reduce((sum, val) => sum + (val || 0), 0);
+
+    const plotProjCount = inventory.projectsByType?.Plot || 0;
+    const plotProjVal = (inventory.totalValueByType?.Plot || 0);
+
+    const unitProjCount = (inventory.projectsByType?.Flat || 0) + 
+                          (inventory.projectsByType?.Villa || 0) + 
+                          (inventory.projectsByType?.House || 0) + 
+                          (inventory.projectsByType?.Unit || 0);
+    const unitProjVal = (inventory.totalValueByType?.Flat || 0) + 
+                        (inventory.totalValueByType?.Villa || 0) + 
+                        (inventory.totalValueByType?.House || 0) + 
+                        (inventory.totalValueByType?.Unit || 0);
 
     let htmlContent = `
       <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
@@ -1019,9 +1028,9 @@ const CRDDashboard = () => {
         <style>
           table { border-collapse: collapse; }
           td, th { border: 1px solid #cbd5e1; padding: 10px 14px; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; font-size: 10pt; color: #334155; }
-          th { font-weight: bold; background-color: #0e623a; color: white; border: 1px solid #0e623a; text-align: center; }
-          .title-row { font-size: 22pt; font-weight: bold; color: #0e623a; }
-          .section-banner { font-size: 11pt; font-weight: bold; background-color: #e2f0d9; color: #385723; padding: 12px; border: 1px solid #c5e1a5; text-align: center; text-transform: uppercase; letter-spacing: 0.5px; }
+          th { font-weight: bold; background-color: #0F5233; color: #FFFFFF; border: 1px solid #0F5233; text-align: center; }
+          .title-row { font-size: 22pt; font-weight: bold; color: #0F5233; }
+          .section-banner { font-size: 11pt; font-weight: bold; background-color: #0F5233; color: #FFFFFF; padding: 12px; border: 1px solid #0D4329; text-align: center; text-transform: uppercase; letter-spacing: 0.5px; }
           .even-row { background-color: #f8fafc; }
           .bold-label { font-weight: bold; color: #0f172a; }
         </style>
@@ -1050,16 +1059,18 @@ const CRDDashboard = () => {
             <td colspan="3">${availableProjCount}</td>
             <td colspan="3">Rs. ${availableProjVal.toLocaleString()}</td>
           </tr>
+          ${plotProjCount > 0 || plotProjVal > 0 ? `
           <tr class="even-row">
             <td colspan="3" class="bold-label">Available Projects (Plot)</td>
-            <td colspan="3">${inventory.projectsByType?.Plot || 0}</td>
-            <td colspan="3">Rs. ${(inventory.availableValueByType?.Plot || 0).toLocaleString()}</td>
-          </tr>
+            <td colspan="3">${plotProjCount}</td>
+            <td colspan="3">Rs. ${plotProjVal.toLocaleString()}</td>
+          </tr>` : ''}
+          ${unitProjCount > 0 || unitProjVal > 0 ? `
           <tr>
             <td colspan="3" class="bold-label">Available Projects (Unit)</td>
-            <td colspan="3">${(inventory.projectsByType?.Flat || 0) + (inventory.projectsByType?.Villa || 0) + (inventory.projectsByType?.House || 0) + (inventory.projectsByType?.Unit || 0)}</td>
-            <td colspan="3">Rs. ${((inventory.availableValueByType?.Flat || 0) + (inventory.availableValueByType?.Villa || 0) + (inventory.availableValueByType?.House || 0) + (inventory.availableValueByType?.Unit || 0)).toLocaleString()}</td>
-          </tr>
+            <td colspan="3">${unitProjCount}</td>
+            <td colspan="3">Rs. ${unitProjVal.toLocaleString()}</td>
+          </tr>` : ''}
           <tr><td colspan="9" style="border:none; height: 10px;"></td></tr>
           
           <tr>
@@ -1070,16 +1081,27 @@ const CRDDashboard = () => {
             <th>Available Value (INR)</th>
             <th>Booked Count</th>
             <th>Booked Value (INR)</th>
+            <th>Handover Count</th>
+            <th>Handover Value (INR)</th>
           </tr>
      `;
 
-    ['Plot', 'Flat', 'Villa'].forEach((type, idx) => {
+    const candidateTypes = ['Plot', 'Flat', 'Villa', 'Unit'];
+    const activeTypes = candidateTypes.filter(type => {
+      const overallCount = (inventory.totalByType?.[type] || 0) + (type === 'Villa' ? (inventory.totalByType?.House || 0) : 0);
+      return overallCount > 0;
+    });
+    const typesToRender = activeTypes.length > 0 ? activeTypes : ['Plot', 'Unit'];
+
+    typesToRender.forEach((type, idx) => {
       const overallCount = (inventory.totalByType?.[type] || 0) + (type === 'Villa' ? (inventory.totalByType?.House || 0) : 0);
       const overallVal = (inventory.totalValueByType?.[type] || 0) + (type === 'Villa' ? (inventory.totalValueByType?.House || 0) : 0);
       const availCount = (inventory.availableByType?.[type] || 0) + (type === 'Villa' ? (inventory.availableByType?.House || 0) : 0);
       const availVal = (inventory.availableValueByType?.[type] || 0) + (type === 'Villa' ? (inventory.availableValueByType?.House || 0) : 0);
       const bookedCount = (inventory.bookedByType?.[type] || 0) + (type === 'Villa' ? (inventory.bookedByType?.House || 0) : 0);
       const bookedVal = (inventory.bookedValueByType?.[type] || 0) + (type === 'Villa' ? (inventory.bookedValueByType?.House || 0) : 0);
+      const handCount = (inventory.handoverByType?.[type] || 0) + (type === 'Villa' ? (inventory.handoverByType?.House || 0) : 0);
+      const handVal = (inventory.handoverValueByType?.[type] || 0) + (type === 'Villa' ? (inventory.handoverValueByType?.House || 0) : 0);
       
       const rowClass = idx % 2 === 1 ? 'class="even-row"' : '';
       
@@ -1092,6 +1114,8 @@ const CRDDashboard = () => {
           <td>Rs. ${availVal.toLocaleString()}</td>
           <td>${bookedCount}</td>
           <td>Rs. ${bookedVal.toLocaleString()}</td>
+          <td>${handCount}</td>
+          <td>Rs. ${handVal.toLocaleString()}</td>
         </tr>
       `;
     });

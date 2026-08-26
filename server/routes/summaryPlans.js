@@ -8,14 +8,32 @@ const LeadGroup = require('../models/LeadGroup');
 const BudgetPlan = require('../models/BudgetPlan');
 const { protect } = require('../middleware/auth');
 
-// Helper to get week bucket (w1, w2, w3, w4) based on standard 7-day calendar weeks:
-// w1: Days 1-7, w2: Days 8-14, w3: Days 15-21, w4: Days 22-31
-const getWeekBucket = (dateInput) => {
+// Helper to get week bucket (w1, w2, w3, w4) based on description hints or date ranges:
+// w1: Days 1-8 (or '1st week' in description)
+// w2: Days 9-15 (or '2nd week' in description)
+// w3: Days 16-22 (or '3rd week' in description)
+// w4: Days 23-31 (or '4th week' in description)
+const getWeekBucket = (dateInput, description = '') => {
+  const descStr = (description || '').toLowerCase();
+
+  if (descStr.includes('1st week') || descStr.includes('1st wk') || descStr.includes('week 1') || descStr.includes('wk 1') || descStr.includes('week1')) {
+    return 'w1';
+  }
+  if (descStr.includes('2nd week') || descStr.includes('2nd wk') || descStr.includes('week 2') || descStr.includes('wk 2') || descStr.includes('week2')) {
+    return 'w2';
+  }
+  if (descStr.includes('3rd week') || descStr.includes('3rd wk') || descStr.includes('week 3') || descStr.includes('wk 3') || descStr.includes('week3')) {
+    return 'w3';
+  }
+  if (descStr.includes('4th week') || descStr.includes('4th wk') || descStr.includes('week 4') || descStr.includes('wk 4') || descStr.includes('week4')) {
+    return 'w4';
+  }
+
   const d = new Date(dateInput);
-  const dayOfMonth = d.getUTCDate();
-  if (dayOfMonth <= 7) return 'w1';
-  if (dayOfMonth <= 14) return 'w2';
-  if (dayOfMonth <= 21) return 'w3';
+  const dayOfMonth = d.getDate() || d.getUTCDate();
+  if (dayOfMonth <= 8) return 'w1';
+  if (dayOfMonth <= 15) return 'w2';
+  if (dayOfMonth <= 22) return 'w3';
   return 'w4';
 };
 
@@ -150,7 +168,7 @@ router.get('/marketing-stats/:month', protect, async (req, res) => {
             if (alloc.expenses && alloc.expenses.length > 0) {
               alloc.expenses.forEach(exp => {
                 const amt = exp.amount || 0;
-                const week = getWeekBucket(exp.date);
+                const week = getWeekBucket(exp.date, exp.description);
                 groupStats[gName].actual += amt;
                 groupStats[gName][week] += amt;
               });

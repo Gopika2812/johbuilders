@@ -155,13 +155,16 @@ const QuotationView = () => {
         >
           {/* Brand Header */}
           <div className="flex justify-between items-start border-b pb-6">
-            <div>
-              <h1 className="text-2xl font-black text-[#0e623a] tracking-tight">JOHN BUILDWELL CONSTRUCTIONS</h1>
-              <p className="text-xs text-gray-400 mt-1">Premium Builders & Real Estate Developers</p>
-              <div className="text-[11px] text-gray-500 mt-2 space-y-0.5">
-                <div>Corporate Office: Bypass Road, Vannarpettai</div>
-                <div>Tirunelveli, Tamil Nadu - 627003</div>
-                <div>Contact: +91 94432 83634 | info@johnbuildwell.com</div>
+            <div className="flex items-start gap-4">
+              <img src="/JB logo.png" alt="JB Logo" className="h-16 w-auto object-contain shrink-0" />
+              <div>
+                <h1 className="text-2xl font-black text-[#0e623a] tracking-tight">JOHN BUILDWELL CONSTRUCTIONS</h1>
+                <p className="text-xs text-gray-400 mt-1">Premium Builders & Real Estate Developers</p>
+                <div className="text-[11px] text-gray-500 mt-2 space-y-0.5">
+                  <div>Corporate Office: Bypass Road, Vannarpettai</div>
+                  <div>Tirunelveli, Tamil Nadu - 627003</div>
+                  <div>Contact: +91 94432 83634 | info@johnbuildwell.com</div>
+                </div>
               </div>
             </div>
             <div className="text-right">

@@ -45,9 +45,10 @@ export const exportHtmlSheetsToExcel = async (sheets, filename) => {
     let logoImageId = null;
     if (LOGO_BASE64) {
       try {
+        const ext = LOGO_BASE64.startsWith('data:image/png') ? 'png' : 'jpeg';
         logoImageId = wb.addImage({
           base64: LOGO_BASE64,
-          extension: 'jpeg',
+          extension: ext,
         });
       } catch (e) {
         console.error('Failed to add base64 logo image to Excel workbook:', e);
@@ -103,7 +104,7 @@ export const exportHtmlSheetsToExcel = async (sheets, filename) => {
           const cellClasses = (cell.className || '') + ' ' + (tr.className || '');
           const styleAttr = cell.getAttribute('style') || '';
           const bgcolorAttr = cell.getAttribute('bgcolor') || '';
-          const isHeaderCell = cell.tagName === 'TH' || cellClasses.includes('table-headers') || cellClasses.includes('bg-header-blue') || cellClasses.includes('bg-header-green');
+          const isHeaderCell = cell.tagName === 'TH' || cellClasses.includes('table-headers') || cellClasses.includes('bg-header-blue') || cellClasses.includes('bg-header-green') || cellClasses.includes('section-banner');
 
           // 1. Background color detection
           let bgHex = null;
@@ -114,8 +115,8 @@ export const exportHtmlSheetsToExcel = async (sheets, filename) => {
             bgHex = bgcolorAttr.replace('#', '').toUpperCase();
           }
 
-          if (!bgHex || cellClasses.includes('title-row')) {
-            if (cellClasses.includes('title-row') || cellClasses.includes('bg-header-blue') || cellClasses.includes('bg-header-green') || cellClasses.includes('table-headers')) {
+          if (!bgHex || isHeaderCell || cellClasses.includes('title-row')) {
+            if (isHeaderCell || cellClasses.includes('title-row') || cellClasses.includes('bg-header-blue') || cellClasses.includes('bg-header-green') || cellClasses.includes('table-headers')) {
               bgHex = '0F5233'; // Corporate Emerald Green
             } else if (cellClasses.includes('month-header') || cellClasses.includes('exec-banner') || cellClasses.includes('group-banner')) {
               bgHex = 'E6F4EA';
@@ -137,9 +138,9 @@ export const exportHtmlSheetsToExcel = async (sheets, filename) => {
             fontColor = colorMatch[1].toUpperCase();
           }
 
-          if (!fontColor || cellClasses.includes('title-row')) {
-            if (bgHex === '0F5233' || bgHex === '0B4D2D' || bgHex === '000000' || cellClasses.includes('title-row')) {
-              fontColor = 'FFFFFF'; // White text on dark emerald green title header
+          if (!fontColor || isHeaderCell || cellClasses.includes('title-row')) {
+            if (bgHex === '0F5233' || bgHex === '0B4D2D' || bgHex === '000000' || isHeaderCell || cellClasses.includes('title-row')) {
+              fontColor = 'FFFFFF'; // White text on dark emerald green header
             } else if (bgHex === 'E6F4EA' || bgHex === 'D1E7DD') {
               fontColor = '0F5233';
             } else {
@@ -155,14 +156,14 @@ export const exportHtmlSheetsToExcel = async (sheets, filename) => {
           if (isLogoCell) {
             bgHex = 'FFFFFF';
             fontColor = '0F5233';
-            ws.getRow(rIdx + 1).height = 65; // Enlarge title/logo row height to 65px
+            ws.getRow(rIdx + 1).height = 68; // Enlarge title/logo row height to 68px
 
             if (logoImageId !== null) {
               excelCell.value = ''; // Clear text so logo image displays cleanly
               try {
                 ws.addImage(logoImageId, {
-                  tl: { col: cIdx + 0.02, row: rIdx + 0.02 },
-                  br: { col: cIdx + cSpan - 0.02, row: rIdx + rSpan - 0.02 },
+                  tl: { col: cIdx, row: rIdx },
+                  br: { col: cIdx + cSpan, row: rIdx + rSpan },
                   editAs: 'oneCell'
                 });
               } catch (e) {
@@ -173,26 +174,31 @@ export const exportHtmlSheetsToExcel = async (sheets, filename) => {
               excelCell.value = 'JB  |  JOHN BUILDWELL';
             }
           } else {
+            let processedText = cellText;
+            if (processedText.includes('JOHN BUILDWELL ERP - PERFORMANCE SUMMARY REPORT') || processedText.includes('PERFORMANCE SUMMARY REPORT') || processedText === 'OVERALL REPORT') {
+              processedText = 'OVERALL SUMMARY REPORT';
+            }
+
             // Value & Phone Number parsing
             const isPhoneOrContact = (
               cellClasses.includes('contact') || 
               cellClasses.includes('phone') || 
-              /^(\+?\d{1,4}[\s-]?)?\(?\d{3,5}\)?[\s-]?\d{3,5}[\s-]?\d{3,5}$/.test(cellText) || 
-              (rawVal.length >= 10 && !rawVal.includes('.') && !cellText.includes('TOTAL') && !cellText.includes('Cr') && !cellClasses.includes('amount') && !cellClasses.includes('price'))
+              /^(\+?\d{1,4}[\s-]?)?\(?\d{3,5}\)?[\s-]?\d{3,5}[\s-]?\d{3,5}$/.test(processedText) || 
+              (rawVal.length >= 10 && !rawVal.includes('.') && !processedText.includes('TOTAL') && !processedText.includes('Cr') && !cellClasses.includes('amount') && !cellClasses.includes('price'))
             );
 
             if (isPhoneOrContact) {
-              excelCell.value = cellText; // Keep phone number as text (NO COMMAS!)
+              excelCell.value = processedText; // Keep phone number as text (NO COMMAS!)
               excelCell.numFmt = '@';
-            } else if (!isNaN(rawVal) && rawVal !== '' && !cellText.includes('DATE:') && !cellText.includes('TOTAL') && !cellText.includes('S.No') && !cellText.includes('S.NO.')) {
+            } else if (!isNaN(rawVal) && rawVal !== '' && !processedText.includes('DATE:') && !processedText.includes('TOTAL') && !processedText.includes('S.No') && !processedText.includes('S.NO.')) {
               excelCell.value = Number(rawVal);
-              if (cellText.includes('.')) {
+              if (processedText.includes('.')) {
                 excelCell.numFmt = '#,##0.00';
               } else {
                 excelCell.numFmt = '#,##0';
               }
             } else {
-              excelCell.value = cellText;
+              excelCell.value = processedText;
             }
           }
 
@@ -250,74 +256,65 @@ export const exportHtmlSheetsToExcel = async (sheets, filename) => {
         }
       }
 
-      // Spacious Column Width Calculation (Generous, well-spaced column widths)
+      // Tight, Compact, Page-Fit Column Width Calculation
       for (let col = 1; col <= maxCol + 1; col++) {
         let dataMaxLen = 0;
-        let headerTitle = '';
+        let colHeaderTitle = '';
 
         ws.eachRow((row, rowNumber) => {
           const cellVal = row.getCell(col).value;
           if (cellVal !== null && cellVal !== undefined) {
             const s = String(cellVal).trim();
-            if (rowNumber <= 7) {
-              if (s.toUpperCase().includes('REMARKS') || 
-                  s.toUpperCase().includes('DESCRIPTION') || 
-                  s.toUpperCase().includes('CONTACT') || 
-                  s.toUpperCase().includes('NAME') || 
-                  s.toUpperCase().includes('STATUS') || 
-                  s.toUpperCase().includes('PROJECT') || 
-                  s.toUpperCase().includes('DATE') || 
-                  s.toUpperCase().includes('S.NO') ||
-                  s.toUpperCase().includes('PLACE') ||
-                  s.toUpperCase().includes('MODE') ||
-                  s.toUpperCase().includes('ACHIEVED') ||
-                  s.toUpperCase().includes('TARGET') ||
-                  s.toUpperCase().includes('ACTUAL') ||
-                  s.toUpperCase().includes('WEEK')
-              ) {
-                headerTitle = s.toUpperCase();
-              }
+            const upper = s.toUpperCase();
+            
+            // Only inspect actual unmerged header titles (short header text)
+            if (s.length > 0 && s.length <= 25 && (
+              upper.includes('VALUE') || 
+              upper.includes('COUNT') || 
+              upper.includes('METRIC') || 
+              upper.includes('NAME') || 
+              upper.includes('LEADS') || 
+              upper.includes('TYPE') || 
+              upper.includes('VISIT') || 
+              upper.includes('BOOKING') || 
+              upper.includes('HANDOVER') || 
+              upper.includes('ENQUIRIES') || 
+              upper.includes('HOT LIST')
+            )) {
+              colHeaderTitle = upper;
             }
-            if (rowNumber > 3) {
+
+            // Calculate max data length, ignoring wide merged banner rows
+            if (rowNumber > 3 && s.length <= 25) {
               const lines = s.split(/\r?\n/);
-              lines.forEach(l => { dataMaxLen = Math.max(dataMaxLen, l.length); });
+              lines.forEach(l => { 
+                if (l.length <= 25) {
+                  dataMaxLen = Math.max(dataMaxLen, l.length); 
+                }
+              });
             }
           }
         });
 
-        let calculatedWidth = 14;
+        let calculatedWidth = 9.5;
 
-        if (headerTitle.includes('REMARKS') || headerTitle.includes('NOTE') || headerTitle.includes('COMPLAINT')) {
-          // REMARKS column: Spacious width (50 - 70)
-          calculatedWidth = Math.min(Math.max(dataMaxLen + 5, 50), 70);
-        } else if (headerTitle.includes('DESCRIPTION') || headerTitle.includes('NAME') || headerTitle.includes('CUSTOMER')) {
-          // DESCRIPTION / NAME column: Spacious width (28 - 38)
-          calculatedWidth = Math.min(Math.max(dataMaxLen + 4, 28), 38);
-        } else if (headerTitle.includes('CONTACT') || headerTitle.includes('PHONE') || headerTitle.includes('MOBILE')) {
-          // CONTACT column: width 18
-          calculatedWidth = 18;
-        } else if (headerTitle.includes('WEEK')) {
-          // 1st/2nd/3rd/4th Week Actual columns: width 16
-          calculatedWidth = 16;
-        } else if (headerTitle.includes('ACHIEVED')) {
-          // % ACHIEVED column: width 15
-          calculatedWidth = 15;
-        } else if (headerTitle.includes('TARGET') || headerTitle.includes('ACTUAL')) {
-          // TARGET / ACTUAL columns: width 13
-          calculatedWidth = 13;
-        } else if (headerTitle.includes('S.NO') || headerTitle.includes('S NO') || headerTitle === 'S.NO.') {
-          calculatedWidth = 7.5;
-        } else if (headerTitle.includes('PROJECT') || headerTitle.includes('PLOT') || headerTitle.includes('UNIT') || headerTitle.includes('PLACE')) {
-          calculatedWidth = 12;
-        } else if (headerTitle.includes('DATE')) {
-          calculatedWidth = 13;
-        } else if (headerTitle.includes('STATUS') || headerTitle.includes('MODE') || headerTitle.includes('BY')) {
-          calculatedWidth = 14;
+        if (col === 1 || colHeaderTitle.includes('S.NO') || colHeaderTitle.includes('S.NO.') || colHeaderTitle === 'S.NO' || colHeaderTitle === 'S.NO.') {
+          calculatedWidth = 6;
+        } else if (colHeaderTitle.includes('VALUE') || colHeaderTitle.includes('INR') || colHeaderTitle.includes('AMOUNT') || colHeaderTitle.includes('PRICE') || colHeaderTitle.includes('VALUATION')) {
+          calculatedWidth = Math.max(dataMaxLen + 1, 14);
+        } else if (colHeaderTitle.includes('REMARKS') || colHeaderTitle.includes('NOTE') || colHeaderTitle.includes('COMPLAINT')) {
+          calculatedWidth = Math.min(Math.max(dataMaxLen + 3, 25), 45);
+        } else if (colHeaderTitle.includes('NAME') || colHeaderTitle.includes('DESCRIPTION') || colHeaderTitle.includes('USER')) {
+          calculatedWidth = Math.min(Math.max(dataMaxLen + 1.5, 11.5), 22);
+        } else if (colHeaderTitle.includes('TYPE') || colHeaderTitle.includes('METRIC') || colHeaderTitle.includes('PROJECT')) {
+          calculatedWidth = Math.max(dataMaxLen + 1.5, 11.5);
+        } else if (colHeaderTitle.includes('COUNT') || colHeaderTitle.includes('LEADS') || colHeaderTitle.includes('VISIT') || colHeaderTitle.includes('BOOKING') || colHeaderTitle.includes('HANDOVER') || colHeaderTitle.includes('LIST') || colHeaderTitle.includes('ENQUIRIES')) {
+          calculatedWidth = Math.max(dataMaxLen + 1.5, 8.5);
         } else {
-          calculatedWidth = Math.min(Math.max(dataMaxLen + 3.5, 12), 16);
+          calculatedWidth = Math.max(dataMaxLen + 1.5, 9.5);
         }
 
-        ws.getColumn(col).width = calculatedWidth;
+        ws.getColumn(col).width = Math.min(calculatedWidth, 25);
       }
     }
 

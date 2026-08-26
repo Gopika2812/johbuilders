@@ -91,7 +91,8 @@ const CollectionReport = () => {
   return (
     <div className="p-8 max-w-7xl mx-auto min-h-screen font-sans">
       <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-150 mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="flex items-center gap-3 text-[#0e623a]">
+        <div className="flex items-center gap-4 text-[#0e623a]">
+          <img src="/JB logo.png" alt="JB Logo" className="h-12 w-auto object-contain shrink-0" />
           <div className="p-3 bg-emerald-50 rounded-2xl">
             <Landmark className="w-6 h-6" />
           </div>

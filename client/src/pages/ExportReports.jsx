@@ -1109,7 +1109,7 @@ const ExportReports = () => {
       const activeMonthStr = fromDate.substring(0, 7);
 
       // Fetch all required data points in parallel for the active month
-      const [targetsRes, statsRes, pStatsRes, mStatsRes] = await Promise.all([
+      const [targetsRes, statsRes, pStatsRes, mStatsRes, bPlanRes] = await Promise.all([
         fetch(`${API_URL}/summary-plans/${activeMonthStr}`, {
           headers: { 'Authorization': `Bearer ${token}` }
         }),
@@ -1120,6 +1120,9 @@ const ExportReports = () => {
           headers: { 'Authorization': `Bearer ${token}` }
         }),
         fetch(`${API_URL}/summary-plans/marketing-stats/${activeMonthStr}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        }),
+        fetch(`${API_URL}/budget-plans/${activeMonthStr}`, {
           headers: { 'Authorization': `Bearer ${token}` }
         })
       ]);
@@ -1133,6 +1136,60 @@ const ExportReports = () => {
       const statsData = await statsRes.json();
       const projectStatsData = await pStatsRes.json();
       const marketingStatsData = await mStatsRes.json();
+      const budgetPlanData = bPlanRes.ok ? await bPlanRes.json() : null;
+
+      // Smart week bucket recalculation helper
+      const parseWeekBucketClient = (dateInput, description = '') => {
+        const descStr = (description || '').toLowerCase();
+        if (descStr.includes('1st week') || descStr.includes('1st wk') || descStr.includes('week 1') || descStr.includes('wk 1') || descStr.includes('week1')) return 'w1';
+        if (descStr.includes('2nd week') || descStr.includes('2nd wk') || descStr.includes('week 2') || descStr.includes('wk 2') || descStr.includes('week2')) return 'w2';
+        if (descStr.includes('3rd week') || descStr.includes('3rd wk') || descStr.includes('week 3') || descStr.includes('wk 3') || descStr.includes('week3')) return 'w3';
+        if (descStr.includes('4th week') || descStr.includes('4th wk') || descStr.includes('week 4') || descStr.includes('wk 4') || descStr.includes('week4')) return 'w4';
+
+        const d = new Date(dateInput);
+        const dayOfMonth = d.getDate() || d.getUTCDate();
+        if (dayOfMonth <= 8) return 'w1';
+        if (dayOfMonth <= 15) return 'w2';
+        if (dayOfMonth <= 22) return 'w3';
+        return 'w4';
+      };
+
+      if (budgetPlanData && budgetPlanData.allocations) {
+        Object.keys(marketingStatsData.groups || {}).forEach(gName => {
+          if (marketingStatsData.groups[gName]) {
+            marketingStatsData.groups[gName].actual = 0;
+            marketingStatsData.groups[gName].w1 = 0;
+            marketingStatsData.groups[gName].w2 = 0;
+            marketingStatsData.groups[gName].w3 = 0;
+            marketingStatsData.groups[gName].w4 = 0;
+          }
+        });
+
+        budgetPlanData.allocations.forEach(alloc => {
+          const groupName = alloc.groupName;
+          const allocSrc = alloc.source;
+
+          for (let gName in marketingStatsData.groups) {
+            const srcMatch = allocSrc && marketingStatsData.groups[gName].sources?.some(s => s.toLowerCase() === allocSrc.toLowerCase());
+            const groupMatch = groupName && gName.toLowerCase() === groupName.toLowerCase();
+            if (srcMatch || groupMatch) {
+              if (alloc.expenses && alloc.expenses.length > 0) {
+                alloc.expenses.forEach(exp => {
+                  const amt = exp.amount || 0;
+                  const week = parseWeekBucketClient(exp.date, exp.description);
+                  marketingStatsData.groups[gName].actual += amt;
+                  marketingStatsData.groups[gName][week] += amt;
+                });
+              } else if (alloc.spent > 0) {
+                const amt = alloc.spent;
+                marketingStatsData.groups[gName].actual += amt;
+                marketingStatsData.groups[gName].w4 += amt;
+              }
+              break;
+            }
+          }
+        });
+      }
 
       // Parse states matching SummaryPlanning.jsx logic
       const sTarget = targetData.salesTarget || 0;

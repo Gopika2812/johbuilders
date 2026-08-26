@@ -62,10 +62,10 @@ router.get('/', protect, async (req, res) => {
   try {
     const leads = await Lead.find(query)
       .populate('project', 'name code location units')
-      .populate('assignedTo', 'name role')
-      .populate('assignedBy', 'name role')
-      .populate('history.assignedTo', 'name role')
-      .populate('history.updatedBy', 'name role')
+      .populate('assignedTo', 'name role phone mobile phoneNumber')
+      .populate('assignedBy', 'name role phone mobile phoneNumber')
+      .populate('history.assignedTo', 'name role phone mobile phoneNumber')
+      .populate('history.updatedBy', 'name role phone mobile phoneNumber')
       .sort({ updatedAt: -1 })
       .lean();
     res.json(leads);
@@ -102,7 +102,7 @@ router.get('/today-assigned', protect, async (req, res) => {
 
     const leads = await Lead.find(query)
       .populate('project', 'name code')
-      .populate('assignedTo', 'name role')
+      .populate('assignedTo', 'name role phone mobile phoneNumber')
       .sort({ createdAt: -1 });
 
     res.json(leads);
@@ -124,7 +124,7 @@ router.get('/due-followups', protect, async (req, res) => {
 
     const leads = await Lead.find(query)
       .populate('project', 'name code')
-      .populate('assignedTo', 'name role')
+      .populate('assignedTo', 'name role phone mobile phoneNumber')
       .sort({ 'followUpInfo.nextFollowUpDate': -1 });
 
     res.json(leads);
@@ -273,8 +273,8 @@ router.post('/', protect, async (req, res) => {
 
       const populated = await Lead.findById(lead._id)
         .populate('project', 'name code location units')
-        .populate('assignedTo', 'name role')
-        .populate('assignedBy', 'name role');
+        .populate('assignedTo', 'name role phone mobile phoneNumber')
+        .populate('assignedBy', 'name role phone mobile phoneNumber');
 
       return res.json({ message: 'Existing lead reopened and updated', lead: populated });
     }
@@ -333,8 +333,8 @@ router.post('/', protect, async (req, res) => {
 
     const populated = await Lead.findById(lead._id)
       .populate('project', 'name code location units')
-      .populate('assignedTo', 'name role')
-      .populate('assignedBy', 'name role');
+      .populate('assignedTo', 'name role phone mobile phoneNumber')
+      .populate('assignedBy', 'name role phone mobile phoneNumber');
 
     res.status(201).json({ message: 'Lead created successfully', lead: populated });
   } catch (err) {
@@ -533,10 +533,10 @@ router.put('/:id', protect, async (req, res) => {
 
     const populated = await Lead.findById(lead._id)
       .populate('project', 'name code location units')
-      .populate('assignedTo', 'name role')
-      .populate('assignedBy', 'name role')
-      .populate('history.assignedTo', 'name role')
-      .populate('history.updatedBy', 'name role');
+      .populate('assignedTo', 'name role phone mobile phoneNumber')
+      .populate('assignedBy', 'name role phone mobile phoneNumber')
+      .populate('history.assignedTo', 'name role phone mobile phoneNumber')
+      .populate('history.updatedBy', 'name role phone mobile phoneNumber');
 
     res.json({ message: 'Lead updated successfully', lead: populated });
   } catch (err) {
@@ -597,7 +597,7 @@ router.get('/target-stats/:month', protect, async (req, res) => {
 
 // @route   DELETE /api/leads/:id
 // @desc    Delete a lead
-router.delete('/:id', protect, authorize('Superadmin', 'Crd team'), async (req, res) => {
+router.delete('/:id', protect, authorize('Superadmin'), async (req, res) => {
   try {
     const lead = await Lead.findById(req.params.id);
     if (!lead) {

@@ -29,6 +29,28 @@ const UserTaskSchema = new mongoose.Schema({
     enum: ['New', 'In Progress', 'Completed'],
     default: 'New'
   },
+  priority: {
+    type: String,
+    enum: ['Urgent', 'High', 'Medium', 'Low'],
+    default: 'Medium'
+  },
+  category: {
+    type: String,
+    default: 'General',
+    trim: true
+  },
+  repeatType: {
+    type: String,
+    enum: ['None', 'Hourly', 'Daily'],
+    default: 'None'
+  },
+  reminderInterval: {
+    type: Number,
+    default: 1
+  },
+  lastReminderSentAt: {
+    type: Date
+  },
   actionTaken: {
     type: Boolean,
     default: false

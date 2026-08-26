@@ -20,8 +20,115 @@ import {
   UserCheck,
   History,
   MessageSquare,
-  Send
+  Send,
+  ChevronDown,
+  Check,
+  Users
 } from 'lucide-react';
+
+const CustomPersonSelector = ({ employees, value, onChange, placeholder = "-- Select Person --" }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const dropdownRef = React.useRef(null);
+
+  const selectedEmp = employees.find(e => e._id === value);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const filteredEmployees = employees.filter(emp => 
+    emp.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    emp.role?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    emp.email?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  return (
+    <div className="relative w-full" ref={dropdownRef}>
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 hover:border-emerald-600 rounded-xl text-xs font-semibold text-gray-800 flex items-center justify-between transition focus:outline-none focus:ring-2 focus:ring-[#0e623a] cursor-pointer shadow-xs"
+      >
+        {selectedEmp ? (
+          <div className="flex items-center gap-2 truncate">
+            <span className="w-5 h-5 rounded-full bg-[#0e623a] text-white flex items-center justify-center text-[10px] font-bold shrink-0">
+              {selectedEmp.name ? selectedEmp.name.charAt(0).toUpperCase() : 'U'}
+            </span>
+            <span className="font-bold text-gray-900 truncate">{selectedEmp.name}</span>
+            <span className="text-[10px] font-extrabold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-200 shrink-0">
+              {selectedEmp.role || 'Staff'}
+            </span>
+          </div>
+        ) : (
+          <span className="text-gray-400 font-medium">{placeholder}</span>
+        )}
+        <ChevronDown className={`w-4 h-4 text-gray-500 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+      </button>
+
+      {isOpen && (
+        <div className="absolute left-0 right-0 top-full mt-1.5 z-[1050] bg-white border border-gray-200 rounded-2xl shadow-xl p-2 space-y-2 animate-in fade-in zoom-in-95 duration-150">
+          <div className="relative">
+            <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search user, role or email..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-8 pr-3 py-1.5 bg-gray-50 border border-gray-200 rounded-xl text-xs text-gray-800 focus:outline-none focus:ring-1 focus:ring-[#0e623a]"
+              autoFocus
+            />
+          </div>
+
+          <div className="max-h-56 overflow-y-auto space-y-1 pr-1 custom-scrollbar">
+            {filteredEmployees.length === 0 ? (
+              <div className="p-3 text-center text-xs text-gray-400 italic">No matching users found</div>
+            ) : (
+              filteredEmployees.map(emp => {
+                const isSelected = emp._id === value;
+                return (
+                  <div
+                    key={emp._id}
+                    onClick={() => {
+                      onChange(emp._id);
+                      setIsOpen(false);
+                      setSearchTerm('');
+                    }}
+                    className={`p-2 rounded-xl flex items-center justify-between cursor-pointer transition ${
+                      isSelected ? 'bg-emerald-50 border border-emerald-200' : 'hover:bg-gray-50'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <span className="w-7 h-7 rounded-full bg-emerald-700 text-white flex items-center justify-center text-xs font-bold shrink-0 shadow-xs">
+                        {emp.name ? emp.name.charAt(0).toUpperCase() : 'U'}
+                      </span>
+                      <div className="flex flex-col min-w-0 text-left">
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-bold text-gray-900 text-xs truncate">{emp.name}</span>
+                          <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded bg-gray-100 text-gray-700 border border-gray-200 shrink-0">
+                            {emp.role || 'Staff'}
+                          </span>
+                        </div>
+                        {emp.email && <span className="text-[10px] text-gray-500 truncate">{emp.email}</span>}
+                      </div>
+                    </div>
+                    {isSelected && <Check className="w-4 h-4 text-[#0e623a] shrink-0" />}
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
 
 const TasksBoard = () => {
   const { token, user } = useAuth();
@@ -54,13 +161,37 @@ const TasksBoard = () => {
   const [newCommentNote, setNewCommentNote] = useState('');
   const [commentSubmitting, setCommentSubmitting] = useState(false);
 
+  // View Tab Filter State: 'ASSIGNED_TO_ME', 'I_ASSIGNED', 'OTHER_TASKS', 'ALL'
+  const [viewTab, setViewTab] = useState('ASSIGNED_TO_ME');
+
+  // Category & Priority Filters
+  const [categoryFilter, setCategoryFilter] = useState('ALL');
+  const [priorityFilter, setPriorityFilter] = useState('ALL');
+
+  // Categories list with instant inline creation
+  const [categoriesList, setCategoriesList] = useState([
+    'General',
+    'Site Visit',
+    'Legal & Documentation',
+    'Payment Follow-up',
+    'Client Meeting',
+    'Construction',
+    'Handover'
+  ]);
+  const [isAddingNewCategory, setIsAddingNewCategory] = useState(false);
+  const [newCategoryInput, setNewCategoryInput] = useState('');
+
   // Form Fields
   const [formData, setFormData] = useState({
     title: '',
     description: '',
     dueDate: '',
     assignedTo: '',
-    status: 'New'
+    status: 'New',
+    priority: 'Medium',
+    category: 'General',
+    repeatType: 'None',
+    reminderInterval: 1
   });
 
   useEffect(() => {
@@ -97,17 +228,12 @@ const TasksBoard = () => {
 
   const fetchEmployees = async () => {
     try {
-      const res = await fetch(`${API_URL}/employees?excludeSuperadmin=true`, {
+      const res = await fetch(`${API_URL}/employees`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (res.ok) {
         const data = await res.json();
-        setEmployees(data.filter(emp => 
-          emp.role !== 'Superadmin' && 
-          emp.role?.toLowerCase() !== 'super admin' && 
-          emp.name?.toLowerCase() !== 'super admin' && 
-          emp.name !== 'Super Admin'
-        ));
+        setEmployees(data);
       }
     } catch (err) {
       console.error('Error fetching employees:', err);
@@ -116,27 +242,50 @@ const TasksBoard = () => {
 
   const handleOpenCreateModal = () => {
     setEditingTask(null);
+    setIsAddingNewCategory(false);
+    setNewCategoryInput('');
     setFormData({
       title: '',
       description: '',
       dueDate: new Date().toISOString().split('T')[0],
       assignedTo: user?._id || '',
-      status: 'New'
+      status: 'New',
+      priority: 'Medium',
+      category: 'General',
+      repeatType: 'None',
+      reminderInterval: 1
     });
     setShowModal(true);
   };
 
   const handleOpenEditModal = (task) => {
     setEditingTask(task);
+    setIsAddingNewCategory(false);
+    setNewCategoryInput('');
     const dateFormatted = task.dueDate ? new Date(task.dueDate).toISOString().split('T')[0] : '';
     setFormData({
       title: task.title || '',
       description: task.description || '',
       dueDate: dateFormatted,
       assignedTo: task.assignedTo?._id || task.assignedTo || '',
-      status: task.status || 'New'
+      status: task.status || 'New',
+      priority: task.priority || 'Medium',
+      category: task.category || 'General',
+      repeatType: task.repeatType || 'None',
+      reminderInterval: task.reminderInterval || 1
     });
     setShowModal(true);
+  };
+
+  const handleAddNewCategoryInline = () => {
+    if (!newCategoryInput || !newCategoryInput.trim()) return;
+    const catName = newCategoryInput.trim();
+    if (!categoriesList.includes(catName)) {
+      setCategoriesList(prev => [...prev, catName]);
+    }
+    setFormData(prev => ({ ...prev, category: catName }));
+    setIsAddingNewCategory(false);
+    setNewCategoryInput('');
   };
 
   const handleSubmitTask = async (e) => {
@@ -273,8 +422,28 @@ const TasksBoard = () => {
     return due < today;
   };
 
+  const roleNorm = (user?.role || '').toLowerCase().replace(/[\s_-]+/g, '');
+  const isSuperAdmin = roleNorm === 'superadmin' || roleNorm === 'admin';
+
+  // Tab Counts
+  const assignedToMeCount = tasks.filter(t => (t.assignedTo?._id || t.assignedTo) === user?._id).length;
+  const iAssignedCount = tasks.filter(t => (t.assignedBy?._id || t.assignedBy) === user?._id).length;
+  const otherTasksCount = tasks.filter(t => (t.assignedTo?._id || t.assignedTo) !== user?._id && (t.assignedBy?._id || t.assignedBy) !== user?._id).length;
+  const allTasksCount = tasks.length;
+
   // Filter Tasks
   const filteredTasks = tasks.filter(task => {
+    const isAssignedToMe = (task.assignedTo?._id || task.assignedTo) === user?._id;
+    const isIassigned = (task.assignedBy?._id || task.assignedBy) === user?._id;
+
+    if (viewTab === 'ASSIGNED_TO_ME') {
+      if (!isAssignedToMe) return false;
+    } else if (viewTab === 'I_ASSIGNED') {
+      if (!isIassigned) return false;
+    } else if (viewTab === 'OTHER_TASKS') {
+      if (isAssignedToMe || isIassigned) return false;
+    }
+
     const term = searchTerm.toLowerCase();
     const matchesSearch = 
       (task.title || '').toLowerCase().includes(term) ||
@@ -303,7 +472,17 @@ const TasksBoard = () => {
     if (statusFilter === 'COMPLETED') return task.status === 'Completed';
     if (statusFilter === 'OVERDATED') return isOverdated(task);
 
+    if (categoryFilter !== 'ALL' && task.category !== categoryFilter) return false;
+    if (priorityFilter !== 'ALL' && task.priority !== priorityFilter) return false;
+
     return true;
+  });
+
+  // Sort tasks so newest created/assigned tasks appear at the fresh top
+  const sortedTasks = [...filteredTasks].sort((a, b) => {
+    const timeA = a.createdAt ? new Date(a.createdAt).getTime() : (a._id ? parseInt(a._id.substring(0, 8), 16) * 1000 : 0);
+    const timeB = b.createdAt ? new Date(b.createdAt).getTime() : (b._id ? parseInt(b._id.substring(0, 8), 16) * 1000 : 0);
+    return timeB - timeA;
   });
 
   // Calculate Metrics
@@ -421,6 +600,81 @@ const TasksBoard = () => {
         </div>
       )}
 
+      {/* View Tabs: Assigned to Me / I Assigned / Other Tasks (for Superadmin) / All Tasks */}
+      <div className="flex items-center gap-2 bg-white border border-gray-150 p-2 rounded-2xl shadow-sm overflow-x-auto">
+        <button
+          onClick={() => setViewTab('ASSIGNED_TO_ME')}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-extrabold transition cursor-pointer shrink-0 ${
+            viewTab === 'ASSIGNED_TO_ME'
+              ? 'bg-[#0e623a] text-white shadow-md'
+              : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+          }`}
+        >
+          <UserCheck className="w-4 h-4" />
+          <span>Assigned to Me</span>
+          <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
+            viewTab === 'ASSIGNED_TO_ME' ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-700'
+          }`}>
+            {assignedToMeCount}
+          </span>
+        </button>
+
+        <button
+          onClick={() => setViewTab('I_ASSIGNED')}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-extrabold transition cursor-pointer shrink-0 ${
+            viewTab === 'I_ASSIGNED'
+              ? 'bg-[#0e623a] text-white shadow-md'
+              : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+          }`}
+        >
+          <User className="w-4 h-4" />
+          <span>I Assigned</span>
+          <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
+            viewTab === 'I_ASSIGNED' ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-700'
+          }`}>
+            {iAssignedCount}
+          </span>
+        </button>
+
+        {isSuperAdmin && (
+          <button
+            onClick={() => setViewTab('OTHER_TASKS')}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-extrabold transition cursor-pointer shrink-0 ${
+              viewTab === 'OTHER_TASKS'
+                ? 'bg-purple-800 text-white shadow-md'
+                : 'text-gray-600 hover:bg-purple-50 hover:text-purple-900'
+            }`}
+          >
+            <Users className="w-4 h-4" />
+            <span>Other Tasks (All People)</span>
+            <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
+              viewTab === 'OTHER_TASKS' ? 'bg-white/20 text-white' : 'bg-purple-100 text-purple-800'
+            }`}>
+              {otherTasksCount}
+            </span>
+          </button>
+        )}
+
+        {isSuperAdmin && (
+          <button
+            onClick={() => setViewTab('ALL')}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-extrabold transition cursor-pointer shrink-0 ${
+              viewTab === 'ALL'
+                ? 'bg-gray-800 text-white shadow-md'
+                : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+            }`}
+          >
+            <ClipboardList className="w-4 h-4" />
+            <span>All Tasks</span>
+            <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
+              viewTab === 'ALL' ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-700'
+            }`}>
+              {allTasksCount}
+            </span>
+          </button>
+        )}
+      </div>
+
       {/* Search & Filter Toolbar */}
       <div className="bg-white border border-gray-150 rounded-3xl p-5 shadow-sm space-y-4">
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
@@ -450,6 +704,37 @@ const TasksBoard = () => {
                 <option value="IN_PROGRESS">In Progress ({inProgressCount})</option>
                 <option value="COMPLETED">Completed ({completedCount})</option>
                 <option value="OVERDATED">Overdated ({overdatedCount})</option>
+              </select>
+            </div>
+
+            {/* Category Filter */}
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs font-bold text-gray-500 shrink-0">Category:</span>
+              <select
+                value={categoryFilter}
+                onChange={(e) => setCategoryFilter(e.target.value)}
+                className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#0e623a]"
+              >
+                <option value="ALL">All Categories</option>
+                {categoriesList.map(cat => (
+                  <option key={cat} value={cat}>{cat}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Priority Filter */}
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs font-bold text-gray-500 shrink-0">Priority:</span>
+              <select
+                value={priorityFilter}
+                onChange={(e) => setPriorityFilter(e.target.value)}
+                className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#0e623a]"
+              >
+                <option value="ALL">All Priorities</option>
+                <option value="Urgent">Urgent</option>
+                <option value="High">High</option>
+                <option value="Medium">Medium</option>
+                <option value="Low">Low</option>
               </select>
             </div>
 
@@ -491,7 +776,7 @@ const TasksBoard = () => {
             <Loader2 className="w-8 h-8 text-[#0e623a] animate-spin" />
             <p className="text-xs text-gray-400">Loading Task Board...</p>
           </div>
-        ) : filteredTasks.length === 0 ? (
+        ) : sortedTasks.length === 0 ? (
           <div className="p-12 text-center text-gray-400 bg-gray-50 rounded-2xl border border-dashed border-gray-200 space-y-2">
             <ClipboardList className="w-10 h-10 mx-auto text-gray-300" />
             <p className="text-sm font-bold text-gray-600">No tasks found</p>
@@ -503,22 +788,29 @@ const TasksBoard = () => {
               <thead>
                 <tr className="border-b border-gray-200 bg-gray-50/80 text-gray-500 font-extrabold uppercase tracking-wider">
                   <th className="p-3.5 w-12 text-center">S.No</th>
-                  <th className="p-3.5 min-w-[180px]">Task Title & Details</th>
+                  <th className="p-3.5 min-w-[200px]">Task Title & Category</th>
                   <th className="p-3.5 min-w-[150px]">Assigned Person</th>
-                  <th className="p-3.5 min-w-[130px]">Assigned By</th>
-                  <th className="p-3.5 min-w-[120px]">Due Date</th>
-                  <th className="p-3.5 min-w-[140px] text-center">Status</th>
+                  <th className="p-3.5 min-w-[100px] text-center">Priority</th>
+                  <th className="p-3.5 min-w-[120px]">Assigned By</th>
+                  <th className="p-3.5 min-w-[130px]">Assigned Date</th>
+                  <th className="p-3.5 min-w-[140px]">Due Date & Repeat</th>
+                  <th className="p-3.5 min-w-[130px] text-center">Status</th>
                   <th className="p-3.5 w-24 text-center">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {filteredTasks.map((task, idx) => {
+                {sortedTasks.map((task, idx) => {
                   const over = isOverdated(task);
                   const isHighlighted = highlightTaskId === task._id;
 
                   let statusBadge = 'bg-blue-50 text-blue-700 border-blue-200';
                   if (task.status === 'In Progress') statusBadge = 'bg-amber-50 text-amber-700 border-amber-200';
                   if (task.status === 'Completed') statusBadge = 'bg-emerald-50 text-emerald-700 border-emerald-200';
+
+                  let priorityBadge = 'bg-blue-50 text-blue-800 border-blue-200 font-bold';
+                  if (task.priority === 'Urgent') priorityBadge = 'bg-rose-100 text-rose-800 border-rose-300 font-black animate-pulse';
+                  if (task.priority === 'High') priorityBadge = 'bg-amber-100 text-amber-800 border-amber-300 font-extrabold';
+                  if (task.priority === 'Low') priorityBadge = 'bg-gray-100 text-gray-700 border-gray-300 font-semibold';
 
                   return (
                     <tr 
@@ -528,8 +820,13 @@ const TasksBoard = () => {
                       <td className="p-3.5 text-center font-bold text-gray-400">{idx + 1}</td>
 
                       <td className="p-3.5">
-                        <div className="space-y-0.5">
-                          <p className="font-bold text-gray-850 text-sm">{task.title}</p>
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-extrabold text-gray-900 text-sm">{task.title}</span>
+                            <span className="px-2 py-0.5 bg-emerald-50 border border-emerald-200 text-emerald-800 font-bold text-[10px] rounded-md shrink-0">
+                              {task.category || 'General'}
+                            </span>
+                          </div>
                           {task.description && (
                             <p className="text-gray-500 text-xs line-clamp-2 max-w-sm font-normal">{task.description}</p>
                           )}
@@ -548,10 +845,30 @@ const TasksBoard = () => {
                         </div>
                       </td>
 
+                      <td className="p-3.5 text-center">
+                        <span className={`px-2.5 py-1 text-[10px] uppercase tracking-wider border rounded-lg ${priorityBadge}`}>
+                          {task.priority || 'Medium'}
+                        </span>
+                      </td>
+
                       <td className="p-3.5">
                         <div className="flex items-center gap-1.5 text-gray-600">
                           <UserCheck className="w-3.5 h-3.5 text-gray-400" />
                           <span className="font-semibold text-gray-700">{task.assignedBy?.name || 'Admin'}</span>
+                        </div>
+                      </td>
+
+                      {/* Assigned Date */}
+                      <td className="p-3.5">
+                        <div className="flex items-center gap-1.5 text-gray-700 font-semibold whitespace-nowrap">
+                          <Calendar className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                          <span>
+                            {task.createdAt 
+                              ? new Date(task.createdAt).toLocaleDateString('en-GB') 
+                              : (task.assignedDate 
+                                  ? new Date(task.assignedDate).toLocaleDateString('en-GB') 
+                                  : '—')}
+                          </span>
                         </div>
                       </td>
 
@@ -561,6 +878,13 @@ const TasksBoard = () => {
                             <Calendar className="w-3.5 h-3.5 text-gray-400" />
                             <span>{new Date(task.dueDate).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}</span>
                           </div>
+
+                          {task.repeatType && task.repeatType !== 'None' && (
+                            <div className="text-[10px] font-bold text-purple-700 bg-purple-50 border border-purple-200 px-1.5 py-0.5 rounded w-fit flex items-center gap-1">
+                              <Clock className="w-2.5 h-2.5" />
+                              <span>Repeat Every {task.reminderInterval || 1} {task.repeatType === 'Hourly' ? 'Hr(s)' : 'Day(s)'} (Until Completed)</span>
+                            </div>
+                          )}
 
                           {over && (
                             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wide bg-rose-100 text-rose-700 border border-rose-300 animate-pulse">
@@ -587,6 +911,14 @@ const TasksBoard = () => {
 
                       <td className="p-3.5 text-center">
                         <div className="flex items-center justify-center gap-1">
+                          <button
+                            onClick={() => handleOpenHistoryModal(task)}
+                            className="p-1.5 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition flex items-center gap-1 font-bold text-[11px]"
+                            title="Reply / Task History"
+                          >
+                            <MessageSquare className="w-3.5 h-3.5 text-blue-600" />
+                            <span>Reply</span>
+                          </button>
                           <button
                             onClick={() => handleOpenHistoryModal(task)}
                             className="p-1.5 text-gray-500 hover:text-emerald-700 hover:bg-emerald-50 rounded-lg transition"
@@ -662,7 +994,7 @@ const TasksBoard = () => {
                   Description
                 </label>
                 <textarea
-                  rows={3}
+                  rows={2}
                   placeholder="Add detailed task instructions or background context..."
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
@@ -670,22 +1002,55 @@ const TasksBoard = () => {
                 />
               </div>
 
+              {/* Assigned Person & Priority */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {/* Due Date */}
                 <div>
                   <label className="block font-bold text-gray-700 mb-1">
-                    Due Date <span className="text-red-500">*</span>
+                    Assigned Person <span className="text-red-500">*</span>
                   </label>
-                  <input
-                    type="date"
-                    required
-                    value={formData.dueDate}
-                    onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
-                    className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-[#0e623a]"
+                  <CustomPersonSelector
+                    employees={employees}
+                    value={formData.assignedTo}
+                    onChange={(selectedId) => setFormData({ ...formData, assignedTo: selectedId })}
+                    placeholder="-- Select Person --"
                   />
                 </div>
 
-                {/* Status */}
+                <div>
+                  <label className="block font-bold text-gray-700 mb-1">
+                    Priority
+                  </label>
+                  <select
+                    value={formData.priority}
+                    onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
+                    className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-bold text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#0e623a]"
+                  >
+                    <option value="Urgent">Urgent 🔥</option>
+                    <option value="High">High ⚠️</option>
+                    <option value="Medium">Medium 📌</option>
+                    <option value="Low">Low 🟢</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Category (Instant Add Option) & Status */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="font-bold text-gray-700">Category</label>
+                  </div>
+
+                  <select
+                    value={formData.category}
+                    onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                    className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#0e623a]"
+                  >
+                    {categoriesList.map(cat => (
+                      <option key={cat} value={cat}>{cat}</option>
+                    ))}
+                  </select>
+                </div>
+
                 <div>
                   <label className="block font-bold text-gray-700 mb-1">
                     Status
@@ -702,25 +1067,73 @@ const TasksBoard = () => {
                 </div>
               </div>
 
-              {/* Assigned Person */}
-              <div>
-                <label className="block font-bold text-gray-700 mb-1">
-                  Assigned Person <span className="text-red-500">*</span>
-                </label>
-                <select
-                  required
-                  value={formData.assignedTo}
-                  onChange={(e) => setFormData({ ...formData, assignedTo: e.target.value })}
-                  className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#0e623a]"
-                >
-                  <option value="">-- Select Person --</option>
-                  {employees.map(emp => (
-                    <option key={emp._id} value={emp._id}>
-                      {emp.name} ({emp.role}) - {emp.email}
-                    </option>
-                  ))}
-                </select>
+              {/* Due Date & Repeat Reminders */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block font-bold text-gray-700 mb-1">
+                    Due Date <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="date"
+                    required
+                    value={formData.dueDate}
+                    onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
+                    className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-[#0e623a]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-bold text-gray-700 mb-1">
+                    Repeat Reminders
+                  </label>
+                  <select
+                    value={formData.repeatType}
+                    onChange={(e) => setFormData({ ...formData, repeatType: e.target.value })}
+                    className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#0e623a]"
+                  >
+                    <option value="None">No Repeat (One-time)</option>
+                    <option value="Hourly">Reminder Every X Hours</option>
+                    <option value="Daily">Reminder Every X Days</option>
+                  </select>
+                </div>
               </div>
+
+              {/* Interval details if repeat is enabled */}
+              {formData.repeatType !== 'None' && (
+                <div className="bg-purple-50/70 border border-purple-200 p-3 rounded-2xl flex items-center justify-between gap-3 text-xs">
+                  <div className="flex items-center gap-2">
+                    <Clock className="w-4 h-4 text-purple-600 shrink-0" />
+                    <span className="font-extrabold text-purple-900">
+                      Reminder Interval ({formData.repeatType === 'Hourly' ? 'in Hours' : 'in Days'}):
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <select
+                      value={formData.reminderInterval}
+                      onChange={(e) => setFormData({ ...formData, reminderInterval: Number(e.target.value) })}
+                      className="px-3 py-1 bg-white border border-purple-300 rounded-lg text-xs font-extrabold text-purple-900 focus:outline-none focus:ring-1 focus:ring-purple-600"
+                    >
+                      {formData.repeatType === 'Hourly' ? (
+                        <>
+                          <option value="1">1 Hour</option>
+                          <option value="2">2 Hours</option>
+                          <option value="4">4 Hours</option>
+                          <option value="6">6 Hours</option>
+                          <option value="12">12 Hours</option>
+                        </>
+                      ) : (
+                        <>
+                          <option value="1">1 Day (Daily)</option>
+                          <option value="2">2 Days</option>
+                          <option value="3">3 Days</option>
+                          <option value="7">7 Days (Weekly)</option>
+                        </>
+                      )}
+                    </select>
+                    <span className="text-[10px] text-purple-700 font-semibold italic">Until Completed</span>
+                  </div>
+                </div>
+              )}
 
               {/* Modal Actions */}
               <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-100">
@@ -745,157 +1158,169 @@ const TasksBoard = () => {
         </div>
       )}
 
-      {/* Task History & Comments Modal */}
-      {historyModalOpen && selectedTaskForHistory && (
-        <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm z-[999] flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl border border-gray-150 shadow-2xl w-full max-w-2xl overflow-hidden animate-fadeIn flex flex-col max-h-[85vh]">
-            {/* Modal Header */}
-            <div className="px-6 py-4 bg-[#0e623a] text-white flex items-center justify-between shrink-0">
-              <div className="flex items-center gap-2.5">
-                <History className="w-5 h-5 text-emerald-300" />
-                <div>
-                  <h3 className="font-bold text-base">Task History & Comments</h3>
-                  <p className="text-emerald-100 text-xs truncate max-w-md">{selectedTaskForHistory.title}</p>
-                </div>
-              </div>
-              <button
-                onClick={() => {
-                  setHistoryModalOpen(false);
-                  setSelectedTaskForHistory(null);
-                }}
-                className="p-1 hover:bg-white/20 rounded-lg transition text-white cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
+      {/* Task History & Comments / Replies Modal */}
+      {historyModalOpen && selectedTaskForHistory && (() => {
+        const recipientName = user?._id === selectedTaskForHistory.assignedTo?._id
+          ? (selectedTaskForHistory.assignedBy?.name || 'Assigner')
+          : (selectedTaskForHistory.assignedTo?.name || 'Assignee');
 
-            {/* Task Info Summary Bar */}
-            <div className="bg-emerald-50/70 border-b border-emerald-100 px-6 py-3 flex flex-wrap items-center justify-between gap-3 text-xs shrink-0">
-              <div className="flex items-center gap-4">
-                <div>
-                  <span className="text-gray-500 font-medium block text-[10px] uppercase">Assigned To</span>
-                  <span className="font-bold text-gray-800">{selectedTaskForHistory.assignedTo?.name || 'Unassigned'}</span>
-                </div>
-                <div>
-                  <span className="text-gray-500 font-medium block text-[10px] uppercase">Assigned By</span>
-                  <span className="font-bold text-gray-800">{selectedTaskForHistory.assignedBy?.name || 'Admin'}</span>
-                </div>
-                <div>
-                  <span className="text-gray-500 font-medium block text-[10px] uppercase">Status</span>
-                  <span className="font-extrabold text-[#0e623a]">{selectedTaskForHistory.status}</span>
-                </div>
-              </div>
-              {selectedTaskForHistory.dueDate && (
-                <div className="text-right">
-                  <span className="text-gray-500 font-medium block text-[10px] uppercase">Due Date</span>
-                  <span className="font-bold text-gray-800">
-                    {new Date(selectedTaskForHistory.dueDate).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
-                  </span>
-                </div>
-              )}
-            </div>
-
-            {/* History Timeline Stream */}
-            <div className="p-6 overflow-y-auto space-y-4 flex-1">
-              {(!selectedTaskForHistory.history || selectedTaskForHistory.history.length === 0) ? (
-                <div className="space-y-4">
-                  {/* Default fallback timeline item if no history array yet */}
-                  <div className="flex gap-3 items-start bg-gray-50 p-3.5 rounded-2xl border border-gray-150">
-                    <div className="w-8 h-8 rounded-full bg-[#0e623a]/10 text-[#0e623a] flex items-center justify-center font-bold text-xs shrink-0">
-                      {selectedTaskForHistory.assignedBy?.name?.slice(0, 2).toUpperCase() || 'U'}
-                    </div>
-                    <div className="flex-1 text-xs space-y-1">
-                      <div className="flex items-center justify-between">
-                        <span className="font-bold text-gray-800">{selectedTaskForHistory.assignedBy?.name || 'Admin'}</span>
-                        <span className="text-[10px] text-gray-400 font-semibold">
-                          {selectedTaskForHistory.createdAt ? new Date(selectedTaskForHistory.createdAt).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' }) : 'Creation'}
-                        </span>
-                      </div>
-                      <span className="inline-block px-2 py-0.5 text-[10px] font-extrabold rounded bg-emerald-100 text-emerald-800 uppercase">
-                        Task Created
-                      </span>
-                      <p className="text-gray-600 font-medium mt-1">
-                        {selectedTaskForHistory.description || `Task created and assigned to ${selectedTaskForHistory.assignedTo?.name || 'user'}`}
-                      </p>
-                    </div>
+        return (
+          <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm z-[999] flex items-center justify-center p-4">
+            <div className="bg-white rounded-3xl border border-gray-150 shadow-2xl w-full max-w-2xl overflow-hidden animate-fadeIn flex flex-col max-h-[85vh]">
+              {/* Modal Header */}
+              <div className="px-6 py-4 bg-[#0e623a] text-white flex items-center justify-between shrink-0">
+                <div className="flex items-center gap-2.5">
+                  <MessageSquare className="w-5 h-5 text-emerald-300" />
+                  <div>
+                    <h3 className="font-bold text-base">Task Replies & History Log</h3>
+                    <p className="text-emerald-100 text-xs truncate max-w-md">{selectedTaskForHistory.title}</p>
                   </div>
                 </div>
-              ) : (
-                <div className="space-y-3.5 relative before:absolute before:left-4 before:top-2 before:bottom-2 before:w-0.5 before:bg-gray-200">
-                  {selectedTaskForHistory.history.slice().reverse().map((item, hIdx) => {
-                    const author = item.updatedBy?.name || user?.name || 'System User';
-                    const role = item.updatedBy?.role || 'Member';
-
-                    return (
-                      <div key={item._id || hIdx} className="relative flex items-start gap-3 pl-2">
-                        <div className="w-8 h-8 rounded-full bg-[#0e623a] text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-sm z-10">
-                          {author.slice(0, 2).toUpperCase()}
-                        </div>
-
-                        <div className="flex-1 bg-gray-50 hover:bg-gray-100/80 transition p-3.5 rounded-2xl border border-gray-200/80 text-xs space-y-1.5">
-                          <div className="flex items-center justify-between flex-wrap gap-1">
-                            <div className="flex items-center gap-2">
-                              <span className="font-bold text-gray-850">{author}</span>
-                              <span className="text-[10px] font-semibold text-gray-500 bg-gray-200 px-2 py-0.5 rounded-md">
-                                {role}
-                              </span>
-                            </div>
-                            <span className="text-[10px] text-gray-400 font-medium">
-                              {item.timestamp ? new Date(item.timestamp).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' }) : 'Just now'}
-                            </span>
-                          </div>
-
-                          {item.action && (
-                            <span className={`inline-block px-2 py-0.5 text-[10px] font-bold rounded uppercase tracking-wider ${
-                              item.action === 'Task Created' ? 'bg-blue-100 text-blue-800' :
-                              item.action === 'Comment Added' ? 'bg-amber-100 text-amber-800' :
-                              'bg-emerald-100 text-emerald-800'
-                            }`}>
-                              {item.action}
-                            </span>
-                          )}
-
-                          {item.note && (
-                            <p className="text-gray-700 font-medium whitespace-pre-wrap leading-relaxed mt-1">
-                              {item.note}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-
-            {/* Add Comment Input Section */}
-            <form onSubmit={handleAddComment} className="p-4 bg-gray-50 border-t border-gray-200 shrink-0 space-y-3">
-              <div className="flex items-center gap-2">
-                <MessageSquare className="w-4 h-4 text-[#0e623a]" />
-                <span className="font-bold text-xs text-gray-700">Add Log Comment / Remark</span>
-              </div>
-              <div className="flex gap-2">
-                <textarea
-                  rows={2}
-                  required
-                  placeholder="Type comment or update remark..."
-                  value={newCommentNote}
-                  onChange={(e) => setNewCommentNote(e.target.value)}
-                  className="flex-1 px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-[#0e623a] resize-none"
-                />
                 <button
-                  type="submit"
-                  disabled={commentSubmitting || !newCommentNote.trim()}
-                  className="px-4 py-2 bg-[#0e623a] hover:bg-[#0b4d2d] text-white font-bold text-xs rounded-xl shadow transition cursor-pointer disabled:opacity-50 flex items-center gap-1.5 shrink-0 self-end"
+                  onClick={() => {
+                    setHistoryModalOpen(false);
+                    setSelectedTaskForHistory(null);
+                  }}
+                  className="p-1 hover:bg-white/20 rounded-lg transition text-white cursor-pointer"
                 >
-                  {commentSubmitting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
-                  <span>Post</span>
+                  <X className="w-5 h-5" />
                 </button>
               </div>
-            </form>
+
+              {/* Task Info Summary Bar */}
+              <div className="bg-emerald-50/70 border-b border-emerald-100 px-6 py-3 flex flex-wrap items-center justify-between gap-3 text-xs shrink-0">
+                <div className="flex items-center gap-4">
+                  <div>
+                    <span className="text-gray-500 font-medium block text-[10px] uppercase">Assigned To</span>
+                    <span className="font-bold text-gray-800">{selectedTaskForHistory.assignedTo?.name || 'Unassigned'}</span>
+                  </div>
+                  <div>
+                    <span className="text-gray-500 font-medium block text-[10px] uppercase">Assigned By</span>
+                    <span className="font-bold text-gray-800">{selectedTaskForHistory.assignedBy?.name || 'Admin'}</span>
+                  </div>
+                  <div>
+                    <span className="text-gray-500 font-medium block text-[10px] uppercase">Status</span>
+                    <span className="font-extrabold text-[#0e623a]">{selectedTaskForHistory.status}</span>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <span className="text-gray-500 font-medium block text-[10px] uppercase">Replying To</span>
+                  <span className="font-extrabold text-blue-700">{recipientName}</span>
+                </div>
+              </div>
+
+              {/* History & Replies Timeline Stream */}
+              <div className="p-6 overflow-y-auto space-y-4 flex-1">
+                {(!selectedTaskForHistory.history || selectedTaskForHistory.history.length === 0) ? (
+                  <div className="space-y-4">
+                    {/* Default fallback timeline item if no history array yet */}
+                    <div className="flex gap-3 items-start bg-gray-50 p-3.5 rounded-2xl border border-gray-150">
+                      <div className="w-8 h-8 rounded-full bg-[#0e623a]/10 text-[#0e623a] flex items-center justify-center font-bold text-xs shrink-0">
+                        {selectedTaskForHistory.assignedBy?.name?.slice(0, 2).toUpperCase() || 'U'}
+                      </div>
+                      <div className="flex-1 text-xs space-y-1">
+                        <div className="flex items-center justify-between">
+                          <span className="font-bold text-gray-800">{selectedTaskForHistory.assignedBy?.name || 'Admin'}</span>
+                          <span className="text-[10px] text-gray-400 font-semibold">
+                            {selectedTaskForHistory.createdAt ? new Date(selectedTaskForHistory.createdAt).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' }) : 'Creation'}
+                          </span>
+                        </div>
+                        <span className="inline-block px-2 py-0.5 text-[10px] font-extrabold rounded bg-emerald-100 text-emerald-800 uppercase">
+                          Task Created
+                        </span>
+                        <p className="text-gray-600 font-medium mt-1">
+                          {selectedTaskForHistory.description || `Task created and assigned to ${selectedTaskForHistory.assignedTo?.name || 'user'}`}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-3.5 relative before:absolute before:left-4 before:top-2 before:bottom-2 before:w-0.5 before:bg-gray-200">
+                    {selectedTaskForHistory.history.slice().reverse().map((item, hIdx) => {
+                      const author = item.updatedBy?.name || user?.name || 'System User';
+                      const role = item.updatedBy?.role || 'Member';
+                      const isReply = item.action?.includes('Reply') || item.action === 'Comment Added';
+
+                      return (
+                        <div key={item._id || hIdx} className="relative flex items-start gap-3 pl-2">
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs shrink-0 shadow-sm z-10 ${
+                            isReply ? 'bg-blue-600 text-white' : 'bg-[#0e623a] text-white'
+                          }`}>
+                            {author.slice(0, 2).toUpperCase()}
+                          </div>
+
+                          <div className={`flex-1 transition p-3.5 rounded-2xl border text-xs space-y-1.5 ${
+                            isReply ? 'bg-blue-50/50 border-blue-200/80' : 'bg-gray-50 border-gray-200/80'
+                          }`}>
+                            <div className="flex items-center justify-between flex-wrap gap-1">
+                              <div className="flex items-center gap-2">
+                                <span className="font-bold text-gray-850">{author}</span>
+                                <span className="text-[10px] font-semibold text-gray-600 bg-white border border-gray-200 px-2 py-0.5 rounded-md">
+                                  {role}
+                                </span>
+                              </div>
+                              <span className="text-[10px] text-gray-400 font-medium">
+                                {item.timestamp ? new Date(item.timestamp).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' }) : 'Just now'}
+                              </span>
+                            </div>
+
+                            {item.action && (
+                              <span className={`inline-block px-2 py-0.5 text-[10px] font-extrabold rounded uppercase tracking-wider ${
+                                item.action?.includes('Reply') ? 'bg-blue-600 text-white' :
+                                item.action === 'Task Created' ? 'bg-emerald-100 text-emerald-800' :
+                                'bg-amber-100 text-amber-800'
+                              }`}>
+                                {item.action}
+                              </span>
+                            )}
+
+                            {item.note && (
+                              <p className="text-gray-800 font-medium whitespace-pre-wrap leading-relaxed mt-1">
+                                {item.note}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* Reply Input Form */}
+              <form onSubmit={handleAddComment} className="p-4 bg-white border-t border-gray-200 shrink-0 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <MessageSquare className="w-4 h-4 text-[#0e623a]" />
+                    <span className="font-bold text-xs text-gray-800">
+                      Reply to <span className="text-[#0e623a] font-extrabold">{recipientName}</span>
+                    </span>
+                  </div>
+                  <span className="text-[10px] text-gray-400 font-semibold">Replies will be recorded in task history</span>
+                </div>
+                <div className="flex gap-2">
+                  <textarea
+                    rows={2}
+                    required
+                    placeholder={`Write your reply or update note to ${recipientName}...`}
+                    value={newCommentNote}
+                    onChange={(e) => setNewCommentNote(e.target.value)}
+                    className="flex-1 px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-[#0e623a] resize-none"
+                  />
+                  <button
+                    type="submit"
+                    disabled={commentSubmitting || !newCommentNote.trim()}
+                    className="px-4 py-2 bg-[#0e623a] hover:bg-[#0b4d2d] text-white font-bold text-xs rounded-xl shadow transition cursor-pointer disabled:opacity-50 flex items-center gap-1.5 shrink-0 self-end"
+                  >
+                    {commentSubmitting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+                    <span>Send Reply</span>
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
     </div>
   );
 };

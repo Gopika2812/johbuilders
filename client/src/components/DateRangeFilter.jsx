@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, ChevronDown } from 'lucide-react';
+import { Calendar, ChevronDown, RotateCcw } from 'lucide-react';
 
-const DateRangeFilter = ({ fromDate, toDate, onDateChange, label = 'Date Filtration' }) => {
+const DateRangeFilter = ({ fromDate, toDate, onDateChange, onRefresh, label = 'Date Filtration' }) => {
   const [filterMode, setFilterMode] = useState('month'); // 'month', 'custom', 'this_month', 'last_month', 'quarterly', 'half_yearly', 'yearly', 'financial_year'
   const [selectedYear, setSelectedYear] = useState(() => new Date().getFullYear());
   const [selectedMonthVal, setSelectedMonthVal] = useState(() => {
@@ -266,6 +266,18 @@ const DateRangeFilter = ({ fromDate, toDate, onDateChange, label = 'Date Filtrat
             className="w-[125px] bg-transparent text-xs text-[#0e623a] font-extrabold focus:outline-none border-0 p-0 text-center cursor-pointer"
           />
         </div>
+
+        {onRefresh && (
+          <button
+            type="button"
+            onClick={onRefresh}
+            title="Refresh & Apply Date Filters"
+            className="flex items-center gap-1.5 bg-[#0e623a] text-white hover:bg-[#0b4d2d] px-3 py-1.5 rounded-xl text-xs font-bold transition shadow-xs cursor-pointer ml-auto"
+          >
+            <RotateCcw className="w-3.5 h-3.5" />
+            <span>Refresh</span>
+          </button>
+        )}
       </div>
     </div>
   );

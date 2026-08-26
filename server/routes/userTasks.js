@@ -12,8 +12,10 @@ router.get('/', protect, async (req, res) => {
     const { status, search, startDate, endDate } = req.query;
     let query = {};
 
-    // If user is not Superadmin, show only tasks assigned to them or assigned by them
-    if (req.user.role !== 'Superadmin') {
+    // Role check: Only Superadmin / Admin can view all users' tasks. Regular users see only tasks assigned to or by them.
+    const roleNorm = (req.user.role || '').toLowerCase().replace(/[\s_-]+/g, '');
+    const isSuperAdmin = roleNorm === 'superadmin' || roleNorm === 'admin';
+    if (!isSuperAdmin) {
       query.$or = [
         { assignedTo: req.user._id },
         { assignedBy: req.user._id }
@@ -42,7 +44,7 @@ router.get('/', protect, async (req, res) => {
       .populate('assignedTo', 'name email role phone')
       .populate('assignedBy', 'name email role phone')
       .populate('history.updatedBy', 'name email role')
-      .sort({ dueDate: 1, createdAt: -1 });
+      .sort({ createdAt: -1, _id: -1 });
 
     if (search) {
       const term = search.toLowerCase();
@@ -87,7 +89,7 @@ router.get('/notifications', protect, async (req, res) => {
 // @desc    Create a new task
 // @access  Private (All authenticated users)
 router.post('/', protect, async (req, res) => {
-  const { title, description, dueDate, assignedTo, status, note } = req.body;
+  const { title, description, dueDate, assignedTo, status, priority, category, repeatType, reminderInterval, note } = req.body;
 
   if (!title || !dueDate || !assignedTo) {
     return res.status(400).json({ message: 'Title, Due Date, and Assigned Person are required' });
@@ -106,6 +108,10 @@ router.post('/', protect, async (req, res) => {
       assignedTo: targetUser._id,
       assignedBy: req.user._id,
       status: status || 'New',
+      priority: priority || 'Medium',
+      category: category || 'General',
+      repeatType: repeatType || 'None',
+      reminderInterval: Number(reminderInterval) || 1,
       actionTaken: false,
       snoozedBy: [],
       history: [
@@ -135,7 +141,7 @@ router.post('/', protect, async (req, res) => {
 // @desc    Update task details or status
 // @access  Private
 router.put('/:id', protect, async (req, res) => {
-  const { title, description, dueDate, assignedTo, status, actionTaken, note } = req.body;
+  const { title, description, dueDate, assignedTo, status, priority, category, repeatType, reminderInterval, actionTaken, note } = req.body;
 
   try {
     const task = await UserTask.findById(req.params.id);
@@ -156,6 +162,17 @@ router.put('/:id', protect, async (req, res) => {
       changeDesc.push(`Due date updated to ${new Date(dueDate).toLocaleDateString()}`);
       task.dueDate = dueDate;
     }
+    if (priority !== undefined && priority !== task.priority) {
+      changeDesc.push(`Priority changed to ${priority}`);
+      task.priority = priority;
+    }
+    if (category !== undefined && category !== task.category) {
+      changeDesc.push(`Category changed to ${category}`);
+      task.category = category;
+    }
+    if (repeatType !== undefined) task.repeatType = repeatType;
+    if (reminderInterval !== undefined) task.reminderInterval = Number(reminderInterval) || 1;
+
     if (assignedTo !== undefined && task.assignedTo.toString() !== assignedTo.toString()) {
       const targetUser = await User.findById(assignedTo);
       if (targetUser) {
@@ -202,9 +219,9 @@ router.put('/:id', protect, async (req, res) => {
 // @desc    Add comment / login history note to task
 // @access  Private
 router.post('/:id/comments', protect, async (req, res) => {
-  const { note } = req.body;
+  const { note, action } = req.body;
   if (!note || !note.trim()) {
-    return res.status(400).json({ message: 'Comment note is required' });
+    return res.status(400).json({ message: 'Reply note is required' });
   }
 
   try {
@@ -213,8 +230,15 @@ router.post('/:id/comments', protect, async (req, res) => {
       return res.status(404).json({ message: 'Task not found' });
     }
 
+    let defaultAction = 'Reply';
+    if (task.assignedTo && req.user._id.toString() === task.assignedTo.toString()) {
+      defaultAction = 'Reply to Assigner';
+    } else if (task.assignedBy && req.user._id.toString() === task.assignedBy.toString()) {
+      defaultAction = 'Reply to Assignee';
+    }
+
     task.history.push({
-      action: 'Comment Added',
+      action: action || defaultAction,
       status: task.status,
       updatedBy: req.user._id,
       note: note.trim(),

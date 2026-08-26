@@ -110,7 +110,7 @@ const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
 
           const notifOptions = {
             body: bodyText,
-            icon: '/jb_logo.jpg',
+            icon: '/JB logo.png',
             badge: '/favicon.svg',
             vibrate: [200, 100, 200],
             requireInteraction: true

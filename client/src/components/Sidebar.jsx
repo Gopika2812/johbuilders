@@ -48,11 +48,11 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
       <div className="absolute bottom-[-10%] right-[-10%] w-[80%] h-[30%] bg-emerald-600/10 rounded-full blur-[70px] pointer-events-none z-0"></div>
 
       {/* Brand Logo Header */}
-      <div className={`px-0 py-4 flex items-center justify-center w-full relative z-10 border-b border-white/5 shrink-0`}>
+      <div className={`px-4 py-3 flex items-center justify-center w-full relative z-10 border-b border-white/10 shrink-0`}>
         {isExpanded ? (
-          <img src="/jb_logo.jpg" alt="JB Logo" className="w-full h-auto object-contain" />
+          <img src="/logo_white.jpg" alt="JB Logo" className="h-14 w-auto max-w-[160px] object-contain rounded-xl shadow-sm" />
         ) : (
-          <img src="/jb_logo.jpg" alt="JB Logo" className="w-12 h-12 object-contain" />
+          <img src="/logo_white.jpg" alt="JB Logo" className="w-10 h-10 object-contain rounded-lg" />
         )}
       </div>
 

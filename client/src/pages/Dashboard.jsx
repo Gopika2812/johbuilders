@@ -587,7 +587,27 @@ const Dashboard = () => {
     projects: []
   });
 
+  const [allProjectsList, setAllProjectsList] = useState([]);
   const [selectedUserPerfName, setSelectedUserPerfName] = useState(null);
+
+  useEffect(() => {
+    const fetchFullProjects = async () => {
+      try {
+        const res = await fetch(`${API_URL}/projects`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setAllProjectsList(data);
+        }
+      } catch (e) {
+        console.error('Error fetching full projects list:', e);
+      }
+    };
+    if (token) {
+      fetchFullProjects();
+    }
+  }, [token]);
 
   const userPerformanceData = React.useMemo(() => {
     const data = {};
@@ -1023,11 +1043,11 @@ const Dashboard = () => {
     const safeCols = Math.max(3, totalColumns);
     const webLogo = LOGO_BASE64;
     return `
-      <tr style="height: 65px;">
-        <td colspan="2" bgcolor="#FFFFFF" class="logo-cell" style="background-color: #FFFFFF; padding: 4px 8px; text-align: center; vertical-align: middle; border: 1px solid #CBD5E1; height: 65px; width: 160px;">
-          ${webLogo ? `<img src="${webLogo}" style="max-height: 55px; max-width: 100%; width: auto; height: 55px; object-fit: contain; display: block; margin: 0 auto;" alt="JOHN BUILDWELL" />` : `<div style="color: #0F5233; font-size: 11pt; font-weight: bold; text-align: center;">JOHN BUILDWELL</div>`}
+      <tr style="height: 68px;">
+        <td colspan="2" bgcolor="#FFFFFF" class="logo-cell" style="background-color: #FFFFFF; padding: 4px 8px; text-align: center; vertical-align: middle; border: 1px solid #CBD5E1; height: 68px; width: 160px;">
+          ${webLogo ? `<img src="${webLogo}" style="max-height: 60px; max-width: 100%; width: auto; height: 60px; object-fit: contain; display: block; margin: 0 auto;" alt="JOHN BUILDWELL" />` : `<div style="color: #0F5233; font-size: 11pt; font-weight: bold; text-align: center;">JOHN BUILDWELL</div>`}
         </td>
-        <td colspan="${safeCols - 2}" bgcolor="#0F5233" class="title-row text-center" style="background-color: #0F5233; color: #FFFFFF; border: 1px solid #0D4329; border-left: none; vertical-align:middle; text-align:center; font-size: 14pt; font-weight: bold; height: 65px; letter-spacing: 0.5px;">
+        <td colspan="${safeCols - 2}" bgcolor="#0F5233" class="title-row text-center" style="background-color: #0F5233; color: #FFFFFF; border: 1px solid #0D4329; border-left: none; vertical-align:middle; text-align:center; font-size: 14pt; font-weight: bold; height: 68px; letter-spacing: 0.5px;">
           ${titleText}
         </td>
       </tr>
@@ -1309,10 +1329,19 @@ const Dashboard = () => {
     const inventory = stats.cards.inventory || {};
 
     const availableProjCount = inventory.totalProjects || 0;
-    const availableProjVal = (inventory.availableValueByType?.Plot || 0) +
-      (inventory.availableValueByType?.Flat || 0) +
-      (inventory.availableValueByType?.Villa || 0) +
-      (inventory.availableValueByType?.House || 0);
+    const availableProjVal = Object.values(inventory.totalValueByType || {}).reduce((sum, val) => sum + (val || 0), 0);
+
+    const plotProjCount = inventory.projectsByType?.Plot || 0;
+    const plotProjVal = (inventory.totalValueByType?.Plot || 0);
+
+    const unitProjCount = (inventory.projectsByType?.Flat || 0) +
+      (inventory.projectsByType?.Villa || 0) +
+      (inventory.projectsByType?.House || 0) +
+      (inventory.projectsByType?.Unit || 0);
+    const unitProjVal = (inventory.totalValueByType?.Flat || 0) +
+      (inventory.totalValueByType?.Villa || 0) +
+      (inventory.totalValueByType?.House || 0) +
+      (inventory.totalValueByType?.Unit || 0);
 
     let htmlContent = `
       <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
@@ -1321,16 +1350,16 @@ const Dashboard = () => {
         <style>
           table { border-collapse: collapse; }
           td, th { border: 1px solid #cbd5e1; padding: 10px 14px; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; font-size: 10pt; color: #334155; }
-          th { font-weight: bold; background-color: #0F5233; color: white; border: 1px solid #0F5233; text-align: center; }
+          th { font-weight: bold; background-color: #0F5233; color: #FFFFFF; border: 1px solid #0F5233; text-align: center; }
           .title-row { font-size: 14pt; font-weight: bold; background-color: #0F5233; color: #FFFFFF; }
-          .section-banner { font-size: 11pt; font-weight: bold; background-color: #E6F4EA; color: #0F5233; padding: 12px; border: 1px solid #C3E6CB; text-align: center; text-transform: uppercase; letter-spacing: 0.5px; }
+          .section-banner { font-size: 11pt; font-weight: bold; background-color: #0F5233; color: #FFFFFF; padding: 12px; border: 1px solid #0D4329; text-align: center; text-transform: uppercase; letter-spacing: 0.5px; }
           .even-row { background-color: #f8fafc; }
           .bold-label { font-weight: bold; color: #0f172a; }
         </style>
       </head>
       <body>
         <table>
-          ${getExcelHeader('JOHN BUILDWELL ERP - PERFORMANCE SUMMARY REPORT', '', 9)}
+          ${getExcelHeader('OVERALL SUMMARY REPORT', '', 9)}
           
           <!-- PART 1 -->
           <tr><td colspan="9" class="section-banner">PART 1: PROJECTS & UNIT TYPE SUMMARY</td></tr>
@@ -1344,16 +1373,18 @@ const Dashboard = () => {
             <td colspan="3" class="text-right">${availableProjCount}</td>
             <td colspan="3" class="text-right">Rs. ${availableProjVal.toLocaleString()}</td>
           </tr>
+          ${plotProjCount > 0 || plotProjVal > 0 ? `
           <tr class="even-row">
             <td colspan="3" class="bold-label text-left">Available Projects (Plot)</td>
-            <td colspan="3" class="text-right">${inventory.projectsByType?.Plot || 0}</td>
-            <td colspan="3" class="text-right">Rs. ${(inventory.availableValueByType?.Plot || 0).toLocaleString()}</td>
-          </tr>
+            <td colspan="3" class="text-right">${plotProjCount}</td>
+            <td colspan="3" class="text-right">Rs. ${plotProjVal.toLocaleString()}</td>
+          </tr>` : ''}
+          ${unitProjCount > 0 || unitProjVal > 0 ? `
           <tr>
             <td colspan="3" class="bold-label text-left">Available Projects (Unit)</td>
-            <td colspan="3" class="text-right">${(inventory.projectsByType?.Flat || 0) + (inventory.projectsByType?.Villa || 0) + (inventory.projectsByType?.House || 0) + (inventory.projectsByType?.Unit || 0)}</td>
-            <td colspan="3" class="text-right">Rs. ${((inventory.availableValueByType?.Flat || 0) + (inventory.availableValueByType?.Villa || 0) + (inventory.availableValueByType?.House || 0) + (inventory.availableValueByType?.Unit || 0)).toLocaleString()}</td>
-          </tr>
+            <td colspan="3" class="text-right">${unitProjCount}</td>
+            <td colspan="3" class="text-right">Rs. ${unitProjVal.toLocaleString()}</td>
+          </tr>` : ''}
           <tr><td colspan="9" style="border:none; height: 10px;"></td></tr>
           
           <tr>
@@ -1369,14 +1400,21 @@ const Dashboard = () => {
           </tr>
     `;
 
-    ['Plot', 'Flat', 'Villa', 'Unit'].forEach((type, idx) => {
+    const candidateTypes = ['Plot', 'Flat', 'Villa', 'Unit'];
+    const activeTypes = candidateTypes.filter(type => {
+      const overallCount = (inventory.totalByType?.[type] || 0) + (type === 'Villa' ? (inventory.totalByType?.House || 0) : 0);
+      return overallCount > 0;
+    });
+    const typesToRender = activeTypes.length > 0 ? activeTypes : ['Plot', 'Unit'];
+
+    typesToRender.forEach((type, idx) => {
       const overallCount = (inventory.totalByType?.[type] || 0) + (type === 'Villa' ? (inventory.totalByType?.House || 0) : 0);
       const overallVal = (inventory.totalValueByType?.[type] || 0) + (type === 'Villa' ? (inventory.totalValueByType?.House || 0) : 0);
       const availCount = (inventory.availableByType?.[type] || 0) + (type === 'Villa' ? (inventory.availableByType?.House || 0) : 0);
       const availVal = (inventory.availableValueByType?.[type] || 0) + (type === 'Villa' ? (inventory.availableValueByType?.House || 0) : 0);
       const bookedCount = (inventory.bookedByType?.[type] || 0) + (type === 'Villa' ? (inventory.bookedByType?.House || 0) : 0);
       const bookedVal = (inventory.bookedValueByType?.[type] || 0) + (type === 'Villa' ? (inventory.bookedValueByType?.House || 0) : 0);
-      const handCount = (inventory.handoverUnitsByType?.[type] || 0) + (type === 'Villa' ? (inventory.handoverUnitsByType?.House || 0) : 0);
+      const handCount = (inventory.handoverByType?.[type] || 0) + (type === 'Villa' ? (inventory.handoverByType?.House || 0) : 0);
       const handVal = (inventory.handoverValueByType?.[type] || 0) + (type === 'Villa' ? (inventory.handoverValueByType?.House || 0) : 0);
 
       const rowClass = idx % 2 === 1 ? 'class="even-row"' : '';
@@ -1825,6 +1863,7 @@ const Dashboard = () => {
                 setFromDate(newFrom);
                 setToDate(newTo);
               }}
+              onRefresh={fetchDashboardStats}
               label="Date Filtration Mode"
             />
           </div>
@@ -1842,7 +1881,17 @@ const Dashboard = () => {
             if (selectedCode && projCode !== selectedCode) return null;
           }
 
-          const pStats = stats.projectUnitsStats[projCode];
+          const pStats = { ...stats.projectUnitsStats[projCode] };
+          const projObj = (allProjectsList.length > 0 ? allProjectsList : stats.projects || []).find(p => (p.code || p.name) === projCode);
+          if (projObj && projObj.units) {
+            const holdUnits = projObj.units.filter(u => u.status && String(u.status).toLowerCase().includes('hold'));
+            pStats.hold = holdUnits.length;
+            pStats.holdUnitsList = holdUnits.map(u => ({ unitId: u.unitId, price: u.price, size: u.size }));
+            if (pStats.hold > 0 && pStats.available >= pStats.hold && !(stats.projectUnitsStats[projCode]?.hold > 0)) {
+              pStats.available = Math.max(0, pStats.available - pStats.hold);
+            }
+          }
+
           const chartData = [
             { stage: 'Available', count: pStats.available },
             { stage: 'Booked', count: pStats.booked },
@@ -1890,20 +1939,20 @@ const Dashboard = () => {
                       );
                     })}
 
-                    {/* Cancelled Units display */}
+                    {/* HOLD Units display */}
                     <div
                       onClick={() => {
-                        setSelectedInventoryProj({ projCode, stats: pStats, view: 'cancelled' });
+                        setSelectedInventoryProj({ projCode, stats: pStats, view: 'hold' });
                         setInventoryModalOpen(true);
                       }}
-                      className="flex flex-col items-start bg-red-50 border border-red-100 rounded-2xl p-4 hover:bg-red-100 transition shadow-sm cursor-pointer w-full"
+                      className="flex flex-col items-start bg-amber-50 border border-amber-100 rounded-2xl p-4 hover:bg-amber-100 transition shadow-sm cursor-pointer w-full"
                     >
                       <div className="flex items-center gap-2 mb-2">
-                        <span className="w-3 h-3 rounded-full shrink-0 bg-red-500"></span>
-                        <span className="text-[11px] font-black text-red-500 uppercase tracking-wider">Cancelled</span>
+                        <span className="w-3 h-3 rounded-full shrink-0 bg-amber-500"></span>
+                        <span className="text-[11px] font-black text-amber-700 uppercase tracking-wider">HOLD</span>
                       </div>
                       <div className="flex flex-col items-start gap-0.5 mt-auto">
-                        <span className="text-red-900 font-black text-3xl leading-none mt-1">{pStats.cancelled || 0}</span>
+                        <span className="text-amber-950 font-black text-3xl leading-none mt-1">{pStats.hold || 0}</span>
                       </div>
                     </div>
                   </div>
@@ -2057,15 +2106,6 @@ const Dashboard = () => {
 
               <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
                 <div className="md:col-span-7 flex flex-col items-start w-full relative">
-                  {selectedUserPerfName && (
-                    <button
-                      onClick={() => setSelectedUserPerfName(null)}
-                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-black text-white bg-[#0e623a] hover:bg-[#0b4d2d] rounded-xl transition shadow-md hover:shadow-lg active:scale-95 cursor-pointer mb-2 self-start"
-                    >
-                      <ArrowLeft className="w-4 h-4" />
-                      <span>Back to All Users</span>
-                    </button>
-                  )}
                   {userPerformanceData.length === 0 ? (
                     <p className="text-black-400 italic text-xs py-8 text-center w-full">No user performance recorded</p>
                   ) : (
@@ -2157,7 +2197,21 @@ const Dashboard = () => {
                   <h3 className="text-sm font-extrabold text-black-800 uppercase tracking-wide">
                     Source Wise Lead Details
                   </h3>
-
+                  {(selectedSourceGroup || selectedSubSource) && (
+                    <button
+                      onClick={() => {
+                        if (selectedSubSource) {
+                          setSelectedSubSource(null);
+                        } else {
+                          setSelectedSourceGroup(null);
+                        }
+                      }}
+                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-black text-white bg-[#0e623a] hover:bg-[#0b4d2d] rounded-xl transition shadow-md hover:shadow-lg active:scale-95 cursor-pointer mt-2"
+                    >
+                      <ArrowLeft className="w-4 h-4" />
+                      <span>{selectedSubSource ? 'Back to Group' : 'Back to Groups'}</span>
+                    </button>
+                  )}
                 </div>
                 <div className="flex items-center gap-2 self-start sm:self-auto">
                   <select
@@ -2180,20 +2234,6 @@ const Dashboard = () => {
                     <FileText className="w-3.5 h-3.5" />
                     <span>Preview & Export</span>
                   </button>
-                  {selectedSourceGroup && (
-                    <button
-                      onClick={() => {
-                        if (selectedSubSource) {
-                          setSelectedSubSource(null);
-                        } else {
-                          setSelectedSourceGroup(null);
-                        }
-                      }}
-                      className="px-2.5 py-1 text-[11px] font-bold text-[#0e623a] bg-emerald-50 hover:bg-emerald-100 transition rounded-xl"
-                    >
-                      ← {selectedSubSource ? 'Back to Group' : 'Back to Groups'}
-                    </button>
-                  )}
                   {(selectedSourceGroup || selectedSubSource) && (
                     <button
                       onClick={() => {
@@ -2360,17 +2400,15 @@ const Dashboard = () => {
                   <h3 className="text-sm font-extrabold text-black-800 uppercase tracking-wide">
                     Project Wise Leads Share
                   </h3>
-
-                </div>
-                <div className="flex items-center gap-2 self-start sm:self-auto">
                   {selectedProjectPerfCode && (
                     <button
                       onClick={() => {
                         setSelectedProjectPerfCode(null);
                         setSelectedProjectPerfUser(null);
                       }}
-                      className="flex items-center gap-1 px-3 py-1 text-[11px] font-bold text-emerald-600 hover:text-emerald-700 bg-emerald-50 hover:bg-emerald-100/80 rounded-xl transition"
+                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-black text-white bg-[#0e623a] hover:bg-[#0b4d2d] rounded-xl transition shadow-md hover:shadow-lg active:scale-95 cursor-pointer mt-2"
                     >
+                      <ArrowLeft className="w-4 h-4" />
                       <span>Back to Projects</span>
                     </button>
                   )}
@@ -3556,9 +3594,9 @@ const Dashboard = () => {
                   <span className="text-[11px] text-yellow-700 font-extrabold uppercase tracking-wider block">Booked</span>
                   <span className="text-2xl font-black text-yellow-900 block mt-1">{(selectedInventoryProj.stats.booked || 0) + (selectedInventoryProj.stats.handover || 0)}</span>
                 </div>
-                <div className="bg-red-50 border border-red-100 rounded-2xl p-4 text-center">
-                  <span className="text-[11px] text-red-700 font-extrabold uppercase tracking-wider block">Cancelled</span>
-                  <span className="text-2xl font-black text-red-900 block mt-1">{selectedInventoryProj.stats.cancelled || 0}</span>
+                <div className="bg-amber-50 border border-amber-100 rounded-2xl p-4 text-center">
+                  <span className="text-[11px] text-amber-700 font-extrabold uppercase tracking-wider block">HOLD</span>
+                  <span className="text-2xl font-black text-amber-900 block mt-1">{selectedInventoryProj.stats.hold || selectedInventoryProj.stats.cancelled || 0}</span>
                 </div>
               </div>
 
@@ -3576,12 +3614,12 @@ const Dashboard = () => {
                       selectedInventoryProj.stats.totalUnitsList.map(uid => {
                         const isAvailable = selectedInventoryProj.stats.availableUnitsList?.includes(uid);
                         const isBooked = selectedInventoryProj.stats.bookedUnitsList?.includes(uid) || selectedInventoryProj.stats.handoverUnitsList?.includes(uid);
-                        const isCancelled = selectedInventoryProj.stats.cancelledUnitsList?.some(u => u.unitId === uid);
+                        const isHold = selectedInventoryProj.stats.cancelledUnitsList?.some(u => u.unitId === uid) || selectedInventoryProj.stats.holdUnitsList?.some(u => u.unitId === uid);
 
                         let bgClass = "bg-blue-100 text-blue-800 border-blue-200"; // Fallback / Total
                         if (isAvailable) bgClass = "bg-green-100 text-green-800 border-green-200";
                         if (isBooked) bgClass = "bg-yellow-100 text-yellow-800 border-yellow-300";
-                        if (isCancelled) bgClass = "bg-red-100 text-red-800 border-red-200";
+                        if (isHold) bgClass = "bg-amber-100 text-amber-800 border-amber-200";
 
                         return (
                           <span key={uid} className={`border text-xs font-bold px-1 py-2 rounded-xl flex items-center justify-center text-center ${bgClass}`}>

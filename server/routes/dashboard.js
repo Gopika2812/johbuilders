@@ -600,10 +600,12 @@ router.get('/stats', protect, async (req, res) => {
         booked: 0,
         handover: 0,
         cancelled: 0,
+        hold: 0,
         availableUnitsList: [],
         bookedUnitsList: [],
         handoverUnitsList: [],
         cancelledUnitsList: [],
+        holdUnitsList: [],
         totalUnitsList: []
       };
 
@@ -626,7 +628,8 @@ router.get('/stats', protect, async (req, res) => {
                             p.updatedAt ||
                             p.createdAt;
 
-        if (u.status === 'New') {
+        const uStatusNorm = (u.status || '').toLowerCase();
+        if (u.status === 'New' || uStatusNorm === 'available') {
           projectUnitsStats[pCode].available += 1;
           projectUnitsStats[pCode].availableUnitsList.push(u.unitId);
         } else if (u.status === 'Booked') {
@@ -635,6 +638,13 @@ router.get('/stats', protect, async (req, res) => {
         } else if (u.status === 'Sold Out') {
           projectUnitsStats[pCode].handover += 1;
           projectUnitsStats[pCode].handoverUnitsList.push(u.unitId);
+        } else if (uStatusNorm.includes('hold')) {
+          projectUnitsStats[pCode].hold += 1;
+          projectUnitsStats[pCode].holdUnitsList.push({
+            unitId: u.unitId,
+            price: u.price || 0,
+            size: u.size || 0
+          });
         } else {
           projectUnitsStats[pCode].available += 1;
           projectUnitsStats[pCode].availableUnitsList.push(u.unitId);
