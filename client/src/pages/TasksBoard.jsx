@@ -766,7 +766,6 @@ const TasksBoard = () => {
                 className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#0e623a]"
               >
                 <option value="ALL">All Priorities</option>
-                <option value="Urgent">Urgent</option>
                 <option value="High">High</option>
                 <option value="Medium">Medium</option>
                 <option value="Low">Low</option>
@@ -1130,10 +1129,9 @@ const TasksBoard = () => {
                     onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
                     className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-bold text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#0e623a]"
                   >
-                    <option value="Urgent">Urgent 🔥</option>
-                    <option value="High">High ⚠️</option>
-                    <option value="Medium">Medium 📌</option>
-                    <option value="Low">Low 🟢</option>
+                    <option value="High">High</option>
+                    <option value="Medium">Medium</option>
+                    <option value="Low">Low</option>
                   </select>
                 </div>
               </div>
