@@ -10,6 +10,11 @@ const UserTaskSchema = new mongoose.Schema({
     type: String,
     trim: true
   },
+  projectName: {
+    type: String,
+    trim: true,
+    default: ''
+  },
   dueDate: {
     type: Date,
     required: true

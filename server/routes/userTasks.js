@@ -51,6 +51,7 @@ router.get('/', protect, async (req, res) => {
       tasks = tasks.filter(task => 
         (task.title || '').toLowerCase().includes(term) ||
         (task.description || '').toLowerCase().includes(term) ||
+        (task.projectName || '').toLowerCase().includes(term) ||
         (task.assignedTo?.name || '').toLowerCase().includes(term) ||
         (task.assignedBy?.name || '').toLowerCase().includes(term) ||
         (task.history && task.history.some(h => (h.note || '').toLowerCase().includes(term)))
@@ -89,7 +90,7 @@ router.get('/notifications', protect, async (req, res) => {
 // @desc    Create a new task
 // @access  Private (All authenticated users)
 router.post('/', protect, async (req, res) => {
-  const { title, description, dueDate, assignedTo, status, priority, category, repeatType, reminderInterval, note } = req.body;
+  const { title, description, projectName, dueDate, assignedTo, status, priority, category, repeatType, reminderInterval, note } = req.body;
 
   if (!title || !dueDate || !assignedTo) {
     return res.status(400).json({ message: 'Title, Due Date, and Assigned Person are required' });
@@ -104,6 +105,7 @@ router.post('/', protect, async (req, res) => {
     const newTask = new UserTask({
       title,
       description,
+      projectName: projectName ? projectName.trim() : '',
       dueDate,
       assignedTo: targetUser._id,
       assignedBy: req.user._id,
@@ -141,7 +143,7 @@ router.post('/', protect, async (req, res) => {
 // @desc    Update task details or status
 // @access  Private
 router.put('/:id', protect, async (req, res) => {
-  const { title, description, dueDate, assignedTo, status, priority, category, repeatType, reminderInterval, actionTaken, note } = req.body;
+  const { title, description, projectName, dueDate, assignedTo, status, priority, category, repeatType, reminderInterval, actionTaken, note } = req.body;
 
   try {
     const task = await UserTask.findById(req.params.id);
@@ -157,6 +159,10 @@ router.put('/:id', protect, async (req, res) => {
     if (description !== undefined && description !== task.description) {
       changeDesc.push(`Description updated`);
       task.description = description;
+    }
+    if (projectName !== undefined && projectName !== task.projectName) {
+      changeDesc.push(`Project name changed to "${projectName}"`);
+      task.projectName = projectName;
     }
     if (dueDate !== undefined && new Date(dueDate).toISOString() !== new Date(task.dueDate).toISOString()) {
       changeDesc.push(`Due date updated to ${new Date(dueDate).toLocaleDateString()}`);

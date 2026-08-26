@@ -23,7 +23,8 @@ import {
   Send,
   ChevronDown,
   Check,
-  Users
+  Users,
+  Building
 } from 'lucide-react';
 
 const CustomPersonSelector = ({ employees, value, onChange, placeholder = "-- Select Person --" }) => {
@@ -164,9 +165,10 @@ const TasksBoard = () => {
   // View Tab Filter State: 'ASSIGNED_TO_ME', 'I_ASSIGNED', 'OTHER_TASKS', 'ALL'
   const [viewTab, setViewTab] = useState('ASSIGNED_TO_ME');
 
-  // Category & Priority Filters
+  // Category, Priority & Project Filters
   const [categoryFilter, setCategoryFilter] = useState('ALL');
   const [priorityFilter, setPriorityFilter] = useState('ALL');
+  const [projectFilter, setProjectFilter] = useState('ALL');
 
   // Categories list with instant inline creation
   const [categoriesList, setCategoriesList] = useState([
@@ -181,10 +183,14 @@ const TasksBoard = () => {
   const [isAddingNewCategory, setIsAddingNewCategory] = useState(false);
   const [newCategoryInput, setNewCategoryInput] = useState('');
 
+  const [projects, setProjects] = useState([]);
+  const [projectSelectOption, setProjectSelectOption] = useState('');
+
   // Form Fields
   const [formData, setFormData] = useState({
     title: '',
     description: '',
+    projectName: '',
     dueDate: '',
     assignedTo: '',
     status: 'New',
@@ -197,6 +203,7 @@ const TasksBoard = () => {
   useEffect(() => {
     fetchTasks();
     fetchEmployees();
+    fetchProjects();
   }, [token, startDate, endDate]);
 
   const fetchTasks = async (isSilent = false) => {
@@ -240,13 +247,29 @@ const TasksBoard = () => {
     }
   };
 
+  const fetchProjects = async () => {
+    try {
+      const res = await fetch(`${API_URL}/projects`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setProjects(data);
+      }
+    } catch (err) {
+      console.error('Error fetching projects:', err);
+    }
+  };
+
   const handleOpenCreateModal = () => {
     setEditingTask(null);
     setIsAddingNewCategory(false);
     setNewCategoryInput('');
+    setProjectSelectOption('');
     setFormData({
       title: '',
       description: '',
+      projectName: '',
       dueDate: new Date().toISOString().split('T')[0],
       assignedTo: user?._id || '',
       status: 'New',
@@ -263,9 +286,19 @@ const TasksBoard = () => {
     setIsAddingNewCategory(false);
     setNewCategoryInput('');
     const dateFormatted = task.dueDate ? new Date(task.dueDate).toISOString().split('T')[0] : '';
+    
+    const taskProj = (task.projectName || '').trim();
+    if (taskProj) {
+      const matchedProj = projects.find(p => p.name?.trim().toLowerCase() === taskProj.toLowerCase());
+      setProjectSelectOption(matchedProj ? matchedProj.name : 'Other');
+    } else {
+      setProjectSelectOption('');
+    }
+
     setFormData({
       title: task.title || '',
       description: task.description || '',
+      projectName: taskProj,
       dueDate: dateFormatted,
       assignedTo: task.assignedTo?._id || task.assignedTo || '',
       status: task.status || 'New',
@@ -448,6 +481,7 @@ const TasksBoard = () => {
     const matchesSearch = 
       (task.title || '').toLowerCase().includes(term) ||
       (task.description || '').toLowerCase().includes(term) ||
+      (task.projectName || '').toLowerCase().includes(term) ||
       (task.assignedTo?.name || '').toLowerCase().includes(term) ||
       (task.assignedBy?.name || '').toLowerCase().includes(term);
 
@@ -474,6 +508,7 @@ const TasksBoard = () => {
 
     if (categoryFilter !== 'ALL' && task.category !== categoryFilter) return false;
     if (priorityFilter !== 'ALL' && task.priority !== priorityFilter) return false;
+    if (projectFilter !== 'ALL' && (task.projectName || '').trim() !== projectFilter) return false;
 
     return true;
   });
@@ -738,6 +773,25 @@ const TasksBoard = () => {
               </select>
             </div>
 
+            {/* Project Filter */}
+            <div className="flex items-center gap-1.5">
+              <Building className="w-4 h-4 text-gray-400 shrink-0" />
+              <span className="text-xs font-bold text-gray-500 shrink-0">Project:</span>
+              <select
+                value={projectFilter}
+                onChange={(e) => setProjectFilter(e.target.value)}
+                className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#0e623a]"
+              >
+                <option value="ALL">All Projects</option>
+                {Array.from(new Set([
+                  ...projects.map(p => p.name).filter(Boolean),
+                  ...tasks.map(t => t.projectName).filter(Boolean)
+                ])).sort().map(pName => (
+                  <option key={pName} value={pName}>{pName}</option>
+                ))}
+              </select>
+            </div>
+
             {/* Date Range Filtration */}
             <div className="flex items-center gap-1.5 bg-gray-50 p-1.5 rounded-xl border border-gray-200">
               <Calendar className="w-4 h-4 text-[#0e623a] shrink-0 ml-1" />
@@ -821,12 +875,18 @@ const TasksBoard = () => {
 
                       <td className="p-3.5">
                         <div className="space-y-1">
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 flex-wrap">
                             <span className="font-extrabold text-gray-900 text-sm">{task.title}</span>
                             <span className="px-2 py-0.5 bg-emerald-50 border border-emerald-200 text-emerald-800 font-bold text-[10px] rounded-md shrink-0">
                               {task.category || 'General'}
                             </span>
                           </div>
+                          {task.projectName && (
+                            <div className="flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50/70 border border-emerald-200/80 px-2 py-0.5 rounded-md w-fit">
+                              <Building className="w-3 h-3 text-[#0e623a]" />
+                              <span>Project: {task.projectName}</span>
+                            </div>
+                          )}
                           {task.description && (
                             <p className="text-gray-500 text-xs line-clamp-2 max-w-sm font-normal">{task.description}</p>
                           )}
@@ -1000,6 +1060,51 @@ const TasksBoard = () => {
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-[#0e623a]"
                 />
+              </div>
+
+              {/* Project Name (Select Project from Directory or Custom Others Option) */}
+              <div>
+                <label className="block font-bold text-gray-700 mb-1 flex items-center justify-between">
+                  <span className="flex items-center gap-1.5">
+                    <Building className="w-3.5 h-3.5 text-[#0e623a]" />
+                    <span>Project Name</span>
+                  </span>
+                  <span className="text-[10px] font-normal text-gray-400 italic">Optional</span>
+                </label>
+                <select
+                  value={projectSelectOption}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setProjectSelectOption(val);
+                    if (val !== 'Other') {
+                      setFormData(prev => ({ ...prev, projectName: val }));
+                    } else {
+                      setFormData(prev => ({ ...prev, projectName: '' }));
+                    }
+                  }}
+                  className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#0e623a]"
+                >
+                  <option value="">-- Select Project (From Directory) --</option>
+                  {projects.map(p => (
+                    <option key={p._id || p.code || p.name} value={p.name}>
+                      {p.name} {p.code ? `(${p.code})` : ''}
+                    </option>
+                  ))}
+                  <option value="Other">Others (Type Custom Project)</option>
+                </select>
+
+                {projectSelectOption === 'Other' && (
+                  <div className="mt-2 animate-fadeIn">
+                    <input
+                      type="text"
+                      placeholder="Enter custom project name..."
+                      value={formData.projectName}
+                      onChange={(e) => setFormData(prev => ({ ...prev, projectName: e.target.value }))}
+                      className="w-full px-3.5 py-2 bg-white border border-emerald-400 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#0e623a] shadow-xs"
+                      autoFocus
+                    />
+                  </div>
+                )}
               </div>
 
               {/* Assigned Person & Priority */}
@@ -1202,6 +1307,15 @@ const TasksBoard = () => {
                     <span className="text-gray-500 font-medium block text-[10px] uppercase">Status</span>
                     <span className="font-extrabold text-[#0e623a]">{selectedTaskForHistory.status}</span>
                   </div>
+                  {selectedTaskForHistory.projectName && (
+                    <div>
+                      <span className="text-gray-500 font-medium block text-[10px] uppercase">Project</span>
+                      <span className="font-extrabold text-[#0e623a] flex items-center gap-1">
+                        <Building className="w-3 h-3" />
+                        {selectedTaskForHistory.projectName}
+                      </span>
+                    </div>
+                  )}
                 </div>
                 <div className="text-right">
                   <span className="text-gray-500 font-medium block text-[10px] uppercase">Replying To</span>
