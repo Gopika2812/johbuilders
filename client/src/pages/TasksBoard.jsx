@@ -187,7 +187,7 @@ const TasksBoard = () => {
 
   // Attachments & Preview Modal State
   const [uploadingFile, setUploadingFile] = useState(false);
-  const [previewImageModal, setPreviewImageModal] = useState({ open: false, url: '', name: '' });
+  const [previewImageModal, setPreviewImageModal] = useState({ open: false, url: '', name: '', taskId: '', attachmentId: '' });
 
   // Form Fields
   const [formData, setFormData] = useState({
@@ -401,8 +401,10 @@ const TasksBoard = () => {
           body: JSON.stringify({ url: uploaded.url, name: uploaded.name })
         });
         if (res.ok) {
-          const updatedTask = await res.json();
-          setTasks(prev => prev.map(t => t._id === updatedTask._id ? updatedTask : t));
+          const updatedTask = await parseResponseJSON(res);
+          if (updatedTask) {
+            setTasks(prev => prev.map(t => t._id === updatedTask._id ? updatedTask : t));
+          }
         }
       }
       setSuccessMsg('Attachment uploaded successfully');
@@ -411,6 +413,33 @@ const TasksBoard = () => {
       setError(err.message || 'Failed to upload attachment');
     } finally {
       setUploadingFile(false);
+    }
+  };
+
+  const handleDeleteAttachment = async (taskId, attachmentId, e) => {
+    if (e) e.stopPropagation();
+    if (!window.confirm('Are you sure you want to delete this attachment?')) return;
+    try {
+      const res = await fetch(`${API_URL}/user-tasks/${taskId}/attachments/${attachmentId}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const updatedTask = await parseResponseJSON(res);
+        if (updatedTask) {
+          setTasks(prev => prev.map(t => t._id === updatedTask._id ? updatedTask : t));
+        }
+        if (previewImageModal.open) {
+          setPreviewImageModal({ open: false, url: '', name: '', taskId: '', attachmentId: '' });
+        }
+        setSuccessMsg('Attachment deleted successfully');
+        setTimeout(() => setSuccessMsg(''), 3000);
+      } else {
+        const data = await parseResponseJSON(res);
+        setError(data?.message || 'Failed to delete attachment');
+      }
+    } catch (err) {
+      setError('Error deleting attachment');
     }
   };
 
@@ -1188,25 +1217,42 @@ const TasksBoard = () => {
                         </div>
                       </td>
 
-                      {/* 11. Attachments (Multiple Image Upload Option via Cloudinary) */}
+                      {/* 11. Attachments (Multiple Image Upload Option via Cloudinary & Delete Option) */}
                       <td className="p-3.5 text-center">
                         <div className="flex flex-col items-center gap-1.5">
                           {task.attachments && task.attachments.length > 0 ? (
-                            <div className="flex items-center gap-1 flex-wrap justify-center max-w-[130px]">
+                            <div className="flex items-center gap-1.5 flex-wrap justify-center max-w-[140px]">
                               {task.attachments.map((att, aIdx) => (
                                 <div 
                                   key={att._id || aIdx} 
-                                  className="relative group cursor-pointer"
-                                  onClick={() => setPreviewImageModal({ open: true, url: att.url, name: att.name })}
-                                  title={att.name || 'View Image'}
+                                  className="relative group shrink-0"
+                                  title={att.name || 'View Attachment'}
                                 >
                                   <img 
                                     src={att.url} 
                                     alt={att.name || 'Attachment'} 
-                                    className="w-7 h-7 rounded-lg object-cover border border-gray-200 hover:scale-110 transition shadow-xs"
+                                    className="w-8 h-8 rounded-lg object-cover border border-gray-200 shadow-xs cursor-pointer"
+                                    onClick={() => setPreviewImageModal({ open: true, url: att.url, name: att.name, taskId: task._id, attachmentId: att._id })}
                                   />
-                                  <div className="absolute inset-0 bg-black/40 rounded-lg opacity-0 group-hover:opacity-100 flex items-center justify-center transition">
-                                    <Eye className="w-3 h-3 text-white" />
+                                  <div className="absolute inset-0 bg-black/60 rounded-lg opacity-0 group-hover:opacity-100 flex items-center justify-center gap-1 transition">
+                                    <button
+                                      type="button"
+                                      onClick={() => setPreviewImageModal({ open: true, url: att.url, name: att.name, taskId: task._id, attachmentId: att._id })}
+                                      className="p-0.5 text-white hover:text-emerald-300 transition cursor-pointer"
+                                      title="View Image"
+                                    >
+                                      <Eye className="w-3 h-3" />
+                                    </button>
+                                    {att._id && (
+                                      <button
+                                        type="button"
+                                        onClick={(e) => handleDeleteAttachment(task._id, att._id, e)}
+                                        className="p-0.5 text-rose-300 hover:text-rose-500 transition cursor-pointer"
+                                        title="Delete Attachment"
+                                      >
+                                        <Trash2 className="w-3 h-3" />
+                                      </button>
+                                    )}
                                   </div>
                                 </div>
                               ))}
@@ -1902,8 +1948,20 @@ const TasksBoard = () => {
                   <Download className="w-4 h-4" />
                   <span>Download</span>
                 </a>
+
+                {previewImageModal.taskId && previewImageModal.attachmentId && (
+                  <button
+                    onClick={(e) => handleDeleteAttachment(previewImageModal.taskId, previewImageModal.attachmentId, e)}
+                    className="p-1.5 hover:bg-rose-600/40 text-rose-300 hover:text-white rounded-lg transition flex items-center gap-1 text-xs font-bold cursor-pointer"
+                    title="Delete Attachment"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    <span>Delete</span>
+                  </button>
+                )}
+
                 <button
-                  onClick={() => setPreviewImageModal({ open: false, url: '', name: '' })}
+                  onClick={() => setPreviewImageModal({ open: false, url: '', name: '', taskId: '', attachmentId: '' })}
                   className="p-1.5 hover:bg-white/20 rounded-lg text-white transition cursor-pointer"
                 >
                   <X className="w-5 h-5" />
