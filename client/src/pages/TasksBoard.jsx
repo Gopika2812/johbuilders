@@ -435,40 +435,15 @@ const TasksBoard = () => {
 
   const fetchCategories = async () => {
     try {
-      const defaultDepts = [
-        'Sales Team',
-        'CRD Team',
-        'Accounts Team',
-        'Administration (Superadmins)',
-        'General'
-      ];
       const res = await fetch(`${API_URL}/task-categories`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (res.ok) {
         const data = await parseResponseJSON(res);
-        if (data && Array.isArray(data)) {
-          const fetchedNames = data.map(d => typeof d === 'string' ? d : d.name);
-          const combined = [...data];
-          defaultDepts.forEach(dept => {
-            if (!fetchedNames.includes(dept)) {
-              combined.push({ name: dept });
-            }
-          });
-          setCategoriesList(combined);
-          return;
-        }
+        if (data && Array.isArray(data)) setCategoriesList(data);
       }
-      setCategoriesList(defaultDepts.map(name => ({ name })));
     } catch (err) {
       console.error('Error fetching categories/departments:', err);
-      setCategoriesList([
-        { name: 'Sales Team' },
-        { name: 'CRD Team' },
-        { name: 'Accounts Team' },
-        { name: 'Administration (Superadmins)' },
-        { name: 'General' }
-      ]);
     }
   };
 
@@ -489,17 +464,18 @@ const TasksBoard = () => {
         await fetchCategories();
         setFormData(prev => ({ ...prev, category: data.name }));
         setNewCategoryName('');
-        setSuccessMsg(`Category "${data.name}" created successfully`);
+        setSuccessMsg(`Department "${data.name}" created successfully`);
         setTimeout(() => setSuccessMsg(''), 3000);
       } else {
-        setError(data?.message || 'Failed to create category');
+        setError(data?.message || 'Failed to create department');
       }
     } catch (err) {
-      setError(err.message || 'Error creating category');
+      setError(err.message || 'Error creating department');
     }
   };
 
   const handleUpdateCategory = async (categoryId, updatedName) => {
+    if (!categoryId || categoryId === 'undefined') return;
     if (!updatedName || !updatedName.trim()) return;
     try {
       const res = await fetch(`${API_URL}/task-categories/${categoryId}`, {
@@ -515,18 +491,19 @@ const TasksBoard = () => {
         await fetchCategories();
         await fetchTasks(true);
         setEditingCategoryObj(null);
-        setSuccessMsg('Category updated successfully');
+        setSuccessMsg('Department updated successfully');
         setTimeout(() => setSuccessMsg(''), 3000);
       } else {
-        setError(data?.message || 'Failed to update category');
+        setError(data?.message || 'Failed to update department');
       }
     } catch (err) {
-      setError('Error updating category');
+      setError('Error updating department');
     }
   };
 
   const handleDeleteCategory = async (categoryId, catName) => {
-    if (!window.confirm(`Are you sure you want to delete category "${catName}"?`)) return;
+    if (!categoryId || categoryId === 'undefined') return;
+    if (!window.confirm(`Are you sure you want to delete department "${catName}"?`)) return;
     try {
       const res = await fetch(`${API_URL}/task-categories/${categoryId}`, {
         method: 'DELETE',
@@ -535,13 +512,13 @@ const TasksBoard = () => {
       const data = await parseResponseJSON(res);
       if (res.ok) {
         await fetchCategories();
-        setSuccessMsg(`Category "${catName}" deleted`);
+        setSuccessMsg(`Department "${catName}" deleted`);
         setTimeout(() => setSuccessMsg(''), 3000);
       } else {
-        setError(data?.message || 'Failed to delete category');
+        setError(data?.message || 'Failed to delete department');
       }
     } catch (err) {
-      setError('Error deleting category');
+      setError('Error deleting department');
     }
   };
 
@@ -1475,12 +1452,12 @@ const TasksBoard = () => {
           </div>
         )}
 
-      {/* Create / Edit Task Modal */}
+      {/* Create / Edit Task Modal (Responsive for all laptop viewports) */}
       {showModal && (
-        <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm z-[999] flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl border border-gray-150 shadow-2xl w-full max-w-lg overflow-hidden animate-fadeIn">
+        <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm z-[999] flex items-center justify-center p-3 sm:p-4">
+          <div className="bg-white rounded-3xl border border-gray-150 shadow-2xl w-full max-w-lg overflow-hidden animate-fadeIn flex flex-col max-h-[90vh]">
             {/* Modal Header */}
-            <div className="px-6 py-4 bg-gradient-to-r from-[#006838] to-[#008c4a] text-white flex items-center justify-between">
+            <div className="px-6 py-4 bg-gradient-to-r from-[#006838] to-[#008c4a] text-white flex items-center justify-between shrink-0">
               <div className="flex items-center gap-2">
                 <ClipboardList className="w-5 h-5" />
                 <h3 className="font-bold text-base">
@@ -1488,15 +1465,16 @@ const TasksBoard = () => {
                 </h3>
               </div>
               <button
+                type="button"
                 onClick={() => setShowModal(false)}
-                className="p-1 hover:bg-white/20 rounded-lg transition text-white"
+                className="p-1 hover:bg-white/20 rounded-lg transition text-white cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            {/* Modal Form */}
-            <form onSubmit={handleSubmitTask} className="p-6 space-y-4 text-xs">
+            {/* Modal Form Body */}
+            <form onSubmit={handleSubmitTask} className="p-6 overflow-y-auto space-y-4 text-xs flex-1 custom-scrollbar">
               {/* Task Title */}
               <div>
                 <label className="block font-bold text-gray-700 mb-1">
@@ -1770,8 +1748,8 @@ const TasksBoard = () => {
                 </div>
               )}
 
-              {/* Modal Actions */}
-              <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-100">
+              {/* Modal Actions (Sticky bottom footer for laptop screens) */}
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-100 shrink-0 sticky bottom-0 bg-white z-10">
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}

@@ -12,20 +12,22 @@ const DEFAULT_CATEGORIES = [
   'General'
 ];
 
+const mongoose = require('mongoose');
+
 // @route   GET /api/task-categories
-// @desc    Get all task categories (auto-seeds defaults if empty)
+// @desc    Get all task categories (auto-seeds defaults if empty or missing)
 // @access  Private
 router.get('/', protect, async (req, res) => {
   try {
-    let categories = await TaskCategory.find({}).sort({ name: 1 });
-
-    if (categories.length === 0) {
-      for (const catName of DEFAULT_CATEGORIES) {
+    for (const catName of DEFAULT_CATEGORIES) {
+      const safeRegex = catName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const exists = await TaskCategory.findOne({ name: new RegExp(`^${safeRegex}$`, 'i') });
+      if (!exists) {
         await TaskCategory.create({ name: catName, createdBy: req.user._id });
       }
-      categories = await TaskCategory.find({}).sort({ name: 1 });
     }
 
+    const categories = await TaskCategory.find({}).sort({ name: 1 });
     res.json(categories);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -69,6 +71,11 @@ router.post('/', protect, async (req, res) => {
 // @desc    Update / rename a task category & sync existing tasks
 // @access  Private
 router.put('/:id', protect, async (req, res) => {
+  const { id } = req.params;
+  if (!id || id === 'undefined' || !mongoose.Types.ObjectId.isValid(id)) {
+    return res.status(400).json({ message: 'Invalid category ID' });
+  }
+
   const { name } = req.body;
   if (!name || !name.trim()) {
     return res.status(400).json({ message: 'Category name is required' });
@@ -77,7 +84,7 @@ router.put('/:id', protect, async (req, res) => {
   const trimmed = name.trim();
 
   try {
-    const category = await TaskCategory.findById(req.params.id);
+    const category = await TaskCategory.findById(id);
     if (!category) {
       return res.status(404).json({ message: 'Category not found' });
     }
@@ -111,13 +118,18 @@ router.put('/:id', protect, async (req, res) => {
 // @desc    Delete a task category
 // @access  Private
 router.delete('/:id', protect, async (req, res) => {
+  const { id } = req.params;
+  if (!id || id === 'undefined' || !mongoose.Types.ObjectId.isValid(id)) {
+    return res.status(400).json({ message: 'Invalid category ID' });
+  }
+
   try {
-    const category = await TaskCategory.findById(req.params.id);
+    const category = await TaskCategory.findById(id);
     if (!category) {
       return res.status(404).json({ message: 'Category not found' });
     }
 
-    await TaskCategory.findByIdAndDelete(req.params.id);
+    await TaskCategory.findByIdAndDelete(id);
     res.json({ message: 'Category deleted successfully' });
   } catch (err) {
     res.status(500).json({ message: err.message });
