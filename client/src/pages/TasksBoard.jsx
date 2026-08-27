@@ -292,19 +292,18 @@ const TasksBoard = () => {
         },
         body: JSON.stringify({ name: newCategoryName.trim() })
       });
+      const data = await res.json();
       if (res.ok) {
-        const created = await res.json();
         await fetchCategories();
-        setFormData(prev => ({ ...prev, category: created.name }));
+        setFormData(prev => ({ ...prev, category: data.name }));
         setNewCategoryName('');
-        setSuccessMsg(`Category "${created.name}" created successfully`);
+        setSuccessMsg(`Category "${data.name}" created successfully`);
         setTimeout(() => setSuccessMsg(''), 3000);
       } else {
-        const data = await res.json();
         setError(data.message || 'Failed to create category');
       }
     } catch (err) {
-      setError('Error creating category');
+      setError(err.message || 'Error creating category');
     }
   };
 
@@ -1139,7 +1138,7 @@ const TasksBoard = () => {
                         <div className="space-y-1">
                           <div className="flex items-center gap-1.5 text-gray-700 font-bold">
                             <Calendar className="w-3.5 h-3.5 text-gray-400 shrink-0" />
-                            <span>{new Date(task.dueDate).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}</span>
+                            <span>{task.dueDate ? new Date(task.dueDate).toLocaleDateString('en-GB') : '—'}</span>
                           </div>
 
                           {task.repeatType && task.repeatType !== 'None' && (
