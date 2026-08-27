@@ -5,13 +5,11 @@ const UserTask = require('../models/UserTask');
 const { protect } = require('../middleware/auth');
 
 const DEFAULT_CATEGORIES = [
-  'General',
-  'Site Visit',
-  'Legal & Documentation',
-  'Payment Follow-up',
-  'Client Meeting',
-  'Construction',
-  'Handover'
+  'Sales Team',
+  'CRD Team',
+  'Accounts Team',
+  'Administration (Superadmins)',
+  'General'
 ];
 
 // @route   GET /api/task-categories

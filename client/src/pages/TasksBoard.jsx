@@ -33,6 +33,14 @@ import {
   XCircle
 } from 'lucide-react';
 
+const getTodayString = () => {
+  const d = new Date();
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 const CustomPersonSelector = ({ employees, value, onChange, placeholder = "-- Select Person --" }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -168,15 +176,16 @@ const TasksBoard = () => {
   const [newCommentNote, setNewCommentNote] = useState('');
   const [commentSubmitting, setCommentSubmitting] = useState(false);
 
-  // View Tab Filter State: 'ASSIGNED_TO_ME', 'I_ASSIGNED', 'OTHER_TASKS', 'ALL'
-  const [viewTab, setViewTab] = useState('ASSIGNED_TO_ME');
+  // View Tab Filter State: 'ALL' (Default), 'ASSIGNED_TO_ME', 'ASSIGNED_TO', 'OTHER_TASKS'
+  const [viewTab, setViewTab] = useState('ALL');
+  const [assignedToFilter, setAssignedToFilter] = useState('ALL');
 
-  // Category, Priority & Project Filters
+  // Department, Priority & Project Filters
   const [categoryFilter, setCategoryFilter] = useState('ALL');
   const [priorityFilter, setPriorityFilter] = useState('ALL');
   const [projectFilter, setProjectFilter] = useState('ALL');
 
-  // Categories list & management state
+  // Categories/Departments list & management state
   const [categoriesList, setCategoriesList] = useState([]);
   const [showCategoryManager, setShowCategoryManager] = useState(false);
   const [editingCategoryObj, setEditingCategoryObj] = useState(null);
@@ -198,7 +207,7 @@ const TasksBoard = () => {
     assignedTo: '',
     status: 'New',
     priority: 'Medium',
-    category: 'General',
+    category: 'Sales Team',
     repeatType: 'None',
     reminderInterval: 1,
     attachments: []
@@ -280,15 +289,40 @@ const TasksBoard = () => {
 
   const fetchCategories = async () => {
     try {
+      const defaultDepts = [
+        'Sales Team',
+        'CRD Team',
+        'Accounts Team',
+        'Administration (Superadmins)',
+        'General'
+      ];
       const res = await fetch(`${API_URL}/task-categories`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (res.ok) {
         const data = await parseResponseJSON(res);
-        if (data && Array.isArray(data)) setCategoriesList(data);
+        if (data && Array.isArray(data)) {
+          const fetchedNames = data.map(d => typeof d === 'string' ? d : d.name);
+          const combined = [...data];
+          defaultDepts.forEach(dept => {
+            if (!fetchedNames.includes(dept)) {
+              combined.push({ name: dept });
+            }
+          });
+          setCategoriesList(combined);
+          return;
+        }
       }
+      setCategoriesList(defaultDepts.map(name => ({ name })));
     } catch (err) {
-      console.error('Error fetching categories:', err);
+      console.error('Error fetching categories/departments:', err);
+      setCategoriesList([
+        { name: 'Sales Team' },
+        { name: 'CRD Team' },
+        { name: 'Accounts Team' },
+        { name: 'Administration (Superadmins)' },
+        { name: 'General' }
+      ]);
     }
   };
 
@@ -473,11 +507,11 @@ const TasksBoard = () => {
       title: '',
       description: '',
       projectName: '',
-      dueDate: new Date().toISOString().split('T')[0],
+      dueDate: getTodayString(),
       assignedTo: user?._id || '',
       status: 'New',
       priority: 'Medium',
-      category: 'General',
+      category: 'Sales Team',
       repeatType: 'None',
       reminderInterval: 1,
       attachments: []
@@ -520,6 +554,12 @@ const TasksBoard = () => {
     e.preventDefault();
     if (!formData.title || !formData.dueDate || !formData.assignedTo) {
       setError('Please fill in all required fields (Title, Due Date, Assigned Person)');
+      return;
+    }
+
+    const todayStr = getTodayString();
+    if (formData.dueDate < todayStr) {
+      setError('Due date cannot be a past date. Please select today or a future date.');
       return;
     }
 
@@ -668,10 +708,16 @@ const TasksBoard = () => {
 
     if (viewTab === 'ASSIGNED_TO_ME') {
       if (!isAssignedToMe) return false;
-    } else if (viewTab === 'I_ASSIGNED') {
-      if (!isIassigned) return false;
+    } else if (viewTab === 'ASSIGNED_TO') {
+      if (assignedToFilter !== 'ALL' && (task.assignedTo?._id || task.assignedTo) !== assignedToFilter) {
+        return false;
+      }
     } else if (viewTab === 'OTHER_TASKS') {
       if (isAssignedToMe || isIassigned) return false;
+    }
+
+    if (assignedToFilter !== 'ALL' && (task.assignedTo?._id || task.assignedTo) !== assignedToFilter) {
+      return false;
     }
 
     const term = searchTerm.toLowerCase();
@@ -858,79 +904,101 @@ const TasksBoard = () => {
         </div>
       )}
 
-      {/* View Tabs: Assigned to Me / I Assigned / Other Tasks (for Superadmin) / All Tasks */}
-      <div className="flex items-center gap-2 bg-white border border-gray-150 p-2 rounded-2xl shadow-sm overflow-x-auto">
-        <button
-          onClick={() => setViewTab('ASSIGNED_TO_ME')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-extrabold transition cursor-pointer shrink-0 ${
-            viewTab === 'ASSIGNED_TO_ME'
-              ? 'bg-[#0e623a] text-white shadow-md'
-              : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
-          }`}
-        >
-          <UserCheck className="w-4 h-4" />
-          <span>Assigned to Me</span>
-          <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
-            viewTab === 'ASSIGNED_TO_ME' ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-700'
-          }`}>
-            {assignedToMeCount}
-          </span>
-        </button>
-
-        <button
-          onClick={() => setViewTab('I_ASSIGNED')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-extrabold transition cursor-pointer shrink-0 ${
-            viewTab === 'I_ASSIGNED'
-              ? 'bg-[#0e623a] text-white shadow-md'
-              : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
-          }`}
-        >
-          <User className="w-4 h-4" />
-          <span>I Assigned</span>
-          <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
-            viewTab === 'I_ASSIGNED' ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-700'
-          }`}>
-            {iAssignedCount}
-          </span>
-        </button>
-
-        {isSuperAdmin && (
+      {/* View Tabs: All Tasks (Highlighted Default), Assigned to Me, Assigned to Filter, Other Tasks */}
+      <div className="flex flex-wrap items-center justify-between gap-3 bg-white border border-gray-150 p-2.5 rounded-2xl shadow-sm">
+        <div className="flex flex-wrap items-center gap-2">
+          {/* All Tasks (DEFAULT & HIGHLIGHTED) */}
           <button
-            onClick={() => setViewTab('OTHER_TASKS')}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-extrabold transition cursor-pointer shrink-0 ${
-              viewTab === 'OTHER_TASKS'
-                ? 'bg-purple-800 text-white shadow-md'
-                : 'text-gray-600 hover:bg-purple-50 hover:text-purple-900'
-            }`}
-          >
-            <Users className="w-4 h-4" />
-            <span>Other Tasks (All People)</span>
-            <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
-              viewTab === 'OTHER_TASKS' ? 'bg-white/20 text-white' : 'bg-purple-100 text-purple-800'
-            }`}>
-              {otherTasksCount}
-            </span>
-          </button>
-        )}
-
-        {isSuperAdmin && (
-          <button
-            onClick={() => setViewTab('ALL')}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-extrabold transition cursor-pointer shrink-0 ${
+            type="button"
+            onClick={() => {
+              setViewTab('ALL');
+              setAssignedToFilter('ALL');
+            }}
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-black transition cursor-pointer shrink-0 ${
               viewTab === 'ALL'
-                ? 'bg-gray-800 text-white shadow-md'
-                : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                ? 'bg-gradient-to-r from-[#006838] to-[#008c4a] text-white shadow-md ring-2 ring-emerald-500/50 scale-[1.02]'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-200'
             }`}
           >
             <ClipboardList className="w-4 h-4" />
             <span>All Tasks</span>
             <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
-              viewTab === 'ALL' ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-700'
+              viewTab === 'ALL' ? 'bg-white/20 text-white' : 'bg-gray-200 text-gray-800'
             }`}>
               {allTasksCount}
             </span>
           </button>
-        )}
+
+          {/* Assigned to Me */}
+          <button
+            type="button"
+            onClick={() => {
+              setViewTab('ASSIGNED_TO_ME');
+              setAssignedToFilter('ALL');
+            }}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition cursor-pointer shrink-0 ${
+              viewTab === 'ASSIGNED_TO_ME'
+                ? 'bg-[#0e623a] text-white shadow-md ring-2 ring-emerald-600/40'
+                : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900 border border-gray-200'
+            }`}
+          >
+            <UserCheck className="w-4 h-4" />
+            <span>Assigned to Me</span>
+            <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
+              viewTab === 'ASSIGNED_TO_ME' ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-700'
+            }`}>
+              {assignedToMeCount}
+            </span>
+          </button>
+
+          {/* Assigned to Filter Option */}
+          <div className="flex items-center gap-1.5 bg-emerald-50/70 border border-emerald-200 px-3 py-1.5 rounded-xl">
+            <User className="w-4 h-4 text-[#0e623a] shrink-0" />
+            <span className="text-xs font-extrabold text-[#0e623a] shrink-0">Assigned to:</span>
+            <select
+              value={assignedToFilter}
+              onChange={(e) => {
+                const val = e.target.value;
+                setAssignedToFilter(val);
+                if (val !== 'ALL') {
+                  setViewTab('ASSIGNED_TO');
+                }
+              }}
+              className="px-2.5 py-1 bg-white border border-emerald-300 rounded-lg text-xs font-bold text-gray-800 focus:outline-none focus:ring-1 focus:ring-[#0e623a] cursor-pointer"
+            >
+              <option value="ALL">All Assignees</option>
+              {employees.map(emp => (
+                <option key={emp._id} value={emp._id}>
+                  {emp.name} ({emp.role || 'Staff'})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Other Tasks */}
+          {isSuperAdmin && (
+            <button
+              type="button"
+              onClick={() => {
+                setViewTab('OTHER_TASKS');
+                setAssignedToFilter('ALL');
+              }}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition cursor-pointer shrink-0 ${
+                viewTab === 'OTHER_TASKS'
+                  ? 'bg-purple-800 text-white shadow-md ring-2 ring-purple-500/40'
+                  : 'text-gray-600 hover:bg-purple-50 hover:text-purple-900 border border-gray-200'
+              }`}
+            >
+              <Users className="w-4 h-4" />
+              <span>Other Tasks</span>
+              <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
+                viewTab === 'OTHER_TASKS' ? 'bg-white/20 text-white' : 'bg-purple-100 text-purple-800'
+              }`}>
+                {otherTasksCount}
+              </span>
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Search & Filter Toolbar */}
@@ -967,15 +1035,15 @@ const TasksBoard = () => {
               </select>
             </div>
 
-            {/* Category Filter */}
+            {/* Department Filter */}
             <div className="flex items-center gap-1.5">
-              <span className="text-xs font-bold text-gray-500 shrink-0">Category:</span>
+              <span className="text-xs font-bold text-gray-500 shrink-0">Department:</span>
               <select
                 value={categoryFilter}
                 onChange={(e) => setCategoryFilter(e.target.value)}
                 className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#0e623a]"
               >
-                <option value="ALL">All Categories</option>
+                <option value="ALL">All Departments</option>
                 {categoriesList.map(cat => {
                   const catName = typeof cat === 'string' ? cat : cat.name;
                   return (
@@ -1071,7 +1139,7 @@ const TasksBoard = () => {
                   <th className="p-3.5 w-10 text-center">S.No</th>
                   <th className="p-3.5 min-w-[140px]">Project Name</th>
                   <th className="p-3.5 min-w-[180px]">Task Title</th>
-                  <th className="p-3.5 min-w-[120px]">Task Category</th>
+                  <th className="p-3.5 min-w-[140px]">Department</th>
                   <th className="p-3.5 min-w-[140px]">Assigned To</th>
                   <th className="p-3.5 min-w-[130px]">Assigned By</th>
                   <th className="p-3.5 min-w-[90px] text-center">Priority</th>
@@ -1127,10 +1195,16 @@ const TasksBoard = () => {
                         </div>
                       </td>
 
-                      {/* 4. Task Category */}
+                      {/* 4. Department */}
                       <td className="p-3.5">
-                        <span className="px-2.5 py-1 bg-emerald-50 border border-emerald-200 text-emerald-800 font-extrabold text-xs rounded-lg inline-block">
-                          {task.category || 'General'}
+                        <span className={`px-2.5 py-1 border font-extrabold text-xs rounded-lg inline-block ${
+                          task.category === 'Sales Team' ? 'bg-blue-50 border-blue-200 text-blue-800' :
+                          task.category === 'CRD Team' ? 'bg-purple-50 border-purple-200 text-purple-800' :
+                          task.category === 'Accounts Team' ? 'bg-amber-50 border-amber-200 text-amber-800' :
+                          task.category === 'Administration (Superadmins)' ? 'bg-rose-50 border-rose-200 text-rose-800' :
+                          'bg-emerald-50 border-emerald-200 text-emerald-800'
+                        }`}>
+                          {task.category || 'Sales Team'}
                         </span>
                       </td>
 
@@ -1445,18 +1519,18 @@ const TasksBoard = () => {
                 </div>
               </div>
 
-              {/* Category (Instant Add Option) & Status */}
+              {/* Department (Instant Add Option) & Status */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <div className="flex items-center justify-between mb-1">
-                    <label className="font-bold text-gray-700">Category</label>
+                    <label className="font-bold text-gray-700">Department</label>
                     <button
                       type="button"
                       onClick={() => setShowCategoryManager(true)}
                       className="text-[10px] font-extrabold text-[#0e623a] hover:underline flex items-center gap-1 cursor-pointer"
                     >
                       <Plus className="w-3 h-3" />
-                      <span>Manage Categories</span>
+                      <span>Manage Departments</span>
                     </button>
                   </div>
 
@@ -1554,6 +1628,7 @@ const TasksBoard = () => {
                   <input
                     type="date"
                     required
+                    min={getTodayString()}
                     value={formData.dueDate}
                     onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
                     className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-[#0e623a]"
@@ -1809,14 +1884,14 @@ const TasksBoard = () => {
         );
       })()}
 
-      {/* Manage Task Categories Modal */}
+      {/* Manage Departments Modal */}
       {showCategoryManager && (
         <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm z-[99999] flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl border border-gray-150 shadow-2xl w-full max-w-md overflow-hidden animate-fadeIn">
             <div className="px-6 py-4 bg-[#0e623a] text-white flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Filter className="w-4 h-4 text-emerald-300" />
-                <h3 className="font-bold text-sm">Manage Task Categories</h3>
+                <h3 className="font-bold text-sm">Manage Departments</h3>
               </div>
               <button
                 onClick={() => {
@@ -1831,12 +1906,12 @@ const TasksBoard = () => {
             </div>
 
             <div className="p-6 space-y-4 text-xs">
-              {/* Create Category Form */}
+              {/* Create Department Form */}
               <form onSubmit={handleCreateCategory} className="flex gap-2">
                 <input
                   type="text"
                   required
-                  placeholder="Type new category name..."
+                  placeholder="Type new department name..."
                   value={newCategoryName}
                   onChange={(e) => setNewCategoryName(e.target.value)}
                   className="flex-1 px-3.5 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#0e623a]"
@@ -1850,9 +1925,9 @@ const TasksBoard = () => {
                 </button>
               </form>
 
-              {/* Categories List */}
+              {/* Departments List */}
               <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
-                <p className="font-bold text-gray-500 uppercase text-[10px] tracking-wider">Existing Categories ({categoriesList.length})</p>
+                <p className="font-bold text-gray-500 uppercase text-[10px] tracking-wider">Existing Departments ({categoriesList.length})</p>
                 {categoriesList.map(cat => {
                   const catId = cat._id;
                   const catName = typeof cat === 'string' ? cat : cat.name;

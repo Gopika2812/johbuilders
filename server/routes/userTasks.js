@@ -96,6 +96,15 @@ router.post('/', protect, async (req, res) => {
     return res.status(400).json({ message: 'Title, Due Date, and Assigned Person are required' });
   }
 
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const selectedDue = new Date(dueDate);
+  selectedDue.setHours(0, 0, 0, 0);
+
+  if (selectedDue < today) {
+    return res.status(400).json({ message: 'Due date cannot be a past date. Please select today or a future date.' });
+  }
+
   try {
     const targetUser = await User.findById(assignedTo);
     if (!targetUser) {
@@ -166,6 +175,15 @@ router.put('/:id', protect, async (req, res) => {
       task.projectName = projectName;
     }
     if (dueDate !== undefined && new Date(dueDate).toISOString() !== new Date(task.dueDate).toISOString()) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const selectedDue = new Date(dueDate);
+      selectedDue.setHours(0, 0, 0, 0);
+
+      if (selectedDue < today) {
+        return res.status(400).json({ message: 'Due date cannot be a past date. Please select today or a future date.' });
+      }
+
       changeDesc.push(`Due date updated to ${new Date(dueDate).toLocaleDateString()}`);
       task.dueDate = dueDate;
     }
