@@ -266,14 +266,26 @@ const TasksBoard = () => {
     }
   };
 
+  const parseResponseJSON = async (res) => {
+    try {
+      const contentType = res.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        return await res.json();
+      }
+    } catch (e) {
+      console.warn('Failed to parse JSON response:', e);
+    }
+    return null;
+  };
+
   const fetchCategories = async () => {
     try {
       const res = await fetch(`${API_URL}/task-categories`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (res.ok) {
-        const data = await res.json();
-        setCategoriesList(data);
+        const data = await parseResponseJSON(res);
+        if (data && Array.isArray(data)) setCategoriesList(data);
       }
     } catch (err) {
       console.error('Error fetching categories:', err);
@@ -292,15 +304,15 @@ const TasksBoard = () => {
         },
         body: JSON.stringify({ name: newCategoryName.trim() })
       });
-      const data = await res.json();
-      if (res.ok) {
+      const data = await parseResponseJSON(res);
+      if (res.ok && data) {
         await fetchCategories();
         setFormData(prev => ({ ...prev, category: data.name }));
         setNewCategoryName('');
         setSuccessMsg(`Category "${data.name}" created successfully`);
         setTimeout(() => setSuccessMsg(''), 3000);
       } else {
-        setError(data.message || 'Failed to create category');
+        setError(data?.message || 'Failed to create category');
       }
     } catch (err) {
       setError(err.message || 'Error creating category');
@@ -318,6 +330,7 @@ const TasksBoard = () => {
         },
         body: JSON.stringify({ name: updatedName.trim() })
       });
+      const data = await parseResponseJSON(res);
       if (res.ok) {
         await fetchCategories();
         await fetchTasks(true);
@@ -325,8 +338,7 @@ const TasksBoard = () => {
         setSuccessMsg('Category updated successfully');
         setTimeout(() => setSuccessMsg(''), 3000);
       } else {
-        const data = await res.json();
-        setError(data.message || 'Failed to update category');
+        setError(data?.message || 'Failed to update category');
       }
     } catch (err) {
       setError('Error updating category');
@@ -340,13 +352,13 @@ const TasksBoard = () => {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });
+      const data = await parseResponseJSON(res);
       if (res.ok) {
         await fetchCategories();
         setSuccessMsg(`Category "${catName}" deleted`);
         setTimeout(() => setSuccessMsg(''), 3000);
       } else {
-        const data = await res.json();
-        setError(data.message || 'Failed to delete category');
+        setError(data?.message || 'Failed to delete category');
       }
     } catch (err) {
       setError('Error deleting category');
@@ -503,8 +515,8 @@ const TasksBoard = () => {
         setSuccessMsg(editingTask ? 'Task updated successfully!' : 'Task created and assigned successfully!');
         setTimeout(() => setSuccessMsg(''), 4000);
       } else {
-        const data = await res.json();
-        setError(data.message || 'Failed to save task');
+        const data = await parseResponseJSON(res);
+        setError(data?.message || 'Failed to save task');
       }
     } catch (err) {
       setError('Error saving task');
@@ -529,8 +541,8 @@ const TasksBoard = () => {
         setSuccessMsg('Status updated successfully');
         setTimeout(() => setSuccessMsg(''), 3000);
       } else {
-        const data = await res.json();
-        setError(data.message || 'Failed to update status');
+        const data = await parseResponseJSON(res);
+        setError(data?.message || 'Failed to update status');
       }
     } catch (err) {
       setError('Error updating status');
@@ -551,8 +563,8 @@ const TasksBoard = () => {
         setSuccessMsg('Task deleted successfully');
         setTimeout(() => setSuccessMsg(''), 3000);
       } else {
-        const data = await res.json();
-        setError(data.message || 'Failed to delete task');
+        const data = await parseResponseJSON(res);
+        setError(data?.message || 'Failed to delete task');
       }
     } catch (err) {
       setError('Error deleting task');
@@ -581,15 +593,17 @@ const TasksBoard = () => {
       });
 
       if (res.ok) {
-        const updatedTask = await res.json();
-        setSelectedTaskForHistory(updatedTask);
-        setTasks(prev => prev.map(t => t._id === updatedTask._id ? updatedTask : t));
+        const updatedTask = await parseResponseJSON(res);
+        if (updatedTask) {
+          setSelectedTaskForHistory(updatedTask);
+          setTasks(prev => prev.map(t => t._id === updatedTask._id ? updatedTask : t));
+        }
         setNewCommentNote('');
         setSuccessMsg('Comment added to task history');
         setTimeout(() => setSuccessMsg(''), 3000);
       } else {
-        const data = await res.json();
-        setError(data.message || 'Failed to add comment');
+        const data = await parseResponseJSON(res);
+        setError(data?.message || 'Failed to add comment');
       }
     } catch (err) {
       setError('Error adding comment');
