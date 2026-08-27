@@ -425,8 +425,9 @@ const TasksBoard = () => {
 
   const handleOpenCreateModal = () => {
     setEditingTask(null);
-    setIsAddingNewCategory(false);
-    setNewCategoryInput('');
+    setShowCategoryManager(false);
+    setEditingCategoryObj(null);
+    setNewCategoryName('');
     setProjectSelectOption('');
     setFormData({
       title: '',
@@ -446,8 +447,9 @@ const TasksBoard = () => {
 
   const handleOpenEditModal = (task) => {
     setEditingTask(task);
-    setIsAddingNewCategory(false);
-    setNewCategoryInput('');
+    setShowCategoryManager(false);
+    setEditingCategoryObj(null);
+    setNewCategoryName('');
     const dateFormatted = task.dueDate ? new Date(task.dueDate).toISOString().split('T')[0] : '';
     
     const taskProj = (task.projectName || '').trim();
@@ -472,17 +474,6 @@ const TasksBoard = () => {
       attachments: task.attachments || []
     });
     setShowModal(true);
-  };
-
-  const handleAddNewCategoryInline = () => {
-    if (!newCategoryInput || !newCategoryInput.trim()) return;
-    const catName = newCategoryInput.trim();
-    if (!categoriesList.includes(catName)) {
-      setCategoriesList(prev => [...prev, catName]);
-    }
-    setFormData(prev => ({ ...prev, category: catName }));
-    setIsAddingNewCategory(false);
-    setNewCategoryInput('');
   };
 
   const handleSubmitTask = async (e) => {
