@@ -74,19 +74,36 @@ const ProjectDetail = () => {
   const [bookingModalOpen, setBookingModalOpen] = useState(false);
   const [sheetPreviewModalOpen, setSheetPreviewModalOpen] = useState(false);
   const [selectedUnit, setSelectedUnit] = useState(null);
+  const [editFloor, setEditFloor] = useState('');
+  const [editUnitId, setEditUnitId] = useState('');
+  const [editUnitType, setEditUnitType] = useState('');
+  const [editSize, setEditSize] = useState('');
+  const [editRatePerUom, setEditRatePerUom] = useState('');
+  const [editPrice, setEditPrice] = useState('');
   const [unitStatus, setUnitStatus] = useState('New');
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
   const [leadName, setLeadName] = useState('');
-  const [soldRatePerUom, setSoldRatePerUom] = useState(0);
-  const [soldConsideration, setSoldConsideration] = useState(0);
+  const [soldRatePerUom, setSoldRatePerUom] = useState('');
+  const [soldConsideration, setSoldConsideration] = useState('');
 
-  useEffect(() => {
-    if (selectedUnit) {
-      setSoldRatePerUom(selectedUnit.soldRatePerUom || 0);
-      setSoldConsideration(selectedUnit.soldConsideration || 0);
-    }
-  }, [selectedUnit]);
+  const openBookingModal = (unit) => {
+    setSelectedUnit(unit);
+    setEditFloor(unit.floor || '');
+    setEditUnitId(unit.unitId || '');
+    setEditUnitType(unit.unitType || '');
+    setEditSize(unit.size !== undefined ? unit.size : '');
+    const rate = unit.ratePerUom || project?.pricePerSqFt || 0;
+    setEditRatePerUom(rate !== undefined ? rate : '');
+    setEditPrice(unit.price !== undefined ? unit.price : (unit.size || 0) * (rate || 0));
+    setSoldRatePerUom(unit.soldRatePerUom !== undefined ? unit.soldRatePerUom : '');
+    setSoldConsideration(unit.soldConsideration !== undefined ? unit.soldConsideration : '');
+    setUnitStatus(normalizeStatus(unit.status));
+    setCustomerName(unit.customerName || '');
+    setCustomerPhone(unit.customerPhone || '');
+    setLeadName(unit.leadName || '');
+    setBookingModalOpen(true);
+  };
 
   // Resize Modal State
   const [resizeModalOpen, setResizeModalOpen] = useState(false);
@@ -465,13 +482,19 @@ const ProjectDetail = () => {
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
-          unitId: selectedUnit.unitId,
+          originalUnitId: selectedUnit.unitId,
+          unitId: editUnitId,
+          floor: editFloor,
+          unitType: editUnitType,
+          size: editSize !== '' ? Number(editSize) : undefined,
+          ratePerUom: editRatePerUom !== '' ? Number(editRatePerUom) : undefined,
+          price: editPrice !== '' ? Number(editPrice) : undefined,
           status: unitStatus,
           customerName,
           customerPhone,
           leadName,
-          soldRatePerUom,
-          soldConsideration
+          soldRatePerUom: soldRatePerUom !== '' ? Number(soldRatePerUom) : undefined,
+          soldConsideration: soldConsideration !== '' ? Number(soldConsideration) : undefined
         })
       });
 
@@ -485,6 +508,7 @@ const ProjectDetail = () => {
       }
     } catch (err) {
       console.error(err);
+      alert('Error saving unit details');
     } finally {
       setBookingSubmitting(false);
     }
@@ -844,14 +868,7 @@ const ProjectDetail = () => {
                             'bg-emerald-100 border-emerald-300 text-emerald-800 hover:bg-emerald-200'
                           }`}
                           title={`Unit ${unit.unitId} - ${normalizeStatus(unit.status)}`}
-                          onClick={() => {
-                            setSelectedUnit(unit);
-                            setUnitStatus(normalizeStatus(unit.status));
-                            setCustomerName(unit.customerName || '');
-                            setCustomerPhone(unit.customerPhone || '');
-                            setLeadName(unit.leadName || '');
-                            setBookingModalOpen(true);
-                          }}
+                          onClick={() => openBookingModal(unit)}
                         >
                           {unit.unitId}
                         </div>
@@ -944,14 +961,7 @@ const ProjectDetail = () => {
 
                     <div className="flex items-center gap-2">
                       <button
-                        onClick={() => {
-                          setSelectedUnit(unit);
-                          setUnitStatus(normalizeStatus(unit.status));
-                          setCustomerName(unit.customerName || '');
-                          setCustomerPhone(unit.customerPhone || '');
-                          setLeadName(unit.leadName || '');
-                          setBookingModalOpen(true);
-                        }}
+                        onClick={() => openBookingModal(unit)}
                         className="flex-1 py-2 text-center border border-black-200 hover:border-[#0e623a]/20 hover:bg-[#0e623a]/5 rounded-xl text-xs font-bold text-black-700 hover:text-[#0e623a] transition"
                       >
                         Booking Details
@@ -1018,14 +1028,7 @@ const ProjectDetail = () => {
                       <td className="p-5 text-right">
                         <div className="flex items-center justify-end gap-2">
                           <button
-                            onClick={() => {
-                              setSelectedUnit(unit);
-                              setUnitStatus(normalizeStatus(unit.status));
-                              setCustomerName(unit.customerName || '');
-                              setCustomerPhone(unit.customerPhone || '');
-                              setLeadName(unit.leadName || '');
-                              setBookingModalOpen(true);
-                            }}
+                            onClick={() => openBookingModal(unit)}
                             className="px-3 py-1.5 border border-black-200 rounded-lg text-xs font-bold text-black-600 hover:text-[#0e623a] hover:bg-[#0e623a]/5 transition"
                           >
                             Edit Status
@@ -1088,14 +1091,7 @@ const ProjectDetail = () => {
                             <button
                               key={unit.unitId}
                               type="button"
-                              onClick={() => {
-                                setSelectedUnit(unit);
-                                setUnitStatus(normalizeStatus(unit.status));
-                                setCustomerName(unit.customerName || '');
-                                setCustomerPhone(unit.customerPhone || '');
-                                setLeadName(unit.leadName || '');
-                                setBookingModalOpen(true);
-                              }}
+                              onClick={() => openBookingModal(unit)}
                               title={`Unit ${unit.unitId} - ${normalizeStatus(unit.status)} (${unit.size} sq.ft) - ${unit.unitType} ${unit.customerName ? '- Customer: ' + unit.customerName : ''}`}
                               className={`w-[75px] h-[75px] flex flex-col items-center justify-center rounded-xl text-[13px] font-black tracking-wide border transition-all duration-200 hover:-translate-y-1 hover:scale-110 active:scale-95 cursor-pointer gap-1 ${bgClass}`}
                             >
@@ -1145,14 +1141,7 @@ const ProjectDetail = () => {
                       <td className="p-5 text-black-600">{unit.customerName || '—'}</td>
                       <td className="p-5 text-right">
                         <button
-                          onClick={() => {
-                            setSelectedUnit(unit);
-                            setUnitStatus(normalizeStatus(unit.status));
-                            setCustomerName(unit.customerName || '');
-                            setCustomerPhone(unit.customerPhone || '');
-                            setLeadName(unit.leadName || '');
-                            setBookingModalOpen(true);
-                          }}
+                          onClick={() => openBookingModal(unit)}
                           className="px-3 py-1.5 border border-black-200 rounded-lg text-xs font-bold text-black-600 hover:text-[#0e623a] hover:bg-[#0e623a]/5 transition"
                         >
                           Booking Details
@@ -1198,14 +1187,7 @@ const ProjectDetail = () => {
                           <button
                             key={unit.unitId}
                             type="button"
-                            onClick={() => {
-                              setSelectedUnit(unit);
-                              setUnitStatus(normalizeStatus(unit.status));
-                              setCustomerName(unit.customerName || '');
-                              setCustomerPhone(unit.customerPhone || '');
-                              setLeadName(unit.leadName || '');
-                              setBookingModalOpen(true);
-                            }}
+                            onClick={() => openBookingModal(unit)}
                             title={`Unit ${unit.unitId} - ${normalizeStatus(unit.status)} (${unit.size} sq.ft) - ${unit.unitType} ${unit.customerName ? '- Customer: ' + unit.customerName : ''}`}
                             className={`w-[90px] h-[90px] flex flex-col items-center justify-center rounded-2xl text-[16px] font-black tracking-wide border transition-all duration-200 hover:-translate-y-1.5 hover:scale-110 active:scale-95 cursor-pointer gap-1 ${bgClass}`}
                           >
@@ -1253,14 +1235,7 @@ const ProjectDetail = () => {
                       <td className="p-5 text-black-600">{unit.customerName || '—'}</td>
                       <td className="p-5 text-right">
                         <button
-                          onClick={() => {
-                            setSelectedUnit(unit);
-                            setUnitStatus(normalizeStatus(unit.status));
-                            setCustomerName(unit.customerName || '');
-                            setCustomerPhone(unit.customerPhone || '');
-                            setLeadName(unit.leadName || '');
-                            setBookingModalOpen(true);
-                          }}
+                          onClick={() => openBookingModal(unit)}
                           className="px-3 py-1.5 border border-black-200 rounded-lg text-xs font-bold text-black-600 hover:text-[#0e623a]/10 hover:bg-[#0e623a]/5 transition"
                         >
                           Booking Details
@@ -1623,64 +1598,154 @@ const ProjectDetail = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
           <div className="bg-white rounded-3xl max-w-md w-full overflow-hidden shadow-2xl border border-black-100">
             <div className="bg-[#0e623a] p-6 text-white">
-              <h3 className="text-lg font-bold">Booking Details: {selectedUnit.unitId}</h3>
-              <p className="text-red-100 text-xs mt-1">Configure customer records and workflow states</p>
+              <h3 className="text-lg font-bold">Booking Details: {editUnitId || selectedUnit.unitId}</h3>
+              <p className="text-emerald-100 text-xs mt-1">Configure customer records and workflow states</p>
             </div>
 
             <form onSubmit={handleBookingSubmit} className="p-6 space-y-4">
-              {/* Unit Specifications Details Box */}
-              <div className="p-4 bg-black-50 rounded-2xl border border-black-150 space-y-2 text-xs text-left">
-                <div className="flex justify-between border-b border-black-200/60 pb-1.5">
-                  <span className="text-black-400 font-bold uppercase tracking-wider">Floor Number</span>
-                  <span className="font-extrabold text-black-800">{selectedUnit.floor || 'Floor 1'}</span>
-                </div>
-                <div className="flex justify-between border-b border-black-200/60 pb-1.5">
-                  <span className="text-black-400 font-bold uppercase tracking-wider">Unit No</span>
-                  <span className="font-extrabold text-black-800">{selectedUnit.unitId}</span>
-                </div>
-                <div className="flex justify-between border-b border-black-200/60 pb-1.5">
-                  <span className="text-black-400 font-bold uppercase tracking-wider">Unit Type</span>
-                  <span className="font-extrabold text-black-800">{selectedUnit.unitType || 'Flat'}</span>
-                </div>
-                <div className="flex justify-between border-b border-black-200/60 pb-1.5">
-                  <span className="text-black-400 font-bold uppercase tracking-wider">Unit Size</span>
-                  <span className="font-extrabold text-black-800">{(selectedUnit.size || 0).toLocaleString()} sq.ft</span>
-                </div>
-                <div className="flex justify-between border-b border-black-200/60 pb-1.5">
-                  <span className="text-black-400 font-bold uppercase tracking-wider">Rate per UOM</span>
-                  <span className="font-extrabold text-[#0e623a]">Rs. {(selectedUnit.ratePerUom || project.pricePerSqFt || 0).toLocaleString()}</span>
-                </div>
+              {/* Unit Specifications Details Box - All Fields Editable */}
+              <div className="p-4 bg-black-50 rounded-2xl border border-black-150 space-y-2.5 text-xs text-left">
+                {/* Floor Number */}
                 <div className="flex justify-between items-center border-b border-black-200/60 pb-1.5">
-                  <span className="text-black-400 font-bold uppercase tracking-wider">Sold Rate per UOM</span>
+                  <span className="text-black-400 font-bold uppercase tracking-wider">Floor Number</span>
+                  <input
+                    type="text"
+                    value={editFloor}
+                    onChange={(e) => setEditFloor(e.target.value)}
+                    placeholder="e.g. Floor 1"
+                    className="w-36 text-right bg-white text-black-800 font-extrabold px-2 py-1 rounded-lg border border-black-200 focus:outline-none focus:ring-1 focus:ring-[#0e623a]"
+                  />
+                </div>
+
+                {/* Unit No */}
+                <div className="flex justify-between items-center border-b border-black-200/60 pb-1.5">
+                  <span className="text-black-400 font-bold uppercase tracking-wider">Unit No</span>
+                  <input
+                    type="text"
+                    required
+                    value={editUnitId}
+                    onChange={(e) => setEditUnitId(e.target.value)}
+                    placeholder="e.g. 5"
+                    className="w-36 text-right bg-white text-black-800 font-extrabold px-2 py-1 rounded-lg border border-black-200 focus:outline-none focus:ring-1 focus:ring-[#0e623a]"
+                  />
+                </div>
+
+                {/* Unit Type */}
+                <div className="flex justify-between items-center border-b border-black-200/60 pb-1.5">
+                  <span className="text-black-400 font-bold uppercase tracking-wider">Unit Type</span>
+                  <input
+                    type="text"
+                    value={editUnitType}
+                    onChange={(e) => setEditUnitType(e.target.value)}
+                    placeholder="e.g. 3 BHK - CE"
+                    className="w-36 text-right bg-white text-black-800 font-extrabold px-2 py-1 rounded-lg border border-black-200 focus:outline-none focus:ring-1 focus:ring-[#0e623a]"
+                  />
+                </div>
+
+                {/* Unit Size */}
+                <div className="flex justify-between items-center border-b border-black-200/60 pb-1.5">
+                  <span className="text-black-400 font-bold uppercase tracking-wider">Unit Size</span>
                   <div className="flex items-center gap-1">
-                    <span className="text-red-650 font-extrabold">Rs.</span>
-                    <input 
-                      type="number" 
-                      value={soldRatePerUom} 
-                      onChange={(e) => setSoldRatePerUom(e.target.value)} 
-                      className="w-24 text-right bg-red-50 text-red-650 font-extrabold px-1.5 py-0.5 rounded border border-red-200 focus:outline-none focus:ring-1 focus:ring-red-400"
+                    <input
+                      type="number"
+                      step="any"
+                      value={editSize}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setEditSize(val);
+                        const numSize = parseFloat(val) || 0;
+                        const numRate = parseFloat(editRatePerUom) || 0;
+                        if (numRate > 0) {
+                          setEditPrice(Math.round(numSize * numRate));
+                        }
+                      }}
+                      placeholder="0"
+                      className="w-28 text-right bg-white text-black-800 font-extrabold px-2 py-1 rounded-lg border border-black-200 focus:outline-none focus:ring-1 focus:ring-[#0e623a]"
+                    />
+                    <span className="text-[11px] font-bold text-black-500 shrink-0">sq.ft</span>
+                  </div>
+                </div>
+
+                {/* Rate per UOM */}
+                <div className="flex justify-between items-center border-b border-black-200/60 pb-1.5">
+                  <span className="text-black-400 font-bold uppercase tracking-wider">Rate per UOM</span>
+                  <div className="flex items-center gap-1">
+                    <span className="text-[#0e623a] font-extrabold text-[11px]">Rs.</span>
+                    <input
+                      type="number"
+                      step="any"
+                      value={editRatePerUom}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setEditRatePerUom(val);
+                        const numRate = parseFloat(val) || 0;
+                        const numSize = parseFloat(editSize) || 0;
+                        if (numSize > 0) {
+                          setEditPrice(Math.round(numSize * numRate));
+                        }
+                      }}
+                      placeholder="0"
+                      className="w-28 text-right bg-white text-[#0e623a] font-extrabold px-2 py-1 rounded-lg border border-black-200 focus:outline-none focus:ring-1 focus:ring-[#0e623a]"
                     />
                   </div>
                 </div>
-                <div className="flex justify-between border-b border-black-200/60 pb-1.5">
-                  <span className="text-black-400 font-bold uppercase tracking-wider">Total Unit Amount</span>
-                  <span className="font-extrabold text-emerald-700">Rs. {Math.round(selectedUnit.price || 0).toLocaleString()}</span>
+
+                {/* Sold Rate per UOM */}
+                <div className="flex justify-between items-center border-b border-black-200/60 pb-1.5">
+                  <span className="text-black-400 font-bold uppercase tracking-wider">Sold Rate per UOM</span>
+                  <div className="flex items-center gap-1">
+                    <span className="text-red-650 font-extrabold text-[11px]">Rs.</span>
+                    <input 
+                      type="number"
+                      step="any"
+                      value={soldRatePerUom} 
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setSoldRatePerUom(val);
+                        const numSoldRate = parseFloat(val) || 0;
+                        const numSize = parseFloat(editSize) || 0;
+                        if (numSoldRate > 0 && numSize > 0) {
+                          setSoldConsideration(Math.round(numSize * numSoldRate));
+                        }
+                      }} 
+                      className="w-28 text-right bg-red-50 text-red-650 font-extrabold px-2 py-1 rounded-lg border border-red-200 focus:outline-none focus:ring-1 focus:ring-red-400"
+                    />
+                  </div>
                 </div>
+
+                {/* Total Unit Amount */}
+                <div className="flex justify-between items-center border-b border-black-200/60 pb-1.5">
+                  <span className="text-black-400 font-bold uppercase tracking-wider">Total Unit Amount</span>
+                  <div className="flex items-center gap-1">
+                    <span className="text-emerald-700 font-extrabold text-[11px]">Rs.</span>
+                    <input
+                      type="number"
+                      step="any"
+                      value={editPrice}
+                      onChange={(e) => setEditPrice(e.target.value)}
+                      placeholder="0"
+                      className="w-32 text-right bg-emerald-50 text-emerald-700 font-extrabold px-2 py-1 rounded-lg border border-emerald-200 focus:outline-none focus:ring-1 focus:ring-emerald-400"
+                    />
+                  </div>
+                </div>
+
+                {/* Sold Consideration */}
                 <div className="flex justify-between items-center">
                   <span className="text-black-400 font-bold uppercase tracking-wider">Sold Consideration</span>
                   <div className="flex items-center gap-1">
-                    <span className="text-red-700 font-extrabold">Rs.</span>
+                    <span className="text-red-700 font-extrabold text-[11px]">Rs.</span>
                     <input 
                       type="number" 
+                      step="any"
                       value={soldConsideration} 
                       onChange={(e) => setSoldConsideration(e.target.value)} 
-                      className="w-28 text-right bg-red-50 text-red-700 font-extrabold px-1.5 py-0.5 rounded border border-red-200 focus:outline-none focus:ring-1 focus:ring-red-400"
+                      className="w-32 text-right bg-red-50 text-red-700 font-extrabold px-2 py-1 rounded-lg border border-red-200 focus:outline-none focus:ring-1 focus:ring-red-400"
                     />
                   </div>
                 </div>
               </div>
 
-              {/* Unit Status */}
+              {/* Workflow Status */}
               <div>
                 <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-2 text-left">Workflow Status</label>
                 <select
@@ -1734,18 +1799,16 @@ const ProjectDetail = () => {
                 />
               </div>
 
-              {project.projectType === 'Plot' && (
-                <div>
-                  <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-2 text-left">Lead / Marketing Channel</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Digital Ad, Broker Referral"
-                    value={leadName}
-                    onChange={(e) => setLeadName(e.target.value)}
-                    className="w-full px-4 py-3 bg-black-50 border border-black-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0e623a]"
-                  />
-                </div>
-              )}
+              <div>
+                <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-2 text-left">Lead / Marketing Channel</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Digital Ad, Broker Referral"
+                  value={leadName}
+                  onChange={(e) => setLeadName(e.target.value)}
+                  className="w-full px-4 py-3 bg-black-50 border border-black-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0e623a]"
+                />
+              </div>
 
               {/* Action Buttons */}
               <div className="flex items-center gap-3 pt-2">

@@ -414,7 +414,21 @@ router.put('/:id/resize-plot', protect, checkPermission('projects', 'edit'), asy
 // @route   PUT /api/projects/:id/unit-status
 // @desc    Update specific unit status & customer booking details
 router.put('/:id/unit-status', protect, async (req, res) => {
-  const { unitId, status, customerName, customerPhone, leadName, soldRatePerUom, soldConsideration } = req.body;
+  const { 
+    originalUnitId, 
+    unitId, 
+    floor, 
+    unitType, 
+    size, 
+    ratePerUom, 
+    price, 
+    soldRatePerUom, 
+    soldConsideration, 
+    status, 
+    customerName, 
+    customerPhone, 
+    leadName 
+  } = req.body;
 
   try {
     const project = await Project.findById(req.params.id);
@@ -422,32 +436,141 @@ router.put('/:id/unit-status', protect, async (req, res) => {
       return res.status(404).json({ message: 'Project not found' });
     }
 
-    const unit = project.units.find(u => u.unitId === unitId);
+    const targetUnitId = originalUnitId || unitId;
+    const unit = project.units.find(u => u.unitId === targetUnitId);
     if (!unit) {
-      return res.status(404).json({ message: 'Unit not found' });
+      return res.status(404).json({ message: `Unit "${targetUnitId}" not found` });
     }
 
     // RBAC: site engineer can only update status to construction related, etc.
-    // sales person and manager can approve bookings.
     if (req.user.role === 'ped team' && (status === 'Booked' || status === 'Sold Out')) {
       return res.status(403).json({ message: 'Site Engineers cannot approve bookings or sell units' });
     }
 
-    unit.status = status;
-    if (customerName !== undefined) unit.customerName = customerName;
-    if (customerPhone !== undefined) unit.customerPhone = customerPhone;
-    if (leadName !== undefined) unit.leadName = leadName;
-    if (soldRatePerUom !== undefined) unit.soldRatePerUom = Number(soldRatePerUom);
-    if (soldConsideration !== undefined) unit.soldConsideration = Number(soldConsideration);
+    // Handle unitId change with duplicate check
+    const newUnitId = (unitId !== undefined && unitId !== null && String(unitId).trim() !== '') ? String(unitId).trim() : unit.unitId;
+    if (newUnitId !== unit.unitId) {
+      const exists = project.units.some(u => u.unitId === newUnitId);
+      if (exists) {
+        return res.status(400).json({ message: `Unit No "${newUnitId}" already exists in this project.` });
+      }
+    }
+
+    // Track changed fields for Audit History
+    const changedFields = [];
+
+    const recordChange = (field, oldVal, newVal, formatter) => {
+      if (newVal !== undefined && newVal !== null) {
+        const normOld = oldVal === undefined || oldVal === null ? '' : String(oldVal);
+        const normNew = String(newVal);
+        if (normOld !== normNew) {
+          changedFields.push({
+            field,
+            prev: formatter ? formatter(oldVal) : (normOld || 'empty'),
+            next: formatter ? formatter(newVal) : (normNew || 'empty')
+          });
+        }
+      }
+    };
+
+    const currencyFmt = (v) => (v || v === 0) ? `Rs. ${Number(v).toLocaleString()}` : 'empty';
+    const numberFmt = (v) => (v || v === 0) ? `${Number(v).toLocaleString()}` : 'empty';
+
+    if (newUnitId !== unit.unitId) {
+      recordChange('unitId', unit.unitId, newUnitId);
+      unit.unitId = newUnitId;
+    }
+
+    if (status !== undefined) {
+      recordChange('status', unit.status, status);
+      unit.status = status;
+    }
+
+    if (floor !== undefined) {
+      recordChange('floor', unit.floor, floor);
+      unit.floor = floor;
+    }
+
+    if (unitType !== undefined) {
+      recordChange('unitType', unit.unitType, unitType);
+      unit.unitType = unitType;
+    }
+
+    if (size !== undefined && size !== '') {
+      const numSize = Number(size);
+      if (!isNaN(numSize)) {
+        recordChange('size', unit.size, numSize, numberFmt);
+        unit.size = numSize;
+        unit.isLocked = true;
+      }
+    }
+
+    if (ratePerUom !== undefined && ratePerUom !== '') {
+      const numRate = Number(ratePerUom);
+      if (!isNaN(numRate)) {
+        recordChange('ratePerUom', unit.ratePerUom, numRate, currencyFmt);
+        unit.ratePerUom = numRate;
+      }
+    }
+
+    if (price !== undefined && price !== '') {
+      const numPrice = Number(price);
+      if (!isNaN(numPrice)) {
+        recordChange('price', unit.price, numPrice, currencyFmt);
+        unit.price = numPrice;
+      }
+    } else if ((size !== undefined && size !== '') || (ratePerUom !== undefined && ratePerUom !== '')) {
+      const calcPrice = (unit.size || 0) * (unit.ratePerUom || project.pricePerSqFt || 0);
+      recordChange('price', unit.price, calcPrice, currencyFmt);
+      unit.price = calcPrice;
+    }
+
+    if (soldRatePerUom !== undefined && soldRatePerUom !== '') {
+      const numSoldRate = Number(soldRatePerUom);
+      if (!isNaN(numSoldRate)) {
+        recordChange('soldRatePerUom', unit.soldRatePerUom, numSoldRate, currencyFmt);
+        unit.soldRatePerUom = numSoldRate;
+      }
+    }
+
+    if (soldConsideration !== undefined && soldConsideration !== '') {
+      const numSoldCons = Number(soldConsideration);
+      if (!isNaN(numSoldCons)) {
+        recordChange('soldConsideration', unit.soldConsideration, numSoldCons, currencyFmt);
+        unit.soldConsideration = numSoldCons;
+      }
+    }
+
+    if (customerName !== undefined) {
+      recordChange('customerName', unit.customerName, customerName);
+      unit.customerName = customerName;
+    }
+
+    if (customerPhone !== undefined) {
+      recordChange('customerPhone', unit.customerPhone, customerPhone);
+      unit.customerPhone = customerPhone;
+    }
+
+    if (leadName !== undefined) {
+      recordChange('leadName', unit.leadName, leadName);
+      unit.leadName = leadName;
+    }
 
     await project.save();
+
+    let desc = `Updated unit ${unit.unitId} in project ${project.name}`;
+    if (changedFields.length > 0) {
+      const summary = changedFields.map(f => `${f.field}: ${f.prev} ➔ ${f.next}`).join(', ');
+      desc += `. Changes: ${summary}`;
+    }
 
     await AuditLog.create({
       user: req.user._id,
       userName: req.user.name,
       userRole: req.user.role,
       action: 'Update Unit',
-      description: `Updated unit ${unitId} in project ${project.name} to status: ${status}`
+      description: desc,
+      metadata: { changedFields }
     });
 
     res.json(project);
@@ -455,6 +578,7 @@ router.put('/:id/unit-status', protect, async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 });
+
 
 // @route   PUT /api/projects/:id/extra-work-catalog
 // @desc    Update project extra work catalog
