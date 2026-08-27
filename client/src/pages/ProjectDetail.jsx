@@ -29,9 +29,9 @@ import {
   Play,
   Pause,
   Home,
-  Loader2
-,
-  FileSpreadsheet
+  Loader2,
+  FileSpreadsheet,
+  X
 } from 'lucide-react';
 
 const SOURCE_TYPES = [
@@ -1596,13 +1596,23 @@ const ProjectDetail = () => {
       {/* 🔐 MODAL: Booking Status / Customer Approval Details */}
       {bookingModalOpen && selectedUnit && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="bg-white rounded-3xl max-w-md w-full overflow-hidden shadow-2xl border border-black-100">
-            <div className="bg-[#0e623a] p-6 text-white">
-              <h3 className="text-lg font-bold">Booking Details: {editUnitId || selectedUnit.unitId}</h3>
-              <p className="text-emerald-100 text-xs mt-1">Configure customer records and workflow states</p>
+          <div className="bg-white rounded-3xl max-w-md w-full overflow-hidden shadow-2xl border border-black-100 flex flex-col max-h-[90vh]">
+            <div className="bg-[#0e623a] p-5 sm:p-6 text-white flex justify-between items-start shrink-0">
+              <div>
+                <h3 className="text-lg font-bold">Booking Details: {editUnitId || selectedUnit.unitId}</h3>
+                <p className="text-emerald-100 text-xs mt-1">Configure customer records and workflow states</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setBookingModalOpen(false)}
+                className="text-emerald-100 hover:text-white transition p-1 hover:bg-[#0b4d2d] rounded-full shrink-0"
+                title="Close"
+              >
+                <X className="w-5 h-5" />
+              </button>
             </div>
 
-            <form onSubmit={handleBookingSubmit} className="p-6 space-y-4">
+            <form onSubmit={handleBookingSubmit} className="p-5 sm:p-6 space-y-4 overflow-y-auto flex-1">
               {/* Unit Specifications Details Box - All Fields Editable */}
               <div className="p-4 bg-black-50 rounded-2xl border border-black-150 space-y-2.5 text-xs text-left">
                 {/* Floor Number */}
@@ -1811,18 +1821,18 @@ const ProjectDetail = () => {
               </div>
 
               {/* Action Buttons */}
-              <div className="flex items-center gap-3 pt-2">
+              <div className="flex items-center gap-3 pt-3 sticky bottom-0 bg-white z-10 border-t border-black-100 shrink-0">
                 <button
                   type="button"
                   onClick={() => setBookingModalOpen(false)}
-                  className="flex-1 py-3 border border-black-200 rounded-xl text-xs font-bold text-black-500 hover:bg-black-50 transition"
+                  className="flex-1 py-3 border border-black-200 rounded-xl text-xs font-bold text-black-500 hover:bg-black-50 transition cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={bookingSubmitting}
-                  className="flex-1 py-3 bg-[#0e623a] text-white rounded-xl text-xs font-bold hover:bg-[#0b4d2d] transition disabled:opacity-50 flex justify-center items-center gap-2"
+                  className="flex-1 py-3 bg-[#0e623a] text-white rounded-xl text-xs font-bold hover:bg-[#0b4d2d] transition disabled:opacity-50 flex justify-center items-center gap-2 cursor-pointer"
                 >
                   {bookingSubmitting ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving...</> : 'Save Changes'}
                 </button>
@@ -1835,13 +1845,23 @@ const ProjectDetail = () => {
       {/* 🧠 MODAL: Dynamic Plot Resizing Engine */}
       {resizeModalOpen && resizePlot && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="bg-white rounded-3xl max-w-md w-full overflow-hidden shadow-2xl border border-black-100">
-            <div className="bg-[#0e623a] p-6 text-white">
-              <h3 className="text-lg font-bold">Dynamic Resizing Engine</h3>
-              <p className="text-red-100 text-xs mt-1">Recalculate land allocations dynamically</p>
+          <div className="bg-white rounded-3xl max-w-md w-full overflow-hidden shadow-2xl border border-black-100 flex flex-col max-h-[90vh]">
+            <div className="bg-[#0e623a] p-5 sm:p-6 text-white flex justify-between items-start shrink-0">
+              <div>
+                <h3 className="text-lg font-bold">Dynamic Resizing Engine</h3>
+                <p className="text-red-100 text-xs mt-1">Recalculate land allocations dynamically</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setResizeModalOpen(false)}
+                className="text-emerald-100 hover:text-white transition p-1 hover:bg-[#0b4d2d] rounded-full shrink-0"
+                title="Close"
+              >
+                <X className="w-5 h-5" />
+              </button>
             </div>
 
-            <form onSubmit={handleResizeSubmit} className="p-6 space-y-4">
+            <form onSubmit={handleResizeSubmit} className="p-5 sm:p-6 space-y-4 overflow-y-auto flex-1">
               <div className="bg-amber-50 border border-amber-200 p-4 rounded-xl space-y-1.5">
                 <span className="text-[11px] font-bold text-amber-800 uppercase tracking-wider block">Real-Time Land Equation</span>
                 <p className="text-xs text-amber-700 leading-normal">
@@ -1902,24 +1922,24 @@ const ProjectDetail = () => {
               </div>
 
               {/* Action Buttons */}
-              <div className="flex items-center gap-3 pt-2">
+              <div className="flex items-center gap-3 pt-3 sticky bottom-0 bg-white z-10 border-t border-black-100 shrink-0">
                 <button
                   type="button"
                   onClick={() => setResizeModalOpen(false)}
-                  className="flex-1 py-3 border border-black-200 rounded-xl text-xs font-bold text-black-500 hover:bg-black-50 transition"
+                  className="flex-1 py-3 border border-black-200 rounded-xl text-xs font-bold text-black-500 hover:bg-black-50 transition cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={resizeSubmitting}
-                  className="flex-1 py-3 bg-[#0e623a] text-white rounded-xl text-xs font-bold hover:bg-[#0b4d2d] transition disabled:opacity-50 flex justify-center items-center gap-2"
+                  className="flex-1 py-3 bg-[#0e623a] text-white rounded-xl text-xs font-bold hover:bg-[#0b4d2d] transition disabled:opacity-50 flex justify-center items-center gap-2 cursor-pointer"
                 >
                   {resizeSubmitting ? <><Loader2 className="w-4 h-4 animate-spin" /> Recalculating...</> : 'Recalculate Land'}
                 </button>
               </div>
             </form>
-              </div>
+          </div>
         </div>
       )}
     

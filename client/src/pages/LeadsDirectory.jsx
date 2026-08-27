@@ -2532,8 +2532,8 @@ const LeadsDirectory = () => {
       {/* 🔐 MODAL: Create New Lead / Direct Visit Form */}
       {createModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="bg-white rounded-3xl max-w-3xl w-full overflow-hidden shadow-2xl border border-black-100">
-            <div className="bg-[#0e623a] p-6 text-white flex justify-between items-start">
+          <div className="bg-white rounded-3xl max-w-3xl w-full overflow-hidden shadow-2xl border border-black-100 flex flex-col max-h-[90vh]">
+            <div className="bg-[#0e623a] p-6 text-white flex justify-between items-start shrink-0">
               <div>
                 <h3 className="text-lg font-bold">New Lead Entries</h3>
 
@@ -2547,7 +2547,7 @@ const LeadsDirectory = () => {
               </button>
             </div>
 
-            <form onSubmit={handleCreateLead} noValidate className="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
+            <form onSubmit={handleCreateLead} noValidate className="p-6 space-y-4 flex-1 overflow-y-auto">
               {/* Lead Category & Lead Date */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="bg-black-50 p-4 rounded-2xl border border-black-150">
@@ -3110,8 +3110,8 @@ const LeadsDirectory = () => {
       {/* 🔐 MODAL: Edit Lead Record */}
       {editModalOpen && selectedLeadForEdit && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-            <div className="bg-white rounded-3xl max-w-xl w-full overflow-hidden shadow-2xl border border-black-100">
-              <div className="bg-amber-600 p-6 text-white flex justify-between items-start">
+            <div className="bg-white rounded-3xl max-w-xl w-full overflow-hidden shadow-2xl border border-black-100 flex flex-col max-h-[90vh]">
+              <div className="bg-amber-600 p-6 text-white flex justify-between items-start shrink-0">
                 <div>
                   <h3 className="text-lg font-bold">Edit Lead Information</h3>
                   <p className="text-amber-100 text-xs mt-1">Modify details for: {selectedLeadForEdit.name}</p>
@@ -3125,7 +3125,7 @@ const LeadsDirectory = () => {
                 </button>
               </div>
 
-              <form onSubmit={handleUpdateLead} noValidate className="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
+              <form onSubmit={handleUpdateLead} noValidate className="p-6 space-y-4 flex-1 overflow-y-auto">
                 {isLockedForNonAdmin && (
                   <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900 font-semibold flex items-center gap-2">
                     <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
@@ -3611,8 +3611,8 @@ const LeadsDirectory = () => {
         const hasFollowUpOptions = ['Follow-Up', 'Site Visit', 'Future Follow-up'].includes(followTargetStatus);
         return (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-            <div className="bg-white rounded-3xl max-w-lg w-full overflow-hidden shadow-2xl border border-black-100">
-              <div className="bg-[#0e623a] p-6 text-white">
+            <div className="bg-white rounded-3xl max-w-lg w-full overflow-hidden shadow-2xl border border-black-100 flex flex-col max-h-[90vh]">
+              <div className="bg-[#0e623a] p-6 text-white shrink-0">
                 <h3 className="text-lg font-bold flex items-center gap-2">
                   <CalendarClock className="w-5 h-5 text-emerald-300" />
                   <span>
@@ -3623,7 +3623,7 @@ const LeadsDirectory = () => {
                 </h3>
               </div>
 
-              <form onSubmit={handleFollowSubmit} className="p-6 space-y-4">
+              <form onSubmit={handleFollowSubmit} className="p-6 space-y-4 flex-1 overflow-y-auto">
 
                 {hasFollowUpOptions && (
                   <div className="grid grid-cols-3 gap-3">
@@ -3815,8 +3815,8 @@ const LeadsDirectory = () => {
       {/* 🔐 MODAL: Booked & Quotation Creation Wizard */}
       {BookedModalOpen && selectedLeadForBooked && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm overflow-y-auto">
-          <div className="bg-white rounded-3xl max-w-3xl w-full overflow-hidden shadow-2xl border border-black-100 my-8">
-            <div className="bg-gradient-to-r from-[#0e623a] to-[#0a4d2c] p-6 text-white">
+          <div className="bg-white rounded-3xl max-w-3xl w-full overflow-hidden shadow-2xl border border-black-100 flex flex-col max-h-[90vh]">
+            <div className="bg-gradient-to-r from-[#0e623a] to-[#0a4d2c] p-6 text-white shrink-0">
               <h3 className="text-lg font-bold flex items-center gap-2">
                 <FileText className="w-5 h-5 text-emerald-300" />
                 <span>Create Booked & Quotation Request</span>
@@ -3824,7 +3824,7 @@ const LeadsDirectory = () => {
               <p className="text-emerald-100 text-xs mt-1">Verify details, select available units, and complete quotation requirements</p>
             </div>
 
-            <form onSubmit={handleBookedSubmit} className="p-6 space-y-6 max-h-[80vh] overflow-y-auto">
+            <form onSubmit={handleBookedSubmit} className="p-6 space-y-6 flex-1 overflow-y-auto">
 
               {/* Dropdown Unit Selection */}
               <div className="space-y-2 relative">
