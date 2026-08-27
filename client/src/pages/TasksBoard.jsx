@@ -145,6 +145,152 @@ const CustomPersonSelector = ({ employees, value, onChange, placeholder = "-- Se
   );
 };
 
+const SearchableDropdown = ({
+  label,
+  icon: Icon,
+  value,
+  options,
+  onChange,
+  colorScheme = 'emerald',
+  allLabel = 'All'
+}) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const dropdownRef = React.useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const selectedOption = options.find(opt => String(opt.id) === String(value));
+
+  const filteredOptions = options.filter(opt =>
+    (opt.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (opt.subtext || '').toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const colorMap = {
+    indigo: {
+      btn: 'bg-indigo-50/90 hover:bg-indigo-100/90 border-indigo-200 text-indigo-950 shadow-xs',
+      label: 'text-indigo-600',
+      valText: 'text-indigo-950 font-black',
+      icon: 'text-indigo-600',
+      ring: 'focus:ring-indigo-500',
+      activeItem: 'bg-indigo-100 text-indigo-900 font-extrabold border border-indigo-300'
+    },
+    purple: {
+      btn: 'bg-purple-50/90 hover:bg-purple-100/90 border-purple-200 text-purple-950 shadow-xs',
+      label: 'text-purple-600',
+      valText: 'text-purple-950 font-black',
+      icon: 'text-purple-600',
+      ring: 'focus:ring-purple-500',
+      activeItem: 'bg-purple-100 text-purple-900 font-extrabold border border-purple-300'
+    },
+    blue: {
+      btn: 'bg-blue-50/90 hover:bg-blue-100/90 border-blue-200 text-blue-950 shadow-xs',
+      label: 'text-blue-600',
+      valText: 'text-blue-950 font-black',
+      icon: 'text-blue-600',
+      ring: 'focus:ring-blue-500',
+      activeItem: 'bg-blue-100 text-blue-900 font-extrabold border border-blue-300'
+    },
+    emerald: {
+      btn: 'bg-emerald-50/90 hover:bg-emerald-100/90 border-emerald-200 text-emerald-950 shadow-xs',
+      label: 'text-emerald-700',
+      valText: 'text-emerald-950 font-black',
+      icon: 'text-emerald-700',
+      ring: 'focus:ring-emerald-500',
+      activeItem: 'bg-emerald-100 text-emerald-900 font-extrabold border border-emerald-300'
+    }
+  };
+
+  const theme = colorMap[colorScheme] || colorMap.emerald;
+
+  return (
+    <div className="relative flex-1 min-w-[200px]" ref={dropdownRef}>
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className={`w-full px-3.5 py-2.5 rounded-2xl border text-xs flex items-center justify-between transition cursor-pointer ${theme.btn} focus:outline-none focus:ring-2 ${theme.ring}`}
+      >
+        <div className="flex items-center gap-2 min-w-0 truncate">
+          {Icon && <Icon className={`w-4 h-4 shrink-0 ${theme.icon}`} />}
+          <span className={`text-[11px] font-black uppercase tracking-wider ${theme.label} shrink-0`}>{label}:</span>
+          <span className={`truncate ${theme.valText}`}>
+            {selectedOption ? selectedOption.name : allLabel}
+          </span>
+        </div>
+        <ChevronDown className={`w-4 h-4 transition-transform shrink-0 ${theme.icon} ${isOpen ? 'rotate-180' : ''}`} />
+      </button>
+
+      {isOpen && (
+        <div className="absolute left-0 right-0 top-full mt-2 z-[1050] bg-white border border-gray-200 rounded-2xl shadow-2xl p-2.5 space-y-2 animate-in fade-in zoom-in-95 duration-150 min-w-[220px]">
+          <div className="relative">
+            <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-gray-400" />
+            <input
+              type="text"
+              placeholder={`Search ${label}...`}
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-8 pr-3 py-1.5 bg-gray-50 border border-gray-200 rounded-xl text-xs text-gray-800 focus:outline-none focus:ring-1 focus:ring-[#0e623a]"
+              autoFocus
+            />
+          </div>
+
+          <div className="max-h-56 overflow-y-auto space-y-1 pr-1 custom-scrollbar">
+            <div
+              onClick={() => {
+                onChange('ALL');
+                setIsOpen(false);
+                setSearchTerm('');
+              }}
+              className={`p-2 rounded-xl flex items-center justify-between cursor-pointer transition text-xs ${
+                value === 'ALL' ? theme.activeItem : 'hover:bg-gray-50 text-gray-700 font-semibold'
+              }`}
+            >
+              <span>{allLabel}</span>
+              {value === 'ALL' && <Check className="w-4 h-4 text-[#0e623a] shrink-0" />}
+            </div>
+
+            {filteredOptions.length === 0 ? (
+              <div className="p-3 text-center text-xs text-gray-400 italic">No matching results</div>
+            ) : (
+              filteredOptions.map(opt => {
+                const isSelected = String(opt.id) === String(value);
+                return (
+                  <div
+                    key={opt.id}
+                    onClick={() => {
+                      onChange(opt.id);
+                      setIsOpen(false);
+                      setSearchTerm('');
+                    }}
+                    className={`p-2 rounded-xl flex items-center justify-between cursor-pointer transition text-xs ${
+                      isSelected ? theme.activeItem : 'hover:bg-gray-50 text-gray-800 font-semibold'
+                    }`}
+                  >
+                    <div className="flex flex-col min-w-0 text-left">
+                      <span className="truncate">{opt.name}</span>
+                      {opt.subtext && <span className="text-[10px] text-gray-400 truncate">{opt.subtext}</span>}
+                    </div>
+                    {isSelected && <Check className="w-4 h-4 text-[#0e623a] shrink-0" />}
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 const TasksBoard = () => {
   const { token, user } = useAuth();
   const location = useLocation();
@@ -904,16 +1050,13 @@ const TasksBoard = () => {
         </div>
       )}
 
-      {/* View Tabs: All Tasks (Highlighted Default), Assigned to Me, Assigned to Filter, Other Tasks */}
+      {/* View Tabs: All Tasks (Highlighted Default), Assigned to Me, Other Tasks */}
       <div className="flex flex-wrap items-center justify-between gap-3 bg-white border border-gray-150 p-2.5 rounded-2xl shadow-sm">
         <div className="flex flex-wrap items-center gap-2">
           {/* All Tasks (DEFAULT & HIGHLIGHTED) */}
           <button
             type="button"
-            onClick={() => {
-              setViewTab('ALL');
-              setAssignedToFilter('ALL');
-            }}
+            onClick={() => setViewTab('ALL')}
             className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-black transition cursor-pointer shrink-0 ${
               viewTab === 'ALL'
                 ? 'bg-gradient-to-r from-[#006838] to-[#008c4a] text-white shadow-md ring-2 ring-emerald-500/50 scale-[1.02]'
@@ -932,10 +1075,7 @@ const TasksBoard = () => {
           {/* Assigned to Me */}
           <button
             type="button"
-            onClick={() => {
-              setViewTab('ASSIGNED_TO_ME');
-              setAssignedToFilter('ALL');
-            }}
+            onClick={() => setViewTab('ASSIGNED_TO_ME')}
             className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition cursor-pointer shrink-0 ${
               viewTab === 'ASSIGNED_TO_ME'
                 ? 'bg-[#0e623a] text-white shadow-md ring-2 ring-emerald-600/40'
@@ -951,38 +1091,11 @@ const TasksBoard = () => {
             </span>
           </button>
 
-          {/* Assigned to Filter Option */}
-          <div className="flex items-center gap-1.5 bg-emerald-50/70 border border-emerald-200 px-3 py-1.5 rounded-xl">
-            <User className="w-4 h-4 text-[#0e623a] shrink-0" />
-            <span className="text-xs font-extrabold text-[#0e623a] shrink-0">Assigned to:</span>
-            <select
-              value={assignedToFilter}
-              onChange={(e) => {
-                const val = e.target.value;
-                setAssignedToFilter(val);
-                if (val !== 'ALL') {
-                  setViewTab('ASSIGNED_TO');
-                }
-              }}
-              className="px-2.5 py-1 bg-white border border-emerald-300 rounded-lg text-xs font-bold text-gray-800 focus:outline-none focus:ring-1 focus:ring-[#0e623a] cursor-pointer"
-            >
-              <option value="ALL">All Assignees</option>
-              {employees.map(emp => (
-                <option key={emp._id} value={emp._id}>
-                  {emp.name} ({emp.role || 'Staff'})
-                </option>
-              ))}
-            </select>
-          </div>
-
           {/* Other Tasks */}
           {isSuperAdmin && (
             <button
               type="button"
-              onClick={() => {
-                setViewTab('OTHER_TASKS');
-                setAssignedToFilter('ALL');
-              }}
+              onClick={() => setViewTab('OTHER_TASKS')}
               className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition cursor-pointer shrink-0 ${
                 viewTab === 'OTHER_TASKS'
                   ? 'bg-purple-800 text-white shadow-md ring-2 ring-purple-500/40'
@@ -1001,125 +1114,95 @@ const TasksBoard = () => {
         </div>
       </div>
 
-      {/* Search & Filter Toolbar */}
+      {/* Search & Filter Toolbar Box */}
       <div className="bg-white border border-gray-150 rounded-3xl p-5 shadow-sm space-y-4">
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="relative w-full sm:w-80">
-            <Search className="w-4 h-4 absolute left-3 top-3 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search tasks, descriptions, or assignees..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-[#0e623a]"
-            />
-          </div>
-
-          <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
-            {/* Status Filter */}
-            <div className="flex items-center gap-1.5">
-              <Filter className="w-4 h-4 text-gray-400 shrink-0" />
-              <span className="text-xs font-bold text-gray-500 shrink-0">Status:</span>
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#0e623a]"
-              >
-                <option value="ALL">All Statuses ({totalCount})</option>
-                <option value="NEW">New ({newCount})</option>
-                <option value="IN_PROGRESS">In Progress ({inProgressCount})</option>
-                <option value="ON_HOLD">On Hold ({onHoldCount})</option>
-                <option value="COMPLETED">Completed ({completedCount})</option>
-                <option value="CANCELLED">Cancelled ({cancelledCount})</option>
-                <option value="OVERDATED">Overdated ({overdatedCount})</option>
-              </select>
-            </div>
-
-            {/* Department Filter */}
-            <div className="flex items-center gap-1.5">
-              <span className="text-xs font-bold text-gray-500 shrink-0">Department:</span>
-              <select
-                value={categoryFilter}
-                onChange={(e) => setCategoryFilter(e.target.value)}
-                className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#0e623a]"
-              >
-                <option value="ALL">All Departments</option>
-                {categoriesList.map(cat => {
-                  const catName = typeof cat === 'string' ? cat : cat.name;
-                  return (
-                    <option key={cat._id || catName} value={catName}>{catName}</option>
-                  );
-                })}
-              </select>
-            </div>
-
-            {/* Priority Filter */}
-            <div className="flex items-center gap-1.5">
-              <span className="text-xs font-bold text-gray-500 shrink-0">Priority:</span>
-              <select
-                value={priorityFilter}
-                onChange={(e) => setPriorityFilter(e.target.value)}
-                className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#0e623a]"
-              >
-                <option value="ALL">All Priorities</option>
-                <option value="High">High</option>
-                <option value="Medium">Medium</option>
-                <option value="Low">Low</option>
-              </select>
-            </div>
-
-            {/* Project Filter */}
-            <div className="flex items-center gap-1.5">
-              <Building className="w-4 h-4 text-gray-400 shrink-0" />
-              <span className="text-xs font-bold text-gray-500 shrink-0">Project:</span>
-              <select
-                value={projectFilter}
-                onChange={(e) => setProjectFilter(e.target.value)}
-                className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#0e623a]"
-              >
-                <option value="ALL">All Projects</option>
-                {Array.from(new Set([
-                  ...projects.map(p => p.name).filter(Boolean),
-                  ...tasks.map(t => t.projectName).filter(Boolean)
-                ])).sort().map(pName => (
-                  <option key={pName} value={pName}>{pName}</option>
-                ))}
-              </select>
-            </div>
-
-            {/* Date Range Filtration */}
-            <div className="flex items-center gap-1.5 bg-gray-50 p-1.5 rounded-xl border border-gray-200">
-              <Calendar className="w-4 h-4 text-[#0e623a] shrink-0 ml-1" />
-              <span className="text-[11px] font-bold text-gray-500 hidden sm:inline">Due:</span>
-              <input
-                type="date"
-                title="From Due Date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                className="px-2 py-1 bg-white border border-gray-200 rounded-lg text-xs font-semibold text-gray-700 focus:outline-none focus:ring-1 focus:ring-[#0e623a]"
-              />
-              <span className="text-xs font-bold text-gray-400">to</span>
-              <input
-                type="date"
-                title="To Due Date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                className="px-2 py-1 bg-white border border-gray-200 rounded-lg text-xs font-semibold text-gray-700 focus:outline-none focus:ring-1 focus:ring-[#0e623a]"
-              />
-              {(startDate || endDate) && (
-                <button
-                  onClick={() => { setStartDate(''); setEndDate(''); }}
-                  className="px-2 py-1 text-[10px] font-bold bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg transition"
-                  title="Clear Date Filter"
-                >
-                  Clear
-                </button>
-              )}
-            </div>
-          </div>
+        {/* Row 1: Main Search Bar (Separate Row) */}
+        <div className="relative w-full">
+          <Search className="w-4 h-4 absolute left-4 top-3.5 text-[#0e623a]" />
+          <input
+            type="text"
+            placeholder="Search tasks by title, description, project, or assignee name..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-11 pr-10 py-3 bg-gray-50 hover:bg-white focus:bg-white border border-gray-200 rounded-2xl text-xs font-semibold text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#0e623a] shadow-xs transition"
+          />
+          {searchTerm && (
+            <button
+              type="button"
+              onClick={() => setSearchTerm('')}
+              className="absolute right-3.5 top-3 text-gray-400 hover:text-gray-600 p-0.5 rounded-full hover:bg-gray-200 transition"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
         </div>
 
-        {/* Task List / Table with 12 Explicit Columns */}
+        {/* Row 2: Exactly 4 Color-Highlighted Searchable Filters (Project, Department, Assigned to, Status) */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          {/* 1. Project Filter (Indigo Theme) */}
+          <SearchableDropdown
+            label="Project"
+            icon={Building}
+            value={projectFilter}
+            options={Array.from(new Set([
+              ...projects.map(p => p.name).filter(Boolean),
+              ...tasks.map(t => t.projectName).filter(Boolean)
+            ])).sort().map(pName => ({ id: pName, name: pName }))}
+            onChange={(val) => setProjectFilter(val)}
+            colorScheme="indigo"
+            allLabel="All Projects"
+          />
+
+          {/* 2. Department Filter (Purple Theme) */}
+          <SearchableDropdown
+            label="Department"
+            icon={Filter}
+            value={categoryFilter}
+            options={categoriesList.map(cat => {
+              const catName = typeof cat === 'string' ? cat : cat.name;
+              return { id: catName, name: catName };
+            })}
+            onChange={(val) => setCategoryFilter(val)}
+            colorScheme="purple"
+            allLabel="All Departments"
+          />
+
+          {/* 3. Assigned to Filter (Blue Theme) */}
+          <SearchableDropdown
+            label="Assigned to"
+            icon={User}
+            value={assignedToFilter}
+            options={employees.map(emp => ({
+              id: emp._id,
+              name: emp.name,
+              subtext: emp.role || 'Staff'
+            }))}
+            onChange={(val) => setAssignedToFilter(val)}
+            colorScheme="blue"
+            allLabel="All Assignees"
+          />
+
+          {/* 4. Status Filter (Emerald Theme) */}
+          <SearchableDropdown
+            label="Status"
+            icon={Clock}
+            value={statusFilter}
+            options={[
+              { id: 'NEW', name: `New (${newCount})` },
+              { id: 'IN_PROGRESS', name: `In Progress (${inProgressCount})` },
+              { id: 'ON_HOLD', name: `On Hold (${onHoldCount})` },
+              { id: 'COMPLETED', name: `Completed (${completedCount})` },
+              { id: 'CANCELLED', name: `Cancelled (${cancelledCount})` },
+              { id: 'OVERDATED', name: `Overdated (${overdatedCount})` }
+            ]}
+            onChange={(val) => setStatusFilter(val)}
+            colorScheme="emerald"
+            allLabel="All Statuses"
+          />
+        </div>
+      </div>
+
+      {/* Task List / Table with 12 Explicit Columns */}
         {loading ? (
           <div className="flex flex-col justify-center items-center h-48 space-y-2">
             <Loader2 className="w-8 h-8 text-[#0e623a] animate-spin" />
@@ -1391,7 +1474,6 @@ const TasksBoard = () => {
             </table>
           </div>
         )}
-      </div>
 
       {/* Create / Edit Task Modal */}
       {showModal && (
