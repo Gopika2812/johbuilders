@@ -176,18 +176,11 @@ const TasksBoard = () => {
   const [priorityFilter, setPriorityFilter] = useState('ALL');
   const [projectFilter, setProjectFilter] = useState('ALL');
 
-  // Categories list with instant inline creation
-  const [categoriesList, setCategoriesList] = useState([
-    'General',
-    'Site Visit',
-    'Legal & Documentation',
-    'Payment Follow-up',
-    'Client Meeting',
-    'Construction',
-    'Handover'
-  ]);
-  const [isAddingNewCategory, setIsAddingNewCategory] = useState(false);
-  const [newCategoryInput, setNewCategoryInput] = useState('');
+  // Categories list & management state
+  const [categoriesList, setCategoriesList] = useState([]);
+  const [showCategoryManager, setShowCategoryManager] = useState(false);
+  const [editingCategoryObj, setEditingCategoryObj] = useState(null);
+  const [newCategoryName, setNewCategoryName] = useState('');
 
   const [projects, setProjects] = useState([]);
   const [projectSelectOption, setProjectSelectOption] = useState('');
@@ -215,6 +208,7 @@ const TasksBoard = () => {
     fetchTasks();
     fetchEmployees();
     fetchProjects();
+    fetchCategories();
   }, [token, startDate, endDate]);
 
   const fetchTasks = async (isSilent = false) => {
@@ -269,6 +263,94 @@ const TasksBoard = () => {
       }
     } catch (err) {
       console.error('Error fetching projects:', err);
+    }
+  };
+
+  const fetchCategories = async () => {
+    try {
+      const res = await fetch(`${API_URL}/task-categories`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setCategoriesList(data);
+      }
+    } catch (err) {
+      console.error('Error fetching categories:', err);
+    }
+  };
+
+  const handleCreateCategory = async (e) => {
+    if (e) e.preventDefault();
+    if (!newCategoryName || !newCategoryName.trim()) return;
+    try {
+      const res = await fetch(`${API_URL}/task-categories`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ name: newCategoryName.trim() })
+      });
+      if (res.ok) {
+        const created = await res.json();
+        await fetchCategories();
+        setFormData(prev => ({ ...prev, category: created.name }));
+        setNewCategoryName('');
+        setSuccessMsg(`Category "${created.name}" created successfully`);
+        setTimeout(() => setSuccessMsg(''), 3000);
+      } else {
+        const data = await res.json();
+        setError(data.message || 'Failed to create category');
+      }
+    } catch (err) {
+      setError('Error creating category');
+    }
+  };
+
+  const handleUpdateCategory = async (categoryId, updatedName) => {
+    if (!updatedName || !updatedName.trim()) return;
+    try {
+      const res = await fetch(`${API_URL}/task-categories/${categoryId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ name: updatedName.trim() })
+      });
+      if (res.ok) {
+        await fetchCategories();
+        await fetchTasks(true);
+        setEditingCategoryObj(null);
+        setSuccessMsg('Category updated successfully');
+        setTimeout(() => setSuccessMsg(''), 3000);
+      } else {
+        const data = await res.json();
+        setError(data.message || 'Failed to update category');
+      }
+    } catch (err) {
+      setError('Error updating category');
+    }
+  };
+
+  const handleDeleteCategory = async (categoryId, catName) => {
+    if (!window.confirm(`Are you sure you want to delete category "${catName}"?`)) return;
+    try {
+      const res = await fetch(`${API_URL}/task-categories/${categoryId}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        await fetchCategories();
+        setSuccessMsg(`Category "${catName}" deleted`);
+        setTimeout(() => setSuccessMsg(''), 3000);
+      } else {
+        const data = await res.json();
+        setError(data.message || 'Failed to delete category');
+      }
+    } catch (err) {
+      setError('Error deleting category');
     }
   };
 
@@ -861,9 +943,12 @@ const TasksBoard = () => {
                 className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#0e623a]"
               >
                 <option value="ALL">All Categories</option>
-                {categoriesList.map(cat => (
-                  <option key={cat} value={cat}>{cat}</option>
-                ))}
+                {categoriesList.map(cat => {
+                  const catName = typeof cat === 'string' ? cat : cat.name;
+                  return (
+                    <option key={cat._id || catName} value={catName}>{catName}</option>
+                  );
+                })}
               </select>
             </div>
 
@@ -1315,6 +1400,14 @@ const TasksBoard = () => {
                 <div>
                   <div className="flex items-center justify-between mb-1">
                     <label className="font-bold text-gray-700">Category</label>
+                    <button
+                      type="button"
+                      onClick={() => setShowCategoryManager(true)}
+                      className="text-[10px] font-extrabold text-[#0e623a] hover:underline flex items-center gap-1 cursor-pointer"
+                    >
+                      <Plus className="w-3 h-3" />
+                      <span>Manage Categories</span>
+                    </button>
                   </div>
 
                   <select
@@ -1322,9 +1415,12 @@ const TasksBoard = () => {
                     onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                     className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#0e623a]"
                   >
-                    {categoriesList.map(cat => (
-                      <option key={cat} value={cat}>{cat}</option>
-                    ))}
+                    {categoriesList.map(cat => {
+                      const catName = typeof cat === 'string' ? cat : cat.name;
+                      return (
+                        <option key={cat._id || catName} value={catName}>{catName}</option>
+                      );
+                    })}
                   </select>
                 </div>
 
@@ -1662,6 +1758,124 @@ const TasksBoard = () => {
           </div>
         );
       })()}
+
+      {/* Manage Task Categories Modal */}
+      {showCategoryManager && (
+        <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm z-[99999] flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl border border-gray-150 shadow-2xl w-full max-w-md overflow-hidden animate-fadeIn">
+            <div className="px-6 py-4 bg-[#0e623a] text-white flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Filter className="w-4 h-4 text-emerald-300" />
+                <h3 className="font-bold text-sm">Manage Task Categories</h3>
+              </div>
+              <button
+                onClick={() => {
+                  setShowCategoryManager(false);
+                  setEditingCategoryObj(null);
+                  setNewCategoryName('');
+                }}
+                className="p-1 hover:bg-white/20 rounded-lg transition text-white cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4 text-xs">
+              {/* Create Category Form */}
+              <form onSubmit={handleCreateCategory} className="flex gap-2">
+                <input
+                  type="text"
+                  required
+                  placeholder="Type new category name..."
+                  value={newCategoryName}
+                  onChange={(e) => setNewCategoryName(e.target.value)}
+                  className="flex-1 px-3.5 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#0e623a]"
+                />
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-[#0e623a] hover:bg-[#0b4d2d] text-white font-bold text-xs rounded-xl shadow transition cursor-pointer flex items-center gap-1 shrink-0"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Add</span>
+                </button>
+              </form>
+
+              {/* Categories List */}
+              <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+                <p className="font-bold text-gray-500 uppercase text-[10px] tracking-wider">Existing Categories ({categoriesList.length})</p>
+                {categoriesList.map(cat => {
+                  const catId = cat._id;
+                  const catName = typeof cat === 'string' ? cat : cat.name;
+                  const isEditing = editingCategoryObj?._id === catId;
+
+                  return (
+                    <div 
+                      key={catId || catName}
+                      className="flex items-center justify-between p-2.5 bg-gray-50 border border-gray-200 rounded-xl gap-2"
+                    >
+                      {isEditing ? (
+                        <input
+                          type="text"
+                          defaultValue={catName}
+                          autoFocus
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              handleUpdateCategory(catId, e.target.value);
+                            } else if (e.key === 'Escape') {
+                              setEditingCategoryObj(null);
+                            }
+                          }}
+                          onBlur={(e) => handleUpdateCategory(catId, e.target.value)}
+                          className="flex-1 px-2.5 py-1 bg-white border border-emerald-400 rounded-lg text-xs font-bold focus:outline-none focus:ring-1 focus:ring-[#0e623a]"
+                        />
+                      ) : (
+                        <span className="font-extrabold text-gray-800 text-xs truncate">{catName}</span>
+                      )}
+
+                      <div className="flex items-center gap-1 shrink-0">
+                        {!isEditing && (
+                          <button
+                            type="button"
+                            onClick={() => setEditingCategoryObj(cat)}
+                            className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition"
+                            title="Edit / Rename Category"
+                          >
+                            <Edit3 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                        {catId && (
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteCategory(catId, catName)}
+                            className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition"
+                            title="Delete Category"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="p-4 bg-gray-50 border-t border-gray-100 flex justify-end">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowCategoryManager(false);
+                  setEditingCategoryObj(null);
+                  setNewCategoryName('');
+                }}
+                className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold text-xs rounded-xl transition cursor-pointer"
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Attachment Image Lightbox Preview Modal */}
       {previewImageModal.open && (
