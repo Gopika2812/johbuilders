@@ -831,12 +831,8 @@ const TasksBoard = () => {
 
     if (viewTab === 'ASSIGNED_TO_ME') {
       if (!isAssignedToMe) return false;
-    } else if (viewTab === 'ASSIGNED_TO') {
-      if (assignedToFilter !== 'ALL' && (task.assignedTo?._id || task.assignedTo) !== assignedToFilter) {
-        return false;
-      }
-    } else if (viewTab === 'OTHER_TASKS') {
-      if (isAssignedToMe || isIassigned) return false;
+    } else if (viewTab === 'I_ASSIGNED') {
+      if (!isIassigned) return false;
     }
 
     if (assignedToFilter !== 'ALL' && (task.assignedTo?._id || task.assignedTo) !== assignedToFilter) {
@@ -1068,26 +1064,24 @@ const TasksBoard = () => {
             </span>
           </button>
 
-          {/* Other Tasks */}
-          {isSuperAdmin && (
-            <button
-              type="button"
-              onClick={() => setViewTab('OTHER_TASKS')}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition cursor-pointer shrink-0 ${
-                viewTab === 'OTHER_TASKS'
-                  ? 'bg-purple-800 text-white shadow-md ring-2 ring-purple-500/40'
-                  : 'text-gray-600 hover:bg-purple-50 hover:text-purple-900 border border-gray-200'
-              }`}
-            >
-              <Users className="w-4 h-4" />
-              <span>Other Tasks</span>
-              <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
-                viewTab === 'OTHER_TASKS' ? 'bg-white/20 text-white' : 'bg-purple-100 text-purple-800'
-              }`}>
-                {otherTasksCount}
-              </span>
-            </button>
-          )}
+          {/* I Assigned */}
+          <button
+            type="button"
+            onClick={() => setViewTab('I_ASSIGNED')}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition cursor-pointer shrink-0 ${
+              viewTab === 'I_ASSIGNED'
+                ? 'bg-purple-800 text-white shadow-md ring-2 ring-purple-500/40'
+                : 'text-gray-600 hover:bg-purple-50 hover:text-purple-900 border border-gray-200'
+            }`}
+          >
+            <UserCheck className="w-4 h-4" />
+            <span>I Assigned</span>
+            <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
+              viewTab === 'I_ASSIGNED' ? 'bg-white/20 text-white' : 'bg-purple-100 text-purple-800'
+            }`}>
+              {iAssignedCount}
+            </span>
+          </button>
         </div>
       </div>
 
