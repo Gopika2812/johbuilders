@@ -24,7 +24,13 @@ import {
   ChevronDown,
   Check,
   Users,
-  Building
+  Building,
+  UploadCloud,
+  Eye,
+  Download,
+  Paperclip,
+  PauseCircle,
+  XCircle
 } from 'lucide-react';
 
 const CustomPersonSelector = ({ employees, value, onChange, placeholder = "-- Select Person --" }) => {
@@ -186,6 +192,10 @@ const TasksBoard = () => {
   const [projects, setProjects] = useState([]);
   const [projectSelectOption, setProjectSelectOption] = useState('');
 
+  // Attachments & Preview Modal State
+  const [uploadingFile, setUploadingFile] = useState(false);
+  const [previewImageModal, setPreviewImageModal] = useState({ open: false, url: '', name: '' });
+
   // Form Fields
   const [formData, setFormData] = useState({
     title: '',
@@ -197,7 +207,8 @@ const TasksBoard = () => {
     priority: 'Medium',
     category: 'General',
     repeatType: 'None',
-    reminderInterval: 1
+    reminderInterval: 1,
+    attachments: []
   });
 
   useEffect(() => {
@@ -261,6 +272,75 @@ const TasksBoard = () => {
     }
   };
 
+  const uploadToCloudinary = async (file) => {
+    const cloudName = 'dgo9lfoyd';
+    const uploadPreset = 'Johnbuilders';
+
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('upload_preset', uploadPreset);
+
+    const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
+      method: 'POST',
+      body: formData
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error?.message || 'Failed to upload image');
+    return {
+      url: data.secure_url,
+      name: file.name
+    };
+  };
+
+  const handleDirectUpload = async (taskId, files) => {
+    if (!files || files.length === 0) return;
+    try {
+      setUploadingFile(true);
+      for (const file of Array.from(files)) {
+        const uploaded = await uploadToCloudinary(file);
+        const res = await fetch(`${API_URL}/user-tasks/${taskId}/attachments`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ url: uploaded.url, name: uploaded.name })
+        });
+        if (res.ok) {
+          const updatedTask = await res.json();
+          setTasks(prev => prev.map(t => t._id === updatedTask._id ? updatedTask : t));
+        }
+      }
+      setSuccessMsg('Attachment uploaded successfully');
+      setTimeout(() => setSuccessMsg(''), 3000);
+    } catch (err) {
+      setError(err.message || 'Failed to upload attachment');
+    } finally {
+      setUploadingFile(false);
+    }
+  };
+
+  const handleModalFileUpload = async (files) => {
+    if (!files || files.length === 0) return;
+    try {
+      setUploadingFile(true);
+      const newAtts = [];
+      for (const file of Array.from(files)) {
+        const uploaded = await uploadToCloudinary(file);
+        newAtts.push({ url: uploaded.url, name: uploaded.name });
+      }
+      setFormData(prev => ({
+        ...prev,
+        attachments: [...(prev.attachments || []), ...newAtts]
+      }));
+    } catch (err) {
+      setError(err.message || 'Error uploading file');
+    } finally {
+      setUploadingFile(false);
+    }
+  };
+
   const handleOpenCreateModal = () => {
     setEditingTask(null);
     setIsAddingNewCategory(false);
@@ -276,7 +356,8 @@ const TasksBoard = () => {
       priority: 'Medium',
       category: 'General',
       repeatType: 'None',
-      reminderInterval: 1
+      reminderInterval: 1,
+      attachments: []
     });
     setShowModal(true);
   };
@@ -305,7 +386,8 @@ const TasksBoard = () => {
       priority: task.priority || 'Medium',
       category: task.category || 'General',
       repeatType: task.repeatType || 'None',
-      reminderInterval: task.reminderInterval || 1
+      reminderInterval: task.reminderInterval || 1,
+      attachments: task.attachments || []
     });
     setShowModal(true);
   };
@@ -503,7 +585,9 @@ const TasksBoard = () => {
 
     if (statusFilter === 'NEW') return task.status === 'New';
     if (statusFilter === 'IN_PROGRESS') return task.status === 'In Progress';
+    if (statusFilter === 'ON_HOLD') return task.status === 'On Hold';
     if (statusFilter === 'COMPLETED') return task.status === 'Completed';
+    if (statusFilter === 'CANCELLED') return task.status === 'Cancelled';
     if (statusFilter === 'OVERDATED') return isOverdated(task);
 
     if (categoryFilter !== 'ALL' && task.category !== categoryFilter) return false;
@@ -524,7 +608,9 @@ const TasksBoard = () => {
   const totalCount = tasks.length;
   const newCount = tasks.filter(t => t.status === 'New').length;
   const inProgressCount = tasks.filter(t => t.status === 'In Progress').length;
+  const onHoldCount = tasks.filter(t => t.status === 'On Hold').length;
   const completedCount = tasks.filter(t => t.status === 'Completed').length;
+  const cancelledCount = tasks.filter(t => t.status === 'Cancelled').length;
   const overdatedCount = tasks.filter(t => isOverdated(t)).length;
 
   return (
@@ -553,60 +639,82 @@ const TasksBoard = () => {
       </div>
 
       {/* Stats Overview */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
         <div 
           onClick={() => setStatusFilter('ALL')}
-          className={`p-4 rounded-2xl border transition-all cursor-pointer ${statusFilter === 'ALL' ? 'bg-emerald-950 text-white border-emerald-800 shadow-md ring-2 ring-emerald-600' : 'bg-white border-gray-150 hover:border-gray-300'}`}
+          className={`p-3.5 rounded-2xl border transition-all cursor-pointer ${statusFilter === 'ALL' ? 'bg-emerald-950 text-white border-emerald-800 shadow-md ring-2 ring-emerald-600' : 'bg-white border-gray-150 hover:border-gray-300'}`}
         >
           <div className="flex items-center justify-between">
-            <span className={`text-[11px] font-extrabold uppercase ${statusFilter === 'ALL' ? 'text-emerald-300' : 'text-gray-500'}`}>Total Tasks</span>
-            <ClipboardList className={`w-4 h-4 ${statusFilter === 'ALL' ? 'text-emerald-400' : 'text-gray-400'}`} />
+            <span className={`text-[10px] font-extrabold uppercase ${statusFilter === 'ALL' ? 'text-emerald-300' : 'text-gray-500'}`}>Total</span>
+            <ClipboardList className={`w-3.5 h-3.5 ${statusFilter === 'ALL' ? 'text-emerald-400' : 'text-gray-400'}`} />
           </div>
-          <p className={`text-2xl font-black mt-2 ${statusFilter === 'ALL' ? 'text-white' : 'text-gray-800'}`}>{totalCount}</p>
+          <p className={`text-xl font-black mt-1 ${statusFilter === 'ALL' ? 'text-white' : 'text-gray-800'}`}>{totalCount}</p>
         </div>
 
         <div 
           onClick={() => setStatusFilter('NEW')}
-          className={`p-4 rounded-2xl border transition-all cursor-pointer ${statusFilter === 'NEW' ? 'bg-blue-950 text-white border-blue-800 shadow-md ring-2 ring-blue-600' : 'bg-white border-gray-150 hover:border-gray-300'}`}
+          className={`p-3.5 rounded-2xl border transition-all cursor-pointer ${statusFilter === 'NEW' ? 'bg-blue-950 text-white border-blue-800 shadow-md ring-2 ring-blue-600' : 'bg-white border-gray-150 hover:border-gray-300'}`}
         >
           <div className="flex items-center justify-between">
-            <span className={`text-[11px] font-extrabold uppercase ${statusFilter === 'NEW' ? 'text-blue-300' : 'text-blue-600'}`}>New</span>
-            <Clock className={`w-4 h-4 ${statusFilter === 'NEW' ? 'text-blue-300' : 'text-blue-500'}`} />
+            <span className={`text-[10px] font-extrabold uppercase ${statusFilter === 'NEW' ? 'text-blue-300' : 'text-blue-600'}`}>New</span>
+            <Clock className={`w-3.5 h-3.5 ${statusFilter === 'NEW' ? 'text-blue-300' : 'text-blue-500'}`} />
           </div>
-          <p className={`text-2xl font-black mt-2 ${statusFilter === 'NEW' ? 'text-white' : 'text-gray-800'}`}>{newCount}</p>
+          <p className={`text-xl font-black mt-1 ${statusFilter === 'NEW' ? 'text-white' : 'text-gray-800'}`}>{newCount}</p>
         </div>
 
         <div 
           onClick={() => setStatusFilter('IN_PROGRESS')}
-          className={`p-4 rounded-2xl border transition-all cursor-pointer ${statusFilter === 'IN_PROGRESS' ? 'bg-amber-950 text-white border-amber-800 shadow-md ring-2 ring-amber-600' : 'bg-white border-gray-150 hover:border-gray-300'}`}
+          className={`p-3.5 rounded-2xl border transition-all cursor-pointer ${statusFilter === 'IN_PROGRESS' ? 'bg-amber-950 text-white border-amber-800 shadow-md ring-2 ring-amber-600' : 'bg-white border-gray-150 hover:border-gray-300'}`}
         >
           <div className="flex items-center justify-between">
-            <span className={`text-[11px] font-extrabold uppercase ${statusFilter === 'IN_PROGRESS' ? 'text-amber-300' : 'text-amber-600'}`}>In Progress</span>
-            <Loader2 className={`w-4 h-4 ${statusFilter === 'IN_PROGRESS' ? 'text-amber-300' : 'text-amber-500'}`} />
+            <span className={`text-[10px] font-extrabold uppercase ${statusFilter === 'IN_PROGRESS' ? 'text-amber-300' : 'text-amber-600'}`}>In Progress</span>
+            <Loader2 className={`w-3.5 h-3.5 ${statusFilter === 'IN_PROGRESS' ? 'text-amber-300' : 'text-amber-500'}`} />
           </div>
-          <p className={`text-2xl font-black mt-2 ${statusFilter === 'IN_PROGRESS' ? 'text-white' : 'text-gray-800'}`}>{inProgressCount}</p>
+          <p className={`text-xl font-black mt-1 ${statusFilter === 'IN_PROGRESS' ? 'text-white' : 'text-gray-800'}`}>{inProgressCount}</p>
+        </div>
+
+        <div 
+          onClick={() => setStatusFilter('ON_HOLD')}
+          className={`p-3.5 rounded-2xl border transition-all cursor-pointer ${statusFilter === 'ON_HOLD' ? 'bg-purple-950 text-white border-purple-800 shadow-md ring-2 ring-purple-600' : 'bg-white border-gray-150 hover:border-gray-300'}`}
+        >
+          <div className="flex items-center justify-between">
+            <span className={`text-[10px] font-extrabold uppercase ${statusFilter === 'ON_HOLD' ? 'text-purple-300' : 'text-purple-600'}`}>On Hold</span>
+            <PauseCircle className={`w-3.5 h-3.5 ${statusFilter === 'ON_HOLD' ? 'text-purple-300' : 'text-purple-500'}`} />
+          </div>
+          <p className={`text-xl font-black mt-1 ${statusFilter === 'ON_HOLD' ? 'text-white' : 'text-gray-800'}`}>{onHoldCount}</p>
         </div>
 
         <div 
           onClick={() => setStatusFilter('COMPLETED')}
-          className={`p-4 rounded-2xl border transition-all cursor-pointer ${statusFilter === 'COMPLETED' ? 'bg-emerald-900 text-white border-emerald-700 shadow-md ring-2 ring-emerald-500' : 'bg-white border-gray-150 hover:border-gray-300'}`}
+          className={`p-3.5 rounded-2xl border transition-all cursor-pointer ${statusFilter === 'COMPLETED' ? 'bg-emerald-900 text-white border-emerald-700 shadow-md ring-2 ring-emerald-500' : 'bg-white border-gray-150 hover:border-gray-300'}`}
         >
           <div className="flex items-center justify-between">
-            <span className={`text-[11px] font-extrabold uppercase ${statusFilter === 'COMPLETED' ? 'text-emerald-300' : 'text-emerald-600'}`}>Completed</span>
-            <CheckCircle2 className={`w-4 h-4 ${statusFilter === 'COMPLETED' ? 'text-emerald-300' : 'text-emerald-500'}`} />
+            <span className={`text-[10px] font-extrabold uppercase ${statusFilter === 'COMPLETED' ? 'text-emerald-300' : 'text-emerald-600'}`}>Completed</span>
+            <CheckCircle2 className={`w-3.5 h-3.5 ${statusFilter === 'COMPLETED' ? 'text-emerald-300' : 'text-emerald-500'}`} />
           </div>
-          <p className={`text-2xl font-black mt-2 ${statusFilter === 'COMPLETED' ? 'text-white' : 'text-gray-800'}`}>{completedCount}</p>
+          <p className={`text-xl font-black mt-1 ${statusFilter === 'COMPLETED' ? 'text-white' : 'text-gray-800'}`}>{completedCount}</p>
+        </div>
+
+        <div 
+          onClick={() => setStatusFilter('CANCELLED')}
+          className={`p-3.5 rounded-2xl border transition-all cursor-pointer ${statusFilter === 'CANCELLED' ? 'bg-gray-800 text-white border-gray-700 shadow-md ring-2 ring-gray-600' : 'bg-white border-gray-150 hover:border-gray-300'}`}
+        >
+          <div className="flex items-center justify-between">
+            <span className={`text-[10px] font-extrabold uppercase ${statusFilter === 'CANCELLED' ? 'text-gray-300' : 'text-gray-600'}`}>Cancelled</span>
+            <XCircle className={`w-3.5 h-3.5 ${statusFilter === 'CANCELLED' ? 'text-gray-300' : 'text-gray-500'}`} />
+          </div>
+          <p className={`text-xl font-black mt-1 ${statusFilter === 'CANCELLED' ? 'text-white' : 'text-gray-800'}`}>{cancelledCount}</p>
         </div>
 
         <div 
           onClick={() => setStatusFilter('OVERDATED')}
-          className={`p-4 rounded-2xl border transition-all cursor-pointer ${statusFilter === 'OVERDATED' ? 'bg-rose-950 text-white border-rose-800 shadow-md ring-2 ring-rose-600' : 'bg-rose-50/50 border-rose-200 hover:border-rose-300'}`}
+          className={`p-3.5 rounded-2xl border transition-all cursor-pointer ${statusFilter === 'OVERDATED' ? 'bg-rose-950 text-white border-rose-800 shadow-md ring-2 ring-rose-600' : 'bg-rose-50/50 border-rose-200 hover:border-rose-300'}`}
         >
           <div className="flex items-center justify-between">
-            <span className={`text-[11px] font-extrabold uppercase ${statusFilter === 'OVERDATED' ? 'text-rose-300' : 'text-rose-700'}`}>Overdated</span>
-            <AlertTriangle className={`w-4 h-4 ${statusFilter === 'OVERDATED' ? 'text-rose-300' : 'text-rose-600 animate-pulse'}`} />
+            <span className={`text-[10px] font-extrabold uppercase ${statusFilter === 'OVERDATED' ? 'text-rose-300' : 'text-rose-700'}`}>Overdated</span>
+            <AlertTriangle className={`w-3.5 h-3.5 ${statusFilter === 'OVERDATED' ? 'text-rose-300' : 'text-rose-600 animate-pulse'}`} />
           </div>
-          <p className={`text-2xl font-black mt-2 ${statusFilter === 'OVERDATED' ? 'text-white' : 'text-rose-700'}`}>{overdatedCount}</p>
+          <p className={`text-xl font-black mt-1 ${statusFilter === 'OVERDATED' ? 'text-white' : 'text-rose-700'}`}>{overdatedCount}</p>
         </div>
       </div>
 
@@ -737,7 +845,9 @@ const TasksBoard = () => {
                 <option value="ALL">All Statuses ({totalCount})</option>
                 <option value="NEW">New ({newCount})</option>
                 <option value="IN_PROGRESS">In Progress ({inProgressCount})</option>
+                <option value="ON_HOLD">On Hold ({onHoldCount})</option>
                 <option value="COMPLETED">Completed ({completedCount})</option>
+                <option value="CANCELLED">Cancelled ({cancelledCount})</option>
                 <option value="OVERDATED">Overdated ({overdatedCount})</option>
               </select>
             </div>
@@ -823,7 +933,7 @@ const TasksBoard = () => {
           </div>
         </div>
 
-        {/* Task List / Table */}
+        {/* Task List / Table with 12 Explicit Columns */}
         {loading ? (
           <div className="flex flex-col justify-center items-center h-48 space-y-2">
             <Loader2 className="w-8 h-8 text-[#0e623a] animate-spin" />
@@ -839,16 +949,19 @@ const TasksBoard = () => {
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs border-collapse">
               <thead>
-                <tr className="border-b border-gray-200 bg-gray-50/80 text-gray-500 font-extrabold uppercase tracking-wider">
-                  <th className="p-3.5 w-12 text-center">S.No</th>
-                  <th className="p-3.5 min-w-[200px]">Task Title & Category</th>
-                  <th className="p-3.5 min-w-[150px]">Assigned Person</th>
-                  <th className="p-3.5 min-w-[100px] text-center">Priority</th>
-                  <th className="p-3.5 min-w-[120px]">Assigned By</th>
-                  <th className="p-3.5 min-w-[130px]">Assigned Date</th>
-                  <th className="p-3.5 min-w-[140px]">Due Date & Repeat</th>
+                <tr className="border-b border-gray-200 bg-gray-50/80 text-gray-500 font-extrabold uppercase tracking-wider text-[11px]">
+                  <th className="p-3.5 w-10 text-center">S.No</th>
+                  <th className="p-3.5 min-w-[140px]">Project Name</th>
+                  <th className="p-3.5 min-w-[180px]">Task Title</th>
+                  <th className="p-3.5 min-w-[120px]">Task Category</th>
+                  <th className="p-3.5 min-w-[140px]">Assigned To</th>
+                  <th className="p-3.5 min-w-[130px]">Assigned By</th>
+                  <th className="p-3.5 min-w-[90px] text-center">Priority</th>
+                  <th className="p-3.5 min-w-[110px]">Assigned Date</th>
+                  <th className="p-3.5 min-w-[140px]">Due Date</th>
                   <th className="p-3.5 min-w-[130px] text-center">Status</th>
-                  <th className="p-3.5 w-24 text-center">Actions</th>
+                  <th className="p-3.5 min-w-[140px] text-center">Attachments</th>
+                  <th className="p-3.5 w-28 text-center">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -858,10 +971,11 @@ const TasksBoard = () => {
 
                   let statusBadge = 'bg-blue-50 text-blue-700 border-blue-200';
                   if (task.status === 'In Progress') statusBadge = 'bg-amber-50 text-amber-700 border-amber-200';
+                  if (task.status === 'On Hold') statusBadge = 'bg-purple-50 text-purple-700 border-purple-200';
                   if (task.status === 'Completed') statusBadge = 'bg-emerald-50 text-emerald-700 border-emerald-200';
+                  if (task.status === 'Cancelled') statusBadge = 'bg-gray-100 text-gray-600 border-gray-300';
 
                   let priorityBadge = 'bg-blue-50 text-blue-800 border-blue-200 font-bold';
-                  if (task.priority === 'Urgent') priorityBadge = 'bg-rose-100 text-rose-800 border-rose-300 font-black animate-pulse';
                   if (task.priority === 'High') priorityBadge = 'bg-amber-100 text-amber-800 border-amber-300 font-extrabold';
                   if (task.priority === 'Low') priorityBadge = 'bg-gray-100 text-gray-700 border-gray-300 font-semibold';
 
@@ -870,28 +984,39 @@ const TasksBoard = () => {
                       key={task._id} 
                       className={`hover:bg-gray-50/80 transition duration-150 ${isHighlighted ? 'bg-amber-50/60 ring-2 ring-amber-400' : ''}`}
                     >
+                      {/* 1. S.No */}
                       <td className="p-3.5 text-center font-bold text-gray-400">{idx + 1}</td>
 
+                      {/* 2. Project Name */}
+                      <td className="p-3.5">
+                        {task.projectName ? (
+                          <div className="flex items-center gap-1.5 font-extrabold text-[#0e623a] bg-emerald-50 border border-emerald-200/80 px-2.5 py-1 rounded-lg w-fit text-xs">
+                            <Building className="w-3.5 h-3.5 text-[#0e623a] shrink-0" />
+                            <span>{task.projectName}</span>
+                          </div>
+                        ) : (
+                          <span className="text-gray-400 text-xs italic">—</span>
+                        )}
+                      </td>
+
+                      {/* 3. Task Title */}
                       <td className="p-3.5">
                         <div className="space-y-1">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="font-extrabold text-gray-900 text-sm">{task.title}</span>
-                            <span className="px-2 py-0.5 bg-emerald-50 border border-emerald-200 text-emerald-800 font-bold text-[10px] rounded-md shrink-0">
-                              {task.category || 'General'}
-                            </span>
-                          </div>
-                          {task.projectName && (
-                            <div className="flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50/70 border border-emerald-200/80 px-2 py-0.5 rounded-md w-fit">
-                              <Building className="w-3 h-3 text-[#0e623a]" />
-                              <span>Project: {task.projectName}</span>
-                            </div>
-                          )}
+                          <span className="font-extrabold text-gray-900 text-sm block">{task.title}</span>
                           {task.description && (
-                            <p className="text-gray-500 text-xs line-clamp-2 max-w-sm font-normal">{task.description}</p>
+                            <p className="text-gray-500 text-xs line-clamp-2 max-w-xs font-normal">{task.description}</p>
                           )}
                         </div>
                       </td>
 
+                      {/* 4. Task Category */}
+                      <td className="p-3.5">
+                        <span className="px-2.5 py-1 bg-emerald-50 border border-emerald-200 text-emerald-800 font-extrabold text-xs rounded-lg inline-block">
+                          {task.category || 'General'}
+                        </span>
+                      </td>
+
+                      {/* 5. Assigned To */}
                       <td className="p-3.5">
                         <div className="flex items-center gap-2">
                           <div className="w-7 h-7 rounded-full bg-[#0e623a]/10 text-[#0e623a] flex items-center justify-center font-black text-xs shrink-0">
@@ -904,20 +1029,22 @@ const TasksBoard = () => {
                         </div>
                       </td>
 
+                      {/* 6. Assigned By */}
+                      <td className="p-3.5">
+                        <div className="flex items-center gap-1.5 text-gray-600">
+                          <UserCheck className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                          <span className="font-semibold text-gray-700">{task.assignedBy?.name || 'Admin'}</span>
+                        </div>
+                      </td>
+
+                      {/* 7. Priority */}
                       <td className="p-3.5 text-center">
                         <span className={`px-2.5 py-1 text-[10px] uppercase tracking-wider border rounded-lg ${priorityBadge}`}>
                           {task.priority || 'Medium'}
                         </span>
                       </td>
 
-                      <td className="p-3.5">
-                        <div className="flex items-center gap-1.5 text-gray-600">
-                          <UserCheck className="w-3.5 h-3.5 text-gray-400" />
-                          <span className="font-semibold text-gray-700">{task.assignedBy?.name || 'Admin'}</span>
-                        </div>
-                      </td>
-
-                      {/* Assigned Date */}
+                      {/* 8. Assigned Date */}
                       <td className="p-3.5">
                         <div className="flex items-center gap-1.5 text-gray-700 font-semibold whitespace-nowrap">
                           <Calendar className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
@@ -931,17 +1058,18 @@ const TasksBoard = () => {
                         </div>
                       </td>
 
+                      {/* 9. Due Date */}
                       <td className="p-3.5">
                         <div className="space-y-1">
                           <div className="flex items-center gap-1.5 text-gray-700 font-bold">
-                            <Calendar className="w-3.5 h-3.5 text-gray-400" />
+                            <Calendar className="w-3.5 h-3.5 text-gray-400 shrink-0" />
                             <span>{new Date(task.dueDate).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}</span>
                           </div>
 
                           {task.repeatType && task.repeatType !== 'None' && (
                             <div className="text-[10px] font-bold text-purple-700 bg-purple-50 border border-purple-200 px-1.5 py-0.5 rounded w-fit flex items-center gap-1">
                               <Clock className="w-2.5 h-2.5" />
-                              <span>Repeat Every {task.reminderInterval || 1} {task.repeatType === 'Hourly' ? 'Hr(s)' : 'Day(s)'} (Until Completed)</span>
+                              <span>Repeat Every {task.reminderInterval || 1} {task.repeatType === 'Hourly' ? 'Hr(s)' : 'Day(s)'}</span>
                             </div>
                           )}
 
@@ -954,6 +1082,7 @@ const TasksBoard = () => {
                         </div>
                       </td>
 
+                      {/* 10. Status */}
                       <td className="p-3.5 text-center">
                         <div className="flex flex-col items-center gap-1.5">
                           <select
@@ -963,11 +1092,56 @@ const TasksBoard = () => {
                           >
                             <option value="New">New</option>
                             <option value="In Progress">In Progress</option>
+                            <option value="On Hold">On Hold</option>
                             <option value="Completed">Completed</option>
+                            <option value="Cancelled">Cancelled</option>
                           </select>
                         </div>
                       </td>
 
+                      {/* 11. Attachments (Multiple Image Upload Option via Cloudinary) */}
+                      <td className="p-3.5 text-center">
+                        <div className="flex flex-col items-center gap-1.5">
+                          {task.attachments && task.attachments.length > 0 ? (
+                            <div className="flex items-center gap-1 flex-wrap justify-center max-w-[130px]">
+                              {task.attachments.map((att, aIdx) => (
+                                <div 
+                                  key={att._id || aIdx} 
+                                  className="relative group cursor-pointer"
+                                  onClick={() => setPreviewImageModal({ open: true, url: att.url, name: att.name })}
+                                  title={att.name || 'View Image'}
+                                >
+                                  <img 
+                                    src={att.url} 
+                                    alt={att.name || 'Attachment'} 
+                                    className="w-7 h-7 rounded-lg object-cover border border-gray-200 hover:scale-110 transition shadow-xs"
+                                  />
+                                  <div className="absolute inset-0 bg-black/40 rounded-lg opacity-0 group-hover:opacity-100 flex items-center justify-center transition">
+                                    <Eye className="w-3 h-3 text-white" />
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <span className="text-[10px] text-gray-400 italic">No files</span>
+                          )}
+
+                          <label className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-[#0e623a] border border-emerald-200 rounded-lg text-[10px] font-bold cursor-pointer transition shadow-2xs">
+                            <UploadCloud className="w-3 h-3" />
+                            <span>Upload</span>
+                            <input
+                              type="file"
+                              multiple
+                              accept="image/*"
+                              className="hidden"
+                              disabled={uploadingFile}
+                              onChange={(e) => handleDirectUpload(task._id, e.target.files)}
+                            />
+                          </label>
+                        </div>
+                      </td>
+
+                      {/* 12. Actions */}
                       <td className="p-3.5 text-center">
                         <div className="flex items-center justify-center gap-1">
                           <button
@@ -1165,8 +1339,63 @@ const TasksBoard = () => {
                   >
                     <option value="New">New</option>
                     <option value="In Progress">In Progress</option>
+                    <option value="On Hold">On Hold</option>
                     <option value="Completed">Completed</option>
+                    <option value="Cancelled">Cancelled</option>
                   </select>
+                </div>
+              </div>
+
+              {/* Attachments Upload Section */}
+              <div>
+                <label className="block font-bold text-gray-700 mb-1 flex items-center justify-between">
+                  <span className="flex items-center gap-1.5">
+                    <Paperclip className="w-3.5 h-3.5 text-[#0e623a]" />
+                    <span>Attachments (Upload Images / Files)</span>
+                  </span>
+                  <span className="text-[10px] font-normal text-gray-400 italic">Optional</span>
+                </label>
+
+                <div className="space-y-2">
+                  <label className="flex items-center justify-center gap-2 p-3 bg-gray-50 hover:bg-gray-100 border border-dashed border-gray-300 rounded-2xl cursor-pointer transition">
+                    {uploadingFile ? (
+                      <Loader2 className="w-4 h-4 text-[#0e623a] animate-spin" />
+                    ) : (
+                      <UploadCloud className="w-4 h-4 text-[#0e623a]" />
+                    )}
+                    <span className="font-semibold text-gray-700 text-xs">
+                      {uploadingFile ? 'Uploading images to Cloudinary...' : 'Click to Upload Images / Files'}
+                    </span>
+                    <input
+                      type="file"
+                      multiple
+                      accept="image/*"
+                      disabled={uploadingFile}
+                      className="hidden"
+                      onChange={(e) => handleModalFileUpload(e.target.files)}
+                    />
+                  </label>
+
+                  {formData.attachments && formData.attachments.length > 0 && (
+                    <div className="flex items-center gap-2 flex-wrap pt-1">
+                      {formData.attachments.map((att, aIdx) => (
+                        <div key={aIdx} className="relative group flex items-center gap-1.5 bg-gray-100 border border-gray-200 px-2 py-1 rounded-xl text-xs">
+                          <img src={att.url} alt="att" className="w-6 h-6 rounded object-cover" />
+                          <span className="max-w-[110px] truncate text-[11px] font-semibold text-gray-700">{att.name}</span>
+                          <button
+                            type="button"
+                            onClick={() => setFormData(prev => ({
+                              ...prev,
+                              attachments: prev.attachments.filter((_, i) => i !== aIdx)
+                            }))}
+                            className="text-red-500 hover:text-red-700 p-0.5 ml-1"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -1433,6 +1662,46 @@ const TasksBoard = () => {
           </div>
         );
       })()}
+
+      {/* Attachment Image Lightbox Preview Modal */}
+      {previewImageModal.open && (
+        <div className="fixed inset-0 bg-black/85 backdrop-blur-md z-[99999] flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl overflow-hidden max-w-3xl w-full shadow-2xl relative animate-fadeIn flex flex-col">
+            <div className="p-4 bg-gray-900 text-white flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Paperclip className="w-4 h-4 text-emerald-400" />
+                <span className="font-bold text-xs truncate max-w-md">{previewImageModal.name || 'Attachment Preview'}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <a
+                  href={previewImageModal.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  download
+                  className="p-1.5 hover:bg-white/20 rounded-lg text-white transition flex items-center gap-1 text-xs font-bold"
+                  title="Open / Download"
+                >
+                  <Download className="w-4 h-4" />
+                  <span>Download</span>
+                </a>
+                <button
+                  onClick={() => setPreviewImageModal({ open: false, url: '', name: '' })}
+                  className="p-1.5 hover:bg-white/20 rounded-lg text-white transition cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+            <div className="p-4 bg-black flex items-center justify-center min-h-[300px] max-h-[75vh]">
+              <img 
+                src={previewImageModal.url} 
+                alt={previewImageModal.name || 'Attachment'} 
+                className="max-h-[70vh] max-w-full object-contain rounded-xl shadow-lg"
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

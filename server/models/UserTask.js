@@ -31,7 +31,7 @@ const UserTaskSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['New', 'In Progress', 'Completed'],
+    enum: ['New', 'In Progress', 'On Hold', 'Completed', 'Cancelled'],
     default: 'New'
   },
   priority: {
@@ -44,6 +44,13 @@ const UserTaskSchema = new mongoose.Schema({
     default: 'General',
     trim: true
   },
+  attachments: [
+    {
+      url: { type: String, default: '' },
+      name: { type: String, default: '' },
+      uploadedAt: { type: Date, default: Date.now }
+    }
+  ],
   repeatType: {
     type: String,
     enum: ['None', 'Hourly', 'Daily'],

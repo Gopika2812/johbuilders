@@ -22,7 +22,7 @@ router.get('/', protect, async (req, res) => {
       ];
     }
 
-    if (status && ['New', 'In Progress', 'Completed'].includes(status)) {
+    if (status && ['New', 'In Progress', 'On Hold', 'Completed', 'Cancelled'].includes(status)) {
       query.status = status;
     }
 
@@ -90,7 +90,7 @@ router.get('/notifications', protect, async (req, res) => {
 // @desc    Create a new task
 // @access  Private (All authenticated users)
 router.post('/', protect, async (req, res) => {
-  const { title, description, projectName, dueDate, assignedTo, status, priority, category, repeatType, reminderInterval, note } = req.body;
+  const { title, description, projectName, dueDate, assignedTo, status, priority, category, repeatType, reminderInterval, attachments, note } = req.body;
 
   if (!title || !dueDate || !assignedTo) {
     return res.status(400).json({ message: 'Title, Due Date, and Assigned Person are required' });
@@ -114,6 +114,7 @@ router.post('/', protect, async (req, res) => {
       category: category || 'General',
       repeatType: repeatType || 'None',
       reminderInterval: Number(reminderInterval) || 1,
+      attachments: Array.isArray(attachments) ? attachments : [],
       actionTaken: false,
       snoozedBy: [],
       history: [
@@ -143,7 +144,7 @@ router.post('/', protect, async (req, res) => {
 // @desc    Update task details or status
 // @access  Private
 router.put('/:id', protect, async (req, res) => {
-  const { title, description, projectName, dueDate, assignedTo, status, priority, category, repeatType, reminderInterval, actionTaken, note } = req.body;
+  const { title, description, projectName, dueDate, assignedTo, status, priority, category, repeatType, reminderInterval, actionTaken, attachments, note } = req.body;
 
   try {
     const task = await UserTask.findById(req.params.id);
@@ -178,6 +179,7 @@ router.put('/:id', protect, async (req, res) => {
     }
     if (repeatType !== undefined) task.repeatType = repeatType;
     if (reminderInterval !== undefined) task.reminderInterval = Number(reminderInterval) || 1;
+    if (attachments !== undefined && Array.isArray(attachments)) task.attachments = attachments;
 
     if (assignedTo !== undefined && task.assignedTo.toString() !== assignedTo.toString()) {
       const targetUser = await User.findById(assignedTo);
@@ -304,18 +306,66 @@ router.put('/:id/snooze', protect, async (req, res) => {
   }
 });
 
-// @route   DELETE /api/user-tasks/:id
-// @desc    Delete task
+// @route   POST /api/user-tasks/:id/attachments
+// @desc    Add attachment to task
 // @access  Private
-router.delete('/:id', protect, async (req, res) => {
+router.post('/:id/attachments', protect, async (req, res) => {
+  const { url, name } = req.body;
+  if (!url) {
+    return res.status(400).json({ message: 'Attachment URL is required' });
+  }
   try {
     const task = await UserTask.findById(req.params.id);
     if (!task) {
       return res.status(404).json({ message: 'Task not found' });
     }
 
-    await UserTask.findByIdAndDelete(req.params.id);
-    res.json({ message: 'Task deleted successfully' });
+    task.attachments.push({
+      url,
+      name: name || 'Attachment',
+      uploadedAt: new Date()
+    });
+
+    task.history.push({
+      action: 'Attachment Added',
+      status: task.status,
+      updatedBy: req.user._id,
+      note: `Added attachment: ${name || 'Image'}`,
+      timestamp: new Date()
+    });
+
+    await task.save();
+
+    const populated = await UserTask.findById(task._id)
+      .populate('assignedTo', 'name email role phone')
+      .populate('assignedBy', 'name email role phone')
+      .populate('history.updatedBy', 'name email role');
+
+    res.json(populated);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// @route   DELETE /api/user-tasks/:id/attachments/:attachmentId
+// @desc    Remove attachment from task
+// @access  Private
+router.delete('/:id/attachments/:attachmentId', protect, async (req, res) => {
+  try {
+    const task = await UserTask.findById(req.params.id);
+    if (!task) {
+      return res.status(404).json({ message: 'Task not found' });
+    }
+
+    task.attachments = task.attachments.filter(att => att._id.toString() !== req.params.attachmentId);
+    await task.save();
+
+    const populated = await UserTask.findById(task._id)
+      .populate('assignedTo', 'name email role phone')
+      .populate('assignedBy', 'name email role phone')
+      .populate('history.updatedBy', 'name email role');
+
+    res.json(populated);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
