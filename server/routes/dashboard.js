@@ -601,11 +601,13 @@ router.get('/stats', protect, async (req, res) => {
         handover: 0,
         cancelled: 0,
         hold: 0,
+        readyBuilt: 0,
         availableUnitsList: [],
         bookedUnitsList: [],
         handoverUnitsList: [],
         cancelledUnitsList: [],
         holdUnitsList: [],
+        readyBuiltUnitsList: [],
         totalUnitsList: []
       };
 
@@ -629,7 +631,10 @@ router.get('/stats', protect, async (req, res) => {
                             p.createdAt;
 
         const uStatusNorm = (u.status || '').toLowerCase();
-        if (u.status === 'New' || uStatusNorm === 'available') {
+        if (uStatusNorm === 'ready built' || uStatusNorm === 'under construction' || uStatusNorm === 'build') {
+          projectUnitsStats[pCode].readyBuilt += 1;
+          projectUnitsStats[pCode].readyBuiltUnitsList.push(u.unitId);
+        } else if (u.status === 'New' || uStatusNorm === 'available') {
           projectUnitsStats[pCode].available += 1;
           projectUnitsStats[pCode].availableUnitsList.push(u.unitId);
         } else if (u.status === 'Booked') {

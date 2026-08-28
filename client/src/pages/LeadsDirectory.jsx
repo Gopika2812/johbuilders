@@ -3006,6 +3006,13 @@ const LeadsDirectory = () => {
                 </button>
                 <button
                   type="button"
+                  onClick={() => handleSwitchWaPreset('followup')}
+                  className={`py-2 px-2 text-[11px] font-extrabold rounded-xl transition border text-center cursor-pointer ${waPresetType === 'followup' ? 'bg-[#0e623a] text-white border-[#0e623a] shadow-xs' : 'bg-black-50 text-black-700 border-black-200 hover:bg-black-100'}`}
+                >
+                  💬 Customer Follow-Up Alert
+                </button>
+                <button
+                  type="button"
                   onClick={() => handleSwitchWaPreset('sitevisit')}
                   className={`py-2 px-2 text-[11px] font-extrabold rounded-xl transition border text-center cursor-pointer ${waPresetType === 'sitevisit' ? 'bg-[#0e623a] text-white border-[#0e623a] shadow-xs' : 'bg-black-50 text-black-700 border-black-200 hover:bg-black-100'}`}
                 >
@@ -3017,13 +3024,6 @@ const LeadsDirectory = () => {
                   className={`py-2 px-2 text-[11px] font-extrabold rounded-xl transition border text-center cursor-pointer ${waPresetType === 'booking' ? 'bg-[#0e623a] text-white border-[#0e623a] shadow-xs' : 'bg-black-50 text-black-700 border-black-200 hover:bg-black-100'}`}
                 >
                   🏡 Booking Alert
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleSwitchWaPreset('followup')}
-                  className={`py-2 px-2 text-[11px] font-extrabold rounded-xl transition border text-center cursor-pointer ${waPresetType === 'followup' ? 'bg-[#0e623a] text-white border-[#0e623a] shadow-xs' : 'bg-black-50 text-black-700 border-black-200 hover:bg-black-100'}`}
-                >
-                  💬 Customer Follow-Up
                 </button>
               </div>
             </div>

@@ -1064,7 +1064,7 @@ const TasksBoard = () => {
             </span>
           </button>
 
-          {/* I Assigned */}
+          {/* Assigned to */}
           <button
             type="button"
             onClick={() => setViewTab('I_ASSIGNED')}
@@ -1075,7 +1075,7 @@ const TasksBoard = () => {
             }`}
           >
             <UserCheck className="w-4 h-4" />
-            <span>I Assigned</span>
+            <span>Assigned to</span>
             <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
               viewTab === 'I_ASSIGNED' ? 'bg-white/20 text-white' : 'bg-purple-100 text-purple-800'
             }`}>

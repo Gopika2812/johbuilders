@@ -1890,13 +1890,41 @@ const Dashboard = () => {
             if (pStats.hold > 0 && pStats.available >= pStats.hold && !(stats.projectUnitsStats[projCode]?.hold > 0)) {
               pStats.available = Math.max(0, pStats.available - pStats.hold);
             }
+
+            const readyBuiltUnits = projObj.units.filter(u => u.status && (String(u.status).toLowerCase() === 'ready built' || String(u.status).toLowerCase() === 'under construction' || String(u.status).toLowerCase() === 'build'));
+            pStats.readyBuilt = readyBuiltUnits.length;
+            pStats.readyBuiltUnitsList = readyBuiltUnits.map(u => u.unitId);
+            if (pStats.readyBuilt > 0 && pStats.available >= pStats.readyBuilt && !(stats.projectUnitsStats[projCode]?.readyBuilt > 0)) {
+              pStats.available = Math.max(0, pStats.available - pStats.readyBuilt);
+            }
           }
 
           const chartData = [
-            { stage: 'Available', count: pStats.available },
-            { stage: 'Booked', count: pStats.booked },
-            { stage: 'Handover', count: pStats.handover }
+            { stage: 'Available', count: pStats.available || 0 },
+            { stage: 'Booked', count: pStats.booked || 0 },
+            { stage: 'Handover', count: pStats.handover || 0 },
+            { stage: 'Hold', count: pStats.hold || 0 },
+            { stage: 'Ready Built', count: pStats.readyBuilt || 0 }
           ].filter(item => item.count > 0);
+
+          const slots = [
+            { label: 'Total', count: pStats.total || 0, color: '#64748b', bgClass: 'bg-slate-50 border border-slate-150 hover:bg-slate-100/70 text-slate-700', titleColor: 'text-slate-500', countColor: 'text-slate-900', view: '' },
+            { label: 'Available', count: pStats.available || 0, color: '#10b981', bgClass: 'bg-emerald-50/50 border border-emerald-100 hover:bg-emerald-100/70 text-emerald-800', titleColor: 'text-emerald-700', countColor: 'text-emerald-950', view: 'available' },
+            { label: 'Booked', count: (pStats.booked || 0) + (pStats.handover || 0), color: '#ef4444', bgClass: 'bg-red-50 border border-red-100 hover:bg-red-100/70 text-red-800', titleColor: 'text-red-700', countColor: 'text-red-950', view: 'booked' },
+            { label: 'HOLD', count: pStats.hold || 0, color: '#fbbf24', bgClass: 'bg-yellow-50 border border-yellow-100 hover:bg-yellow-100/70 text-yellow-800', titleColor: 'text-yellow-700', countColor: 'text-yellow-950', view: 'hold' },
+          ];
+
+          if (projObj?.hasReadyBuilt !== false) {
+            slots.push({
+              label: 'Ready Built',
+              count: pStats.readyBuilt || 0,
+              color: '#a855f7',
+              bgClass: 'bg-purple-50 border border-purple-100 hover:bg-purple-100/70 text-purple-800',
+              titleColor: 'text-purple-700',
+              countColor: 'text-purple-950',
+              view: 'ready built'
+            });
+          }
 
           return (
             <div key={projCode} className="bg-[#f0fbf4] border-none rounded-3xl p-6 shadow-sm hover:shadow-md transition space-y-4">
@@ -1915,46 +1943,25 @@ const Dashboard = () => {
                     No units registered
                   </div>
                 ) : (
-                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 w-full">
-                    {[
-                      { label: 'Total', count: pStats.total, color: '#94a3b8', pct: 100 },
-                      { label: 'Available', count: pStats.available, color: '#7ebda9', pct: pStats.total > 0 ? (pStats.available / pStats.total) * 100 : 0 },
-                      { label: 'Booked', count: (pStats.booked || 0) + (pStats.handover || 0), color: '#8bc34a', pct: pStats.total > 0 ? (((pStats.booked || 0) + (pStats.handover || 0)) / pStats.total) * 100 : 0 },
-                    ].map((slot, index) => {
+                  <div className={`grid gap-4 w-full ${projObj?.hasReadyBuilt !== false ? 'grid-cols-2 md:grid-cols-3 lg:grid-cols-5' : 'grid-cols-2 lg:grid-cols-4'}`}>
+                    {slots.map((slot, index) => {
                       return (
                         <div key={index}
                           onClick={() => {
-                            setSelectedInventoryProj({ projCode, stats: pStats, view: slot.label === 'Total' ? '' : slot.label.toLowerCase() });
+                            setSelectedInventoryProj({ projCode, stats: pStats, view: slot.view });
                             setInventoryModalOpen(true);
                           }}
-                          className="flex flex-col items-start bg-slate-50 border-none rounded-2xl p-4 hover:bg-slate-100 transition shadow-sm cursor-pointer w-full">
+                          className={`flex flex-col items-start rounded-2xl p-4 transition shadow-sm cursor-pointer w-full ${slot.bgClass}`}>
                           <div className="flex items-center gap-2 mb-2">
                             <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: slot.color }}></span>
-                            <span className="text-[11px] font-black text-black-500 uppercase tracking-wider">{slot.label}</span>
+                            <span className={`text-[11px] font-black uppercase tracking-wider ${slot.titleColor}`}>{slot.label}</span>
                           </div>
                           <div className="flex flex-col items-start gap-0.5 mt-auto">
-                            <span className="grand-heading text-4xl leading-none mt-1">{slot.count}</span>
+                            <span className={`grand-heading text-4xl leading-none mt-1 ${slot.countColor}`}>{slot.count}</span>
                           </div>
                         </div>
                       );
                     })}
-
-                    {/* HOLD Units display */}
-                    <div
-                      onClick={() => {
-                        setSelectedInventoryProj({ projCode, stats: pStats, view: 'hold' });
-                        setInventoryModalOpen(true);
-                      }}
-                      className="flex flex-col items-start bg-amber-50 border border-amber-100 rounded-2xl p-4 hover:bg-amber-100 transition shadow-sm cursor-pointer w-full"
-                    >
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className="w-3 h-3 rounded-full shrink-0 bg-amber-500"></span>
-                        <span className="text-[11px] font-black text-amber-700 uppercase tracking-wider">HOLD</span>
-                      </div>
-                      <div className="flex flex-col items-start gap-0.5 mt-auto">
-                        <span className="text-amber-950 font-black text-3xl leading-none mt-1">{pStats.hold || 0}</span>
-                      </div>
-                    </div>
                   </div>
                 )}
               </div>
@@ -3580,60 +3587,84 @@ const Dashboard = () => {
 
             {/* Content */}
             <div className="flex-grow p-6 overflow-y-auto scrollbar-thin space-y-6">
-              {/* Summary Stats Grid */}
-              <div className="grid grid-cols-4 gap-4">
-                <div className="bg-blue-50 border border-blue-100 rounded-2xl p-4 text-center">
-                  <span className="text-[11px] text-blue-700 font-extrabold uppercase tracking-wider block">Total Units</span>
-                  <span className="text-2xl font-black text-blue-900 block mt-1">{selectedInventoryProj.stats.total || 0}</span>
-                </div>
-                <div className="bg-green-50 border border-green-100 rounded-2xl p-4 text-center">
-                  <span className="text-[11px] text-green-700 font-extrabold uppercase tracking-wider block">Available</span>
-                  <span className="text-2xl font-black text-green-900 block mt-1">{selectedInventoryProj.stats.available || 0}</span>
-                </div>
-                <div className="bg-yellow-50 border border-yellow-100 rounded-2xl p-4 text-center">
-                  <span className="text-[11px] text-yellow-700 font-extrabold uppercase tracking-wider block">Booked</span>
-                  <span className="text-2xl font-black text-yellow-900 block mt-1">{(selectedInventoryProj.stats.booked || 0) + (selectedInventoryProj.stats.handover || 0)}</span>
-                </div>
-                <div className="bg-amber-50 border border-amber-100 rounded-2xl p-4 text-center">
-                  <span className="text-[11px] text-amber-700 font-extrabold uppercase tracking-wider block">HOLD</span>
-                  <span className="text-2xl font-black text-amber-900 block mt-1">{selectedInventoryProj.stats.hold || selectedInventoryProj.stats.cancelled || 0}</span>
-                </div>
-              </div>
-
-              {/* Units Lists sections */}
-              <div className="space-y-4">
-
-                {/* Total Units List */}
-                <div className="space-y-2">
-                  <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wide flex items-center gap-1.5">
-                    <span className="w-2.5 h-2.5 rounded-full bg-slate-500"></span>
-                    <span>Total units ({selectedInventoryProj.stats.totalUnitsList?.length || 0})</span>
-                  </h4>
-                  <div className="bg-slate-50 border-none rounded-2xl p-4 min-h-[50px] grid grid-cols-[repeat(auto-fill,minmax(75px,1fr))] gap-3">
-                    {selectedInventoryProj.stats.totalUnitsList?.length > 0 ? (
-                      selectedInventoryProj.stats.totalUnitsList.map(uid => {
-                        const isAvailable = selectedInventoryProj.stats.availableUnitsList?.includes(uid);
-                        const isBooked = selectedInventoryProj.stats.bookedUnitsList?.includes(uid) || selectedInventoryProj.stats.handoverUnitsList?.includes(uid);
-                        const isHold = selectedInventoryProj.stats.cancelledUnitsList?.some(u => u.unitId === uid) || selectedInventoryProj.stats.holdUnitsList?.some(u => u.unitId === uid);
-
-                        let bgClass = "bg-blue-100 text-blue-800 border-blue-200"; // Fallback / Total
-                        if (isAvailable) bgClass = "bg-green-100 text-green-800 border-green-200";
-                        if (isBooked) bgClass = "bg-yellow-100 text-yellow-800 border-yellow-300";
-                        if (isHold) bgClass = "bg-amber-100 text-amber-800 border-amber-200";
-
-                        return (
-                          <span key={uid} className={`border text-xs font-bold px-1 py-2 rounded-xl flex items-center justify-center text-center ${bgClass}`}>
-                            {uid}
-                          </span>
-                        );
-                      })
-                    ) : (
-                      <span className="text-black-400 italic text-xs">No units registered</span>
-                    )}
-                  </div>
-                </div>
-
-              </div>
+              {(() => {
+                const projObj = (allProjectsList.length > 0 ? allProjectsList : stats.projects || []).find(p => (p.code || p.name) === selectedInventoryProj.projCode);
+                const hasReadyBuilt = projObj?.hasReadyBuilt !== false;
+                return (
+                  <>
+                    {/* Summary Stats Grid */}
+                    <div className={`grid gap-4 ${hasReadyBuilt ? 'grid-cols-2 sm:grid-cols-5' : 'grid-cols-2 sm:grid-cols-4'}`}>
+                      <div className="bg-slate-50 border border-slate-150 rounded-2xl p-4 text-center">
+                        <span className="text-[11px] text-slate-500 font-extrabold uppercase tracking-wider block">Total Units</span>
+                        <span className="text-2xl font-black text-slate-900 block mt-1">{selectedInventoryProj.stats.total || 0}</span>
+                      </div>
+                      <div className="bg-[#f4fbf7] border border-emerald-100 rounded-2xl p-4 text-center">
+                        <span className="text-[11px] text-emerald-700 font-extrabold uppercase tracking-wider block">Available</span>
+                        <span className="text-2xl font-black text-emerald-950 block mt-1">{selectedInventoryProj.stats.available || 0}</span>
+                      </div>
+                      <div className="bg-red-50 border border-red-100 rounded-2xl p-4 text-center">
+                        <span className="text-[11px] text-red-700 font-extrabold uppercase tracking-wider block">Booked</span>
+                        <span className="text-2xl font-black text-red-950 block mt-1">{(selectedInventoryProj.stats.booked || 0) + (selectedInventoryProj.stats.handover || 0)}</span>
+                      </div>
+                      <div className="bg-yellow-50 border border-yellow-100 rounded-2xl p-4 text-center">
+                        <span className="text-[11px] text-yellow-705 font-extrabold uppercase tracking-wider block">HOLD</span>
+                        <span className="text-2xl font-black text-yellow-950 block mt-1">{selectedInventoryProj.stats.hold || 0}</span>
+                      </div>
+                      {hasReadyBuilt && (
+                        <div className="bg-purple-50 border border-purple-100 rounded-2xl p-4 text-center">
+                          <span className="text-[11px] text-purple-700 font-extrabold uppercase tracking-wider block">Ready Built</span>
+                          <span className="text-2xl font-black text-purple-950 block mt-1">{selectedInventoryProj.stats.readyBuilt || 0}</span>
+                        </div>
+                      )}
+                    </div>
+ 
+                    {/* Units Lists sections */}
+                    <div className="space-y-4">
+                      {/* Color Legend */}
+                      <div className="flex flex-wrap gap-3 text-[10px] font-bold text-slate-500 bg-slate-50 p-2.5 rounded-xl border w-fit">
+                        <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-[#10b981]"></span>Available</span>
+                        <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-[#fbbf24]"></span>Hold</span>
+                        <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-[#ef4444]"></span>Booked</span>
+                        {hasReadyBuilt && (
+                          <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-[#a855f7]"></span>Ready Built</span>
+                        )}
+                      </div>
+ 
+                      {/* Total Units List */}
+                      <div className="space-y-2">
+                        <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wide flex items-center gap-1.5">
+                          <span className="w-2.5 h-2.5 rounded-full bg-slate-500"></span>
+                          <span>Total units ({selectedInventoryProj.stats.totalUnitsList?.length || 0})</span>
+                        </h4>
+                        <div className="bg-slate-50 border-none rounded-2xl p-4 min-h-[50px] grid grid-cols-[repeat(auto-fill,minmax(75px,1fr))] gap-3">
+                          {selectedInventoryProj.stats.totalUnitsList?.length > 0 ? (
+                            selectedInventoryProj.stats.totalUnitsList.map(uid => {
+                              const isAvailable = selectedInventoryProj.stats.availableUnitsList?.includes(uid);
+                              const isBooked = selectedInventoryProj.stats.bookedUnitsList?.includes(uid) || selectedInventoryProj.stats.handoverUnitsList?.includes(uid);
+                              const isHold = selectedInventoryProj.stats.holdUnitsList?.some(u => u.unitId === uid) || selectedInventoryProj.stats.cancelledUnitsList?.some(u => u.unitId === uid);
+                              const isReadyBuilt = selectedInventoryProj.stats.readyBuiltUnitsList?.includes(uid);
+ 
+                              let bgClass = "bg-slate-100 text-slate-800 border-slate-200"; // Fallback
+                              if (isAvailable) bgClass = "bg-emerald-100 text-emerald-800 border-emerald-200";
+                              if (isHold) bgClass = "bg-yellow-100 text-yellow-800 border-yellow-200";
+                              if (isBooked) bgClass = "bg-red-100 text-red-800 border-red-200";
+                              if (isReadyBuilt) bgClass = "bg-purple-100 text-purple-800 border-purple-200";
+ 
+                              return (
+                                <span key={uid} className={`border text-xs font-bold px-1 py-2 rounded-xl flex items-center justify-center text-center ${bgClass}`}>
+                                  {uid}
+                                </span>
+                              );
+                            })
+                          ) : (
+                            <span className="text-black-400 italic text-xs">No units registered</span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                );
+              })()}
             </div>
 
             {/* Footer */}
