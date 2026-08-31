@@ -257,65 +257,71 @@ export const exportHtmlSheetsToExcel = async (sheets, filename) => {
         }
       }
 
-      // Tight, Compact, Page-Fit Column Width Calculation
+      // Content-Fit Compact Column Width Calculation
       for (let col = 1; col <= maxCol + 1; col++) {
         let dataMaxLen = 0;
         let colHeaderTitle = '';
+        let isSNoCol = false;
 
         ws.eachRow((row, rowNumber) => {
-          const cellVal = row.getCell(col).value;
+          const cell = row.getCell(col);
+          const cellVal = cell.value;
           if (cellVal !== null && cellVal !== undefined) {
             const s = String(cellVal).trim();
             const upper = s.toUpperCase();
-            
-            // Only inspect actual unmerged header titles (short header text)
-            if (s.length > 0 && s.length <= 25 && (
-              upper.includes('VALUE') || 
-              upper.includes('COUNT') || 
-              upper.includes('METRIC') || 
-              upper.includes('NAME') || 
-              upper.includes('LEADS') || 
-              upper.includes('TYPE') || 
-              upper.includes('VISIT') || 
-              upper.includes('BOOKING') || 
-              upper.includes('HANDOVER') || 
-              upper.includes('ENQUIRIES') || 
-              upper.includes('HOT LIST')
-            )) {
-              colHeaderTitle = upper;
+
+            // Detect if this column is specifically an S.NO column
+            if (rowNumber <= 10 && (upper === 'S.NO' || upper === 'S.NO.' || upper === 'SL.NO' || upper === '#' || upper === 'S. NO')) {
+              isSNoCol = true;
             }
 
-            // Calculate max data length, ignoring wide merged banner rows
-            if (rowNumber > 3 && s.length <= 25) {
+            // Inspect short header titles for semantic type detection
+            if (s.length > 0 && s.length <= 25) {
+              if (
+                upper.includes('VALUE') || 
+                upper.includes('COUNT') || 
+                upper.includes('METRIC') || 
+                upper.includes('NAME') || 
+                upper.includes('LEADS') || 
+                upper.includes('TYPE') || 
+                upper.includes('VISIT') || 
+                upper.includes('BOOKING') || 
+                upper.includes('HANDOVER') || 
+                upper.includes('ENQUIRIES') || 
+                upper.includes('HOT LIST') ||
+                upper.includes('REMARKS')
+              ) {
+                colHeaderTitle = upper;
+              }
+            }
+
+            // Calculate max data length from actual content (skipping title rows and wide banner rows)
+            if (rowNumber > 2 && s.length > 0 && s.length <= 35) {
+              // If the cell is merged across 3+ columns, don't let it blow up single column width
+              if (rowNumber <= 4 && col > 1) return;
               const lines = s.split(/\r?\n/);
               lines.forEach(l => { 
-                if (l.length <= 25) {
-                  dataMaxLen = Math.max(dataMaxLen, l.length); 
-                }
+                dataMaxLen = Math.max(dataMaxLen, l.trim().length); 
               });
             }
           }
         });
 
-        let calculatedWidth = 9.5;
+        let calculatedWidth = 10;
 
-        if (col === 1 || colHeaderTitle.includes('S.NO') || colHeaderTitle.includes('S.NO.') || colHeaderTitle === 'S.NO' || colHeaderTitle === 'S.NO.') {
+        if (isSNoCol) {
           calculatedWidth = 6;
-        } else if (colHeaderTitle.includes('VALUE') || colHeaderTitle.includes('INR') || colHeaderTitle.includes('AMOUNT') || colHeaderTitle.includes('PRICE') || colHeaderTitle.includes('VALUATION')) {
-          calculatedWidth = Math.max(dataMaxLen + 1, 14);
+        } else if (colHeaderTitle.includes('NAME') || colHeaderTitle.includes('TYPE') || colHeaderTitle.includes('DESCRIPTION') || (col === 1 && !isSNoCol)) {
+          // Fit names, user labels, and project types snugly without wrapping
+          calculatedWidth = Math.min(Math.max(dataMaxLen + 2, 14), 22);
         } else if (colHeaderTitle.includes('REMARKS') || colHeaderTitle.includes('NOTE') || colHeaderTitle.includes('COMPLAINT')) {
-          calculatedWidth = Math.min(Math.max(dataMaxLen + 3, 25), 45);
-        } else if (colHeaderTitle.includes('NAME') || colHeaderTitle.includes('DESCRIPTION') || colHeaderTitle.includes('USER')) {
-          calculatedWidth = Math.min(Math.max(dataMaxLen + 1.5, 11.5), 22);
-        } else if (colHeaderTitle.includes('TYPE') || colHeaderTitle.includes('METRIC') || colHeaderTitle.includes('PROJECT')) {
-          calculatedWidth = Math.max(dataMaxLen + 1.5, 11.5);
-        } else if (colHeaderTitle.includes('COUNT') || colHeaderTitle.includes('LEADS') || colHeaderTitle.includes('VISIT') || colHeaderTitle.includes('BOOKING') || colHeaderTitle.includes('HANDOVER') || colHeaderTitle.includes('LIST') || colHeaderTitle.includes('ENQUIRIES')) {
-          calculatedWidth = Math.max(dataMaxLen + 1.5, 8.5);
+          calculatedWidth = Math.min(Math.max(dataMaxLen + 2, 20), 35);
         } else {
-          calculatedWidth = Math.max(dataMaxLen + 1.5, 9.5);
+          // Fit numeric values, counts, and currencies cleanly to content
+          calculatedWidth = Math.min(Math.max(dataMaxLen + 1.5, 9.5), 18);
         }
 
-        ws.getColumn(col).width = Math.min(calculatedWidth, 25);
+        ws.getColumn(col).width = calculatedWidth;
       }
     }
 
