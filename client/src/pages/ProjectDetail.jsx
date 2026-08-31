@@ -31,6 +31,7 @@ import {
   Home,
   Loader2,
   FileSpreadsheet,
+  Search,
   X
 } from 'lucide-react';
 
@@ -69,6 +70,8 @@ const ProjectDetail = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'table'
+  const [unitSearch, setUnitSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('All');
 
   // Booking Modal State
   const [bookingModalOpen, setBookingModalOpen] = useState(false);
@@ -742,7 +745,7 @@ const ProjectDetail = () => {
 
       {activeTab === 'project' && (() => {
         const activeType = selectedInventoryType || projectTypesArray[0] || 'Plot';
-        let displayedUnits = (project.units || []).filter(u => {
+        let categoryUnits = (project.units || []).filter(u => {
           if (projectTypesArray.length === 1) {
             return true;
           }
@@ -761,15 +764,37 @@ const ProjectDetail = () => {
           return uType === aType || !uType;
         });
 
-        if (displayedUnits.length === 0 && project.units && project.units.length > 0) {
-          displayedUnits = project.units;
+        if (categoryUnits.length === 0 && project.units && project.units.length > 0) {
+          categoryUnits = project.units;
         }
+
+        const displayedUnits = categoryUnits.filter(u => {
+          if (unitSearch.trim()) {
+            const query = unitSearch.trim().toLowerCase();
+            const matchesUnitId = (u.unitId || '').toLowerCase().includes(query);
+            const matchesCustomer = (u.customerName || '').toLowerCase().includes(query);
+            const matchesPhone = (u.customerPhone || '').toLowerCase().includes(query);
+            const matchesLead = (u.leadName || '').toLowerCase().includes(query);
+            const matchesStatus = (u.status || '').toLowerCase().includes(query);
+            const matchesType = (u.unitType || '').toLowerCase().includes(query);
+            if (!matchesUnitId && !matchesCustomer && !matchesPhone && !matchesLead && !matchesStatus && !matchesType) {
+              return false;
+            }
+          }
+          if (statusFilter && statusFilter !== 'All') {
+            if (normalizeStatus(u.status) !== statusFilter) {
+              return false;
+            }
+          }
+          return true;
+        });
+
         return (
           <>
 
-      {/* Grid vs Table View Controller */}
-      <div className="bg-white p-4 border border-black-100 shadow-sm rounded-2xl flex items-center justify-between">
-        <div className="flex items-center gap-4 text-sm text-black-500">
+      {/* Grid vs Table View Controller & Search Toolbar */}
+      <div className="bg-white p-4 border border-black-100 shadow-sm rounded-2xl flex flex-col xl:flex-row xl:items-center justify-between gap-4">
+        <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-xs sm:text-sm text-black-500">
           <div className="flex items-center gap-1">
             <MapPin className="w-4 h-4 text-black-400" />
             <span>{project.location}</span>
@@ -785,27 +810,68 @@ const ProjectDetail = () => {
               <span className="font-medium text-amber-600">Remaining Land: {project.remainingLand.toLocaleString()} sq.ft</span>
             </>
           )}
+          <span>•</span>
+          <span className="font-bold text-[#0e623a]">
+            {displayedUnits.length} {displayedUnits.length === 1 ? 'Unit' : 'Units'} {unitSearch || statusFilter !== 'All' ? `(Filtered of ${categoryUnits.length})` : `Total`}
+          </span>
         </div>
 
-        <div className="flex bg-black-100 p-1 rounded-xl">
-          <button
-            onClick={() => setViewMode('grid')}
-            className={`p-2 rounded-lg flex items-center gap-1.5 text-xs font-semibold transition ${
-              viewMode === 'grid' ? 'bg-white text-black-800 shadow-sm' : 'text-black-500 hover:text-black-800'
-            }`}
+        <div className="flex flex-wrap items-center gap-2.5">
+          {/* Search Box */}
+          <div className="relative flex-1 sm:flex-initial">
+            <Search className="w-4 h-4 text-black-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              value={unitSearch}
+              onChange={(e) => setUnitSearch(e.target.value)}
+              placeholder="Search Plot/Unit No..."
+              className="pl-9 pr-8 py-2 bg-black-50 hover:bg-black-100/50 focus:bg-white text-xs font-semibold text-black-800 rounded-xl border border-black-200 focus:outline-none focus:ring-2 focus:ring-[#0e623a] transition w-full sm:w-56"
+            />
+            {unitSearch && (
+              <button 
+                onClick={() => setUnitSearch('')} 
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-black-400 hover:text-black-700 p-0.5"
+                title="Clear Search"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+
+          {/* Status Filter */}
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="py-2 px-3 bg-black-50 text-xs font-bold text-black-700 rounded-xl border border-black-200 focus:outline-none focus:ring-2 focus:ring-[#0e623a] cursor-pointer"
           >
-            <Grid className="w-4 h-4" />
-            <span>Grid</span>
-          </button>
-          <button
-            onClick={() => setViewMode('table')}
-            className={`p-2 rounded-lg flex items-center gap-1.5 text-xs font-semibold transition ${
-              viewMode === 'table' ? 'bg-white text-black-800 shadow-sm' : 'text-black-500 hover:text-black-800'
-            }`}
-          >
-            <TableIcon className="w-4 h-4" />
-            <span>Table</span>
-          </button>
+            <option value="All">All Status</option>
+            <option value="Available">Available</option>
+            <option value="Hold">Hold</option>
+            <option value="Booked">Booked</option>
+            {project?.hasReadyBuilt !== false && <option value="Ready Built">Ready Built</option>}
+          </select>
+
+          {/* View Mode Toggle */}
+          <div className="flex bg-black-100 p-1 rounded-xl">
+            <button
+              onClick={() => setViewMode('grid')}
+              className={`p-2 rounded-lg flex items-center gap-1.5 text-xs font-semibold transition ${
+                viewMode === 'grid' ? 'bg-white text-black-800 shadow-sm' : 'text-black-500 hover:text-black-800'
+              }`}
+            >
+              <Grid className="w-4 h-4" />
+              <span>Grid</span>
+            </button>
+            <button
+              onClick={() => setViewMode('table')}
+              className={`p-2 rounded-lg flex items-center gap-1.5 text-xs font-semibold transition ${
+                viewMode === 'table' ? 'bg-white text-black-800 shadow-sm' : 'text-black-500 hover:text-black-800'
+              }`}
+            >
+              <TableIcon className="w-4 h-4" />
+              <span>Table</span>
+            </button>
+          </div>
         </div>
       </div>
 
