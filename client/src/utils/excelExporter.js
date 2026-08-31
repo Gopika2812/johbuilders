@@ -156,14 +156,15 @@ export const exportHtmlSheetsToExcel = async (sheets, filename) => {
           if (isLogoCell) {
             bgHex = 'FFFFFF';
             fontColor = '0F5233';
-            ws.getRow(rIdx + 1).height = 68; // Enlarge title/logo row height to 68px
+            ws.getRow(rIdx + 1).height = 60; // Clean title/logo row height
 
             if (logoImageId !== null) {
               excelCell.value = ''; // Clear text so logo image displays cleanly
               try {
+                const isJpeg = LOGO_BASE64 && LOGO_BASE64.startsWith('data:image/jpeg');
                 ws.addImage(logoImageId, {
-                  tl: { col: cIdx, row: rIdx },
-                  br: { col: cIdx + cSpan, row: rIdx + rSpan },
+                  tl: isJpeg ? { col: cIdx + 0.15, row: rIdx + 0.08 } : { col: cIdx + 0.12, row: rIdx + 0.14 },
+                  ext: isJpeg ? { width: 52, height: 52 } : { width: 125, height: 45 },
                   editAs: 'oneCell'
                 });
               } catch (e) {

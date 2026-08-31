@@ -1043,11 +1043,11 @@ const Dashboard = () => {
     const safeCols = Math.max(3, totalColumns);
     const webLogo = LOGO_BASE64;
     return `
-      <tr style="height: 68px;">
-        <td colspan="2" bgcolor="#FFFFFF" class="logo-cell" style="background-color: #FFFFFF; padding: 4px 8px; text-align: center; vertical-align: middle; border: 1px solid #CBD5E1; height: 68px; width: 160px;">
-          ${webLogo ? `<img src="${webLogo}" style="max-height: 60px; max-width: 100%; width: auto; height: 60px; object-fit: contain; display: block; margin: 0 auto;" alt="JOHN BUILDWELL" />` : `<div style="color: #0F5233; font-size: 11pt; font-weight: bold; text-align: center;">JOHN BUILDWELL</div>`}
+      <tr style="height: 60px;">
+        <td colspan="2" bgcolor="#FFFFFF" class="logo-cell" style="background-color: #FFFFFF; padding: 4px 8px; text-align: center; vertical-align: middle; border: 1px solid #CBD5E1; height: 60px; width: 140px;">
+          ${webLogo ? `<img src="${webLogo}" style="max-height: 48px; max-width: 130px; width: auto; height: 48px; object-fit: contain; display: block; margin: 0 auto;" alt="JOHN BUILDWELL" />` : `<div style="color: #0F5233; font-size: 11pt; font-weight: bold; text-align: center;">JOHN BUILDWELL</div>`}
         </td>
-        <td colspan="${safeCols - 2}" bgcolor="#0F5233" class="title-row text-center" style="background-color: #0F5233; color: #FFFFFF; border: 1px solid #0D4329; border-left: none; vertical-align:middle; text-align:center; font-size: 14pt; font-weight: bold; height: 68px; letter-spacing: 0.5px;">
+        <td colspan="${safeCols - 2}" bgcolor="#0F5233" class="title-row text-center" style="background-color: #0F5233; color: #FFFFFF; border: 1px solid #0D4329; border-left: none; vertical-align:middle; text-align:center; font-size: 14pt; font-weight: bold; height: 60px; letter-spacing: 0.5px;">
           ${titleText}
         </td>
       </tr>
@@ -1078,13 +1078,16 @@ const Dashboard = () => {
       </head>
       <body>
         <table>
-          ${getExcelHeader(`USER PERFORMANCE DETAILS - ${(selectedUserPerfName || 'ALL').toUpperCase()}`, '', 8)}
+          ${getExcelHeader(`USER PERFORMANCE DETAILS - ${(selectedUserPerfName || 'ALL').toUpperCase()}`, '', 11)}
           <tr>
+            <th class="text-center">S.No</th>
             <th class="text-left">User Name</th>
             <th class="text-right">Total Leads</th>
+            <th class="text-right">Assigned</th>
             <th class="text-right">Enquiries</th>
             <th class="text-right">Site Visit</th>
             <th class="text-right">Hot List</th>
+            <th class="text-right">Future Followup</th>
             <th class="text-right">Booking</th>
             <th class="text-right">Handover</th>
             <th class="text-right">Lost</th>
@@ -1092,18 +1095,21 @@ const Dashboard = () => {
     `;
 
     const dataToExport = selectedUserPerfName
-      ? [selectedUserPerfData]
+      ? userPerformanceData.filter(u => u.userName === selectedUserPerfName)
       : userPerformanceData;
 
     dataToExport.forEach((row, idx) => {
       const rowClass = idx % 2 === 1 ? 'class="even-row"' : '';
       htmlContent += `
         <tr ${rowClass}>
+          <td class="text-center">${idx + 1}</td>
           <td class="bold-label text-left">${row.userName}</td>
           <td class="text-right">${row.totalLeads}</td>
+          <td class="text-right">${row.assigned || 0}</td>
           <td class="text-right">${row.enquiries}</td>
           <td class="text-right">${row.siteVisits}</td>
           <td class="text-right">${row.hotList}</td>
+          <td class="text-right">${row.futureFollowup || 0}</td>
           <td class="text-right">${row.booked}</td>
           <td class="text-right">${row.handover}</td>
           <td class="text-right">${row.lost}</td>
@@ -1111,24 +1117,28 @@ const Dashboard = () => {
       `;
     });
 
-    if (dataToExport.length > 1) {
-      const totals = { totalLeads: 0, enquiries: 0, siteVisits: 0, hotList: 0, booked: 0, handover: 0, lost: 0 };
-      userPerformanceData.forEach(u => {
-        totals.totalLeads += u.totalLeads;
-        totals.enquiries += u.enquiries;
-        totals.siteVisits += u.siteVisits;
-        totals.hotList += u.hotList;
-        totals.booked += u.booked;
-        totals.handover += u.handover;
-        totals.lost += u.lost;
-      });
+    if (dataToExport.length > 0) {
+      const totals = {
+        totalLeads: dataToExport.reduce((sum, u) => sum + u.totalLeads, 0),
+        assigned: dataToExport.reduce((sum, u) => sum + (u.assigned || 0), 0),
+        enquiries: dataToExport.reduce((sum, u) => sum + u.enquiries, 0),
+        siteVisits: dataToExport.reduce((sum, u) => sum + u.siteVisits, 0),
+        hotList: dataToExport.reduce((sum, u) => sum + u.hotList, 0),
+        futureFollowup: dataToExport.reduce((sum, u) => sum + (u.futureFollowup || 0), 0),
+        booked: dataToExport.reduce((sum, u) => sum + u.booked, 0),
+        handover: dataToExport.reduce((sum, u) => sum + u.handover, 0),
+        lost: dataToExport.reduce((sum, u) => sum + u.lost, 0),
+      };
       htmlContent += `
         <tr class="summary-row">
+          <td class="text-center"></td>
           <td class="bold-label text-left">TOTAL</td>
           <td class="text-right">${totals.totalLeads}</td>
+          <td class="text-right">${totals.assigned}</td>
           <td class="text-right">${totals.enquiries}</td>
           <td class="text-right">${totals.siteVisits}</td>
           <td class="text-right">${totals.hotList}</td>
+          <td class="text-right">${totals.futureFollowup}</td>
           <td class="text-right">${totals.booked}</td>
           <td class="text-right">${totals.handover}</td>
           <td class="text-right">${totals.lost}</td>
@@ -3358,7 +3368,11 @@ const Dashboard = () => {
             <div className="p-6 border-b border-black-150 flex items-center justify-between bg-blue-500/10">
               <div>
                 <h3 className="text-base font-extrabold text-blue-800">Detailed Performance Report Preview</h3>
-                <p className="text-[11px] text-blue-700 mt-0.5">Review the overall stage splits for all sales executives before downloading</p>
+                <p className="text-[11px] text-blue-700 mt-0.5">
+                  {selectedUserPerfName 
+                    ? `Review stage splits for ${selectedUserPerfName.toUpperCase()} before downloading`
+                    : 'Review the overall stage splits for all sales executives before downloading'}
+                </p>
               </div>
               <button
                 onClick={() => setShowDetailedPreviewModal(false)}
@@ -3388,38 +3402,48 @@ const Dashboard = () => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-black-50 text-xs font-semibold text-black-700">
-                    {userPerformanceData.map((row, idx) => (
-                      <tr key={idx} className="hover:bg-black-50/50 transition">
-                        <td className="p-3 text-center font-bold text-black-450">{idx + 1}</td>
-                        <td className="p-3 font-extrabold text-black-850 uppercase">{row.userName}</td>
-                        <td className="p-3 text-center font-bold text-black-700">{row.totalLeads}</td>
-                        <td className="p-3 text-center text-purple-700">{row.assigned || 0}</td>
-                        <td className="p-3 text-center text-emerald-700">{row.enquiries}</td>
-                        <td className="p-3 text-center text-blue-700">{row.siteVisits}</td>
-                        <td className="p-3 text-center text-amber-700">{row.hotList}</td>
-                        <td className="p-3 text-center text-cyan-700">{row.futureFollowup || 0}</td>
-                        <td className="p-3 text-center text-rose-700">{row.booked}</td>
-                        <td className="p-3 text-center text-emerald-800">{row.handover}</td>
-                        <td className="p-3 text-center text-red-600">{row.lost}</td>
-                      </tr>
-                    ))}
+                    {(() => {
+                      const displayRows = selectedUserPerfName
+                        ? userPerformanceData.filter(u => u.userName === selectedUserPerfName)
+                        : userPerformanceData;
 
-                    {/* Totals Row */}
-                    {userPerformanceData.length > 0 && (
-                      <tr className="bg-emerald-50/20 font-bold text-black-850 border-t border-black-200">
-                        <td className="p-3 text-center"></td>
-                        <td className="p-3 uppercase">Total Sum</td>
-                        <td className="p-3 text-center">{selectedUserPerfData.userName === 'All Users Combined' ? selectedUserPerfData.totalLeads : userPerformanceData.reduce((sum, u) => sum + u.totalLeads, 0)}</td>
-                        <td className="p-3 text-center">{selectedUserPerfData.userName === 'All Users Combined' ? selectedUserPerfData.assigned : userPerformanceData.reduce((sum, u) => sum + (u.assigned || 0), 0)}</td>
-                        <td className="p-3 text-center">{selectedUserPerfData.userName === 'All Users Combined' ? selectedUserPerfData.enquiries : userPerformanceData.reduce((sum, u) => sum + u.enquiries, 0)}</td>
-                        <td className="p-3 text-center">{selectedUserPerfData.userName === 'All Users Combined' ? selectedUserPerfData.siteVisits : userPerformanceData.reduce((sum, u) => sum + u.siteVisits, 0)}</td>
-                        <td className="p-3 text-center">{selectedUserPerfData.userName === 'All Users Combined' ? selectedUserPerfData.hotList : userPerformanceData.reduce((sum, u) => sum + u.hotList, 0)}</td>
-                        <td className="p-3 text-center">{selectedUserPerfData.userName === 'All Users Combined' ? selectedUserPerfData.futureFollowup : userPerformanceData.reduce((sum, u) => sum + (u.futureFollowup || 0), 0)}</td>
-                        <td className="p-3 text-center">{selectedUserPerfData.userName === 'All Users Combined' ? selectedUserPerfData.booked : userPerformanceData.reduce((sum, u) => sum + u.booked, 0)}</td>
-                        <td className="p-3 text-center">{selectedUserPerfData.userName === 'All Users Combined' ? selectedUserPerfData.handover : userPerformanceData.reduce((sum, u) => sum + u.handover, 0)}</td>
-                        <td className="p-3 text-center text-red-650">{selectedUserPerfData.userName === 'All Users Combined' ? selectedUserPerfData.lost : userPerformanceData.reduce((sum, u) => sum + u.lost, 0)}</td>
-                      </tr>
-                    )}
+                      return (
+                        <>
+                          {displayRows.map((row, idx) => (
+                            <tr key={idx} className="hover:bg-black-50/50 transition">
+                              <td className="p-3 text-center font-bold text-black-450">{idx + 1}</td>
+                              <td className="p-3 font-extrabold text-black-850 uppercase">{row.userName}</td>
+                              <td className="p-3 text-center font-bold text-black-700">{row.totalLeads}</td>
+                              <td className="p-3 text-center text-purple-700">{row.assigned || 0}</td>
+                              <td className="p-3 text-center text-emerald-700">{row.enquiries}</td>
+                              <td className="p-3 text-center text-blue-700">{row.siteVisits}</td>
+                              <td className="p-3 text-center text-amber-700">{row.hotList}</td>
+                              <td className="p-3 text-center text-cyan-700">{row.futureFollowup || 0}</td>
+                              <td className="p-3 text-center text-rose-700">{row.booked}</td>
+                              <td className="p-3 text-center text-emerald-800">{row.handover}</td>
+                              <td className="p-3 text-center text-red-600">{row.lost}</td>
+                            </tr>
+                          ))}
+
+                          {/* Totals Row */}
+                          {displayRows.length > 0 && (
+                            <tr className="bg-emerald-50/20 font-bold text-black-850 border-t border-black-200">
+                              <td className="p-3 text-center"></td>
+                              <td className="p-3 uppercase">Total Sum</td>
+                              <td className="p-3 text-center">{displayRows.reduce((sum, u) => sum + u.totalLeads, 0)}</td>
+                              <td className="p-3 text-center">{displayRows.reduce((sum, u) => sum + (u.assigned || 0), 0)}</td>
+                              <td className="p-3 text-center">{displayRows.reduce((sum, u) => sum + u.enquiries, 0)}</td>
+                              <td className="p-3 text-center">{displayRows.reduce((sum, u) => sum + u.siteVisits, 0)}</td>
+                              <td className="p-3 text-center">{displayRows.reduce((sum, u) => sum + u.hotList, 0)}</td>
+                              <td className="p-3 text-center">{displayRows.reduce((sum, u) => sum + (u.futureFollowup || 0), 0)}</td>
+                              <td className="p-3 text-center">{displayRows.reduce((sum, u) => sum + u.booked, 0)}</td>
+                              <td className="p-3 text-center">{displayRows.reduce((sum, u) => sum + u.handover, 0)}</td>
+                              <td className="p-3 text-center text-red-650">{displayRows.reduce((sum, u) => sum + u.lost, 0)}</td>
+                            </tr>
+                          )}
+                        </>
+                      );
+                    })()}
                   </tbody>
                 </table>
               </div>

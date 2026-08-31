@@ -1794,11 +1794,11 @@ const LeadsDirectory = () => {
             <col width="150" />
             <col width="300" />
 
-            <tr style="height: 65px;">
-              <td colspan="2" bgcolor="#FFFFFF" class="logo-cell" style="background-color: #FFFFFF; padding: 4px 8px; text-align: center; vertical-align: middle; border: 1px solid #CBD5E1; height: 65px; width: 150px;">
-                ${logoPath ? `<img src="${logoPath}" style="max-height: 55px; max-width: 100%; width: auto; height: 55px; object-fit: contain; display: block; margin: 0 auto;" alt="JOHN BUILDWELL" />` : `<div style="color: #0F5233; font-size: 11pt; font-weight: bold; text-align: center;">JOHN BUILDWELL</div>`}
+            <tr style="height: 60px;">
+              <td colspan="2" bgcolor="#FFFFFF" class="logo-cell" style="background-color: #FFFFFF; padding: 4px 8px; text-align: center; vertical-align: middle; border: 1px solid #CBD5E1; height: 60px; width: 140px;">
+                ${logoPath ? `<img src="${logoPath}" style="max-height: 48px; max-width: 130px; width: auto; height: 48px; object-fit: contain; display: block; margin: 0 auto;" alt="JOHN BUILDWELL" />` : `<div style="color: #0F5233; font-size: 11pt; font-weight: bold; text-align: center;">JOHN BUILDWELL</div>`}
               </td>
-              <td colspan="8" class="title-row" style="background-color: #0b4d2d; border: 1px solid #000000; vertical-align: middle; text-align: center; font-size: 16pt; font-weight: 800; color: #ffffff; height: 65px; font-family: 'Segoe UI', sans-serif;">
+              <td colspan="8" class="title-row" style="background-color: #0b4d2d; border: 1px solid #000000; vertical-align: middle; text-align: center; font-size: 16pt; font-weight: 800; color: #ffffff; height: 60px; font-family: 'Segoe UI', sans-serif;">
                 LEADS DIRECTORY REPORT
               </td>
             </tr>
