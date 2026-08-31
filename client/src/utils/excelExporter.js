@@ -156,14 +156,14 @@ export const exportHtmlSheetsToExcel = async (sheets, filename) => {
           if (isLogoCell) {
             bgHex = 'FFFFFF';
             fontColor = '0F5233';
-            ws.getRow(rIdx + 1).height = 54; // Clean title/logo row height
+            ws.getRow(rIdx + 1).height = 52; // Clean title/logo row height
 
             if (logoImageId !== null) {
               excelCell.value = ''; // Clear text so logo image displays cleanly
               try {
                 ws.addImage(logoImageId, {
-                  tl: { col: cIdx + 0.08, row: rIdx + 0.08 },
-                  ext: { width: 140, height: 48 },
+                  tl: { col: cIdx + 0.1, row: rIdx + 0.08 },
+                  ext: { width: 155, height: 48 },
                   editAs: 'oneCell'
                 });
               } catch (e) {
@@ -311,17 +311,17 @@ export const exportHtmlSheetsToExcel = async (sheets, filename) => {
           calculatedWidth = 6;
         } else if (colHeaderTitle.includes('NAME') || colHeaderTitle.includes('TYPE') || colHeaderTitle.includes('DESCRIPTION') || (col === 1 && !isSNoCol)) {
           // Fit names, user labels, and project types snugly
-          calculatedWidth = Math.min(Math.max(dataMaxLen + 1.5, 14), 18);
+          calculatedWidth = Math.min(Math.max(dataMaxLen + 2, 16), 20);
         } else if (colHeaderTitle.includes('REMARKS') || colHeaderTitle.includes('NOTE') || colHeaderTitle.includes('COMPLAINT')) {
           calculatedWidth = Math.min(Math.max(dataMaxLen + 2, 18), 30);
         } else if (colHeaderTitle.includes('COUNT') || colHeaderTitle.includes('LEADS') || colHeaderTitle.includes('VISIT') || colHeaderTitle.includes('BOOKING') || colHeaderTitle.includes('HOT LIST') || colHeaderTitle.includes('ENQUIRIES')) {
-          // Compact count columns
-          calculatedWidth = Math.min(Math.max(dataMaxLen + 1, 9.5), 11.5);
+          // Ensure count columns never show '###' (minimum 12.5 width)
+          calculatedWidth = Math.min(Math.max(dataMaxLen + 2, 12.5), 14);
         } else if (colHeaderTitle.includes('VALUE') || colHeaderTitle.includes('INR') || colHeaderTitle.includes('AMOUNT') || colHeaderTitle.includes('PRICE')) {
-          // Compact value columns
-          calculatedWidth = Math.min(Math.max(dataMaxLen + 1, 13), 15);
+          // Fit currency / value columns snugly (minimum 16 width)
+          calculatedWidth = Math.min(Math.max(dataMaxLen + 1.5, 16), 19);
         } else {
-          calculatedWidth = Math.min(Math.max(dataMaxLen + 1, 9), 13);
+          calculatedWidth = Math.min(Math.max(dataMaxLen + 1.5, 12), 16);
         }
 
         ws.getColumn(col).width = calculatedWidth;
