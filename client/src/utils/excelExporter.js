@@ -156,15 +156,14 @@ export const exportHtmlSheetsToExcel = async (sheets, filename) => {
           if (isLogoCell) {
             bgHex = 'FFFFFF';
             fontColor = '0F5233';
-            ws.getRow(rIdx + 1).height = 60; // Clean title/logo row height
+            ws.getRow(rIdx + 1).height = 54; // Clean title/logo row height
 
             if (logoImageId !== null) {
               excelCell.value = ''; // Clear text so logo image displays cleanly
               try {
-                const isJpeg = LOGO_BASE64 && LOGO_BASE64.startsWith('data:image/jpeg');
                 ws.addImage(logoImageId, {
-                  tl: isJpeg ? { col: cIdx + 0.15, row: rIdx + 0.08 } : { col: cIdx + 0.12, row: rIdx + 0.14 },
-                  ext: isJpeg ? { width: 52, height: 52 } : { width: 125, height: 45 },
+                  tl: { col: cIdx + 0.08, row: rIdx + 0.08 },
+                  ext: { width: 140, height: 48 },
                   editAs: 'oneCell'
                 });
               } catch (e) {
@@ -257,7 +256,7 @@ export const exportHtmlSheetsToExcel = async (sheets, filename) => {
         }
       }
 
-      // Content-Fit Compact Column Width Calculation
+      // Professional Compact Content-Fit Column Width Calculation
       for (let col = 1; col <= maxCol + 1; col++) {
         let dataMaxLen = 0;
         let colHeaderTitle = '';
@@ -296,9 +295,8 @@ export const exportHtmlSheetsToExcel = async (sheets, filename) => {
             }
 
             // Calculate max data length from actual content (skipping title rows and wide banner rows)
-            if (rowNumber > 2 && s.length > 0 && s.length <= 35) {
-              // If the cell is merged across 3+ columns, don't let it blow up single column width
-              if (rowNumber <= 4 && col > 1) return;
+            if (rowNumber > 2 && s.length > 0 && s.length <= 30) {
+              if (cell.isMerged && rowNumber <= 4) return;
               const lines = s.split(/\r?\n/);
               lines.forEach(l => { 
                 dataMaxLen = Math.max(dataMaxLen, l.trim().length); 
@@ -312,13 +310,18 @@ export const exportHtmlSheetsToExcel = async (sheets, filename) => {
         if (isSNoCol) {
           calculatedWidth = 6;
         } else if (colHeaderTitle.includes('NAME') || colHeaderTitle.includes('TYPE') || colHeaderTitle.includes('DESCRIPTION') || (col === 1 && !isSNoCol)) {
-          // Fit names, user labels, and project types snugly without wrapping
-          calculatedWidth = Math.min(Math.max(dataMaxLen + 2, 14), 22);
+          // Fit names, user labels, and project types snugly
+          calculatedWidth = Math.min(Math.max(dataMaxLen + 1.5, 14), 18);
         } else if (colHeaderTitle.includes('REMARKS') || colHeaderTitle.includes('NOTE') || colHeaderTitle.includes('COMPLAINT')) {
-          calculatedWidth = Math.min(Math.max(dataMaxLen + 2, 20), 35);
+          calculatedWidth = Math.min(Math.max(dataMaxLen + 2, 18), 30);
+        } else if (colHeaderTitle.includes('COUNT') || colHeaderTitle.includes('LEADS') || colHeaderTitle.includes('VISIT') || colHeaderTitle.includes('BOOKING') || colHeaderTitle.includes('HOT LIST') || colHeaderTitle.includes('ENQUIRIES')) {
+          // Compact count columns
+          calculatedWidth = Math.min(Math.max(dataMaxLen + 1, 9.5), 11.5);
+        } else if (colHeaderTitle.includes('VALUE') || colHeaderTitle.includes('INR') || colHeaderTitle.includes('AMOUNT') || colHeaderTitle.includes('PRICE')) {
+          // Compact value columns
+          calculatedWidth = Math.min(Math.max(dataMaxLen + 1, 13), 15);
         } else {
-          // Fit numeric values, counts, and currencies cleanly to content
-          calculatedWidth = Math.min(Math.max(dataMaxLen + 1.5, 9.5), 18);
+          calculatedWidth = Math.min(Math.max(dataMaxLen + 1, 9), 13);
         }
 
         ws.getColumn(col).width = calculatedWidth;
