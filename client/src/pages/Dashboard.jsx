@@ -1043,11 +1043,11 @@ const Dashboard = () => {
     const safeCols = Math.max(3, totalColumns);
     const webLogo = LOGO_BASE64;
     return `
-      <tr style="height: 60px;">
-        <td colspan="2" bgcolor="#FFFFFF" class="logo-cell" style="background-color: #FFFFFF; padding: 4px 8px; text-align: center; vertical-align: middle; border: 1px solid #CBD5E1; height: 60px; width: 140px;">
-          ${webLogo ? `<img src="${webLogo}" style="max-height: 48px; max-width: 130px; width: auto; height: 48px; object-fit: contain; display: block; margin: 0 auto;" alt="JOHN BUILDWELL" />` : `<div style="color: #0F5233; font-size: 11pt; font-weight: bold; text-align: center;">JOHN BUILDWELL</div>`}
+      <tr style="height: 68px;">
+        <td colspan="2" bgcolor="#FFFFFF" class="logo-cell" style="background-color: #FFFFFF; padding: 4px 8px; text-align: center; vertical-align: middle; border: 1px solid #CBD5E1; height: 68px; width: 140px;">
+          ${webLogo ? `<img src="${webLogo}" style="max-height: 56px; max-width: 175px; width: auto; height: 56px; object-fit: contain; display: block; margin: 0 auto;" alt="JOHN BUILDWELL" />` : `<div style="color: #0F5233; font-size: 11pt; font-weight: bold; text-align: center;">JOHN BUILDWELL</div>`}
         </td>
-        <td colspan="${safeCols - 2}" bgcolor="#0F5233" class="title-row text-center" style="background-color: #0F5233; color: #FFFFFF; border: 1px solid #0D4329; border-left: none; vertical-align:middle; text-align:center; font-size: 14pt; font-weight: bold; height: 60px; letter-spacing: 0.5px;">
+        <td colspan="${safeCols - 2}" bgcolor="#0F5233" class="title-row text-center" style="background-color: #0F5233; color: #FFFFFF; border: 1px solid #0D4329; border-left: none; vertical-align:middle; text-align:center; font-size: 14pt; font-weight: bold; height: 68px; letter-spacing: 0.5px;">
           ${titleText}
         </td>
       </tr>

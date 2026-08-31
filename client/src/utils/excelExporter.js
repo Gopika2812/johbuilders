@@ -153,17 +153,21 @@ export const exportHtmlSheetsToExcel = async (sheets, filename) => {
           const hasImg = Boolean(cell.querySelector('img'));
           const isLogoCell = cellClasses.includes('logo-cell') || hasImg || (rIdx === 0 && cIdx < 2 && (cellText.toUpperCase() === 'JOHN BUILDWELL' || cellText === ''));
 
+          if (rIdx === 0) {
+            ws.getRow(1).height = 68; // Prominent, spacious 1st row header height
+          }
+
           if (isLogoCell) {
             bgHex = 'FFFFFF';
             fontColor = '0F5233';
-            ws.getRow(rIdx + 1).height = 52; // Clean title/logo row height
+            ws.getRow(rIdx + 1).height = 68; // Prominent 1st row height for spacious banner
 
             if (logoImageId !== null) {
               excelCell.value = ''; // Clear text so logo image displays cleanly
               try {
                 ws.addImage(logoImageId, {
-                  tl: { col: cIdx + 0.1, row: rIdx + 0.08 },
-                  ext: { width: 155, height: 48 },
+                  tl: { col: cIdx + 0.08, row: rIdx + 0.09 },
+                  ext: { width: 175, height: 56 },
                   editAs: 'oneCell'
                 });
               } catch (e) {
