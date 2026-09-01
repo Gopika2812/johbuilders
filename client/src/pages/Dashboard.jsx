@@ -827,7 +827,7 @@ const Dashboard = () => {
         if (!isCreated) return;
 
         const src = lead.leadSource || 'Direct Visit';
-        let matchedGroupName = 'Other / Unassigned';
+        let matchedGroupName = 'Direct Visit';
         Object.keys(stats.groupStats || {}).forEach(gName => {
           const g = stats.groupStats[gName];
           if (g.sources?.some(s => s.source?.toLowerCase() === src.toLowerCase())) {

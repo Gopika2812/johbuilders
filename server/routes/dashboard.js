@@ -927,7 +927,7 @@ router.get('/stats', protect, async (req, res) => {
       });
     });
 
-    groupStats['Other / Unassigned'] = { budget: 0, spent: 0, value: 0, sources: [] };
+    groupStats['Direct Visit'] = { budget: 0, spent: 0, value: 0, sources: [] };
     Object.keys(sourceStats).forEach(srcName => {
       if (!processedSources.has(srcName.toLowerCase())) {
         const statsObj = sourceStats[srcName];
@@ -935,10 +935,10 @@ router.get('/stats', protect, async (req, res) => {
         const s = statsObj.spent || 0;
         const v = statsObj.value || 0;
 
-        groupStats['Other / Unassigned'].budget += b;
-        groupStats['Other / Unassigned'].spent += s;
-        groupStats['Other / Unassigned'].value += v;
-        groupStats['Other / Unassigned'].sources.push({
+        groupStats['Direct Visit'].budget += b;
+        groupStats['Direct Visit'].spent += s;
+        groupStats['Direct Visit'].value += v;
+        groupStats['Direct Visit'].sources.push({
           source: srcName,
           budget: b,
           spent: s,
@@ -959,8 +959,8 @@ router.get('/stats', protect, async (req, res) => {
       }
     });
 
-    if (groupStats['Other / Unassigned'].sources.length === 0) {
-      delete groupStats['Other / Unassigned'];
+    if (groupStats['Direct Visit'].sources.length === 0) {
+      delete groupStats['Direct Visit'];
     }
 
     // Calculate today's stable counts
