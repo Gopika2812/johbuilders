@@ -859,7 +859,7 @@ router.get('/stats', protect, async (req, res) => {
     // Calculate custom insights
     const totalMarketingSpend = budgetPlans.reduce((sum, plan) => sum + (plan.allocations?.reduce((s, alloc) => s + (alloc.spent || 0), 0) || 0), 0);
     const totalLeadCost = leads.reduce((sum, lead) => sum + (lead.leadCost || 0), 0);
-    const costPerEnquiry = cumulativeEnquiries > 0 ? (totalMarketingSpend / cumulativeEnquiries) : 0;
+    const costPerEnquiry = siteConversionsCount > 0 ? (totalMarketingSpend / siteConversionsCount) : 0;
 
     const siteVisitConversionRate = cumulativeSiteVisits > 0 ? (siteConversionsCount / cumulativeSiteVisits) * 100 : 0;
     const bookingConversionRate = cumulativeEnquiries > 0 ? (siteConversionsCount / cumulativeEnquiries) * 100 : 0;

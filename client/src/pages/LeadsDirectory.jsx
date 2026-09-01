@@ -238,6 +238,7 @@ const LeadsDirectory = () => {
   // Create Lead Modal State
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [leadType, setLeadType] = useState('Lead'); // 'Lead' | 'Direct Visit'
+  const [salutation, setSalutation] = useState('Mr.');
   const [name, setName] = useState('');
   const [phoneCountryCode, setPhoneCountryCode] = useState('+91');
   const [phoneLocal, setPhoneLocal] = useState('');
@@ -495,6 +496,7 @@ const LeadsDirectory = () => {
   const isSuperAdmin = roleNorm === 'superadmin' || roleNorm === 'admin';
   const isSelectedLeadAssigned = Boolean(selectedLeadForEdit?.assignedTo) || (selectedLeadForEdit?.status && selectedLeadForEdit?.status !== 'New');
   const isLockedForNonAdmin = isSelectedLeadAssigned && !isSuperAdmin;
+  const [editSalutation, setEditSalutation] = useState('Mr.');
   const [editName, setEditName] = useState('');
   const [editPhoneCountryCode, setEditPhoneCountryCode] = useState('+91');
   const [editPhoneLocal, setEditPhoneLocal] = useState('');
@@ -841,6 +843,7 @@ const LeadsDirectory = () => {
 
   const handleOpenEditModal = (lead) => {
     setSelectedLeadForEdit(lead);
+    setEditSalutation(lead.salutation || 'Mr.');
     setEditName(lead.name || '');
     const parsed = parsePhoneDetails(lead.phone || '');
     setEditPhoneCountryCode(parsed.countryCode);
@@ -879,12 +882,12 @@ const LeadsDirectory = () => {
     setSuccessMsg('');
 
     if (editLeadType === 'Direct Visit') {
-      if (!editName || !editPhoneLocal || !editAddress || !editLeadSource || !editProjectId || !editStatus || !editLeadCategory) {
+      if (!editSalutation || !editName || !editPhoneLocal || !editAddress || !editLeadSource || !editProjectId || !editStatus || !editLeadCategory) {
         setError('Please fill in all mandatory fields.');
         return;
       }
     } else {
-      if (!editName || !editPhoneLocal || !editLeadSource || !editProjectId || !editStatus || !editLeadCategory) {
+      if (!editSalutation || !editName || !editPhoneLocal || !editLeadSource || !editProjectId || !editStatus || !editLeadCategory) {
         setError('Please fill in all mandatory fields.');
         return;
       }
@@ -910,6 +913,7 @@ const LeadsDirectory = () => {
     setIsSubmitting(true);
     const payload = {
       leadType: editLeadType,
+      salutation: editSalutation,
       name: editName,
       phone: editPhone,
       address: editAddress,
@@ -1156,8 +1160,8 @@ const LeadsDirectory = () => {
     setError('');
     setSuccessMsg('');
 
-    if (!name || !leadSource || !selectedProjectId) {
-      setError('Please fill in all mandatory fields (Name, Lead Source, Project Code).');
+    if (!salutation || !name || !leadSource || !selectedProjectId) {
+      setError('Please fill in all mandatory fields (Title, Name, Lead Source, Project Code).');
       return;
     }
     if (leadType === 'Direct Visit' && (!directFollowRemarks || !directFollowRemarks.trim())) {
@@ -1183,6 +1187,7 @@ const LeadsDirectory = () => {
     setIsSubmitting(true);
     const payload = {
       leadType,
+      salutation,
       name,
       profession,
       email,
@@ -1831,7 +1836,7 @@ const LeadsDirectory = () => {
       };
 
       filteredLeadsList.forEach((lead, index) => {
-        const custName = lead.name || '';
+        const custName = `${lead.salutation && !lead.name?.startsWith(lead.salutation) ? `${lead.salutation} ` : ''}${lead.name || ''}`.trim();
         const contactNo = lead.phone || '';
         const sourceStr = lead.leadSource || (lead.leadType === 'Direct Visit' ? 'Direct Visit' : '');
         const projectStr = lead.project?.code || lead.project?.name || '';
@@ -1881,6 +1886,7 @@ const LeadsDirectory = () => {
   };
 
   const resetForm = () => {
+    setSalutation('Mr.');
     setName('');
     setProfession('');
     setEmail('');
@@ -1915,8 +1921,9 @@ const LeadsDirectory = () => {
     return leads.filter(lead => {
       const matchesStatus = !statusFilter || lead.status === statusFilter;
 
+      const fullName = `${lead.salutation || ''} ${lead.name || ''}`.toLowerCase();
       const matchesSearch = !searchTerm ||
-        lead.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        fullName.includes(searchTerm.toLowerCase()) ||
         lead.phone?.includes(searchTerm) ||
         lead.project?.code?.toLowerCase().includes(searchTerm.toLowerCase());
 
@@ -2233,7 +2240,9 @@ const LeadsDirectory = () => {
                     {hasColumnPermission('leads', 'customerName') && (
                       <td className="px-3 py-1.5 border-b border-black-100">
                         <div className="flex items-center gap-2">
-                          <span className="font-bold text-black-800 text-xs">{lead.name}</span>
+                          <span className="font-bold text-black-800 text-xs">
+                            {lead.salutation && !lead.name?.startsWith(lead.salutation) ? `${lead.salutation} ` : ''}{lead.name}
+                          </span>
                           {(lead.isReopened === true || (lead.history && lead.history.some(h => h.note && h.note.toLowerCase().includes('reopened')))) && (
                             <span className="bg-amber-600 border border-amber-700 text-[10px] font-extrabold px-1.5 py-0.5 rounded-full uppercase tracking-wider shrink-0 shadow-sm animate-pulse">
                               Reopened
@@ -2605,14 +2614,27 @@ const LeadsDirectory = () => {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Lead / Customer Name <span className="text-red-500">*</span></label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. David Brown"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    className="w-full px-4 py-3 bg-black-55 border border-black-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0e623a] text-sm"
-                  />
+                  <div className="flex items-center bg-black-55 border border-black-200 rounded-xl focus-within:ring-2 focus-within:ring-[#0e623a] focus-within:border-transparent transition-all overflow-hidden">
+                    <select
+                      value={salutation}
+                      onChange={(e) => setSalutation(e.target.value)}
+                      required
+                      className="bg-transparent pl-3 pr-6 py-3 text-sm font-bold text-black-700 outline-none cursor-pointer border-r border-black-200/80 hover:bg-black-100/50 transition-colors w-24 appearance-none"
+                      style={{ backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 6px center', backgroundSize: '12px' }}
+                    >
+                      <option value="Mr.">Mr.</option>
+                      <option value="Mrs.">Mrs.</option>
+                      <option value="Ms.">Ms.</option>
+                    </select>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. David Brown"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      className="flex-grow px-4 py-3 bg-transparent outline-none text-sm text-black-800"
+                    />
+                  </div>
                 </div>
                 <div>
                   <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Profession</label>
@@ -3166,14 +3188,27 @@ const LeadsDirectory = () => {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-left">
                   <div>
                     <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Lead / Customer Name <span className="text-red-500">*</span></label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="e.g. David Brown"
-                      value={editName}
-                      onChange={(e) => setEditName(e.target.value)}
-                      className="w-full px-4 py-3 bg-black-55 border border-black-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-600 text-sm"
-                    />
+                    <div className="flex items-center bg-black-55 border border-black-200 rounded-xl focus-within:ring-2 focus-within:ring-amber-600 focus-within:border-transparent transition-all overflow-hidden">
+                      <select
+                        value={editSalutation}
+                        onChange={(e) => setEditSalutation(e.target.value)}
+                        required
+                        className="bg-transparent pl-3 pr-6 py-3 text-sm font-bold text-black-700 outline-none cursor-pointer border-r border-black-200/80 hover:bg-black-100/50 transition-colors w-24 appearance-none"
+                        style={{ backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 6px center', backgroundSize: '12px' }}
+                      >
+                        <option value="Mr.">Mr.</option>
+                        <option value="Mrs.">Mrs.</option>
+                        <option value="Ms.">Ms.</option>
+                      </select>
+                      <input
+                        type="text"
+                        required
+                        placeholder="e.g. David Brown"
+                        value={editName}
+                        onChange={(e) => setEditName(e.target.value)}
+                        className="flex-grow px-4 py-3 bg-transparent outline-none text-sm text-black-800"
+                      />
+                    </div>
                   </div>
                   <div>
                     <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5 flex items-center justify-between">

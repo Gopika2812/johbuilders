@@ -150,7 +150,7 @@ router.get('/phone/:phone', protect, async (req, res) => {
 // @route   POST /api/leads
 // @desc    Create a new lead (or reopen existing if duplicate phone)
 router.post('/', protect, async (req, res) => {
-  const { leadType, name, phone, address, profession, email, location, bankLoan, bankLoanPercentage, leadSource, activeAd, projectLocation, project, assignedTo, leadCost, followUpInfo, leadCategory, creationDate } = req.body;
+  const { leadType, salutation, name, phone, address, profession, email, location, bankLoan, bankLoanPercentage, leadSource, activeAd, projectLocation, project, assignedTo, leadCost, followUpInfo, leadCategory, creationDate } = req.body;
 
   try {
     let targetCreatedAt = undefined;
@@ -219,6 +219,7 @@ router.post('/', protect, async (req, res) => {
       const oldStatus = lead.status;
       // Reopen existing lead
       lead.leadType = leadType;
+      if (salutation) lead.salutation = salutation;
       lead.name = name;
       lead.profession = profession || lead.profession;
       lead.email = email || lead.email;
@@ -282,6 +283,7 @@ router.post('/', protect, async (req, res) => {
     // Create brand new lead
     lead = new Lead({
       leadType,
+      salutation: salutation || 'Mr.',
       name,
       profession: profession || '',
       email: email || '',
@@ -345,7 +347,7 @@ router.post('/', protect, async (req, res) => {
 // @route   PUT /api/leads/:id
 // @desc    Update lead details (status, assignment)
 router.put('/:id', protect, async (req, res) => {
-  const { status, assignedTo, name, phone, leadType, leadCost, address, profession, email, location, bankLoan, bankLoanPercentage, leadSource, activeAd, projectLocation, project, bookingInfo, followUpInfo, isClosed, closeRemarks, isRevert, leadCategory } = req.body;
+  const { status, assignedTo, salutation, name, phone, leadType, leadCost, address, profession, email, location, bankLoan, bankLoanPercentage, leadSource, activeAd, projectLocation, project, bookingInfo, followUpInfo, isClosed, closeRemarks, isRevert, leadCategory } = req.body;
 
   try {
     const lead = await Lead.findById(req.params.id);
@@ -409,6 +411,7 @@ router.put('/:id', protect, async (req, res) => {
       }
       lead.assignedTo = (assignedTo && assignedTo.toString().trim() !== '') ? assignedTo : undefined;
     }
+    if (salutation) lead.salutation = salutation;
     if (name) lead.name = name;
     if (canEditLockedFields && phone) lead.phone = phone;
     if (leadType) lead.leadType = leadType;

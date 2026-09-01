@@ -6,6 +6,11 @@ const LeadSchema = new mongoose.Schema({
     enum: ['Lead', 'Direct Visit'],
     required: true
   },
+  salutation: {
+    type: String,
+    enum: ['Mr.', 'Mrs.', 'Ms.', 'Dr.', 'Mr', 'Mrs', 'Ms'],
+    default: 'Mr.'
+  },
   name: {
     type: String,
     required: true,

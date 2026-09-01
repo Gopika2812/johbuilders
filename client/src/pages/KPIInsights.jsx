@@ -2943,7 +2943,8 @@ const KPIInsights = () => {
 
   const overallTotalLeads = Object.values(filteredSourceStats).reduce((sum, d) => sum + (d.count || 0), 0);
   const overallTotalSpent = Object.values(filteredSourceStats).reduce((sum, d) => sum + (d.spent || 0), 0);
-  const overallCostPerLead = overallTotalLeads > 0 ? (overallTotalSpent / overallTotalLeads) : 0;
+  const totalBookingsCount = stats.cards?.conversion?.count || 0;
+  const overallCostPerLead = totalBookingsCount > 0 ? ((stats.insights?.totalMarketingSpend || overallTotalSpent) / totalBookingsCount) : 0;
 
   const getSourcesData = () => {
     const budgetData = [];
@@ -3082,11 +3083,10 @@ const KPIInsights = () => {
               </div>
             </div>
 
-            {/* Cost Per Enquiry */}
+            {/* Cost Per Converted Lead */}
             <div className="bg-white border border-black-150 p-5 rounded-3xl shadow-sm hover:shadow-md transition">
-              <span className="text-[11px] font-bold text-black-400 uppercase tracking-wider block">Cost Per converted  Lead</span>
-              <h3 className="text-2xl font-black text-[#0e623a] mt-1">₹{Math.round(stats.insights?.costPerEnquiry || 0).toLocaleString()}</h3>
-        
+              <span className="text-[11px] font-bold text-black-400 uppercase tracking-wider block">Cost Per Converted Lead</span>
+              <h3 className="text-2xl font-black text-[#0e623a] mt-1">₹{Math.round(overallCostPerLead || stats.insights?.costPerEnquiry || 0).toLocaleString()}</h3>
             </div>
 
             {/* Booking Stage Conversions */}
