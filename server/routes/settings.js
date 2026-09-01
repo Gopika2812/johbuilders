@@ -42,6 +42,17 @@ router.put('/', protect, authorize('Superadmin', 'Crd team'), async (req, res) =
       settings.stageTextColors = req.body.stageTextColors;
     }
 
+    // Update custom navigation labels & page headings (Superadmin only)
+    if (req.body.customLabels) {
+      const isSuperadmin = req.user.role === 'Superadmin' || 
+                           req.user.role?.toLowerCase() === 'super admin' || 
+                           req.user.name === 'Super Admin';
+      if (!isSuperadmin) {
+        return res.status(403).json({ message: 'Access denied: Only Superadmin is authorized to edit navigation and page headings.' });
+      }
+      settings.customLabels = req.body.customLabels;
+    }
+
     await settings.save();
     res.json(settings);
   } catch (err) {

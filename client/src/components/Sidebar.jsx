@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 
 const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
-  const { user, logout, isAdmin, hasPermission } = useAuth();
+  const { user, logout, isAdmin, hasPermission, getLabel } = useAuth();
   const location = useLocation();
   const [projectMenuOpen, setProjectMenuOpen] = useState(true);
   const [employeeMenuOpen, setEmployeeMenuOpen] = useState(true);
@@ -69,7 +69,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
             }`}
           >
             <LayoutDashboard className={`w-5 h-5 ${isActive('/') ? 'text-white' : 'text-white group-hover:text-emerald-400'}`} />
-            <span className={isExpanded ? "block truncate" : "hidden"}>Dashboard</span>
+            <span className={isExpanded ? "block truncate" : "hidden"}>{getLabel ? getLabel('dashboard', 'sidebar', 'Dashboard') : 'Dashboard'}</span>
           </Link>
         )}
 
@@ -84,7 +84,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
             }`}
           >
             <BarChart3 className={`w-5 h-5 ${isActive('/kpi-insights') ? 'text-white' : 'text-white group-hover:text-emerald-400'}`} />
-            <span className={isExpanded ? "block truncate" : "hidden"}>KPI Insights</span>
+            <span className={isExpanded ? "block truncate" : "hidden"}>{getLabel ? getLabel('kpi_insights', 'sidebar', 'KPI Insights') : 'KPI Insights'}</span>
           </Link>
         )}
 
@@ -99,7 +99,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
             }`}
           >
             <FolderGit2 className={`w-5 h-5 ${isActive('/projects') ? 'text-white' : 'text-white group-hover:text-emerald-400'}`} />
-            <span className={isExpanded ? "block truncate" : "hidden"}>Projects Directory</span>
+            <span className={isExpanded ? "block truncate" : "hidden"}>{getLabel ? getLabel('projects', 'sidebar', 'Projects Directory') : 'Projects Directory'}</span>
           </Link>
         )}
 
@@ -114,7 +114,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
             }`}
           >
             <UserPlus className={`w-5 h-5 ${location.pathname === '/leads' && !location.search ? 'text-white' : 'text-white group-hover:text-emerald-400'}`} />
-            <span className={isExpanded ? "block truncate" : "hidden"}>Leads Directory</span>
+            <span className={isExpanded ? "block truncate" : "hidden"}>{getLabel ? getLabel('leads', 'sidebar', 'Leads Directory') : 'Leads Directory'}</span>
           </Link>
         )}
 
@@ -127,7 +127,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
             >
               <div className="flex items-center gap-3">
                 <FolderGit2 className="w-5 h-5 text-white group-hover:text-emerald-400 transition-colors" />
-                <span className={`font-semibold ${isExpanded ? "block" : "hidden"}`}>CRD</span>
+                <span className={`font-semibold ${isExpanded ? "block" : "hidden"}`}>{getLabel ? getLabel('crd_group', 'sidebar', 'CRD') : 'CRD'}</span>
               </div>
               {isExpanded && <ChevronDown className={`w-4 h-4 text-white transition-transform duration-200 ${leadsMenuOpen ? 'rotate-180' : ''}`} />}
             </button>
@@ -143,7 +143,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
                         : 'text-white hover:text-emerald-400 hover:bg-white/5'
                     }`}
                   >
-                    <span className={isExpanded ? "block truncate" : "hidden"}>Quotation Records</span>
+                    <span className={isExpanded ? "block truncate" : "hidden"}>{getLabel ? getLabel('quotations', 'sidebar', 'Quotation Records') : 'Quotation Records'}</span>
                   </Link>
                 )}
 
@@ -156,7 +156,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
                         : 'text-white hover:text-emerald-400 hover:bg-white/5'
                     }`}
                   >
-                    <span className={isExpanded ? "block truncate" : "hidden"}>CRD Flow</span>
+                    <span className={isExpanded ? "block truncate" : "hidden"}>{getLabel ? getLabel('crd_flow', 'sidebar', 'CRD Flow') : 'CRD Flow'}</span>
                   </Link>
                 )}
 
@@ -169,7 +169,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
                         : 'text-white hover:text-emerald-400 hover:bg-white/5'
                     }`}
                   >
-                    <span className={isExpanded ? "block truncate" : "hidden"}>Extra Works Flow</span>
+                    <span className={isExpanded ? "block truncate" : "hidden"}>{getLabel ? getLabel('extra_works', 'sidebar', 'Extra Works Flow') : 'Extra Works Flow'}</span>
                   </Link>
                 )}
 
@@ -195,7 +195,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
                         : 'text-white hover:text-emerald-400 hover:bg-white/5'
                     }`}
                   >
-                    <span className={isExpanded ? "block truncate" : "hidden"}>Bank Loan History</span>
+                    <span className={isExpanded ? "block truncate" : "hidden"}>{getLabel ? getLabel('bank_loan', 'sidebar', 'Bank Loan History') : 'Bank Loan History'}</span>
                   </Link>
                 )}
 
@@ -208,7 +208,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
                         : 'text-white hover:text-emerald-400 hover:bg-white/5'
                     }`}
                   >
-                    <span className={isExpanded ? "block truncate" : "hidden"}>Overall Collection Report</span>
+                    <span className={isExpanded ? "block truncate" : "hidden"}>{getLabel ? getLabel('overall_collection', 'sidebar', 'Overall Collection Report') : 'Overall Collection Report'}</span>
                   </Link>
                 )}
               </div>
@@ -241,7 +241,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
                         : 'text-white hover:text-emerald-400 hover:bg-white/5'
                     }`}
                   >
-                    <span className={isExpanded ? "block truncate" : "hidden"}>Sales Reports</span>
+                    <span className={isExpanded ? "block truncate" : "hidden"}>{getLabel ? getLabel('export_reports', 'sidebar', 'Sales Reports') : 'Sales Reports'}</span>
                   </Link>
                 )}
                 {hasPermission('crd_reports') && (
@@ -292,7 +292,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
               }`}
             >
               <ClipboardList className={`w-5 h-5 ${isActive('/tasks-board') ? 'text-white' : 'text-white group-hover:text-emerald-400'}`} />
-              <span className={`font-semibold whitespace-nowrap ${isExpanded ? "block" : "hidden"}`}>Task Board</span>
+              <span className={`font-semibold whitespace-nowrap ${isExpanded ? "block" : "hidden"}`}>{getLabel ? getLabel('tasks_board', 'sidebar', 'Task Board') : 'Task Board'}</span>
             </Link>
           </div>
         )}
@@ -306,7 +306,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
             >
               <div className="flex items-center gap-3">
                 <Users2 className="w-5 h-5 text-white group-hover:text-emerald-400 transition-colors" />
-                <span className={`font-semibold ${isExpanded ? "block" : "hidden"}`}>Employees</span>
+                <span className={`font-semibold ${isExpanded ? "block" : "hidden"}`}>{getLabel ? getLabel('employees', 'sidebar', 'Employees') : 'Employees'}</span>
               </div>
               {isExpanded && <ChevronDown className={`w-4 h-4 text-white transition-transform duration-200 ${employeeMenuOpen ? 'rotate-180' : ''}`} />}
             </button>
@@ -342,7 +342,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
               }`}
             >
               <History className={`w-5 h-5 ${isActive('/audit-logs') ? 'text-white' : 'text-white group-hover:text-emerald-400'}`} />
-              <span className={`font-semibold ${isExpanded ? "block" : "hidden"}`}>Audit Logs</span>
+              <span className={`font-semibold ${isExpanded ? "block" : "hidden"}`}>{getLabel ? getLabel('audit_logs', 'sidebar', 'Audit Logs') : 'Audit Logs'}</span>
             </Link>
           </div>
         )}
@@ -398,7 +398,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
                         : 'text-white hover:text-emerald-400 hover:bg-white/5'
                     }`}
                   >
-                    <span className={isExpanded ? "block truncate" : "hidden"}>Summary Planning</span>
+                    <span className={isExpanded ? "block truncate" : "hidden"}>{getLabel ? getLabel('summary', 'sidebar', 'Summary Planning') : 'Summary Planning'}</span>
                   </Link>
                 )}
                 {hasPermission('Finance & Accounts', 'read') && (
@@ -458,7 +458,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
             }`}
           >
             <Settings2 className={`w-5 h-5 ${isActive('/settings') ? 'text-white' : 'text-white group-hover:text-emerald-400'}`} />
-            <span className={isExpanded ? "block truncate" : "hidden"}>Settings</span>
+            <span className={isExpanded ? "block truncate" : "hidden"}>{getLabel ? getLabel('settings', 'sidebar', 'Settings') : 'Settings'}</span>
           </Link>
         )}
       </nav>

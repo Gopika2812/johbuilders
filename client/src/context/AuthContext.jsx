@@ -6,6 +6,89 @@ export const API_URL = window.location.hostname === 'localhost' || window.locati
   ? 'http://localhost:5000/api'
   : 'https://johbuilders.onrender.com/api';
 
+export const DEFAULT_PAGE_LABELS = {
+  dashboard: {
+    sidebar: 'Dashboard',
+    title: 'Executive Overview Dashboard',
+    subtitle: 'High-level real estate performance, conversion metrics and operational insights'
+  },
+  kpi_insights: {
+    sidebar: 'KPI Insights',
+    title: 'Executive KPI & Performance Insights',
+    subtitle: 'Strategic conversion analytics, lead generation costs, and target assessments'
+  },
+  projects: {
+    sidebar: 'Projects Directory',
+    title: 'Projects Master Directory',
+    subtitle: 'Manage property developments, layouts, pricing, and project inventories'
+  },
+  leads: {
+    sidebar: 'Leads Directory',
+    title: 'Leads & Enquiries Master Directory',
+    subtitle: 'Track customer inquiries, pipeline stages, executive assignments, and logs'
+  },
+  crd_group: {
+    sidebar: 'CRD',
+    title: 'CRD Operations',
+    subtitle: 'Customer relationship and document management workflow'
+  },
+  quotations: {
+    sidebar: 'Quotation Records',
+    title: 'Quotation Records Directory',
+    subtitle: 'Review, generate, edit and print client valuation estimates'
+  },
+  crd_flow: {
+    sidebar: 'CRD Flow',
+    title: 'CRD Customer Flow & Handover Directory',
+    subtitle: 'Customer onboarding, stage verification, payment schedule and handover tracker'
+  },
+  extra_works: {
+    sidebar: 'Extra Works',
+    title: 'Extra Works & Customizations Management',
+    subtitle: 'Track customer customization requests, estimates, progress and billing'
+  },
+  bank_loan: {
+    sidebar: 'Bank Loan',
+    title: 'Bank Loan Coordination Directory',
+    subtitle: 'Track customer banking processes, documentation, and disbursement schedules'
+  },
+  summary: {
+    sidebar: 'Summary',
+    title: 'Executive Operations & Financial Summary Plan',
+    subtitle: 'Monthly performance planning, executive target tracking, and realization summary'
+  },
+  overall_collection: {
+    sidebar: 'Accounts Collection',
+    title: 'Financial Accounts & Overall Collections Directory',
+    subtitle: 'Monitor receivable collections, installment progress, and financial accounts'
+  },
+  tasks_board: {
+    sidebar: 'Task Scheduler',
+    title: 'Task Scheduler & Routine Activities',
+    subtitle: 'Manage schedules, routine inspections, and internal team assignments'
+  },
+  employees: {
+    sidebar: 'Employees',
+    title: 'Employee Directory & Access Management',
+    subtitle: 'Manage team profiles, roles, security permissions, and system access levels'
+  },
+  audit_logs: {
+    sidebar: 'Audit Logs',
+    title: 'System Security & Activity Audit Trail',
+    subtitle: 'Track system logins, record updates, financial modifications, and audit logs'
+  },
+  settings: {
+    sidebar: 'System Settings',
+    title: 'System Settings & Parameters',
+    subtitle: 'Configure company profile, lead groups, budget allocation, and navigation labels'
+  },
+  export_reports: {
+    sidebar: 'Export Reports',
+    title: 'Executive Reports & Analytics Center',
+    subtitle: 'Generate and export executive summaries, excel sheets, and performance reports'
+  }
+};
+
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -166,6 +249,81 @@ export const AuthProvider = ({ children }) => {
     return perm.columns[columnKey] !== undefined ? perm.columns[columnKey] : true;
   };
 
+  // System Settings / Navigation & Page Headings Customization
+  const [customLabels, setCustomLabels] = useState(DEFAULT_PAGE_LABELS);
+
+  const fetchSettings = async () => {
+    if (!token) return;
+    try {
+      const res = await fetch(`${API_URL}/settings`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.customLabels) {
+          const merged = { ...DEFAULT_PAGE_LABELS };
+          // Handle both Map object and plain JSON from mongo
+          const rawLabels = data.customLabels instanceof Map ? Object.fromEntries(data.customLabels) : data.customLabels;
+          Object.keys(rawLabels || {}).forEach(k => {
+            merged[k] = {
+              ...DEFAULT_PAGE_LABELS[k],
+              ...rawLabels[k]
+            };
+          });
+          setCustomLabels(merged);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to load system settings:', err);
+    }
+  };
+
+  useEffect(() => {
+    if (token) {
+      fetchSettings();
+    }
+  }, [token]);
+
+  const getLabel = (pageKey, field = 'title', fallback = '') => {
+    if (!pageKey) return fallback;
+    const pageObj = customLabels?.[pageKey] || DEFAULT_PAGE_LABELS[pageKey];
+    if (pageObj && pageObj[field] && pageObj[field].trim()) {
+      return pageObj[field];
+    }
+    return DEFAULT_PAGE_LABELS[pageKey]?.[field] || fallback;
+  };
+
+  const updateCustomLabels = async (newLabels) => {
+    try {
+      const res = await fetch(`${API_URL}/settings`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ customLabels: newLabels })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const rawLabels = data.customLabels instanceof Map ? Object.fromEntries(data.customLabels) : (data.customLabels || newLabels);
+        const merged = { ...DEFAULT_PAGE_LABELS };
+        Object.keys(rawLabels || {}).forEach(k => {
+          merged[k] = {
+            ...DEFAULT_PAGE_LABELS[k],
+            ...rawLabels[k]
+          };
+        });
+        setCustomLabels(merged);
+        return { success: true };
+      } else {
+        const errData = await res.json();
+        return { success: false, message: errData.message || 'Failed to update custom labels' };
+      }
+    } catch (err) {
+      return { success: false, message: err.message || 'Network error updating custom labels' };
+    }
+  };
+
   const value = {
     user,
     token,
@@ -179,7 +337,11 @@ export const AuthProvider = ({ children }) => {
     isSiteEngineer,
     isAuthenticated: !!user,
     hasPermission,
-    hasColumnPermission
+    hasColumnPermission,
+    customLabels,
+    getLabel,
+    updateCustomLabels,
+    refreshSettings: fetchSettings
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

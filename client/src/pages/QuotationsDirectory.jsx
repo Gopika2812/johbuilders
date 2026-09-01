@@ -47,7 +47,7 @@ const SOURCE_TYPES = [
 ];
 
 const QuotationsDirectory = () => {
-  const { token, hasColumnPermission, isAdmin } = useAuth();
+  const { token, hasColumnPermission, isAdmin, getLabel } = useAuth();
   const [quotations, setQuotations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -229,8 +229,11 @@ const QuotationsDirectory = () => {
         <div>
           <h2 className="text-xl font-black text-black-800 flex items-center gap-2">
             <FileText className="w-6 h-6 text-[#0e623a]" />
-            <span>Quotation Records Directory</span>
+            <span>{getLabel ? getLabel('quotations', 'title', 'Quotation Records Directory') : 'Quotation Records Directory'}</span>
           </h2>
+          {getLabel && getLabel('quotations', 'subtitle') && (
+            <p className="text-xs text-black-400 mt-0.5">{getLabel('quotations', 'subtitle')}</p>
+          )}
         </div>
       </div>
 

@@ -20,6 +20,15 @@ const systemSettingsSchema = new mongoose.Schema({
     default: {
       'Booking': '#ffffff', // The default white text
     }
+  },
+  customLabels: {
+    type: Map,
+    of: {
+      sidebar: String,
+      title: String,
+      subtitle: String
+    },
+    default: {}
   }
 }, { timestamps: true });
 

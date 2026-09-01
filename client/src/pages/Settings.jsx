@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useAuth, API_URL } from '../context/AuthContext';
+import { useAuth, API_URL, DEFAULT_PAGE_LABELS } from '../context/AuthContext';
 import { 
   Settings, 
   User, 
@@ -13,8 +13,43 @@ import {
   Layers,
   DollarSign,
   Loader2,
-  Palette
+  Palette,
+  Type,
+  RotateCcw,
+  Search,
+  Check,
+  Lock,
+  LayoutDashboard,
+  BarChart3,
+  FolderGit2,
+  UserPlus,
+  FileSpreadsheet,
+  ClipboardList,
+  Users2,
+  History,
+  Settings2,
+  FileText
 } from 'lucide-react';
+
+const PAGE_CONFIG_LIST = [
+  { key: 'dashboard', label: 'Dashboard', category: 'Main Navigation', desc: 'Main executive analytics dashboard' },
+  { key: 'kpi_insights', label: 'KPI Insights', category: 'Main Navigation', desc: 'Performance conversion KPIs and ROI' },
+  { key: 'projects', label: 'Projects Directory', category: 'Main Navigation', desc: 'Real estate properties and plots' },
+  { key: 'leads', label: 'Leads Directory', category: 'Main Navigation', desc: 'Customer inquiries and CRM pipeline' },
+  { key: 'crd_group', label: 'CRD Menu Header', category: 'CRD Operations', desc: 'CRD Dropdown section menu title in sidebar' },
+  { key: 'quotations', label: 'Quotation Records', category: 'CRD Operations', desc: 'Cost estimates and customer quotations' },
+  { key: 'crd_flow', label: 'CRD Flow', category: 'CRD Operations', desc: 'Customer verification and handover process' },
+  { key: 'extra_works', label: 'Extra Works Flow', category: 'CRD Operations', desc: 'Additional construction and modifications' },
+  { key: 'bank_loan', label: 'Bank Loan History', category: 'CRD Operations', desc: 'Bank loan follow-ups and documentation' },
+  { key: 'overall_collection', label: 'Overall Collection Report', category: 'CRD Operations', desc: 'Financial collections and receipts tracker' },
+  { key: 'export_reports', label: 'Sales Reports', category: 'Reports Master', desc: 'Sales, marketing and executive reports' },
+  { key: 'crd_reports', label: 'CRD Reports', category: 'Reports Master', desc: 'CRD operations and handover reports' },
+  { key: 'tasks_board', label: 'Task Board', category: 'Operations', desc: 'Team tasks and scheduler' },
+  { key: 'employees', label: 'Employees Directory', category: 'Administration', desc: 'User accounts and access approvals' },
+  { key: 'audit_logs', label: 'Audit Logs', category: 'Administration', desc: 'System security and action logs' },
+  { key: 'summary', label: 'Summary Planning', category: 'Finance & Planning', desc: 'Executive targets and business goals' },
+  { key: 'settings', label: 'System Settings', category: 'Administration', desc: 'System configuration and preferences' },
+];
 
 const SOURCE_TYPES = [
   'Paper Ad',
@@ -44,14 +79,79 @@ const SOURCE_TYPES = [
 ];
 
 const SettingsPage = () => {
-  const { user, token } = useAuth();
-  const [activeTab, setActiveTab] = useState('general'); // 'general' | 'marketing'
+  const { user, token, isAdmin, customLabels, updateCustomLabels } = useAuth();
+  const [activeTab, setActiveTab] = useState('general'); // 'general' | 'marketing' | 'visuals' | 'navigation'
   
   // Settings values
   const [companyName, setCompanyName] = useState('Builders Real Estate Pvt Ltd');
   const [currency, setCurrency] = useState('USD ($)');
   const [measureUnit, setMeasureUnit] = useState('Square Feet (sq.ft)');
   const [saved, setSaved] = useState(false);
+
+  // Dynamic Navigation & Page Headings
+  const [editableLabels, setEditableLabels] = useState({});
+  const [isSavingLabels, setIsSavingLabels] = useState(false);
+  const [navSearch, setNavSearch] = useState('');
+  const [labelSaveSuccess, setLabelSaveSuccess] = useState(false);
+  const [labelError, setLabelError] = useState('');
+
+  useEffect(() => {
+    if (customLabels) {
+      setEditableLabels(JSON.parse(JSON.stringify(customLabels)));
+    }
+  }, [customLabels]);
+
+  const handleLabelChange = (pageKey, field, value) => {
+    setEditableLabels(prev => ({
+      ...prev,
+      [pageKey]: {
+        ...(prev[pageKey] || DEFAULT_PAGE_LABELS[pageKey] || {}),
+        [field]: value
+      }
+    }));
+  };
+
+  const handleResetSinglePage = (pageKey) => {
+    if (!DEFAULT_PAGE_LABELS[pageKey]) return;
+    setEditableLabels(prev => ({
+      ...prev,
+      [pageKey]: { ...DEFAULT_PAGE_LABELS[pageKey] }
+    }));
+  };
+
+  const handleResetAllToDefaults = () => {
+    if (!isAdmin) {
+      alert('Access Denied: Only Superadmin can reset page navigation names.');
+      return;
+    }
+    if (window.confirm('Are you sure you want to restore all sidebar menu names and page headings back to default values?')) {
+      setEditableLabels(JSON.parse(JSON.stringify(DEFAULT_PAGE_LABELS)));
+    }
+  };
+
+  const handleSaveLabels = async (e) => {
+    if (e) e.preventDefault();
+    if (!isAdmin) {
+      alert('Access Denied: Only Superadmin users are authorized to customize sidebar menu names and page headings.');
+      return;
+    }
+    setIsSavingLabels(true);
+    setLabelError('');
+    setLabelSaveSuccess(false);
+    try {
+      const res = await updateCustomLabels(editableLabels);
+      if (res.success) {
+        setLabelSaveSuccess(true);
+        setTimeout(() => setLabelSaveSuccess(false), 3000);
+      } else {
+        setLabelError(res.message || 'Failed to save navigation labels');
+      }
+    } catch (err) {
+      setLabelError(err.message || 'Error updating labels');
+    } finally {
+      setIsSavingLabels(false);
+    }
+  };
 
   // Marketing Lead Groups States
   const [leadGroups, setLeadGroups] = useState([]);
@@ -362,6 +462,19 @@ const SettingsPage = () => {
         >
           <Palette className="w-4 h-4" />
           <span>Visual & Stage Colors</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab('navigation')}
+          className={`flex-1 sm:flex-initial py-3.5 px-6 text-sm font-bold border-b-2 transition text-center flex items-center justify-center gap-2 ${
+            activeTab === 'navigation'
+              ? 'border-[#0e623a] text-[#0e623a]'
+              : 'border-transparent text-black-550 hover:text-black-800'
+          }`}
+        >
+          <Type className="w-4 h-4" />
+          <span>Sidebar & Page Headings</span>
+          {!isAdmin && <Lock className="w-3.5 h-3.5 text-amber-500 ml-0.5" title="Superadmin Access Only" />}
         </button>
       </div>
 
@@ -794,6 +907,212 @@ const SettingsPage = () => {
               </button>
             </div>
           </form>
+        </div>
+      ) : activeTab === 'navigation' ? (
+        <div className="bg-white rounded-b-3xl shadow-sm border border-black-100 overflow-hidden animate-fadeIn">
+          {/* Header Banner */}
+          <div className="bg-[#0e623a] p-6 text-white text-left">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <h3 className="text-lg font-bold flex items-center gap-2">
+                  <Type className="w-5 h-5 text-emerald-200" />
+                  <span>Sidebar Menu Names & Page Headings</span>
+                </h3>
+                <p className="text-emerald-100 text-xs mt-1 max-w-2xl">
+                  Customize the navigation names shown in the left sidebar and the main title/subtitle shown at the top of each page.
+                </p>
+              </div>
+
+              {isAdmin && (
+                <button
+                  type="button"
+                  onClick={handleResetAllToDefaults}
+                  className="px-3.5 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 transition border border-white/20 shrink-0 self-start sm:self-auto cursor-pointer"
+                  title="Reset all names to default"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  <span>Reset All to Defaults</span>
+                </button>
+              )}
+            </div>
+          </div>
+
+          <div className="p-6 md:p-8 space-y-6">
+            {/* Superadmin Permission Notification */}
+            {!isAdmin ? (
+              <div className="bg-amber-50 border border-amber-200 text-amber-900 p-4 rounded-2xl flex items-start gap-3 text-sm">
+                <Lock className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-bold">Superadmin Access Required</p>
+                  <p className="text-xs text-amber-700 mt-0.5">
+                    Only Superadmin accounts have permission to modify sidebar menu names and page titles. You are currently viewing in read-only mode.
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="bg-emerald-50/70 border border-emerald-200/80 text-emerald-900 p-3.5 rounded-2xl flex items-center gap-3 text-xs font-medium">
+                <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span>Superadmin access granted. You can edit any sidebar label or page heading below. Changes take effect immediately across all users upon saving.</span>
+              </div>
+            )}
+
+            {labelSaveSuccess && (
+              <div className="bg-emerald-50 border border-emerald-300 text-emerald-800 p-4 rounded-2xl text-sm font-bold flex items-center gap-2 shadow-sm animate-fadeIn">
+                <Check className="w-5 h-5 text-emerald-600" />
+                <span>Navigation labels and page headings saved successfully!</span>
+              </div>
+            )}
+
+            {labelError && (
+              <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-2xl text-sm font-semibold flex items-center gap-2">
+                <ShieldAlert className="w-5 h-5 text-red-500" />
+                <span>{labelError}</span>
+              </div>
+            )}
+
+            {/* Search Filter */}
+            <div className="relative">
+              <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                placeholder="Search page (e.g. Quotation, Leads, CRD, Reports, Dashboard...)"
+                value={navSearch}
+                onChange={(e) => setNavSearch(e.target.value)}
+                className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#0e623a]/30 focus:border-[#0e623a]"
+              />
+            </div>
+
+            {/* Page Configuration Cards */}
+            <div className="space-y-4">
+              {PAGE_CONFIG_LIST
+                .filter(item => {
+                  if (!navSearch.trim()) return true;
+                  const q = navSearch.toLowerCase();
+                  const currentObj = editableLabels[item.key] || DEFAULT_PAGE_LABELS[item.key] || {};
+                  return (
+                    item.label.toLowerCase().includes(q) ||
+                    item.category.toLowerCase().includes(q) ||
+                    (currentObj.sidebar || '').toLowerCase().includes(q) ||
+                    (currentObj.title || '').toLowerCase().includes(q)
+                  );
+                })
+                .map((page) => {
+                  const currentObj = editableLabels[page.key] || DEFAULT_PAGE_LABELS[page.key] || {};
+                  const defaultObj = DEFAULT_PAGE_LABELS[page.key] || {};
+                  const isModified = 
+                    (currentObj.sidebar && currentObj.sidebar !== defaultObj.sidebar) ||
+                    (currentObj.title && currentObj.title !== defaultObj.title) ||
+                    (currentObj.subtitle && currentObj.subtitle !== defaultObj.subtitle);
+
+                  return (
+                    <div 
+                      key={page.key} 
+                      className={`p-5 rounded-2xl border transition-all duration-200 ${
+                        isModified 
+                          ? 'bg-emerald-50/30 border-emerald-200/80 shadow-sm' 
+                          : 'bg-gray-50/70 border-gray-200/70 hover:border-gray-300'
+                      }`}
+                    >
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 mb-4 border-b border-gray-200/60">
+                        <div className="flex items-center gap-2.5">
+                          <span className="px-2.5 py-1 bg-[#0e623a]/10 text-[#0e623a] text-[11px] font-bold rounded-lg uppercase tracking-wider">
+                            {page.category}
+                          </span>
+                          <span className="text-sm font-extrabold text-gray-900">
+                            {page.label}
+                          </span>
+                          {isModified && (
+                            <span className="px-2 py-0.5 bg-emerald-600 text-white text-[10px] font-bold rounded-md">
+                              Customized
+                            </span>
+                          )}
+                        </div>
+
+                        {isAdmin && (
+                          <button
+                            type="button"
+                            onClick={() => handleResetSinglePage(page.key)}
+                            className="text-xs text-gray-500 hover:text-[#0e623a] font-semibold flex items-center gap-1 self-start sm:self-auto transition cursor-pointer"
+                            title="Reset this page to default"
+                          >
+                            <RotateCcw className="w-3 h-3" />
+                            <span>Reset to Default</span>
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {/* Sidebar Label Input */}
+                        <div>
+                          <label className="block text-[11px] font-bold text-gray-600 uppercase tracking-wider mb-1.5">
+                            Sidebar Menu Name
+                          </label>
+                          <input
+                            type="text"
+                            disabled={!isAdmin}
+                            placeholder={defaultObj.sidebar || page.label}
+                            value={currentObj.sidebar || ''}
+                            onChange={(e) => handleLabelChange(page.key, 'sidebar', e.target.value)}
+                            className="w-full px-3.5 py-2.5 bg-white border border-gray-200 rounded-xl text-sm font-semibold text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#0e623a]/30 focus:border-[#0e623a] disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed transition"
+                          />
+                          <p className="text-[11px] text-gray-400 mt-1">Default: <span className="text-gray-600 font-medium">{defaultObj.sidebar || page.label}</span></p>
+                        </div>
+
+                        {/* Page Heading Title Input */}
+                        <div>
+                          <label className="block text-[11px] font-bold text-gray-600 uppercase tracking-wider mb-1.5">
+                            Page Heading Title
+                          </label>
+                          <input
+                            type="text"
+                            disabled={!isAdmin}
+                            placeholder={defaultObj.title || page.label}
+                            value={currentObj.title || ''}
+                            onChange={(e) => handleLabelChange(page.key, 'title', e.target.value)}
+                            className="w-full px-3.5 py-2.5 bg-white border border-gray-200 rounded-xl text-sm font-semibold text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#0e623a]/30 focus:border-[#0e623a] disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed transition"
+                          />
+                          <p className="text-[11px] text-gray-400 mt-1">Default: <span className="text-gray-600 font-medium">{defaultObj.title || page.label}</span></p>
+                        </div>
+
+                        {/* Page Subtitle / Description Input */}
+                        <div className="md:col-span-2">
+                          <label className="block text-[11px] font-bold text-gray-600 uppercase tracking-wider mb-1.5">
+                            Page Subtitle / Description (Optional)
+                          </label>
+                          <input
+                            type="text"
+                            disabled={!isAdmin}
+                            placeholder={defaultObj.subtitle || ''}
+                            value={currentObj.subtitle || ''}
+                            onChange={(e) => handleLabelChange(page.key, 'subtitle', e.target.value)}
+                            className="w-full px-3.5 py-2 bg-white border border-gray-200 rounded-xl text-xs text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#0e623a]/30 focus:border-[#0e623a] disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed transition"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+            </div>
+
+            {/* Bottom Save Action Bar */}
+            {isAdmin && (
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-gray-200 pt-6">
+                <p className="text-xs text-gray-500">
+                  Click save to persist all custom sidebar names and headings.
+                </p>
+
+                <button
+                  type="button"
+                  onClick={handleSaveLabels}
+                  disabled={isSavingLabels}
+                  className="w-full sm:w-auto px-8 py-3 bg-[#0e623a] text-white rounded-xl text-sm font-bold hover:bg-[#0b4d2d] transition flex items-center justify-center gap-2 disabled:opacity-50 shadow-md cursor-pointer"
+                >
+                  {isSavingLabels ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                  <span>Save Navigation & Headings</span>
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       ) : null}
     </div>

@@ -4,7 +4,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { Calendar, User, Menu, Bell, ClipboardList, CheckCircle2, Clock, LogOut } from 'lucide-react';
 
 const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
-  const { user, token, logout } = useAuth();
+  const { user, token, logout, getLabel } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -205,15 +205,25 @@ const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
 
   const getPageTitle = () => {
     const path = location.pathname;
-    if (path === '/') return 'Dashboard';
-    if (path === '/tasks-board') return 'Task Board';
+    if (path === '/') return getLabel ? getLabel('dashboard', 'sidebar', 'Dashboard') : 'Dashboard';
+    if (path === '/kpi-insights') return getLabel ? getLabel('kpi_insights', 'sidebar', 'KPI Insights') : 'KPI Insights';
+    if (path === '/tasks-board') return getLabel ? getLabel('tasks_board', 'sidebar', 'Task Board') : 'Task Board';
     if (path === '/projects/register') return 'Register New Project';
-    if (path === '/projects') return 'Projects Dictionary';
+    if (path === '/projects') return getLabel ? getLabel('projects', 'sidebar', 'Projects Directory') : 'Projects Directory';
     if (path.startsWith('/projects/')) return 'Project Details & Inventory';
-    if (path === '/employees') return 'Employee Access Directory';
+    if (path === '/leads') return getLabel ? getLabel('leads', 'sidebar', 'Leads Directory') : 'Leads Directory';
+    if (path === '/quotations') return getLabel ? getLabel('quotations', 'sidebar', 'Quotation Records') : 'Quotation Records';
+    if (path === '/crd-flow') return getLabel ? getLabel('crd_flow', 'sidebar', 'CRD Flow') : 'CRD Flow';
+    if (path === '/crd-flow/extra-works') return getLabel ? getLabel('extra_works', 'sidebar', 'Extra Works Flow') : 'Extra Works Flow';
+    if (path === '/crd-flow/bank-loan-history') return getLabel ? getLabel('bank_loan', 'sidebar', 'Bank Loan History') : 'Bank Loan History';
+    if (path === '/crd-flow/overall-report') return getLabel ? getLabel('overall_collection', 'sidebar', 'Overall Collection Report') : 'Overall Collection Report';
+    if (path === '/reports/export') return getLabel ? getLabel('export_reports', 'sidebar', 'Sales Reports') : 'Sales Reports';
+    if (path === '/reports/crd') return getLabel ? getLabel('crd_reports', 'sidebar', 'CRD Reports') : 'CRD Reports';
+    if (path === '/employees') return getLabel ? getLabel('employees', 'sidebar', 'Employees') : 'Employees';
     if (path === '/employees/history') return 'Activity Logs & History';
-    if (path === '/audit-logs') return 'Role Access Control (RBAC)';
-    if (path === '/settings') return 'System Settings';
+    if (path === '/audit-logs') return getLabel ? getLabel('audit_logs', 'sidebar', 'Audit Logs') : 'Audit Logs';
+    if (path === '/settings') return getLabel ? getLabel('settings', 'sidebar', 'System Settings') : 'System Settings';
+    if (path === '/finance/summary-planning') return getLabel ? getLabel('summary', 'sidebar', 'Summary Planning') : 'Summary Planning';
     return 'ERP Portal';
   };
 
