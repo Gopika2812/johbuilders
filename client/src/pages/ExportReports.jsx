@@ -893,53 +893,96 @@ const ExportReports = () => {
           <tr>
             <td colspan="9" class="exec-banner">${execName.toUpperCase()}</td>
           </tr>
-          <!-- Table Headers -->
-          <tr class="table-headers">
-            <th>S.No</th>
-            <th>Customer Name</th>
-            <th>Contact Number</th>
-            <th>Followup By</th>
-            <th>Enquiry Mode</th>
-            <th>Project</th>
-            <th>Last Called Date</th>
-            <th>Follow up Date</th>
-            <th>Remarks</th>
-          </tr>
         `;
 
-        // Lead rows
-        leadsList.forEach((lead, idx) => {
-          const nameStr = lead.name || '';
-          const phoneStr = lead.phone || '';
-          const followBy = execName;
-          const sourceStr = lead.leadSource || 'Direct Visit';
-          const projectStr = lead.project?.code || lead.project?.name || '&nbsp;';
-          
-          const lastCalledStr = lead.updatedAt 
-            ? new Date(lead.updatedAt).toLocaleDateString('en-GB').replace(/\//g, '.') 
-            : new Date(lead.createdAt).toLocaleDateString('en-GB').replace(/\//g, '.');
+        const renderLeadRows = (list) => {
+          let sectionHtml = '';
+          list.forEach((lead, idx) => {
+            const salutationStr = lead.salutation ? `${lead.salutation} ` : '';
+            const nameStr = `${salutationStr}${lead.name || ''}`;
+            const phoneStr = lead.phone || '';
+            const followBy = execName;
+            const sourceStr = lead.leadSource || 'Direct Visit';
+            const projectStr = lead.project?.code || lead.project?.name || '&nbsp;';
             
-          const followUpDateStr = lead.followUpInfo?.nextFollowUpDate 
-            ? new Date(lead.followUpInfo.nextFollowUpDate).toLocaleDateString('en-GB').replace(/\//g, '.') 
-            : '';
-            
-          const remarksStr = getFormattedLeadRemarks(lead, '');
-          const rowClass = idx % 2 === 1 ? 'class="even-row"' : '';
+            const lastCalledStr = lead.updatedAt 
+              ? new Date(lead.updatedAt).toLocaleDateString('en-GB').replace(/\//g, '.') 
+              : new Date(lead.createdAt).toLocaleDateString('en-GB').replace(/\//g, '.');
+              
+            const followUpDateStr = lead.followUpInfo?.nextFollowUpDate 
+              ? new Date(lead.followUpInfo.nextFollowUpDate).toLocaleDateString('en-GB').replace(/\//g, '.') 
+              : '';
+              
+            const remarksStr = getFormattedLeadRemarks(lead, '');
+            const rowClass = idx % 2 === 1 ? 'class="even-row"' : '';
 
+            sectionHtml += `
+              <tr ${rowClass}>
+                <td>${globalSNo++}</td>
+                <td class="text-left bold-label">${nameStr}</td>
+                <td>${phoneStr}</td>
+                <td>${followBy}</td>
+                <td class="text-left">${sourceStr}</td>
+                <td>${projectStr}</td>
+                <td class="text-center">${lastCalledStr}</td>
+                <td>${followUpDateStr}</td>
+                <td class="text-left">${remarksStr}</td>
+              </tr>
+            `;
+          });
+          return sectionHtml;
+        };
+
+        const bookedList = leadsList.filter(lead => lead.status === 'Booking' || lead.status === 'Won' || lead.status === 'Booked' || lead.isBooked);
+        const pendingList = leadsList.filter(lead => !(lead.status === 'Booking' || lead.status === 'Won' || lead.status === 'Booked' || lead.isBooked));
+
+        // 🟢 BOOKED HOT LIST Subsection
+        if (bookedList.length > 0) {
           html += `
-            <tr ${rowClass}>
-              <td>${globalSNo++}</td>
-              <td class="text-left bold-label">${nameStr}</td>
-              <td>${phoneStr}</td>
-              <td>${followBy}</td>
-              <td class="text-left">${sourceStr}</td>
-              <td>${projectStr}</td>
-              <td class="text-center">${lastCalledStr}</td>
-              <td>${followUpDateStr}</td>
-              <td class="text-left">${remarksStr}</td>
+            <tr>
+              <td colspan="9" style="background-color: #dcfce7 !important; color: #166534 !important; font-weight: bold; text-align: left; padding: 6px 12px; border: 1px solid #86efac; font-size: 10pt; letter-spacing: 0.3px;">
+                🟢 BOOKED HOT LIST (${bookedList.length})
+              </td>
+            </tr>
+            <!-- Table Headers -->
+            <tr class="table-headers">
+              <th>S.No</th>
+              <th>Customer Name</th>
+              <th>Contact Number</th>
+              <th>Followup By</th>
+              <th>Enquiry Mode</th>
+              <th>Project</th>
+              <th>Last Called Date</th>
+              <th>Follow up Date</th>
+              <th>Remarks</th>
             </tr>
           `;
-        });
+          html += renderLeadRows(bookedList);
+        }
+
+        // 🟡 PENDING HOT LIST Subsection
+        if (pendingList.length > 0) {
+          html += `
+            <tr>
+              <td colspan="9" style="background-color: #fef9c3 !important; color: #854d0e !important; font-weight: bold; text-align: left; padding: 6px 12px; border: 1px solid #fde047; font-size: 10pt; letter-spacing: 0.3px;">
+                🟡 PENDING HOT LIST (${pendingList.length})
+              </td>
+            </tr>
+            <!-- Table Headers -->
+            <tr class="table-headers">
+              <th>S.No</th>
+              <th>Customer Name</th>
+              <th>Contact Number</th>
+              <th>Followup By</th>
+              <th>Enquiry Mode</th>
+              <th>Project</th>
+              <th>Last Called Date</th>
+              <th>Follow up Date</th>
+              <th>Remarks</th>
+            </tr>
+          `;
+          html += renderLeadRows(pendingList);
+        }
       });
 
       html += `
