@@ -26,7 +26,7 @@ router.get('/', protect, async (req, res) => {
 
     let quotations = await Quotation.find(query)
       .populate('project', 'name code')
-      .populate('lead', 'name phone assignedTo')
+      .populate('lead', 'name phone assignedTo leadSource salutation')
       .populate('createdBy', 'name role')
       .populate('crdPerson', 'name role')
       .populate('pedPerson', 'name role')

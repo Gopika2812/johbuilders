@@ -13,8 +13,38 @@ import {
   Phone, 
   Calendar,
   AlertCircle,
-  Loader2
+  Loader2,
+  Filter,
+  RotateCcw
 } from 'lucide-react';
+
+const SOURCE_TYPES = [
+  'Paper Ad',
+  'Railway station Hoardings (Rental)',
+  'Local TV',
+  'FM Radio',
+  'Airport Advertisement - Tuticorin',
+  'Hydrogen Balloon',
+  'Notice distribution',
+  'Unipole',
+  'LED board behind park',
+  'Pearl Bliss Tuticorin Project',
+  'Satellite Channel',
+  '99acres',
+  'Housing.com',
+  'Facebook',
+  'Instagram',
+  'Youtube',
+  'Real Estate',
+  'Magicbricks',
+  'Website',
+  'Direct',
+  'Direct Visit',
+  'Old Customer',
+  'Reference',
+  'Flexboard/Banner',
+  'Stall'
+];
 
 const QuotationsDirectory = () => {
   const { token, hasColumnPermission, isAdmin } = useAuth();
@@ -23,6 +53,9 @@ const QuotationsDirectory = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedSource, setSelectedSource] = useState('');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
   const [deletingId, setDeletingId] = useState(null);
   const [users, setUsers] = useState([]);
 
@@ -159,14 +192,34 @@ const QuotationsDirectory = () => {
     }
   };
 
+  // Get all unique lead sources
+  const allAvailableSources = Array.from(
+    new Set([
+      ...SOURCE_TYPES,
+      ...quotations.map(q => q.lead?.leadSource).filter(Boolean)
+    ])
+  ).sort();
+
   const filteredQuotations = quotations.filter(q => {
     const term = searchTerm.toLowerCase();
-    return (
-      q.customerName.toLowerCase().includes(term) ||
-      q.customerPhone.includes(term) ||
+    const custName = `${q.lead?.salutation ? `${q.lead.salutation} ` : ''}${q.customerName || ''}`.toLowerCase();
+    const matchesSearch = !searchTerm ||
+      custName.includes(term) ||
+      (q.customerPhone || '').includes(term) ||
       (q.project?.code || '').toLowerCase().includes(term) ||
-      (q.project?.name || '').toLowerCase().includes(term)
-    );
+      (q.project?.name || '').toLowerCase().includes(term);
+
+    const source = q.lead?.leadSource || 'Direct Visit';
+    const matchesSource = !selectedSource || source.toLowerCase() === selectedSource.toLowerCase();
+
+    const qDate = q.createdAt ? new Date(q.createdAt).getTime() : null;
+    const start = startDate ? new Date(startDate).setHours(0, 0, 0, 0) : null;
+    const end = endDate ? new Date(endDate).setHours(23, 59, 59, 999) : null;
+
+    const matchesStartDate = !start || !qDate || qDate >= start;
+    const matchesEndDate = !end || !qDate || qDate <= end;
+
+    return matchesSearch && matchesSource && matchesStartDate && matchesEndDate;
   });
 
   return (
@@ -178,7 +231,6 @@ const QuotationsDirectory = () => {
             <FileText className="w-6 h-6 text-[#0e623a]" />
             <span>Quotation Records Directory</span>
           </h2>
-          {/* <p className="text-black-400 text-xs mt-1">Review, generate, edit and print client valuation estimates</p> */}
         </div>
       </div>
 
@@ -196,18 +248,131 @@ const QuotationsDirectory = () => {
       )}
 
       {/* Filter and Search Bar Control Group */}
-      <div className="bg-white border border-black-150 p-4 rounded-3xl shadow-sm flex flex-col sm:flex-row items-center gap-4">
-        <div className="relative w-full sm:max-w-md">
-          <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-            <Search className="h-4 w-4 text-black-400" />
-          </span>
-          <input
-            type="text"
-            placeholder="Search by customer name, phone, project code..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-3 py-2.5 bg-black-50 border border-black-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-xs font-semibold text-black-700 placeholder-black-400"
-          />
+      <div className="bg-white border border-black-150 p-4 rounded-3xl shadow-sm space-y-3">
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-center">
+          {/* Search Input */}
+          <div className="relative md:col-span-4">
+            <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+              <Search className="h-4 w-4 text-black-400" />
+            </span>
+            <input
+              type="text"
+              placeholder="Search by customer name, phone, project code..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-3 py-2.5 bg-black-50 border border-black-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-xs font-semibold text-black-700 placeholder-black-400"
+            />
+          </div>
+
+          {/* Lead Source Filter */}
+          <div className="md:col-span-3 flex items-center gap-1.5 bg-black-50 border border-black-200 rounded-xl px-3 py-2 focus-within:ring-1 focus-within:ring-[#0e623a]">
+            <Filter className="w-3.5 h-3.5 text-black-400 shrink-0" />
+            <select
+              value={selectedSource}
+              onChange={(e) => setSelectedSource(e.target.value)}
+              className="w-full bg-transparent text-xs font-bold text-black-700 outline-none cursor-pointer"
+            >
+              <option value="">All Lead Sources</option>
+              {allAvailableSources.map((src, i) => (
+                <option key={i} value={src}>{src}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Date Filtration: From Date -> To Date */}
+          <div className="md:col-span-4 flex items-center gap-2">
+            <div className="flex-1 flex items-center gap-1.5 bg-black-50 border border-black-200 rounded-xl px-2.5 py-1.5 focus-within:ring-1 focus-within:ring-[#0e623a]">
+              <span className="text-[10px] font-bold text-black-400 uppercase">From:</span>
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="w-full bg-transparent text-xs font-bold text-black-700 outline-none cursor-pointer"
+              />
+            </div>
+            <div className="flex-1 flex items-center gap-1.5 bg-black-50 border border-black-200 rounded-xl px-2.5 py-1.5 focus-within:ring-1 focus-within:ring-[#0e623a]">
+              <span className="text-[10px] font-bold text-black-400 uppercase">To:</span>
+              <input
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                className="w-full bg-transparent text-xs font-bold text-black-700 outline-none cursor-pointer"
+              />
+            </div>
+          </div>
+
+          {/* Reset / Clear Button */}
+          <div className="md:col-span-1 flex justify-end">
+            {(searchTerm || selectedSource || startDate || endDate) && (
+              <button
+                onClick={() => {
+                  setSearchTerm('');
+                  setSelectedSource('');
+                  setStartDate('');
+                  setEndDate('');
+                }}
+                className="w-full flex items-center justify-center gap-1 px-3 py-2 bg-red-50 text-red-700 hover:bg-red-100 rounded-xl text-xs font-bold transition border border-red-200 cursor-pointer"
+                title="Clear all filters"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span className="hidden lg:inline">Reset</span>
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Quick Date Presets & Summary */}
+        <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-black-100 text-xs">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span className="text-[11px] font-bold text-black-400 uppercase">Presets:</span>
+            <button
+              type="button"
+              onClick={() => {
+                const now = new Date();
+                const y = now.getFullYear();
+                const m = now.getMonth();
+                setStartDate(`${y}-${String(m + 1).padStart(2, '0')}-01`);
+                const lastD = new Date(y, m + 1, 0).getDate();
+                setEndDate(`${y}-${String(m + 1).padStart(2, '0')}-${String(lastD).padStart(2, '0')}`);
+              }}
+              className="px-2.5 py-1 bg-black-50 hover:bg-[#0e623a]/10 hover:text-[#0e623a] text-black-600 text-[11px] font-bold rounded-lg border border-black-200 transition cursor-pointer"
+            >
+              This Month
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                const now = new Date();
+                const y = now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear();
+                const m = now.getMonth() === 0 ? 11 : now.getMonth() - 1;
+                setStartDate(`${y}-${String(m + 1).padStart(2, '0')}-01`);
+                const lastD = new Date(y, m + 1, 0).getDate();
+                setEndDate(`${y}-${String(m + 1).padStart(2, '0')}-${String(lastD).padStart(2, '0')}`);
+              }}
+              className="px-2.5 py-1 bg-black-50 hover:bg-[#0e623a]/10 hover:text-[#0e623a] text-black-600 text-[11px] font-bold rounded-lg border border-black-200 transition cursor-pointer"
+            >
+              Last Month
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                const now = new Date();
+                const y = now.getFullYear();
+                setStartDate(`${y}-01-01`);
+                setEndDate(`${y}-12-31`);
+              }}
+              className="px-2.5 py-1 bg-black-50 hover:bg-[#0e623a]/10 hover:text-[#0e623a] text-black-600 text-[11px] font-bold rounded-lg border border-black-200 transition cursor-pointer"
+            >
+              This Year
+            </button>
+          </div>
+
+          <div className="text-black-600 font-bold text-xs flex items-center gap-3">
+            <span>Showing <strong className="text-black-800">{filteredQuotations.length}</strong> of {quotations.length} records</span>
+            <span className="text-[#0e623a] bg-[#0e623a]/10 px-2.5 py-0.5 rounded-lg border border-[#0e623a]/20">
+              Total: <strong>₹{filteredQuotations.reduce((sum, q) => sum + (q.totalValue || 0), 0).toLocaleString()}</strong>
+            </span>
+          </div>
         </div>
       </div>
 
@@ -238,7 +403,14 @@ const QuotationsDirectory = () => {
                     {/* Customer */}
                     {hasColumnPermission('quotations', 'customerDetails') && (
                       <td className="p-4">
-                        <div className="font-bold text-black-800">{q.customerName}</div>
+                        <div className="font-bold text-black-800 flex items-center gap-1.5 flex-wrap">
+                          <span>{q.lead?.salutation && !q.customerName?.startsWith(q.lead.salutation) ? `${q.lead.salutation} ` : ''}{q.customerName}</span>
+                          {q.lead?.leadSource && (
+                            <span className="px-2 py-0.5 bg-[#0e623a]/10 text-[#0e623a] text-[10px] font-extrabold rounded-md border border-[#0e623a]/20 shrink-0">
+                              {q.lead.leadSource}
+                            </span>
+                          )}
+                        </div>
                         <div className="flex items-center gap-1 text-[11px] text-black-400 mt-1">
                           <Phone className="w-3 h-3 text-black-300" />
                           <span>{q.customerPhone}</span>
@@ -386,7 +558,7 @@ const QuotationsDirectory = () => {
 
                 {filteredQuotations.length === 0 && (
                   <tr>
-                    <td colSpan="7" className="p-8 text-center text-black-400 text-xs">
+                    <td colSpan="10" className="p-8 text-center text-black-400 text-xs">
                       No quotation records found matching search filters.
                     </td>
                   </tr>
