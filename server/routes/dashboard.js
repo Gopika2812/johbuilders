@@ -120,7 +120,7 @@ router.get('/stats', protect, async (req, res) => {
     }
 
     const quotations = await Quotation.find(qQuery)
-      .populate('lead', 'name phone status assignedTo')
+      .populate('lead', 'name phone status assignedTo leadSource')
       .populate('project', 'name code')
       .populate('createdBy', 'name role')
       .lean();
