@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
-import ProtectedRoute from './components/ProtectedRoute';
+import ProtectedRoute, { PageGuard } from './components/ProtectedRoute';
 import Sidebar from './components/Sidebar';
 import Navbar from './components/Navbar';
 
@@ -94,56 +94,56 @@ function App() {
 
           {/* Protected Main Application Layout Frame */}
           <Route element={<ProtectedRoute />}>
-            <Route path="/" element={<Layout><Dashboard /></Layout>} />
+            <Route path="/" element={<PageGuard pageId="dashboard"><Layout><Dashboard /></Layout></PageGuard>} />
             
             {/* Project Modules */}
-            <Route path="/projects" element={<Layout><ProjectsDictionary /></Layout>} />
-            <Route path="/projects/register" element={<Layout><RegisterProject /></Layout>} />
-            <Route path="/projects/:id" element={<Layout><ProjectDetail /></Layout>} />
+            <Route path="/projects" element={<PageGuard pageId="projects"><Layout><ProjectsDictionary /></Layout></PageGuard>} />
+            <Route path="/projects/register" element={<PageGuard pageId="projects"><Layout><RegisterProject /></Layout></PageGuard>} />
+            <Route path="/projects/:id" element={<PageGuard pageId="projects"><Layout><ProjectDetail /></Layout></PageGuard>} />
             
             {/* Employee Directory Modules */}
-            <Route path="/employees" element={<Layout><EmployeesDirectory /></Layout>} />
-            <Route path="/employees/history" element={<Layout><EmployeeHistory /></Layout>} />
-            <Route path="/audit-logs" element={<Layout><AuditLogs /></Layout>} />
+            <Route path="/employees" element={<PageGuard pageId="employees"><Layout><EmployeesDirectory /></Layout></PageGuard>} />
+            <Route path="/employees/history" element={<PageGuard pageId="employees"><Layout><EmployeeHistory /></Layout></PageGuard>} />
+            <Route path="/audit-logs" element={<PageGuard pageId="audit_logs"><Layout><AuditLogs /></Layout></PageGuard>} />
             
             {/* Leads Directory Module */}
-            <Route path="/leads" element={<Layout><LeadsDirectory /></Layout>} />
+            <Route path="/leads" element={<PageGuard pageId="leads"><Layout><LeadsDirectory /></Layout></PageGuard>} />
             
             {/* Quotations Module */}
-            <Route path="/quotations" element={<Layout><QuotationsDirectory /></Layout>} />
-            <Route path="/quotations/new" element={<Layout><QuotationForm /></Layout>} />
-            <Route path="/quotations/:id/edit" element={<Layout><QuotationForm /></Layout>} />
-            <Route path="/quotations/:id" element={<Layout><QuotationView /></Layout>} />
+            <Route path="/quotations" element={<PageGuard pageId="quotations"><Layout><QuotationsDirectory /></Layout></PageGuard>} />
+            <Route path="/quotations/new" element={<PageGuard pageId="quotations"><Layout><QuotationForm /></Layout></PageGuard>} />
+            <Route path="/quotations/:id/edit" element={<PageGuard pageId="quotations"><Layout><QuotationForm /></Layout></PageGuard>} />
+            <Route path="/quotations/:id" element={<PageGuard pageId="quotations"><Layout><QuotationView /></Layout></PageGuard>} />
 
             {/* Customer Relationship (CRD) Flow */}
-            <Route path="/crd-dashboard" element={<Layout><CRDDashboard /></Layout>} />
-            <Route path="/crd-flow" element={<Layout><CRDFlow /></Layout>} />
-            <Route path="/crd-flow/:id/details" element={<Layout><CRDFlowDetail /></Layout>} />
-            <Route path="/crd-flow/bank-loan-history" element={<Layout><BankLoanHistory /></Layout>} />
-            <Route path="/crd-flow/collection-report" element={<Layout><CollectionReport /></Layout>} />
-            <Route path="/crd-flow/overall-report" element={<Layout><OverallReport /></Layout>} />
-            <Route path="/crd-flow/extra-works" element={<Layout><ExtraWorks /></Layout>} />
-            <Route path="/crd-flow/complaints" element={<Layout><ComplaintsFlow /></Layout>} />
-            <Route path="/customers" element={<Layout><Customers /></Layout>} />
-            <Route path="/tasks-board" element={<Layout><TasksBoard /></Layout>} />
+            <Route path="/crd-dashboard" element={<PageGuard pageId="crd_flow"><Layout><CRDDashboard /></Layout></PageGuard>} />
+            <Route path="/crd-flow" element={<PageGuard pageId="crd_flow"><Layout><CRDFlow /></Layout></PageGuard>} />
+            <Route path="/crd-flow/:id/details" element={<PageGuard pageId="crd_flow"><Layout><CRDFlowDetail /></Layout></PageGuard>} />
+            <Route path="/crd-flow/bank-loan-history" element={<PageGuard pageId="bank_loan"><Layout><BankLoanHistory /></Layout></PageGuard>} />
+            <Route path="/crd-flow/collection-report" element={<PageGuard pageId="overall_collection"><Layout><CollectionReport /></Layout></PageGuard>} />
+            <Route path="/crd-flow/overall-report" element={<PageGuard pageId="overall_collection"><Layout><OverallReport /></Layout></PageGuard>} />
+            <Route path="/crd-flow/extra-works" element={<PageGuard pageId="extra_works"><Layout><ExtraWorks /></Layout></PageGuard>} />
+            <Route path="/crd-flow/complaints" element={<PageGuard pageId="complaints_flow"><Layout><ComplaintsFlow /></Layout></PageGuard>} />
+            <Route path="/customers" element={<PageGuard pageId="customers"><Layout><Customers /></Layout></PageGuard>} />
+            <Route path="/tasks-board" element={<PageGuard pageId="tasks_board"><Layout><TasksBoard /></Layout></PageGuard>} />
             
             {/* KPI Insights & Conversions */}
-            <Route path="/kpi-insights" element={<Layout><KPIInsights /></Layout>} />
+            <Route path="/kpi-insights" element={<PageGuard pageId="kpi_insights"><Layout><KPIInsights /></Layout></PageGuard>} />
             
             {/* Reports Master */}
-            <Route path="/reports/export" element={<Layout><ExportReports /></Layout>} />
-            <Route path="/reports/crd" element={<Layout><CRDReports /></Layout>} />
+            <Route path="/reports/export" element={<PageGuard pageId="sales_reports"><Layout><ExportReports /></Layout></PageGuard>} />
+            <Route path="/reports/crd" element={<PageGuard pageId="crd_reports"><Layout><CRDReports /></Layout></PageGuard>} />
             
             {/* Finance & Accounts Modules */}
-            <Route path="/finance/budget-planning" element={<Layout><BudgetPlanning /></Layout>} />
-            <Route path="/finance/lead-target-planning" element={<Layout><LeadTargetPlanning /></Layout>} />
-            <Route path="/finance/summary-planning" element={<Layout><SummaryPlanning /></Layout>} />
-            <Route path="/finance/parameter-planning" element={<Layout><ParameterPlanning /></Layout>} />
+            <Route path="/finance/budget-planning" element={<PageGuard pageId="finance_budget"><Layout><BudgetPlanning /></Layout></PageGuard>} />
+            <Route path="/finance/lead-target-planning" element={<PageGuard pageId="finance_lead"><Layout><LeadTargetPlanning /></Layout></PageGuard>} />
+            <Route path="/finance/summary-planning" element={<PageGuard pageId="finance_summary"><Layout><SummaryPlanning /></Layout></PageGuard>} />
+            <Route path="/finance/parameter-planning" element={<PageGuard pageId="finance_parameter"><Layout><ParameterPlanning /></Layout></PageGuard>} />
 
             {/* Administration / Utilities */}
-            <Route path="/access-control" element={<Layout><AccessControl /></Layout>} />
-            <Route path="/requests" element={<Layout><Requests /></Layout>} />
-            <Route path="/settings" element={<Layout><Settings /></Layout>} />
+            <Route path="/access-control" element={<PageGuard adminOnly><Layout><AccessControl /></Layout></PageGuard>} />
+            <Route path="/requests" element={<PageGuard adminOnly><Layout><Requests /></Layout></PageGuard>} />
+            <Route path="/settings" element={<PageGuard pageId="settings"><Layout><Settings /></Layout></PageGuard>} />
           </Route>
         </Routes>
       </AuthProvider>

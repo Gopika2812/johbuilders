@@ -2,8 +2,82 @@ import React from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
+export const ROUTE_PERMISSIONS = [
+  { pageId: 'dashboard', path: '/' },
+  { pageId: 'kpi_insights', path: '/kpi-insights' },
+  { pageId: 'projects', path: '/projects' },
+  { pageId: 'leads', path: '/leads' },
+  { pageId: 'quotations', path: '/quotations' },
+  { pageId: 'crd_flow', path: '/crd-flow' },
+  { pageId: 'extra_works', path: '/crd-flow/extra-works' },
+  { pageId: 'complaints_flow', path: '/crd-flow/complaints' },
+  { pageId: 'bank_loan', path: '/crd-flow/bank-loan-history' },
+  { pageId: 'overall_collection', path: '/crd-flow/overall-report' },
+  { pageId: 'sales_reports', path: '/reports/export' },
+  { pageId: 'crd_reports', path: '/reports/crd' },
+  { pageId: 'customers', path: '/customers' },
+  { pageId: 'tasks_board', path: '/tasks-board' },
+  { pageId: 'employees', path: '/employees' },
+  { pageId: 'audit_logs', path: '/audit-logs' },
+  { pageId: 'finance_budget', path: '/finance/budget-planning' },
+  { pageId: 'finance_lead', path: '/finance/lead-target-planning' },
+  { pageId: 'finance_summary', path: '/finance/summary-planning' },
+  { pageId: 'finance_parameter', path: '/finance/parameter-planning' },
+  { pageId: 'settings', path: '/settings' }
+];
+
+export const getFirstAllowedRoute = (hasPermission, isAdmin) => {
+  if (isAdmin) return '/';
+  for (const item of ROUTE_PERMISSIONS) {
+    if (hasPermission(item.pageId)) {
+      return item.path;
+    }
+  }
+  return '/tasks-board';
+};
+
+export const PageGuard = ({ pageId, children, requiredRoles, adminOnly }) => {
+  const { user, isAdmin, hasPermission, isAuthenticated, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-[#f0f9f4]">
+        <div className="text-center">
+          <div className="h-16 w-16 animate-spin rounded-full border-b-4 border-t-4 border-[#0e623a] mx-auto"></div>
+          <p className="mt-4 text-[#0e623a] font-medium">Loading Real Estate ERP...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (user && !user.isApproved) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (adminOnly && !isAdmin) {
+    const fallback = getFirstAllowedRoute(hasPermission, isAdmin);
+    return <Navigate to={fallback} replace />;
+  }
+
+  if (requiredRoles && !requiredRoles.includes(user?.role) && !isAdmin) {
+    const fallback = getFirstAllowedRoute(hasPermission, isAdmin);
+    return <Navigate to={fallback} replace />;
+  }
+
+  if (pageId && !hasPermission(pageId) && !isAdmin) {
+    const fallback = getFirstAllowedRoute(hasPermission, isAdmin);
+    return <Navigate to={fallback} replace />;
+  }
+
+  return children;
+};
+
 const ProtectedRoute = ({ requiredRoles }) => {
-  const { isAuthenticated, user, loading } = useAuth();
+  const { isAuthenticated, user, loading, hasPermission, isAdmin } = useAuth();
 
   if (loading) {
     return (
@@ -48,8 +122,9 @@ const ProtectedRoute = ({ requiredRoles }) => {
   }
 
   // Check roles if required
-  if (requiredRoles && !requiredRoles.includes(user.role)) {
-    return <Navigate to="/" replace />;
+  if (requiredRoles && !requiredRoles.includes(user.role) && !isAdmin) {
+    const fallback = getFirstAllowedRoute(hasPermission, isAdmin);
+    return <Navigate to={fallback} replace />;
   }
 
   return <Outlet />;
