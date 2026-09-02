@@ -3907,28 +3907,39 @@ const LeadsDirectory = () => {
                           className="w-full px-2 py-1.5 text-xs bg-white border border-black-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#0e623a]"
                         />
                       </div>
-                      <div className="overflow-y-auto p-1 max-h-48">
+                      <div className="overflow-y-auto p-1 max-h-48 space-y-0.5">
                         {BookedProjectDetails?.units
                           ?.filter(u => u.status !== 'Booked' && u.status !== 'Sold Out' && u.status !== 'Hold' && u.status !== 'On Hold')
                           .filter(u => !typedBookedUnits || u.unitId.toLowerCase().includes(typedBookedUnits.toLowerCase()))
-                          .map(u => (
-                            <label key={u.unitId} className="flex items-center gap-2 px-3 py-2 hover:bg-emerald-50 cursor-pointer transition rounded-lg">
-                              <input
-                                type="checkbox"
-                                checked={selectedBookedUnits.includes(u.unitId)}
-                                onChange={(e) => {
-                                  if (e.target.checked) {
-                                    setSelectedBookedUnits([...selectedBookedUnits, u.unitId]);
-                                    setUnitDropdownOpen(false);
-                                  } else {
+                          .map(u => {
+                            const isSelected = selectedBookedUnits.includes(u.unitId);
+                            return (
+                              <div
+                                key={u.unitId}
+                                onClick={() => {
+                                  if (isSelected) {
                                     setSelectedBookedUnits(selectedBookedUnits.filter(id => id !== u.unitId));
+                                  } else {
+                                    setSelectedBookedUnits([...selectedBookedUnits, u.unitId]);
                                   }
+                                  setUnitDropdownOpen(false);
                                 }}
-                                className="text-[#0e623a] focus:ring-[#0e623a] rounded cursor-pointer"
-                              />
-                              <span className="text-sm font-semibold text-black-700">{u.unitId} <span className="text-xs font-normal text-black-400">({u.size} Sq.Ft)</span></span>
-                            </label>
-                          ))
+                                className={`flex items-center gap-2.5 px-3 py-2 cursor-pointer transition-colors rounded-lg select-none ${
+                                  isSelected ? 'bg-emerald-50 text-[#0e623a]' : 'hover:bg-emerald-50/50 text-black-700'
+                                }`}
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={isSelected}
+                                  readOnly
+                                  className="text-[#0e623a] focus:ring-[#0e623a] rounded pointer-events-none w-4 h-4"
+                                />
+                                <span className="text-sm font-semibold flex-1">
+                                  {u.unitId} <span className="text-xs font-normal text-black-400">({u.size} Sq.Ft)</span>
+                                </span>
+                              </div>
+                            );
+                          })
                         }
                         {(!BookedProjectDetails?.units || BookedProjectDetails.units.filter(u => u.status !== 'Booked' && u.status !== 'Sold Out' && u.status !== 'Hold' && u.status !== 'On Hold').length === 0) && (
                           <div className="px-3 py-3 text-xs text-black-500 text-center">No available units found.</div>
