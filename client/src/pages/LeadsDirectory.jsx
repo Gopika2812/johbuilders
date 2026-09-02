@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth, API_URL } from '../context/AuthContext';
 import { LOGO_BASE64 } from '../utils/logoBase64';
@@ -533,8 +533,23 @@ const LeadsDirectory = () => {
   const [customBookedAmount, setCustomBookedAmount] = useState('');
   const [typedBookedUnits, setTypedBookedUnits] = useState('');
   const [unitDropdownOpen, setUnitDropdownOpen] = useState(false);
+  const unitDropdownRef = useRef(null);
   const [BookedLoading, setBookedLoading] = useState(false);
   const [editedUnitSizes, setEditedUnitSizes] = useState({});
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (unitDropdownRef.current && !unitDropdownRef.current.contains(event.target)) {
+        setUnitDropdownOpen(false);
+      }
+    };
+    if (unitDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [unitDropdownOpen]);
 
   useEffect(() => {
     if (BookedProjectDetails && selectedBookedUnits.length > 0) {
@@ -3867,7 +3882,7 @@ const LeadsDirectory = () => {
                   Select {BookedProjectDetails?.projectType || 'Unit'} Numbers
                 </label>
 
-                <div className="relative">
+                <div className="relative" ref={unitDropdownRef}>
                   <div
                     onClick={() => setUnitDropdownOpen(!unitDropdownOpen)}
                     className="w-full px-3 py-2 bg-black-50 border border-black-200 rounded-xl cursor-pointer flex justify-between items-center text-sm text-black-800 focus:outline-none focus:ring-1 focus:ring-[#0e623a]"
@@ -3904,6 +3919,7 @@ const LeadsDirectory = () => {
                                 onChange={(e) => {
                                   if (e.target.checked) {
                                     setSelectedBookedUnits([...selectedBookedUnits, u.unitId]);
+                                    setUnitDropdownOpen(false);
                                   } else {
                                     setSelectedBookedUnits(selectedBookedUnits.filter(id => id !== u.unitId));
                                   }
