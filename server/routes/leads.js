@@ -6,8 +6,7 @@ const User = require('../models/User');
 const AuditLog = require('../models/AuditLog');
 const { protect, authorize } = require('../middleware/auth');
 
-// @route   GET /api/leads
-// @desc    Get all leads with optional filters
+// @desc Get all leads with optional filters
 router.get('/', protect, async (req, res) => {
   const { status, leadType, search, crdView } = req.query;
   const query = {};
@@ -44,7 +43,7 @@ router.get('/', protect, async (req, res) => {
         ]
       }, 'lead').lean();
       const leadIds = userQuotations.map(q => q.lead?.toString()).filter(Boolean);
-      
+
       if (query.$or) {
         query.$and = [
           { $or: query.$or },
@@ -90,13 +89,13 @@ router.get('/today-assigned', protect, async (req, res) => {
 
     query.$or = [
       { createdAt: { $gte: todayStart, $lte: todayEnd } },
-      { 
-        history: { 
-          $elemMatch: { 
+      {
+        history: {
+          $elemMatch: {
             status: 'Assigned',
             timestamp: { $gte: todayStart, $lte: todayEnd }
           }
-        } 
+        }
       }
     ];
 
@@ -210,7 +209,7 @@ router.post('/', protect, async (req, res) => {
 
       if (!isAllowedToReopen) {
         const assignedName = lead.assignedTo ? lead.assignedTo.name : 'someone';
-        return res.status(400).json({ 
+        return res.status(400).json({
           message: `This lead is currently assigned to ${assignedName} and is in '${lead.status}' stage for this project. You can only register with this number again for the same project if the lead is Lost, Cancelled, or Booked.`,
           existingLead: lead
         });
@@ -240,7 +239,7 @@ router.post('/', protect, async (req, res) => {
       lead.isReopened = true;
       lead.leadCost = Number(leadCost) || 0;
       if (leadCategory) lead.leadCategory = leadCategory;
-      
+
       if (leadType === 'Lead') {
         lead.leadSource = leadSource || '';
         lead.activeAd = activeAd || { name: '', link: '' };
@@ -473,7 +472,7 @@ router.put('/:id', protect, async (req, res) => {
         }
       }
     }
-    
+
     if (canEditLockedFields && leadSource) lead.leadSource = leadSource;
     if (lead.leadType === 'Lead') {
       if (canEditLockedFields && activeAd) lead.activeAd = activeAd;
@@ -689,8 +688,8 @@ router.post('/bulk-import', protect, async (req, res) => {
       let matchedProject = null;
       if (rawProjectCode) {
         const pCodeStr = String(rawProjectCode).trim().toLowerCase();
-        matchedProject = projects.find(p => 
-          (p.code && p.code.toLowerCase() === pCodeStr) || 
+        matchedProject = projects.find(p =>
+          (p.code && p.code.toLowerCase() === pCodeStr) ||
           (p.name && p.name.toLowerCase() === pCodeStr)
         );
       }
@@ -706,7 +705,7 @@ router.post('/bulk-import', protect, async (req, res) => {
       let matchedUser = null;
       if (rawAssignedExecutive) {
         const execStr = String(rawAssignedExecutive).trim().toLowerCase();
-        matchedUser = users.find(u => 
+        matchedUser = users.find(u =>
           u.name && u.name.toLowerCase().includes(execStr)
         );
       }

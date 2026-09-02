@@ -1,8 +1,28 @@
 const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
+const RolePermission = require('../models/RolePermission');
 const AuditLog = require('../models/AuditLog');
 const { protect, authorize } = require('../middleware/auth');
+
+const defaultRoles = ['Superadmin', 'Crd team', 'sales person', 'ped team', 'accounts team'];
+
+// @route   GET /api/employees/roles
+// @desc    Get all available roles (default + custom from RolePermission + existing Users)
+router.get('/roles', protect, async (req, res) => {
+  try {
+    const roleDocs = await RolePermission.find({}).select('role');
+    const userRoles = await User.distinct('role');
+    
+    const roleSet = new Set([...defaultRoles]);
+    roleDocs.forEach(d => { if (d.role) roleSet.add(d.role); });
+    userRoles.forEach(r => { if (r) roleSet.add(r); });
+
+    res.json(Array.from(roleSet));
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
 
 // @route   GET /api/employees
 // @desc    Get all employees
@@ -20,6 +40,58 @@ router.get('/', protect, async (req, res) => {
     res.json(employees);
   } catch (err) {
     res.status(500).json({ message: err.message });
+  }
+});
+
+// @route   POST /api/employees
+// @desc    Add a new employee (Superadmin only)
+router.post('/', protect, authorize('Superadmin'), async (req, res) => {
+  const { name, email, phone, role, password, isApproved } = req.body;
+
+  try {
+    if (!name || !name.trim()) {
+      return res.status(400).json({ message: 'Full name is required' });
+    }
+    if (!email || !email.trim()) {
+      return res.status(400).json({ message: 'Email address is required' });
+    }
+    if (!phone || !phone.trim()) {
+      return res.status(400).json({ message: 'Phone number is required' });
+    }
+    if (!password || password.trim().length < 4) {
+      return res.status(400).json({ message: 'Password must be at least 4 characters long' });
+    }
+
+    const trimmedPhone = phone.trim();
+    const existingPhone = await User.findOne({ phone: trimmedPhone });
+    if (existingPhone) {
+      return res.status(400).json({ message: 'An employee with this phone number already exists' });
+    }
+
+    const newEmployee = new User({
+      name: name.trim(),
+      email: email.trim().toLowerCase(),
+      phone: trimmedPhone,
+      password: password.trim(),
+      role: role && role.trim() ? role.trim() : 'sales person',
+      isApproved: isApproved !== undefined ? isApproved : true
+    });
+
+    await newEmployee.save();
+
+    await AuditLog.create({
+      user: req.user._id,
+      userName: req.user.name,
+      userRole: req.user.role,
+      action: 'Create Employee',
+      description: `Created new employee ${newEmployee.name} (${newEmployee.email}, ${newEmployee.phone}) with role "${newEmployee.role}"`
+    });
+
+    const createdUser = await User.findById(newEmployee._id).select('-password');
+    res.status(201).json({ message: 'Employee added successfully', employee: createdUser });
+  } catch (err) {
+    console.error('Error creating employee:', err);
+    res.status(500).json({ message: err.message || 'Server error creating employee' });
   }
 });
 
@@ -56,8 +128,8 @@ router.put('/:id/approve', protect, authorize('Superadmin'), async (req, res) =>
 router.put('/:id/role', protect, authorize('Superadmin'), async (req, res) => {
   const { role } = req.body;
 
-  if (!['Superadmin', 'Crd team', 'sales person', 'ped team', 'accounts team'].includes(role)) {
-    return res.status(400).json({ message: 'Invalid role' });
+  if (!role || !role.trim()) {
+    return res.status(400).json({ message: 'Role cannot be empty' });
   }
 
   try {
@@ -67,7 +139,7 @@ router.put('/:id/role', protect, authorize('Superadmin'), async (req, res) => {
     }
 
     const oldRole = employee.role;
-    employee.role = role;
+    employee.role = role.trim();
     await employee.save();
 
     await AuditLog.create({
@@ -75,7 +147,7 @@ router.put('/:id/role', protect, authorize('Superadmin'), async (req, res) => {
       userName: req.user.name,
       userRole: req.user.role,
       action: 'Change Role',
-      description: `Changed role of employee ${employee.name} from ${oldRole} to ${role}`
+      description: `Changed role of employee ${employee.name} from ${oldRole} to ${role.trim()}`
     });
 
     res.json({ message: 'Employee role updated successfully', employee });
@@ -115,12 +187,8 @@ router.put('/:id', protect, authorize('Superadmin'), async (req, res) => {
       employee.name = name.trim();
     }
     
-    if (role) {
-      const validRoles = ['Superadmin', 'Crd team', 'sales person', 'ped team', 'accounts team'];
-      if (!validRoles.includes(role)) {
-        return res.status(400).json({ message: 'Invalid role selected' });
-      }
-      employee.role = role;
+    if (role && role.trim()) {
+      employee.role = role.trim();
     }
 
     if (typeof isApproved === 'boolean') {
@@ -151,7 +219,6 @@ router.put('/:id', protect, authorize('Superadmin'), async (req, res) => {
     res.status(500).json({ message: err.message || 'Server error updating employee' });
   }
 });
-
 
 // @route   GET /api/employees/history
 // @desc    Get activity logs (Employee History)
@@ -194,3 +261,4 @@ router.delete('/:id', protect, authorize('Superadmin'), async (req, res) => {
 });
 
 module.exports = router;
+

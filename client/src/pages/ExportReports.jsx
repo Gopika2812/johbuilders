@@ -1398,7 +1398,7 @@ const ExportReports = () => {
                   <img src="${LOGO_BASE64}" style="max-height: 55px; max-width: 100%; width: auto; height: 55px; object-fit: contain; display: block; margin: 0 auto;" alt="JOHN BUILDWELL" />
                 </td>
                 <td colspan="8" bgcolor="#0F5233" class="bg-header-blue font-bold" style="background-color: #0F5233; color: #FFFFFF; font-family: 'Segoe UI', Arial, sans-serif; font-size: 14pt; font-weight: bold; text-align: center; vertical-align: middle; border: 1px solid #0D4329; height: 65px; letter-spacing: 0.5px;">
-                  JB ${projCode.toUpperCase()} SALES PARAMETER REPORT
+                  JB SALES PARAMETER REPORT
                 </td>
               </tr>
               <tr>
