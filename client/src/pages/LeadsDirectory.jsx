@@ -4026,7 +4026,7 @@ const LeadsDirectory = () => {
                       </span>
                     </div>
                     <div className="flex justify-between border-t border-black-200 mt-2 pt-2 text-sm font-bold text-black-800 items-center">
-                      <span>Total Valuation Cost:</span>
+                      <span>Advance Booking Cost:</span>
                       <div className="flex items-center gap-1">
                         <span className="text-[#0e623a]">Rs.</span>
                         <input
