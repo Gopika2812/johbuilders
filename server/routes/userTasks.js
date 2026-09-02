@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const UserTask = require('../models/UserTask');
 const User = require('../models/User');
+const AuditLog = require('../models/AuditLog');
 const { protect } = require('../middleware/auth');
 
 // @route   GET /api/user-tasks
@@ -384,6 +385,45 @@ router.delete('/:id/attachments/:attachmentId', protect, async (req, res) => {
       .populate('history.updatedBy', 'name email role');
 
     res.json(populated);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// @route   DELETE /api/user-tasks/:id
+// @desc    Delete a user task
+// @access  Private
+router.delete('/:id', protect, async (req, res) => {
+  try {
+    const task = await UserTask.findById(req.params.id);
+    if (!task) {
+      return res.status(404).json({ message: 'Task not found' });
+    }
+
+    const roleNorm = (req.user.role || '').toLowerCase().replace(/[\s_-]+/g, '');
+    const isSuperAdmin = roleNorm === 'superadmin' || roleNorm === 'admin';
+    const isAssigner = task.assignedBy && task.assignedBy.toString() === req.user._id.toString();
+    const isAssignee = task.assignedTo && task.assignedTo.toString() === req.user._id.toString();
+
+    if (!isSuperAdmin && !isAssigner && !isAssignee) {
+      return res.status(403).json({ message: 'Not authorized to delete this task' });
+    }
+
+    await UserTask.findByIdAndDelete(req.params.id);
+
+    try {
+      await AuditLog.create({
+        user: req.user._id,
+        userName: req.user.name,
+        userRole: req.user.role,
+        action: 'Delete Task',
+        description: `Deleted task: "${task.title}"`
+      });
+    } catch (e) {
+      console.error('AuditLog creation error on task delete:', e);
+    }
+
+    res.json({ message: 'Task deleted successfully' });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
