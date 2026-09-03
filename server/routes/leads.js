@@ -555,7 +555,7 @@ router.get('/target-stats/:month', protect, async (req, res) => {
     // Find last day of month
     const year = parseInt(month.split('-')[0]);
     const monthNum = parseInt(month.split('-')[1]);
-    const endDate = new Date(year, monthNum, 1);
+    const endDate = new Date(Date.UTC(year, monthNum, 1, 0, 0, 0, 0));
 
     // Aggregate ACTUAL leads count per source
     const actualStats = await Lead.aggregate([

@@ -340,12 +340,15 @@ const ExportReports = () => {
   const [selectedProject, setSelectedProject] = useState('');
   const [loading, setLoading] = useState(true);
   const [reportLoading, setReportLoading] = useState(false);
+  const [reportLoadingText, setReportLoadingText] = useState('Generating Report Preview...');
   const fileCode = 'ALL_PROJECTS';
   const [previewHtml, setPreviewHtml] = useState('');
   const [previewFilename, setPreviewFilename] = useState('');
   const [previewModalOpen, setPreviewModalOpen] = useState(false);
   const [previewSheets, setPreviewSheets] = useState([]);
   const [currentSheetIndex, setCurrentSheetIndex] = useState(0);
+
+  const fetchInsightsPromiseRef = useRef(null);
 
   const handlePreview = (html, filename) => {
     if (window.__isDownloadingAll) {
@@ -370,8 +373,6 @@ const ExportReports = () => {
   const [activeCpeDrillDown, setActiveCpeDrillDown] = useState(null);
   const [exportMenuOpen, setExportMenuOpen] = useState(false);
   const [crdMenuOpen, setCrdMenuOpen] = useState(false);
-
-
 
   const [stats, setStats] = useState({
     cards: {
@@ -400,17 +401,12 @@ const ExportReports = () => {
     projects: []
   });
 
-  useEffect(() => {
-    setSelectedGroup(null);
-    fetchInsightsData();
-  }, [fromDate, toDate, selectedUser, selectedProject]);
-
-  const fetchInsightsData = async () => {
+  const fetchInsightsData = async (from = fromDate, to = toDate, user = selectedUser, proj = selectedProject) => {
     setLoading(true);
     try {
-      let url = `${API_URL}/dashboard/stats?fromDate=${fromDate}&toDate=${toDate}`;
-      if (selectedUser) url += `&userId=${selectedUser}`;
-      if (selectedProject) url += `&projectId=${selectedProject}`;
+      let url = `${API_URL}/dashboard/stats?fromDate=${from}&toDate=${to}`;
+      if (user) url += `&userId=${user}`;
+      if (proj) url += `&projectId=${proj}`;
       
       const response = await fetch(url, {
         headers: { 'Authorization': `Bearer ${token}` }
@@ -418,12 +414,32 @@ const ExportReports = () => {
       if (response.ok) {
         const data = await response.json();
         setStats(data);
+        return data;
       }
     } catch (err) {
       console.error(err);
     } finally {
       setLoading(false);
     }
+    return null;
+  };
+
+  useEffect(() => {
+    setSelectedGroup(null);
+    const p = fetchInsightsData(fromDate, toDate, selectedUser, selectedProject);
+    fetchInsightsPromiseRef.current = p;
+  }, [fromDate, toDate, selectedUser, selectedProject]);
+
+  const ensureStats = async () => {
+    if (loading && fetchInsightsPromiseRef.current) {
+      const data = await fetchInsightsPromiseRef.current;
+      if (data) return data;
+    }
+    if (!stats || !stats.projects || stats.projects.length === 0 || !stats.groupStats || Object.keys(stats.groupStats).length === 0) {
+      const data = await fetchInsightsData(fromDate, toDate, selectedUser, selectedProject);
+      if (data) return data;
+    }
+    return stats;
   };
 
   const formatLeadStatusForReport = (lead) => {
@@ -475,16 +491,14 @@ const ExportReports = () => {
         ? lead.followUpInfo.remarks 
         : (lead.closeRemarks || '');
     }
-    if (!remarks || !remarks.trim()) return defaultEmpty;
-    if (remarks.match(/\[Lost at (.*?) stage\]/)) {
-      remarks = remarks.replace(/\[Lost at .*? stage\]( - )?/, '');
-    }
     return remarks || defaultEmpty;
   };
 
-  const handleExportEnquiriesExcel = async (returnHtml = false) => {
+  const handleExportEnquiriesExcel = async (returnHtml = false, providedStats = null) => {
     try {
       setReportLoading(true);
+      setReportLoadingText('Fetching enquiry records for selected period...');
+      const currentStats = providedStats || await ensureStats();
       const res = await fetch(`${API_URL}/leads`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -527,8 +541,9 @@ const ExportReports = () => {
       }
 
       // Generate the styled HTML sheet
+      const projectList = currentStats?.projects || stats.projects || [];
       const projectTitle = selectedProject 
-        ? (stats.projects.find(p => p._id === selectedProject)?.code || 'PROJECT')
+        ? (projectList.find(p => p._id === selectedProject)?.code || 'PROJECT')
         : '';
       const titleText = projectTitle 
         ? `JB - ${projectTitle.toUpperCase()} MARKETING ENQUIRY SHEET`
@@ -598,23 +613,22 @@ const ExportReports = () => {
           const dateStr = new Date(lead.createdAt).toLocaleDateString('en-GB').replace(/\//g, '.');
           const phoneStr = lead.phone || '&nbsp;';
           const sourceStr = lead.leadSource || '&nbsp;';
-          const projectStr = lead.project?.code || '&nbsp;';
-          const placeStr = lead.address ? lead.address.split(',')[0] : '&nbsp;';
+          const projectStr = lead.project?.name || lead.project?.code || 'Potheri';
+          const locationStr = lead.address || lead.location || '&nbsp;';
           const statusStr = formatLeadStatusForReport(lead);
           const remarksStr = getFormattedLeadRemarks(lead, '&nbsp;');
-          const rowClass = idx % 2 === 1 ? 'class="even-row"' : '';
 
           html += `
-            <tr ${rowClass}>
-              <td class="text-center">${globalSNo++}</td>
-              <td class="text-left">${dateStr}</td>
-              <td class="text-left bold-label">${lead.name || '&nbsp;'}</td>
-              <td class="text-left">${phoneStr}</td>
-              <td class="text-left">${execName.toUpperCase()}</td>
-              <td class="text-left">${sourceStr}</td>
-              <td class="text-left">${projectStr}</td>
-              <td class="text-left">${placeStr}</td>
-              <td class="text-left">${statusStr}</td>
+            <tr>
+              <td>${globalSNo++}</td>
+              <td>${dateStr}</td>
+              <td class="text-left font-bold">${lead.name || '&nbsp;'}</td>
+              <td>${phoneStr}</td>
+              <td>${execName}</td>
+              <td>${sourceStr}</td>
+              <td>${projectStr}</td>
+              <td>${locationStr}</td>
+              <td>${statusStr}</td>
               <td class="text-left">${remarksStr}</td>
             </tr>
           `;
@@ -628,19 +642,21 @@ const ExportReports = () => {
       `;
 
       // Trigger download
-      handlePreview(html, `JB_${fileCode}_ENQUIRY_REPORT_${dateForMonth.getFullYear()}_${dateForMonth.getMonth() + 1}.xls`);
+      handlePreview(html, `JB_${fileCode}_MARKETING_ENQUIRY_SHEET_${dateForMonth.getFullYear()}_${dateForMonth.getMonth() + 1}.xls`);
 
     } catch (err) {
       console.error(err);
-      alert('Error exporting enquiry sheet');
+      alert('Error exporting enquiries');
     } finally {
       setReportLoading(false);
     }
   };
 
-  const handleExportSiteVisitsExcel = async (returnHtml = false) => {
+  const handleExportSiteVisitsExcel = async (returnHtml = false, providedStats = null) => {
     try {
       setReportLoading(true);
+      setReportLoadingText('Fetching site visit records for selected period...');
+      const currentStats = providedStats || await ensureStats();
       const res = await fetch(`${API_URL}/leads`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -691,8 +707,9 @@ const ExportReports = () => {
       }
 
       // Generate the styled HTML sheet
+      const projectList = currentStats?.projects || stats.projects || [];
       const projectTitle = selectedProject 
-        ? (stats.projects.find(p => p._id === selectedProject)?.code || 'PROJECT')
+        ? (projectList.find(p => p._id === selectedProject)?.code || 'PROJECT')
         : '';
       const titleText = projectTitle 
         ? `JB - ${projectTitle.toUpperCase()} SITE VISIT REPORT`
@@ -712,6 +729,19 @@ const ExportReports = () => {
         <body>
           <table>
             ${getExcelHeader(titleText, monthTitle, 10, "#0F5233")}
+          <!-- Table Headers -->
+          <tr class="table-headers">
+            <th>S.No</th>
+            <th>SiteVisitDate</th>
+            <th>LeadName</th>
+            <th>ContactNumber</th>
+            <th>AssignedTo</th>
+            <th>EnquiryMode</th>
+            <th>Project</th>
+            <th>Place</th>
+            <th>LeadStatus</th>
+            <th>SalesExecutiveRemarks</th>
+          </tr>
       `;
 
       // Group leads by assigned executive
@@ -726,66 +756,56 @@ const ExportReports = () => {
 
       Object.keys(groupedByExec).forEach(execName => {
         const leadsList = groupedByExec[execName];
-        // Sort chronologically by date (1st to 31st)
+        // Sort chronologically by date
         leadsList.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
 
         // Executive banner row
         html += `
           <tr>
-            <td colspan="10" class="exec-banner">${execName.toUpperCase()}</td>
-          </tr>
-          <!-- Table Headers -->
-          <tr class="table-headers">
-            <th>S.No.</th>
-            <th>Site Visit Date</th>
-            <th>Name</th>
-            <th>Contact</th>
-            <th>Site Visited By</th>
-            <th>Project</th>
-            <th>Place</th>
-            <th>Enquiry Status</th>
-            <th>Remarks</th>
-            <th>Enquiry mode</th>
+            <td class="exec-banner">&nbsp;</td>
+            <td class="exec-banner">&nbsp;</td>
+            <td class="exec-banner">&nbsp;</td>
+            <td class="exec-banner">&nbsp;</td>
+            <td class="exec-banner">&nbsp;</td>
+            <td class="exec-banner text-red"><span style="color: red; font-weight: bold;">${execName}</span></td>
+            <td class="exec-banner">&nbsp;</td>
+            <td class="exec-banner">&nbsp;</td>
+            <td class="exec-banner">&nbsp;</td>
+            <td class="exec-banner">&nbsp;</td>
           </tr>
         `;
 
         // Lead rows
-        leadsList.forEach((lead, idx) => {
-          let svDate = lead.siteVisitDate ? new Date(lead.siteVisitDate) : null;
-          if (!svDate && lead.history) {
-            const svHist = lead.history.find(h => 
-              h.status === 'Site Visit' || 
-              h.status === 'Site Visit Follow-up' ||
-              (h.stageName && h.stageName.toLowerCase().includes('site visit'))
-            );
-            if (svHist && (svHist.timestamp || svHist.date)) {
-              svDate = new Date(svHist.timestamp || svHist.date);
-            }
+        leadsList.forEach(lead => {
+          // Check for specific site visit date or use createdAt as fallback
+          let siteVisitDate = lead.siteVisitDate;
+          if (!siteVisitDate && lead.history) {
+            const svEntry = lead.history.find(h => h.status === 'Site Visit' || h.status === 'Site Visit Follow-up');
+            if (svEntry) siteVisitDate = svEntry.timestamp;
           }
-          if (!svDate) svDate = new Date(lead.createdAt);
-          const dateStr = svDate.toLocaleDateString('en-GB').replace(/\//g, '.');
+          const dateStr = siteVisitDate 
+            ? new Date(siteVisitDate).toLocaleDateString('en-GB').replace(/\//g, '.')
+            : new Date(lead.createdAt).toLocaleDateString('en-GB').replace(/\//g, '.');
+
           const phoneStr = lead.phone || '&nbsp;';
-          const placeStr = lead.address ? lead.address.split(',')[0] : '&nbsp;';
-          const visitedBy = execName;
-          const projectStr = lead.project?.code || lead.project?.name || '&nbsp;';
-          
+          const sourceStr = lead.leadSource || '&nbsp;';
+          const projectStr = lead.project?.name || lead.project?.code || 'Potheri';
+          const locationStr = lead.address || lead.location || '&nbsp;';
           const statusStr = formatLeadStatusForReport(lead);
           const remarksStr = getFormattedLeadRemarks(lead, '&nbsp;');
-          const sourceStr = lead.leadSource || '&nbsp;';
-          const rowClass = idx % 2 === 1 ? 'class="even-row"' : '';
 
           html += `
-            <tr ${rowClass}>
+            <tr>
               <td>${globalSNo++}</td>
-              <td class="text-center">${dateStr}</td>
-              <td class="text-left bold-label">${lead.name || '&nbsp;'}</td>
+              <td>${dateStr}</td>
+              <td class="text-left font-bold">${lead.name || '&nbsp;'}</td>
               <td>${phoneStr}</td>
-              <td>${visitedBy}</td>
+              <td>${execName}</td>
+              <td>${sourceStr}</td>
               <td>${projectStr}</td>
-              <td>${placeStr}</td>
+              <td>${locationStr}</td>
               <td>${statusStr}</td>
               <td class="text-left">${remarksStr}</td>
-              <td>${sourceStr}</td>
             </tr>
           `;
         });
@@ -802,15 +822,17 @@ const ExportReports = () => {
 
     } catch (err) {
       console.error(err);
-      alert('Error exporting site visit report');
+      alert('Error exporting site visits');
     } finally {
       setReportLoading(false);
     }
   };
 
-  const handleExportHotListExcel = async (returnHtml = false) => {
+  const handleExportHotListExcel = async (returnHtml = false, providedStats = null) => {
     try {
       setReportLoading(true);
+      setReportLoadingText('Fetching hot list records for selected period...');
+      const currentStats = providedStats || await ensureStats();
       const res = await fetch(`${API_URL}/leads`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -850,8 +872,9 @@ const ExportReports = () => {
       }
 
       // Generate the styled HTML sheet
+      const projectList = currentStats?.projects || stats.projects || [];
       const projectTitle = selectedProject 
-        ? (stats.projects.find(p => p._id === selectedProject)?.code || 'PROJECT')
+        ? (projectList.find(p => p._id === selectedProject)?.code || 'PROJECT')
         : '';
       const titleText = projectTitle 
         ? `JB - ${projectTitle.toUpperCase()} MARKETING HOT LIST`
@@ -870,7 +893,20 @@ const ExportReports = () => {
         </head>
         <body>
           <table>
-            ${getExcelHeader(titleText, monthTitle, 9, "#0F5233")}
+            ${getExcelHeader(titleText, monthTitle, 10, "#0F5233")}
+          <!-- Table Headers -->
+          <tr class="table-headers">
+            <th>S.No</th>
+            <th>EnquiryDate</th>
+            <th>LeadName</th>
+            <th>ContactNumber</th>
+            <th>AssignedTo</th>
+            <th>EnquiryMode</th>
+            <th>Project</th>
+            <th>Place</th>
+            <th>LeadStatus</th>
+            <th>SalesExecutiveRemarks</th>
+          </tr>
       `;
 
       // Group leads by assigned executive
@@ -885,104 +921,50 @@ const ExportReports = () => {
 
       Object.keys(groupedByExec).forEach(execName => {
         const leadsList = groupedByExec[execName];
-        // Sort chronologically by date (1st to 31st)
+        // Sort chronologically by date
         leadsList.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
 
         // Executive banner row
         html += `
           <tr>
-            <td colspan="9" class="exec-banner">${execName.toUpperCase()}</td>
+            <td class="exec-banner">&nbsp;</td>
+            <td class="exec-banner">&nbsp;</td>
+            <td class="exec-banner">&nbsp;</td>
+            <td class="exec-banner">&nbsp;</td>
+            <td class="exec-banner">&nbsp;</td>
+            <td class="exec-banner text-red"><span style="color: red; font-weight: bold;">${execName}</span></td>
+            <td class="exec-banner">&nbsp;</td>
+            <td class="exec-banner">&nbsp;</td>
+            <td class="exec-banner">&nbsp;</td>
+            <td class="exec-banner">&nbsp;</td>
           </tr>
         `;
 
-        const renderLeadRows = (list) => {
-          let sectionHtml = '';
-          list.forEach((lead, idx) => {
-            const salutationStr = lead.salutation ? `${lead.salutation} ` : '';
-            const nameStr = `${salutationStr}${lead.name || ''}`;
-            const phoneStr = lead.phone || '';
-            const followBy = execName;
-            const sourceStr = lead.leadSource || 'Direct Visit';
-            const projectStr = lead.project?.code || lead.project?.name || '&nbsp;';
-            
-            const lastCalledStr = lead.updatedAt 
-              ? new Date(lead.updatedAt).toLocaleDateString('en-GB').replace(/\//g, '.') 
-              : new Date(lead.createdAt).toLocaleDateString('en-GB').replace(/\//g, '.');
-              
-            const followUpDateStr = lead.followUpInfo?.nextFollowUpDate 
-              ? new Date(lead.followUpInfo.nextFollowUpDate).toLocaleDateString('en-GB').replace(/\//g, '.') 
-              : '';
-              
-            const remarksStr = getFormattedLeadRemarks(lead, '');
-            const rowClass = idx % 2 === 1 ? 'class="even-row"' : '';
+        // Lead rows
+        leadsList.forEach(lead => {
+          const dateStr = new Date(lead.createdAt).toLocaleDateString('en-GB').replace(/\//g, '.');
+          const phoneStr = lead.phone || '&nbsp;';
+          const sourceStr = lead.leadSource || '&nbsp;';
+          const projectStr = lead.project?.name || lead.project?.code || 'Potheri';
+          const locationStr = lead.address || lead.location || '&nbsp;';
+          const statusStr = formatLeadStatusForReport(lead);
+          const remarksStr = getFormattedLeadRemarks(lead, '&nbsp;');
 
-            sectionHtml += `
-              <tr ${rowClass}>
-                <td>${globalSNo++}</td>
-                <td class="text-left bold-label">${nameStr}</td>
-                <td>${phoneStr}</td>
-                <td>${followBy}</td>
-                <td class="text-left">${sourceStr}</td>
-                <td>${projectStr}</td>
-                <td class="text-center">${lastCalledStr}</td>
-                <td>${followUpDateStr}</td>
-                <td class="text-left">${remarksStr}</td>
-              </tr>
-            `;
-          });
-          return sectionHtml;
-        };
-
-        const bookedList = leadsList.filter(lead => lead.status === 'Booking' || lead.status === 'Won' || lead.status === 'Booked' || lead.isBooked);
-        const pendingList = leadsList.filter(lead => !(lead.status === 'Booking' || lead.status === 'Won' || lead.status === 'Booked' || lead.isBooked));
-
-        // 🟢 BOOKED HOT LIST Subsection
-        if (bookedList.length > 0) {
           html += `
             <tr>
-              <td colspan="9" style="background-color: #dcfce7 !important; color: #166534 !important; font-weight: bold; text-align: left; padding: 6px 12px; border: 1px solid #86efac; font-size: 10pt; letter-spacing: 0.3px;">
-                🟢 BOOKED HOT LIST (${bookedList.length})
-              </td>
-            </tr>
-            <!-- Table Headers -->
-            <tr class="table-headers">
-              <th>S.No</th>
-              <th>Customer Name</th>
-              <th>Contact Number</th>
-              <th>Followup By</th>
-              <th>Enquiry Mode</th>
-              <th>Project</th>
-              <th>Last Called Date</th>
-              <th>Follow up Date</th>
-              <th>Remarks</th>
+              <td>${globalSNo++}</td>
+              <td>${dateStr}</td>
+              <td class="text-left font-bold">${lead.name || '&nbsp;'}</td>
+              <td>${phoneStr}</td>
+              <td>${execName}</td>
+              <td>${sourceStr}</td>
+              <td>${projectStr}</td>
+              <td>${locationStr}</td>
+              <td>${statusStr}</td>
+              <td class="text-left">${remarksStr}</td>
             </tr>
           `;
-          html += renderLeadRows(bookedList);
-        }
-
-        // 🟡 PENDING HOT LIST Subsection
-        if (pendingList.length > 0) {
-          html += `
-            <tr>
-              <td colspan="9" style="background-color: #fef9c3 !important; color: #854d0e !important; font-weight: bold; text-align: left; padding: 6px 12px; border: 1px solid #fde047; font-size: 10pt; letter-spacing: 0.3px;">
-                🟡 PENDING HOT LIST (${pendingList.length})
-              </td>
-            </tr>
-            <!-- Table Headers -->
-            <tr class="table-headers">
-              <th>S.No</th>
-              <th>Customer Name</th>
-              <th>Contact Number</th>
-              <th>Followup By</th>
-              <th>Enquiry Mode</th>
-              <th>Project</th>
-              <th>Last Called Date</th>
-              <th>Follow up Date</th>
-              <th>Remarks</th>
-            </tr>
-          `;
-          html += renderLeadRows(pendingList);
-        }
+        });
       });
 
       html += `
@@ -996,15 +978,17 @@ const ExportReports = () => {
 
     } catch (err) {
       console.error(err);
-      alert('Error exporting hot list report');
+      alert('Error exporting hot list');
     } finally {
       setReportLoading(false);
     }
   };
 
-  const handleExportBookingsExcel = async (returnHtml = false) => {
+  const handleExportBookingsExcel = async (returnHtml = false, providedStats = null) => {
     try {
       setReportLoading(true);
+      setReportLoadingText('Fetching booking details for selected period...');
+      const currentStats = providedStats || await ensureStats();
       const res = await fetch(`${API_URL}/leads`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -1051,8 +1035,9 @@ const ExportReports = () => {
       }
 
       // Generate the styled HTML sheet
+      const projectList = currentStats?.projects || stats.projects || [];
       const projectTitle = selectedProject 
-        ? (stats.projects.find(p => p._id === selectedProject)?.code || 'PROJECT')
+        ? (projectList.find(p => p._id === selectedProject)?.code || 'PROJECT')
         : '';
       const titleText = projectTitle 
         ? `JB - ${projectTitle.toUpperCase()} UNIT BOOKING DETAILS`
@@ -1146,9 +1131,11 @@ const ExportReports = () => {
     }
   };
 
-  const handleExportSummaryReport = async (returnHtml = false) => {
+  const handleExportSummaryReport = async (returnHtml = false, providedStats = null) => {
     try {
       setReportLoading(true);
+      setReportLoadingText('Fetching abstract and summary plan data...');
+      const currentStats = providedStats || await ensureStats();
       const activeMonthStr = fromDate.substring(0, 7);
 
       // Fetch all required data points in parallel for the active month
@@ -1252,13 +1239,14 @@ const ExportReports = () => {
         plotsCount: statsData.lastMonth?.plotsCount || 0
       };
 
-      const selectedProjObj = stats.projects?.find(p => p._id === selectedProject);
+      const projectList = currentStats?.projects || stats.projects || [];
+      const selectedProjObj = projectList.find(p => p._id === selectedProject);
       const isPlotComposition = selectedProjObj 
         ? (Array.isArray(selectedProjObj.projectType) 
             ? selectedProjObj.projectType.some(t => String(t).toLowerCase().includes('plot')) 
             : String(selectedProjObj.projectType || '').toLowerCase().includes('plot'))
         : (
-            stats.projects?.some(p => {
+            projectList.some(p => {
               const pTypes = Array.isArray(p.projectType) ? p.projectType : [p.projectType];
               return pTypes.some(t => String(t).toLowerCase().includes('plot'));
             }) || currentAchieved.plotsCount > 0 || pTarget > 0
@@ -1597,15 +1585,17 @@ const ExportReports = () => {
     }
   };
 
-  const handleExportMarketingReturnsReport = async (returnHtml = false) => {
+  const handleExportMarketingReturnsReport = async (returnHtml = false, providedStats = null) => {
     try {
       setReportLoading(true);
-      
-      const groupData = stats.groupStats || {};
+      setReportLoadingText('Fetching marketing performance data...');
+      const currentStats = providedStats || await ensureStats();
+      const groupData = currentStats?.groupStats || stats.groupStats || {};
 
       // Generate the styled HTML sheet
+      const projectList = currentStats?.projects || stats.projects || [];
       const projectTitle = selectedProject 
-        ? (stats.projects.find(p => p._id === selectedProject)?.code || 'PROJECT')
+        ? (projectList.find(p => p._id === selectedProject)?.code || 'PROJECT')
         : '';
       const titleText = projectTitle 
         ? `JB - ${projectTitle.toUpperCase()} MARKETING PERFORMANCE REPORT`
@@ -1725,10 +1715,11 @@ const ExportReports = () => {
     }
   };
 
-  const handleExportLeadSourcesReport = async (returnHtml = false) => {
+  const handleExportLeadSourcesReport = async (returnHtml = false, providedStats = null) => {
     try {
       setReportLoading(true);
-      
+      setReportLoadingText('Fetching lead source distribution data...');
+      const currentStats = providedStats || await ensureStats();
       const activeMonthStr = fromDate.substring(0, 7);
 
       // Fetch groups, targets and stats for the selected month in parallel
@@ -2776,24 +2767,28 @@ const ExportReports = () => {
   const handleDownloadAll = async () => {
     try {
       setReportLoading(true);
+      setReportLoadingText('Fetching filtered data for all reports...');
       window.__isDownloadingAll = true;
+      const currentStats = await ensureStats();
+
       const allSheets = [];
 
-      const convertHtmlToSheet = async (exportFunc, sheetName) => {
+      const convertHtmlToSheet = async (exportFunc, sheetName, label) => {
+          setReportLoadingText(`Preparing ${label || sheetName}...`);
           window.__capturedHtml = null;
-          await exportFunc(); // It triggers handlePreview
+          await exportFunc(false, currentStats); // It triggers handlePreview
           const htmlString = window.__capturedHtml;
           if (!htmlString) return;
           allSheets.push({ name: sheetName, html: htmlString });
       };
 
-      await convertHtmlToSheet(handleExportSummaryReport, 'Abstract');
-      await convertHtmlToSheet(handleExportEnquiriesExcel, 'Enquiries');
-      await convertHtmlToSheet(handleExportSiteVisitsExcel, 'Site Visits');
-      await convertHtmlToSheet(handleExportHotListExcel, 'Hot List');
-      await convertHtmlToSheet(handleExportBookingsExcel, 'Bookings');
-      await convertHtmlToSheet(handleExportMarketingReturnsReport, 'Marketing Returns');
-      await convertHtmlToSheet(handleExportLeadSourcesReport, 'Lead Sources');
+      await convertHtmlToSheet(handleExportSummaryReport, 'Abstract', 'Abstract of Report');
+      await convertHtmlToSheet(handleExportEnquiriesExcel, 'Enquiries', 'Enquiry Sheet');
+      await convertHtmlToSheet(handleExportSiteVisitsExcel, 'Site Visits', 'Site Visit Sheet');
+      await convertHtmlToSheet(handleExportHotListExcel, 'Hot List', 'Hot List Sheet');
+      await convertHtmlToSheet(handleExportBookingsExcel, 'Bookings', 'Booking Sheet');
+      await convertHtmlToSheet(handleExportMarketingReturnsReport, 'Marketing Returns', 'Marketing Performance');
+      await convertHtmlToSheet(handleExportLeadSourcesReport, 'Lead Sources', 'Lead Sources');
       
       if (allSheets.length > 0) {
         setPreviewSheets(allSheets);
@@ -2864,7 +2859,15 @@ const ExportReports = () => {
             <FolderOpen className="w-6 h-6" />
           </div>
           <div>
-            <h1 className="text-2xl font-black text-black-800 tracking-tight">Sales Reports</h1>
+            <div className="flex items-center gap-3">
+              <h1 className="text-2xl font-black text-black-800 tracking-tight">Sales Reports</h1>
+              {loading && (
+                <div className="flex items-center gap-1.5 px-3 py-1 bg-emerald-50 border border-emerald-200 text-[#0e623a] rounded-full text-xs font-bold animate-pulse shadow-xs">
+                  <Loader2 className="w-3.5 h-3.5 text-[#0e623a] animate-spin" />
+                  <span>Syncing filtered data...</span>
+                </div>
+              )}
+            </div>
             {/* <p className="text-xs text-black-500 mt-1">Download operational and performance reports.</p> */}
           </div>
         </div>
@@ -3092,13 +3095,13 @@ const ExportReports = () => {
       {/* ⏳ Loading Spinner Overlay */}
       {reportLoading && !previewModalOpen && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/50 backdrop-blur-xs animate-fadeIn">
-          <div className="bg-white rounded-3xl p-8 shadow-2xl border border-black-100 flex flex-col items-center gap-4 text-center max-w-xs animate-in zoom-in-95 duration-200">
+          <div className="bg-white rounded-3xl p-8 shadow-2xl border border-black-100 flex flex-col items-center gap-4 text-center max-w-sm animate-in zoom-in-95 duration-200">
             <div className="w-14 h-14 bg-emerald-50 rounded-full flex items-center justify-center border border-emerald-100">
               <Loader2 className="w-8 h-8 text-[#0e623a] animate-spin" />
             </div>
             <div>
-              <h3 className="text-base font-extrabold text-black-800">Generating Report Preview</h3>
-              <p className="text-xs font-semibold text-black-450 mt-1">Please wait while data is processed...</p>
+              <h3 className="text-base font-extrabold text-black-800">{reportLoadingText || 'Generating Report Preview'}</h3>
+              <p className="text-xs font-semibold text-black-450 mt-1">Please wait while exact filtered data is fetched and formatted...</p>
             </div>
           </div>
         </div>

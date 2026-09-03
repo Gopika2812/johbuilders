@@ -530,8 +530,8 @@ router.get('/stats', protect, async (req, res) => {
     });
 
     // Calculate Projects & Units Inventory Stats
-    const leadsWithSelectedUnits = await Lead.find({ 'bookingInfo.selectedUnits': { $exists: true, $ne: [] } });
-    const crdFlowsWithUnits = await CRDFlow.find({ unitId: { $exists: true, $ne: '' } });
+    const leadsWithSelectedUnits = await Lead.find({ 'bookingInfo.selectedUnits': { $exists: true, $ne: [] } }).lean();
+    const crdFlowsWithUnits = await CRDFlow.find({ unitId: { $exists: true, $ne: '' } }).lean();
     const bookingDatesMap = new Map();
 
     leadsWithSelectedUnits.forEach(lead => {
@@ -568,7 +568,7 @@ router.get('/stats', protect, async (req, res) => {
       projectFilter._id = projectId;
     }
     // Project createdAt filter removed so that projects are always visible
-    const allProjects = await Project.find(projectFilter);
+    const allProjects = await Project.find(projectFilter).lean();
     let totalProjects = allProjects.length;
     let totalUnits = 0;
     let availableUnits = 0;
@@ -737,7 +737,7 @@ router.get('/stats', protect, async (req, res) => {
       });
     });
 
-    const cancelledFlows = await CRDFlow.find({ status: { $in: ['Cancelled', 'Returned'] } }).populate('project', 'name code projectType');
+    const cancelledFlows = await CRDFlow.find({ status: { $in: ['Cancelled', 'Returned'] } }).populate('project', 'name code projectType').lean();
     cancelledFlows.forEach(cf => {
       if (cf.project) {
         const pCode = cf.project.code || cf.project.name;
@@ -780,7 +780,7 @@ router.get('/stats', protect, async (req, res) => {
     // Compute stage-by-stage payments from CRD Flow
     const bookingLeads = leads.filter(l => l.status === 'Booking' || l.status === 'Won');
     const bookingLeadIds = bookingLeads.map(l => l._id);
-    const crdFlows = await CRDFlow.find({ lead: { $in: bookingLeadIds }, status: { $nin: ['Cancelled', 'Returned'] } });
+    const crdFlows = await CRDFlow.find({ lead: { $in: bookingLeadIds }, status: { $nin: ['Cancelled', 'Returned'] } }).lean();
 
     let crdTotalValue = 0;
     let crdReceivedValue = 0;
@@ -866,7 +866,7 @@ router.get('/stats', protect, async (req, res) => {
     const handoverRate = totalUnits > 0 ? (handoverUnits / totalUnits) * 100 : 0;
 
     // Calculate Group-wise stats for marketing spend drill-down
-    const leadGroups = await LeadGroup.find({});
+    const leadGroups = await LeadGroup.find({}).lean();
     const groupStats = {};
     const processedSources = new Set();
 
@@ -980,7 +980,7 @@ router.get('/stats', protect, async (req, res) => {
     if (query.assignedTo) todayQuery.assignedTo = query.assignedTo;
     if (query.leadSource) todayQuery.leadSource = query.leadSource;
 
-    const todayLeads = await Lead.find(todayQuery);
+    const todayLeads = await Lead.find(todayQuery).lean();
 
     let todayLeadsCount = 0;
     let todayEnquiriesCount = 0;
@@ -1031,7 +1031,7 @@ router.get('/stats', protect, async (req, res) => {
       totalActive: 0
     };
 
-    const allStatsCrdFlows = await CRDFlow.find({ lead: { $in: bookingLeadIds } });
+    const allStatsCrdFlows = await CRDFlow.find({ lead: { $in: bookingLeadIds } }).lean();
 
     allStatsCrdFlows.forEach(flow => {
       crdFlowStats.totalActive++;

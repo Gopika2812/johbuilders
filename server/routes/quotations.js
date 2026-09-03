@@ -309,12 +309,12 @@ router.get('/summary-stats/:month', protect, async (req, res) => {
       const startDate = new Date(`${targetMonth}-01T00:00:00.000Z`);
       const year = parseInt(targetMonth.split('-')[0]);
       const monthNum = parseInt(targetMonth.split('-')[1]);
-      const endDate = new Date(year, monthNum, 1);
+      const endDate = new Date(Date.UTC(year, monthNum, 1, 0, 0, 0, 0));
 
       // Find all quotations created in this range
       const quotations = await Quotation.find({
         createdAt: { $gte: startDate, $lt: endDate }
-      }).populate('lead').populate('project');
+      }).populate('lead').populate('project').lean();
 
       // Filter only those whose lead status is 'Booking'
       const bookingQuotations = quotations.filter(q => q.lead && (q.lead.status === 'Booking' || q.lead.status === 'Won'));

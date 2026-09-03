@@ -45,9 +45,9 @@ router.get('/project-stats/:month', protect, async (req, res) => {
     const year = parseInt(month.split('-')[0]);
     const monthNum = parseInt(month.split('-')[1]);
     const startDate = new Date(`${month}-01T00:00:00.000Z`);
-    const endDate = new Date(year, monthNum, 1);
+    const endDate = new Date(Date.UTC(year, monthNum, 1, 0, 0, 0, 0));
 
-    const projects = await Project.find({});
+    const projects = await Project.find({}).lean();
     const stats = {};
     for (let proj of projects) {
       stats[proj._id] = {
@@ -63,7 +63,7 @@ router.get('/project-stats/:month', protect, async (req, res) => {
 
     const leads = await Lead.find({
       createdAt: { $gte: startDate, $lt: endDate }
-    });
+    }).lean();
 
     leads.forEach(lead => {
       const projId = lead.project?.toString();
@@ -97,7 +97,7 @@ router.get('/project-stats/:month', protect, async (req, res) => {
 
     const quotations = await Quotation.find({
       createdAt: { $gte: startDate, $lt: endDate }
-    }).populate('lead');
+    }).populate('lead').lean();
 
     quotations.forEach(q => {
       if (!q.project) return;
@@ -134,10 +134,10 @@ router.get('/marketing-stats/:month', protect, async (req, res) => {
     const year = parseInt(month.split('-')[0]);
     const monthNum = parseInt(month.split('-')[1]);
     const startDate = new Date(`${month}-01T00:00:00.000Z`);
-    const endDate = new Date(year, monthNum, 1);
+    const endDate = new Date(Date.UTC(year, monthNum, 1, 0, 0, 0, 0));
 
-    const groups = await LeadGroup.find({});
-    const budgetPlan = await BudgetPlan.findOne({ month });
+    const groups = await LeadGroup.find({}).lean();
+    const budgetPlan = await BudgetPlan.findOne({ month }).lean();
 
     const groupStats = {};
     groups.forEach(g => {
@@ -190,7 +190,7 @@ router.get('/marketing-stats/:month', protect, async (req, res) => {
 
     const leads = await Lead.find({
       createdAt: { $gte: startDate, $lt: endDate }
-    });
+    }).lean();
 
     leads.forEach(lead => {
       const week = getWeekBucket(lead.createdAt);
@@ -209,7 +209,7 @@ router.get('/marketing-stats/:month', protect, async (req, res) => {
           timestamp: { $gte: startDate, $lt: endDate }
         }
       }
-    });
+    }).lean();
 
     conversionLeads.forEach(lead => {
       const match = lead.history.find(h =>
@@ -238,7 +238,7 @@ router.get('/marketing-stats/:month', protect, async (req, res) => {
 // @desc    Get summary target settings for a specific month
 router.get('/:month', protect, async (req, res) => {
   try {
-    let plan = await SummaryPlan.findOne({ month: req.params.month });
+    let plan = await SummaryPlan.findOne({ month: req.params.month }).lean();
     if (!plan) {
       plan = {
         month: req.params.month,
