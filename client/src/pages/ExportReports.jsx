@@ -844,8 +844,10 @@ const ExportReports = () => {
 
       // Apply active dashboard filters
       const filtered = data.filter(lead => {
-        // 1. Must be hot category
-        const isHotList = lead.leadCategory === 'Hot' && !lead.isClosed;
+        // 1. Must be hot category and NOT booked or closed (Pending records only)
+        const s = (lead.status || '').toLowerCase();
+        const isBooked = lead.isBooked || s === 'booking' || s === 'booked' || s === 'won';
+        const isHotList = lead.leadCategory === 'Hot' && !lead.isClosed && !isBooked;
         if (!isHotList) return false;
 
         // 2. Project filter
