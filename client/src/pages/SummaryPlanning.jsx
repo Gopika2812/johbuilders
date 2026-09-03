@@ -19,6 +19,7 @@ const SummaryPlanning = () => {
   }); // Format: YYYY-MM
   const [loading, setLoading] = useState(true);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [inheritedNotice, setInheritedNotice] = useState(null);
   const [activePhase, setActivePhase] = useState('phase1'); // 'phase1' | 'phase2' | 'phase3'
 
   // Phase 1: User-defined targets
@@ -66,6 +67,11 @@ const SummaryPlanning = () => {
         setSalesTarget(targetData.salesTarget || 0);
         setVillasTarget(targetData.villasTarget || targetData.housesTarget || 0);
         setPlotsTarget(targetData.plotsTarget || 0);
+        if (targetData.isInherited) {
+          setInheritedNotice(targetData.inheritedFrom);
+        } else {
+          setInheritedNotice(null);
+        }
       }
 
       // 2. Fetch Aggregated actual achievements for Phase 1
@@ -200,7 +206,7 @@ const SummaryPlanning = () => {
 
       if (targetData && targetData.marketingTargets) {
         targetData.marketingTargets.forEach(mt => {
-          if (mt.target !== undefined && mt.target !== null && mt.target > 0) {
+          if (mt.target !== undefined && mt.target !== null) {
             mTargetMap[mt.name] = mt.target;
           }
         });
@@ -369,7 +375,12 @@ const SummaryPlanning = () => {
           {/* <p className="text-xs text-black-500 mt-1">Manage corporate parameters, turnover projections, and project wise weekly actuals</p> */}
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          {inheritedNotice && !saveSuccess && (
+            <span className="text-xs font-bold text-amber-700 bg-amber-50 px-3 py-1.5 rounded-xl border border-amber-200 flex items-center gap-1 shadow-2xs">
+              <span>Carried forward yearly targets from {inheritedNotice}</span>
+            </span>
+          )}
           {saveSuccess && (
             <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-200">
               Summary Targets Saved!

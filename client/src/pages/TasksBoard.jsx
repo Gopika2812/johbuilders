@@ -703,9 +703,19 @@ const TasksBoard = () => {
       });
 
       if (res.ok) {
+        const savedTask = await parseResponseJSON(res);
         await fetchTasks();
         setShowModal(false);
         setSuccessMsg(editingTask ? 'Task updated successfully!' : 'Task created and assigned successfully!');
+
+        // Send EmailJS Notification to the assigned employee's registered email
+        const assignedPerson = employees.find(emp => emp._id === formData.assignedTo);
+        if (assignedPerson && assignedPerson.email) {
+          const taskUrl = `${window.location.origin}/tasks`;
+          sendTaskAssignmentEmail(assignedPerson, savedTask || formData, user?.name || 'System Admin', taskUrl)
+            .catch(err => console.error('EmailJS task assignment email error:', err));
+        }
+
         setTimeout(() => setSuccessMsg(''), 4000);
 
         // Send EmailJS Task Assignment Notification to the registered person's email

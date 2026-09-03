@@ -235,19 +235,38 @@ router.get('/marketing-stats/:month', protect, async (req, res) => {
 });
 
 // @route   GET /api/summary-plans/:month
-// @desc    Get summary target settings for a specific month
+// @desc    Get summary target settings for a specific month (carries forward yearly targets from previous months if not explicitly saved)
 router.get('/:month', protect, async (req, res) => {
   try {
-    let plan = await SummaryPlan.findOne({ month: req.params.month }).lean();
+    const reqMonth = req.params.month;
+    let plan = await SummaryPlan.findOne({ month: reqMonth });
     if (!plan) {
-      plan = {
-        month: req.params.month,
-        salesTarget: 0,
-        villasTarget: 0,
-        plotsTarget: 0,
-        projectTargets: [],
-        marketingTargets: []
-      };
+      // Yearly planning carry-forward logic:
+      // Search for the most recent plan saved prior to this month, or fallback to the latest plan overall
+      const previousPlan = await SummaryPlan.findOne({ month: { $lt: reqMonth } }).sort({ month: -1 })
+                        || await SummaryPlan.findOne({}).sort({ month: -1 });
+
+      if (previousPlan) {
+        plan = {
+          month: reqMonth,
+          salesTarget: previousPlan.salesTarget || 0,
+          villasTarget: previousPlan.villasTarget || 0,
+          plotsTarget: previousPlan.plotsTarget || 0,
+          projectTargets: previousPlan.projectTargets || [],
+          marketingTargets: previousPlan.marketingTargets || [],
+          isInherited: true,
+          inheritedFrom: previousPlan.month
+        };
+      } else {
+        plan = {
+          month: reqMonth,
+          salesTarget: 0,
+          villasTarget: 0,
+          plotsTarget: 0,
+          projectTargets: [],
+          marketingTargets: []
+        };
+      }
     }
     res.json(plan);
   } catch (err) {
