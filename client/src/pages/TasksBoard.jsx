@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth, API_URL } from '../context/AuthContext';
 import { useLocation } from 'react-router-dom';
+import { sendTaskAssignmentEmail } from '../utils/emailService';
 import { 
   ClipboardList, 
   Plus, 
@@ -706,6 +707,28 @@ const TasksBoard = () => {
         setShowModal(false);
         setSuccessMsg(editingTask ? 'Task updated successfully!' : 'Task created and assigned successfully!');
         setTimeout(() => setSuccessMsg(''), 4000);
+
+        // Send EmailJS Task Assignment Notification to the registered person's email
+        const assignedId = formData.assignedTo;
+        if (assignedId) {
+          const matchedEmployee = employees.find(emp => emp._id === assignedId) || (assignedId === user?._id ? user : null);
+          if (matchedEmployee && matchedEmployee.email) {
+            console.log("Triggering EmailJS task assignment email to:", matchedEmployee.email);
+            sendTaskAssignmentEmail(
+              matchedEmployee,
+              {
+                title: formData.title,
+                description: formData.description,
+                projectName: formData.projectName,
+                category: formData.category,
+                priority: formData.priority,
+                dueDate: formData.dueDate
+              },
+              user?.name || 'Administrator',
+              user?.email
+            ).catch(e => console.error("EmailJS Task Notification Error:", e));
+          }
+        }
       } else {
         const data = await parseResponseJSON(res);
         setError(data?.message || 'Failed to save task');

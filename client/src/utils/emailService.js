@@ -45,3 +45,58 @@ export const sendLeadAssignmentEmail = async (executive, lead, assignedByName, s
     throw error;
   }
 };
+/**
+ * Sends a task scheduling & assignment email notification to the registered person's email address.
+ * 
+ * @param {Object} employee - The assigned employee object
+ * @param {string} employee.name - Name of the employee
+ * @param {string} employee.email - Registration email address of the employee
+ * @param {Object} task - The scheduled task details object
+ * @param {string} task.title - Title of the task
+ * @param {string} [task.description] - Description or instructions of the task
+ * @param {string} [task.projectName] - Project Name / Reference
+ * @param {string} [task.category] - Department / Category
+ * @param {string} [task.priority] - Task priority (e.g. High, Medium, Low)
+ * @param {string} task.dueDate - Due date for the task
+ * @param {string} assignedByName - Name of the logged-in user scheduling the task
+ * @param {string} [senderEmail] - Email of the assigner / admin (for Reply-To)
+ */
+export const sendTaskAssignmentEmail = async (employee, task, assignedByName, senderEmail) => {
+  const serviceId = 'service_hxy9k36';
+  const templateId = 'template_9pz7cyd';
+  const publicKey = '6pVsb0P0NBgl9TG6h';
+
+  const formattedDueDate = task.dueDate 
+    ? new Date(task.dueDate).toLocaleDateString('en-GB') 
+    : 'Not Specified';
+
+  const templateParams = {
+    to_name: employee.name,
+    to_email: employee.email,
+    task_title: task.title,
+    task_description: task.description || 'No detailed instructions provided.',
+    project_name: task.projectName || 'General / Other',
+    department: task.category || 'General',
+    priority: (task.priority || 'Medium').toUpperCase(),
+    due_date: formattedDueDate,
+    assigned_by: assignedByName || 'System Admin',
+    assigned_date: new Date().toLocaleDateString('en-GB'),
+    reply_to_email: senderEmail || 'admin@builders.com'
+  };
+
+  console.log('Attempting to send EmailJS task assignment notification with config:', {
+    serviceId,
+    templateId,
+    publicKey,
+    templateParams
+  });
+
+  try {
+    const response = await emailjs.send(serviceId, templateId, templateParams, publicKey);
+    console.log('Task assignment notification email sent successfully!', response.status, response.text);
+    return response;
+  } catch (error) {
+    console.error('Failed to send task assignment notification email. Check your EmailJS template settings:', error);
+    throw error;
+  }
+};
