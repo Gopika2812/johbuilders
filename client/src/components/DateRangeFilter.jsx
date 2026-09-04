@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Calendar, ChevronDown, RotateCcw } from 'lucide-react';
 
-const DateRangeFilter = ({ fromDate, toDate, onDateChange, onRefresh, label = 'Date Filtration' }) => {
+const DateRangeFilter = ({ fromDate, toDate, onDateChange, onRefresh, label = '' }) => {
   const [filterMode, setFilterMode] = useState('month'); // 'month', 'custom', 'this_month', 'last_month', 'quarterly', 'half_yearly', 'yearly', 'financial_year'
   const [selectedYear, setSelectedYear] = useState(() => new Date().getFullYear());
   const [selectedMonthVal, setSelectedMonthVal] = useState(() => {
@@ -113,12 +113,14 @@ const DateRangeFilter = ({ fromDate, toDate, onDateChange, onRefresh, label = 'D
 
   return (
     <div className="flex flex-col gap-1.5 w-full">
-      <div className="flex items-center justify-between">
-        <label className="text-[11px] font-black text-[#0e623a] uppercase tracking-wider flex items-center gap-1.5">
-          <Calendar className="w-3.5 h-3.5 text-[#0e623a]" />
-          <span>{label}</span>
-        </label>
-      </div>
+      {label && (
+        <div className="flex items-center justify-between">
+          <label className="text-[11px] font-black text-[#0e623a] uppercase tracking-wider flex items-center gap-1.5">
+            <Calendar className="w-3.5 h-3.5 text-[#0e623a]" />
+            <span>{label}</span>
+          </label>
+        </div>
+      )}
 
       {/* Date UI Container highlighted slightly */}
       <div className="flex flex-wrap items-center gap-2 bg-[#f0fbf4] border border-[#0e623a]/25 p-1.5 rounded-2xl shadow-[0_2px_10px_rgba(14,98,58,0.06)] transition-all hover:border-[#0e623a]/40">

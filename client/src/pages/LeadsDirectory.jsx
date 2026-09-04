@@ -2116,7 +2116,6 @@ const LeadsDirectory = () => {
                 setEndDate(newEnd);
               }}
               onRefresh={fetchLeads}
-              label="Date Range & Presets"
             />
           </div>
         </div>
