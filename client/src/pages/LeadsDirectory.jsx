@@ -2392,27 +2392,18 @@ const LeadsDirectory = () => {
                             {(() => {
                               const match = lead.closeRemarks?.match(/\[Lost at (.*?) stage\]/);
                               const lostStage = match ? match[1] : null;
-                              const displayRemarks = match ? lead.closeRemarks.replace(/\[Lost at .*? stage\] - /, '') : lead.closeRemarks;
                               const isSiteVisit = lostStage === 'Site Visit';
                               const isFollowUp = lostStage === 'Follow-Up' || lostStage === 'Assigned';
                               const isBooking = lostStage === 'Booking';
-                              const isHidden = isSiteVisit || isFollowUp || isBooking;
                               return (
-                                <>
-                                  <span className="px-3 py-1.5 text-[12px] font-extrabold uppercase tracking-wider">
-                                    {lostStage ? (
-                                      isBooking ? 'Booking - Cancelled' :
-                                        isSiteVisit ? 'Site Visit - Lost' :
-                                          isFollowUp ? 'Follow-Up - Lost' :
-                                            `${lostStage} - Lost`
-                                    ) : 'Lost'}
-                                  </span>
-                                  {displayRemarks && !isHidden && (
-                                    <div className="text-[11px] text-black-400 italic max-w-[150px] truncate" title={displayRemarks}>
-                                      "{displayRemarks}"
-                                    </div>
-                                  )}
-                                </>
+                                <span className="px-3 py-1.5 text-[12px] font-extrabold uppercase tracking-wider">
+                                  {lostStage ? (
+                                    isBooking ? 'Booking - Cancelled' :
+                                      isSiteVisit ? 'Site Visit - Lost' :
+                                        isFollowUp ? 'Follow-Up - Lost' :
+                                          `${lostStage} - Lost`
+                                  ) : 'Lost'}
+                                </span>
                               );
                             })()}
                             {(() => {
