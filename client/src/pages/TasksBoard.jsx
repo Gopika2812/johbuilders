@@ -62,6 +62,7 @@ const CustomPersonSelector = ({ employees, value, onChange, placeholder = "-- Se
   const filteredEmployees = employees.filter(emp => 
     emp.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     emp.role?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    emp.department?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     emp.email?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -73,7 +74,7 @@ const CustomPersonSelector = ({ employees, value, onChange, placeholder = "-- Se
         className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 hover:border-emerald-600 rounded-xl text-xs font-semibold text-gray-800 flex items-center justify-between transition focus:outline-none focus:ring-2 focus:ring-[#0e623a] cursor-pointer shadow-xs"
       >
         {selectedEmp ? (
-          <div className="flex items-center gap-2 truncate">
+          <div className="flex items-center gap-2 truncate flex-wrap">
             <span className="w-5 h-5 rounded-full bg-[#0e623a] text-white flex items-center justify-center text-[10px] font-bold shrink-0">
               {selectedEmp.name ? selectedEmp.name.charAt(0).toUpperCase() : 'U'}
             </span>
@@ -81,6 +82,11 @@ const CustomPersonSelector = ({ employees, value, onChange, placeholder = "-- Se
             <span className="text-[10px] font-extrabold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-200 shrink-0">
               {selectedEmp.role || 'Staff'}
             </span>
+            {selectedEmp.department && (
+              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-purple-100 text-purple-800 border border-purple-200 shrink-0">
+                {selectedEmp.department}
+              </span>
+            )}
           </div>
         ) : (
           <span className="text-gray-400 font-medium">{placeholder}</span>
@@ -94,7 +100,7 @@ const CustomPersonSelector = ({ employees, value, onChange, placeholder = "-- Se
             <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-gray-400" />
             <input
               type="text"
-              placeholder="Search user, role or email..."
+              placeholder="Search user, department, role..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-8 pr-3 py-1.5 bg-gray-50 border border-gray-200 rounded-xl text-xs text-gray-800 focus:outline-none focus:ring-1 focus:ring-[#0e623a]"
@@ -125,11 +131,16 @@ const CustomPersonSelector = ({ employees, value, onChange, placeholder = "-- Se
                         {emp.name ? emp.name.charAt(0).toUpperCase() : 'U'}
                       </span>
                       <div className="flex flex-col min-w-0 text-left">
-                        <div className="flex items-center gap-1.5">
+                        <div className="flex items-center gap-1.5 flex-wrap">
                           <span className="font-bold text-gray-900 text-xs truncate">{emp.name}</span>
                           <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded bg-gray-100 text-gray-700 border border-gray-200 shrink-0">
                             {emp.role || 'Staff'}
                           </span>
+                          {emp.department && (
+                            <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-purple-50 text-purple-700 border border-purple-100 shrink-0">
+                              {emp.department}
+                            </span>
+                          )}
                         </div>
                         {emp.email && <span className="text-[10px] text-gray-500 truncate">{emp.email}</span>}
                       </div>
@@ -1572,7 +1583,15 @@ const TasksBoard = () => {
                   <CustomPersonSelector
                     employees={employees}
                     value={formData.assignedTo}
-                    onChange={(selectedId) => setFormData({ ...formData, assignedTo: selectedId })}
+                    onChange={(selectedId) => {
+                      const selectedEmp = employees.find(emp => emp._id === selectedId);
+                      const empDept = selectedEmp?.department;
+                      setFormData(prev => ({
+                        ...prev,
+                        assignedTo: selectedId,
+                        ...(empDept ? { category: empDept } : {})
+                      }));
+                    }}
                     placeholder="-- Select Person --"
                   />
                 </div>

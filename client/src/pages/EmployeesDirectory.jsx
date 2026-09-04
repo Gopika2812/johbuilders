@@ -29,11 +29,13 @@ import {
 } from 'lucide-react';
 
 const DEFAULT_ROLES = ['Superadmin', 'Crd team', 'sales person', 'ped team', 'accounts team'];
+const DEFAULT_DEPARTMENTS = ['Sales Team', 'CRD Team', 'Accounts Team', 'Administration (Superadmins)', 'PED Team', 'General'];
 
 const EmployeesDirectory = () => {
   const { token, user } = useAuth();
   const [employees, setEmployees] = useState([]);
   const [availableRoles, setAvailableRoles] = useState(DEFAULT_ROLES);
+  const [availableDepartments, setAvailableDepartments] = useState(DEFAULT_DEPARTMENTS);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
@@ -43,6 +45,7 @@ const EmployeesDirectory = () => {
   // Search & Filter state
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState('All');
+  const [deptFilter, setDeptFilter] = useState('All');
   const [statusFilter, setStatusFilter] = useState('All');
 
   // Add Employee Modal state
@@ -52,6 +55,7 @@ const EmployeesDirectory = () => {
     email: '',
     phone: '',
     role: 'sales person',
+    department: 'Sales Team',
     password: '',
     isApproved: true
   });
@@ -75,6 +79,7 @@ const EmployeesDirectory = () => {
     email: '',
     phone: '',
     role: 'sales person',
+    department: 'Sales Team',
     isApproved: true,
     password: ''
   });
@@ -86,6 +91,7 @@ const EmployeesDirectory = () => {
   useEffect(() => {
     fetchEmployees();
     fetchRoles();
+    fetchDepartments();
   }, [token]);
 
   const fetchEmployees = async () => {
@@ -123,6 +129,25 @@ const EmployeesDirectory = () => {
       }
     } catch (err) {
       console.error('Error fetching roles:', err);
+    }
+  };
+
+  const fetchDepartments = async () => {
+    try {
+      const response = await fetch(`${API_URL}/task-categories`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        if (Array.isArray(data) && data.length > 0) {
+          const names = data.map(d => typeof d === 'string' ? d : d.name).filter(Boolean);
+          setAvailableDepartments(Array.from(new Set([...DEFAULT_DEPARTMENTS, ...names])));
+        }
+      }
+    } catch (err) {
+      console.error('Error fetching departments:', err);
     }
   };
 
@@ -346,6 +371,7 @@ const EmployeesDirectory = () => {
       email: emp.email || '',
       phone: emp.phone || '',
       role: emp.role || 'sales person',
+      department: emp.department || 'General',
       isApproved: emp.isApproved !== undefined ? emp.isApproved : true,
       password: ''
     });
@@ -404,16 +430,19 @@ const EmployeesDirectory = () => {
     const matchesSearch = 
       emp.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       emp.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      emp.department?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       emp.phone?.toLowerCase().includes(searchTerm.toLowerCase());
 
     const matchesRole = roleFilter === 'All' || emp.role?.toLowerCase() === roleFilter.toLowerCase();
     
+    const matchesDept = deptFilter === 'All' || (emp.department || 'General').toLowerCase() === deptFilter.toLowerCase();
+
     const matchesStatus = 
       statusFilter === 'All' || 
       (statusFilter === 'Approved' && emp.isApproved) || 
       (statusFilter === 'Pending' && !emp.isApproved);
 
-    return matchesSearch && matchesRole && matchesStatus;
+    return matchesSearch && matchesRole && matchesDept && matchesStatus;
   });
 
   if (loading) {
@@ -522,6 +551,20 @@ const EmployeesDirectory = () => {
             </div>
 
             <div className="flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-xl border border-slate-200 text-xs text-slate-600 font-medium">
+              <span>Dept:</span>
+              <select
+                value={deptFilter}
+                onChange={(e) => setDeptFilter(e.target.value)}
+                className="bg-transparent focus:outline-none font-semibold text-slate-800"
+              >
+                <option value="All">All Departments</option>
+                {availableDepartments.map(d => (
+                  <option key={d} value={d}>{d}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-xl border border-slate-200 text-xs text-slate-600 font-medium">
               <span>Status:</span>
               <select
                 value={statusFilter}
@@ -542,7 +585,7 @@ const EmployeesDirectory = () => {
               <tr className="bg-slate-50 border-b border-slate-100 text-xs font-bold text-slate-500 uppercase tracking-wider">
                 <th className="p-5">Name & Phone</th>
                 <th className="p-5">Email</th>
-                <th className="p-5">Registered On</th>
+                <th className="p-5">Department</th>
                 <th className="p-5">Active Role</th>
                 <th className="p-5">Access Status</th>
                 <th className="p-5 text-right">Administrative Actions</th>
@@ -568,7 +611,11 @@ const EmployeesDirectory = () => {
                       )}
                     </td>
                     <td className="p-5 text-slate-600">{emp.email}</td>
-                    <td className="p-5 text-slate-500">{new Date(emp.createdAt).toLocaleDateString()}</td>
+                    <td className="p-5">
+                      <span className="font-semibold text-purple-700 bg-purple-50 border border-purple-100 px-2.5 py-1 rounded-full text-xs">
+                        {emp.department || 'General'}
+                      </span>
+                    </td>
                     <td className="p-5">
                       {user?.role === 'Superadmin' ? (
                         <select
@@ -745,31 +792,46 @@ const EmployeesDirectory = () => {
                 </div>
               </div>
 
-              {/* Role Selection */}
-              <div>
-                <div className="flex items-center justify-between mb-1.5">
-                  <label className="block text-xs font-bold text-slate-700">Assign Role *</label>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsAddModalOpen(false);
-                      setIsRoleModalOpen(true);
-                    }}
-                    className="text-[11px] font-bold text-[#0e623a] hover:underline flex items-center gap-1"
+              {/* Role & Department Selection grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="block text-xs font-bold text-slate-700">Assign Role *</label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsAddModalOpen(false);
+                        setIsRoleModalOpen(true);
+                      }}
+                      className="text-[11px] font-bold text-[#0e623a] hover:underline flex items-center gap-1"
+                    >
+                      <Plus className="w-3 h-3" />
+                      <span>Create New Role</span>
+                    </button>
+                  </div>
+                  <select
+                    value={addFormData.role}
+                    onChange={(e) => setAddFormData({ ...addFormData, role: e.target.value })}
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0e623a] transition"
                   >
-                    <Plus className="w-3 h-3" />
-                    <span>Create New Role</span>
-                  </button>
+                    {availableRoles.map(r => (
+                      <option key={r} value={r}>{r}</option>
+                    ))}
+                  </select>
                 </div>
-                <select
-                  value={addFormData.role}
-                  onChange={(e) => setAddFormData({ ...addFormData, role: e.target.value })}
-                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0e623a] transition"
-                >
-                  {availableRoles.map(r => (
-                    <option key={r} value={r}>{r}</option>
-                  ))}
-                </select>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">Department *</label>
+                  <select
+                    value={addFormData.department}
+                    onChange={(e) => setAddFormData({ ...addFormData, department: e.target.value })}
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0e623a] transition"
+                  >
+                    {availableDepartments.map(dept => (
+                      <option key={dept} value={dept}>{dept}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
               {/* Password */}
@@ -1078,22 +1140,37 @@ const EmployeesDirectory = () => {
                 </div>
               </div>
 
-              {/* Role Selection */}
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">Active System Role *</label>
-                <select
-                  disabled={user?.role !== 'Superadmin'}
-                  value={editFormData.role}
-                  onChange={(e) => setEditFormData({ ...editFormData, role: e.target.value })}
-                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0e623a] transition disabled:opacity-60"
-                >
-                  {availableRoles.map(r => (
-                    <option key={r} value={r}>{r}</option>
-                  ))}
-                </select>
-                {user?.role !== 'Superadmin' && (
-                  <p className="text-[11px] text-slate-400 mt-1 italic">Only Superadmin can modify employee system role.</p>
-                )}
+              {/* Role & Department Selection grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">Active System Role *</label>
+                  <select
+                    disabled={user?.role !== 'Superadmin'}
+                    value={editFormData.role}
+                    onChange={(e) => setEditFormData({ ...editFormData, role: e.target.value })}
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0e623a] transition disabled:opacity-60"
+                  >
+                    {availableRoles.map(r => (
+                      <option key={r} value={r}>{r}</option>
+                    ))}
+                  </select>
+                  {user?.role !== 'Superadmin' && (
+                    <p className="text-[11px] text-slate-400 mt-1 italic">Only Superadmin can modify employee system role.</p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">Department *</label>
+                  <select
+                    value={editFormData.department}
+                    onChange={(e) => setEditFormData({ ...editFormData, department: e.target.value })}
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0e623a] transition"
+                  >
+                    {availableDepartments.map(dept => (
+                      <option key={dept} value={dept}>{dept}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
               {/* Password Reset option */}

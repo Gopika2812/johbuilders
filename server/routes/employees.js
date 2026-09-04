@@ -46,7 +46,7 @@ router.get('/', protect, async (req, res) => {
 // @route   POST /api/employees
 // @desc    Add a new employee (Superadmin only)
 router.post('/', protect, authorize('Superadmin'), async (req, res) => {
-  const { name, email, phone, role, password, isApproved } = req.body;
+  const { name, email, phone, role, department, password, isApproved } = req.body;
 
   try {
     if (!name || !name.trim()) {
@@ -74,6 +74,7 @@ router.post('/', protect, authorize('Superadmin'), async (req, res) => {
       phone: trimmedPhone,
       password: password.trim(),
       role: role && role.trim() ? role.trim() : 'sales person',
+      department: department && department.trim() ? department.trim() : 'General',
       isApproved: isApproved !== undefined ? isApproved : true
     });
 
@@ -84,7 +85,7 @@ router.post('/', protect, authorize('Superadmin'), async (req, res) => {
       userName: req.user.name,
       userRole: req.user.role,
       action: 'Create Employee',
-      description: `Created new employee ${newEmployee.name} (${newEmployee.email}, ${newEmployee.phone}) with role "${newEmployee.role}"`
+      description: `Created new employee ${newEmployee.name} (${newEmployee.email}, ${newEmployee.phone}) with role "${newEmployee.role}" in department "${newEmployee.department}"`
     });
 
     const createdUser = await User.findById(newEmployee._id).select('-password');
@@ -159,7 +160,7 @@ router.put('/:id/role', protect, authorize('Superadmin'), async (req, res) => {
 // @route   PUT /api/employees/:id
 // @desc    Update full employee details (Name, Email, Phone, Role, Password, Approval)
 router.put('/:id', protect, authorize('Superadmin'), async (req, res) => {
-  const { name, email, phone, role, password, isApproved } = req.body;
+  const { name, email, phone, role, department, password, isApproved } = req.body;
 
   try {
     const employee = await User.findById(req.params.id);
@@ -191,6 +192,10 @@ router.put('/:id', protect, authorize('Superadmin'), async (req, res) => {
       employee.role = role.trim();
     }
 
+    if (department !== undefined) {
+      employee.department = department.trim();
+    }
+
     if (typeof isApproved === 'boolean') {
       employee.isApproved = isApproved;
     }
@@ -209,7 +214,7 @@ router.put('/:id', protect, authorize('Superadmin'), async (req, res) => {
       userName: req.user.name,
       userRole: req.user.role,
       action: 'Update Employee Profile',
-      description: `Updated employee details for ${employee.name} (${employee.email})`
+      description: `Updated employee details for ${employee.name} (${employee.email}) - Dept: ${employee.department}`
     });
 
     const updatedUser = await User.findById(employee._id).select('-password');

@@ -28,6 +28,11 @@ const UserSchema = new mongoose.Schema({
     type: String,
     default: 'sales person'
   },
+  department: {
+    type: String,
+    default: 'General',
+    trim: true
+  },
   isApproved: {
     type: Boolean,
     default: false

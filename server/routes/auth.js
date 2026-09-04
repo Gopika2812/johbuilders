@@ -109,6 +109,7 @@ router.post('/login', async (req, res) => {
       email: user.email,
       phone: user.phone,
       role: user.role,
+      department: user.department || 'General',
       isApproved: user.isApproved,
       token: generateToken(user._id),
       permissions
