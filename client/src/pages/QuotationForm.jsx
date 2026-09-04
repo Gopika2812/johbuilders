@@ -182,11 +182,12 @@ const QuotationForm = () => {
           setCustomerAddress(lead.address || '');
           setBankLoanRequired(lead.bankLoan || 'No');
           
+          const altParsed = parsePhoneDetails(lead.bookingInfo?.alternativePhone || lead.alternativePhone || '');
+          setAlternativeCountryCode(altParsed.countryCode);
+          setAlternativeLocalPhone(altParsed.localPhone);
+
           // Prepopulate booking info if exists
           if (lead.bookingInfo) {
-            const altParsed = parsePhoneDetails(lead.bookingInfo.alternativePhone || '');
-            setAlternativeCountryCode(altParsed.countryCode);
-            setAlternativeLocalPhone(altParsed.localPhone);
             setAadharNumber(lead.bookingInfo.aadharNumber || '');
             setPanNumber(lead.bookingInfo.panNumber || '');
             setBankLoanRequired(lead.bookingInfo.hasLoan || lead.bankLoan || 'No');

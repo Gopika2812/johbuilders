@@ -24,7 +24,8 @@ router.get('/', protect, async (req, res) => {
   if (search) {
     query.$or = [
       { name: { $regex: search, $options: 'i' } },
-      { phone: { $regex: search, $options: 'i' } }
+      { phone: { $regex: search, $options: 'i' } },
+      { alternativePhone: { $regex: search, $options: 'i' } }
     ];
   }
 
@@ -149,7 +150,7 @@ router.get('/phone/:phone', protect, async (req, res) => {
 // @route   POST /api/leads
 // @desc    Create a new lead (or reopen existing if duplicate phone)
 router.post('/', protect, async (req, res) => {
-  const { leadType, salutation, name, phone, address, profession, email, location, bankLoan, bankLoanPercentage, leadSource, activeAd, projectLocation, project, assignedTo, leadCost, followUpInfo, leadCategory, creationDate } = req.body;
+  const { leadType, salutation, name, phone, alternativePhone, address, profession, email, location, bankLoan, bankLoanPercentage, leadSource, activeAd, projectLocation, project, assignedTo, leadCost, followUpInfo, leadCategory, creationDate } = req.body;
 
   try {
     let targetCreatedAt = undefined;
@@ -220,6 +221,7 @@ router.post('/', protect, async (req, res) => {
       lead.leadType = leadType;
       if (salutation) lead.salutation = salutation;
       lead.name = name;
+      if (alternativePhone !== undefined) lead.alternativePhone = alternativePhone;
       lead.profession = profession || lead.profession;
       lead.email = email || lead.email;
       lead.location = location || lead.location;
@@ -288,6 +290,7 @@ router.post('/', protect, async (req, res) => {
       email: email || '',
       location: location || '',
       phone,
+      alternativePhone: alternativePhone || '',
       address,
       bankLoan: bankLoan || 'No',
       bankLoanPercentage: Number(bankLoanPercentage) || 0,
@@ -346,7 +349,7 @@ router.post('/', protect, async (req, res) => {
 // @route   PUT /api/leads/:id
 // @desc    Update lead details (status, assignment)
 router.put('/:id', protect, async (req, res) => {
-  const { status, assignedTo, salutation, name, phone, leadType, leadCost, address, profession, email, location, bankLoan, bankLoanPercentage, leadSource, activeAd, projectLocation, project, bookingInfo, followUpInfo, isClosed, closeRemarks, isRevert, leadCategory } = req.body;
+  const { status, assignedTo, salutation, name, phone, alternativePhone, leadType, leadCost, address, profession, email, location, bankLoan, bankLoanPercentage, leadSource, activeAd, projectLocation, project, bookingInfo, followUpInfo, isClosed, closeRemarks, isRevert, leadCategory } = req.body;
 
   try {
     const lead = await Lead.findById(req.params.id);
@@ -413,6 +416,7 @@ router.put('/:id', protect, async (req, res) => {
     if (salutation) lead.salutation = salutation;
     if (name) lead.name = name;
     if (canEditLockedFields && phone) lead.phone = phone;
+    if (alternativePhone !== undefined) lead.alternativePhone = alternativePhone;
     if (leadType) lead.leadType = leadType;
     if (leadCost !== undefined) lead.leadCost = Number(leadCost) || 0;
     if (address) lead.address = address;
@@ -671,6 +675,7 @@ router.post('/bulk-import', protect, async (req, res) => {
       const rawProjectCode = item.projectCode || item['Project code'] || item.project || item.Project;
       const rawCustomerName = item.customerName || item['Lead/ Customer name'] || item['Lead/Customer name'] || item['Customer Name'] || item.name || item.Name;
       const rawPhone = item.phone || item['Phone number'] || item.Phone;
+      const rawAltPhone = item.alternativePhone || item.altPhone || item['Alternative Phone'] || item['Alt Phone'] || item['Alternative Phone Number'] || item['Alt Phone Number'];
       const rawLeadSource = item.leadSource || item['Lead source'] || item.source || item.Source;
       const rawAssignedExecutive = item.assignedExecutive || item['Assigned executive'] || item.assignedTo || item.Executive;
 
@@ -683,6 +688,15 @@ router.post('/bulk-import', protect, async (req, res) => {
       if (!cleanPhone.startsWith('+')) {
         const digits = cleanPhone.replace(/\D/g, '');
         cleanPhone = digits.length === 10 ? `+91${digits}` : `+${digits}`;
+      }
+
+      let cleanAltPhone = '';
+      if (rawAltPhone) {
+        cleanAltPhone = String(rawAltPhone).trim().replace(/\s+/g, '');
+        if (cleanAltPhone && !cleanAltPhone.startsWith('+')) {
+          const altDigits = cleanAltPhone.replace(/\D/g, '');
+          cleanAltPhone = altDigits.length === 10 ? `+91${altDigits}` : (altDigits ? `+${altDigits}` : '');
+        }
       }
 
       let matchedProject = null;
@@ -757,6 +771,7 @@ router.post('/bulk-import', protect, async (req, res) => {
 
       if (existingLead) {
         existingLead.name = String(rawCustomerName).trim();
+        if (cleanAltPhone) existingLead.alternativePhone = cleanAltPhone;
         if (rawLeadSource) existingLead.leadSource = String(rawLeadSource).trim();
         if (matchedUser) {
           existingLead.assignedTo = matchedUser._id;
@@ -771,6 +786,7 @@ router.post('/bulk-import', protect, async (req, res) => {
           leadType: 'Lead',
           name: String(rawCustomerName).trim(),
           phone: cleanPhone,
+          alternativePhone: cleanAltPhone || '',
           project: matchedProject._id,
           leadSource: rawLeadSource ? String(rawLeadSource).trim() : 'Bulk Import',
           assignedTo: matchedUser ? matchedUser._id : undefined,

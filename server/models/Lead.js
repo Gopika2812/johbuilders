@@ -22,6 +22,11 @@ const LeadSchema = new mongoose.Schema({
     trim: true,
     index: true
   },
+  alternativePhone: {
+    type: String,
+    default: '',
+    trim: true
+  },
   address: {
     type: String,
     default: '',

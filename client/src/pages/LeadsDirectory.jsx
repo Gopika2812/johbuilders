@@ -242,8 +242,12 @@ const LeadsDirectory = () => {
   const [name, setName] = useState('');
   const [phoneCountryCode, setPhoneCountryCode] = useState('+91');
   const [phoneLocal, setPhoneLocal] = useState('');
+  const [altPhoneCountryCode, setAltPhoneCountryCode] = useState('+91');
+  const [altPhoneLocal, setAltPhoneLocal] = useState('');
   const [createPhoneErr, setCreatePhoneErr] = useState('');
+  const [createAltPhoneErr, setCreateAltPhoneErr] = useState('');
   const [editPhoneErr, setEditPhoneErr] = useState('');
+  const [editAltPhoneErr, setEditAltPhoneErr] = useState('');
   const [BookedAltPhoneErr, setBookedAltPhoneErr] = useState('');
   const [address, setAddress] = useState('');
   const [profession, setProfession] = useState('');
@@ -500,6 +504,8 @@ const LeadsDirectory = () => {
   const [editName, setEditName] = useState('');
   const [editPhoneCountryCode, setEditPhoneCountryCode] = useState('+91');
   const [editPhoneLocal, setEditPhoneLocal] = useState('');
+  const [editAltPhoneCountryCode, setEditAltPhoneCountryCode] = useState('+91');
+  const [editAltPhoneLocal, setEditAltPhoneLocal] = useState('');
   const [editAddress, setEditAddress] = useState('');
   const [editLeadType, setEditLeadType] = useState('Lead');
   const [editProjectId, setEditProjectId] = useState('');
@@ -863,6 +869,11 @@ const LeadsDirectory = () => {
     const parsed = parsePhoneDetails(lead.phone || '');
     setEditPhoneCountryCode(parsed.countryCode);
     setEditPhoneLocal(parsed.localPhone);
+    const altParsed = parsePhoneDetails(lead.bookingInfo?.alternativePhone || lead.alternativePhone || '');
+    setEditAltPhoneCountryCode(altParsed.countryCode);
+    setEditAltPhoneLocal(altParsed.localPhone);
+    setEditPhoneErr('');
+    setEditAltPhoneErr('');
     setEditAddress(lead.address || '');
     setEditLeadType(lead.leadType || 'Lead');
     setEditProjectId(lead.project?._id || lead.project || '');
@@ -923,6 +934,18 @@ const LeadsDirectory = () => {
     }
     const editPhone = editPhoneCountryCode === '+' ? `+${editPhoneLocal}` : `${editPhoneCountryCode}${editPhoneLocal}`;
 
+    let editAltPhone = '';
+    if (editAltPhoneLocal && editAltPhoneLocal.trim()) {
+      const altErr = validatePhone(editAltPhoneCountryCode, editAltPhoneLocal, 'Alternative phone');
+      if (altErr) {
+        setEditAltPhoneErr(altErr);
+        setError(altErr);
+        return;
+      }
+      editAltPhone = editAltPhoneCountryCode === '+' ? `+${editAltPhoneLocal}` : `${editAltPhoneCountryCode}${editAltPhoneLocal}`;
+    }
+    setEditAltPhoneErr('');
+
     const adObj = editAdId ? editActiveAds.find(a => a.id === editAdId) : null;
 
     setIsSubmitting(true);
@@ -931,6 +954,7 @@ const LeadsDirectory = () => {
       salutation: editSalutation,
       name: editName,
       phone: editPhone,
+      alternativePhone: editAltPhone,
       address: editAddress,
       bankLoan: editBankLoan,
       bankLoanPercentage: Number(editBankLoanPercentage) || 0,
@@ -1197,6 +1221,18 @@ const LeadsDirectory = () => {
     setCreatePhoneErr('');
     const phone = phoneCountryCode === '+' ? `+${phoneLocal}` : `${phoneCountryCode}${phoneLocal}`;
 
+    let alternativePhone = '';
+    if (altPhoneLocal && altPhoneLocal.trim()) {
+      const altPhoneError = validatePhone(altPhoneCountryCode, altPhoneLocal, 'Alt phone number');
+      if (altPhoneError) {
+        setCreateAltPhoneErr(altPhoneError);
+        setError(altPhoneError);
+        return;
+      }
+      alternativePhone = altPhoneCountryCode === '+' ? `+${altPhoneLocal}` : `${altPhoneCountryCode}${altPhoneLocal}`;
+    }
+    setCreateAltPhoneErr('');
+
     const adObj = selectedAdId ? activeAds.find(a => a.id === selectedAdId) : null;
 
     setIsSubmitting(true);
@@ -1208,6 +1244,7 @@ const LeadsDirectory = () => {
       email,
       location: leadLocation,
       phone,
+      alternativePhone,
       address,
       project: selectedProjectId,
       assignedTo: previouslyAssignedExecutive ? previouslyAssignedExecutive._id : (leadType === 'Direct Visit' ? user?._id : (assignedToId || user?._id)),
@@ -1343,7 +1380,7 @@ const LeadsDirectory = () => {
     setBookedModalOpen(true);
 
     // Prepopulate base fields
-    const parsed = parsePhoneDetails(lead.BookedInfo?.alternativePhone || '');
+    const parsed = parsePhoneDetails(lead.bookingInfo?.alternativePhone || lead.alternativePhone || '');
     setBookedAltCountryCode(parsed.countryCode);
     setBookedAltLocal(parsed.localPhone);
     setBookedAadhar('');
@@ -1908,6 +1945,10 @@ const LeadsDirectory = () => {
     setLeadLocation('');
     setPhoneCountryCode('+91');
     setPhoneLocal('');
+    setAltPhoneCountryCode('+91');
+    setAltPhoneLocal('');
+    setCreatePhoneErr('');
+    setCreateAltPhoneErr('');
     setAddress('');
     setSelectedProjectId('');
     setAssignedToId(user?.role?.toLowerCase() === 'sales person' ? user._id : '');
@@ -1940,6 +1981,7 @@ const LeadsDirectory = () => {
       const matchesSearch = !searchTerm ||
         fullName.includes(searchTerm.toLowerCase()) ||
         lead.phone?.includes(searchTerm) ||
+        lead.alternativePhone?.includes(searchTerm) ||
         lead.project?.code?.toLowerCase().includes(searchTerm.toLowerCase());
 
       const itemTime = lead.createdAt ? new Date(lead.createdAt).getTime() : null;
@@ -2274,6 +2316,12 @@ const LeadsDirectory = () => {
                           <Phone className="w-3 h-3 text-black-300" />
                           <span>{lead.phone}</span>
                         </div>
+                        {lead.alternativePhone && (
+                          <div className="flex items-center gap-1 font-medium text-[10px] text-black-400 mt-0.5">
+                            <span className="text-black-400 font-bold">Alt:</span>
+                            <span>{lead.alternativePhone}</span>
+                          </div>
+                        )}
                       </td>
                     )}
 
@@ -2663,7 +2711,7 @@ const LeadsDirectory = () => {
                 </div>
               </div>
 
-              {/* Phone & Email */}
+              {/* Phone & Alt Phone */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Phone Number <span className="text-red-500">*</span></label>
@@ -2702,18 +2750,65 @@ const LeadsDirectory = () => {
                     <p className="text-[11px] text-red-500 font-bold mt-1">{createPhoneErr}</p>
                   )}
                 </div>
+
                 <div>
-                  <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Email Address</label>
-                  <input
-                    type="email"
-                    placeholder="e.g. user@example.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="w-full px-4 py-3 bg-black-55 border border-black-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0e623a] text-sm"
-                  />
+                  <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">
+                    Alt Phone Number <span className="text-black-400 font-normal lowercase">(optional)</span>
+                  </label>
+                  <div className={`flex items-center bg-black-55 border rounded-xl focus-within:ring-2 transition-all overflow-hidden ${createAltPhoneErr ? 'border-red-500 focus-within:ring-red-500' : 'border-black-200 focus-within:ring-[#0e623a] focus-within:border-transparent'}`}>
+                    <select
+                      value={altPhoneCountryCode}
+                      onChange={(e) => {
+                        setAltPhoneCountryCode(e.target.value);
+                        setAltPhoneLocal('');
+                        setCreateAltPhoneErr('');
+                      }}
+                      className="bg-transparent pl-4 pr-6 py-3 text-sm font-bold text-black-700 outline-none cursor-pointer border-r border-black-200/80 hover:bg-black-100/50 transition-colors w-24 appearance-none"
+                      style={{ backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 6px center', backgroundSize: '12px' }}
+                    >
+                      <option value="+91">🇮🇳 +91</option>
+                      <option value="+971">🇦🇪 +971</option>
+                      <option value="+1">🇺🇸 +1</option>
+                      <option value="+44">🇬🇧 +44</option>
+                      <option value="+966">🇸🇦 +966</option>
+                      <option value="+">Other</option>
+                    </select>
+                    <input
+                      type="text"
+                      placeholder={altPhoneCountryCode === '+91' ? '10 digit number (optional)' : altPhoneCountryCode === '+971' ? '9 digit number (optional)' : 'Alt phone number'}
+                      value={altPhoneLocal}
+                      onChange={(e) => {
+                        handleLocalPhoneChange(e.target.value, altPhoneCountryCode, setAltPhoneLocal);
+                        setCreateAltPhoneErr('');
+                      }}
+                      onBlur={() => {
+                        if (altPhoneLocal && altPhoneLocal.trim()) {
+                          const err = validatePhone(altPhoneCountryCode, altPhoneLocal, 'Alt Phone Number');
+                          setCreateAltPhoneErr(err || '');
+                        } else {
+                          setCreateAltPhoneErr('');
+                        }
+                      }}
+                      className="flex-grow px-4 py-3 bg-transparent outline-none text-sm text-black-800"
+                    />
+                  </div>
+                  {createAltPhoneErr && (
+                    <p className="text-[11px] text-red-500 font-bold mt-1">{createAltPhoneErr}</p>
+                  )}
                 </div>
               </div>
 
+              {/* Email Address */}
+              <div>
+                <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Email Address</label>
+                <input
+                  type="email"
+                  placeholder="e.g. user@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full px-4 py-3 bg-black-55 border border-black-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0e623a] text-sm"
+                />
+              </div>
 
               {/* Address & Location */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -3199,32 +3294,34 @@ const LeadsDirectory = () => {
                   </div>
                 </div>
 
-                {/* Name & Phone */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-left">
-                  <div>
-                    <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Lead / Customer Name <span className="text-red-500">*</span></label>
-                    <div className="flex items-center bg-black-55 border border-black-200 rounded-xl focus-within:ring-2 focus-within:ring-amber-600 focus-within:border-transparent transition-all overflow-hidden">
-                      <select
-                        value={editSalutation}
-                        onChange={(e) => setEditSalutation(e.target.value)}
-                        required
-                        className="bg-transparent pl-3 pr-6 py-3 text-sm font-bold text-black-700 outline-none cursor-pointer border-r border-black-200/80 hover:bg-black-100/50 transition-colors w-24 appearance-none"
-                        style={{ backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 6px center', backgroundSize: '12px' }}
-                      >
-                        <option value="Mr.">Mr.</option>
-                        <option value="Mrs.">Mrs.</option>
-                        <option value="Ms.">Ms.</option>
-                      </select>
-                      <input
-                        type="text"
-                        required
-                        placeholder="e.g. David Brown"
-                        value={editName}
-                        onChange={(e) => setEditName(e.target.value)}
-                        className="flex-grow px-4 py-3 bg-transparent outline-none text-sm text-black-800"
-                      />
-                    </div>
+                {/* Name & Profession */}
+                <div className="text-left">
+                  <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Lead / Customer Name <span className="text-red-500">*</span></label>
+                  <div className="flex items-center bg-black-55 border border-black-200 rounded-xl focus-within:ring-2 focus-within:ring-amber-600 focus-within:border-transparent transition-all overflow-hidden">
+                    <select
+                      value={editSalutation}
+                      onChange={(e) => setEditSalutation(e.target.value)}
+                      required
+                      className="bg-transparent pl-3 pr-6 py-3 text-sm font-bold text-black-700 outline-none cursor-pointer border-r border-black-200/80 hover:bg-black-100/50 transition-colors w-24 appearance-none"
+                      style={{ backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 6px center', backgroundSize: '12px' }}
+                    >
+                      <option value="Mr.">Mr.</option>
+                      <option value="Mrs.">Mrs.</option>
+                      <option value="Ms.">Ms.</option>
+                    </select>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. David Brown"
+                      value={editName}
+                      onChange={(e) => setEditName(e.target.value)}
+                      className="flex-grow px-4 py-3 bg-transparent outline-none text-sm text-black-800"
+                    />
                   </div>
+                </div>
+
+                {/* Phone & Alt Phone */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-left">
                   <div>
                     <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5 flex items-center justify-between">
                       <span>Phone Number <span className="text-red-500">*</span></span>
@@ -3275,6 +3372,56 @@ const LeadsDirectory = () => {
                     </div>
                     {editPhoneErr && (
                       <p className="text-[11px] text-red-500 font-bold mt-1">{editPhoneErr}</p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5 flex items-center justify-between">
+                      <span>Alt Phone Number <span className="text-black-400 font-normal lowercase">(optional)</span></span>
+                    </label>
+                    <div className={`flex items-center border rounded-xl overflow-hidden transition-all ${
+                      editAltPhoneErr
+                        ? 'bg-black-55 border-red-500 focus-within:ring-2 focus-within:ring-red-500'
+                        : 'bg-black-55 border-black-200 focus-within:ring-2 focus-within:ring-amber-600 focus-within:border-transparent'
+                    }`}>
+                      <select
+                        value={editAltPhoneCountryCode}
+                        onChange={(e) => {
+                          setEditAltPhoneCountryCode(e.target.value);
+                          setEditAltPhoneLocal('');
+                          setEditAltPhoneErr('');
+                        }}
+                        className="bg-transparent pl-4 pr-6 py-3 text-sm font-bold text-black-700 outline-none border-r border-black-200/80 cursor-pointer hover:bg-black-100/50 transition-colors w-24 appearance-none"
+                        style={{ backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 6px center', backgroundSize: '12px' }}
+                      >
+                        <option value="+91">🇮🇳 +91</option>
+                        <option value="+971">🇦🇪 +971</option>
+                        <option value="+1">🇺🇸 +1</option>
+                        <option value="+44">🇬🇧 +44</option>
+                        <option value="+966">🇸🇦 +966</option>
+                        <option value="+">Other</option>
+                      </select>
+                      <input
+                        type="text"
+                        placeholder={editAltPhoneCountryCode === '+91' ? '10 digit number (optional)' : editAltPhoneCountryCode === '+971' ? '9 digit number (optional)' : 'Alt phone number'}
+                        value={editAltPhoneLocal}
+                        onChange={(e) => {
+                          handleLocalPhoneChange(e.target.value, editAltPhoneCountryCode, setEditAltPhoneLocal);
+                          setEditAltPhoneErr('');
+                        }}
+                        onBlur={() => {
+                          if (editAltPhoneLocal && editAltPhoneLocal.trim()) {
+                            const err = validatePhone(editAltPhoneCountryCode, editAltPhoneLocal, 'Alt phone number');
+                            setEditAltPhoneErr(err || '');
+                          } else {
+                            setEditAltPhoneErr('');
+                          }
+                        }}
+                        className="flex-grow px-4 py-3 bg-transparent border-none focus:outline-none focus:ring-0 text-sm"
+                      />
+                    </div>
+                    {editAltPhoneErr && (
+                      <p className="text-[11px] text-red-500 font-bold mt-1">{editAltPhoneErr}</p>
                     )}
                   </div>
                 </div>
