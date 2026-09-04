@@ -616,12 +616,12 @@ router.put('/:id', protect, async (req, res) => {
       return res.status(404).json({ message: 'Project not found' });
     }
 
-    if (code !== undefined && code.trim() !== '' && code.trim() !== project.code) {
-      const codeExists = await Project.findOne({ code: code.trim(), _id: { $ne: req.params.id } });
+    if (code !== undefined && String(code).trim() !== '' && String(code).trim() !== project.code) {
+      const codeExists = await Project.findOne({ code: String(code).trim(), _id: { $ne: req.params.id } });
       if (codeExists) {
         return res.status(400).json({ message: 'Project Code/Prefix already exists' });
       }
-      project.code = code.trim();
+      project.code = String(code).trim();
     }
 
     if (name !== undefined) project.name = name;
@@ -636,17 +636,22 @@ router.put('/:id', protect, async (req, res) => {
 
     await project.save();
 
-    await AuditLog.create({
-      user: req.user._id,
-      userName: req.user.name,
-      userRole: req.user.role,
-      action: 'Update Project Details',
-      description: `Updated project details for ${project.name}`
-    });
+    try {
+      await AuditLog.create({
+        user: req.user._id,
+        userName: req.user.name || 'User',
+        userRole: req.user.role || 'Superadmin',
+        action: 'Update Project Details',
+        description: `Updated project details for ${project.name}`
+      });
+    } catch (auditErr) {
+      console.warn('AuditLog creation failed:', auditErr.message);
+    }
 
     res.json(project);
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    console.error('Update project error:', err);
+    res.status(500).json({ message: err.message || 'Failed to update project' });
   }
 });
 

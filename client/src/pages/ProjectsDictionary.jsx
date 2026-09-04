@@ -99,8 +99,9 @@ const ProjectsDictionary = () => {
 
       if (response.ok) {
         const updated = await response.json();
-        setProjects(projects.map(p => p._id === id ? updated : p));
+        setProjects(prev => prev.map(p => p._id === id ? { ...p, ...updated } : p));
         setEditingProjectId(null);
+        fetchProjects();
       } else {
         const data = await response.json();
         alert(data.message || 'Failed to update project');
