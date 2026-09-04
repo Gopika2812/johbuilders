@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute, { PageGuard } from './components/ProtectedRoute';
 import Sidebar from './components/Sidebar';
@@ -126,6 +126,8 @@ function App() {
             <Route path="/crd-flow/complaints" element={<PageGuard pageId="complaints_flow"><Layout><ComplaintsFlow /></Layout></PageGuard>} />
             <Route path="/customers" element={<PageGuard pageId="customers"><Layout><Customers /></Layout></PageGuard>} />
             <Route path="/tasks-board" element={<PageGuard pageId="tasks_board"><Layout><TasksBoard /></Layout></PageGuard>} />
+            <Route path="/tasks" element={<Navigate to="/tasks-board" replace />} />
+            <Route path="/task" element={<Navigate to="/tasks-board" replace />} />
             
             {/* KPI Insights & Conversions */}
             <Route path="/kpi-insights" element={<PageGuard pageId="kpi_insights"><Layout><KPIInsights /></Layout></PageGuard>} />

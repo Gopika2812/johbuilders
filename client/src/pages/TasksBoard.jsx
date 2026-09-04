@@ -711,7 +711,7 @@ const TasksBoard = () => {
         // Send EmailJS Task Assignment Notification to the assigned person's registered email
         const assignedPerson = employees.find(emp => emp._id === formData.assignedTo) || (formData.assignedTo === user?._id ? user : null);
         if (assignedPerson && assignedPerson.email) {
-          const taskUrl = `${window.location.origin}/tasks`;
+          const taskUrl = `${window.location.origin}/tasks-board`;
           sendTaskAssignmentEmail(
             assignedPerson,
             savedTask || {
