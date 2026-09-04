@@ -1,10 +1,10 @@
 import emailjs from '@emailjs/browser';
 
-// EmailJS Configuration - Replace these with your actual EmailJS credentials or set them in .env
-const SERVICE_ID = import.meta.env.VITE_EMAILJS_SERVICE_ID || 'YOUR_SERVICE_ID';
-const LEAD_TEMPLATE_ID = import.meta.env.VITE_EMAILJS_LEAD_TEMPLATE_ID || 'YOUR_LEAD_TEMPLATE_ID';
-const TASK_TEMPLATE_ID = import.meta.env.VITE_EMAILJS_TASK_TEMPLATE_ID || 'YOUR_TASK_TEMPLATE_ID';
-const PUBLIC_KEY = import.meta.env.VITE_EMAILJS_PUBLIC_KEY || 'YOUR_PUBLIC_KEY';
+// EmailJS Configuration - Set from environment variables or default configured values
+const SERVICE_ID = import.meta.env.VITE_EMAILJS_SERVICE_ID || 'service_9x5jdkk';
+const LEAD_TEMPLATE_ID = import.meta.env.VITE_EMAILJS_LEAD_TEMPLATE_ID || 'template_rbvokan';
+const TASK_TEMPLATE_ID = import.meta.env.VITE_EMAILJS_TASK_TEMPLATE_ID || 'template_rbvokan';
+const PUBLIC_KEY = import.meta.env.VITE_EMAILJS_PUBLIC_KEY || 'ntcvQswd9MSe7rCLx';
 
 /**
  * Sends an assignment email notification to the registration email of the executive for Leads.

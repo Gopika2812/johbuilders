@@ -708,36 +708,23 @@ const TasksBoard = () => {
         setShowModal(false);
         setSuccessMsg(editingTask ? 'Task updated successfully!' : 'Task created and assigned successfully!');
 
-        // Send EmailJS Notification to the assigned employee's registered email
-        const assignedPerson = employees.find(emp => emp._id === formData.assignedTo);
+        // Send EmailJS Task Assignment Notification to the assigned person's registered email
+        const assignedPerson = employees.find(emp => emp._id === formData.assignedTo) || (formData.assignedTo === user?._id ? user : null);
         if (assignedPerson && assignedPerson.email) {
           const taskUrl = `${window.location.origin}/tasks`;
-          sendTaskAssignmentEmail(assignedPerson, savedTask || formData, user?.name || 'System Admin', taskUrl)
-            .catch(err => console.error('EmailJS task assignment email error:', err));
-        }
-
-        setTimeout(() => setSuccessMsg(''), 4000);
-
-        // Send EmailJS Task Assignment Notification to the registered person's email
-        const assignedId = formData.assignedTo;
-        if (assignedId) {
-          const matchedEmployee = employees.find(emp => emp._id === assignedId) || (assignedId === user?._id ? user : null);
-          if (matchedEmployee && matchedEmployee.email) {
-            console.log("Triggering EmailJS task assignment email to:", matchedEmployee.email);
-            sendTaskAssignmentEmail(
-              matchedEmployee,
-              {
-                title: formData.title,
-                description: formData.description,
-                projectName: formData.projectName,
-                category: formData.category,
-                priority: formData.priority,
-                dueDate: formData.dueDate
-              },
-              user?.name || 'Administrator',
-              user?.email
-            ).catch(e => console.error("EmailJS Task Notification Error:", e));
-          }
+          sendTaskAssignmentEmail(
+            assignedPerson,
+            savedTask || {
+              title: formData.title,
+              description: formData.description,
+              projectName: formData.projectName,
+              category: formData.category,
+              priority: formData.priority,
+              dueDate: formData.dueDate
+            },
+            user?.name || 'System Admin',
+            taskUrl
+          ).catch(err => console.error('EmailJS task assignment email error:', err));
         }
       } else {
         const data = await parseResponseJSON(res);
