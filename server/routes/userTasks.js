@@ -94,7 +94,7 @@ router.post('/', protect, async (req, res) => {
   const { title, description, projectName, dueDate, assignedTo, status, priority, category, repeatType, reminderInterval, attachments, note } = req.body;
 
   if (!title || !dueDate || !assignedTo) {
-    return res.status(400).json({ message: 'Title, Due Date, and Assigned Person are required' });
+    return res.status(400).json({ message: 'Title, Due Date, and Assign To are required' });
   }
 
   const today = new Date();
@@ -102,8 +102,8 @@ router.post('/', protect, async (req, res) => {
   const selectedDue = new Date(dueDate);
   selectedDue.setHours(0, 0, 0, 0);
 
-  if (selectedDue < today) {
-    return res.status(400).json({ message: 'Due date cannot be a past date. Please select today or a future date.' });
+  if (isNaN(selectedDue.getTime()) || selectedDue <= today) {
+    return res.status(400).json({ message: 'Due date must be a future date (tomorrow onwards).' });
   }
 
   try {
@@ -119,7 +119,7 @@ router.post('/', protect, async (req, res) => {
       dueDate,
       assignedTo: targetUser._id,
       assignedBy: req.user._id,
-      status: status || 'New',
+      status: 'New',
       priority: priority || 'Medium',
       category: category || 'General',
       repeatType: repeatType || 'None',

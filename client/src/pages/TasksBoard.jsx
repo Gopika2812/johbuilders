@@ -42,6 +42,15 @@ const getTodayString = () => {
   return `${year}-${month}-${day}`;
 };
 
+const getTomorrowString = () => {
+  const d = new Date();
+  d.setDate(d.getDate() + 1);
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 const CustomPersonSelector = ({ employees, value, onChange, placeholder = "-- Select Person --" }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -642,11 +651,11 @@ const TasksBoard = () => {
       title: '',
       description: '',
       projectName: '',
-      dueDate: getTodayString(),
+      dueDate: '',
       assignedTo: user?._id || '',
       status: 'New',
       priority: 'Medium',
-      category: 'Sales Team',
+      category: user?.department || 'Sales Team',
       repeatType: 'None',
       reminderInterval: 1,
       attachments: []
@@ -688,13 +697,13 @@ const TasksBoard = () => {
   const handleSubmitTask = async (e) => {
     e.preventDefault();
     if (!formData.title || !formData.dueDate || !formData.assignedTo) {
-      setError('Please fill in all required fields (Title, Due Date, Assigned Person)');
+      setError('Please fill in all required fields (Title, Assign To, Due Date)');
       return;
     }
 
     const todayStr = getTodayString();
-    if (formData.dueDate < todayStr) {
-      setError('Due date cannot be a past date. Please select today or a future date.');
+    if (formData.dueDate <= todayStr) {
+      setError('Due date must be a future date (tomorrow onwards). Today or past dates are not allowed.');
       return;
     }
 
@@ -703,6 +712,7 @@ const TasksBoard = () => {
       setError('');
       const url = editingTask ? `${API_URL}/user-tasks/${editingTask._id}` : `${API_URL}/user-tasks`;
       const method = editingTask ? 'PUT' : 'POST';
+      const payload = editingTask ? formData : { ...formData, status: 'New' };
 
       const res = await fetch(url, {
         method,
@@ -710,7 +720,7 @@ const TasksBoard = () => {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(payload)
       });
 
       if (res.ok) {
@@ -1578,7 +1588,7 @@ const TasksBoard = () => {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block font-bold text-gray-700 mb-1">
-                    Assigned Person <span className="text-red-500">*</span>
+                    Assign To <span className="text-red-500">*</span>
                   </label>
                   <CustomPersonSelector
                     employees={employees}
@@ -1645,17 +1655,29 @@ const TasksBoard = () => {
                   <label className="block font-bold text-gray-700 mb-1">
                     Status
                   </label>
-                  <select
-                    value={formData.status}
-                    onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                    className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#0e623a]"
-                  >
-                    <option value="New">New</option>
-                    <option value="In Progress">In Progress</option>
-                    <option value="On Hold">On Hold</option>
-                    <option value="Completed">Completed</option>
-                    <option value="Cancelled">Cancelled</option>
-                  </select>
+                  {editingTask ? (
+                    <select
+                      value={formData.status}
+                      onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                      className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#0e623a]"
+                    >
+                      <option value="New">New</option>
+                      <option value="In Progress">In Progress</option>
+                      <option value="On Hold">On Hold</option>
+                      <option value="Completed">Completed</option>
+                      <option value="Cancelled">Cancelled</option>
+                    </select>
+                  ) : (
+                    <div className="w-full px-3.5 py-2.5 bg-gray-100 border border-gray-200 rounded-xl text-xs font-bold text-gray-700 flex items-center justify-between">
+                      <span className="flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                        <span>New</span>
+                      </span>
+                      <span className="text-[10px] bg-emerald-50 text-emerald-800 font-extrabold px-2 py-0.5 rounded border border-emerald-200">
+                        Default
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -1715,16 +1737,17 @@ const TasksBoard = () => {
               {/* Due Date & Repeat Reminders */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block font-bold text-gray-700 mb-1">
-                    Due Date <span className="text-red-500">*</span>
+                  <label className="block font-bold text-gray-700 mb-1 flex items-center justify-between">
+                    <span>Due Date <span className="text-red-500">*</span></span>
+                    <span className="text-[10px] text-emerald-700 font-semibold">(Future date only)</span>
                   </label>
                   <input
                     type="date"
                     required
-                    min={getTodayString()}
+                    min={getTomorrowString()}
                     value={formData.dueDate}
                     onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
-                    className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-[#0e623a]"
+                    className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-[#0e623a]"
                   />
                 </div>
 
