@@ -37,6 +37,8 @@ const ProjectsDictionary = () => {
   const [isDeletingId, setIsDeletingId] = useState(null);
   const [editForm, setEditForm] = useState({
     name: '',
+    code: '',
+    projectType: ['Plot'],
     location: '',
     totalLandArea: '',
     pricePerSqFt: '',
@@ -52,10 +54,12 @@ const ProjectsDictionary = () => {
   const handleStartEdit = (project) => {
     setEditingProjectId(project._id);
     setEditForm({
-      name: project.name,
-      location: project.location,
-      totalLandArea: project.totalLandArea.toString(),
-      pricePerSqFt: project.pricePerSqFt.toString(),
+      name: project.name || '',
+      code: project.code || '',
+      projectType: Array.isArray(project.projectType) ? project.projectType : (project.projectType ? [project.projectType] : ['Plot']),
+      location: project.location || '',
+      totalLandArea: (project.totalLandArea ?? '').toString(),
+      pricePerSqFt: (project.pricePerSqFt ?? '').toString(),
       layoutPlanImage: project.layoutPlanImage || ''
     });
   };
@@ -64,6 +68,8 @@ const ProjectsDictionary = () => {
     setEditingProjectId(null);
     setEditForm({
       name: '',
+      code: '',
+      projectType: ['Plot'],
       location: '',
       totalLandArea: '',
       pricePerSqFt: '',
@@ -82,6 +88,8 @@ const ProjectsDictionary = () => {
         },
         body: JSON.stringify({
           name: editForm.name,
+          code: editForm.code,
+          projectType: editForm.projectType,
           location: editForm.location,
           totalLandArea: Number(editForm.totalLandArea),
           pricePerSqFt: Number(editForm.pricePerSqFt),
@@ -419,12 +427,53 @@ const ProjectsDictionary = () => {
                           )}
                         </td>
                       )}
-                      {hasColumnPermission('projects', 'code') && <td className="p-4 font-mono font-bold text-black-650">{project.code}</td>}
+                      {hasColumnPermission('projects', 'code') && (
+                        <td className="p-4 font-mono font-bold text-black-650">
+                          {isEditing ? (
+                            <input
+                              type="text"
+                              value={editForm.code}
+                              onChange={(e) => setEditForm({ ...editForm, code: e.target.value.toUpperCase() })}
+                              className="px-2.5 py-1.5 bg-black-50 border border-black-250 rounded focus:ring-1 focus:ring-[#0e623a] focus:outline-none w-full font-mono font-bold text-xs"
+                              placeholder="Code"
+                            />
+                          ) : (
+                            project.code
+                          )}
+                        </td>
+                      )}
                       {hasColumnPermission('projects', 'type') && (
                         <td className="p-4">
-                          <span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full border ${getTypeBadgeStyle(project.projectType)}`}>
-                            {displayProjectType(project.projectType)}
-                          </span>
+                          {isEditing ? (
+                            <select
+                              value={
+                                (editForm.projectType || []).includes('Plot') && (editForm.projectType || []).some(t => ['Unit', 'Flat', 'House', 'Villa'].includes(t))
+                                  ? 'Both'
+                                  : (editForm.projectType || []).includes('Plot')
+                                  ? 'Plot'
+                                  : 'Unit'
+                              }
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                if (val === 'Both') {
+                                  setEditForm({ ...editForm, projectType: ['Plot', 'Unit'] });
+                                } else if (val === 'Plot') {
+                                  setEditForm({ ...editForm, projectType: ['Plot'] });
+                                } else {
+                                  setEditForm({ ...editForm, projectType: ['Unit'] });
+                                }
+                              }}
+                              className="px-2 py-1.5 bg-black-50 border border-black-250 rounded focus:ring-1 focus:ring-[#0e623a] focus:outline-none w-full text-xs font-semibold"
+                            >
+                              <option value="Plot">Plot</option>
+                              <option value="Unit">Unit</option>
+                              <option value="Both">Plot &amp; Unit</option>
+                            </select>
+                          ) : (
+                            <span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full border ${getTypeBadgeStyle(project.projectType)}`}>
+                              {displayProjectType(project.projectType)}
+                            </span>
+                          )}
                         </td>
                       )}
                       {hasColumnPermission('projects', 'mapLayout') && (

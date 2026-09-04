@@ -609,14 +609,25 @@ router.put('/:id/extra-work-catalog', protect, async (req, res) => {
 // @route   PUT /api/projects/:id
 // @desc    Update project details
 router.put('/:id', protect, async (req, res) => {
-  const { name, location, totalLandArea, pricePerSqFt, layoutPlanImage, hasReadyBuilt } = req.body;
+  const { name, code, projectType, location, totalLandArea, pricePerSqFt, layoutPlanImage, hasReadyBuilt } = req.body;
   try {
     const project = await Project.findById(req.params.id);
     if (!project) {
       return res.status(404).json({ message: 'Project not found' });
     }
 
+    if (code !== undefined && code.trim() !== '' && code.trim() !== project.code) {
+      const codeExists = await Project.findOne({ code: code.trim(), _id: { $ne: req.params.id } });
+      if (codeExists) {
+        return res.status(400).json({ message: 'Project Code/Prefix already exists' });
+      }
+      project.code = code.trim();
+    }
+
     if (name !== undefined) project.name = name;
+    if (projectType !== undefined) {
+      project.projectType = Array.isArray(projectType) ? projectType : [projectType];
+    }
     if (location !== undefined) project.location = location;
     if (totalLandArea !== undefined) project.totalLandArea = Number(totalLandArea);
     if (pricePerSqFt !== undefined) project.pricePerSqFt = Number(pricePerSqFt);
