@@ -80,8 +80,12 @@ export const sendTaskAssignmentEmail = async (assignedPerson, task, assignedByNa
     console.log('Task assignment email sent successfully!', response.status, response.text);
     return response;
   } catch (error) {
-    console.error('Failed to send task assignment email. Check your EmailJS credentials:', error);
-    // Don't throw error to prevent blocking task creation flow if email fails
+    console.error('Failed to send task assignment email. EmailJS Error Details:', {
+      status: error?.status,
+      text: error?.text,
+      message: error?.message,
+      error
+    });
     return null;
   }
 };
