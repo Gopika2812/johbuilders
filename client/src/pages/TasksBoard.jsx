@@ -647,15 +647,18 @@ const TasksBoard = () => {
     setEditingCategoryObj(null);
     setNewCategoryName('');
     setProjectSelectOption('');
+    const defaultAssignedId = user?._id || (employees.length > 0 ? employees[0]._id : '');
+    const assignedEmp = employees.find(emp => emp._id === defaultAssignedId) || user;
+    const assignedDept = assignedEmp?.department || user?.department || 'General';
     setFormData({
       title: '',
       description: '',
       projectName: '',
       dueDate: '',
-      assignedTo: user?._id || '',
+      assignedTo: defaultAssignedId,
       status: 'New',
       priority: 'Medium',
-      category: user?.department || 'Sales Team',
+      category: assignedDept,
       repeatType: 'None',
       reminderInterval: 1,
       attachments: []
@@ -678,15 +681,19 @@ const TasksBoard = () => {
       setProjectSelectOption('');
     }
 
+    const assignedId = task.assignedTo?._id || task.assignedTo || '';
+    const assignedEmp = employees.find(emp => emp._id === assignedId);
+    const assignedDept = assignedEmp?.department || task.assignedTo?.department || task.category || 'General';
+
     setFormData({
       title: task.title || '',
       description: task.description || '',
       projectName: taskProj,
       dueDate: dateFormatted,
-      assignedTo: task.assignedTo?._id || task.assignedTo || '',
+      assignedTo: assignedId,
       status: task.status || 'New',
       priority: task.priority || 'Medium',
-      category: task.category || 'General',
+      category: assignedDept,
       repeatType: task.repeatType || 'None',
       reminderInterval: task.reminderInterval || 1,
       attachments: task.attachments || []
@@ -1230,19 +1237,19 @@ const TasksBoard = () => {
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs border-collapse">
               <thead>
-                <tr className="border-b border-gray-200 bg-gray-50/80 text-gray-500 font-extrabold uppercase tracking-wider text-[11px]">
-                  <th className="p-3.5 w-10 text-center">S.No</th>
-                  <th className="p-3.5 min-w-[140px]">Project Name</th>
-                  <th className="p-3.5 min-w-[180px]">Task Title</th>
-                  <th className="p-3.5 min-w-[140px]">Department</th>
-                  <th className="p-3.5 min-w-[140px]">Assigned To</th>
-                  <th className="p-3.5 min-w-[130px]">Assigned By</th>
-                  <th className="p-3.5 min-w-[90px] text-center">Priority</th>
-                  <th className="p-3.5 min-w-[110px]">Assigned Date</th>
-                  <th className="p-3.5 min-w-[140px]">Due Date</th>
-                  <th className="p-3.5 min-w-[130px] text-center">Status</th>
-                  <th className="p-3.5 min-w-[140px] text-center">Attachments</th>
-                  <th className="p-3.5 w-28 text-center">Actions</th>
+                <tr className="border-b border-gray-200 bg-gray-50/80 text-gray-500 font-extrabold uppercase tracking-wider text-[10px]">
+                  <th className="p-2.5 w-8 text-center">S.No</th>
+                  <th className="p-2.5 min-w-[100px]">Project Name</th>
+                  <th className="p-2.5 min-w-[130px]">Task Title</th>
+                  <th className="p-2.5 min-w-[90px]">Department</th>
+                  <th className="p-2.5 min-w-[110px]">Assigned To</th>
+                  <th className="p-2.5 min-w-[95px]">Assigned By</th>
+                  <th className="p-2.5 min-w-[70px] text-center">Priority</th>
+                  <th className="p-2.5 min-w-[90px]">Assigned Date</th>
+                  <th className="p-2.5 min-w-[105px]">Due Date</th>
+                  <th className="p-2.5 min-w-[95px] text-center">Status</th>
+                  <th className="p-2.5 min-w-[85px] text-center">Attachments</th>
+                  <th className="p-2.5 w-24 text-center">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -1266,13 +1273,13 @@ const TasksBoard = () => {
                       className={`hover:bg-gray-50/80 transition duration-150 ${isHighlighted ? 'bg-amber-50/60 ring-2 ring-amber-400' : ''}`}
                     >
                       {/* 1. S.No */}
-                      <td className="p-3.5 text-center font-bold text-gray-400">{idx + 1}</td>
+                      <td className="p-2.5 text-center font-bold text-gray-400">{idx + 1}</td>
 
                       {/* 2. Project Name */}
-                      <td className="p-3.5">
+                      <td className="p-2.5">
                         {task.projectName ? (
-                          <div className="flex items-center gap-1.5 font-extrabold text-[#0e623a] bg-emerald-50 border border-emerald-200/80 px-2.5 py-1 rounded-lg w-fit text-xs">
-                            <Building className="w-3.5 h-3.5 text-[#0e623a] shrink-0" />
+                          <div className="flex items-center gap-1 font-extrabold text-[#0e623a] bg-emerald-50 border border-emerald-200/80 px-2 py-0.5 rounded-lg w-fit text-[11px]">
+                            <Building className="w-3 h-3 text-[#0e623a] shrink-0" />
                             <span>{task.projectName}</span>
                           </div>
                         ) : (
@@ -1280,19 +1287,16 @@ const TasksBoard = () => {
                         )}
                       </td>
 
-                      {/* 3. Task Title */}
-                      <td className="p-3.5">
-                        <div className="space-y-1">
-                          <span className="font-extrabold text-gray-900 text-sm block">{task.title}</span>
-                          {task.description && (
-                            <p className="text-gray-500 text-xs line-clamp-2 max-w-xs font-normal">{task.description}</p>
-                          )}
-                        </div>
+                      {/* 3. Task Title (No description as requested) */}
+                      <td className="p-2.5">
+                        <span className="font-bold text-gray-900 text-xs block truncate max-w-[200px]" title={task.title}>
+                          {task.title}
+                        </span>
                       </td>
 
                       {/* 4. Department */}
-                      <td className="p-3.5">
-                        <span className={`px-2.5 py-1 border font-extrabold text-xs rounded-lg inline-block ${
+                      <td className="p-2.5">
+                        <span className={`px-2 py-0.5 border font-extrabold text-[11px] rounded-lg inline-block ${
                           task.category === 'Sales Team' ? 'bg-blue-50 border-blue-200 text-blue-800' :
                           task.category === 'CRD Team' ? 'bg-purple-50 border-purple-200 text-purple-800' :
                           task.category === 'Accounts Team' ? 'bg-amber-50 border-amber-200 text-amber-800' :
@@ -1304,37 +1308,37 @@ const TasksBoard = () => {
                       </td>
 
                       {/* 5. Assigned To */}
-                      <td className="p-3.5">
-                        <div className="flex items-center gap-2">
-                          <div className="w-7 h-7 rounded-full bg-[#0e623a]/10 text-[#0e623a] flex items-center justify-center font-black text-xs shrink-0">
+                      <td className="p-2.5">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <div className="w-6 h-6 rounded-full bg-[#0e623a]/10 text-[#0e623a] flex items-center justify-center font-black text-[10px] shrink-0">
                             {task.assignedTo?.name?.slice(0, 2).toUpperCase() || 'U'}
                           </div>
-                          <div>
-                            <p className="font-bold text-gray-800">{task.assignedTo?.name || 'Unassigned'}</p>
-                            <span className="text-[10px] text-gray-400 font-semibold">{task.assignedTo?.role}</span>
+                          <div className="min-w-0">
+                            <p className="font-bold text-gray-800 text-xs truncate max-w-[110px]">{task.assignedTo?.name || 'Unassigned'}</p>
+                            <span className="text-[9px] text-gray-400 font-semibold block truncate">{task.assignedTo?.role}</span>
                           </div>
                         </div>
                       </td>
 
                       {/* 6. Assigned By */}
-                      <td className="p-3.5">
-                        <div className="flex items-center gap-1.5 text-gray-600">
-                          <UserCheck className="w-3.5 h-3.5 text-gray-400 shrink-0" />
-                          <span className="font-semibold text-gray-700">{task.assignedBy?.name || 'Admin'}</span>
+                      <td className="p-2.5">
+                        <div className="flex items-center gap-1 text-gray-600">
+                          <UserCheck className="w-3 h-3 text-gray-400 shrink-0" />
+                          <span className="font-semibold text-gray-700 text-xs truncate max-w-[90px]">{task.assignedBy?.name || 'Admin'}</span>
                         </div>
                       </td>
 
                       {/* 7. Priority */}
-                      <td className="p-3.5 text-center">
-                        <span className={`px-2.5 py-1 text-[10px] uppercase tracking-wider border rounded-lg ${priorityBadge}`}>
+                      <td className="p-2.5 text-center">
+                        <span className={`px-2 py-0.5 text-[9px] uppercase tracking-wider border rounded-md ${priorityBadge}`}>
                           {task.priority || 'Medium'}
                         </span>
                       </td>
 
                       {/* 8. Assigned Date */}
-                      <td className="p-3.5">
-                        <div className="flex items-center gap-1.5 text-gray-700 font-semibold whitespace-nowrap">
-                          <Calendar className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                      <td className="p-2.5">
+                        <div className="flex items-center gap-1 text-gray-700 font-semibold whitespace-nowrap text-xs">
+                          <Calendar className="w-3 h-3 text-emerald-600 shrink-0" />
                           <span>
                             {task.createdAt 
                               ? new Date(task.createdAt).toLocaleDateString('en-GB') 
@@ -1346,23 +1350,23 @@ const TasksBoard = () => {
                       </td>
 
                       {/* 9. Due Date */}
-                      <td className="p-3.5">
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-1.5 text-gray-700 font-bold">
-                            <Calendar className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                      <td className="p-2.5">
+                        <div className="space-y-0.5">
+                          <div className="flex items-center gap-1 text-gray-700 font-bold whitespace-nowrap text-xs">
+                            <Calendar className="w-3 h-3 text-gray-400 shrink-0" />
                             <span>{task.dueDate ? new Date(task.dueDate).toLocaleDateString('en-GB') : '—'}</span>
                           </div>
 
                           {task.repeatType && task.repeatType !== 'None' && (
-                            <div className="text-[10px] font-bold text-purple-700 bg-purple-50 border border-purple-200 px-1.5 py-0.5 rounded w-fit flex items-center gap-1">
+                            <div className="text-[9px] font-bold text-purple-700 bg-purple-50 border border-purple-200 px-1 py-0.2 rounded w-fit flex items-center gap-0.5 whitespace-nowrap">
                               <Clock className="w-2.5 h-2.5" />
                               <span>Repeat Every {task.reminderInterval || 1} {task.repeatType === 'Hourly' ? 'Hr(s)' : 'Day(s)'}</span>
                             </div>
                           )}
 
                           {over && (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wide bg-rose-100 text-rose-700 border border-rose-300 animate-pulse">
-                              <AlertTriangle className="w-3 h-3" />
+                            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded text-[9px] font-black uppercase tracking-wide bg-rose-100 text-rose-700 border border-rose-300 animate-pulse whitespace-nowrap">
+                              <AlertTriangle className="w-2.5 h-2.5" />
                               <span>Overdated</span>
                             </span>
                           )}
@@ -1370,27 +1374,25 @@ const TasksBoard = () => {
                       </td>
 
                       {/* 10. Status */}
-                      <td className="p-3.5 text-center">
-                        <div className="flex flex-col items-center gap-1.5">
-                          <select
-                            value={task.status}
-                            onChange={(e) => handleStatusChange(task._id, e.target.value)}
-                            className={`px-3 py-1.5 rounded-xl text-xs font-bold uppercase tracking-wide border focus:outline-none focus:ring-2 focus:ring-[#0e623a] cursor-pointer ${statusBadge}`}
-                          >
-                            <option value="New">New</option>
-                            <option value="In Progress">In Progress</option>
-                            <option value="On Hold">On Hold</option>
-                            <option value="Completed">Completed</option>
-                            <option value="Cancelled">Cancelled</option>
-                          </select>
-                        </div>
+                      <td className="p-2.5 text-center">
+                        <select
+                          value={task.status}
+                          onChange={(e) => handleStatusChange(task._id, e.target.value)}
+                          className={`px-2 py-1 rounded-lg text-[11px] font-bold uppercase tracking-wide border focus:outline-none focus:ring-1 focus:ring-[#0e623a] cursor-pointer ${statusBadge}`}
+                        >
+                          <option value="New">New</option>
+                          <option value="In Progress">In Progress</option>
+                          <option value="On Hold">On Hold</option>
+                          <option value="Completed">Completed</option>
+                          <option value="Cancelled">Cancelled</option>
+                        </select>
                       </td>
 
                       {/* 11. Attachments (Multiple Image Upload Option via Cloudinary & Delete Option) */}
-                      <td className="p-3.5 text-center">
-                        <div className="flex flex-col items-center gap-1.5">
+                      <td className="p-2.5 text-center">
+                        <div className="flex flex-col items-center gap-1">
                           {task.attachments && task.attachments.length > 0 ? (
-                            <div className="flex items-center gap-1.5 flex-wrap justify-center max-w-[140px]">
+                            <div className="flex items-center gap-1 flex-wrap justify-center max-w-[110px]">
                               {task.attachments.map((att, aIdx) => (
                                 <div 
                                   key={att._id || aIdx} 
@@ -1400,17 +1402,17 @@ const TasksBoard = () => {
                                   <img 
                                     src={att.url} 
                                     alt={att.name || 'Attachment'} 
-                                    className="w-8 h-8 rounded-lg object-cover border border-gray-200 shadow-xs cursor-pointer"
+                                    className="w-6 h-6 rounded object-cover border border-gray-200 shadow-2xs cursor-pointer"
                                     onClick={() => setPreviewImageModal({ open: true, url: att.url, name: att.name, taskId: task._id, attachmentId: att._id })}
                                   />
-                                  <div className="absolute inset-0 bg-black/60 rounded-lg opacity-0 group-hover:opacity-100 flex items-center justify-center gap-1 transition">
+                                  <div className="absolute inset-0 bg-black/60 rounded opacity-0 group-hover:opacity-100 flex items-center justify-center gap-0.5 transition">
                                     <button
                                       type="button"
                                       onClick={() => setPreviewImageModal({ open: true, url: att.url, name: att.name, taskId: task._id, attachmentId: att._id })}
                                       className="p-0.5 text-white hover:text-emerald-300 transition cursor-pointer"
                                       title="View Image"
                                     >
-                                      <Eye className="w-3 h-3" />
+                                      <Eye className="w-2.5 h-2.5" />
                                     </button>
                                     {att._id && (
                                       <button
@@ -1419,7 +1421,7 @@ const TasksBoard = () => {
                                         className="p-0.5 text-rose-300 hover:text-rose-500 transition cursor-pointer"
                                         title="Delete Attachment"
                                       >
-                                        <Trash2 className="w-3 h-3" />
+                                        <Trash2 className="w-2.5 h-2.5" />
                                       </button>
                                     )}
                                   </div>
@@ -1427,11 +1429,11 @@ const TasksBoard = () => {
                               ))}
                             </div>
                           ) : (
-                            <span className="text-[10px] text-gray-400 italic">No files</span>
+                            <span className="text-[9px] text-gray-400 italic">No files</span>
                           )}
 
-                          <label className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-[#0e623a] border border-emerald-200 rounded-lg text-[10px] font-bold cursor-pointer transition shadow-2xs">
-                            <UploadCloud className="w-3 h-3" />
+                          <label className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-50 hover:bg-emerald-100 text-[#0e623a] border border-emerald-200 rounded-md text-[9px] font-bold cursor-pointer transition shadow-2xs">
+                            <UploadCloud className="w-2.5 h-2.5" />
                             <span>Upload</span>
                             <input
                               type="file"
@@ -1446,36 +1448,36 @@ const TasksBoard = () => {
                       </td>
 
                       {/* 12. Actions */}
-                      <td className="p-3.5 text-center">
-                        <div className="flex items-center justify-center gap-1">
+                      <td className="p-2.5 text-center">
+                        <div className="flex items-center justify-center gap-0.5">
                           <button
                             onClick={() => handleOpenHistoryModal(task)}
-                            className="p-1.5 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition flex items-center gap-1 font-bold text-[11px]"
+                            className="p-1 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-md transition flex items-center gap-0.5 font-bold text-[10px]"
                             title="Reply / Task History"
                           >
-                            <MessageSquare className="w-3.5 h-3.5 text-blue-600" />
+                            <MessageSquare className="w-3 h-3 text-blue-600" />
                             <span>Reply</span>
                           </button>
                           <button
                             onClick={() => handleOpenHistoryModal(task)}
-                            className="p-1.5 text-gray-500 hover:text-emerald-700 hover:bg-emerald-50 rounded-lg transition"
+                            className="p-1 text-gray-500 hover:text-emerald-700 hover:bg-emerald-50 rounded-md transition"
                             title="Task History & Comments"
                           >
-                            <History className="w-4 h-4" />
+                            <History className="w-3.5 h-3.5" />
                           </button>
                           <button
                             onClick={() => handleOpenEditModal(task)}
-                            className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition"
+                            className="p-1 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-md transition"
                             title="Edit Task"
                           >
-                            <Edit3 className="w-4 h-4" />
+                            <Edit3 className="w-3.5 h-3.5" />
                           </button>
                           <button
                             onClick={() => handleDeleteTask(task._id)}
-                            className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition"
+                            className="p-1 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-md transition"
                             title="Delete Task"
                           >
-                            <Trash2 className="w-4 h-4" />
+                            <Trash2 className="w-3.5 h-3.5" />
                           </button>
                         </div>
                       </td>
@@ -1595,11 +1597,11 @@ const TasksBoard = () => {
                     value={formData.assignedTo}
                     onChange={(selectedId) => {
                       const selectedEmp = employees.find(emp => emp._id === selectedId);
-                      const empDept = selectedEmp?.department;
+                      const empDept = selectedEmp?.department || 'General';
                       setFormData(prev => ({
                         ...prev,
                         assignedTo: selectedId,
-                        ...(empDept ? { category: empDept } : {})
+                        category: empDept
                       }));
                     }}
                     placeholder="-- Select Person --"
@@ -1622,33 +1624,21 @@ const TasksBoard = () => {
                 </div>
               </div>
 
-              {/* Department (Instant Add Option) & Status */}
+              {/* Department (Auto Assigned based on selected person) & Status */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <label className="font-bold text-gray-700">Department</label>
-                    <button
-                      type="button"
-                      onClick={() => setShowCategoryManager(true)}
-                      className="text-[10px] font-extrabold text-[#0e623a] hover:underline flex items-center gap-1 cursor-pointer"
-                    >
-                      <Plus className="w-3 h-3" />
-                      <span>Manage Departments</span>
-                    </button>
+                  <label className="block font-bold text-gray-700 mb-1">
+                    Department
+                  </label>
+                  <div className="w-full px-3.5 py-2.5 bg-gray-100 border border-gray-200 rounded-xl text-xs font-bold text-gray-700 flex items-center justify-between">
+                    <span className="flex items-center gap-1.5 min-w-0">
+                      <span className="w-2 h-2 rounded-full bg-purple-500 shrink-0"></span>
+                      <span className="truncate">{formData.category || 'General'}</span>
+                    </span>
+                    <span className="text-[10px] bg-purple-50 text-purple-800 font-extrabold px-2 py-0.5 rounded border border-purple-200 shrink-0 ml-2">
+                      Auto Assigned
+                    </span>
                   </div>
-
-                  <select
-                    value={formData.category}
-                    onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                    className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#0e623a]"
-                  >
-                    {categoriesList.map(cat => {
-                      const catName = typeof cat === 'string' ? cat : cat.name;
-                      return (
-                        <option key={cat._id || catName} value={catName}>{catName}</option>
-                      );
-                    })}
-                  </select>
                 </div>
 
                 <div>

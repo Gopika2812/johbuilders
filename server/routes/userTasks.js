@@ -42,10 +42,10 @@ router.get('/', protect, async (req, res) => {
     }
 
     let tasks = await UserTask.find(query)
-      .populate('assignedTo', 'name email role phone')
-      .populate('assignedBy', 'name email role phone')
-      .populate('history.updatedBy', 'name email role')
-      .sort({ createdAt: -1, _id: -1 });
+      .populate('assignedTo', 'name email role phone department')
+      .populate('assignedBy', 'name email role phone department')
+      .populate('history.updatedBy', 'name email role');
+    tasks = tasks.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
     if (search) {
       const term = search.toLowerCase();
@@ -76,10 +76,9 @@ router.get('/notifications', protect, async (req, res) => {
       actionTaken: false,
       snoozedBy: { $ne: req.user._id }
     })
-      .populate('assignedBy', 'name role')
-      .populate('assignedTo', 'name role')
-      .populate('history.updatedBy', 'name email role')
-      .sort({ createdAt: -1 });
+      .populate('assignedBy', 'name role department')
+      .populate('assignedTo', 'name role department')
+      .sort({ dueDate: 1 });
 
     res.json(tasks);
   } catch (err) {
@@ -112,6 +111,8 @@ router.post('/', protect, async (req, res) => {
       return res.status(404).json({ message: 'Assigned User not found' });
     }
 
+    const assignedDept = targetUser.department || category || 'General';
+
     const newTask = new UserTask({
       title,
       description,
@@ -121,7 +122,7 @@ router.post('/', protect, async (req, res) => {
       assignedBy: req.user._id,
       status: 'New',
       priority: priority || 'Medium',
-      category: category || 'General',
+      category: assignedDept,
       repeatType: repeatType || 'None',
       reminderInterval: Number(reminderInterval) || 1,
       attachments: Array.isArray(attachments) ? attachments : [],
@@ -140,8 +141,8 @@ router.post('/', protect, async (req, res) => {
 
     await newTask.save();
     const populated = await UserTask.findById(newTask._id)
-      .populate('assignedTo', 'name email role phone')
-      .populate('assignedBy', 'name email role phone')
+      .populate('assignedTo', 'name email role phone department')
+      .populate('assignedBy', 'name email role phone department')
       .populate('history.updatedBy', 'name email role');
 
     res.status(201).json(populated);
@@ -207,6 +208,7 @@ router.put('/:id', protect, async (req, res) => {
         task.snoozedBy = [];
         task.actionTaken = false;
         task.assignedTo = targetUser._id;
+        task.category = targetUser.department || 'General';
       }
     }
     if (status !== undefined && status !== task.status) {
@@ -232,8 +234,8 @@ router.put('/:id', protect, async (req, res) => {
     await task.save();
 
     const populated = await UserTask.findById(task._id)
-      .populate('assignedTo', 'name email role phone')
-      .populate('assignedBy', 'name email role phone')
+      .populate('assignedTo', 'name email role phone department')
+      .populate('assignedBy', 'name email role phone department')
       .populate('history.updatedBy', 'name email role');
 
     res.json(populated);
@@ -275,8 +277,8 @@ router.post('/:id/comments', protect, async (req, res) => {
     await task.save();
 
     const populated = await UserTask.findById(task._id)
-      .populate('assignedTo', 'name email role phone')
-      .populate('assignedBy', 'name email role phone')
+      .populate('assignedTo', 'name email role phone department')
+      .populate('assignedBy', 'name email role phone department')
       .populate('history.updatedBy', 'name email role');
 
     res.json(populated);
@@ -356,8 +358,8 @@ router.post('/:id/attachments', protect, async (req, res) => {
     await task.save();
 
     const populated = await UserTask.findById(task._id)
-      .populate('assignedTo', 'name email role phone')
-      .populate('assignedBy', 'name email role phone')
+      .populate('assignedTo', 'name email role phone department')
+      .populate('assignedBy', 'name email role phone department')
       .populate('history.updatedBy', 'name email role');
 
     res.json(populated);
@@ -380,8 +382,8 @@ router.delete('/:id/attachments/:attachmentId', protect, async (req, res) => {
     await task.save();
 
     const populated = await UserTask.findById(task._id)
-      .populate('assignedTo', 'name email role phone')
-      .populate('assignedBy', 'name email role phone')
+      .populate('assignedTo', 'name email role phone department')
+      .populate('assignedBy', 'name email role phone department')
       .populate('history.updatedBy', 'name email role');
 
     res.json(populated);
