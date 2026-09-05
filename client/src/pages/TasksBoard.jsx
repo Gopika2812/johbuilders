@@ -31,7 +31,9 @@ import {
   Download,
   Paperclip,
   PauseCircle,
-  XCircle
+  XCircle,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 
 const getTodayString = () => {
@@ -365,6 +367,10 @@ const TasksBoard = () => {
   const [uploadingFile, setUploadingFile] = useState(false);
   const [previewImageModal, setPreviewImageModal] = useState({ open: false, url: '', name: '', taskId: '', attachmentId: '' });
 
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(1);
+  const tasksPerPage = 10;
+
   // Form Fields
   const [formData, setFormData] = useState({
     title: '',
@@ -386,6 +392,10 @@ const TasksBoard = () => {
     fetchProjects();
     fetchCategories();
   }, [token, startDate, endDate]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, statusFilter, categoryFilter, priorityFilter, projectFilter, viewTab, assignedToFilter, startDate, endDate]);
 
   const fetchTasks = async (isSilent = false) => {
     try {
@@ -913,6 +923,7 @@ const TasksBoard = () => {
 
     if (statusFilter === 'NEW') return task.status === 'New';
     if (statusFilter === 'IN_PROGRESS') return task.status === 'In Progress';
+    if (statusFilter === 'PENDING') return task.status === 'New' || task.status === 'In Progress';
     if (statusFilter === 'ON_HOLD') return task.status === 'On Hold';
     if (statusFilter === 'COMPLETED') return task.status === 'Completed';
     if (statusFilter === 'CANCELLED') return task.status === 'Cancelled';
@@ -936,10 +947,19 @@ const TasksBoard = () => {
   const totalCount = tasks.length;
   const newCount = tasks.filter(t => t.status === 'New').length;
   const inProgressCount = tasks.filter(t => t.status === 'In Progress').length;
+  const pendingCount = newCount + inProgressCount;
   const onHoldCount = tasks.filter(t => t.status === 'On Hold').length;
   const completedCount = tasks.filter(t => t.status === 'Completed').length;
   const cancelledCount = tasks.filter(t => t.status === 'Cancelled').length;
   const overdatedCount = tasks.filter(t => isOverdated(t)).length;
+
+  // Pagination calculations (10 tasks per page)
+  const totalTasks = sortedTasks.length;
+  const totalPages = Math.ceil(totalTasks / tasksPerPage) || 1;
+  const safeCurrentPage = Math.min(currentPage, totalPages);
+  const indexOfLastTask = safeCurrentPage * tasksPerPage;
+  const indexOfFirstTask = indexOfLastTask - tasksPerPage;
+  const currentTasks = sortedTasks.slice(indexOfFirstTask, indexOfLastTask);
 
   return (
     <div className="space-y-6">
@@ -1043,6 +1063,18 @@ const TasksBoard = () => {
             <AlertTriangle className={`w-3.5 h-3.5 ${statusFilter === 'OVERDATED' ? 'text-rose-300' : 'text-rose-600 animate-pulse'}`} />
           </div>
           <p className={`text-xl font-black mt-1 ${statusFilter === 'OVERDATED' ? 'text-white' : 'text-rose-700'}`}>{overdatedCount}</p>
+        </div>
+
+        {/* 8. Pending Tasks Card (Placed below Overdated card: lg:col-start-7) */}
+        <div 
+          onClick={() => setStatusFilter('PENDING')}
+          className={`p-3.5 rounded-2xl border transition-all cursor-pointer lg:col-start-7 ${statusFilter === 'PENDING' ? 'bg-amber-950 text-white border-amber-800 shadow-md ring-2 ring-amber-600' : 'bg-amber-50/70 border-amber-200 hover:border-amber-300'}`}
+        >
+          <div className="flex items-center justify-between">
+            <span className={`text-[10px] font-extrabold uppercase ${statusFilter === 'PENDING' ? 'text-amber-300' : 'text-amber-800'}`}>Pending Tasks</span>
+            <Clock className={`w-3.5 h-3.5 ${statusFilter === 'PENDING' ? 'text-amber-300' : 'text-amber-600'}`} />
+          </div>
+          <p className={`text-xl font-black mt-1 ${statusFilter === 'PENDING' ? 'text-white' : 'text-amber-800'}`}>{pendingCount}</p>
         </div>
       </div>
 
@@ -1207,6 +1239,7 @@ const TasksBoard = () => {
             icon={Clock}
             value={statusFilter}
             options={[
+              { id: 'PENDING', name: `Pending (${pendingCount})` },
               { id: 'NEW', name: `New (${newCount})` },
               { id: 'IN_PROGRESS', name: `In Progress (${inProgressCount})` },
               { id: 'ON_HOLD', name: `On Hold (${onHoldCount})` },
@@ -1234,258 +1267,321 @@ const TasksBoard = () => {
             <p className="text-xs text-gray-400">Click "Create New Task" above to assign your first task.</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs border-collapse">
-              <thead>
-                <tr className="border-b border-gray-200 bg-gray-50/80 text-gray-500 font-extrabold uppercase tracking-wider text-[10px]">
-                  <th className="p-2.5 w-8 text-center">S.No</th>
-                  <th className="p-2.5 min-w-[100px]">Project Name</th>
-                  <th className="p-2.5 min-w-[130px]">Task Title</th>
-                  <th className="p-2.5 min-w-[90px]">Department</th>
-                  <th className="p-2.5 min-w-[110px]">Assigned To</th>
-                  <th className="p-2.5 min-w-[95px]">Assigned By</th>
-                  <th className="p-2.5 min-w-[70px] text-center">Priority</th>
-                  <th className="p-2.5 min-w-[90px]">Assigned Date</th>
-                  <th className="p-2.5 min-w-[105px]">Due Date</th>
-                  <th className="p-2.5 min-w-[95px] text-center">Status</th>
-                  <th className="p-2.5 min-w-[85px] text-center">Attachments</th>
-                  <th className="p-2.5 w-24 text-center">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {sortedTasks.map((task, idx) => {
-                  const over = isOverdated(task);
-                  const isHighlighted = highlightTaskId === task._id;
+          <div className="bg-white border border-gray-150 rounded-3xl overflow-hidden shadow-sm">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr className="border-b border-gray-200 bg-gray-50/80 text-gray-500 font-extrabold uppercase tracking-wider text-[10px]">
+                    <th className="p-2.5 w-8 text-center">S.No</th>
+                    <th className="p-2.5 min-w-[100px]">Project Name</th>
+                    <th className="p-2.5 min-w-[130px]">Task Title</th>
+                    <th className="p-2.5 min-w-[90px]">Department</th>
+                    <th className="p-2.5 min-w-[110px]">Assigned To</th>
+                    <th className="p-2.5 min-w-[95px]">Assigned By</th>
+                    <th className="p-2.5 min-w-[70px] text-center">Priority</th>
+                    <th className="p-2.5 min-w-[90px]">Assigned Date</th>
+                    <th className="p-2.5 min-w-[105px]">Due Date</th>
+                    <th className="p-2.5 min-w-[95px] text-center">Status</th>
+                    <th className="p-2.5 min-w-[85px] text-center">Attachments</th>
+                    <th className="p-2.5 w-24 text-center">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {currentTasks.map((task, idx) => {
+                    const over = isOverdated(task);
+                    const isHighlighted = highlightTaskId === task._id;
+                    const sNo = (safeCurrentPage - 1) * tasksPerPage + idx + 1;
 
-                  let statusBadge = 'bg-blue-50 text-blue-700 border-blue-200';
-                  if (task.status === 'In Progress') statusBadge = 'bg-amber-50 text-amber-700 border-amber-200';
-                  if (task.status === 'On Hold') statusBadge = 'bg-purple-50 text-purple-700 border-purple-200';
-                  if (task.status === 'Completed') statusBadge = 'bg-emerald-50 text-emerald-700 border-emerald-200';
-                  if (task.status === 'Cancelled') statusBadge = 'bg-gray-100 text-gray-600 border-gray-300';
+                    let statusBadge = 'bg-blue-50 text-blue-700 border-blue-200';
+                    if (task.status === 'In Progress') statusBadge = 'bg-amber-50 text-amber-700 border-amber-200';
+                    if (task.status === 'On Hold') statusBadge = 'bg-purple-50 text-purple-700 border-purple-200';
+                    if (task.status === 'Completed') statusBadge = 'bg-emerald-50 text-emerald-700 border-emerald-200';
+                    if (task.status === 'Cancelled') statusBadge = 'bg-gray-100 text-gray-600 border-gray-300';
 
-                  let priorityBadge = 'bg-blue-50 text-blue-800 border-blue-200 font-bold';
-                  if (task.priority === 'High') priorityBadge = 'bg-amber-100 text-amber-800 border-amber-300 font-extrabold';
-                  if (task.priority === 'Low') priorityBadge = 'bg-gray-100 text-gray-700 border-gray-300 font-semibold';
+                    let priorityBadge = 'bg-blue-50 text-blue-800 border-blue-200 font-bold';
+                    if (task.priority === 'High') priorityBadge = 'bg-amber-100 text-amber-800 border-amber-300 font-extrabold';
+                    if (task.priority === 'Low') priorityBadge = 'bg-gray-100 text-gray-700 border-gray-300 font-semibold';
 
-                  return (
-                    <tr 
-                      key={task._id} 
-                      className={`hover:bg-gray-50/80 transition duration-150 ${isHighlighted ? 'bg-amber-50/60 ring-2 ring-amber-400' : ''}`}
-                    >
-                      {/* 1. S.No */}
-                      <td className="p-2.5 text-center font-bold text-gray-400">{idx + 1}</td>
+                    return (
+                      <tr 
+                        key={task._id} 
+                        className={`hover:bg-gray-50/80 transition duration-150 ${isHighlighted ? 'bg-amber-50/60 ring-2 ring-amber-400' : ''}`}
+                      >
+                        {/* 1. S.No */}
+                        <td className="p-2.5 text-center font-bold text-gray-400">{sNo}</td>
 
-                      {/* 2. Project Name */}
-                      <td className="p-2.5">
-                        {task.projectName ? (
-                          <div className="flex items-center gap-1 font-extrabold text-[#0e623a] bg-emerald-50 border border-emerald-200/80 px-2 py-0.5 rounded-lg w-fit text-[11px]">
-                            <Building className="w-3 h-3 text-[#0e623a] shrink-0" />
-                            <span>{task.projectName}</span>
-                          </div>
-                        ) : (
-                          <span className="text-gray-400 text-xs italic">—</span>
-                        )}
-                      </td>
-
-                      {/* 3. Task Title (No description as requested) */}
-                      <td className="p-2.5">
-                        <span className="font-bold text-gray-900 text-xs block truncate max-w-[200px]" title={task.title}>
-                          {task.title}
-                        </span>
-                      </td>
-
-                      {/* 4. Department */}
-                      <td className="p-2.5">
-                        <span className={`px-2 py-0.5 border font-extrabold text-[11px] rounded-lg inline-block ${
-                          task.category === 'Sales Team' ? 'bg-blue-50 border-blue-200 text-blue-800' :
-                          task.category === 'CRD Team' ? 'bg-purple-50 border-purple-200 text-purple-800' :
-                          task.category === 'Accounts Team' ? 'bg-amber-50 border-amber-200 text-amber-800' :
-                          task.category === 'Administration (Superadmins)' ? 'bg-rose-50 border-rose-200 text-rose-800' :
-                          'bg-emerald-50 border-emerald-200 text-emerald-800'
-                        }`}>
-                          {task.category || 'Sales Team'}
-                        </span>
-                      </td>
-
-                      {/* 5. Assigned To */}
-                      <td className="p-2.5">
-                        <div className="flex items-center gap-1.5 min-w-0">
-                          <div className="w-6 h-6 rounded-full bg-[#0e623a]/10 text-[#0e623a] flex items-center justify-center font-black text-[10px] shrink-0">
-                            {task.assignedTo?.name?.slice(0, 2).toUpperCase() || 'U'}
-                          </div>
-                          <div className="min-w-0">
-                            <p className="font-bold text-gray-800 text-xs truncate max-w-[110px]">{task.assignedTo?.name || 'Unassigned'}</p>
-                            <span className="text-[9px] text-gray-400 font-semibold block truncate">{task.assignedTo?.role}</span>
-                          </div>
-                        </div>
-                      </td>
-
-                      {/* 6. Assigned By */}
-                      <td className="p-2.5">
-                        <div className="flex items-center gap-1 text-gray-600">
-                          <UserCheck className="w-3 h-3 text-gray-400 shrink-0" />
-                          <span className="font-semibold text-gray-700 text-xs truncate max-w-[90px]">{task.assignedBy?.name || 'Admin'}</span>
-                        </div>
-                      </td>
-
-                      {/* 7. Priority */}
-                      <td className="p-2.5 text-center">
-                        <span className={`px-2 py-0.5 text-[9px] uppercase tracking-wider border rounded-md ${priorityBadge}`}>
-                          {task.priority || 'Medium'}
-                        </span>
-                      </td>
-
-                      {/* 8. Assigned Date */}
-                      <td className="p-2.5">
-                        <div className="flex items-center gap-1 text-gray-700 font-semibold whitespace-nowrap text-xs">
-                          <Calendar className="w-3 h-3 text-emerald-600 shrink-0" />
-                          <span>
-                            {task.createdAt 
-                              ? new Date(task.createdAt).toLocaleDateString('en-GB') 
-                              : (task.assignedDate 
-                                  ? new Date(task.assignedDate).toLocaleDateString('en-GB') 
-                                  : '—')}
-                          </span>
-                        </div>
-                      </td>
-
-                      {/* 9. Due Date */}
-                      <td className="p-2.5">
-                        <div className="space-y-0.5">
-                          <div className="flex items-center gap-1 text-gray-700 font-bold whitespace-nowrap text-xs">
-                            <Calendar className="w-3 h-3 text-gray-400 shrink-0" />
-                            <span>{task.dueDate ? new Date(task.dueDate).toLocaleDateString('en-GB') : '—'}</span>
-                          </div>
-
-                          {task.repeatType && task.repeatType !== 'None' && (
-                            <div className="text-[9px] font-bold text-purple-700 bg-purple-50 border border-purple-200 px-1 py-0.2 rounded w-fit flex items-center gap-0.5 whitespace-nowrap">
-                              <Clock className="w-2.5 h-2.5" />
-                              <span>Repeat Every {task.reminderInterval || 1} {task.repeatType === 'Hourly' ? 'Hr(s)' : 'Day(s)'}</span>
-                            </div>
-                          )}
-
-                          {over && (
-                            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded text-[9px] font-black uppercase tracking-wide bg-rose-100 text-rose-700 border border-rose-300 animate-pulse whitespace-nowrap">
-                              <AlertTriangle className="w-2.5 h-2.5" />
-                              <span>Overdated</span>
-                            </span>
-                          )}
-                        </div>
-                      </td>
-
-                      {/* 10. Status */}
-                      <td className="p-2.5 text-center">
-                        <select
-                          value={task.status}
-                          onChange={(e) => handleStatusChange(task._id, e.target.value)}
-                          className={`px-2 py-1 rounded-lg text-[11px] font-bold uppercase tracking-wide border focus:outline-none focus:ring-1 focus:ring-[#0e623a] cursor-pointer ${statusBadge}`}
-                        >
-                          <option value="New">New</option>
-                          <option value="In Progress">In Progress</option>
-                          <option value="On Hold">On Hold</option>
-                          <option value="Completed">Completed</option>
-                          <option value="Cancelled">Cancelled</option>
-                        </select>
-                      </td>
-
-                      {/* 11. Attachments (Multiple Image Upload Option via Cloudinary & Delete Option) */}
-                      <td className="p-2.5 text-center">
-                        <div className="flex flex-col items-center gap-1">
-                          {task.attachments && task.attachments.length > 0 ? (
-                            <div className="flex items-center gap-1 flex-wrap justify-center max-w-[110px]">
-                              {task.attachments.map((att, aIdx) => (
-                                <div 
-                                  key={att._id || aIdx} 
-                                  className="relative group shrink-0"
-                                  title={att.name || 'View Attachment'}
-                                >
-                                  <img 
-                                    src={att.url} 
-                                    alt={att.name || 'Attachment'} 
-                                    className="w-6 h-6 rounded object-cover border border-gray-200 shadow-2xs cursor-pointer"
-                                    onClick={() => setPreviewImageModal({ open: true, url: att.url, name: att.name, taskId: task._id, attachmentId: att._id })}
-                                  />
-                                  <div className="absolute inset-0 bg-black/60 rounded opacity-0 group-hover:opacity-100 flex items-center justify-center gap-0.5 transition">
-                                    <button
-                                      type="button"
-                                      onClick={() => setPreviewImageModal({ open: true, url: att.url, name: att.name, taskId: task._id, attachmentId: att._id })}
-                                      className="p-0.5 text-white hover:text-emerald-300 transition cursor-pointer"
-                                      title="View Image"
-                                    >
-                                      <Eye className="w-2.5 h-2.5" />
-                                    </button>
-                                    {att._id && (
-                                      <button
-                                        type="button"
-                                        onClick={(e) => handleDeleteAttachment(task._id, att._id, e)}
-                                        className="p-0.5 text-rose-300 hover:text-rose-500 transition cursor-pointer"
-                                        title="Delete Attachment"
-                                      >
-                                        <Trash2 className="w-2.5 h-2.5" />
-                                      </button>
-                                    )}
-                                  </div>
-                                </div>
-                              ))}
+                        {/* 2. Project Name */}
+                        <td className="p-2.5">
+                          {task.projectName ? (
+                            <div className="flex items-center gap-1 font-extrabold text-[#0e623a] bg-emerald-50 border border-emerald-200/80 px-2 py-0.5 rounded-lg w-fit text-[11px]">
+                              <Building className="w-3 h-3 text-[#0e623a] shrink-0" />
+                              <span>{task.projectName}</span>
                             </div>
                           ) : (
-                            <span className="text-[9px] text-gray-400 italic">No files</span>
+                            <span className="text-gray-400 text-xs italic">—</span>
                           )}
+                        </td>
 
-                          <label className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-50 hover:bg-emerald-100 text-[#0e623a] border border-emerald-200 rounded-md text-[9px] font-bold cursor-pointer transition shadow-2xs">
-                            <UploadCloud className="w-2.5 h-2.5" />
-                            <span>Upload</span>
-                            <input
-                              type="file"
-                              multiple
-                              accept="image/*"
-                              className="hidden"
-                              disabled={uploadingFile}
-                              onChange={(e) => handleDirectUpload(task._id, e.target.files)}
-                            />
-                          </label>
-                        </div>
-                      </td>
+                        {/* 3. Task Title (No description as requested) */}
+                        <td className="p-2.5">
+                          <span className="font-bold text-gray-900 text-xs block truncate max-w-[200px]" title={task.title}>
+                            {task.title}
+                          </span>
+                        </td>
 
-                      {/* 12. Actions */}
-                      <td className="p-2.5 text-center">
-                        <div className="flex items-center justify-center gap-0.5">
-                          <button
-                            onClick={() => handleOpenHistoryModal(task)}
-                            className="p-1 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-md transition flex items-center gap-0.5 font-bold text-[10px]"
-                            title="Reply / Task History"
+                        {/* 4. Department */}
+                        <td className="p-2.5">
+                          <span className={`px-2 py-0.5 border font-extrabold text-[11px] rounded-lg inline-block ${
+                            task.category === 'Sales Team' ? 'bg-blue-50 border-blue-200 text-blue-800' :
+                            task.category === 'CRD Team' ? 'bg-purple-50 border-purple-200 text-purple-800' :
+                            task.category === 'Accounts Team' ? 'bg-amber-50 border-amber-200 text-amber-800' :
+                            task.category === 'Administration (Superadmins)' ? 'bg-rose-50 border-rose-200 text-rose-800' :
+                            'bg-emerald-50 border-emerald-200 text-emerald-800'
+                          }`}>
+                            {task.category || 'Sales Team'}
+                          </span>
+                        </td>
+
+                        {/* 5. Assigned To */}
+                        <td className="p-2.5">
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <div className="w-6 h-6 rounded-full bg-[#0e623a]/10 text-[#0e623a] flex items-center justify-center font-black text-[10px] shrink-0">
+                              {task.assignedTo?.name?.slice(0, 2).toUpperCase() || 'U'}
+                            </div>
+                            <div className="min-w-0">
+                              <p className="font-bold text-gray-800 text-xs truncate max-w-[110px]">{task.assignedTo?.name || 'Unassigned'}</p>
+                              <span className="text-[9px] text-gray-400 font-semibold block truncate">{task.assignedTo?.role}</span>
+                            </div>
+                          </div>
+                        </td>
+
+                        {/* 6. Assigned By */}
+                        <td className="p-2.5">
+                          <div className="flex items-center gap-1 text-gray-600">
+                            <UserCheck className="w-3 h-3 text-gray-400 shrink-0" />
+                            <span className="font-semibold text-gray-700 text-xs truncate max-w-[90px]">{task.assignedBy?.name || 'Admin'}</span>
+                          </div>
+                        </td>
+
+                        {/* 7. Priority */}
+                        <td className="p-2.5 text-center">
+                          <span className={`px-2 py-0.5 text-[9px] uppercase tracking-wider border rounded-md ${priorityBadge}`}>
+                            {task.priority || 'Medium'}
+                          </span>
+                        </td>
+
+                        {/* 8. Assigned Date */}
+                        <td className="p-2.5">
+                          <div className="flex items-center gap-1 text-gray-700 font-semibold whitespace-nowrap text-xs">
+                            <Calendar className="w-3 h-3 text-emerald-600 shrink-0" />
+                            <span>
+                              {task.createdAt 
+                                ? new Date(task.createdAt).toLocaleDateString('en-GB') 
+                                : (task.assignedDate 
+                                    ? new Date(task.assignedDate).toLocaleDateString('en-GB') 
+                                    : '—')}
+                            </span>
+                          </div>
+                        </td>
+
+                        {/* 9. Due Date */}
+                        <td className="p-2.5">
+                          <div className="space-y-0.5">
+                            <div className="flex items-center gap-1 text-gray-700 font-bold whitespace-nowrap text-xs">
+                              <Calendar className="w-3 h-3 text-gray-400 shrink-0" />
+                              <span>{task.dueDate ? new Date(task.dueDate).toLocaleDateString('en-GB') : '—'}</span>
+                            </div>
+
+                            {task.repeatType && task.repeatType !== 'None' && (
+                              <div className="text-[9px] font-bold text-purple-700 bg-purple-50 border border-purple-200 px-1 py-0.2 rounded w-fit flex items-center gap-0.5 whitespace-nowrap">
+                                <Clock className="w-2.5 h-2.5" />
+                                <span>Repeat Every {task.reminderInterval || 1} {task.repeatType === 'Hourly' ? 'Hr(s)' : 'Day(s)'}</span>
+                              </div>
+                            )}
+
+                            {over && (
+                              <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded text-[9px] font-black uppercase tracking-wide bg-rose-100 text-rose-700 border border-rose-300 animate-pulse whitespace-nowrap">
+                                <AlertTriangle className="w-2.5 h-2.5" />
+                                <span>Overdated</span>
+                              </span>
+                            )}
+                          </div>
+                        </td>
+
+                        {/* 10. Status */}
+                        <td className="p-2.5 text-center">
+                          <select
+                            value={task.status}
+                            onChange={(e) => handleStatusChange(task._id, e.target.value)}
+                            className={`px-2 py-1 rounded-lg text-[11px] font-bold uppercase tracking-wide border focus:outline-none focus:ring-1 focus:ring-[#0e623a] cursor-pointer ${statusBadge}`}
                           >
-                            <MessageSquare className="w-3 h-3 text-blue-600" />
-                            <span>Reply</span>
-                          </button>
+                            <option value="New">New</option>
+                            <option value="In Progress">In Progress</option>
+                            <option value="On Hold">On Hold</option>
+                            <option value="Completed">Completed</option>
+                            <option value="Cancelled">Cancelled</option>
+                          </select>
+                        </td>
+
+                        {/* 11. Attachments (Multiple Image Upload Option via Cloudinary & Delete Option) */}
+                        <td className="p-2.5 text-center">
+                          <div className="flex flex-col items-center gap-1">
+                            {task.attachments && task.attachments.length > 0 ? (
+                              <div className="flex items-center gap-1 flex-wrap justify-center max-w-[110px]">
+                                {task.attachments.map((att, aIdx) => (
+                                  <div 
+                                    key={att._id || aIdx} 
+                                    className="relative group shrink-0"
+                                    title={att.name || 'View Attachment'}
+                                  >
+                                    <img 
+                                      src={att.url} 
+                                      alt={att.name || 'Attachment'} 
+                                      className="w-6 h-6 rounded object-cover border border-gray-200 shadow-2xs cursor-pointer"
+                                      onClick={() => setPreviewImageModal({ open: true, url: att.url, name: att.name, taskId: task._id, attachmentId: att._id })}
+                                    />
+                                    <div className="absolute inset-0 bg-black/60 rounded opacity-0 group-hover:opacity-100 flex items-center justify-center gap-0.5 transition">
+                                      <button
+                                        type="button"
+                                        onClick={() => setPreviewImageModal({ open: true, url: att.url, name: att.name, taskId: task._id, attachmentId: att._id })}
+                                        className="p-0.5 text-white hover:text-emerald-300 transition cursor-pointer"
+                                        title="View Image"
+                                      >
+                                        <Eye className="w-2.5 h-2.5" />
+                                      </button>
+                                      {att._id && (
+                                        <button
+                                          type="button"
+                                          onClick={(e) => handleDeleteAttachment(task._id, att._id, e)}
+                                          className="p-0.5 text-rose-300 hover:text-rose-500 transition cursor-pointer"
+                                          title="Delete Attachment"
+                                        >
+                                          <Trash2 className="w-2.5 h-2.5" />
+                                        </button>
+                                      )}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <span className="text-[9px] text-gray-400 italic">No files</span>
+                            )}
+
+                            <label className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-50 hover:bg-emerald-100 text-[#0e623a] border border-emerald-200 rounded-md text-[9px] font-bold cursor-pointer transition shadow-2xs">
+                              <UploadCloud className="w-2.5 h-2.5" />
+                              <span>Upload</span>
+                              <input
+                                type="file"
+                                multiple
+                                accept="image/*"
+                                className="hidden"
+                                disabled={uploadingFile}
+                                onChange={(e) => handleDirectUpload(task._id, e.target.files)}
+                              />
+                            </label>
+                          </div>
+                        </td>
+
+                        {/* 12. Actions */}
+                        <td className="p-2.5 text-center">
+                          <div className="flex items-center justify-center gap-0.5">
+                            <button
+                              onClick={() => handleOpenHistoryModal(task)}
+                              className="p-1 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-md transition flex items-center gap-0.5 font-bold text-[10px]"
+                              title="Reply / Task History"
+                            >
+                              <MessageSquare className="w-3 h-3 text-blue-600" />
+                              <span>Reply</span>
+                            </button>
+                            <button
+                              onClick={() => handleOpenHistoryModal(task)}
+                              className="p-1 text-gray-500 hover:text-emerald-700 hover:bg-emerald-50 rounded-md transition"
+                              title="Task History & Comments"
+                            >
+                              <History className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              onClick={() => handleOpenEditModal(task)}
+                              className="p-1 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-md transition"
+                              title="Edit Task"
+                            >
+                              <Edit3 className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteTask(task._id)}
+                              className="p-1 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-md transition"
+                              title="Delete Task"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Pagination Controls (10 Tasks per page) */}
+            {totalTasks > 0 && (
+              <div className="p-3.5 bg-white border-t border-gray-150 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+                <div className="text-gray-500 font-bold text-xs">
+                  Showing {(safeCurrentPage - 1) * tasksPerPage + 1} to {Math.min(safeCurrentPage * tasksPerPage, totalTasks)} of {totalTasks} tasks
+                </div>
+
+                <div className="flex items-center gap-1.5">
+                  <button
+                    disabled={safeCurrentPage === 1}
+                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                    className="px-3 py-1.5 text-xs font-bold rounded-xl border border-gray-200 text-gray-700 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-50 transition shadow-2xs flex items-center gap-1 cursor-pointer"
+                  >
+                    <ChevronLeft className="w-3.5 h-3.5" />
+                    <span>Prev</span>
+                  </button>
+
+                  <div className="flex items-center gap-1">
+                    {Array.from({ length: totalPages }, (_, i) => i + 1)
+                      .filter(p => p === 1 || p === totalPages || Math.abs(p - safeCurrentPage) <= 1)
+                      .reduce((acc, p, idx, arr) => {
+                        if (idx > 0 && p - arr[idx - 1] > 1) {
+                          acc.push('...');
+                        }
+                        acc.push(p);
+                        return acc;
+                      }, [])
+                      .map((p, idx) => {
+                        if (p === '...') {
+                          return <span key={`dots-${idx}`} className="px-1 text-gray-400 font-bold text-xs">...</span>;
+                        }
+                        const isCurrent = p === safeCurrentPage;
+                        return (
                           <button
-                            onClick={() => handleOpenHistoryModal(task)}
-                            className="p-1 text-gray-500 hover:text-emerald-700 hover:bg-emerald-50 rounded-md transition"
-                            title="Task History & Comments"
+                            key={p}
+                            onClick={() => setCurrentPage(p)}
+                            className={`w-7 h-7 rounded-lg font-bold text-xs flex items-center justify-center transition cursor-pointer ${
+                              isCurrent 
+                                ? 'bg-[#0e623a] text-white shadow-xs' 
+                                : 'border border-gray-200 text-gray-700 hover:bg-gray-50 bg-white'
+                            }`}
                           >
-                            <History className="w-3.5 h-3.5" />
+                            {p}
                           </button>
-                          <button
-                            onClick={() => handleOpenEditModal(task)}
-                            className="p-1 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-md transition"
-                            title="Edit Task"
-                          >
-                            <Edit3 className="w-3.5 h-3.5" />
-                          </button>
-                          <button
-                            onClick={() => handleDeleteTask(task._id)}
-                            className="p-1 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-md transition"
-                            title="Delete Task"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                        );
+                      })}
+                  </div>
+
+                  <button
+                    disabled={safeCurrentPage === totalPages || totalPages === 0}
+                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                    className="px-3 py-1.5 text-xs font-bold rounded-xl border border-gray-200 text-gray-700 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-50 transition shadow-2xs flex items-center gap-1 cursor-pointer"
+                  >
+                    <span>Next</span>
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
