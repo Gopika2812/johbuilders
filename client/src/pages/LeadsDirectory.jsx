@@ -2069,40 +2069,38 @@ const LeadsDirectory = () => {
   const paginatedLeadsList = filteredLeadsList.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   return (
-    <div className="space-y-6 w-full max-w-full overflow-hidden">
+    <div className="space-y-2.5 w-full max-w-full overflow-hidden">
       {/* Notifications */}
       {successMsg && (
-        <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs px-4 py-3 rounded-2xl flex items-center gap-1.5 animate-pulse">
+        <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs px-3 py-2 rounded-xl flex items-center gap-1.5 animate-pulse">
           <CheckCircle2 className="w-4 h-4 text-emerald-600" />
           <span>{successMsg}</span>
         </div>
       )}
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-800 text-xs px-4 py-3 rounded-2xl flex items-center gap-1.5">
+        <div className="bg-red-50 border border-red-200 text-red-800 text-xs px-3 py-2 rounded-xl flex items-center gap-1.5">
           <AlertCircle className="w-4 h-4 text-red-600" />
           <span>{error}</span>
         </div>
       )}
 
-      {/* Filters & Search Menu */}
-      <div className="space-y-2 sticky top-16 z-20 bg-black-50/90 backdrop-blur-md py-2">
-        <div className="bg-white p-4 border border-black-150 shadow-sm rounded-3xl grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
-          <div className="md:col-span-2 space-y-1">
-            <label className="text-[11px] font-bold text-black-400 uppercase tracking-wider block">Search Lead Name / Phone / Project Code</label>
-            <div className="relative">
-              <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-black-400">
-                <Search className="w-4 h-4" />
-              </span>
-              <input
-                type="text"
-                placeholder="Search leads..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-3 py-2 bg-black-50 border border-black-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-sm"
-              />
-            </div>
+      {/* Unified Compact Filters & Search Menu */}
+      <div className="bg-white p-2.5 sm:p-3 border border-black-150 shadow-xs rounded-2xl space-y-2">
+        {/* Row 1: Search + Date Range */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-2.5 items-center">
+          <div className="lg:col-span-5 relative">
+            <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-black-400">
+              <Search className="w-3.5 h-3.5" />
+            </span>
+            <input
+              type="text"
+              placeholder="Search Lead Name / Phone / Project Code..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-9 pr-3 py-1.5 bg-black-50 border border-black-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-xs"
+            />
           </div>
-          <div className="md:col-span-2 w-full">
+          <div className="lg:col-span-7">
             <DateRangeFilter
               fromDate={startDate}
               toDate={endDate}
@@ -2115,14 +2113,14 @@ const LeadsDirectory = () => {
           </div>
         </div>
 
-        <div className="bg-white p-4 border border-black-150 shadow-sm rounded-3xl grid grid-cols-2 lg:grid-cols-5 gap-4 items-end">
+        {/* Row 2: 5 Filter Dropdowns */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 pt-1.5 border-t border-black-100">
           {/* Assigned Executive */}
-          <div className="space-y-1">
-            <label className="text-[11px] font-bold text-black-400 uppercase tracking-wider block">Assigned Executive</label>
+          <div>
             <select
               value={assignedFilter}
               onChange={(e) => setAssignedFilter(e.target.value)}
-              className="w-full max-w-full truncate px-3 py-2 bg-black-50 border border-black-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-xs font-bold text-black-700"
+              className="w-full max-w-full truncate px-2.5 py-1.5 bg-black-50 border border-black-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-xs font-semibold text-black-700"
             >
               <option value="">All Executives</option>
               {employees.map(emp => (
@@ -2132,12 +2130,11 @@ const LeadsDirectory = () => {
           </div>
 
           {/* Workflow Status */}
-          <div className="space-y-1">
-            <label className="text-[11px] font-bold text-black-400 uppercase tracking-wider block">Workflow Status</label>
+          <div>
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="w-full max-w-full truncate px-3 py-2 bg-black-50 border border-black-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-xs font-bold text-black-700"
+              className="w-full max-w-full truncate px-2.5 py-1.5 bg-black-50 border border-black-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-xs font-semibold text-black-700"
             >
               <option value="">All Statuses</option>
               {LEAD_STATUSES.map(st => (
@@ -2147,12 +2144,11 @@ const LeadsDirectory = () => {
           </div>
 
           {/* Project Select */}
-          <div className="space-y-1">
-            <label className="text-[11px] font-bold text-black-400 uppercase tracking-wider block">Project</label>
+          <div>
             <select
               value={projectFilter}
               onChange={(e) => setProjectFilter(e.target.value)}
-              className="w-full max-w-full truncate px-3 py-2 bg-black-50 border border-black-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-xs font-bold text-black-700"
+              className="w-full max-w-full truncate px-2.5 py-1.5 bg-black-50 border border-black-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-xs font-semibold text-black-700"
             >
               <option value="">All Projects</option>
               {projects.map(p => (
@@ -2162,8 +2158,7 @@ const LeadsDirectory = () => {
           </div>
 
           {/* Campaign / Source */}
-          <div className="space-y-1">
-            <label className="text-[11px] font-bold text-black-400 uppercase tracking-wider block">Campaign / Source</label>
+          <div>
             <SearchableMultiSelect
               options={availableSources}
               selectedValues={campaignFilter}
@@ -2175,12 +2170,11 @@ const LeadsDirectory = () => {
           </div>
 
           {/* Lead Category */}
-          <div className="space-y-1">
-            <label className="text-[11px] font-bold text-black-400 uppercase tracking-wider block">Lead Category</label>
+          <div>
             <select
               value={categoryFilter}
               onChange={(e) => setCategoryFilter(e.target.value)}
-              className="w-full max-w-full truncate px-3 py-2 bg-black-50 border border-black-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-xs font-bold text-black-700"
+              className="w-full max-w-full truncate px-2.5 py-1.5 bg-black-50 border border-black-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-xs font-semibold text-black-700"
             >
               <option value="">All Categories</option>
               <option value="Hot">Hot</option>
@@ -2192,12 +2186,12 @@ const LeadsDirectory = () => {
       </div>
 
       {/* Tab Switcher - Leads Phases & Action Buttons */}
-      <div className="w-full max-w-full overflow-x-auto bg-white border border-black-150 p-1.5 rounded-2xl shadow-sm scrollbar-none flex flex-col md:flex-row items-center justify-between gap-3">
+      <div className="w-full max-w-full overflow-x-auto bg-white border border-black-150 p-1 sm:p-1.5 rounded-2xl shadow-xs scrollbar-none flex flex-col md:flex-row items-center justify-between gap-2">
         <div className="flex gap-1 min-w-max items-center">
           <button
             onClick={() => setActiveTab('All')}
-            className={`px-4 py-2 text-xs font-bold rounded-xl transition ${activeTab === 'All'
-              ? 'bg-[#0e623a] text-white shadow-sm'
+            className={`px-3 py-1.5 text-xs font-bold rounded-xl transition ${activeTab === 'All'
+              ? 'bg-[#0e623a] text-white shadow-xs'
               : 'text-black-500 hover:bg-black-50 hover:text-black-800'
               }`}
           >
@@ -2214,8 +2208,8 @@ const LeadsDirectory = () => {
               <button
                 key={st}
                 onClick={() => setActiveTab(st)}
-                className={`px-4 py-2 text-xs font-bold rounded-xl transition ${activeTab === st
-                  ? 'bg-[#0e623a] text-white shadow-sm'
+                className={`px-3 py-1.5 text-xs font-bold rounded-xl transition ${activeTab === st
+                  ? 'bg-[#0e623a] text-white shadow-xs'
                   : 'text-black-500 hover:bg-black-50 hover:text-black-800'
                   }`}
               >
@@ -2226,10 +2220,10 @@ const LeadsDirectory = () => {
         </div>
 
         {/* Action Buttons next to Lost Count */}
-        <div className="flex items-center gap-2 shrink-0 ml-auto pl-2">
+        <div className="flex items-center gap-1.5 shrink-0 ml-auto pl-2">
           <button
             onClick={handleExportExcel}
-            className="flex items-center justify-center gap-1.5 px-3 py-1.5 bg-white border border-black-200 text-black-700 hover:bg-black-50 text-xs font-bold rounded-xl transition shadow-xs cursor-pointer"
+            className="flex items-center justify-center gap-1.5 px-2.5 py-1 bg-white border border-black-200 text-black-700 hover:bg-black-50 text-xs font-bold rounded-xl transition shadow-xs cursor-pointer"
           >
             <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-700" />
             <span>Export Excel</span>
@@ -2241,7 +2235,7 @@ const LeadsDirectory = () => {
               setParsedImportData([]);
               setPastedText('');
             }}
-            className="flex items-center justify-center gap-1.5 px-3 py-1.5 bg-[#0e623a]/10 hover:bg-[#0e623a]/20 text-[#0e623a] border border-[#0e623a]/30 text-xs font-bold rounded-xl transition shadow-xs cursor-pointer"
+            className="flex items-center justify-center gap-1.5 px-2.5 py-1 bg-[#0e623a]/10 hover:bg-[#0e623a]/20 text-[#0e623a] border border-[#0e623a]/30 text-xs font-bold rounded-xl transition shadow-xs cursor-pointer"
           >
             <Upload className="w-3.5 h-3.5 text-[#0e623a]" />
             <span>Import Excel</span>
@@ -2252,7 +2246,7 @@ const LeadsDirectory = () => {
               resetForm();
               setCreateModalOpen(true);
             }}
-            className="flex items-center justify-center gap-1.5 px-3.5 py-1.5 bg-[#0e623a] hover:bg-[#0b4d2d] text-white text-xs font-bold rounded-xl transition shadow-xs cursor-pointer"
+            className="flex items-center justify-center gap-1.5 px-3 py-1 bg-[#0e623a] hover:bg-[#0b4d2d] text-white text-xs font-bold rounded-xl transition shadow-xs cursor-pointer"
           >
             <Plus className="w-3.5 h-3.5" />
             <span>Create New Lead</span>
@@ -2261,11 +2255,11 @@ const LeadsDirectory = () => {
       </div>
 
       {/* Leads Main Table */}
-      <div className="bg-white border border-black-150 shadow-sm rounded-3xl overflow-visible">
-        <div className="overflow-x-auto w-full min-h-[350px]">
+      <div className="bg-white border border-black-150 shadow-xs rounded-2xl overflow-hidden">
+        <div className="overflow-x-auto w-full">
           <table className="w-full text-left border-collapse min-w-[900px]">
             <thead>
-              <tr className="bg-black-50 border-b border-black-150 text-[11px] font-bold text-black-500 uppercase tracking-wider">
+              <tr className="bg-black-50 border-b border-black-150 text-[10.5px] font-bold text-black-600 uppercase tracking-wider">
                 {hasColumnPermission('leads', 'sno') && <th className="px-3 py-2 w-10 text-center">S.No</th>}
                 {hasColumnPermission('leads', 'date') && <th className="px-3 py-2">Date</th>}
                 {hasColumnPermission('leads', 'customerName') && <th className="px-3 py-2">Customer Name</th>}
