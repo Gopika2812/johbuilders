@@ -217,7 +217,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
         )}
 
         {/* Reports Master */}
-        {(hasPermission('sales_reports') || hasPermission('crd_reports')) && (
+        {(hasPermission('sales_reports') || hasPermission('crd_reports') || hasPermission('dashboard_reports') || hasPermission('dashboard')) && (
           <div>
             <button
               onClick={() => setReportsMenuOpen(!reportsMenuOpen)}
@@ -232,6 +232,16 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
             
             {reportsMenuOpen && isExpanded && (
               <div className={`mt-1 space-y-1 ${isExpanded ? "pl-8" : "pl-0 flex flex-col items-center"}`}>
+                <Link
+                  to="/reports/dashboard"
+                  className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs transition ${
+                    isActive('/reports/dashboard')
+                      ? 'text-emerald-400 font-extrabold pl-2'
+                      : 'text-white hover:text-emerald-400 hover:bg-white/5'
+                  }`}
+                >
+                  <span className={isExpanded ? "block truncate" : "hidden"}>Dashboard Reports</span>
+                </Link>
                 {hasPermission('sales_reports') && (
                   <Link
                     to="/reports/export"

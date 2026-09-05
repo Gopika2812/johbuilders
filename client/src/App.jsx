@@ -36,6 +36,7 @@ import KPIInsights from './pages/KPIInsights';
 import Customers from './pages/Customers';
 import ExportReports from './pages/ExportReports';
 import CRDReports from './pages/CRDReports';
+import DashboardReports from './pages/DashboardReports';
 import ExtraWorks from './pages/ExtraWorks';
 import ComplaintsFlow from './pages/ComplaintsFlow';
 import TasksBoard from './pages/TasksBoard';
@@ -133,6 +134,7 @@ function App() {
             <Route path="/kpi-insights" element={<PageGuard pageId="kpi_insights"><Layout><KPIInsights /></Layout></PageGuard>} />
             
             {/* Reports Master */}
+            <Route path="/reports/dashboard" element={<PageGuard pageId="dashboard"><Layout><DashboardReports /></Layout></PageGuard>} />
             <Route path="/reports/export" element={<PageGuard pageId="sales_reports"><Layout><ExportReports /></Layout></PageGuard>} />
             <Route path="/reports/crd" element={<PageGuard pageId="crd_reports"><Layout><CRDReports /></Layout></PageGuard>} />
             

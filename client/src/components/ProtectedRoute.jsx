@@ -13,6 +13,7 @@ export const ROUTE_PERMISSIONS = [
   { pageId: 'complaints_flow', path: '/crd-flow/complaints' },
   { pageId: 'bank_loan', path: '/crd-flow/bank-loan-history' },
   { pageId: 'overall_collection', path: '/crd-flow/overall-report' },
+  { pageId: 'dashboard_reports', path: '/reports/dashboard' },
   { pageId: 'sales_reports', path: '/reports/export' },
   { pageId: 'crd_reports', path: '/reports/crd' },
   { pageId: 'customers', path: '/customers' },
