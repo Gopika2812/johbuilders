@@ -123,8 +123,8 @@ const DateRangeFilter = ({ fromDate, toDate, onDateChange, onRefresh, label = ''
         </div>
       )}
 
-      {/* Date UI Container single line */}
-      <div className="flex items-center flex-nowrap gap-1.5 bg-[#f0fbf4] border border-[#0e623a]/25 p-1 rounded-xl shadow-xs overflow-x-auto scrollbar-none w-full max-w-full">
+      {/* Date UI Container single line (non-scrollable) */}
+      <div className="flex items-center flex-wrap sm:flex-nowrap gap-1 bg-[#f0fbf4] border border-[#0e623a]/25 p-1 rounded-xl shadow-xs w-full max-w-full">
         {/* Preset Selector Dropdown */}
         <div className="flex items-center gap-1 bg-white border border-[#0e623a]/30 px-2 py-1 rounded-lg shadow-xs shrink-0 hover:border-[#0e623a] transition">
           <Calendar className="w-3.5 h-3.5 text-[#0e623a] shrink-0" />

@@ -1995,19 +1995,19 @@ const Dashboard = () => {
     <div className="space-y-6 w-full mx-auto text-left animate-fadeIn">
 
       {/* Filtration Header Card */}
-      <div className="glass-card border-none shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-3xl p-4 sm:p-5 w-full relative transition-all duration-300">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3.5 items-end">
+      <div className="glass-card border-none shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-3xl p-3 sm:p-4 w-full relative transition-all duration-300">
+        <div className="flex flex-col lg:flex-row items-stretch lg:items-end gap-2.5 w-full">
 
           {/* User Select */}
-          {(user?.role === 'Superadmin' || user?.role === 'Superadmin') ? (
-            <div className="flex flex-col gap-1 sm:col-span-1 lg:col-span-2 w-full">
+          {(user?.role === 'Superadmin' || user?.role === 'Superadmin') && (
+            <div className="flex flex-col gap-1 w-full lg:w-36 shrink-0">
               <label className="text-[11px] font-bold text-black-800 uppercase tracking-wider">Filtered User</label>
-              <div className="flex items-center gap-2 bg-black-50 border-none px-3 py-1.5 rounded-xl">
-                <User className="w-4 h-4 text-black-455 shrink-0" />
+              <div className="flex items-center gap-1.5 bg-black-50 border-none px-2.5 py-1.5 rounded-xl">
+                <User className="w-3.5 h-3.5 text-black-455 shrink-0" />
                 <select
                   value={selectedUser}
                   onChange={(e) => setSelectedUser(e.target.value)}
-                  className="w-full bg-transparent text-xs text-black-700 font-bold focus:outline-none focus:ring-0 border-0 p-0"
+                  className="w-full bg-transparent text-xs text-black-700 font-bold focus:outline-none focus:ring-0 border-0 p-0 truncate"
                 >
                   <option value="">All Users</option>
                   {(stats.users || []).map(u => (
@@ -2016,19 +2016,17 @@ const Dashboard = () => {
                 </select>
               </div>
             </div>
-          ) : (
-            <div className="hidden"></div>
           )}
 
           {/* Project Select */}
-          <div className="flex flex-col gap-1 sm:col-span-1 lg:col-span-2 w-full">
+          <div className="flex flex-col gap-1 w-full lg:w-36 shrink-0">
             <label className="text-[11px] font-bold text-black-400 uppercase tracking-wider">Filtered Project</label>
-            <div className="flex items-center gap-2 bg-black-50 border-none px-3 py-1.5 rounded-xl">
-              <FolderOpen className="w-4 h-4 text-black-455 shrink-0" />
+            <div className="flex items-center gap-1.5 bg-black-50 border-none px-2.5 py-1.5 rounded-xl">
+              <FolderOpen className="w-3.5 h-3.5 text-black-455 shrink-0" />
               <select
                 value={selectedProject}
                 onChange={(e) => setSelectedProject(e.target.value)}
-                className="w-full bg-transparent text-xs text-black-700 font-bold focus:outline-none focus:ring-0 border-0 p-0"
+                className="w-full bg-transparent text-xs text-black-700 font-bold focus:outline-none focus:ring-0 border-0 p-0 truncate"
               >
                 <option value="">All Projects</option>
                 {(stats.projects || []).map(p => (
@@ -2038,9 +2036,8 @@ const Dashboard = () => {
             </div>
           </div>
 
-
           {/* Source Select */}
-          <div className="flex flex-col gap-1 sm:col-span-1 lg:col-span-3 w-full">
+          <div className="flex flex-col gap-1 w-full lg:w-44 shrink-0">
             <SearchableMultiSelect
               label="Filtered Source"
               options={Array.from(new Set([
@@ -2054,8 +2051,8 @@ const Dashboard = () => {
             />
           </div>
 
-          {/* Advanced Date Filtration (From-To Date, Month wise, Quarterly, Half-Yearly, Yearly, Financial Year) */}
-          <div className="col-span-1 sm:col-span-2 lg:col-span-5 w-full">
+          {/* Advanced Date Filtration */}
+          <div className="w-full lg:flex-1 min-w-0">
             <DateRangeFilter
               fromDate={fromDate}
               toDate={toDate}
