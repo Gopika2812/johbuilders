@@ -33,7 +33,8 @@ import {
   PauseCircle,
   XCircle,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  MoreVertical
 } from 'lucide-react';
 
 const getTodayString = () => {
@@ -370,6 +371,19 @@ const TasksBoard = () => {
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
   const tasksPerPage = 10;
+
+  // Row Action Menu (3-dots) State
+  const [openActionMenuId, setOpenActionMenuId] = useState(null);
+
+  useEffect(() => {
+    const handleDocClick = (e) => {
+      if (!e.target.closest('.action-menu-container')) {
+        setOpenActionMenuId(null);
+      }
+    };
+    document.addEventListener('click', handleDocClick);
+    return () => document.removeEventListener('click', handleDocClick);
+  }, []);
 
   // Form Fields
   const [formData, setFormData] = useState({
@@ -1272,18 +1286,18 @@ const TasksBoard = () => {
               <table className="w-full text-left text-xs border-collapse">
                 <thead>
                   <tr className="border-b border-gray-200 bg-gray-50/80 text-gray-500 font-extrabold uppercase tracking-wider text-[10px]">
-                    <th className="p-2.5 w-8 text-center">S.No</th>
-                    <th className="p-2.5 min-w-[100px]">Project Name</th>
-                    <th className="p-2.5 min-w-[130px]">Task Title</th>
-                    <th className="p-2.5 min-w-[90px]">Department</th>
-                    <th className="p-2.5 min-w-[110px]">Assigned To</th>
-                    <th className="p-2.5 min-w-[95px]">Assigned By</th>
-                    <th className="p-2.5 min-w-[70px] text-center">Priority</th>
-                    <th className="p-2.5 min-w-[90px]">Assigned Date</th>
-                    <th className="p-2.5 min-w-[105px]">Due Date</th>
-                    <th className="p-2.5 min-w-[95px] text-center">Status</th>
-                    <th className="p-2.5 min-w-[85px] text-center">Attachments</th>
-                    <th className="p-2.5 w-24 text-center">Actions</th>
+                    <th className="p-2 w-7 text-center">S.No</th>
+                    <th className="p-2 min-w-[70px] max-w-[90px]">Project</th>
+                    <th className="p-2 min-w-[100px] max-w-[130px]">Task Title</th>
+                    <th className="p-2 min-w-[70px] max-w-[85px]">Department</th>
+                    <th className="p-2 min-w-[80px] max-w-[105px]">Assigned To</th>
+                    <th className="p-2 min-w-[75px] max-w-[90px]">Assigned By</th>
+                    <th className="p-2 min-w-[55px] text-center">Priority</th>
+                    <th className="p-2 min-w-[75px]">Assigned Date</th>
+                    <th className="p-2 min-w-[80px]">Due Date</th>
+                    <th className="p-2 min-w-[80px] text-center">Status</th>
+                    <th className="p-2 min-w-[70px] text-center">Attachments</th>
+                    <th className="p-2 w-8 text-center">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
@@ -1308,112 +1322,97 @@ const TasksBoard = () => {
                         className={`hover:bg-gray-50/80 transition duration-150 ${isHighlighted ? 'bg-amber-50/60 ring-2 ring-amber-400' : ''}`}
                       >
                         {/* 1. S.No */}
-                        <td className="p-2.5 text-center font-bold text-gray-400">{sNo}</td>
+                        <td className="p-2 text-center font-bold text-gray-400 text-xs">{sNo}</td>
 
                         {/* 2. Project Name */}
-                        <td className="p-2.5">
+                        <td className="p-2">
                           {task.projectName ? (
-                            <div className="flex items-center gap-1 font-extrabold text-[#0e623a] bg-emerald-50 border border-emerald-200/80 px-2 py-0.5 rounded-lg w-fit text-[11px]">
-                              <Building className="w-3 h-3 text-[#0e623a] shrink-0" />
-                              <span>{task.projectName}</span>
-                            </div>
+                            <span className="font-bold text-[#0e623a] text-xs block truncate max-w-[90px]" title={task.projectName}>
+                              {task.projectName}
+                            </span>
                           ) : (
                             <span className="text-gray-400 text-xs italic">—</span>
                           )}
                         </td>
 
-                        {/* 3. Task Title (No description as requested) */}
-                        <td className="p-2.5">
-                          <span className="font-bold text-gray-900 text-xs block truncate max-w-[200px]" title={task.title}>
+                        {/* 3. Task Title */}
+                        <td className="p-2">
+                          <span className="font-bold text-gray-900 text-xs block truncate max-w-[130px]" title={task.title}>
                             {task.title}
                           </span>
                         </td>
 
                         {/* 4. Department */}
-                        <td className="p-2.5">
-                          <span className={`px-2 py-0.5 border font-extrabold text-[11px] rounded-lg inline-block ${
+                        <td className="p-2">
+                          <span className={`px-1.5 py-0.5 border font-extrabold text-[10px] rounded-md inline-block max-w-[85px] truncate ${
                             task.category === 'Sales Team' ? 'bg-blue-50 border-blue-200 text-blue-800' :
                             task.category === 'CRD Team' ? 'bg-purple-50 border-purple-200 text-purple-800' :
                             task.category === 'Accounts Team' ? 'bg-amber-50 border-amber-200 text-amber-800' :
                             task.category === 'Administration (Superadmins)' ? 'bg-rose-50 border-rose-200 text-rose-800' :
                             'bg-emerald-50 border-emerald-200 text-emerald-800'
-                          }`}>
+                          }`} title={task.category || 'Sales Team'}>
                             {task.category || 'Sales Team'}
                           </span>
                         </td>
 
-                        {/* 5. Assigned To */}
-                        <td className="p-2.5">
-                          <div className="flex items-center gap-1.5 min-w-0">
-                            <div className="w-6 h-6 rounded-full bg-[#0e623a]/10 text-[#0e623a] flex items-center justify-center font-black text-[10px] shrink-0">
-                              {task.assignedTo?.name?.slice(0, 2).toUpperCase() || 'U'}
-                            </div>
-                            <div className="min-w-0">
-                              <p className="font-bold text-gray-800 text-xs truncate max-w-[110px]">{task.assignedTo?.name || 'Unassigned'}</p>
-                              <span className="text-[9px] text-gray-400 font-semibold block truncate">{task.assignedTo?.role}</span>
-                            </div>
+                        {/* 5. Assigned To (No initials avatar badge as requested) */}
+                        <td className="p-2">
+                          <div className="min-w-0">
+                            <p className="font-bold text-gray-800 text-xs truncate max-w-[105px]" title={task.assignedTo?.name}>{task.assignedTo?.name || 'Unassigned'}</p>
+                            {task.assignedTo?.role && <span className="text-[9px] text-gray-400 font-semibold block truncate max-w-[105px]">{task.assignedTo?.role}</span>}
                           </div>
                         </td>
 
                         {/* 6. Assigned By */}
-                        <td className="p-2.5">
-                          <div className="flex items-center gap-1 text-gray-600">
-                            <UserCheck className="w-3 h-3 text-gray-400 shrink-0" />
-                            <span className="font-semibold text-gray-700 text-xs truncate max-w-[90px]">{task.assignedBy?.name || 'Admin'}</span>
-                          </div>
+                        <td className="p-2">
+                          <span className="font-semibold text-gray-700 text-xs truncate block max-w-[90px]" title={task.assignedBy?.name}>{task.assignedBy?.name || 'Admin'}</span>
                         </td>
 
                         {/* 7. Priority */}
-                        <td className="p-2.5 text-center">
-                          <span className={`px-2 py-0.5 text-[9px] uppercase tracking-wider border rounded-md ${priorityBadge}`}>
+                        <td className="p-2 text-center">
+                          <span className={`px-1.5 py-0.5 text-[9px] uppercase tracking-wider border rounded ${priorityBadge}`}>
                             {task.priority || 'Medium'}
                           </span>
                         </td>
 
-                        {/* 8. Assigned Date */}
-                        <td className="p-2.5">
-                          <div className="flex items-center gap-1 text-gray-700 font-semibold whitespace-nowrap text-xs">
-                            <Calendar className="w-3 h-3 text-emerald-600 shrink-0" />
-                            <span>
-                              {task.createdAt 
-                                ? new Date(task.createdAt).toLocaleDateString('en-GB') 
-                                : (task.assignedDate 
-                                    ? new Date(task.assignedDate).toLocaleDateString('en-GB') 
-                                    : '—')}
-                            </span>
-                          </div>
+                        {/* 8. Assigned Date (No calendar icon as requested) */}
+                        <td className="p-2">
+                          <span className="text-gray-700 font-medium text-xs whitespace-nowrap block">
+                            {task.createdAt 
+                              ? new Date(task.createdAt).toLocaleDateString('en-GB') 
+                              : (task.assignedDate 
+                                  ? new Date(task.assignedDate).toLocaleDateString('en-GB') 
+                                  : '—')}
+                          </span>
                         </td>
 
-                        {/* 9. Due Date */}
-                        <td className="p-2.5">
+                        {/* 9. Due Date (No calendar icon as requested) */}
+                        <td className="p-2">
                           <div className="space-y-0.5">
-                            <div className="flex items-center gap-1 text-gray-700 font-bold whitespace-nowrap text-xs">
-                              <Calendar className="w-3 h-3 text-gray-400 shrink-0" />
-                              <span>{task.dueDate ? new Date(task.dueDate).toLocaleDateString('en-GB') : '—'}</span>
-                            </div>
+                            <span className="text-gray-800 font-bold text-xs whitespace-nowrap block">
+                              {task.dueDate ? new Date(task.dueDate).toLocaleDateString('en-GB') : '—'}
+                            </span>
 
                             {task.repeatType && task.repeatType !== 'None' && (
-                              <div className="text-[9px] font-bold text-purple-700 bg-purple-50 border border-purple-200 px-1 py-0.2 rounded w-fit flex items-center gap-0.5 whitespace-nowrap">
-                                <Clock className="w-2.5 h-2.5" />
-                                <span>Repeat Every {task.reminderInterval || 1} {task.repeatType === 'Hourly' ? 'Hr(s)' : 'Day(s)'}</span>
+                              <div className="text-[8.5px] font-bold text-purple-700 bg-purple-50 border border-purple-200 px-1 py-0.2 rounded w-fit whitespace-nowrap">
+                                Every {task.reminderInterval || 1} {task.repeatType === 'Hourly' ? 'Hr' : 'Day'}
                               </div>
                             )}
 
                             {over && (
-                              <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded text-[9px] font-black uppercase tracking-wide bg-rose-100 text-rose-700 border border-rose-300 animate-pulse whitespace-nowrap">
-                                <AlertTriangle className="w-2.5 h-2.5" />
-                                <span>Overdated</span>
+                              <span className="inline-block px-1 py-0.2 rounded text-[8px] font-black uppercase tracking-wide bg-rose-100 text-rose-700 border border-rose-300 animate-pulse whitespace-nowrap">
+                                OVERDATED
                               </span>
                             )}
                           </div>
                         </td>
 
                         {/* 10. Status */}
-                        <td className="p-2.5 text-center">
+                        <td className="p-2 text-center">
                           <select
                             value={task.status}
                             onChange={(e) => handleStatusChange(task._id, e.target.value)}
-                            className={`px-2 py-1 rounded-lg text-[11px] font-bold uppercase tracking-wide border focus:outline-none focus:ring-1 focus:ring-[#0e623a] cursor-pointer ${statusBadge}`}
+                            className={`px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide border focus:outline-none focus:ring-1 focus:ring-[#0e623a] cursor-pointer ${statusBadge}`}
                           >
                             <option value="New">New</option>
                             <option value="In Progress">In Progress</option>
@@ -1423,11 +1422,11 @@ const TasksBoard = () => {
                           </select>
                         </td>
 
-                        {/* 11. Attachments (Multiple Image Upload Option via Cloudinary & Delete Option) */}
-                        <td className="p-2.5 text-center">
-                          <div className="flex flex-col items-center gap-1">
+                        {/* 11. Attachments */}
+                        <td className="p-2 text-center">
+                          <div className="flex flex-col items-center gap-0.5">
                             {task.attachments && task.attachments.length > 0 ? (
-                              <div className="flex items-center gap-1 flex-wrap justify-center max-w-[110px]">
+                              <div className="flex items-center gap-1 flex-wrap justify-center max-w-[80px]">
                                 {task.attachments.map((att, aIdx) => (
                                   <div 
                                     key={att._id || aIdx} 
@@ -1437,7 +1436,7 @@ const TasksBoard = () => {
                                     <img 
                                       src={att.url} 
                                       alt={att.name || 'Attachment'} 
-                                      className="w-6 h-6 rounded object-cover border border-gray-200 shadow-2xs cursor-pointer"
+                                      className="w-5 h-5 rounded object-cover border border-gray-200 cursor-pointer shadow-2xs"
                                       onClick={() => setPreviewImageModal({ open: true, url: att.url, name: att.name, taskId: task._id, attachmentId: att._id })}
                                     />
                                     <div className="absolute inset-0 bg-black/60 rounded opacity-0 group-hover:opacity-100 flex items-center justify-center gap-0.5 transition">
@@ -1463,11 +1462,9 @@ const TasksBoard = () => {
                                   </div>
                                 ))}
                               </div>
-                            ) : (
-                              <span className="text-[9px] text-gray-400 italic">No files</span>
-                            )}
+                            ) : null}
 
-                            <label className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-50 hover:bg-emerald-100 text-[#0e623a] border border-emerald-200 rounded-md text-[9px] font-bold cursor-pointer transition shadow-2xs">
+                            <label className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-emerald-50 hover:bg-emerald-100 text-[#0e623a] border border-emerald-200 rounded text-[9px] font-bold cursor-pointer transition shadow-2xs">
                               <UploadCloud className="w-2.5 h-2.5" />
                               <span>Upload</span>
                               <input
@@ -1482,39 +1479,65 @@ const TasksBoard = () => {
                           </div>
                         </td>
 
-                        {/* 12. Actions */}
-                        <td className="p-2.5 text-center">
-                          <div className="flex items-center justify-center gap-0.5">
-                            <button
-                              onClick={() => handleOpenHistoryModal(task)}
-                              className="p-1 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-md transition flex items-center gap-0.5 font-bold text-[10px]"
-                              title="Reply / Task History"
-                            >
-                              <MessageSquare className="w-3 h-3 text-blue-600" />
-                              <span>Reply</span>
-                            </button>
-                            <button
-                              onClick={() => handleOpenHistoryModal(task)}
-                              className="p-1 text-gray-500 hover:text-emerald-700 hover:bg-emerald-50 rounded-md transition"
-                              title="Task History & Comments"
-                            >
-                              <History className="w-3.5 h-3.5" />
-                            </button>
-                            <button
-                              onClick={() => handleOpenEditModal(task)}
-                              className="p-1 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-md transition"
-                              title="Edit Task"
-                            >
-                              <Edit3 className="w-3.5 h-3.5" />
-                            </button>
-                            <button
-                              onClick={() => handleDeleteTask(task._id)}
-                              className="p-1 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-md transition"
-                              title="Delete Task"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
+                        {/* 12. Actions (3 Dots Menu) */}
+                        <td className="p-2 text-center relative action-menu-container">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setOpenActionMenuId(openActionMenuId === task._id ? null : task._id);
+                            }}
+                            className="p-1 text-gray-500 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition cursor-pointer inline-flex items-center justify-center"
+                            title="More Actions"
+                          >
+                            <MoreVertical className="w-4 h-4" />
+                          </button>
+
+                          {openActionMenuId === task._id && (
+                            <div className="absolute right-2 top-8 z-[100] bg-white border border-gray-200 rounded-xl shadow-xl py-1 w-32 text-left animate-in fade-in zoom-in-95 duration-100">
+                              <button
+                                onClick={() => {
+                                  setOpenActionMenuId(null);
+                                  handleOpenHistoryModal(task);
+                                }}
+                                className="w-full px-2.5 py-1.5 text-xs text-blue-600 hover:bg-blue-50 flex items-center gap-2 font-semibold transition cursor-pointer"
+                              >
+                                <MessageSquare className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                                <span>Reply</span>
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setOpenActionMenuId(null);
+                                  handleOpenHistoryModal(task);
+                                }}
+                                className="w-full px-2.5 py-1.5 text-xs text-gray-700 hover:bg-gray-50 flex items-center gap-2 font-semibold transition cursor-pointer"
+                              >
+                                <History className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                                <span>History</span>
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setOpenActionMenuId(null);
+                                  handleOpenEditModal(task);
+                                }}
+                                className="w-full px-2.5 py-1.5 text-xs text-gray-700 hover:bg-gray-50 flex items-center gap-2 font-semibold transition cursor-pointer"
+                              >
+                                <Edit3 className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                                <span>Edit</span>
+                              </button>
+                              <div className="border-t border-gray-100 my-0.5"></div>
+                              <button
+                                onClick={() => {
+                                  setOpenActionMenuId(null);
+                                  handleDeleteTask(task._id);
+                                }}
+                                className="w-full px-2.5 py-1.5 text-xs text-rose-600 hover:bg-rose-50 flex items-center gap-2 font-semibold transition cursor-pointer"
+                              >
+                                <Trash2 className="w-3.5 h-3.5 text-rose-600 shrink-0" />
+                                <span>Delete</span>
+                              </button>
+                            </div>
+                          )}
                         </td>
                       </tr>
                     );
