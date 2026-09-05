@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth, API_URL } from '../context/AuthContext';
 import { useLocation } from 'react-router-dom';
 import { sendTaskAssignmentEmail } from '../utils/emailService';
+import DateRangeFilter from '../components/DateRangeFilter';
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
 import { 
@@ -1147,15 +1148,15 @@ const TasksBoard = () => {
     if (startDate) {
       const start = new Date(startDate);
       start.setHours(0, 0, 0, 0);
-      const due = new Date(task.dueDate);
-      if (due < start) return false;
+      const targetDate = task.dueDate ? new Date(task.dueDate) : (task.createdAt ? new Date(task.createdAt) : null);
+      if (targetDate && targetDate < start) return false;
     }
 
     if (endDate) {
       const end = new Date(endDate);
       end.setHours(23, 59, 59, 999);
-      const due = new Date(task.dueDate);
-      if (due > end) return false;
+      const targetDate = task.dueDate ? new Date(task.dueDate) : (task.createdAt ? new Date(task.createdAt) : null);
+      if (targetDate && targetDate > end) return false;
     }
 
     if (statusFilter === 'NEW') return task.status === 'New';
@@ -1427,25 +1428,40 @@ const TasksBoard = () => {
 
       {/* Search & Filter Toolbar Box */}
       <div className="bg-white border border-gray-150 rounded-3xl p-5 shadow-sm space-y-4">
-        {/* Row 1: Main Search Bar (Separate Row) */}
-        <div className="relative w-full">
-          <Search className="w-4 h-4 absolute left-4 top-3.5 text-[#0e623a]" />
-          <input
-            type="text"
-            placeholder="Search tasks by title, description, project, or assignee name..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-11 pr-10 py-3 bg-gray-50 hover:bg-white focus:bg-white border border-gray-200 rounded-2xl text-xs font-semibold text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#0e623a] shadow-xs transition"
-          />
-          {searchTerm && (
-            <button
-              type="button"
-              onClick={() => setSearchTerm('')}
-              className="absolute right-3.5 top-3 text-gray-400 hover:text-gray-600 p-0.5 rounded-full hover:bg-gray-200 transition"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          )}
+        {/* Row 1: Main Search Bar & Date Filtration */}
+        <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-3">
+          <div className="relative flex-1 min-w-[240px]">
+            <Search className="w-4 h-4 absolute left-4 top-3.5 text-[#0e623a]" />
+            <input
+              type="text"
+              placeholder="Search tasks by title, description, project, or assignee name..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-11 pr-10 py-3 bg-gray-50 hover:bg-white focus:bg-white border border-gray-200 rounded-2xl text-xs font-semibold text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#0e623a] shadow-xs transition"
+            />
+            {searchTerm && (
+              <button
+                type="button"
+                onClick={() => setSearchTerm('')}
+                className="absolute right-3.5 top-3 text-gray-400 hover:text-gray-600 p-0.5 rounded-full hover:bg-gray-200 transition cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+
+          {/* Date Range Filtration */}
+          <div className="w-full lg:w-auto shrink-0">
+            <DateRangeFilter
+              fromDate={startDate}
+              toDate={endDate}
+              onDateChange={(newStart, newEnd) => {
+                setStartDate(newStart);
+                setEndDate(newEnd);
+              }}
+              onRefresh={() => fetchTasks()}
+            />
+          </div>
         </div>
 
         {/* Row 2: Exactly 4 Color-Highlighted Searchable Filters (Project, Department, Assigned to, Status) */}
