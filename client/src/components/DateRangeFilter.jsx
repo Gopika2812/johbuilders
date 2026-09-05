@@ -247,13 +247,22 @@ const DateRangeFilter = ({ fromDate, toDate, onDateChange, onRefresh, label = ''
         )}
 
         {/* Date Inputs for Custom or Fine-tuning */}
-        <div className="flex items-center gap-1.5 bg-white border border-[#0e623a]/30 px-3 py-1.5 rounded-xl shadow-xs hover:border-[#0e623a] transition">
+        <div className={`flex items-center gap-1.5 bg-white border px-3 py-1.5 rounded-xl shadow-xs transition ${
+          fromDate && !toDate 
+            ? 'border-rose-400 ring-2 ring-rose-400/30' 
+            : 'border-[#0e623a]/30 hover:border-[#0e623a]'
+        }`}>
           <input
             type="date"
             value={fromDate}
             onChange={(e) => {
               setFilterMode('custom');
               onDateChange(e.target.value, toDate);
+            }}
+            onBlur={(e) => {
+              if (e.target.value && !toDate) {
+                alert("Please select To Date. You didn't select To Date!");
+              }
             }}
             className="w-[125px] bg-transparent text-xs text-[#0e623a] font-extrabold focus:outline-none border-0 p-0 text-center cursor-pointer"
           />
@@ -265,14 +274,45 @@ const DateRangeFilter = ({ fromDate, toDate, onDateChange, onRefresh, label = ''
               setFilterMode('custom');
               onDateChange(fromDate, e.target.value);
             }}
-            className="w-[125px] bg-transparent text-xs text-[#0e623a] font-extrabold focus:outline-none border-0 p-0 text-center cursor-pointer"
+            onBlur={(e) => {
+              if (e.target.value && !fromDate) {
+                alert("Please select From Date. You didn't select From Date!");
+              } else if (fromDate && e.target.value && fromDate > e.target.value) {
+                alert("From Date cannot be after To Date. Please select a valid date range!");
+              }
+            }}
+            placeholder="dd-mm-yyyy"
+            className={`w-[125px] bg-transparent text-xs font-extrabold focus:outline-none border-0 p-0 text-center cursor-pointer ${
+              fromDate && !toDate ? 'text-rose-600 animate-pulse' : 'text-[#0e623a]'
+            }`}
           />
         </div>
+
+        {/* SOP Alert Tag if From Date is selected without To Date */}
+        {fromDate && !toDate && (
+          <span className="text-[10px] text-rose-700 bg-rose-50 border border-rose-300 px-2.5 py-1 rounded-xl font-bold flex items-center gap-1 shadow-xs animate-pulse shrink-0">
+            ⚠️ Please select To Date
+          </span>
+        )}
 
         {onRefresh && (
           <button
             type="button"
-            onClick={onRefresh}
+            onClick={() => {
+              if (fromDate && !toDate) {
+                alert("Please select To Date. You didn't select To Date!");
+                return;
+              }
+              if (!fromDate && toDate) {
+                alert("Please select From Date. You didn't select From Date!");
+                return;
+              }
+              if (fromDate && toDate && fromDate > toDate) {
+                alert("From Date cannot be after To Date. Please select a valid date range!");
+                return;
+              }
+              onRefresh();
+            }}
             title="Refresh & Apply Date Filters"
             className="flex items-center gap-1.5 bg-[#0e623a] text-white hover:bg-[#0b4d2d] px-3 py-1.5 rounded-xl text-xs font-bold transition shadow-xs cursor-pointer ml-auto"
           >

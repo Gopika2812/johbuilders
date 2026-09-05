@@ -1454,7 +1454,21 @@ const TasksBoard = () => {
           <div className="flex items-center gap-2 shrink-0">
             <button
               type="button"
-              onClick={() => exportModalTasksToExcel(filteredTasks, statusFilter === 'ALL' ? 'All_Tasks_Report' : `${statusFilter}_Tasks_Report`)}
+              onClick={() => {
+                if (startDate && !endDate) {
+                  alert("Please select To Date. You didn't select To Date!");
+                  return;
+                }
+                if (!startDate && endDate) {
+                  alert("Please select From Date. You didn't select From Date!");
+                  return;
+                }
+                if (startDate && endDate && startDate > endDate) {
+                  alert("From Date cannot be after To Date. Please select a valid date range!");
+                  return;
+                }
+                exportModalTasksToExcel(filteredTasks, statusFilter === 'ALL' ? 'All_Tasks_Report' : `${statusFilter}_Tasks_Report`);
+              }}
               className="px-3.5 py-2 bg-[#0e623a] hover:bg-[#0b4d2d] text-white font-bold text-xs rounded-xl shadow-xs hover:shadow-md transition flex items-center gap-1.5 cursor-pointer shrink-0"
               title="Export filtered tasks to Excel (.xlsx)"
             >
@@ -1464,7 +1478,21 @@ const TasksBoard = () => {
 
             <button
               type="button"
-              onClick={() => handleOpenEmailShare(statusFilter === 'ALL' ? 'All Tasks Report' : `${statusFilter} Tasks Report`, filteredTasks)}
+              onClick={() => {
+                if (startDate && !endDate) {
+                  alert("Please select To Date. You didn't select To Date!");
+                  return;
+                }
+                if (!startDate && endDate) {
+                  alert("Please select From Date. You didn't select From Date!");
+                  return;
+                }
+                if (startDate && endDate && startDate > endDate) {
+                  alert("From Date cannot be after To Date. Please select a valid date range!");
+                  return;
+                }
+                handleOpenEmailShare(statusFilter === 'ALL' ? 'All Tasks Report' : `${statusFilter} Tasks Report`, filteredTasks);
+              }}
               className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-xs hover:shadow-md transition flex items-center gap-1.5 cursor-pointer shrink-0"
               title="Share filtered tasks via Email"
             >

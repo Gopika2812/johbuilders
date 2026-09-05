@@ -351,6 +351,18 @@ const ExportReports = () => {
   const fetchInsightsPromiseRef = useRef(null);
 
   const handlePreview = (html, filename) => {
+    if (fromDate && !toDate) {
+      alert("Please select To Date. You didn't select To Date!");
+      return;
+    }
+    if (!fromDate && toDate) {
+      alert("Please select From Date. You didn't select From Date!");
+      return;
+    }
+    if (fromDate && toDate && fromDate > toDate) {
+      alert("From Date cannot be after To Date. Please select a valid date range!");
+      return;
+    }
     if (window.__isDownloadingAll) {
       window.__capturedHtml = html;
       return;

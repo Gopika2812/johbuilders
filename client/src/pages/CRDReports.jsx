@@ -360,6 +360,19 @@ const CRDReports = () => {
   const [previewOriginalWs, setPreviewOriginalWs] = useState(null);
 
   const handlePreview = (content, filename, isWorksheet = false) => {
+    if (fromDate && !toDate) {
+      alert("Please select To Date. You didn't select To Date!");
+      return;
+    }
+    if (!fromDate && toDate) {
+      alert("Please select From Date. You didn't select From Date!");
+      return;
+    }
+    if (fromDate && toDate && fromDate > toDate) {
+      alert("From Date cannot be after To Date. Please select a valid date range!");
+      return;
+    }
+
     let htmlContent = content;
     if (isWorksheet) {
         htmlContent = XLSX.utils.sheet_to_html(content, { editable: false });

@@ -1817,6 +1817,19 @@ const LeadsDirectory = () => {
 
   const handleExportExcel = async () => {
     try {
+      if (startDate && !endDate) {
+        alert("Please select To Date. You didn't select To Date!");
+        return;
+      }
+      if (!startDate && endDate) {
+        alert("Please select From Date. You didn't select From Date!");
+        return;
+      }
+      if (startDate && endDate && startDate > endDate) {
+        alert("From Date cannot be after To Date. Please select a valid date range!");
+        return;
+      }
+
       if (filteredLeadsList.length === 0) {
         alert('No leads found matching the active filters to export.');
         return;

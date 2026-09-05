@@ -3222,6 +3222,18 @@ const Dashboard = () => {
                 </button>
                 <button
                   onClick={() => {
+                    if (reportFromDate && !reportToDate) {
+                      alert("Please select To Date. You didn't select To Date!");
+                      return;
+                    }
+                    if (!reportFromDate && reportToDate) {
+                      alert("Please select From Date. You didn't select From Date!");
+                      return;
+                    }
+                    if (reportFromDate && reportToDate && reportFromDate > reportToDate) {
+                      alert("From Date cannot be after To Date. Please select a valid date range!");
+                      return;
+                    }
                     const activeStats = reportStats || stats;
                     if (reportPreviewType === 'summary') {
                       handleExportExcel(activeStats, reportFromDate, reportToDate);
