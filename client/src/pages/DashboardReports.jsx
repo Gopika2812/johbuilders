@@ -156,11 +156,86 @@ const DashboardReports = () => {
     }
   };
 
+  const getUserPerformanceDataFromStats = (statsObj, startD, endD) => {
+    if (!statsObj) return [];
+    const data = {};
+    (statsObj.users || []).forEach(u => {
+      data[u.name] = {
+        userName: u.name,
+        totalLeads: 0,
+        assigned: 0,
+        enquiries: 0,
+        siteVisits: 0,
+        hotList: 0,
+        futureFollowup: 0,
+        booked: 0,
+        handover: 0,
+        lost: 0
+      };
+    });
+
+    const rangeStart = startD ? new Date(startD) : null;
+    let rangeEnd = null;
+    if (endD) {
+      rangeEnd = new Date(endD);
+      rangeEnd.setHours(23, 59, 59, 999);
+    }
+
+    const inDateRange = (dateStr) => {
+      if (!startD && !endD) return true;
+      if (!dateStr) return false;
+      const d = new Date(dateStr);
+      if (rangeStart && d < rangeStart) return false;
+      if (rangeEnd && d > rangeEnd) return false;
+      return true;
+    };
+
+    if (statsObj.cards?.leadsList && Array.isArray(statsObj.cards.leadsList)) {
+      statsObj.cards.leadsList.forEach(lead => {
+        const isCreated = inDateRange(lead.createdAt);
+        if (!isCreated) return;
+
+        const uName = lead.assignedTo || 'Unassigned';
+        if (!data[uName]) {
+          data[uName] = {
+            userName: uName,
+            totalLeads: 0,
+            assigned: 0,
+            enquiries: 0,
+            siteVisits: 0,
+            hotList: 0,
+            futureFollowup: 0,
+            booked: 0,
+            handover: 0,
+            lost: 0
+          };
+        }
+
+        data[uName].totalLeads += 1;
+        const status = lead.status || '';
+        const isHot = lead.leadCategory === 'Hot' || lead.leadCategory === 'HOT' || (lead.leadCategory && lead.leadCategory.toLowerCase() === 'hot') || status === 'Hot List';
+
+        if (status === 'Assigned') data[uName].assigned = (data[uName].assigned || 0) + 1;
+        else if (status === 'Contacted' || status === 'Follow-Up' || status === 'Followup') data[uName].enquiries += 1;
+        else if (status === 'Site Visit' || status === 'Site Visit Follow-up') data[uName].siteVisits += 1;
+        if (isHot) data[uName].hotList += 1;
+        if (status === 'Future Follow-up' || status === 'Future Followup' || (status && status.toLowerCase().includes('future'))) data[uName].futureFollowup = (data[uName].futureFollowup || 0) + 1;
+        else if (status === 'Booking' || status === 'Booked') data[uName].booked += 1;
+        else if (status === 'Won' || status === 'Handover') data[uName].handover += 1;
+        else if (status === 'Lost' || status === 'Closed' || status === 'Cancelled' || lead.isClosed) data[uName].lost += 1;
+      });
+
+      return Object.values(data).filter(u => u.totalLeads > 0 || (u.assigned || 0) > 0 || u.enquiries > 0 || u.siteVisits > 0 || u.hotList > 0 || (u.futureFollowup || 0) > 0 || u.booked > 0 || u.handover > 0 || u.lost > 0);
+    }
+
+    return Object.values(data);
+  };
+
   // 1. Overall Summary Report
   const handleExportSummaryReport = async (returnHtml = false, providedStats = null) => {
     try {
       setReportLoading(true);
-      setReportLoadingText('Generating Overall Performance Summary Report...');
+      setReportLoadingText('Generating Overall Summary Report...');
       const activeStats = providedStats || await ensureStats();
       if (!activeStats) return;
 
@@ -188,7 +263,7 @@ const DashboardReports = () => {
         </head>
         <body>
           <table>
-            ${getExcelHeader('OVERALL PERFORMANCE SUMMARY REPORT', dateTitle, 9)}
+            ${getExcelHeader('OVERALL SUMMARY REPORT', dateTitle, 9)}
             
             <tr><td colspan="9" class="section-banner">PART 1: PROJECTS & UNIT TYPE SUMMARY</td></tr>
             <tr class="table-headers">
@@ -262,28 +337,43 @@ const DashboardReports = () => {
       });
 
       html += `
-            <tr><td colspan="9" style="border:none; height: 16px;"></td></tr>
-            <tr><td colspan="9" class="section-banner">PART 2: SALES FINANCIAL CONVERSION</td></tr>
+            <tr><td colspan="9" style="border:none; height: 15px;"></td></tr>
+            <tr><td colspan="9" class="section-banner">PART 2: USER PERFORMANCE SUMMARY</td></tr>
             <tr class="table-headers">
-              <th colspan="3" class="text-left">Financial Metric</th>
-              <th colspan="3" class="text-right">Count</th>
-              <th colspan="3" class="text-right">Amount (INR)</th>
+              <th class="text-left">User Name</th>
+              <th class="text-right">Total Leads</th>
+              <th class="text-right">Enquiries</th>
+              <th class="text-right">Site Visit</th>
+              <th class="text-right">Hot List</th>
+              <th class="text-right">Booking</th>
+              <th colspan="3" class="text-right">Handover</th>
             </tr>
-            <tr>
-              <td colspan="3" class="bold-label text-left">Booked / Conversion Value</td>
-              <td colspan="3" class="text-right">${activeStats.cards?.conversion?.count || 0} Units</td>
-              <td colspan="3" class="text-right">Rs. ${(activeStats.cards?.conversion?.value || 0).toLocaleString()}</td>
-            </tr>
-            <tr class="even-row">
-              <td colspan="3" class="bold-label text-left">Received Amount</td>
-              <td colspan="3" class="text-right">-</td>
-              <td colspan="3" class="text-right">Rs. ${(activeStats.cards?.conversion?.received || 0).toLocaleString()}</td>
-            </tr>
-            <tr>
-              <td colspan="3" class="bold-label text-left">Pending Balance Amount</td>
-              <td colspan="3" class="text-right">-</td>
-              <td colspan="3" class="text-right">Rs. ${(activeStats.cards?.conversion?.pending || 0).toLocaleString()}</td>
-            </tr>
+      `;
+
+      let uData = getUserPerformanceDataFromStats(activeStats, fromDate, toDate);
+      if (selectedUser) {
+        const targetUserName = (activeStats.users || []).find(u => u._id === selectedUser)?.name;
+        if (targetUserName) {
+          uData = uData.filter(u => u.userName === targetUserName);
+        }
+      }
+
+      uData.forEach((row, idx) => {
+        const rowClass = idx % 2 === 1 ? 'class="even-row"' : '';
+        html += `
+          <tr ${rowClass}>
+            <td class="bold-label text-left">${row.userName}</td>
+            <td class="text-right">${row.totalLeads}</td>
+            <td class="text-right">${row.enquiries}</td>
+            <td class="text-right">${row.siteVisits}</td>
+            <td class="text-right">${row.hotList}</td>
+            <td class="text-right">${row.booked}</td>
+            <td colspan="3" class="text-right">${row.handover}</td>
+          </tr>
+        `;
+      });
+
+      html += `
           </table>
         </body>
         </html>
