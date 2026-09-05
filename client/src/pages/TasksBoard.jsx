@@ -1242,19 +1242,19 @@ const TasksBoard = () => {
           <p className="text-xl font-black mt-1 text-white">{totalCount}</p>
         </div>
 
-        {/* 2. Pending Tasks (Highlighted Green identical to Total card format - right after Total) */}
+        {/* 2. Pending Tasks (Red Colored Highlighted - right after Total) */}
         <div 
           onClick={() => handleCardClick('PENDING', 'Pending Tasks', tasks.filter(t => t.status === 'New' || t.status === 'In Progress'))}
           className={`p-3.5 rounded-2xl border transition-all cursor-pointer ${
             statusFilter === 'PENDING' 
-              ? 'bg-[#003822] text-white border-emerald-700 shadow-md ring-2 ring-emerald-500 scale-[1.02]' 
-              : 'bg-[#0e623a] text-white border-[#0e623a] hover:bg-[#003822]'
+              ? 'bg-[#800d0d] text-white border-rose-600 shadow-md ring-2 ring-rose-500 scale-[1.02]' 
+              : 'bg-[#b91c1c] text-white border-[#b91c1c] hover:bg-[#991b1b] shadow-sm'
           }`}
           title="Click to view full list & export / share Pending tasks"
         >
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-extrabold uppercase text-emerald-200">Pending Tasks</span>
-            <Clock className="w-3.5 h-3.5 text-emerald-300" />
+            <span className="text-[10px] font-extrabold uppercase text-rose-100">Pending Tasks</span>
+            <Clock className="w-3.5 h-3.5 text-rose-200" />
           </div>
           <p className="text-xl font-black mt-1 text-white">{pendingCount}</p>
         </div>
