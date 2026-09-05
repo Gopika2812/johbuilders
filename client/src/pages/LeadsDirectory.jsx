@@ -2070,50 +2070,6 @@ const LeadsDirectory = () => {
 
   return (
     <div className="space-y-6 w-full max-w-full overflow-hidden">
-      {/* Title Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-black-800 flex items-center gap-2">
-            <Users className="w-6 h-6 text-[#0e623a]" />
-            <span>Leads Directory</span>
-          </h1>
-          {/* <p className="text-black-500 text-xs mt-1">Store and track lead details, campaigns, allocations, and pipeline status</p> */}
-        </div>
-
-        <div className="flex flex-col sm:flex-row items-center gap-2 w-full sm:w-auto">
-          <button
-            onClick={handleExportExcel}
-            className="flex items-center justify-center gap-1.5 px-5 py-3 bg-white border border-black-200 text-black-700 hover:bg-black-50 text-xs font-bold rounded-2xl transition shadow-sm w-full sm:w-auto cursor-pointer"
-          >
-            <FileSpreadsheet className="w-4 h-4 text-emerald-700" />
-            <span>Export Excel</span>
-          </button>
-
-          <button
-            onClick={() => {
-              setImportModalOpen(true);
-              setParsedImportData([]);
-              setPastedText('');
-            }}
-            className="flex items-center justify-center gap-1.5 px-5 py-3 bg-[#0e623a]/10 hover:bg-[#0e623a]/20 text-[#0e623a] border border-[#0e623a]/30 text-xs font-bold rounded-2xl transition shadow-sm w-full sm:w-auto cursor-pointer"
-          >
-            <Upload className="w-4 h-4 text-[#0e623a]" />
-            <span>Import Excel</span>
-          </button>
-
-          <button
-            onClick={() => {
-              resetForm();
-              setCreateModalOpen(true);
-            }}
-            className="flex items-center justify-center gap-1.5 px-5 py-3 bg-[#0e623a] hover:bg-[#0b4d2d] text-white text-xs font-bold rounded-2xl transition shadow-md w-full sm:w-auto cursor-pointer"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Create New Lead</span>
-          </button>
-        </div>
-      </div>
-
       {/* Notifications */}
       {successMsg && (
         <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs px-4 py-3 rounded-2xl flex items-center gap-1.5 animate-pulse">
@@ -2235,9 +2191,9 @@ const LeadsDirectory = () => {
         </div>
       </div>
 
-      {/* Tab Switcher - Leads Phases */}
-      <div className="w-full max-w-full overflow-x-auto bg-white border border-black-150 p-1.5 rounded-2xl shadow-sm scrollbar-none">
-        <div className="flex gap-1 min-w-max">
+      {/* Tab Switcher - Leads Phases & Action Buttons */}
+      <div className="w-full max-w-full overflow-x-auto bg-white border border-black-150 p-1.5 rounded-2xl shadow-sm scrollbar-none flex flex-col md:flex-row items-center justify-between gap-3">
+        <div className="flex gap-1 min-w-max items-center">
           <button
             onClick={() => setActiveTab('All')}
             className={`px-4 py-2 text-xs font-bold rounded-xl transition ${activeTab === 'All'
@@ -2267,6 +2223,40 @@ const LeadsDirectory = () => {
               </button>
             );
           })}
+        </div>
+
+        {/* Action Buttons next to Lost Count */}
+        <div className="flex items-center gap-2 shrink-0 ml-auto pl-2">
+          <button
+            onClick={handleExportExcel}
+            className="flex items-center justify-center gap-1.5 px-3 py-1.5 bg-white border border-black-200 text-black-700 hover:bg-black-50 text-xs font-bold rounded-xl transition shadow-xs cursor-pointer"
+          >
+            <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-700" />
+            <span>Export Excel</span>
+          </button>
+
+          <button
+            onClick={() => {
+              setImportModalOpen(true);
+              setParsedImportData([]);
+              setPastedText('');
+            }}
+            className="flex items-center justify-center gap-1.5 px-3 py-1.5 bg-[#0e623a]/10 hover:bg-[#0e623a]/20 text-[#0e623a] border border-[#0e623a]/30 text-xs font-bold rounded-xl transition shadow-xs cursor-pointer"
+          >
+            <Upload className="w-3.5 h-3.5 text-[#0e623a]" />
+            <span>Import Excel</span>
+          </button>
+
+          <button
+            onClick={() => {
+              resetForm();
+              setCreateModalOpen(true);
+            }}
+            className="flex items-center justify-center gap-1.5 px-3.5 py-1.5 bg-[#0e623a] hover:bg-[#0b4d2d] text-white text-xs font-bold rounded-xl transition shadow-xs cursor-pointer"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>Create New Lead</span>
+          </button>
         </div>
       </div>
 
