@@ -552,6 +552,16 @@ const Dashboard = () => {
   const [selectedProjectType, setSelectedProjectType] = useState('');
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
+  // Unified Report Preview Modal States
+  const [reportPreviewType, setReportPreviewType] = useState(null); // 'summary' | 'user' | 'project' | 'source' | null
+  const [reportFromDate, setReportFromDate] = useState(fromDate);
+  const [reportToDate, setReportToDate] = useState(toDate);
+  const [reportStats, setReportStats] = useState(null);
+  const [reportLoading, setReportLoading] = useState(false);
+  const [reportUserFilter, setReportUserFilter] = useState('');
+  const [reportProjectFilter, setReportProjectFilter] = useState('');
+  const [reportSourceFilter, setReportSourceFilter] = useState('');
+
   const [showUserModal, setShowUserModal] = useState(false);
   const [selectedUsersList, setSelectedUsersList] = useState([]);
   const [showProjectModal, setShowProjectModal] = useState(false);
@@ -1336,8 +1346,115 @@ const Dashboard = () => {
     setToDate(lastDay);
   };
 
-  const handleExportExcel = async () => {
-    const inventory = stats.cards.inventory || {};
+  const fetchReportData = async (startD, endD) => {
+    setReportLoading(true);
+    try {
+      let url = `${API_URL}/dashboard/stats?fromDate=${startD || ''}&toDate=${endD || ''}`;
+      const response = await fetch(url, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setReportStats(data);
+      }
+    } catch (err) {
+      console.error('Error loading report stats:', err);
+    } finally {
+      setReportLoading(false);
+    }
+  };
+
+  const openReportPreviewModal = (type) => {
+    setReportPreviewType(type);
+    setReportFromDate(fromDate);
+    setReportToDate(toDate);
+    setReportUserFilter('');
+    setReportProjectFilter('');
+    setReportSourceFilter('');
+    setReportStats(stats);
+    fetchReportData(fromDate, toDate);
+  };
+
+  const getUserPerformanceDataFromStats = (statsObj, startD, endD) => {
+    if (!statsObj) return [];
+    const data = {};
+    (statsObj.users || []).forEach(u => {
+      data[u.name] = {
+        userName: u.name,
+        totalLeads: 0,
+        assigned: 0,
+        enquiries: 0,
+        siteVisits: 0,
+        hotList: 0,
+        futureFollowup: 0,
+        booked: 0,
+        handover: 0,
+        lost: 0
+      };
+    });
+
+    const rangeStart = startD ? new Date(startD) : null;
+    let rangeEnd = null;
+    if (endD) {
+      rangeEnd = new Date(endD);
+      rangeEnd.setHours(23, 59, 59, 999);
+    }
+
+    const inDateRange = (dateStr) => {
+      if (!startD && !endD) return true;
+      if (!dateStr) return false;
+      const d = new Date(dateStr);
+      if (rangeStart && d < rangeStart) return false;
+      if (rangeEnd && d > rangeEnd) return false;
+      return true;
+    };
+
+    if (statsObj.cards?.leadsList && Array.isArray(statsObj.cards.leadsList)) {
+      statsObj.cards.leadsList.forEach(lead => {
+        const isCreated = inDateRange(lead.createdAt);
+        if (!isCreated) return;
+
+        const uName = lead.assignedTo || 'Unassigned';
+        if (!data[uName]) {
+          data[uName] = {
+            userName: uName,
+            totalLeads: 0,
+            assigned: 0,
+            enquiries: 0,
+            siteVisits: 0,
+            hotList: 0,
+            futureFollowup: 0,
+            booked: 0,
+            handover: 0,
+            lost: 0
+          };
+        }
+
+        data[uName].totalLeads += 1;
+        const status = lead.status || '';
+        const isHot = lead.leadCategory === 'Hot' || lead.leadCategory === 'HOT' || (lead.leadCategory && lead.leadCategory.toLowerCase() === 'hot') || status === 'Hot List';
+
+        if (status === 'Assigned') data[uName].assigned = (data[uName].assigned || 0) + 1;
+        else if (status === 'Contacted' || status === 'Follow-Up' || status === 'Followup') data[uName].enquiries += 1;
+        else if (status === 'Site Visit' || status === 'Site Visit Follow-up') data[uName].siteVisits += 1;
+        if (isHot) data[uName].hotList += 1;
+        if (status === 'Future Follow-up' || status === 'Future Followup' || (status && status.toLowerCase().includes('future'))) data[uName].futureFollowup = (data[uName].futureFollowup || 0) + 1;
+        else if (status === 'Booking' || status === 'Booked') data[uName].booked += 1;
+        else if (status === 'Won' || status === 'Handover') data[uName].handover += 1;
+        else if (status === 'Lost' || status === 'Closed' || status === 'Cancelled' || lead.isClosed) data[uName].lost += 1;
+      });
+
+      return Object.values(data).filter(u => u.totalLeads > 0 || (u.assigned || 0) > 0 || u.enquiries > 0 || u.siteVisits > 0 || u.hotList > 0 || (u.futureFollowup || 0) > 0 || u.booked > 0 || u.handover > 0 || u.lost > 0);
+    }
+
+    return Object.values(data);
+  };
+
+  const handleExportExcel = async (customStats = null, fromD = null, toD = null) => {
+    const activeStats = customStats || stats;
+    const activeFrom = fromD !== null ? fromD : fromDate;
+    const activeTo = toD !== null ? toD : toDate;
+    const inventory = activeStats.cards?.inventory || {};
 
     const availableProjCount = inventory.totalProjects || 0;
     const availableProjVal = Object.values(inventory.totalValueByType || {}).reduce((sum, val) => sum + (val || 0), 0);
@@ -1354,6 +1471,8 @@ const Dashboard = () => {
       (inventory.totalValueByType?.House || 0) +
       (inventory.totalValueByType?.Unit || 0);
 
+    const dateTitle = (activeFrom || activeTo) ? `DATE RANGE: ${activeFrom || 'START'} TO ${activeTo || 'END'}` : '';
+
     let htmlContent = `
       <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
       <head>
@@ -1366,11 +1485,12 @@ const Dashboard = () => {
           .section-banner { font-size: 11pt; font-weight: bold; background-color: #0F5233; color: #FFFFFF; padding: 12px; border: 1px solid #0D4329; text-align: center; text-transform: uppercase; letter-spacing: 0.5px; }
           .even-row { background-color: #f8fafc; }
           .bold-label { font-weight: bold; color: #0f172a; }
+          .summary-row { font-weight: bold; background-color: #E6F4EA; color: #0F5233; }
         </style>
       </head>
       <body>
         <table>
-          ${getExcelHeader('OVERALL SUMMARY REPORT', '', 9)}
+          ${getExcelHeader('OVERALL PERFORMANCE SUMMARY REPORT', dateTitle, 9)}
           
           <!-- PART 1 -->
           <tr><td colspan="9" class="section-banner">PART 1: PROJECTS & UNIT TYPE SUMMARY</td></tr>
@@ -1460,7 +1580,8 @@ const Dashboard = () => {
           </tr>
     `;
 
-    userPerformanceData.forEach((row, idx) => {
+    const uData = getUserPerformanceDataFromStats(activeStats, activeFrom, activeTo);
+    uData.forEach((row, idx) => {
       const rowClass = idx % 2 === 1 ? 'class="even-row"' : '';
       htmlContent += `
         <tr ${rowClass}>
@@ -1484,7 +1605,12 @@ const Dashboard = () => {
     await exportHtmlSheetsToExcel([{ name: 'Performance Summary', html: htmlContent }], `JohnBuildwell_ERP_Overall_Report_${new Date().toISOString().substring(0, 10)}.xlsx`);
   };
 
-  const handleExportUserReport = async (selectedUserNames) => {
+  const handleExportUserReport = async (selectedUserNames, customStats = null, fromD = null, toD = null) => {
+    const activeStats = customStats || stats;
+    const activeFrom = fromD !== null ? fromD : fromDate;
+    const activeTo = toD !== null ? toD : toDate;
+    const dateTitle = (activeFrom || activeTo) ? `DATE RANGE: ${activeFrom || 'START'} TO ${activeTo || 'END'}` : '';
+
     let htmlContent = `
       <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
       <head>
@@ -1502,15 +1628,19 @@ const Dashboard = () => {
       </head>
       <body>
         <table>
-          ${getExcelHeader('JOHN BUILDWELL ERP - USER WISE PERFORMANCE REPORT', '', 7)}
+          ${getExcelHeader('JOHN BUILDWELL ERP - USER WISE PERFORMANCE REPORT', dateTitle, 7)}
     `;
 
-    selectedUserNames.forEach(uName => {
+    const targetUsers = (selectedUserNames && selectedUserNames.length > 0)
+      ? selectedUserNames
+      : (activeStats.users || []).map(u => u.name);
+
+    targetUsers.forEach(uName => {
       let uTotalLeads = 0, uEnquiries = 0, uSiteVisits = 0, uHotList = 0, uBooked = 0, uHandover = 0;
       let rows = [];
 
-      Object.keys(stats.personProjectStages || {}).forEach(key => {
-        const row = stats.personProjectStages[key];
+      Object.keys(activeStats.personProjectStages || {}).forEach(key => {
+        const row = activeStats.personProjectStages[key];
         if (row.personName === uName) {
           uTotalLeads += row.totalLeads;
           uEnquiries += row.enquiries;
@@ -1571,7 +1701,12 @@ const Dashboard = () => {
     await exportHtmlSheetsToExcel([{ name: 'User Performance', html: htmlContent }], `User_Wise_Report_${new Date().toISOString().substring(0, 10)}.xlsx`);
   };
 
-  const handleExportProjectReport = async (selectedProjectNames) => {
+  const handleExportProjectReport = async (selectedProjectNames, customStats = null, fromD = null, toD = null) => {
+    const activeStats = customStats || stats;
+    const activeFrom = fromD !== null ? fromD : fromDate;
+    const activeTo = toD !== null ? toD : toDate;
+    const dateTitle = (activeFrom || activeTo) ? `DATE RANGE: ${activeFrom || 'START'} TO ${activeTo || 'END'}` : '';
+
     let htmlContent = `
       <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
       <head>
@@ -1588,11 +1723,15 @@ const Dashboard = () => {
       </head>
       <body>
         <table>
-          ${getExcelHeader('JOHN BUILDWELL ERP - PROJECT WISE PERFORMANCE REPORT', '', 7)}
+          ${getExcelHeader('JOHN BUILDWELL ERP - PROJECT WISE PERFORMANCE REPORT', dateTitle, 7)}
     `;
 
-    selectedProjectNames.forEach(projName => {
-      const stages = stats.projectStages[projName] || { totalLeads: 0, enquiries: 0, siteVisits: 0, hotList: 0, booked: 0, handover: 0 };
+    const targetProjects = (selectedProjectNames && selectedProjectNames.length > 0)
+      ? selectedProjectNames
+      : (activeStats.projects || []).map(p => p.code || p.name);
+
+    targetProjects.forEach(projName => {
+      const stages = activeStats.projectStages?.[projName] || { totalLeads: 0, enquiries: 0, siteVisits: 0, hotList: 0, booked: 0, handover: 0 };
 
       htmlContent += `
         <tr><td colspan="7" class="section-banner">PROJECT: ${projName.toUpperCase()}</td></tr>
@@ -1638,8 +1777,8 @@ const Dashboard = () => {
       `;
 
       let executiveIdx = 0;
-      Object.keys(stats.personProjectStages || {}).forEach(key => {
-        const row = stats.personProjectStages[key];
+      Object.keys(activeStats.personProjectStages || {}).forEach(key => {
+        const row = activeStats.personProjectStages[key];
         if (row.projectName === projName) {
           const rowClass = executiveIdx % 2 === 1 ? 'class="even-row"' : '';
           executiveIdx++;
@@ -1668,7 +1807,12 @@ const Dashboard = () => {
     await exportHtmlSheetsToExcel([{ name: 'Project Performance', html: htmlContent }], `Project_Wise_Report_${new Date().toISOString().substring(0, 10)}.xlsx`);
   };
 
-  const handleExportSourceReport = async (selectedSources) => {
+  const handleExportSourceReport = async (selectedSources, customStats = null, fromD = null, toD = null) => {
+    const activeStats = customStats || stats;
+    const activeFrom = fromD !== null ? fromD : fromDate;
+    const activeTo = toD !== null ? toD : toDate;
+    const dateTitle = (activeFrom || activeTo) ? `DATE RANGE: ${activeFrom || 'START'} TO ${activeTo || 'END'}` : '';
+
     let htmlContent = `
       <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
       <head>
@@ -1685,7 +1829,7 @@ const Dashboard = () => {
       </head>
       <body>
         <table>
-          ${getExcelHeader('JOHN BUILDWELL ERP - MARKETING SOURCE PERFORMANCE REPORT', '', 4)}
+          ${getExcelHeader('JOHN BUILDWELL ERP - MARKETING SOURCE PERFORMANCE REPORT', dateTitle, 4)}
           
           <tr>
             <th class="text-left">Source Type</th>
@@ -1695,8 +1839,12 @@ const Dashboard = () => {
           </tr>
     `;
 
-    selectedSources.forEach((src, idx) => {
-      const s = stats.sourceStats[src] || { budget: 0, spent: 0, value: 0 };
+    const targetSources = (selectedSources && selectedSources.length > 0)
+      ? selectedSources
+      : Object.keys(activeStats.sourceStats || {});
+
+    targetSources.forEach((src, idx) => {
+      const s = activeStats.sourceStats?.[src] || { budget: 0, spent: 0, value: 0 };
       const rowClass = idx % 2 === 1 ? 'class="even-row"' : '';
       htmlContent += `
         <tr ${rowClass}>
@@ -1758,32 +1906,32 @@ const Dashboard = () => {
         </div>
         <div className="grid grid-cols-2 lg:flex lg:flex-wrap lg:items-center gap-2 w-full lg:w-auto">
           <button
-            onClick={handleExportExcel}
-            className="flex items-center justify-center gap-1.5 px-3 py-2 lg:px-4 lg:py-2.5 bg-red-600 hover:bg-red-700 text-white text-[11px] lg:text-xs font-bold rounded-xl transition shadow-sm w-full lg:w-auto"
+            onClick={() => openReportPreviewModal('summary')}
+            className="flex items-center justify-center gap-1.5 px-3 py-2 lg:px-4 lg:py-2.5 bg-red-600 hover:bg-red-700 text-white text-[11px] lg:text-xs font-bold rounded-xl transition shadow-sm w-full lg:w-auto cursor-pointer"
           >
             <Download className="w-3.5 h-3.5 lg:w-4 lg:h-4" />
             <span>Summary Report</span>
           </button>
 
           <button
-            onClick={() => setShowUserModal(true)}
-            className="flex items-center justify-center gap-1.5 px-3 py-2 lg:px-4 lg:py-2.5 bg-green-600 hover:bg-green-700 text-white text-[11px] lg:text-xs font-bold rounded-xl transition shadow-sm w-full lg:w-auto"
+            onClick={() => openReportPreviewModal('user')}
+            className="flex items-center justify-center gap-1.5 px-3 py-2 lg:px-4 lg:py-2.5 bg-green-600 hover:bg-green-700 text-white text-[11px] lg:text-xs font-bold rounded-xl transition shadow-sm w-full lg:w-auto cursor-pointer"
           >
             <Download className="w-3.5 h-3.5 lg:w-4 lg:h-4" />
             <span>User Report</span>
           </button>
 
           <button
-            onClick={() => setShowProjectModal(true)}
-            className="flex items-center justify-center gap-1.5 px-3 py-2 lg:px-4 lg:py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-[11px] lg:text-xs font-bold rounded-xl transition shadow-sm w-full lg:w-auto"
+            onClick={() => openReportPreviewModal('project')}
+            className="flex items-center justify-center gap-1.5 px-3 py-2 lg:px-4 lg:py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-[11px] lg:text-xs font-bold rounded-xl transition shadow-sm w-full lg:w-auto cursor-pointer"
           >
             <Download className="w-3.5 h-3.5 lg:w-4 lg:h-4" />
             <span>Project Report</span>
           </button>
 
           <button
-            onClick={() => setShowSourceModal(true)}
-            className="flex items-center justify-center gap-1.5 px-3 py-2 lg:px-4 lg:py-2.5 bg-purple-600 hover:bg-purple-700 text-white text-[11px] lg:text-xs font-bold rounded-xl transition shadow-sm w-full lg:w-auto"
+            onClick={() => openReportPreviewModal('source')}
+            className="flex items-center justify-center gap-1.5 px-3 py-2 lg:px-4 lg:py-2.5 bg-purple-600 hover:bg-purple-700 text-white text-[11px] lg:text-xs font-bold rounded-xl transition shadow-sm w-full lg:w-auto cursor-pointer"
           >
             <Download className="w-3.5 h-3.5 lg:w-4 lg:h-4" />
             <span>Source Report</span>
@@ -2556,233 +2704,544 @@ const Dashboard = () => {
         </>
       )}
 
-      {/* User Selection Modal */}
-      {showUserModal && (
-        <div className="fixed inset-0 bg-black-900/60 backdrop-blur-sm z-[999] flex items-center justify-center p-4">
-          <div className="bg-[#f0fbf4] rounded-3xl shadow-xl w-full max-w-md overflow-hidden border-none text-left">
-            <div className="p-6 border-b border-black-150">
-              <h3 className="text-lg font-extrabold text-black-800">Export User Wise Report</h3>
-              <p className="text-xs text-black-500 mt-1">Select one or more sales executives to include in the report</p>
+      {/* Interactive Report Preview Modal */}
+      {reportPreviewType && (
+        <div className="fixed inset-0 bg-black-900/60 backdrop-blur-sm z-[999] flex items-center justify-center p-2 sm:p-4">
+          <div className="bg-[#f0fbf4] rounded-3xl shadow-2xl w-full max-w-5xl max-h-[90vh] flex flex-col overflow-hidden border-none text-left animate-fadeIn">
+            {/* Header */}
+            <div className="p-5 sm:p-6 border-b border-black-150 flex items-center justify-between bg-white/60">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider text-white ${
+                    reportPreviewType === 'summary' ? 'bg-red-600' :
+                    reportPreviewType === 'user' ? 'bg-green-600' :
+                    reportPreviewType === 'project' ? 'bg-blue-600' : 'bg-purple-600'
+                  }`}>
+                    {reportPreviewType === 'summary' ? 'Summary Report' :
+                     reportPreviewType === 'user' ? 'User Report' :
+                     reportPreviewType === 'project' ? 'Project Report' : 'Source Report'}
+                  </span>
+                  <h3 className="text-base sm:text-lg font-extrabold text-black-800">
+                    {reportPreviewType === 'summary' && 'Overall Performance Summary Report Preview'}
+                    {reportPreviewType === 'user' && 'User Wise Performance Report Preview'}
+                    {reportPreviewType === 'project' && 'Project Wise Performance Report Preview'}
+                    {reportPreviewType === 'source' && 'Marketing Source Performance Report Preview'}
+                  </h3>
+                </div>
+                <p className="text-xs text-black-500 mt-1">
+                  Adjust date range and filters below to preview live data, then download the customized Excel sheet
+                </p>
+              </div>
+              <button
+                onClick={() => setReportPreviewType(null)}
+                className="w-8 h-8 rounded-full flex items-center justify-center bg-black-100 text-black-400 hover:bg-red-50 hover:text-red-500 transition cursor-pointer font-bold border-none"
+              >
+                ✕
+              </button>
             </div>
 
-            <div className="p-6 max-h-60 overflow-y-auto space-y-2">
-              <label className="flex items-center gap-2.5 p-2 hover:bg-black-50 rounded-xl cursor-pointer transition">
-                <input
-                  type="checkbox"
-                  checked={selectedUsersList.length === (stats.users || []).length}
-                  onChange={(e) => {
-                    if (e.target.checked) {
-                      setSelectedUsersList((stats.users || []).map(u => u.name));
-                    } else {
-                      setSelectedUsersList([]);
+            {/* In-Modal Filter Bar */}
+            <div className="bg-white/80 p-4 border-b border-black-100 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+              {/* Entity Filter (User / Project / Source) */}
+              <div className="flex items-center gap-2">
+                {reportPreviewType === 'user' && (
+                  <div className="flex items-center gap-2">
+                    <label className="text-[11px] font-bold text-black-600 uppercase tracking-wider whitespace-nowrap">Filter User:</label>
+                    <select
+                      value={reportUserFilter}
+                      onChange={(e) => setReportUserFilter(e.target.value)}
+                      className="px-3 py-1.5 text-xs font-bold text-black-700 bg-black-50 border border-black-200 rounded-xl outline-none focus:ring-1 focus:ring-[#0e623a] cursor-pointer"
+                    >
+                      <option value="">All Users ({((reportStats || stats).users || []).length})</option>
+                      {((reportStats || stats).users || []).map(u => (
+                        <option key={u._id || u.name} value={u.name}>{u.name} ({u.role})</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                {reportPreviewType === 'project' && (
+                  <div className="flex items-center gap-2">
+                    <label className="text-[11px] font-bold text-black-600 uppercase tracking-wider whitespace-nowrap">Filter Project:</label>
+                    <select
+                      value={reportProjectFilter}
+                      onChange={(e) => setReportProjectFilter(e.target.value)}
+                      className="px-3 py-1.5 text-xs font-bold text-black-700 bg-black-50 border border-black-200 rounded-xl outline-none focus:ring-1 focus:ring-[#0e623a] cursor-pointer"
+                    >
+                      <option value="">All Projects ({((reportStats || stats).projects || []).length})</option>
+                      {((reportStats || stats).projects || []).map(p => {
+                        const name = p.code || p.name;
+                        return <option key={p._id || name} value={name}>{name}</option>;
+                      })}
+                    </select>
+                  </div>
+                )}
+
+                {reportPreviewType === 'source' && (
+                  <div className="flex items-center gap-2">
+                    <label className="text-[11px] font-bold text-black-600 uppercase tracking-wider whitespace-nowrap">Filter Source:</label>
+                    <select
+                      value={reportSourceFilter}
+                      onChange={(e) => setReportSourceFilter(e.target.value)}
+                      className="px-3 py-1.5 text-xs font-bold text-black-700 bg-black-50 border border-black-200 rounded-xl outline-none focus:ring-1 focus:ring-[#0e623a] cursor-pointer"
+                    >
+                      <option value="">All Sources ({Object.keys((reportStats || stats).sourceStats || {}).length})</option>
+                      {Object.keys((reportStats || stats).sourceStats || {}).map(src => (
+                        <option key={src} value={src}>{src}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+              </div>
+
+              {/* Date Filter inside Preview */}
+              <div className="flex items-center justify-end">
+                <DateRangeFilter
+                  fromDate={reportFromDate}
+                  toDate={reportToDate}
+                  onDateChange={(startD, endD) => {
+                    setReportFromDate(startD);
+                    setReportToDate(endD);
+                    fetchReportData(startD, endD);
+                  }}
+                  onRefresh={() => fetchReportData(reportFromDate, reportToDate)}
+                  label=""
+                />
+              </div>
+            </div>
+
+            {/* Scrollable Preview Body */}
+            <div className="flex-grow p-5 sm:p-6 overflow-y-auto max-h-[58vh] scrollbar-thin space-y-6">
+              {reportLoading ? (
+                <div className="py-20 text-center text-black-400 italic text-sm">
+                  Loading live report preview data for selected date range...
+                </div>
+              ) : (
+                (() => {
+                  const activeStats = reportStats || stats;
+
+                  // 1. SUMMARY REPORT PREVIEW
+                  if (reportPreviewType === 'summary') {
+                    const inventory = activeStats.cards?.inventory || {};
+                    const availableProjCount = inventory.totalProjects || 0;
+                    const availableProjVal = Object.values(inventory.totalValueByType || {}).reduce((sum, val) => sum + (val || 0), 0);
+                    const plotProjCount = inventory.projectsByType?.Plot || 0;
+                    const plotProjVal = (inventory.totalValueByType?.Plot || 0);
+                    const unitProjCount = (inventory.projectsByType?.Flat || 0) + (inventory.projectsByType?.Villa || 0) + (inventory.projectsByType?.House || 0) + (inventory.projectsByType?.Unit || 0);
+                    const unitProjVal = (inventory.totalValueByType?.Flat || 0) + (inventory.totalValueByType?.Villa || 0) + (inventory.totalValueByType?.House || 0) + (inventory.totalValueByType?.Unit || 0);
+
+                    const candidateTypes = ['Plot', 'Flat', 'Villa', 'Unit'];
+                    const activeTypes = candidateTypes.filter(type => {
+                      const overallCount = (inventory.totalByType?.[type] || 0) + (type === 'Villa' ? (inventory.totalByType?.House || 0) : 0);
+                      return overallCount > 0;
+                    });
+                    const typesToRender = activeTypes.length > 0 ? activeTypes : ['Plot', 'Unit'];
+                    const uData = getUserPerformanceDataFromStats(activeStats, reportFromDate, reportToDate);
+
+                    return (
+                      <div className="space-y-6">
+                        {/* Part 1 Header */}
+                        <div>
+                          <div className="bg-[#0e623a] text-white p-3 rounded-2xl text-xs font-black uppercase tracking-wider mb-3 text-center shadow-sm">
+                            PART 1: PROJECTS & UNIT TYPE SUMMARY
+                          </div>
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+                            <div className="bg-white p-3 rounded-2xl border border-black-100 shadow-sm">
+                              <span className="text-[10px] text-gray-500 font-bold uppercase block">Available Projects (Common)</span>
+                              <span className="text-lg font-black text-black-800">{availableProjCount}</span>
+                              <span className="text-xs text-[#0e623a] font-extrabold block">Rs. {availableProjVal.toLocaleString()}</span>
+                            </div>
+                            <div className="bg-white p-3 rounded-2xl border border-black-100 shadow-sm">
+                              <span className="text-[10px] text-gray-500 font-bold uppercase block">Available Projects (Plot)</span>
+                              <span className="text-lg font-black text-black-800">{plotProjCount}</span>
+                              <span className="text-xs text-[#0e623a] font-extrabold block">Rs. {plotProjVal.toLocaleString()}</span>
+                            </div>
+                            <div className="bg-white p-3 rounded-2xl border border-black-100 shadow-sm">
+                              <span className="text-[10px] text-gray-500 font-bold uppercase block">Available Projects (Unit)</span>
+                              <span className="text-lg font-black text-black-800">{unitProjCount}</span>
+                              <span className="text-xs text-[#0e623a] font-extrabold block">Rs. {unitProjVal.toLocaleString()}</span>
+                            </div>
+                          </div>
+
+                          <div className="overflow-x-auto rounded-2xl border border-black-150 bg-white shadow-sm">
+                            <table className="w-full text-left border-collapse text-xs">
+                              <thead>
+                                <tr className="bg-[#0e623a] text-white text-[11px] font-bold uppercase">
+                                  <th className="p-3">Project Type</th>
+                                  <th className="p-3 text-right">Overall Count</th>
+                                  <th className="p-3 text-right">Overall Value</th>
+                                  <th className="p-3 text-right">Available Count</th>
+                                  <th className="p-3 text-right">Available Value</th>
+                                  <th className="p-3 text-right">Booked Count</th>
+                                  <th className="p-3 text-right">Booked Value</th>
+                                  <th className="p-3 text-right">Handover Count</th>
+                                  <th className="p-3 text-right">Handover Value</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-black-100 font-medium">
+                                {typesToRender.map((type, idx) => {
+                                  const overallCount = (inventory.totalByType?.[type] || 0) + (type === 'Villa' ? (inventory.totalByType?.House || 0) : 0);
+                                  const overallVal = (inventory.totalValueByType?.[type] || 0) + (type === 'Villa' ? (inventory.totalValueByType?.House || 0) : 0);
+                                  const availCount = (inventory.availableByType?.[type] || 0) + (type === 'Villa' ? (inventory.availableByType?.House || 0) : 0);
+                                  const availVal = (inventory.availableValueByType?.[type] || 0) + (type === 'Villa' ? (inventory.availableValueByType?.House || 0) : 0);
+                                  const bookedCount = (inventory.bookedByType?.[type] || 0) + (type === 'Villa' ? (inventory.bookedByType?.House || 0) : 0);
+                                  const bookedVal = (inventory.bookedValueByType?.[type] || 0) + (type === 'Villa' ? (inventory.bookedValueByType?.House || 0) : 0);
+                                  const handCount = (inventory.handoverByType?.[type] || 0) + (type === 'Villa' ? (inventory.handoverByType?.House || 0) : 0);
+                                  const handVal = (inventory.handoverValueByType?.[type] || 0) + (type === 'Villa' ? (inventory.handoverValueByType?.House || 0) : 0);
+
+                                  return (
+                                    <tr key={type} className={idx % 2 === 1 ? 'bg-black-50/40' : ''}>
+                                      <td className="p-3 font-bold text-black-850">{type}</td>
+                                      <td className="p-3 text-right font-bold">{overallCount}</td>
+                                      <td className="p-3 text-right">₹{overallVal.toLocaleString()}</td>
+                                      <td className="p-3 text-right text-emerald-700 font-bold">{availCount}</td>
+                                      <td className="p-3 text-right text-emerald-700">₹{availVal.toLocaleString()}</td>
+                                      <td className="p-3 text-right text-red-700 font-bold">{bookedCount}</td>
+                                      <td className="p-3 text-right text-red-700">₹{bookedVal.toLocaleString()}</td>
+                                      <td className="p-3 text-right text-blue-700 font-bold">{handCount}</td>
+                                      <td className="p-3 text-right text-blue-700">₹{handVal.toLocaleString()}</td>
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+
+                        {/* Part 2: User Performance Summary */}
+                        <div>
+                          <div className="bg-[#0e623a] text-white p-3 rounded-2xl text-xs font-black uppercase tracking-wider mb-3 text-center shadow-sm">
+                            PART 2: USER PERFORMANCE SUMMARY
+                          </div>
+                          <div className="overflow-x-auto rounded-2xl border border-black-150 bg-white shadow-sm">
+                            <table className="w-full text-left border-collapse text-xs">
+                              <thead>
+                                <tr className="bg-[#0e623a] text-white text-[11px] font-bold uppercase">
+                                  <th className="p-3">User Name</th>
+                                  <th className="p-3 text-right">Total Leads</th>
+                                  <th className="p-3 text-right">Assigned</th>
+                                  <th className="p-3 text-right">Enquiries</th>
+                                  <th className="p-3 text-right">Site Visit</th>
+                                  <th className="p-3 text-right">Hot List</th>
+                                  <th className="p-3 text-right">Future Followup</th>
+                                  <th className="p-3 text-right">Booking</th>
+                                  <th className="p-3 text-right">Handover</th>
+                                  <th className="p-3 text-right text-red-300">Lost</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-black-100 font-medium">
+                                {uData.map((row, idx) => (
+                                  <tr key={row.userName || idx} className={idx % 2 === 1 ? 'bg-black-50/40' : ''}>
+                                    <td className="p-3 font-bold text-black-850 uppercase">{row.userName}</td>
+                                    <td className="p-3 text-right font-black text-black-900">{row.totalLeads}</td>
+                                    <td className="p-3 text-right text-purple-700 font-bold">{row.assigned || 0}</td>
+                                    <td className="p-3 text-right text-emerald-700 font-bold">{row.enquiries}</td>
+                                    <td className="p-3 text-right text-blue-700 font-bold">{row.siteVisits}</td>
+                                    <td className="p-3 text-right text-amber-700 font-bold">{row.hotList}</td>
+                                    <td className="p-3 text-right text-cyan-700 font-bold">{row.futureFollowup || 0}</td>
+                                    <td className="p-3 text-right text-rose-700 font-bold">{row.booked}</td>
+                                    <td className="p-3 text-right text-emerald-800 font-bold">{row.handover}</td>
+                                    <td className="p-3 text-right text-red-600 font-bold">{row.lost}</td>
+                                  </tr>
+                                ))}
+                                {uData.length > 0 && (
+                                  <tr className="bg-emerald-50 font-black text-black-900 border-t-2 border-[#0e623a]">
+                                    <td className="p-3 uppercase font-extrabold text-[#0e623a]">TOTAL SUM</td>
+                                    <td className="p-3 text-right">{uData.reduce((s, u) => s + u.totalLeads, 0)}</td>
+                                    <td className="p-3 text-right text-purple-700">{uData.reduce((s, u) => s + (u.assigned || 0), 0)}</td>
+                                    <td className="p-3 text-right text-emerald-700">{uData.reduce((s, u) => s + u.enquiries, 0)}</td>
+                                    <td className="p-3 text-right text-blue-700">{uData.reduce((s, u) => s + u.siteVisits, 0)}</td>
+                                    <td className="p-3 text-right text-amber-700">{uData.reduce((s, u) => s + u.hotList, 0)}</td>
+                                    <td className="p-3 text-right text-cyan-700">{uData.reduce((s, u) => s + (u.futureFollowup || 0), 0)}</td>
+                                    <td className="p-3 text-right text-rose-700">{uData.reduce((s, u) => s + u.booked, 0)}</td>
+                                    <td className="p-3 text-right text-emerald-800">{uData.reduce((s, u) => s + u.handover, 0)}</td>
+                                    <td className="p-3 text-right text-red-600">{uData.reduce((s, u) => s + u.lost, 0)}</td>
+                                  </tr>
+                                )}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  // 2. USER WISE REPORT PREVIEW
+                  if (reportPreviewType === 'user') {
+                    const targetUsers = reportUserFilter
+                      ? [reportUserFilter]
+                      : (activeStats.users || []).map(u => u.name);
+
+                    return (
+                      <div className="space-y-6">
+                        {targetUsers.map(uName => {
+                          let uTotalLeads = 0, uEnquiries = 0, uSiteVisits = 0, uHotList = 0, uBooked = 0, uHandover = 0;
+                          let rows = [];
+
+                          Object.keys(activeStats.personProjectStages || {}).forEach(key => {
+                            const row = activeStats.personProjectStages[key];
+                            if (row.personName === uName) {
+                              uTotalLeads += row.totalLeads;
+                              uEnquiries += row.enquiries;
+                              uSiteVisits += row.siteVisits;
+                              uHotList += row.hotList;
+                              uBooked += row.booked;
+                              uHandover += row.handover;
+                              rows.push(row);
+                            }
+                          });
+
+                          return (
+                            <div key={uName} className="rounded-2xl border border-black-150 bg-white overflow-hidden shadow-sm">
+                              <div className="bg-[#0e623a] text-white p-3 font-extrabold text-xs uppercase flex items-center justify-between">
+                                <span>USER: {uName}</span>
+                                <span className="text-[10px] bg-white/20 px-2 py-0.5 rounded-full">
+                                  Total: {uTotalLeads} Leads
+                                </span>
+                              </div>
+                              <div className="overflow-x-auto">
+                                <table className="w-full text-left border-collapse text-xs">
+                                  <thead>
+                                    <tr className="bg-emerald-50/50 text-[11px] font-bold text-black-600 uppercase border-b border-black-100">
+                                      <th className="p-3">Project Name</th>
+                                      <th className="p-3 text-right">Total Leads</th>
+                                      <th className="p-3 text-right">Enquiries</th>
+                                      <th className="p-3 text-right">Site Visit</th>
+                                      <th className="p-3 text-right">Hot List</th>
+                                      <th className="p-3 text-right">Booked</th>
+                                      <th className="p-3 text-right">Site Conversion (Handover)</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody className="divide-y divide-black-100 font-medium">
+                                    <tr className="bg-emerald-50/30 font-bold text-black-900">
+                                      <td className="p-3 text-[#0e623a] uppercase font-black">OVERALL SUMMARY</td>
+                                      <td className="p-3 text-right">{uTotalLeads}</td>
+                                      <td className="p-3 text-right text-emerald-700">{uEnquiries}</td>
+                                      <td className="p-3 text-right text-blue-700">{uSiteVisits}</td>
+                                      <td className="p-3 text-right text-amber-700">{uHotList}</td>
+                                      <td className="p-3 text-right text-rose-700">{uBooked}</td>
+                                      <td className="p-3 text-right text-emerald-800">{uHandover}</td>
+                                    </tr>
+                                    {rows.map((row, idx) => (
+                                      <tr key={idx} className={idx % 2 === 1 ? 'bg-black-50/30' : ''}>
+                                        <td className="p-3 font-bold text-black-800">{row.projectName}</td>
+                                        <td className="p-3 text-right">{row.totalLeads}</td>
+                                        <td className="p-3 text-right text-emerald-700">{row.enquiries}</td>
+                                        <td className="p-3 text-right text-blue-700">{row.siteVisits}</td>
+                                        <td className="p-3 text-right text-amber-700">{row.hotList}</td>
+                                        <td className="p-3 text-right text-rose-700">{row.booked}</td>
+                                        <td className="p-3 text-right text-emerald-800">{row.handover}</td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  }
+
+                  // 3. PROJECT WISE REPORT PREVIEW
+                  if (reportPreviewType === 'project') {
+                    const targetProjects = reportProjectFilter
+                      ? [reportProjectFilter]
+                      : (activeStats.projects || []).map(p => p.code || p.name);
+
+                    return (
+                      <div className="space-y-6">
+                        {targetProjects.map(projName => {
+                          const stages = activeStats.projectStages?.[projName] || { totalLeads: 0, enquiries: 0, siteVisits: 0, hotList: 0, booked: 0, handover: 0 };
+                          let executiveRows = [];
+                          Object.keys(activeStats.personProjectStages || {}).forEach(key => {
+                            const row = activeStats.personProjectStages[key];
+                            if (row.projectName === projName) {
+                              executiveRows.push(row);
+                            }
+                          });
+
+                          return (
+                            <div key={projName} className="rounded-2xl border border-black-150 bg-white overflow-hidden shadow-sm space-y-4 p-4">
+                              <div className="bg-[#0e623a] text-white p-3 rounded-xl font-extrabold text-xs uppercase flex items-center justify-between">
+                                <span>PROJECT: {projName}</span>
+                                <span className="text-[10px] bg-white/20 px-2 py-0.5 rounded-full">
+                                  Total: {stages.totalLeads} Leads
+                                </span>
+                              </div>
+
+                              {/* Stages Summary Grid */}
+                              <div className="grid grid-cols-2 sm:grid-cols-6 gap-2 text-center text-xs">
+                                <div className="bg-black-50 p-2.5 rounded-xl">
+                                  <span className="text-[10px] text-gray-500 uppercase font-bold block">Total Leads</span>
+                                  <span className="text-base font-black text-black-800">{stages.totalLeads}</span>
+                                </div>
+                                <div className="bg-emerald-50 p-2.5 rounded-xl">
+                                  <span className="text-[10px] text-emerald-700 uppercase font-bold block">Enquiries</span>
+                                  <span className="text-base font-black text-emerald-800">{stages.enquiries}</span>
+                                </div>
+                                <div className="bg-blue-50 p-2.5 rounded-xl">
+                                  <span className="text-[10px] text-blue-700 uppercase font-bold block">Site Visits</span>
+                                  <span className="text-base font-black text-blue-800">{stages.siteVisits}</span>
+                                </div>
+                                <div className="bg-amber-50 p-2.5 rounded-xl">
+                                  <span className="text-[10px] text-amber-700 uppercase font-bold block">Hot List</span>
+                                  <span className="text-base font-black text-amber-800">{stages.hotList}</span>
+                                </div>
+                                <div className="bg-rose-50 p-2.5 rounded-xl">
+                                  <span className="text-[10px] text-rose-700 uppercase font-bold block">Booked Units</span>
+                                  <span className="text-base font-black text-rose-800">{stages.booked}</span>
+                                </div>
+                                <div className="bg-emerald-100/60 p-2.5 rounded-xl">
+                                  <span className="text-[10px] text-emerald-800 uppercase font-bold block">Handover</span>
+                                  <span className="text-base font-black text-emerald-900">{stages.handover}</span>
+                                </div>
+                              </div>
+
+                              {/* Executive Breakdown Table */}
+                              {executiveRows.length > 0 && (
+                                <div className="overflow-x-auto rounded-xl border border-black-100">
+                                  <table className="w-full text-left border-collapse text-xs">
+                                    <thead>
+                                      <tr className="bg-black-50 text-[10px] font-bold text-black-500 uppercase border-b border-black-100">
+                                        <th className="p-2.5">Executive Name</th>
+                                        <th className="p-2.5 text-right">Total Leads</th>
+                                        <th className="p-2.5 text-right">Enquiries</th>
+                                        <th className="p-2.5 text-right">Site Visit</th>
+                                        <th className="p-2.5 text-right">Hot List</th>
+                                        <th className="p-2.5 text-right">Booked</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-black-50 font-medium">
+                                      {executiveRows.map((row, idx) => (
+                                        <tr key={idx} className={idx % 2 === 1 ? 'bg-black-50/30' : ''}>
+                                          <td className="p-2.5 font-bold text-black-800 uppercase">{row.personName}</td>
+                                          <td className="p-2.5 text-right font-bold">{row.totalLeads}</td>
+                                          <td className="p-2.5 text-right text-emerald-700">{row.enquiries}</td>
+                                          <td className="p-2.5 text-right text-blue-700">{row.siteVisits}</td>
+                                          <td className="p-2.5 text-right text-amber-700">{row.hotList}</td>
+                                          <td className="p-2.5 text-right text-rose-700">{row.booked}</td>
+                                        </tr>
+                                      ))}
+                                    </tbody>
+                                  </table>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  }
+
+                  // 4. SOURCE WISE REPORT PREVIEW
+                  if (reportPreviewType === 'source') {
+                    const targetSources = reportSourceFilter
+                      ? [reportSourceFilter]
+                      : Object.keys(activeStats.sourceStats || {});
+
+                    return (
+                      <div className="rounded-2xl border border-black-150 bg-white overflow-hidden shadow-sm">
+                        <div className="bg-[#0e623a] text-white p-3 font-extrabold text-xs uppercase text-center">
+                          MARKETING SOURCE PERFORMANCE REPORT
+                        </div>
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-left border-collapse text-xs">
+                            <thead>
+                              <tr className="bg-emerald-50/50 text-[11px] font-bold text-black-600 uppercase border-b border-black-100">
+                                <th className="p-3 w-10 text-center">S.No</th>
+                                <th className="p-3">Source Type</th>
+                                <th className="p-3 text-right">Budget Allocation</th>
+                                <th className="p-3 text-right">Spent Value</th>
+                                <th className="p-3 text-right">Networth Value</th>
+                                <th className="p-3 text-right">Leads Count</th>
+                                <th className="p-3 text-right">Enquiries</th>
+                                <th className="p-3 text-right">Site Visit</th>
+                                <th className="p-3 text-right">Hot List</th>
+                                <th className="p-3 text-right">Booked</th>
+                                <th className="p-3 text-right">Lost</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-black-100 font-medium">
+                              {targetSources.map((src, idx) => {
+                                const s = activeStats.sourceStats?.[src] || { budget: 0, spent: 0, value: 0, count: 0, enquiries: 0, siteVisits: 0, hotList: 0, booked: 0, lost: 0 };
+                                return (
+                                  <tr key={src} className={idx % 2 === 1 ? 'bg-black-50/30' : ''}>
+                                    <td className="p-3 text-center font-bold text-black-400">{idx + 1}</td>
+                                    <td className="p-3 font-bold text-black-850">{src}</td>
+                                    <td className="p-3 text-right">₹{(s.budget || 0).toLocaleString()}</td>
+                                    <td className="p-3 text-right">₹{(s.spent || 0).toLocaleString()}</td>
+                                    <td className="p-3 text-right text-[#0e623a] font-bold">₹{(s.value || 0).toLocaleString()}</td>
+                                    <td className="p-3 text-right font-bold text-black-900">{s.count || 0}</td>
+                                    <td className="p-3 text-right text-emerald-700">{s.enquiries || 0}</td>
+                                    <td className="p-3 text-right text-blue-700">{s.siteVisits || 0}</td>
+                                    <td className="p-3 text-right text-amber-700">{s.hotList || 0}</td>
+                                    <td className="p-3 text-right text-rose-700">{s.booked || 0}</td>
+                                    <td className="p-3 text-right text-red-600">{s.lost || 0}</td>
+                                  </tr>
+                                );
+                              })}
+                              {targetSources.length > 0 && (
+                                <tr className="bg-emerald-50 font-black text-black-900 border-t-2 border-[#0e623a]">
+                                  <td className="p-3 text-center"></td>
+                                  <td className="p-3 uppercase font-extrabold text-[#0e623a]">TOTAL SUM</td>
+                                  <td className="p-3 text-right">₹{targetSources.reduce((sum, src) => sum + (activeStats.sourceStats?.[src]?.budget || 0), 0).toLocaleString()}</td>
+                                  <td className="p-3 text-right">₹{targetSources.reduce((sum, src) => sum + (activeStats.sourceStats?.[src]?.spent || 0), 0).toLocaleString()}</td>
+                                  <td className="p-3 text-right text-[#0e623a]">₹{targetSources.reduce((sum, src) => sum + (activeStats.sourceStats?.[src]?.value || 0), 0).toLocaleString()}</td>
+                                  <td className="p-3 text-right">{targetSources.reduce((sum, src) => sum + (activeStats.sourceStats?.[src]?.count || 0), 0)}</td>
+                                  <td className="p-3 text-right text-emerald-700">{targetSources.reduce((sum, src) => sum + (activeStats.sourceStats?.[src]?.enquiries || 0), 0)}</td>
+                                  <td className="p-3 text-right text-blue-700">{targetSources.reduce((sum, src) => sum + (activeStats.sourceStats?.[src]?.siteVisits || 0), 0)}</td>
+                                  <td className="p-3 text-right text-amber-700">{targetSources.reduce((sum, src) => sum + (activeStats.sourceStats?.[src]?.hotList || 0), 0)}</td>
+                                  <td className="p-3 text-right text-rose-700">{targetSources.reduce((sum, src) => sum + (activeStats.sourceStats?.[src]?.booked || 0), 0)}</td>
+                                  <td className="p-3 text-right text-red-600">{targetSources.reduce((sum, src) => sum + (activeStats.sourceStats?.[src]?.lost || 0), 0)}</td>
+                                </tr>
+                              )}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  return null;
+                })()
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="p-5 border-t border-black-150 bg-white/70 flex flex-col sm:flex-row items-center justify-between gap-3">
+              <div className="text-xs text-black-500 font-bold">
+                Date Range: <span className="text-[#0e623a] font-extrabold">{reportFromDate || 'Start'}</span> to <span className="text-[#0e623a] font-extrabold">{reportToDate || 'End'}</span>
+              </div>
+              <div className="flex items-center gap-2.5 w-full sm:w-auto justify-end">
+                <button
+                  onClick={() => setReportPreviewType(null)}
+                  className="px-4 py-2 text-xs font-bold text-black-500 hover:text-black-800 transition cursor-pointer"
+                >
+                  Close
+                </button>
+                <button
+                  onClick={() => {
+                    const activeStats = reportStats || stats;
+                    if (reportPreviewType === 'summary') {
+                      handleExportExcel(activeStats, reportFromDate, reportToDate);
+                    } else if (reportPreviewType === 'user') {
+                      const selected = reportUserFilter ? [reportUserFilter] : (activeStats.users || []).map(u => u.name);
+                      handleExportUserReport(selected, activeStats, reportFromDate, reportToDate);
+                    } else if (reportPreviewType === 'project') {
+                      const selected = reportProjectFilter ? [reportProjectFilter] : (activeStats.projects || []).map(p => p.code || p.name);
+                      handleExportProjectReport(selected, activeStats, reportFromDate, reportToDate);
+                    } else if (reportPreviewType === 'source') {
+                      const selected = reportSourceFilter ? [reportSourceFilter] : Object.keys(activeStats.sourceStats || {});
+                      handleExportSourceReport(selected, activeStats, reportFromDate, reportToDate);
                     }
                   }}
-                  className="rounded text-[#0e623a] focus:ring-[#0e623a] w-4 h-4"
-                />
-                <span className="text-xs font-bold text-[#0e623a]">Select All Users</span>
-              </label>
-
-              <div className="h-px bg-black-100 my-2"></div>
-
-              {(stats.users || []).map(user => (
-                <label key={user._id} className="flex items-center gap-2.5 p-2 hover:bg-black-50 rounded-xl cursor-pointer transition">
-                  <input
-                    type="checkbox"
-                    checked={selectedUsersList.includes(user.name)}
-                    onChange={(e) => {
-                      if (e.target.checked) {
-                        setSelectedUsersList([...selectedUsersList, user.name]);
-                      } else {
-                        setSelectedUsersList(selectedUsersList.filter(name => name !== user.name));
-                      }
-                    }}
-                    className="rounded text-[#0e623a] focus:ring-[#0e623a] w-4 h-4"
-                  />
-                  <span className="text-xs text-black-700 font-bold">{user.name}</span>
-                  <span className="text-[11px] bg-black-100 text-black-500 px-2 py-0.5 rounded-full ml-auto uppercase tracking-wider font-extrabold">{user.role}</span>
-                </label>
-              ))}
-            </div>
-
-            <div className="p-6 bg-black-50 border-t border-black-150 flex items-center justify-end gap-2">
-              <button
-                onClick={() => {
-                  setShowUserModal(false);
-                  setSelectedUsersList([]);
-                }}
-                className="px-4 py-2 text-xs font-bold text-black-500 hover:text-black-750 transition"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => {
-                  if (selectedUsersList.length === 0) {
-                    alert("Please select at least one user to export.");
-                    return;
-                  }
-                  handleExportUserReport(selectedUsersList);
-                  setShowUserModal(false);
-                  setSelectedUsersList([]);
-                }}
-                className="px-5 py-2 bg-[#0e623a] hover:bg-[#0b4d2d] text-white text-xs font-bold rounded-xl transition shadow-sm"
-              >
-                Export Report ({selectedUsersList.length})
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Project Selection Modal */}
-      {showProjectModal && (
-        <div className="fixed inset-0 bg-black-900/60 backdrop-blur-sm z-[999] flex items-center justify-center p-4">
-          <div className="bg-[#f0fbf4] rounded-3xl shadow-xl w-full max-w-md overflow-hidden border-none text-left">
-            <div className="p-6 border-b border-black-150">
-              <h3 className="text-lg font-extrabold text-black-800">Export Project Wise Report</h3>
-              <p className="text-xs text-black-550 mt-1">Select one or more projects to include in the report</p>
-            </div>
-
-            <div className="p-6 max-h-60 overflow-y-auto space-y-2">
-              <label className="flex items-center gap-2.5 p-2 hover:bg-black-50 rounded-xl cursor-pointer transition">
-                <input
-                  type="checkbox"
-                  checked={selectedProjectsList.length === (stats.projects || []).length}
-                  onChange={(e) => {
-                    if (e.target.checked) {
-                      setSelectedProjectsList((stats.projects || []).map(p => p.code || p.name));
-                    } else {
-                      setSelectedProjectsList([]);
-                    }
-                  }}
-                  className="rounded text-[#0e623a] focus:ring-[#0e623a] w-4 h-4"
-                />
-                <span className="text-xs font-bold text-[#0e623a]">Select All Projects</span>
-              </label>
-
-              <div className="h-px bg-black-100 my-2"></div>
-
-              {(stats.projects || []).map(proj => {
-                const name = proj.code || proj.name;
-                return (
-                  <label key={proj._id} className="flex items-center gap-2.5 p-2 hover:bg-black-50 rounded-xl cursor-pointer transition">
-                    <input
-                      type="checkbox"
-                      checked={selectedProjectsList.includes(name)}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          setSelectedProjectsList([...selectedProjectsList, name]);
-                        } else {
-                          setSelectedProjectsList(selectedProjectsList.filter(pName => pName !== name));
-                        }
-                      }}
-                      className="rounded text-[#0e623a] focus:ring-[#0e623a] w-4 h-4"
-                    />
-                    <span className="text-xs text-black-700 font-bold">{name}</span>
-                  </label>
-                );
-              })}
-            </div>
-
-            <div className="p-6 bg-black-50 border-t border-black-150 flex items-center justify-end gap-2">
-              <button
-                onClick={() => {
-                  setShowProjectModal(false);
-                  setSelectedProjectsList([]);
-                }}
-                className="px-4 py-2 text-xs font-bold text-black-500 hover:text-black-750 transition"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => {
-                  if (selectedProjectsList.length === 0) {
-                    alert("Please select at least one project to export.");
-                    return;
-                  }
-                  handleExportProjectReport(selectedProjectsList);
-                  setShowProjectModal(false);
-                  setSelectedProjectsList([]);
-                }}
-                className="px-5 py-2 bg-[#0e623a] hover:bg-[#0b4d2d] text-white text-xs font-bold rounded-xl transition shadow-sm"
-              >
-                Export Report ({selectedProjectsList.length})
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Source Selection Modal */}
-      {showSourceModal && (
-        <div className="fixed inset-0 bg-black-900/60 backdrop-blur-sm z-[999] flex items-center justify-center p-4">
-          <div className="bg-[#f0fbf4] rounded-3xl shadow-xl w-full max-w-md overflow-hidden border-none text-left">
-            <div className="p-6 border-b border-black-150">
-              <h3 className="text-lg font-extrabold text-black-800">Export Source Wise Report</h3>
-              <p className="text-xs text-black-550 mt-1">Select one or more marketing sources to include in the report</p>
-            </div>
-
-            <div className="p-6 max-h-60 overflow-y-auto space-y-2">
-              <label className="flex items-center gap-2.5 p-2 hover:bg-black-50 rounded-xl cursor-pointer transition">
-                <input
-                  type="checkbox"
-                  checked={selectedSourcesList.length === Object.keys(stats.sourceStats || {}).length}
-                  onChange={(e) => {
-                    if (e.target.checked) {
-                      setSelectedSourcesList(Object.keys(stats.sourceStats || {}));
-                    } else {
-                      setSelectedSourcesList([]);
-                    }
-                  }}
-                  className="rounded text-[#0e623a] focus:ring-[#0e623a] w-4 h-4"
-                />
-                <span className="text-xs font-bold text-[#0e623a]">Select All Sources</span>
-              </label>
-
-              <div className="h-px bg-black-100 my-2"></div>
-
-              {Object.keys(stats.sourceStats || {}).map(src => (
-                <label key={src} className="flex items-center gap-2.5 p-2 hover:bg-black-50 rounded-xl cursor-pointer transition">
-                  <input
-                    type="checkbox"
-                    checked={selectedSourcesList.includes(src)}
-                    onChange={(e) => {
-                      if (e.target.checked) {
-                        setSelectedSourcesList([...selectedSourcesList, src]);
-                      } else {
-                        setSelectedSourcesList(selectedSourcesList.filter(sName => sName !== src));
-                      }
-                    }}
-                    className="rounded text-[#0e623a] focus:ring-[#0e623a] w-4 h-4"
-                  />
-                  <span className="text-xs text-black-700 font-bold">{src}</span>
-                </label>
-              ))}
-            </div>
-
-            <div className="p-6 bg-black-50 border-t border-black-150 flex items-center justify-end gap-2">
-              <button
-                onClick={() => {
-                  setShowSourceModal(false);
-                  setSelectedSourcesList([]);
-                }}
-                className="px-4 py-2 text-xs font-bold text-black-500 hover:text-black-750 transition"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => {
-                  if (selectedSourcesList.length === 0) {
-                    alert("Please select at least one source to export.");
-                    return;
-                  }
-                  handleExportSourceReport(selectedSourcesList);
-                  setShowSourceModal(false);
-                  setSelectedSourcesList([]);
-                }}
-                className="px-5 py-2 bg-[#0e623a] hover:bg-[#0b4d2d] text-white text-xs font-bold rounded-xl transition shadow-sm"
-              >
-                Export Report ({selectedSourcesList.length})
-              </button>
+                  className="flex items-center justify-center gap-1.5 px-5 py-2.5 bg-[#0e623a] hover:bg-[#0b4d2d] text-white text-xs font-bold rounded-xl transition shadow-md hover:shadow-lg cursor-pointer active:scale-95"
+                >
+                  <Download className="w-4 h-4" />
+                  <span>Download Excel</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>
