@@ -1000,19 +1000,25 @@ const TasksBoard = () => {
         </button>
       </div>
 
-      {/* Stats Overview */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
+      {/* Stats Overview (8 Status Cards in 1 Clean Row) */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
+        {/* 1. Total (Highlighted Dark Green) */}
         <div 
           onClick={() => setStatusFilter('ALL')}
-          className={`p-3.5 rounded-2xl border transition-all cursor-pointer ${statusFilter === 'ALL' ? 'bg-emerald-950 text-white border-emerald-800 shadow-md ring-2 ring-emerald-600' : 'bg-white border-gray-150 hover:border-gray-300'}`}
+          className={`p-3.5 rounded-2xl border transition-all cursor-pointer ${
+            statusFilter === 'ALL' 
+              ? 'bg-[#003822] text-white border-emerald-700 shadow-md ring-2 ring-emerald-500 scale-[1.02]' 
+              : 'bg-[#0e623a] text-white border-[#0e623a] hover:bg-[#003822]'
+          }`}
         >
           <div className="flex items-center justify-between">
-            <span className={`text-[10px] font-extrabold uppercase ${statusFilter === 'ALL' ? 'text-emerald-300' : 'text-gray-500'}`}>Total</span>
-            <ClipboardList className={`w-3.5 h-3.5 ${statusFilter === 'ALL' ? 'text-emerald-400' : 'text-gray-400'}`} />
+            <span className="text-[10px] font-extrabold uppercase text-emerald-200">Total</span>
+            <ClipboardList className="w-3.5 h-3.5 text-emerald-300" />
           </div>
-          <p className={`text-xl font-black mt-1 ${statusFilter === 'ALL' ? 'text-white' : 'text-gray-800'}`}>{totalCount}</p>
+          <p className="text-xl font-black mt-1 text-white">{totalCount}</p>
         </div>
 
+        {/* 2. New */}
         <div 
           onClick={() => setStatusFilter('NEW')}
           className={`p-3.5 rounded-2xl border transition-all cursor-pointer ${statusFilter === 'NEW' ? 'bg-blue-950 text-white border-blue-800 shadow-md ring-2 ring-blue-600' : 'bg-white border-gray-150 hover:border-gray-300'}`}
@@ -1024,6 +1030,7 @@ const TasksBoard = () => {
           <p className={`text-xl font-black mt-1 ${statusFilter === 'NEW' ? 'text-white' : 'text-gray-800'}`}>{newCount}</p>
         </div>
 
+        {/* 3. In Progress */}
         <div 
           onClick={() => setStatusFilter('IN_PROGRESS')}
           className={`p-3.5 rounded-2xl border transition-all cursor-pointer ${statusFilter === 'IN_PROGRESS' ? 'bg-amber-950 text-white border-amber-800 shadow-md ring-2 ring-amber-600' : 'bg-white border-gray-150 hover:border-gray-300'}`}
@@ -1035,6 +1042,7 @@ const TasksBoard = () => {
           <p className={`text-xl font-black mt-1 ${statusFilter === 'IN_PROGRESS' ? 'text-white' : 'text-gray-800'}`}>{inProgressCount}</p>
         </div>
 
+        {/* 4. On Hold */}
         <div 
           onClick={() => setStatusFilter('ON_HOLD')}
           className={`p-3.5 rounded-2xl border transition-all cursor-pointer ${statusFilter === 'ON_HOLD' ? 'bg-purple-950 text-white border-purple-800 shadow-md ring-2 ring-purple-600' : 'bg-white border-gray-150 hover:border-gray-300'}`}
@@ -1046,6 +1054,7 @@ const TasksBoard = () => {
           <p className={`text-xl font-black mt-1 ${statusFilter === 'ON_HOLD' ? 'text-white' : 'text-gray-800'}`}>{onHoldCount}</p>
         </div>
 
+        {/* 5. Completed */}
         <div 
           onClick={() => setStatusFilter('COMPLETED')}
           className={`p-3.5 rounded-2xl border transition-all cursor-pointer ${statusFilter === 'COMPLETED' ? 'bg-emerald-900 text-white border-emerald-700 shadow-md ring-2 ring-emerald-500' : 'bg-white border-gray-150 hover:border-gray-300'}`}
@@ -1057,6 +1066,7 @@ const TasksBoard = () => {
           <p className={`text-xl font-black mt-1 ${statusFilter === 'COMPLETED' ? 'text-white' : 'text-gray-800'}`}>{completedCount}</p>
         </div>
 
+        {/* 6. Cancelled */}
         <div 
           onClick={() => setStatusFilter('CANCELLED')}
           className={`p-3.5 rounded-2xl border transition-all cursor-pointer ${statusFilter === 'CANCELLED' ? 'bg-gray-800 text-white border-gray-700 shadow-md ring-2 ring-gray-600' : 'bg-white border-gray-150 hover:border-gray-300'}`}
@@ -1068,6 +1078,7 @@ const TasksBoard = () => {
           <p className={`text-xl font-black mt-1 ${statusFilter === 'CANCELLED' ? 'text-white' : 'text-gray-800'}`}>{cancelledCount}</p>
         </div>
 
+        {/* 7. Overdated */}
         <div 
           onClick={() => setStatusFilter('OVERDATED')}
           className={`p-3.5 rounded-2xl border transition-all cursor-pointer ${statusFilter === 'OVERDATED' ? 'bg-rose-950 text-white border-rose-800 shadow-md ring-2 ring-rose-600' : 'bg-rose-50/50 border-rose-200 hover:border-rose-300'}`}
@@ -1077,6 +1088,22 @@ const TasksBoard = () => {
             <AlertTriangle className={`w-3.5 h-3.5 ${statusFilter === 'OVERDATED' ? 'text-rose-300' : 'text-rose-600 animate-pulse'}`} />
           </div>
           <p className={`text-xl font-black mt-1 ${statusFilter === 'OVERDATED' ? 'text-white' : 'text-rose-700'}`}>{overdatedCount}</p>
+        </div>
+
+        {/* 8. Pending Tasks (Highlighted Green identical to Total card format) */}
+        <div 
+          onClick={() => setStatusFilter('PENDING')}
+          className={`p-3.5 rounded-2xl border transition-all cursor-pointer ${
+            statusFilter === 'PENDING' 
+              ? 'bg-[#003822] text-white border-emerald-700 shadow-md ring-2 ring-emerald-500 scale-[1.02]' 
+              : 'bg-[#0e623a] text-white border-[#0e623a] hover:bg-[#003822]'
+          }`}
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-extrabold uppercase text-emerald-200">Pending Tasks</span>
+            <Clock className="w-3.5 h-3.5 text-emerald-300" />
+          </div>
+          <p className="text-xl font-black mt-1 text-white">{pendingCount}</p>
         </div>
       </div>
 
@@ -1105,7 +1132,7 @@ const TasksBoard = () => {
         </div>
       )}
 
-      {/* View Tabs Bar: Left = All Tasks, Assigned to Me, Assigned to | Right = Green Highlighted Pending Tasks Card */}
+      {/* View Tabs Bar */}
       <div className="flex flex-wrap items-center justify-between gap-3 bg-white border border-gray-150 p-2.5 rounded-2xl shadow-sm">
         <div className="flex flex-wrap items-center gap-2">
           {/* All Tasks (DEFAULT & HIGHLIGHTED) */}
@@ -1164,27 +1191,6 @@ const TasksBoard = () => {
               {iAssignedCount}
             </span>
           </button>
-        </div>
-
-        {/* Direct Opposite: Green Highlighted Pending Tasks Card */}
-        <div 
-          onClick={() => setStatusFilter(statusFilter === 'PENDING' ? 'ALL' : 'PENDING')}
-          className={`flex items-center gap-2.5 px-4 py-2 rounded-xl border transition-all cursor-pointer shadow-xs select-none shrink-0 ${
-            statusFilter === 'PENDING'
-              ? 'bg-[#006838] text-white border-[#006838] shadow-md ring-2 ring-emerald-500/50 scale-[1.02]'
-              : 'bg-emerald-50 hover:bg-emerald-100/90 text-[#006838] border-emerald-300'
-          }`}
-          title="Click to filter Pending Tasks (New + In Progress)"
-        >
-          <div className="flex items-center gap-1.5">
-            <Clock className={`w-4 h-4 ${statusFilter === 'PENDING' ? 'text-emerald-200' : 'text-[#006838]'}`} />
-            <span className="text-xs font-black uppercase tracking-wide">Pending Tasks</span>
-          </div>
-          <span className={`px-2.5 py-0.5 rounded-full text-xs font-black ${
-            statusFilter === 'PENDING' ? 'bg-white text-[#006838]' : 'bg-[#006838] text-white'
-          }`}>
-            {pendingCount}
-          </span>
         </div>
       </div>
 
