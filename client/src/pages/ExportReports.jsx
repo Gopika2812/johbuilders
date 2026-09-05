@@ -2916,7 +2916,6 @@ const ExportReports = () => {
                 setFromDate(newFrom);
                 setToDate(newTo);
               }}
-              label="Date Range & Presets"
             />
           </div>
         </div>
