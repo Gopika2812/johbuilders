@@ -1987,39 +1987,6 @@ const Dashboard = () => {
             <span>Dashboard</span>
           </h2>
         </div>
-        <div className="grid grid-cols-2 lg:flex lg:flex-wrap lg:items-center gap-2 w-full lg:w-auto">
-          <button
-            onClick={() => openReportPreviewModal('summary')}
-            className="flex items-center justify-center gap-1.5 px-3 py-2 lg:px-4 lg:py-2.5 bg-red-600 hover:bg-red-700 text-white text-[11px] lg:text-xs font-bold rounded-xl transition shadow-sm w-full lg:w-auto cursor-pointer"
-          >
-            <Download className="w-3.5 h-3.5 lg:w-4 lg:h-4" />
-            <span>Summary Report</span>
-          </button>
-
-          <button
-            onClick={() => openReportPreviewModal('user')}
-            className="flex items-center justify-center gap-1.5 px-3 py-2 lg:px-4 lg:py-2.5 bg-green-600 hover:bg-green-700 text-white text-[11px] lg:text-xs font-bold rounded-xl transition shadow-sm w-full lg:w-auto cursor-pointer"
-          >
-            <Download className="w-3.5 h-3.5 lg:w-4 lg:h-4" />
-            <span>User Report</span>
-          </button>
-
-          <button
-            onClick={() => openReportPreviewModal('project')}
-            className="flex items-center justify-center gap-1.5 px-3 py-2 lg:px-4 lg:py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-[11px] lg:text-xs font-bold rounded-xl transition shadow-sm w-full lg:w-auto cursor-pointer"
-          >
-            <Download className="w-3.5 h-3.5 lg:w-4 lg:h-4" />
-            <span>Project Report</span>
-          </button>
-
-          <button
-            onClick={() => openReportPreviewModal('source')}
-            className="flex items-center justify-center gap-1.5 px-3 py-2 lg:px-4 lg:py-2.5 bg-purple-600 hover:bg-purple-700 text-white text-[11px] lg:text-xs font-bold rounded-xl transition shadow-sm w-full lg:w-auto cursor-pointer"
-          >
-            <Download className="w-3.5 h-3.5 lg:w-4 lg:h-4" />
-            <span>Source Report</span>
-          </button>
-        </div>
       </div>
 
       {/* Filtration Header Card */}
