@@ -1995,12 +1995,12 @@ const Dashboard = () => {
     <div className="space-y-6 w-full mx-auto text-left animate-fadeIn">
 
       {/* Filtration Header Card */}
-      <div className="glass-card border-none shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-3xl p-5 w-full relative transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4 items-end">
+      <div className="glass-card border-none shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-3xl p-4 sm:p-5 w-full relative transition-all duration-300">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3.5 items-end">
 
           {/* User Select */}
           {(user?.role === 'Superadmin' || user?.role === 'Superadmin') ? (
-            <div className="flex flex-col gap-1 w-full">
+            <div className="flex flex-col gap-1 sm:col-span-1 lg:col-span-2 w-full">
               <label className="text-[11px] font-bold text-black-800 uppercase tracking-wider">Filtered User</label>
               <div className="flex items-center gap-2 bg-black-50 border-none px-3 py-1.5 rounded-xl">
                 <User className="w-4 h-4 text-black-455 shrink-0" />
@@ -2017,11 +2017,11 @@ const Dashboard = () => {
               </div>
             </div>
           ) : (
-            <div className="hidden lg:block"></div>
+            <div className="hidden"></div>
           )}
 
           {/* Project Select */}
-          <div className="flex flex-col gap-1 w-full">
+          <div className="flex flex-col gap-1 sm:col-span-1 lg:col-span-2 w-full">
             <label className="text-[11px] font-bold text-black-400 uppercase tracking-wider">Filtered Project</label>
             <div className="flex items-center gap-2 bg-black-50 border-none px-3 py-1.5 rounded-xl">
               <FolderOpen className="w-4 h-4 text-black-455 shrink-0" />
@@ -2040,7 +2040,7 @@ const Dashboard = () => {
 
 
           {/* Source Select */}
-          <div className="flex flex-col gap-1 w-full">
+          <div className="flex flex-col gap-1 sm:col-span-1 lg:col-span-3 w-full">
             <SearchableMultiSelect
               label="Filtered Source"
               options={Array.from(new Set([
@@ -2054,22 +2054,8 @@ const Dashboard = () => {
             />
           </div>
 
-          {/* Month Wise */}
-          {/* <div className="flex flex-col gap-1 w-full">
-            <label className="text-[11px] font-bold text-black-400 uppercase tracking-wider">Select Month</label>
-            <div className="flex items-center gap-2 bg-black-50 border-none px-3 py-1.5 rounded-xl">
-              <Calendar className="w-4 h-4 text-[#0e623a] shrink-0" />
-              <input
-                type="month"
-                value={selectedMonth}
-                onChange={(e) => handleMonthChange(e.target.value)}
-                className="w-full bg-transparent text-xs text-black-700 font-bold focus:outline-none focus:ring-0 border-0 p-0"
-              />
-            </div>
-          </div> */}
-
           {/* Advanced Date Filtration (From-To Date, Month wise, Quarterly, Half-Yearly, Yearly, Financial Year) */}
-          <div className="col-span-1 sm:col-span-2 lg:col-span-2 w-full">
+          <div className="col-span-1 sm:col-span-2 lg:col-span-5 w-full">
             <DateRangeFilter
               fromDate={fromDate}
               toDate={toDate}
