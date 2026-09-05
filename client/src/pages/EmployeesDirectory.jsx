@@ -82,6 +82,9 @@ const EmployeesDirectory = () => {
   const [deptError, setDeptError] = useState('');
   const [deptSuccess, setDeptSuccess] = useState('');
   const [deletingDeptId, setDeletingDeptId] = useState(null);
+  const [editingDeptName, setEditingDeptName] = useState(null);
+  const [editDeptInput, setEditDeptInput] = useState('');
+  const [savingDeptEdit, setSavingDeptEdit] = useState(false);
 
   // Edit Modal state
   const [editingEmployee, setEditingEmployee] = useState(null);
@@ -382,6 +385,87 @@ const EmployeesDirectory = () => {
       setDeptError('Connection error deleting department');
     } finally {
       setDeletingDeptId(null);
+    }
+  };
+
+  // Edit / Rename Department Handlers
+  const handleStartEditDept = (deptName) => {
+    setEditingDeptName(deptName);
+    setEditDeptInput(deptName);
+    setDeptError('');
+  };
+
+  const handleCancelEditDept = () => {
+    setEditingDeptName(null);
+    setEditDeptInput('');
+  };
+
+  const handleSaveEditDept = async (oldDeptName) => {
+    if (!editDeptInput || !editDeptInput.trim()) {
+      setDeptError('Department name cannot be empty');
+      return;
+    }
+
+    const trimmed = editDeptInput.trim();
+    if (trimmed.toLowerCase() === oldDeptName.toLowerCase()) {
+      setEditingDeptName(null);
+      return;
+    }
+
+    if (availableDepartments.some(d => d.toLowerCase() === trimmed.toLowerCase() && d.toLowerCase() !== oldDeptName.toLowerCase())) {
+      setDeptError(`Department "${trimmed}" already exists.`);
+      return;
+    }
+
+    setDeptError('');
+    setDeptSuccess('');
+    setSavingDeptEdit(true);
+
+    try {
+      let deptObj = departmentObjects.find(d => (typeof d === 'object' ? d.name : d) === oldDeptName);
+      let categoryId = deptObj?._id;
+
+      let response;
+      if (categoryId) {
+        response = await fetch(`${API_URL}/task-categories/${categoryId}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ name: trimmed })
+        });
+      } else {
+        response = await fetch(`${API_URL}/task-categories`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ name: trimmed })
+        });
+      }
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setDeptSuccess(`Department renamed to "${trimmed}" successfully!`);
+        setMessage(`Department "${oldDeptName}" renamed to "${trimmed}".`);
+        setEditingDeptName(null);
+        setEditDeptInput('');
+        setAddFormData(prev => prev.department === oldDeptName ? { ...prev, department: trimmed } : prev);
+        setEditFormData(prev => prev.department === oldDeptName ? { ...prev, department: trimmed } : prev);
+        await fetchDepartments();
+        await fetchEmployees();
+        setTimeout(() => setDeptSuccess(''), 3000);
+      } else {
+        setDeptError(data.message || 'Failed to update department');
+      }
+    } catch (err) {
+      console.error('Error updating department:', err);
+      setDeptError('Connection error while updating department');
+    } finally {
+      setSavingDeptEdit(false);
     }
   };
 
@@ -1280,44 +1364,96 @@ const EmployeesDirectory = () => {
                   {availableDepartments.map((deptName) => {
                     const isDefault = DEFAULT_DEPARTMENTS.some(d => d.toLowerCase() === deptName.toLowerCase());
                     const assignedUsersCount = employees.filter(e => (e.department || 'General').toLowerCase() === deptName.toLowerCase()).length;
+                    const isEditingThis = editingDeptName === deptName;
 
                     return (
                       <div key={deptName} className="p-3.5 flex items-center justify-between bg-white hover:bg-slate-50 transition">
-                        <div className="flex items-center gap-2.5">
-                          <div className={`w-2 h-2 rounded-full ${isDefault ? 'bg-[#0e623a]' : 'bg-purple-500'}`} />
-                          <div>
-                            <div className="text-xs font-bold text-slate-800 flex items-center gap-2">
-                              <span>{deptName}</span>
-                              {isDefault ? (
-                                <span className="text-[10px] bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-md font-semibold border border-emerald-100">
-                                  Default
-                                </span>
-                              ) : (
-                                <span className="text-[10px] bg-purple-50 text-purple-700 px-2 py-0.5 rounded-md font-semibold border border-purple-100">
-                                  Custom
-                                </span>
+                        {isEditingThis ? (
+                          <div className="flex items-center gap-2 flex-1 mr-2">
+                            <input
+                              type="text"
+                              value={editDeptInput}
+                              onChange={(e) => setEditDeptInput(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  e.preventDefault();
+                                  handleSaveEditDept(deptName);
+                                } else if (e.key === 'Escape') {
+                                  handleCancelEditDept();
+                                }
+                              }}
+                              autoFocus
+                              className="flex-1 px-3 py-1.5 bg-white border border-[#0e623a] rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#0e623a]"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => handleSaveEditDept(deptName)}
+                              disabled={savingDeptEdit || !editDeptInput.trim()}
+                              className="px-3 py-1.5 bg-[#0e623a] text-white hover:bg-[#0b4d2d] rounded-xl text-xs font-bold transition flex items-center gap-1 disabled:opacity-50 shrink-0"
+                            >
+                              {savingDeptEdit ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+                              <span>Save</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={handleCancelEditDept}
+                              disabled={savingDeptEdit}
+                              className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition shrink-0"
+                              title="Cancel"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </div>
+                        ) : (
+                          <>
+                            <div className="flex items-center gap-2.5">
+                              <div className={`w-2 h-2 rounded-full ${isDefault ? 'bg-[#0e623a]' : 'bg-purple-500'}`} />
+                              <div>
+                                <div className="text-xs font-bold text-slate-800 flex items-center gap-2">
+                                  <span>{deptName}</span>
+                                  {isDefault ? (
+                                    <span className="text-[10px] bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-md font-semibold border border-emerald-100">
+                                      Default
+                                    </span>
+                                  ) : (
+                                    <span className="text-[10px] bg-purple-50 text-purple-700 px-2 py-0.5 rounded-md font-semibold border border-purple-100">
+                                      Custom
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="text-[11px] text-slate-400 mt-0.5">
+                                  {assignedUsersCount} active {assignedUsersCount === 1 ? 'employee' : 'employees'} assigned
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-1">
+                              <button
+                                type="button"
+                                onClick={() => handleStartEditDept(deptName)}
+                                title="Edit & Rename Department"
+                                className="p-1.5 text-slate-500 hover:text-[#0e623a] hover:bg-emerald-50 rounded-lg transition"
+                              >
+                                <Edit className="w-4 h-4" />
+                              </button>
+
+                              {!isDefault && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteDepartment(deptName)}
+                                  disabled={deletingDeptId === deptName || assignedUsersCount > 0}
+                                  title={assignedUsersCount > 0 ? "Cannot delete department assigned to employees" : "Delete Department"}
+                                  className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition disabled:opacity-30 disabled:cursor-not-allowed"
+                                >
+                                  {deletingDeptId === deptName ? (
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                  ) : (
+                                    <Trash2 className="w-4 h-4" />
+                                  )}
+                                </button>
                               )}
                             </div>
-                            <div className="text-[11px] text-slate-400 mt-0.5">
-                              {assignedUsersCount} active {assignedUsersCount === 1 ? 'employee' : 'employees'} assigned
-                            </div>
-                          </div>
-                        </div>
-
-                        {!isDefault && (
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteDepartment(deptName)}
-                            disabled={deletingDeptId === deptName || assignedUsersCount > 0}
-                            title={assignedUsersCount > 0 ? "Cannot delete department assigned to employees" : "Delete Department"}
-                            className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition disabled:opacity-30 disabled:cursor-not-allowed"
-                          >
-                            {deletingDeptId === deptName ? (
-                              <Loader2 className="w-4 h-4 animate-spin" />
-                            ) : (
-                              <Trash2 className="w-4 h-4" />
-                            )}
-                          </button>
+                          </>
                         )}
                       </div>
                     );

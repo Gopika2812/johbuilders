@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const TaskCategory = require('../models/TaskCategory');
 const UserTask = require('../models/UserTask');
+const User = require('../models/User');
 const { protect } = require('../middleware/auth');
 
 const DEFAULT_CATEGORIES = [
@@ -103,9 +104,10 @@ router.put('/:id', protect, async (req, res) => {
     category.name = trimmed;
     await category.save();
 
-    // Sync all tasks with old category name to new category name
+    // Sync all tasks & employees with old category name to new category name
     if (oldName !== trimmed) {
       await UserTask.updateMany({ category: oldName }, { category: trimmed });
+      await User.updateMany({ department: oldName }, { department: trimmed });
     }
 
     res.json(category);
