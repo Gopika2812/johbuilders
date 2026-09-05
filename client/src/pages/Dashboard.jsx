@@ -391,6 +391,7 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const [leadsModalOpen, setLeadsModalOpen] = useState(false);
   const [followupModalOpen, setFollowupModalOpen] = useState(false);
+  const [hotModalOpen, setHotModalOpen] = useState(false);
   const [bookedModalOpen, setBookedModalOpen] = useState(false);
   const [lostModalOpen, setLostModalOpen] = useState(false);
   const clickTimeoutRef = useRef(null);
@@ -2001,7 +2002,7 @@ const Dashboard = () => {
           {/* Row 1: Total Performance Cards */}
           <div>
             <h4 className="text-sm font-black text-black uppercase tracking-wider mb-3 text-left">Lead Details</h4>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
 
               {/* Card 1: Total Leads */}
               <div
@@ -2038,7 +2039,25 @@ const Dashboard = () => {
                 </div>
               </div>
 
-              {/* Card 3: Total Booked */}
+              {/* Card 3: Hot List */}
+              <div
+                onClick={() => setHotModalOpen(true)}
+                className="bg-[#f0fbf4] border-none rounded-3xl p-6 shadow-sm hover:shadow-md transition cursor-pointer select-none active:scale-[0.99] duration-150 flex flex-col justify-between"
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-sm text-black font-extrabold uppercase tracking-wider">Hot List</span>
+                    <h3 className="text-3xl font-extrabold text-black-800 mt-1">
+                      {stats.cards.hotList?.total || stats.cards.hotList?.live || 0}
+                    </h3>
+                    <div className="text-xs text-gray-500 font-bold mt-1">
+                      hot ({stats.cards.hotList?.total || stats.cards.hotList?.live || 0})
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Card 4: Total Booked */}
               <div
                 onClick={() => setBookedModalOpen(true)}
                 className="bg-[#f0fbf4] border-none rounded-3xl p-6 shadow-sm hover:shadow-md transition cursor-pointer select-none active:scale-[0.99] duration-150 flex flex-col justify-between"
@@ -2054,7 +2073,7 @@ const Dashboard = () => {
                 </div>
               </div>
 
-              {/* Card 4: Lost Leads */}
+              {/* Card 5: Lost Leads */}
               <div
                 onClick={() => setLostModalOpen(true)}
                 className="bg-[#f0fbf4] border-none rounded-3xl p-6 shadow-sm hover:shadow-md transition cursor-pointer select-none active:scale-[0.99] duration-150 flex flex-col justify-between"
@@ -3170,6 +3189,108 @@ const Dashboard = () => {
                   navigate('/leads');
                 }}
                 className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-xl transition shadow-sm"
+              >
+                Go to Leads Directory →
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Hot List Modal Popup */}
+      {hotModalOpen && (
+        <div className="fixed inset-0 bg-black-900/60 backdrop-blur-sm z-[999] flex items-center justify-center p-4">
+          <div className="bg-[#f0fbf4] rounded-3xl border-none shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden text-left animate-fadeIn">
+            {/* Header */}
+            <div className="p-6 border-b border-black-150 flex items-center justify-between bg-amber-500/10">
+              <div>
+                <h3 className="text-base font-extrabold text-amber-900">Hot List Leads Directory</h3>
+                <p className="text-[11px] text-amber-700 mt-0.5">Showing leads categorized as Hot</p>
+              </div>
+              <button
+                onClick={() => setHotModalOpen(false)}
+                className="w-8 h-8 rounded-full flex items-center justify-center bg-black-100 text-black-400 hover:bg-red-50 hover:text-red-500 transition cursor-pointer font-bold border-none"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* List Content */}
+            <div className="flex-grow p-6 overflow-y-auto max-h-[50vh] scrollbar-thin">
+              {(() => {
+                const hotLeadsList = (stats.cards.leadsList || []).filter(lead => {
+                  const isHot = lead.leadCategory === 'Hot' || lead.leadCategory === 'HOT' || (lead.leadCategory && lead.leadCategory.toLowerCase() === 'hot') || lead.status === 'Hot List';
+                  if (!isHot) return false;
+                  if (!fromDate && !toDate) return true;
+                  if (!lead.createdAt) return true;
+                  const leadDate = new Date(lead.createdAt);
+                  const tzOffset = leadDate.getTimezoneOffset() * 60000;
+                  const leadDateStr = (new Date(leadDate - tzOffset)).toISOString().split('T')[0];
+                  if (fromDate && leadDateStr < fromDate) return false;
+                  if (toDate && leadDateStr > toDate) return false;
+                  return true;
+                });
+
+                return hotLeadsList.length > 0 ? (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse">
+                      <thead>
+                        <tr className="border-b border-black-100 text-[11px] font-bold text-black-400 uppercase tracking-wider">
+                          <th className="pb-3 pl-2">Date</th>
+                          <th className="pb-3">Lead Name</th>
+                          <th className="pb-3">Lead Source</th>
+                          <th className="pb-3">Project Details</th>
+                          <th className="pb-3">Stage</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-black-50 text-xs font-semibold text-black-700">
+                        {hotLeadsList.map((lead, idx) => (
+                          <tr key={lead._id || idx} className="hover:bg-black-50/50 transition">
+                            <td className="py-3.5 pl-2">
+                              <span className="text-[11px] font-bold text-black-650 bg-black-100/80 px-2 py-0.5 rounded-md inline-block whitespace-nowrap">
+                                {lead.createdAt ? new Date(lead.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}
+                              </span>
+                            </td>
+                            <td className="py-3.5 font-bold text-black-850">{lead.name}</td>
+                            <td className="py-3.5">
+                              <span className="bg-black-100 text-black-600 px-2.5 py-0.5 rounded-full text-[11px] font-bold">
+                                {lead.leadSource}
+                              </span>
+                            </td>
+                            <td className="py-3.5">
+                              <div className="flex flex-col gap-0.5">
+                                <span className="font-bold text-black-800">{lead.projectName}</span>
+                                <span className="text-[11px] text-black-450 font-bold uppercase tracking-wide">
+                                  Type: {Array.isArray(lead.projectType) ? lead.projectType.join(', ') : lead.projectType}
+                                </span>
+                              </div>
+                            </td>
+                            <td className="py-3.5">
+                              <span className="px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-amber-50 text-amber-700 border border-amber-200">
+                                {lead.status || 'Hot List'}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div className="py-12 text-center text-black-450 italic text-xs">
+                    No hot list leads recorded for this filter.
+                  </div>
+                );
+              })()}
+            </div>
+
+            {/* Footer */}
+            <div className="p-5 border-t border-black-150 bg-black-50/30 flex justify-end">
+              <button
+                onClick={() => {
+                  setHotModalOpen(false);
+                  navigate('/leads?category=Hot');
+                }}
+                className="px-4 py-2 bg-[#0e623a] hover:bg-[#0b4d2d] text-white text-xs font-bold rounded-xl transition shadow-sm"
               >
                 Go to Leads Directory →
               </button>

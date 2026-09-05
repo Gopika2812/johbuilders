@@ -236,6 +236,8 @@ router.get('/stats', protect, async (req, res) => {
       let enteredHandover = false;
       let enteredLost = false;
 
+      const isHotLead = lead.leadCategory === 'Hot' || lead.leadCategory === 'HOT' || (lead.leadCategory && lead.leadCategory.toLowerCase() === 'hot') || status === 'Hot List';
+
       if (lead.history && lead.history.length > 0) {
         lead.history.forEach(entry => {
           if (inRange(entry.timestamp)) {
@@ -243,7 +245,7 @@ router.get('/stats', protect, async (req, res) => {
             if (s === 'Assigned') enteredAssigned = true;
             if (s === 'Contacted' || s === 'Follow-Up' || s === 'Followup') enteredEnquiry = true;
             if (s === 'Site Visit' || s === 'Site Visit Follow-up') enteredSiteVisit = true;
-            if (s === 'Hot List') enteredHotList = true;
+            if (s === 'Hot List' || entry.leadCategory === 'Hot' || (entry.leadCategory && entry.leadCategory.toLowerCase() === 'hot')) enteredHotList = true;
             if (s === 'Future Follow-up' || s === 'Future Followup' || (s && s.toLowerCase().includes('future'))) enteredFutureFollowup = true;
             if (s === 'Booking' || s === 'Booked') enteredBooked = true;
             if (s === 'Won' || s === 'Handover') enteredHandover = true;
@@ -256,7 +258,7 @@ router.get('/stats', protect, async (req, res) => {
         if (status === 'Assigned') enteredAssigned = true;
         if (status === 'Contacted' || status === 'Follow-Up' || status === 'Followup') enteredEnquiry = true;
         if (status === 'Site Visit' || status === 'Site Visit Follow-up') enteredSiteVisit = true;
-        if (status === 'Hot List') enteredHotList = true;
+        if (isHotLead) enteredHotList = true;
         if (status === 'Future Follow-up' || status === 'Future Followup' || (status && status.toLowerCase().includes('future'))) enteredFutureFollowup = true;
         if (status === 'Booking' || status === 'Booked') enteredBooked = true;
         if (status === 'Won' || status === 'Handover') enteredHandover = true;
@@ -442,7 +444,7 @@ router.get('/stats', protect, async (req, res) => {
         liveSiteVisits++;
         if (status === 'Site Visit') siteVisitCount++;
         if (status === 'Site Visit Follow-up') siteVisitFollowupCount++;
-      } else if (status === 'Hot List') {
+      } else if (isHotLead) {
         liveHotList++;
         hotListCount++;
       } else if (status === 'Booking') {
@@ -1083,17 +1085,19 @@ router.get('/stats', protect, async (req, res) => {
           .map(l => ({
             _id: l._id,
             name: l.name,
+            phone: l.phone,
             leadSource: l.leadSource || 'Direct Visit',
             projectType: l.project?.projectType || 'N/A',
             projectName: l.project?.name || 'N/A',
             assignedTo: l.assignedTo?.name || 'Unassigned',
             status: l.status,
+            leadCategory: l.leadCategory || 'Cold',
             isClosed: !!l.isClosed,
             createdAt: l.createdAt
           })),
         enquiries: { total: cumulativeEnquiries, live: liveEnquiries, contacted: contactedCount, followup: followupCount, closed: closedEnquiries },
         siteVisits: { total: cumulativeSiteVisits, live: liveSiteVisits, siteVisit: siteVisitCount, followup: siteVisitFollowupCount, closed: closedSiteVisits },
-        hotList: { total: cumulativeHotList, live: liveHotList },
+        hotList: { total: cumulativeHotList, live: liveHotList, count: cumulativeHotList },
         conversion: {
           count: siteConversionsCount,
           value: crdTotalValue,

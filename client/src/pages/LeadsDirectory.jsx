@@ -223,8 +223,13 @@ const LeadsDirectory = () => {
     const params = new URLSearchParams(location.search);
     const statusParam = params.get('status');
     const searchParam = params.get('search');
+    const categoryParam = params.get('category');
     if (searchParam) {
       setSearchTerm(searchParam);
+      setActiveTab('All');
+    }
+    if (categoryParam) {
+      setCategoryFilter(categoryParam);
       setActiveTab('All');
     }
     if (statusParam) {
