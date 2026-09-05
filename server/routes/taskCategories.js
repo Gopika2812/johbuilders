@@ -69,50 +69,76 @@ router.post('/', protect, async (req, res) => {
 });
 
 // @route   PUT /api/task-categories/:id
-// @desc    Update / rename a task category & sync existing tasks
+// @desc    Update / rename a task category & sync existing tasks & employees
 // @access  Private
 router.put('/:id', protect, async (req, res) => {
   const { id } = req.params;
-  if (!id || id === 'undefined' || !mongoose.Types.ObjectId.isValid(id)) {
-    return res.status(400).json({ message: 'Invalid category ID' });
-  }
-
   const { name } = req.body;
+  
   if (!name || !name.trim()) {
-    return res.status(400).json({ message: 'Category name is required' });
+    return res.status(400).json({ message: 'Department name is required' });
   }
 
   const trimmed = name.trim();
+  const safeTrimmedRegex = trimmed.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
   try {
-    const category = await TaskCategory.findById(id);
-    if (!category) {
-      return res.status(404).json({ message: 'Category not found' });
+    let category = null;
+    if (id && id !== 'undefined' && mongoose.Types.ObjectId.isValid(id)) {
+      category = await TaskCategory.findById(id);
+    }
+    
+    // Fallback: search by name if not found by ID or if ID is a name
+    if (!category && id && id !== 'undefined') {
+      const decodedId = decodeURIComponent(id).trim();
+      const safeIdRegex = decodedId.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      category = await TaskCategory.findOne({ name: new RegExp(`^${safeIdRegex}$`, 'i') });
     }
 
-    const oldName = category.name;
+    let oldName = '';
 
-    // Check if new name already exists elsewhere
-    const duplicate = await TaskCategory.findOne({
-      _id: { $ne: category._id },
-      name: new RegExp(`^${trimmed}$`, 'i')
-    });
-    if (duplicate) {
-      return res.status(400).json({ message: 'Another category with this name already exists' });
+    if (category) {
+      oldName = category.name;
+      // Check if another category already has this name
+      const duplicate = await TaskCategory.findOne({
+        _id: { $ne: category._id },
+        name: new RegExp(`^${safeTrimmedRegex}$`, 'i')
+      });
+      if (duplicate) {
+        return res.status(400).json({ message: `Department "${trimmed}" already exists` });
+      }
+
+      category.name = trimmed;
+      await category.save();
+    } else {
+      // If category document doesn't exist yet in collection, check if name exists or create it
+      const existing = await TaskCategory.findOne({ name: new RegExp(`^${safeTrimmedRegex}$`, 'i') });
+      if (existing) {
+        category = existing;
+        oldName = existing.name;
+      } else {
+        category = new TaskCategory({
+          name: trimmed,
+          createdBy: req.user?._id
+        });
+        await category.save();
+      }
+      if (id && id !== 'undefined') {
+        oldName = decodeURIComponent(id).trim();
+      }
     }
-
-    category.name = trimmed;
-    await category.save();
 
     // Sync all tasks & employees with old category name to new category name
-    if (oldName !== trimmed) {
-      await UserTask.updateMany({ category: oldName }, { category: trimmed });
-      await User.updateMany({ department: oldName }, { department: trimmed });
+    if (oldName && oldName.toLowerCase() !== trimmed.toLowerCase()) {
+      const safeOldRegex = oldName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      await UserTask.updateMany({ category: new RegExp(`^${safeOldRegex}$`, 'i') }, { category: trimmed });
+      await User.updateMany({ department: new RegExp(`^${safeOldRegex}$`, 'i') }, { department: trimmed });
     }
 
     res.json(category);
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    console.error('Error updating department:', err);
+    res.status(500).json({ message: err.message || 'Failed to update department' });
   }
 });
 
@@ -121,20 +147,30 @@ router.put('/:id', protect, async (req, res) => {
 // @access  Private
 router.delete('/:id', protect, async (req, res) => {
   const { id } = req.params;
-  if (!id || id === 'undefined' || !mongoose.Types.ObjectId.isValid(id)) {
-    return res.status(400).json({ message: 'Invalid category ID' });
+  if (!id || id === 'undefined') {
+    return res.status(400).json({ message: 'Invalid category identifier' });
   }
 
   try {
-    const category = await TaskCategory.findById(id);
+    let category = null;
+    if (mongoose.Types.ObjectId.isValid(id)) {
+      category = await TaskCategory.findById(id);
+    }
+    if (!category) {
+      const decodedId = decodeURIComponent(id).trim();
+      const safeIdRegex = decodedId.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      category = await TaskCategory.findOne({ name: new RegExp(`^${safeIdRegex}$`, 'i') });
+    }
+
     if (!category) {
       return res.status(404).json({ message: 'Category not found' });
     }
 
-    await TaskCategory.findByIdAndDelete(id);
-    res.json({ message: 'Category deleted successfully' });
+    await TaskCategory.findByIdAndDelete(category._id);
+    res.json({ message: 'Department deleted successfully' });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    console.error('Error deleting department:', err);
+    res.status(500).json({ message: err.message || 'Failed to delete department' });
   }
 });
 

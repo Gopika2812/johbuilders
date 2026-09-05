@@ -357,14 +357,13 @@ const EmployeesDirectory = () => {
     setDeletingDeptId(deptName);
 
     try {
-      const deptObj = departmentObjects.find(d => (typeof d === 'object' ? d.name : d) === deptName);
-      if (!deptObj || !deptObj._id) {
-        setAvailableDepartments(prev => prev.filter(d => d.toLowerCase() !== deptName.toLowerCase()));
-        setDeptSuccess(`Department "${deptName}" removed.`);
-        return;
-      }
+      const deptObj = departmentObjects.find(d => {
+        const name = typeof d === 'object' ? (d.name || '') : d;
+        return name.toLowerCase() === deptName.toLowerCase();
+      });
+      const targetParam = deptObj?._id || encodeURIComponent(deptName);
 
-      const response = await fetch(`${API_URL}/task-categories/${deptObj._id}`, {
+      const response = await fetch(`${API_URL}/task-categories/${targetParam}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -422,29 +421,20 @@ const EmployeesDirectory = () => {
     setSavingDeptEdit(true);
 
     try {
-      let deptObj = departmentObjects.find(d => (typeof d === 'object' ? d.name : d) === oldDeptName);
-      let categoryId = deptObj?._id;
+      const deptObj = departmentObjects.find(d => {
+        const name = typeof d === 'object' ? (d.name || '') : d;
+        return name.toLowerCase() === oldDeptName.toLowerCase();
+      });
+      const targetParam = deptObj?._id || encodeURIComponent(oldDeptName);
 
-      let response;
-      if (categoryId) {
-        response = await fetch(`${API_URL}/task-categories/${categoryId}`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          body: JSON.stringify({ name: trimmed })
-        });
-      } else {
-        response = await fetch(`${API_URL}/task-categories`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          body: JSON.stringify({ name: trimmed })
-        });
-      }
+      const response = await fetch(`${API_URL}/task-categories/${targetParam}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ name: trimmed })
+      });
 
       const data = await response.json();
 
@@ -453,8 +443,8 @@ const EmployeesDirectory = () => {
         setMessage(`Department "${oldDeptName}" renamed to "${trimmed}".`);
         setEditingDeptName(null);
         setEditDeptInput('');
-        setAddFormData(prev => prev.department === oldDeptName ? { ...prev, department: trimmed } : prev);
-        setEditFormData(prev => prev.department === oldDeptName ? { ...prev, department: trimmed } : prev);
+        setAddFormData(prev => prev.department?.toLowerCase() === oldDeptName.toLowerCase() ? { ...prev, department: trimmed } : prev);
+        setEditFormData(prev => prev.department?.toLowerCase() === oldDeptName.toLowerCase() ? { ...prev, department: trimmed } : prev);
         await fetchDepartments();
         await fetchEmployees();
         setTimeout(() => setDeptSuccess(''), 3000);
