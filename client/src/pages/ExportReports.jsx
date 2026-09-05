@@ -1019,13 +1019,20 @@ const ExportReports = () => {
         // 3. User/Executive filter
         if (selectedUser && (lead.assignedTo?._id || lead.assignedTo) !== selectedUser) return false;
 
-        // 4. Date range filter
-        const createdAt = new Date(lead.createdAt);
-        if (fromDate && createdAt < new Date(fromDate)) return false;
+        // 4. Date range filter based on Booking Date
+        const bDate = lead.bookingInfo?.bookingDate 
+          ? new Date(lead.bookingInfo.bookingDate) 
+          : new Date(lead.createdAt);
+
+        if (fromDate) {
+          const start = new Date(fromDate);
+          start.setHours(0, 0, 0, 0);
+          if (bDate < start) return false;
+        }
         if (toDate) {
           const end = new Date(toDate);
           end.setHours(23, 59, 59, 999);
-          if (createdAt > end) return false;
+          if (bDate > end) return false;
         }
 
         return true;
@@ -1081,6 +1088,7 @@ const ExportReports = () => {
       });
 
       // Lead rows sequentially without exec banner groupings
+      let totalUnitValue = 0;
       filtered.forEach((lead, index) => {
         const bDate = lead.bookingInfo?.bookingDate 
           ? new Date(lead.bookingInfo.bookingDate) 
@@ -1096,9 +1104,10 @@ const ExportReports = () => {
         
         const leadQuots = allQuotations.filter(q => (q.lead?._id || q.lead) === lead._id);
         const finalQuot = leadQuots[leadQuots.length - 1];
-        const unitValue = finalQuot ? finalQuot.totalValue : (lead.leadCost || 0);
+        const unitValue = finalQuot ? (Number(finalQuot.totalValue) || 0) : (Number(lead.leadCost) || 0);
+        totalUnitValue += unitValue;
         
-        const unitValStr = unitValue.toLocaleString();
+        const unitValStr = unitValue.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
         const rowClass = index % 2 === 1 ? 'class="even-row"' : '';
 
         html += `
@@ -1116,7 +1125,18 @@ const ExportReports = () => {
         `;
       });
 
+      const totalValFormatted = totalUnitValue.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+
       html += `
+            <!-- Grand Total Row -->
+            <tr class="table-headers font-bold" style="background-color: #0F5233; color: #FFFFFF; font-weight: bold;">
+              <td colspan="8" class="text-right font-bold" style="padding: 8px 12px; font-size: 11pt; color: #FFFFFF; text-transform: uppercase; text-align: right; background-color: #0F5233; font-weight: bold; border: 1px solid #0D4329;">
+                GRAND TOTAL
+              </td>
+              <td class="text-right font-bold" style="padding: 8px 10px; font-size: 11pt; color: #FFFFFF; text-align: right; background-color: #0F5233; font-weight: bold; border: 1px solid #0D4329;">
+                ${totalValFormatted}
+              </td>
+            </tr>
           </table>
         </body>
         </html>
