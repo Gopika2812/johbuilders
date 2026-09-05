@@ -1018,79 +1018,7 @@ const TasksBoard = () => {
           <p className="text-xl font-black mt-1 text-white">{totalCount}</p>
         </div>
 
-        {/* 2. New */}
-        <div 
-          onClick={() => setStatusFilter('NEW')}
-          className={`p-3.5 rounded-2xl border transition-all cursor-pointer ${statusFilter === 'NEW' ? 'bg-blue-950 text-white border-blue-800 shadow-md ring-2 ring-blue-600' : 'bg-white border-gray-150 hover:border-gray-300'}`}
-        >
-          <div className="flex items-center justify-between">
-            <span className={`text-[10px] font-extrabold uppercase ${statusFilter === 'NEW' ? 'text-blue-300' : 'text-blue-600'}`}>New</span>
-            <Clock className={`w-3.5 h-3.5 ${statusFilter === 'NEW' ? 'text-blue-300' : 'text-blue-500'}`} />
-          </div>
-          <p className={`text-xl font-black mt-1 ${statusFilter === 'NEW' ? 'text-white' : 'text-gray-800'}`}>{newCount}</p>
-        </div>
-
-        {/* 3. In Progress */}
-        <div 
-          onClick={() => setStatusFilter('IN_PROGRESS')}
-          className={`p-3.5 rounded-2xl border transition-all cursor-pointer ${statusFilter === 'IN_PROGRESS' ? 'bg-amber-950 text-white border-amber-800 shadow-md ring-2 ring-amber-600' : 'bg-white border-gray-150 hover:border-gray-300'}`}
-        >
-          <div className="flex items-center justify-between">
-            <span className={`text-[10px] font-extrabold uppercase ${statusFilter === 'IN_PROGRESS' ? 'text-amber-300' : 'text-amber-600'}`}>In Progress</span>
-            <Loader2 className={`w-3.5 h-3.5 ${statusFilter === 'IN_PROGRESS' ? 'text-amber-300' : 'text-amber-500'}`} />
-          </div>
-          <p className={`text-xl font-black mt-1 ${statusFilter === 'IN_PROGRESS' ? 'text-white' : 'text-gray-800'}`}>{inProgressCount}</p>
-        </div>
-
-        {/* 4. On Hold */}
-        <div 
-          onClick={() => setStatusFilter('ON_HOLD')}
-          className={`p-3.5 rounded-2xl border transition-all cursor-pointer ${statusFilter === 'ON_HOLD' ? 'bg-purple-950 text-white border-purple-800 shadow-md ring-2 ring-purple-600' : 'bg-white border-gray-150 hover:border-gray-300'}`}
-        >
-          <div className="flex items-center justify-between">
-            <span className={`text-[10px] font-extrabold uppercase ${statusFilter === 'ON_HOLD' ? 'text-purple-300' : 'text-purple-600'}`}>On Hold</span>
-            <PauseCircle className={`w-3.5 h-3.5 ${statusFilter === 'ON_HOLD' ? 'text-purple-300' : 'text-purple-500'}`} />
-          </div>
-          <p className={`text-xl font-black mt-1 ${statusFilter === 'ON_HOLD' ? 'text-white' : 'text-gray-800'}`}>{onHoldCount}</p>
-        </div>
-
-        {/* 5. Completed */}
-        <div 
-          onClick={() => setStatusFilter('COMPLETED')}
-          className={`p-3.5 rounded-2xl border transition-all cursor-pointer ${statusFilter === 'COMPLETED' ? 'bg-emerald-900 text-white border-emerald-700 shadow-md ring-2 ring-emerald-500' : 'bg-white border-gray-150 hover:border-gray-300'}`}
-        >
-          <div className="flex items-center justify-between">
-            <span className={`text-[10px] font-extrabold uppercase ${statusFilter === 'COMPLETED' ? 'text-emerald-300' : 'text-emerald-600'}`}>Completed</span>
-            <CheckCircle2 className={`w-3.5 h-3.5 ${statusFilter === 'COMPLETED' ? 'text-emerald-300' : 'text-emerald-500'}`} />
-          </div>
-          <p className={`text-xl font-black mt-1 ${statusFilter === 'COMPLETED' ? 'text-white' : 'text-gray-800'}`}>{completedCount}</p>
-        </div>
-
-        {/* 6. Cancelled */}
-        <div 
-          onClick={() => setStatusFilter('CANCELLED')}
-          className={`p-3.5 rounded-2xl border transition-all cursor-pointer ${statusFilter === 'CANCELLED' ? 'bg-gray-800 text-white border-gray-700 shadow-md ring-2 ring-gray-600' : 'bg-white border-gray-150 hover:border-gray-300'}`}
-        >
-          <div className="flex items-center justify-between">
-            <span className={`text-[10px] font-extrabold uppercase ${statusFilter === 'CANCELLED' ? 'text-gray-300' : 'text-gray-600'}`}>Cancelled</span>
-            <XCircle className={`w-3.5 h-3.5 ${statusFilter === 'CANCELLED' ? 'text-gray-300' : 'text-gray-500'}`} />
-          </div>
-          <p className={`text-xl font-black mt-1 ${statusFilter === 'CANCELLED' ? 'text-white' : 'text-gray-800'}`}>{cancelledCount}</p>
-        </div>
-
-        {/* 7. Overdated */}
-        <div 
-          onClick={() => setStatusFilter('OVERDATED')}
-          className={`p-3.5 rounded-2xl border transition-all cursor-pointer ${statusFilter === 'OVERDATED' ? 'bg-rose-950 text-white border-rose-800 shadow-md ring-2 ring-rose-600' : 'bg-rose-50/50 border-rose-200 hover:border-rose-300'}`}
-        >
-          <div className="flex items-center justify-between">
-            <span className={`text-[10px] font-extrabold uppercase ${statusFilter === 'OVERDATED' ? 'text-rose-300' : 'text-rose-700'}`}>Overdated</span>
-            <AlertTriangle className={`w-3.5 h-3.5 ${statusFilter === 'OVERDATED' ? 'text-rose-300' : 'text-rose-600 animate-pulse'}`} />
-          </div>
-          <p className={`text-xl font-black mt-1 ${statusFilter === 'OVERDATED' ? 'text-white' : 'text-rose-700'}`}>{overdatedCount}</p>
-        </div>
-
-        {/* 8. Pending Tasks (Highlighted Green identical to Total card format) */}
+        {/* 2. Pending Tasks (Highlighted Green identical to Total card format - right after Total) */}
         <div 
           onClick={() => setStatusFilter('PENDING')}
           className={`p-3.5 rounded-2xl border transition-all cursor-pointer ${
@@ -1104,6 +1032,78 @@ const TasksBoard = () => {
             <Clock className="w-3.5 h-3.5 text-emerald-300" />
           </div>
           <p className="text-xl font-black mt-1 text-white">{pendingCount}</p>
+        </div>
+
+        {/* 3. New */}
+        <div 
+          onClick={() => setStatusFilter('NEW')}
+          className={`p-3.5 rounded-2xl border transition-all cursor-pointer ${statusFilter === 'NEW' ? 'bg-blue-950 text-white border-blue-800 shadow-md ring-2 ring-blue-600' : 'bg-white border-gray-150 hover:border-gray-300'}`}
+        >
+          <div className="flex items-center justify-between">
+            <span className={`text-[10px] font-extrabold uppercase ${statusFilter === 'NEW' ? 'text-blue-300' : 'text-blue-600'}`}>New</span>
+            <Clock className={`w-3.5 h-3.5 ${statusFilter === 'NEW' ? 'text-blue-300' : 'text-blue-500'}`} />
+          </div>
+          <p className={`text-xl font-black mt-1 ${statusFilter === 'NEW' ? 'text-white' : 'text-gray-800'}`}>{newCount}</p>
+        </div>
+
+        {/* 4. In Progress */}
+        <div 
+          onClick={() => setStatusFilter('IN_PROGRESS')}
+          className={`p-3.5 rounded-2xl border transition-all cursor-pointer ${statusFilter === 'IN_PROGRESS' ? 'bg-amber-950 text-white border-amber-800 shadow-md ring-2 ring-amber-600' : 'bg-white border-gray-150 hover:border-gray-300'}`}
+        >
+          <div className="flex items-center justify-between">
+            <span className={`text-[10px] font-extrabold uppercase ${statusFilter === 'IN_PROGRESS' ? 'text-amber-300' : 'text-amber-600'}`}>In Progress</span>
+            <Loader2 className={`w-3.5 h-3.5 ${statusFilter === 'IN_PROGRESS' ? 'text-amber-300' : 'text-amber-500'}`} />
+          </div>
+          <p className={`text-xl font-black mt-1 ${statusFilter === 'IN_PROGRESS' ? 'text-white' : 'text-gray-800'}`}>{inProgressCount}</p>
+        </div>
+
+        {/* 5. On Hold */}
+        <div 
+          onClick={() => setStatusFilter('ON_HOLD')}
+          className={`p-3.5 rounded-2xl border transition-all cursor-pointer ${statusFilter === 'ON_HOLD' ? 'bg-purple-950 text-white border-purple-800 shadow-md ring-2 ring-purple-600' : 'bg-white border-gray-150 hover:border-gray-300'}`}
+        >
+          <div className="flex items-center justify-between">
+            <span className={`text-[10px] font-extrabold uppercase ${statusFilter === 'ON_HOLD' ? 'text-purple-300' : 'text-purple-600'}`}>On Hold</span>
+            <PauseCircle className={`w-3.5 h-3.5 ${statusFilter === 'ON_HOLD' ? 'text-purple-300' : 'text-purple-500'}`} />
+          </div>
+          <p className={`text-xl font-black mt-1 ${statusFilter === 'ON_HOLD' ? 'text-white' : 'text-gray-800'}`}>{onHoldCount}</p>
+        </div>
+
+        {/* 6. Completed */}
+        <div 
+          onClick={() => setStatusFilter('COMPLETED')}
+          className={`p-3.5 rounded-2xl border transition-all cursor-pointer ${statusFilter === 'COMPLETED' ? 'bg-emerald-900 text-white border-emerald-700 shadow-md ring-2 ring-emerald-500' : 'bg-white border-gray-150 hover:border-gray-300'}`}
+        >
+          <div className="flex items-center justify-between">
+            <span className={`text-[10px] font-extrabold uppercase ${statusFilter === 'COMPLETED' ? 'text-emerald-300' : 'text-emerald-600'}`}>Completed</span>
+            <CheckCircle2 className={`w-3.5 h-3.5 ${statusFilter === 'COMPLETED' ? 'text-emerald-300' : 'text-emerald-500'}`} />
+          </div>
+          <p className={`text-xl font-black mt-1 ${statusFilter === 'COMPLETED' ? 'text-white' : 'text-gray-800'}`}>{completedCount}</p>
+        </div>
+
+        {/* 7. Cancelled */}
+        <div 
+          onClick={() => setStatusFilter('CANCELLED')}
+          className={`p-3.5 rounded-2xl border transition-all cursor-pointer ${statusFilter === 'CANCELLED' ? 'bg-gray-800 text-white border-gray-700 shadow-md ring-2 ring-gray-600' : 'bg-white border-gray-150 hover:border-gray-300'}`}
+        >
+          <div className="flex items-center justify-between">
+            <span className={`text-[10px] font-extrabold uppercase ${statusFilter === 'CANCELLED' ? 'text-gray-300' : 'text-gray-600'}`}>Cancelled</span>
+            <XCircle className={`w-3.5 h-3.5 ${statusFilter === 'CANCELLED' ? 'text-gray-300' : 'text-gray-500'}`} />
+          </div>
+          <p className={`text-xl font-black mt-1 ${statusFilter === 'CANCELLED' ? 'text-white' : 'text-gray-800'}`}>{cancelledCount}</p>
+        </div>
+
+        {/* 8. Overdated */}
+        <div 
+          onClick={() => setStatusFilter('OVERDATED')}
+          className={`p-3.5 rounded-2xl border transition-all cursor-pointer ${statusFilter === 'OVERDATED' ? 'bg-rose-950 text-white border-rose-800 shadow-md ring-2 ring-rose-600' : 'bg-rose-50/50 border-rose-200 hover:border-rose-300'}`}
+        >
+          <div className="flex items-center justify-between">
+            <span className={`text-[10px] font-extrabold uppercase ${statusFilter === 'OVERDATED' ? 'text-rose-300' : 'text-rose-700'}`}>Overdated</span>
+            <AlertTriangle className={`w-3.5 h-3.5 ${statusFilter === 'OVERDATED' ? 'text-rose-300' : 'text-rose-600 animate-pulse'}`} />
+          </div>
+          <p className={`text-xl font-black mt-1 ${statusFilter === 'OVERDATED' ? 'text-white' : 'text-rose-700'}`}>{overdatedCount}</p>
         </div>
       </div>
 
