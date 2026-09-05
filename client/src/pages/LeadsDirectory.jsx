@@ -2087,8 +2087,8 @@ const LeadsDirectory = () => {
       {/* Unified Compact Filters & Search Menu */}
       <div className="bg-white p-2.5 sm:p-3 border border-black-150 shadow-xs rounded-2xl space-y-2">
         {/* Row 1: Search + Date Range */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-2.5 items-center">
-          <div className="lg:col-span-5 relative">
+        <div className="flex flex-col xl:flex-row items-center gap-2">
+          <div className="w-full xl:w-72 2xl:w-80 relative shrink-0">
             <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-black-400">
               <Search className="w-3.5 h-3.5" />
             </span>
@@ -2100,7 +2100,7 @@ const LeadsDirectory = () => {
               className="w-full pl-9 pr-3 py-1.5 bg-black-50 border border-black-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-xs"
             />
           </div>
-          <div className="lg:col-span-7">
+          <div className="w-full xl:flex-1 min-w-0">
             <DateRangeFilter
               fromDate={startDate}
               toDate={endDate}

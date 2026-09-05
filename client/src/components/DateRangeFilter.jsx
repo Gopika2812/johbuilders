@@ -123,11 +123,11 @@ const DateRangeFilter = ({ fromDate, toDate, onDateChange, onRefresh, label = ''
         </div>
       )}
 
-      {/* Date UI Container highlighted slightly */}
-      <div className="flex flex-wrap items-center gap-2 bg-[#f0fbf4] border border-[#0e623a]/25 p-1.5 rounded-2xl shadow-[0_2px_10px_rgba(14,98,58,0.06)] transition-all hover:border-[#0e623a]/40">
+      {/* Date UI Container single line */}
+      <div className="flex items-center flex-nowrap gap-1.5 bg-[#f0fbf4] border border-[#0e623a]/25 p-1 rounded-xl shadow-xs overflow-x-auto scrollbar-none w-full max-w-full">
         {/* Preset Selector Dropdown */}
-        <div className="flex items-center gap-1.5 bg-white border border-[#0e623a]/30 px-3 py-1.5 rounded-xl shadow-xs shrink-0 hover:border-[#0e623a] transition">
-          <Calendar className="w-4 h-4 text-[#0e623a] shrink-0" />
+        <div className="flex items-center gap-1 bg-white border border-[#0e623a]/30 px-2 py-1 rounded-lg shadow-xs shrink-0 hover:border-[#0e623a] transition">
+          <Calendar className="w-3.5 h-3.5 text-[#0e623a] shrink-0" />
           <select
             value={filterMode}
             onChange={(e) => handleModeChange(e.target.value)}
@@ -146,7 +146,7 @@ const DateRangeFilter = ({ fromDate, toDate, onDateChange, onRefresh, label = ''
 
         {/* Dynamic Controls based on selected mode */}
         {filterMode === 'month' && (
-          <div className="flex items-center gap-1.5 bg-white border border-[#0e623a]/30 px-3 py-1.5 rounded-xl shadow-xs hover:border-[#0e623a] transition">
+          <div className="flex items-center gap-1 bg-white border border-[#0e623a]/30 px-2 py-1 rounded-lg shadow-xs hover:border-[#0e623a] transition shrink-0">
             <input
               type="month"
               value={selectedMonthVal}
@@ -160,7 +160,7 @@ const DateRangeFilter = ({ fromDate, toDate, onDateChange, onRefresh, label = ''
         )}
 
         {filterMode === 'quarterly' && (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 shrink-0">
             <select
               value={selectedYear}
               onChange={(e) => {
@@ -168,7 +168,7 @@ const DateRangeFilter = ({ fromDate, toDate, onDateChange, onRefresh, label = ''
                 setSelectedYear(y);
                 applyFilterMode('quarterly', y);
               }}
-              className="bg-white border border-[#0e623a]/30 px-2 py-1.5 rounded-xl text-xs text-[#0e623a] font-bold cursor-pointer"
+              className="bg-white border border-[#0e623a]/30 px-2 py-1 rounded-lg text-xs text-[#0e623a] font-bold cursor-pointer"
             >
               {yearOptions.map(y => (
                 <option key={y} value={y}>{y}</option>
@@ -181,7 +181,7 @@ const DateRangeFilter = ({ fromDate, toDate, onDateChange, onRefresh, label = ''
                 setSelectedQuarter(q);
                 applyFilterMode('quarterly', selectedYear, selectedMonthVal, q);
               }}
-              className="bg-white border border-[#0e623a]/30 px-2 py-1.5 rounded-xl text-xs text-[#0e623a] font-bold cursor-pointer"
+              className="bg-white border border-[#0e623a]/30 px-2 py-1 rounded-lg text-xs text-[#0e623a] font-bold cursor-pointer"
             >
               <option value="Q1">Q1 (Jan - Mar)</option>
               <option value="Q2">Q2 (Apr - Jun)</option>
@@ -196,7 +196,7 @@ const DateRangeFilter = ({ fromDate, toDate, onDateChange, onRefresh, label = ''
         )}
 
         {filterMode === 'half_yearly' && (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 shrink-0">
             <select
               value={selectedYear}
               onChange={(e) => {
@@ -204,7 +204,7 @@ const DateRangeFilter = ({ fromDate, toDate, onDateChange, onRefresh, label = ''
                 setSelectedYear(y);
                 applyFilterMode('half_yearly', y);
               }}
-              className="bg-white border border-[#0e623a]/30 px-2 py-1.5 rounded-xl text-xs text-[#0e623a] font-bold cursor-pointer"
+              className="bg-white border border-[#0e623a]/30 px-2 py-1 rounded-lg text-xs text-[#0e623a] font-bold cursor-pointer"
             >
               {yearOptions.map(y => (
                 <option key={y} value={y}>{y}</option>
@@ -217,7 +217,7 @@ const DateRangeFilter = ({ fromDate, toDate, onDateChange, onRefresh, label = ''
                 setSelectedHalfYear(h);
                 applyFilterMode('half_yearly', selectedYear, selectedMonthVal, selectedQuarter, h);
               }}
-              className="bg-white border border-[#0e623a]/30 px-2 py-1.5 rounded-xl text-xs text-[#0e623a] font-bold cursor-pointer"
+              className="bg-white border border-[#0e623a]/30 px-2 py-1 rounded-lg text-xs text-[#0e623a] font-bold cursor-pointer"
             >
               <option value="H1">H1 (Jan - Jun)</option>
               <option value="H2">H2 (Jul - Dec)</option>
@@ -228,7 +228,7 @@ const DateRangeFilter = ({ fromDate, toDate, onDateChange, onRefresh, label = ''
         )}
 
         {(filterMode === 'yearly' || filterMode === 'financial_year') && (
-          <div className="flex items-center gap-1.5 bg-white border border-[#0e623a]/30 px-3 py-1.5 rounded-xl">
+          <div className="flex items-center gap-1 bg-white border border-[#0e623a]/30 px-2 py-1 rounded-lg shrink-0">
             <select
               value={selectedYear}
               onChange={(e) => {
@@ -248,7 +248,7 @@ const DateRangeFilter = ({ fromDate, toDate, onDateChange, onRefresh, label = ''
         )}
 
         {/* Date Inputs for Custom or Fine-tuning */}
-        <div className={`flex items-center gap-1.5 bg-white border px-3 py-1.5 rounded-xl shadow-xs transition ${
+        <div className={`flex items-center gap-1 bg-white border px-2 py-1 rounded-lg shadow-xs transition shrink-0 ${
           fromDate && !toDate 
             ? 'border-rose-400 ring-2 ring-rose-400/30' 
             : 'border-[#0e623a]/30 hover:border-[#0e623a]'
@@ -265,9 +265,9 @@ const DateRangeFilter = ({ fromDate, toDate, onDateChange, onRefresh, label = ''
                 alert("Please select To Date. You didn't select To Date!");
               }
             }}
-            className="w-[125px] bg-transparent text-xs text-[#0e623a] font-extrabold focus:outline-none border-0 p-0 text-center cursor-pointer"
+            className="w-[110px] bg-transparent text-xs text-[#0e623a] font-extrabold focus:outline-none border-0 p-0 text-center cursor-pointer"
           />
-          <span className="text-[11px] text-[#0e623a]/70 font-black uppercase">to</span>
+          <span className="text-[10px] text-[#0e623a]/70 font-black uppercase">to</span>
           <input
             type="date"
             value={toDate}
@@ -283,7 +283,7 @@ const DateRangeFilter = ({ fromDate, toDate, onDateChange, onRefresh, label = ''
               }
             }}
             placeholder="dd-mm-yyyy"
-            className={`w-[125px] bg-transparent text-xs font-extrabold focus:outline-none border-0 p-0 text-center cursor-pointer ${
+            className={`w-[110px] bg-transparent text-xs font-extrabold focus:outline-none border-0 p-0 text-center cursor-pointer ${
               fromDate && !toDate ? 'text-rose-600 animate-pulse' : 'text-[#0e623a]'
             }`}
           />
@@ -291,8 +291,8 @@ const DateRangeFilter = ({ fromDate, toDate, onDateChange, onRefresh, label = ''
 
         {/* SOP Alert Tag if From Date is selected without To Date */}
         {fromDate && !toDate && (
-          <span className="text-[10px] text-rose-700 bg-rose-50 border border-rose-300 px-2.5 py-1 rounded-xl font-bold flex items-center gap-1 shadow-xs animate-pulse shrink-0">
-            ⚠️ Please select To Date
+          <span className="text-[10px] text-rose-700 bg-rose-50 border border-rose-300 px-2 py-0.5 rounded-lg font-bold flex items-center gap-1 shadow-xs animate-pulse shrink-0">
+            ⚠️ Select To Date
           </span>
         )}
 
@@ -323,10 +323,10 @@ const DateRangeFilter = ({ fromDate, toDate, onDateChange, onRefresh, label = ''
               }
             }}
             title="Refresh & Apply Date Filters"
-            className="flex items-center gap-1.5 bg-[#0e623a] text-white hover:bg-[#0b4d2d] px-3 py-1.5 rounded-xl text-xs font-bold transition shadow-xs cursor-pointer ml-auto disabled:opacity-75"
+            className="flex items-center gap-1 bg-[#0e623a] text-white hover:bg-[#0b4d2d] px-2.5 py-1 rounded-lg text-xs font-bold transition shadow-xs cursor-pointer ml-auto shrink-0 disabled:opacity-75"
           >
             <RotateCcw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
-            <span>{isRefreshing ? 'Refreshing...' : 'Refresh'}</span>
+            <span>{isRefreshing ? '...' : 'Refresh'}</span>
           </button>
         )}
       </div>
