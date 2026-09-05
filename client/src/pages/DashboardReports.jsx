@@ -3,6 +3,7 @@ import { useAuth, API_URL } from '../context/AuthContext';
 import { LOGO_BASE64 } from '../utils/logoBase64';
 import { exportHtmlSheetsToExcel } from '../utils/excelExporter';
 import DateRangeFilter from '../components/DateRangeFilter';
+import SearchableSelect from '../components/SearchableSelect';
 import {
   Download,
   FolderOpen,
@@ -710,34 +711,43 @@ const DashboardReports = () => {
         <div className="flex flex-wrap items-center gap-3 relative z-10">
           {/* User Filter */}
           {(user?.role === 'Superadmin' || user?.role === 'Admin' || user?.role === 'superadmin' || user?.role === 'admin') && (
-            <div className="flex items-center bg-gray-50 border border-gray-200 rounded-xl px-3 py-2">
-              <User className="w-4 h-4 text-gray-400 mr-2" />
-              <select
+            <div className="w-48">
+              <SearchableSelect
+                icon={User}
+                options={[
+                  { value: '', label: 'All Users' },
+                  ...(stats.users || []).map(u => ({
+                    value: u._id,
+                    label: u.name,
+                    subLabel: u.role,
+                    badge: u.role
+                  }))
+                ]}
                 value={selectedUser}
-                onChange={(e) => setSelectedUser(e.target.value)}
-                className="bg-transparent text-xs font-bold text-gray-700 focus:outline-none cursor-pointer"
-              >
-                <option value="">All Users</option>
-                {(stats.users || []).map(u => (
-                  <option key={u._id} value={u._id}>{u.name}</option>
-                ))}
-              </select>
+                onChange={(val) => setSelectedUser(val)}
+                placeholder="All Users"
+                searchPlaceholder="Search users..."
+              />
             </div>
           )}
 
           {/* Project Filter */}
-          <div className="flex items-center bg-gray-50 border border-gray-200 rounded-xl px-3 py-2">
-            <FolderOpen className="w-4 h-4 text-gray-400 mr-2" />
-            <select
+          <div className="w-48">
+            <SearchableSelect
+              icon={FolderOpen}
+              options={[
+                { value: '', label: 'All Projects' },
+                ...(stats.projects || []).map(p => ({
+                  value: p._id,
+                  label: p.code || p.name,
+                  subLabel: p.name && p.code ? p.name : undefined
+                }))
+              ]}
               value={selectedProject}
-              onChange={(e) => setSelectedProject(e.target.value)}
-              className="bg-transparent text-xs font-bold text-gray-700 focus:outline-none cursor-pointer"
-            >
-              <option value="">All Projects</option>
-              {(stats.projects || []).map(p => (
-                <option key={p._id} value={p._id}>{p.code || p.name}</option>
-              ))}
-            </select>
+              onChange={(val) => setSelectedProject(val)}
+              placeholder="All Projects"
+              searchPlaceholder="Search projects..."
+            />
           </div>
 
           {/* Date Range & Presets Filter */}

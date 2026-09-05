@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useAuth, API_URL } from '../context/AuthContext';
 import { LOGO_BASE64 } from '../utils/logoBase64';
 import { useNavigate } from 'react-router-dom';
+import SearchableSelect from '../components/SearchableSelect';
 import SearchableMultiSelect from '../components/SearchableMultiSelect';
 import { 
   TrendingUp, 
@@ -1562,20 +1563,23 @@ const CRDDashboard = () => {
           {/* User Select */}
           {(user?.role === 'Superadmin' || user?.role === 'Superadmin') ? (
             <div className="flex flex-col gap-1 w-full">
-              <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Filtered User</label>
-              <div className="flex items-center gap-2 bg-transparent border-none px-3 py-1.5 rounded-xl">
-                <User className="w-4 h-4 text-gray-455 shrink-0" />
-                <select
-                  value={selectedUser}
-                  onChange={(e) => setSelectedUser(e.target.value)}
-                  className="w-full bg-transparent text-xs text-gray-700 font-bold focus:outline-none focus:ring-0 border-0 p-0"
-                >
-                  <option value="">All Users</option>
-                  {(stats.users || []).map(u => (
-                    <option key={u._id} value={u._id}>{u.name} ({u.role})</option>
-                  ))}
-                </select>
-              </div>
+              <SearchableSelect
+                label="Filtered User"
+                icon={User}
+                options={[
+                  { value: '', label: 'All Users' },
+                  ...(stats.users || []).map(u => ({
+                    value: u._id,
+                    label: u.name,
+                    subLabel: u.role,
+                    badge: u.role
+                  }))
+                ]}
+                value={selectedUser}
+                onChange={(val) => setSelectedUser(val)}
+                placeholder="All Users"
+                searchPlaceholder="Search users..."
+              />
             </div>
           ) : (
             <div className="hidden lg:block"></div>
@@ -1583,38 +1587,40 @@ const CRDDashboard = () => {
 
           {/* Project Select */}
           <div className="flex flex-col gap-1 w-full">
-            <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Filtered Project</label>
-            <div className="flex items-center gap-2 bg-transparent border-none px-3 py-1.5 rounded-xl">
-              <FolderOpen className="w-4 h-4 text-gray-455 shrink-0" />
-              <select
-                value={selectedProject}
-                onChange={(e) => setSelectedProject(e.target.value)}
-                className="w-full bg-transparent text-xs text-gray-700 font-bold focus:outline-none focus:ring-0 border-0 p-0"
-              >
-                <option value="">All Projects</option>
-                {(stats.projects || []).map(p => (
-                  <option key={p._id} value={p._id}>{p.code || p.name}</option>
-                ))}
-              </select>
-            </div>
+            <SearchableSelect
+              label="Filtered Project"
+              icon={FolderOpen}
+              options={[
+                { value: '', label: 'All Projects' },
+                ...(stats.projects || []).map(p => ({
+                  value: p._id,
+                  label: p.code || p.name,
+                  subLabel: p.name && p.code ? p.name : undefined
+                }))
+              ]}
+              value={selectedProject}
+              onChange={(val) => setSelectedProject(val)}
+              placeholder="All Projects"
+              searchPlaceholder="Search projects..."
+            />
           </div>
 
           {/* Project Type Select */}
           <div className="flex flex-col gap-1 w-full">
-            <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Filtered Type</label>
-            <div className="flex items-center gap-2 bg-transparent border-none px-3 py-1.5 rounded-xl">
-              <Layers className="w-4 h-4 text-gray-455 shrink-0" />
-              <select
-                value={selectedProjectType}
-                onChange={(e) => setSelectedProjectType(e.target.value)}
-                className="w-full bg-transparent text-xs text-gray-700 font-bold focus:outline-none focus:ring-0 border-0 p-0"
-              >
-                <option value="">All Types</option>
-                <option value="Plot">Plot</option>
-                <option value="Flat">Flat</option>
-                <option value="Villa">Villa</option>
-              </select>
-            </div>
+            <SearchableSelect
+              label="Filtered Type"
+              icon={Layers}
+              options={[
+                { value: '', label: 'All Types' },
+                { value: 'Plot', label: 'Plot' },
+                { value: 'Flat', label: 'Flat' },
+                { value: 'Villa', label: 'Villa' }
+              ]}
+              value={selectedProjectType}
+              onChange={(val) => setSelectedProjectType(val)}
+              placeholder="All Types"
+              showSearch={false}
+            />
           </div>
 
           {/* Source Select */}

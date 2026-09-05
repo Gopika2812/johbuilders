@@ -4,6 +4,7 @@ import { LOGO_BASE64 } from '../utils/logoBase64';
 import { exportHtmlSheetsToExcel } from '../utils/excelExporter';
 import { useNavigate } from 'react-router-dom';
 import DateRangeFilter from '../components/DateRangeFilter';
+import SearchableSelect from '../components/SearchableSelect';
 import SearchableMultiSelect from '../components/SearchableMultiSelect';
 import {
   TrendingUp,
@@ -2000,44 +2001,49 @@ const Dashboard = () => {
 
           {/* User Select */}
           {(user?.role === 'Superadmin' || user?.role === 'Superadmin') && (
-            <div className="flex flex-col gap-1 w-full lg:w-36 shrink-0">
-              <label className="text-[11px] font-bold text-black-800 uppercase tracking-wider">Filtered User</label>
-              <div className="flex items-center gap-1.5 bg-black-50 border-none px-2.5 py-1.5 rounded-xl">
-                <User className="w-3.5 h-3.5 text-black-455 shrink-0" />
-                <select
-                  value={selectedUser}
-                  onChange={(e) => setSelectedUser(e.target.value)}
-                  className="w-full bg-transparent text-xs text-black-700 font-bold focus:outline-none focus:ring-0 border-0 p-0 truncate"
-                >
-                  <option value="">All Users</option>
-                  {(stats.users || []).map(u => (
-                    <option key={u._id} value={u._id}>{u.name} ({u.role})</option>
-                  ))}
-                </select>
-              </div>
+            <div className="flex flex-col gap-1 w-full lg:w-44 shrink-0">
+              <SearchableSelect
+                label="Filtered User"
+                icon={User}
+                options={[
+                  { value: '', label: 'All Users' },
+                  ...(stats.users || []).map(u => ({
+                    value: u._id,
+                    label: u.name,
+                    subLabel: u.role,
+                    badge: u.role
+                  }))
+                ]}
+                value={selectedUser}
+                onChange={(val) => setSelectedUser(val)}
+                placeholder="All Users"
+                searchPlaceholder="Search users..."
+              />
             </div>
           )}
 
           {/* Project Select */}
-          <div className="flex flex-col gap-1 w-full lg:w-36 shrink-0">
-            <label className="text-[11px] font-bold text-black-400 uppercase tracking-wider">Filtered Project</label>
-            <div className="flex items-center gap-1.5 bg-black-50 border-none px-2.5 py-1.5 rounded-xl">
-              <FolderOpen className="w-3.5 h-3.5 text-black-455 shrink-0" />
-              <select
-                value={selectedProject}
-                onChange={(e) => setSelectedProject(e.target.value)}
-                className="w-full bg-transparent text-xs text-black-700 font-bold focus:outline-none focus:ring-0 border-0 p-0 truncate"
-              >
-                <option value="">All Projects</option>
-                {(stats.projects || []).map(p => (
-                  <option key={p._id} value={p._id}>{p.code || p.name}</option>
-                ))}
-              </select>
-            </div>
+          <div className="flex flex-col gap-1 w-full lg:w-44 shrink-0">
+            <SearchableSelect
+              label="Filtered Project"
+              icon={FolderOpen}
+              options={[
+                { value: '', label: 'All Projects' },
+                ...(stats.projects || []).map(p => ({
+                  value: p._id,
+                  label: p.code || p.name,
+                  subLabel: p.name && p.code ? p.name : undefined
+                }))
+              ]}
+              value={selectedProject}
+              onChange={(val) => setSelectedProject(val)}
+              placeholder="All Projects"
+              searchPlaceholder="Search projects..."
+            />
           </div>
 
           {/* Source Select */}
-          <div className="flex flex-col gap-1 w-full lg:w-44 shrink-0">
+          <div className="flex flex-col gap-1 w-full lg:w-48 shrink-0">
             <SearchableMultiSelect
               label="Filtered Source"
               options={Array.from(new Set([
@@ -2424,16 +2430,21 @@ const Dashboard = () => {
                   </h3>
                 </div>
                 <div className="flex items-center gap-2 self-start sm:self-auto">
-                  <select
-                    className="px-2.5 py-1 text-[11px] font-bold text-black-700 bg-black-50 border-none rounded-xl outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer"
-                    value={selectedUserPerfName || ''}
-                    onChange={(e) => setSelectedUserPerfName(e.target.value || null)}
-                  >
-                    <option value="">All Users</option>
-                    {userPerformanceData.map(u => (
-                      <option key={u.userName} value={u.userName}>{u.userName}</option>
-                    ))}
-                  </select>
+                  <div className="w-44">
+                    <SearchableSelect
+                      size="sm"
+                      options={[
+                        { value: '', label: 'All Users' },
+                        ...userPerformanceData.map(u => ({
+                          value: u.userName,
+                          label: u.userName
+                        }))
+                      ]}
+                      value={selectedUserPerfName || ''}
+                      onChange={(val) => setSelectedUserPerfName(val || null)}
+                      placeholder="All Users"
+                    />
+                  </div>
                   <button
                     onClick={() => setShowDetailedPreviewModal(true)}
                     className="flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100/80 rounded-xl transition"
@@ -2563,19 +2574,24 @@ const Dashboard = () => {
                   )}
                 </div>
                 <div className="flex items-center gap-2 self-start sm:self-auto">
-                  <select
-                    className="px-2.5 py-1 text-[11px] font-bold text-black-700 bg-black-50 border-none rounded-xl outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer max-w-[120px] truncate"
-                    value={selectedSourceGroup || ''}
-                    onChange={(e) => {
-                      setSelectedSourceGroup(e.target.value || null);
-                      setSelectedSubSource(null);
-                    }}
-                  >
-                    <option value="">All Sources</option>
-                    {sourceGroupsPerformanceData.map(g => (
-                      <option key={g.groupName} value={g.groupName}>{g.groupName}</option>
-                    ))}
-                  </select>
+                  <div className="w-44">
+                    <SearchableSelect
+                      size="sm"
+                      options={[
+                        { value: '', label: 'All Sources' },
+                        ...sourceGroupsPerformanceData.map(g => ({
+                          value: g.groupName,
+                          label: g.groupName
+                        }))
+                      ]}
+                      value={selectedSourceGroup || ''}
+                      onChange={(val) => {
+                        setSelectedSourceGroup(val || null);
+                        setSelectedSubSource(null);
+                      }}
+                      placeholder="All Sources"
+                    />
+                  </div>
                   <button
                     onClick={() => setShowSourceDetailedPreviewModal(true)}
                     className="flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100/80 rounded-xl transition"
@@ -2908,53 +2924,69 @@ const Dashboard = () => {
             {/* In-Modal Filter Bar */}
             <div className="bg-white/80 p-4 border-b border-black-100 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
               {/* Entity Filter (User / Project / Source) */}
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-3">
                 {reportPreviewType === 'user' && (
                   <div className="flex items-center gap-2">
                     <label className="text-[11px] font-bold text-black-600 uppercase tracking-wider whitespace-nowrap">Filter User:</label>
-                    <select
-                      value={reportUserFilter}
-                      onChange={(e) => setReportUserFilter(e.target.value)}
-                      className="px-3 py-1.5 text-xs font-bold text-black-700 bg-black-50 border border-black-200 rounded-xl outline-none focus:ring-1 focus:ring-[#0e623a] cursor-pointer"
-                    >
-                      <option value="">All Users ({((reportStats || stats).users || []).length})</option>
-                      {((reportStats || stats).users || []).map(u => (
-                        <option key={u._id || u.name} value={u.name}>{u.name} ({u.role})</option>
-                      ))}
-                    </select>
+                    <div className="w-56">
+                      <SearchableSelect
+                        size="sm"
+                        options={[
+                          { value: '', label: `All Users (${((reportStats || stats).users || []).length})` },
+                          ...((reportStats || stats).users || []).map(u => ({
+                            value: u.name,
+                            label: u.name,
+                            subLabel: u.role,
+                            badge: u.role
+                          }))
+                        ]}
+                        value={reportUserFilter}
+                        onChange={(val) => setReportUserFilter(val)}
+                        placeholder="All Users"
+                      />
+                    </div>
                   </div>
                 )}
 
                 {reportPreviewType === 'project' && (
                   <div className="flex items-center gap-2">
                     <label className="text-[11px] font-bold text-black-600 uppercase tracking-wider whitespace-nowrap">Filter Project:</label>
-                    <select
-                      value={reportProjectFilter}
-                      onChange={(e) => setReportProjectFilter(e.target.value)}
-                      className="px-3 py-1.5 text-xs font-bold text-black-700 bg-black-50 border border-black-200 rounded-xl outline-none focus:ring-1 focus:ring-[#0e623a] cursor-pointer"
-                    >
-                      <option value="">All Projects ({((reportStats || stats).projects || []).length})</option>
-                      {((reportStats || stats).projects || []).map(p => {
-                        const name = p.code || p.name;
-                        return <option key={p._id || name} value={name}>{name}</option>;
-                      })}
-                    </select>
+                    <div className="w-56">
+                      <SearchableSelect
+                        size="sm"
+                        options={[
+                          { value: '', label: `All Projects (${((reportStats || stats).projects || []).length})` },
+                          ...((reportStats || stats).projects || []).map(p => {
+                            const name = p.code || p.name;
+                            return { value: name, label: name };
+                          })
+                        ]}
+                        value={reportProjectFilter}
+                        onChange={(val) => setReportProjectFilter(val)}
+                        placeholder="All Projects"
+                      />
+                    </div>
                   </div>
                 )}
 
                 {reportPreviewType === 'source' && (
                   <div className="flex items-center gap-2">
                     <label className="text-[11px] font-bold text-black-600 uppercase tracking-wider whitespace-nowrap">Filter Source:</label>
-                    <select
-                      value={reportSourceFilter}
-                      onChange={(e) => setReportSourceFilter(e.target.value)}
-                      className="px-3 py-1.5 text-xs font-bold text-black-700 bg-black-50 border border-black-200 rounded-xl outline-none focus:ring-1 focus:ring-[#0e623a] cursor-pointer"
-                    >
-                      <option value="">All Sources ({Object.keys((reportStats || stats).sourceStats || {}).length})</option>
-                      {Object.keys((reportStats || stats).sourceStats || {}).map(src => (
-                        <option key={src} value={src}>{src}</option>
-                      ))}
-                    </select>
+                    <div className="w-56">
+                      <SearchableSelect
+                        size="sm"
+                        options={[
+                          { value: '', label: `All Sources (${Object.keys((reportStats || stats).sourceStats || {}).length})` },
+                          ...Object.keys((reportStats || stats).sourceStats || {}).map(src => ({
+                            value: src,
+                            label: src
+                          }))
+                        ]}
+                        value={reportSourceFilter}
+                        onChange={(val) => setReportSourceFilter(val)}
+                        placeholder="All Sources"
+                      />
+                    </div>
                   </div>
                 )}
               </div>

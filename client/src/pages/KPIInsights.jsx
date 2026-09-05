@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useAuth, API_URL } from '../context/AuthContext';
 import { LOGO_BASE64 } from '../utils/logoBase64';
 import { formatUnitWithLabel } from '../utils/formatUtils';
+import SearchableSelect from '../components/SearchableSelect';
 import SearchableMultiSelect from '../components/SearchableMultiSelect';
 import { 
   TrendingUp, 
@@ -3073,34 +3074,43 @@ const KPIInsights = () => {
         <div className="flex flex-wrap items-center gap-4 bg-white p-3 rounded-2xl border border-black-150 shadow-xs">
           {/* User Select */}
           {(user?.role === 'Superadmin' || user?.role === 'Superadmin') && (
-            <div className="flex items-center gap-1">
-              <User className="w-3.5 h-3.5 text-black-400" />
-              <select
+            <div className="w-48">
+              <SearchableSelect
+                icon={User}
+                options={[
+                  { value: '', label: 'All Users' },
+                  ...(stats.users || []).map(u => ({
+                    value: u._id,
+                    label: u.name,
+                    subLabel: u.role,
+                    badge: u.role
+                  }))
+                ]}
                 value={selectedUser}
-                onChange={(e) => setSelectedUser(e.target.value)}
-                className="px-2.5 py-1.5 text-xs bg-black-50 border border-black-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-black-700 font-bold"
-              >
-                <option value="">All Users</option>
-                {(stats.users || []).map(u => (
-                  <option key={u._id} value={u._id}>{u.name}</option>
-                ))}
-              </select>
+                onChange={(val) => setSelectedUser(val)}
+                placeholder="All Users"
+                searchPlaceholder="Search users..."
+              />
             </div>
           )}
 
           {/* Project Select */}
-          <div className="flex items-center gap-1">
-            <FolderOpen className="w-3.5 h-3.5 text-black-400" />
-            <select
+          <div className="w-48">
+            <SearchableSelect
+              icon={FolderOpen}
+              options={[
+                { value: '', label: 'All Projects' },
+                ...(stats.projects || []).map(p => ({
+                  value: p._id,
+                  label: p.code || p.name,
+                  subLabel: p.name && p.code ? p.name : undefined
+                }))
+              ]}
               value={selectedProject}
-              onChange={(e) => setSelectedProject(e.target.value)}
-              className="px-2.5 py-1.5 text-xs bg-black-50 border border-black-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-black-700 font-bold"
-            >
-              <option value="">All Projects</option>
-              {(stats.projects || []).map(p => (
-                <option key={p._id} value={p._id}>{p.code || p.name}</option>
-              ))}
-            </select>
+              onChange={(val) => setSelectedProject(val)}
+              placeholder="All Projects"
+              searchPlaceholder="Search projects..."
+            />
           </div>
 
           {/* Source Select */}
