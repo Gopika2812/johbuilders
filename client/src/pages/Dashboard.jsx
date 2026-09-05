@@ -1992,22 +1992,7 @@ const Dashboard = () => {
   ];
 
   return (
-    <div className="space-y-8 w-full mx-auto text-left animate-fadeIn">
-      {/* Title Header Bar */}
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <h2 className="text-xl md:text-2xl font-extrabold text-black-800 flex items-center gap-2">
-            <BarChart3 className="w-6 h-6 text-[#0e623a]" />
-            <span>Dashboard</span>
-          </h2>
-          {loading && (
-            <div className="flex items-center gap-1.5 px-3 py-1 bg-emerald-50 border border-emerald-200 text-[#0e623a] rounded-full text-xs font-bold animate-pulse shadow-xs">
-              <Loader2 className="w-3.5 h-3.5 text-[#0e623a] animate-spin" />
-              <span>Syncing filtered data...</span>
-            </div>
-          )}
-        </div>
-      </div>
+    <div className="space-y-6 w-full mx-auto text-left animate-fadeIn">
 
       {/* Filtration Header Card */}
       <div className="glass-card border-none shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-3xl p-5 w-full relative transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
