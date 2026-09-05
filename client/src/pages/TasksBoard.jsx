@@ -1205,13 +1205,13 @@ const TasksBoard = () => {
       <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2.5">
         {/* 1. Total (Highlighted Dark Green) */}
         <div 
-          onClick={() => handleCardClick('ALL', 'Total Tasks', tasks)}
+          onClick={() => setStatusFilter('ALL')}
           className={`p-3.5 rounded-2xl border transition-all cursor-pointer ${
             statusFilter === 'ALL' 
               ? 'bg-[#003822] text-white border-emerald-700 shadow-md ring-2 ring-emerald-500 scale-[1.02]' 
               : 'bg-[#0e623a] text-white border-[#0e623a] hover:bg-[#003822]'
           }`}
-          title="Click to view full list & export / share Total tasks"
+          title="Click to view and filter all tasks"
         >
           <div className="flex items-center justify-between">
             <span className="text-[10px] font-extrabold uppercase text-emerald-200">Total</span>
@@ -1222,13 +1222,13 @@ const TasksBoard = () => {
 
         {/* 2. Pending Tasks (Red Colored Highlighted - right after Total) */}
         <div 
-          onClick={() => handleCardClick('PENDING', 'Pending Tasks', tasks.filter(t => t.status === 'New' || t.status === 'In Progress'))}
+          onClick={() => setStatusFilter(prev => prev === 'PENDING' ? 'ALL' : 'PENDING')}
           className={`p-3.5 rounded-2xl border transition-all cursor-pointer ${
             statusFilter === 'PENDING' 
               ? 'bg-[#800d0d] text-white border-rose-600 shadow-md ring-2 ring-rose-500 scale-[1.02]' 
               : 'bg-[#b91c1c] text-white border-[#b91c1c] hover:bg-[#991b1b] shadow-sm'
           }`}
-          title="Click to view full list & export / share Pending tasks"
+          title="Click to filter Pending tasks (New & In Progress)"
         >
           <div className="flex items-center justify-between">
             <span className="text-[10px] font-extrabold uppercase text-rose-100">Pending Tasks</span>
@@ -1239,9 +1239,9 @@ const TasksBoard = () => {
 
         {/* 3. New */}
         <div 
-          onClick={() => handleCardClick('NEW', 'New Tasks', tasks.filter(t => t.status === 'New'))}
+          onClick={() => setStatusFilter(prev => prev === 'NEW' ? 'ALL' : 'NEW')}
           className={`p-3.5 rounded-2xl border transition-all cursor-pointer ${statusFilter === 'NEW' ? 'bg-blue-950 text-white border-blue-800 shadow-md ring-2 ring-blue-600' : 'bg-white border-gray-150 hover:border-gray-300'}`}
-          title="Click to view full list & export / share New tasks"
+          title="Click to filter New tasks"
         >
           <div className="flex items-center justify-between">
             <span className={`text-[10px] font-extrabold uppercase ${statusFilter === 'NEW' ? 'text-blue-300' : 'text-blue-600'}`}>New</span>
@@ -1252,9 +1252,9 @@ const TasksBoard = () => {
 
         {/* 4. In Progress */}
         <div 
-          onClick={() => handleCardClick('IN_PROGRESS', 'In Progress Tasks', tasks.filter(t => t.status === 'In Progress'))}
+          onClick={() => setStatusFilter(prev => prev === 'IN_PROGRESS' ? 'ALL' : 'IN_PROGRESS')}
           className={`p-3.5 rounded-2xl border transition-all cursor-pointer ${statusFilter === 'IN_PROGRESS' ? 'bg-amber-950 text-white border-amber-800 shadow-md ring-2 ring-amber-600' : 'bg-white border-gray-150 hover:border-gray-300'}`}
-          title="Click to view full list & export / share In Progress tasks"
+          title="Click to filter In Progress tasks"
         >
           <div className="flex items-center justify-between">
             <span className={`text-[10px] font-extrabold uppercase ${statusFilter === 'IN_PROGRESS' ? 'text-amber-300' : 'text-amber-600'}`}>In Progress</span>
@@ -1265,9 +1265,9 @@ const TasksBoard = () => {
 
         {/* 5. On Hold */}
         <div 
-          onClick={() => handleCardClick('ON_HOLD', 'On Hold Tasks', tasks.filter(t => t.status === 'On Hold'))}
+          onClick={() => setStatusFilter(prev => prev === 'ON_HOLD' ? 'ALL' : 'ON_HOLD')}
           className={`p-3.5 rounded-2xl border transition-all cursor-pointer ${statusFilter === 'ON_HOLD' ? 'bg-purple-950 text-white border-purple-800 shadow-md ring-2 ring-purple-600' : 'bg-white border-gray-150 hover:border-gray-300'}`}
-          title="Click to view full list & export / share On Hold tasks"
+          title="Click to filter On Hold tasks"
         >
           <div className="flex items-center justify-between">
             <span className={`text-[10px] font-extrabold uppercase ${statusFilter === 'ON_HOLD' ? 'text-purple-300' : 'text-purple-600'}`}>On Hold</span>
@@ -1278,9 +1278,9 @@ const TasksBoard = () => {
 
         {/* 6. Completed */}
         <div 
-          onClick={() => handleCardClick('COMPLETED', 'Completed Tasks', tasks.filter(t => t.status === 'Completed'))}
+          onClick={() => setStatusFilter(prev => prev === 'COMPLETED' ? 'ALL' : 'COMPLETED')}
           className={`p-3.5 rounded-2xl border transition-all cursor-pointer ${statusFilter === 'COMPLETED' ? 'bg-emerald-900 text-white border-emerald-700 shadow-md ring-2 ring-emerald-500' : 'bg-white border-gray-150 hover:border-gray-300'}`}
-          title="Click to view full list & export / share Completed tasks"
+          title="Click to filter Completed tasks"
         >
           <div className="flex items-center justify-between">
             <span className={`text-[10px] font-extrabold uppercase ${statusFilter === 'COMPLETED' ? 'text-emerald-300' : 'text-emerald-600'}`}>Completed</span>
@@ -1291,9 +1291,9 @@ const TasksBoard = () => {
 
         {/* 7. Cancelled */}
         <div 
-          onClick={() => handleCardClick('CANCELLED', 'Cancelled Tasks', tasks.filter(t => t.status === 'Cancelled'))}
+          onClick={() => setStatusFilter(prev => prev === 'CANCELLED' ? 'ALL' : 'CANCELLED')}
           className={`p-3.5 rounded-2xl border transition-all cursor-pointer ${statusFilter === 'CANCELLED' ? 'bg-gray-800 text-white border-gray-700 shadow-md ring-2 ring-gray-600' : 'bg-white border-gray-150 hover:border-gray-300'}`}
-          title="Click to view full list & export / share Cancelled tasks"
+          title="Click to filter Cancelled tasks"
         >
           <div className="flex items-center justify-between">
             <span className={`text-[10px] font-extrabold uppercase ${statusFilter === 'CANCELLED' ? 'text-gray-300' : 'text-gray-600'}`}>Cancelled</span>
@@ -1304,9 +1304,9 @@ const TasksBoard = () => {
 
         {/* 8. Overdated */}
         <div 
-          onClick={() => handleCardClick('OVERDATED', 'Overdated Tasks', tasks.filter(t => isOverdated(t)))}
+          onClick={() => setStatusFilter(prev => prev === 'OVERDATED' ? 'ALL' : 'OVERDATED')}
           className={`p-3.5 rounded-2xl border transition-all cursor-pointer ${statusFilter === 'OVERDATED' ? 'bg-rose-950 text-white border-rose-800 shadow-md ring-2 ring-rose-600' : 'bg-rose-50/50 border-rose-200 hover:border-rose-300'}`}
-          title="Click to view full list & export / share Overdated tasks"
+          title="Click to filter Overdated tasks"
         >
           <div className="flex items-center justify-between">
             <span className={`text-[10px] font-extrabold uppercase ${statusFilter === 'OVERDATED' ? 'text-rose-300' : 'text-rose-700'}`}>Overdated</span>
@@ -1415,7 +1415,7 @@ const TasksBoard = () => {
 
       {/* Search & Filter Toolbar Box */}
       <div className="bg-white border border-gray-150 rounded-2xl p-3.5 shadow-xs space-y-2.5">
-        {/* Row 1: Main Search Bar & Date Filtration */}
+        {/* Row 1: Main Search Bar, Date Filtration & Quick Export / Send Email */}
         <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-2.5">
           <div className="relative flex-1 min-w-[240px]">
             <Search className="w-4 h-4 absolute left-3.5 top-2.5 text-[#0e623a]" />
@@ -1448,6 +1448,29 @@ const TasksBoard = () => {
               }}
               onRefresh={() => fetchTasks()}
             />
+          </div>
+
+          {/* Export Excel & Send Email Actions above columns */}
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={() => exportModalTasksToExcel(filteredTasks, statusFilter === 'ALL' ? 'All_Tasks_Report' : `${statusFilter}_Tasks_Report`)}
+              className="px-3.5 py-2 bg-[#0e623a] hover:bg-[#0b4d2d] text-white font-bold text-xs rounded-xl shadow-xs hover:shadow-md transition flex items-center gap-1.5 cursor-pointer shrink-0"
+              title="Export filtered tasks to Excel (.xlsx)"
+            >
+              <FileSpreadsheet className="w-4 h-4" />
+              <span>Export Excel</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleOpenEmailShare(statusFilter === 'ALL' ? 'All Tasks Report' : `${statusFilter} Tasks Report`, filteredTasks)}
+              className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-xs hover:shadow-md transition flex items-center gap-1.5 cursor-pointer shrink-0"
+              title="Share filtered tasks via Email"
+            >
+              <Mail className="w-4 h-4" />
+              <span>Send Email</span>
+            </button>
           </div>
         </div>
 
@@ -2528,227 +2551,7 @@ const TasksBoard = () => {
         </div>
       )}
 
-      {/* Card Details Popup Modal with Table, Export Excel & Email Share */}
-      {cardModal.open && (() => {
-        const filteredModalTasks = (cardModal.tasks || []).filter(t => {
-          if (!cardModalSearch.trim()) return true;
-          const term = cardModalSearch.toLowerCase();
-          return (
-            (t.title || '').toLowerCase().includes(term) ||
-            (t.description || '').toLowerCase().includes(term) ||
-            (t.projectName || '').toLowerCase().includes(term) ||
-            (t.category || '').toLowerCase().includes(term) ||
-            (t.assignedTo?.name || '').toLowerCase().includes(term) ||
-            (t.assignedBy?.name || '').toLowerCase().includes(term)
-          );
-        });
-
-        return (
-          <div className="fixed inset-0 bg-gray-900/70 backdrop-blur-md z-[99990] flex items-center justify-center p-3 sm:p-5">
-            <div className="bg-white rounded-3xl border border-gray-200 shadow-2xl w-full max-w-6xl max-h-[92vh] flex flex-col overflow-hidden animate-fadeIn">
-              {/* Modal Header */}
-              <div className="px-6 py-4 bg-gradient-to-r from-[#004d2a] to-[#0e623a] text-white flex flex-wrap items-center justify-between gap-3 shrink-0">
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <div className="p-2 bg-white/10 rounded-xl">
-                    <ClipboardList className="w-5 h-5 text-emerald-300" />
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h3 className="font-extrabold text-base tracking-wide">{cardModal.title}</h3>
-                      <span className="px-2.5 py-0.5 bg-emerald-400/20 text-emerald-200 border border-emerald-400/30 rounded-full text-xs font-black">
-                        {filteredModalTasks.length} {filteredModalTasks.length === 1 ? 'Task' : 'Tasks'}
-                      </span>
-                    </div>
-                    <p className="text-[11px] text-emerald-100/80 font-medium">Detailed breakdown of tasks in this category</p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  {/* Export to Excel Button */}
-                  <button
-                    type="button"
-                    onClick={() => exportModalTasksToExcel(filteredModalTasks, cardModal.title)}
-                    className="px-3.5 py-2 bg-white text-[#0e623a] hover:bg-emerald-50 font-black text-xs rounded-xl shadow transition cursor-pointer flex items-center gap-1.5"
-                    title="Export tasks to formatted Excel file (.xlsx)"
-                  >
-                    <FileSpreadsheet className="w-4 h-4 text-[#0e623a]" />
-                    <span>Export Excel</span>
-                  </button>
-
-                  {/* Share via Email Button */}
-                  <button
-                    type="button"
-                    onClick={() => handleOpenEmailShare(cardModal.title, filteredModalTasks)}
-                    className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-black text-xs rounded-xl shadow transition cursor-pointer flex items-center gap-1.5"
-                    title="Share task list via Email"
-                  >
-                    <Mail className="w-4 h-4" />
-                    <span>Share via Email</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setCardModal({ open: false, type: 'ALL', title: '', tasks: [] })}
-                    className="p-1.5 hover:bg-white/20 rounded-xl transition text-white cursor-pointer ml-1"
-                  >
-                    <X className="w-5 h-5" />
-                  </button>
-                </div>
-              </div>
-
-              {/* Modal Search Bar */}
-              <div className="p-4 bg-gray-50 border-b border-gray-200 flex items-center justify-between gap-3 shrink-0">
-                <div className="relative flex-1 max-w-md">
-                  <Search className="w-4 h-4 absolute left-3.5 top-2.5 text-gray-400" />
-                  <input
-                    type="text"
-                    placeholder="Search in this list by title, project, assignee..."
-                    value={cardModalSearch}
-                    onChange={(e) => setCardModalSearch(e.target.value)}
-                    className="w-full pl-9 pr-3.5 py-2 bg-white border border-gray-200 rounded-xl text-xs font-semibold text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#0e623a]"
-                  />
-                </div>
-                <div className="text-xs text-gray-500 font-bold hidden sm:block">
-                  Showing {filteredModalTasks.length} of {cardModal.tasks?.length || 0} tasks
-                </div>
-              </div>
-
-              {/* Modal Table Container */}
-              <div className="overflow-auto flex-1 p-4 custom-scrollbar">
-                {filteredModalTasks.length === 0 ? (
-                  <div className="p-12 text-center text-gray-400 bg-gray-50 rounded-2xl border border-dashed border-gray-200 space-y-2">
-                    <ClipboardList className="w-10 h-10 mx-auto text-gray-300" />
-                    <p className="text-sm font-bold text-gray-600">No tasks match your search in this category</p>
-                  </div>
-                ) : (
-                  <table className="w-full text-left text-xs border-collapse">
-                    <thead>
-                      <tr className="border-b border-gray-200 bg-gray-100/80 text-gray-600 font-black uppercase tracking-wider text-[10px] sticky top-0 z-10">
-                        <th className="p-2.5 w-8 text-center">S.No</th>
-                        <th className="p-2.5 min-w-[90px]">Project</th>
-                        <th className="p-2.5 min-w-[140px]">Task Title</th>
-                        <th className="p-2.5 min-w-[90px]">Department</th>
-                        <th className="p-2.5 min-w-[110px]">Assigned To</th>
-                        <th className="p-2.5 min-w-[95px]">Assigned By</th>
-                        <th className="p-2.5 min-w-[70px] text-center">Priority</th>
-                        <th className="p-2.5 min-w-[85px]">Assigned Date</th>
-                        <th className="p-2.5 min-w-[95px]">Due Date</th>
-                        <th className="p-2.5 min-w-[90px] text-center">Status</th>
-                        <th className="p-2.5 w-16 text-center">Action</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-100">
-                      {filteredModalTasks.map((task, idx) => {
-                        const over = isOverdated(task);
-                        let statusBadge = 'bg-blue-50 text-blue-700 border-blue-200';
-                        if (task.status === 'In Progress') statusBadge = 'bg-amber-50 text-amber-700 border-amber-200';
-                        if (task.status === 'On Hold') statusBadge = 'bg-purple-50 text-purple-700 border-purple-200';
-                        if (task.status === 'Completed') statusBadge = 'bg-emerald-50 text-emerald-700 border-emerald-200';
-                        if (task.status === 'Cancelled') statusBadge = 'bg-gray-100 text-gray-600 border-gray-300';
-
-                        let priorityBadge = 'bg-blue-50 text-blue-800 border-blue-200 font-bold';
-                        if (task.priority === 'High') priorityBadge = 'bg-amber-100 text-amber-800 border-amber-300 font-extrabold';
-                        if (task.priority === 'Low') priorityBadge = 'bg-gray-100 text-gray-700 border-gray-300 font-semibold';
-
-                        return (
-                          <tr key={task._id} className="hover:bg-gray-50/80 transition">
-                            <td className="p-2.5 text-center font-bold text-gray-400">{idx + 1}</td>
-                            <td className="p-2.5 font-bold text-[#0e623a]">
-                              {task.projectName || <span className="text-gray-400 italic font-normal">—</span>}
-                            </td>
-                            <td className="p-2.5 font-bold text-gray-900 max-w-[200px] truncate" title={task.title}>
-                              {task.title}
-                            </td>
-                            <td className="p-2.5">
-                              <span className="px-2 py-0.5 border font-extrabold text-[10px] rounded-md bg-gray-50 text-gray-700 border-gray-200">
-                                {task.category || 'General'}
-                              </span>
-                            </td>
-                            <td className="p-2.5">
-                              <p className="font-bold text-gray-800 truncate">{task.assignedTo?.name || 'Unassigned'}</p>
-                              {task.assignedTo?.role && <span className="text-[9px] text-gray-400 block">{task.assignedTo?.role}</span>}
-                            </td>
-                            <td className="p-2.5 font-semibold text-gray-600">
-                              {task.assignedBy?.name || 'Admin'}
-                            </td>
-                            <td className="p-2.5 text-center">
-                              <span className={`px-2 py-0.5 text-[9px] uppercase tracking-wider border rounded ${priorityBadge}`}>
-                                {task.priority || 'Medium'}
-                              </span>
-                            </td>
-                            <td className="p-2.5 text-gray-700 font-medium whitespace-nowrap">
-                              {task.createdAt ? new Date(task.createdAt).toLocaleDateString('en-GB') : (task.assignedDate ? new Date(task.assignedDate).toLocaleDateString('en-GB') : '—')}
-                            </td>
-                            <td className="p-2.5">
-                              <span className="font-bold text-gray-800 whitespace-nowrap block">
-                                {task.dueDate ? new Date(task.dueDate).toLocaleDateString('en-GB') : '—'}
-                              </span>
-                              {over && (
-                                <span className="inline-block px-1 py-0.2 rounded text-[8px] font-black uppercase tracking-wide bg-rose-100 text-rose-700 border border-rose-300 whitespace-nowrap">
-                                  OVERDATED
-                                </span>
-                              )}
-                            </td>
-                            <td className="p-2.5 text-center">
-                              <span className={`px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide border rounded-lg inline-block ${statusBadge}`}>
-                                {task.status}
-                              </span>
-                            </td>
-                            <td className="p-2.5 text-center">
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setCardModal({ open: false, type: 'ALL', title: '', tasks: [] });
-                                  handleOpenHistoryModal(task);
-                                }}
-                                className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition font-bold text-xs flex items-center gap-1 mx-auto cursor-pointer"
-                                title="Reply / View History"
-                              >
-                                <MessageSquare className="w-3.5 h-3.5" />
-                                <span>Reply</span>
-                              </button>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                )}
-              </div>
-
-              {/* Modal Footer */}
-              <div className="p-4 bg-gray-50 border-t border-gray-200 flex items-center justify-between gap-3 shrink-0">
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => exportModalTasksToExcel(filteredModalTasks, cardModal.title)}
-                    className="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl shadow transition cursor-pointer flex items-center gap-1.5"
-                  >
-                    <FileSpreadsheet className="w-4 h-4" />
-                    <span>Download Excel</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleOpenEmailShare(cardModal.title, filteredModalTasks)}
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow transition cursor-pointer flex items-center gap-1.5"
-                  >
-                    <Mail className="w-4 h-4" />
-                    <span>Share via Email</span>
-                  </button>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => setCardModal({ open: false, type: 'ALL', title: '', tasks: [] })}
-                  className="px-5 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold text-xs rounded-xl transition cursor-pointer"
-                >
-                  Close
-                </button>
-              </div>
-            </div>
-          </div>
-        );
-      })()}
+      {/* Email Sharing Modal */}
 
       {/* Email Sharing Sub-Modal */}
       {emailShareModal.open && (
