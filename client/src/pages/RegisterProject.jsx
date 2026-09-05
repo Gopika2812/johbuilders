@@ -56,9 +56,24 @@ const RegisterProject = () => {
   const [layoutPlanImage, setLayoutPlanImage] = useState('');
 
   // Marketing states
+  const [availableSources, setAvailableSources] = useState(SOURCE_TYPES);
   const [sourceType, setSourceType] = useState('');
   const [videos, setVideos] = useState([{ name: '', link: '', status: 'Active' }]);
   const [posters, setPosters] = useState([{ name: '', link: '', status: 'Active' }]);
+
+  React.useEffect(() => {
+    if (token) {
+      fetch(`${API_URL}/lead-groups`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+        .then(r => r.ok ? r.json() : [])
+        .then(groups => {
+          const groupSources = (groups || []).flatMap(g => g.sources || []);
+          setAvailableSources(prev => Array.from(new Set([...prev, ...groupSources])).filter(Boolean).sort());
+        })
+        .catch(console.error);
+    }
+  }, [token]);
 
   // Unit generation variables
   const [initialPlotCount, setInitialPlotCount] = useState('10');
@@ -1324,7 +1339,7 @@ const RegisterProject = () => {
               <div>
                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-2">Promotional Source / Ad Campaign</label>
                 <SearchableSelect
-                  options={SOURCE_TYPES}
+                  options={availableSources}
                   value={sourceType}
                   onChange={setSourceType}
                   placeholder="Select Ad Source / Campaign"

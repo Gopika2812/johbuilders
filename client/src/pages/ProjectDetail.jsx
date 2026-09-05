@@ -123,6 +123,7 @@ const ProjectDetail = () => {
 
   // Marketing Modal State
   const [marketingModalOpen, setMarketingModalOpen] = useState(false);
+  const [availableSources, setAvailableSources] = useState(SOURCE_TYPES);
   const [mSourceType, setMSourceType] = useState('');
   const [mVideos, setMVideos] = useState([{ name: '', link: '', status: 'Active', updatedAt: new Date().toISOString() }]);
   const [crdFlowSheetFile, setCrdFlowSheetFile] = useState(null);
@@ -133,6 +134,20 @@ const ProjectDetail = () => {
   const [activeTab, setActiveTab] = useState('project'); // 'project' | 'marketing' | 'crdFlow' | 'extraWorksCatalog'
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [selectedInventoryType, setSelectedInventoryType] = useState('');
+
+  useEffect(() => {
+    if (token) {
+      fetch(`${API_URL}/lead-groups`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+        .then(r => r.ok ? r.json() : [])
+        .then(groups => {
+          const groupSources = (groups || []).flatMap(g => g.sources || []);
+          setAvailableSources(prev => Array.from(new Set([...prev, ...groupSources])).filter(Boolean).sort());
+        })
+        .catch(console.error);
+    }
+  }, [token]);
 
   // Extra Works Catalog State
   const [extraWorkCatalog, setExtraWorkCatalog] = useState([]);
@@ -1397,7 +1412,7 @@ const ProjectDetail = () => {
               <div className="max-w-md">
                 <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-2">Promotional Source / Ad Campaign</label>
                 <SearchableSelect
-                  options={SOURCE_TYPES}
+                  options={availableSources}
                   value={mSourceType}
                   onChange={setMSourceType}
                   placeholder="Select Ad Source / Campaign"
