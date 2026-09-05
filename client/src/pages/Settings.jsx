@@ -68,12 +68,14 @@ const SOURCE_TYPES = [
   'Facebook',
   'Instagram',
   'Youtube',
+  'Whatsapp',
   'Real Estate',
   'Magicbricks',
   'Website',
   'Direct',
   'Old Customer',
   'Reference',
+  'Mediator',
   'Flexboard/Banner',
   'Stall'
 ];

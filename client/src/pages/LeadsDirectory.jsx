@@ -61,12 +61,14 @@ const SOURCE_TYPES = [
   'Facebook',
   'Instagram',
   'Youtube',
+  'Whatsapp',
   'Real Estate',
   'Magicbricks',
   'Website',
   'Direct',
   'Old Customer',
   'Reference',
+  'Mediator',
   'Flexboard/Banner',
   'Stall'
 ];
@@ -480,6 +482,7 @@ const LeadsDirectory = () => {
   };
 
   // Lead-specific fields
+  const [availableSources, setAvailableSources] = useState(SOURCE_TYPES);
   const [leadSource, setLeadSource] = useState('');
   const [activeAds, setActiveAds] = useState([]); // List of active ads from selected project
   const [selectedAdId, setSelectedAdId] = useState('');
@@ -772,8 +775,24 @@ const LeadsDirectory = () => {
       fetchEmployees();
       fetchQuotations();
       fetchStageColors();
+      fetchLeadGroups();
     }
   }, [token]);
+
+  const fetchLeadGroups = async () => {
+    try {
+      const response = await fetch(`${API_URL}/lead-groups`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (response.ok) {
+        const groups = await response.json();
+        const groupSources = (groups || []).flatMap(g => g.sources || []);
+        setAvailableSources(prev => Array.from(new Set([...prev, ...groupSources])).filter(Boolean));
+      }
+    } catch (err) {
+      console.error('Error fetching lead groups for sources:', err);
+    }
+  };
 
   const fetchStageColors = async () => {
     try {
@@ -1107,6 +1126,8 @@ const LeadsDirectory = () => {
       if (res.ok) {
         const data = await res.json();
         setLeads(data);
+        const leadSources = (data || []).map(l => l.leadSource).filter(Boolean);
+        setAvailableSources(prev => Array.from(new Set([...prev, ...leadSources])).filter(Boolean));
       } else {
         setError('Failed to fetch leads directory');
       }
@@ -2188,7 +2209,7 @@ const LeadsDirectory = () => {
           <div className="space-y-1">
             <label className="text-[11px] font-bold text-black-400 uppercase tracking-wider block">Campaign / Source</label>
             <SearchableMultiSelect
-              options={SOURCE_TYPES}
+              options={availableSources}
               selectedValues={campaignFilter}
               selectedOptions={campaignFilter}
               onChange={(selected) => setCampaignFilter(selected)}
@@ -2850,7 +2871,7 @@ const LeadsDirectory = () => {
                     <div className="flex flex-col">
                       <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Lead Source <span className="text-red-500">*</span></label>
                       <SearchableSelect
-                        options={SOURCE_TYPES}
+                        options={availableSources}
                         value={leadSource}
                         onChange={setLeadSource}
                         placeholder="Select Ad Source / Campaign"
@@ -2904,7 +2925,7 @@ const LeadsDirectory = () => {
                     <div className="flex flex-col">
                       <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Lead Source <span className="text-red-500">*</span></label>
                       <SearchableSelect
-                        options={SOURCE_TYPES}
+                        options={availableSources}
                         value={leadSource}
                         onChange={setLeadSource}
                         placeholder="Select Ad Source / Campaign"
@@ -3458,7 +3479,7 @@ const LeadsDirectory = () => {
                         </label>
                         <SearchableSelect
                           disabled={isLockedForNonAdmin}
-                          options={SOURCE_TYPES}
+                          options={availableSources}
                           value={editLeadSource}
                           onChange={setEditLeadSource}
                           placeholder="Select Ad Source / Campaign"
@@ -3511,7 +3532,7 @@ const LeadsDirectory = () => {
                         </label>
                         <SearchableSelect
                           disabled={isLockedForNonAdmin}
-                          options={SOURCE_TYPES}
+                          options={availableSources}
                           value={editLeadSource}
                           onChange={setEditLeadSource}
                           placeholder="Select Ad Source / Campaign"

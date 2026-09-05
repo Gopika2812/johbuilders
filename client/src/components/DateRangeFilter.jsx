@@ -3,6 +3,7 @@ import { Calendar, ChevronDown, RotateCcw } from 'lucide-react';
 
 const DateRangeFilter = ({ fromDate, toDate, onDateChange, onRefresh, label = '' }) => {
   const [filterMode, setFilterMode] = useState('month'); // 'month', 'custom', 'this_month', 'last_month', 'quarterly', 'half_yearly', 'yearly', 'financial_year'
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [selectedYear, setSelectedYear] = useState(() => new Date().getFullYear());
   const [selectedMonthVal, setSelectedMonthVal] = useState(() => {
     if (fromDate) return fromDate.substring(0, 7);
@@ -298,7 +299,8 @@ const DateRangeFilter = ({ fromDate, toDate, onDateChange, onRefresh, label = ''
         {onRefresh && (
           <button
             type="button"
-            onClick={() => {
+            disabled={isRefreshing}
+            onClick={async () => {
               if (fromDate && !toDate) {
                 alert("Please select To Date. You didn't select To Date!");
                 return;
@@ -311,13 +313,20 @@ const DateRangeFilter = ({ fromDate, toDate, onDateChange, onRefresh, label = ''
                 alert("From Date cannot be after To Date. Please select a valid date range!");
                 return;
               }
-              onRefresh();
+              setIsRefreshing(true);
+              try {
+                await onRefresh();
+              } catch (e) {
+                console.error("Error during refresh:", e);
+              } finally {
+                setTimeout(() => setIsRefreshing(false), 500);
+              }
             }}
             title="Refresh & Apply Date Filters"
-            className="flex items-center gap-1.5 bg-[#0e623a] text-white hover:bg-[#0b4d2d] px-3 py-1.5 rounded-xl text-xs font-bold transition shadow-xs cursor-pointer ml-auto"
+            className="flex items-center gap-1.5 bg-[#0e623a] text-white hover:bg-[#0b4d2d] px-3 py-1.5 rounded-xl text-xs font-bold transition shadow-xs cursor-pointer ml-auto disabled:opacity-75"
           >
-            <RotateCcw className="w-3.5 h-3.5" />
-            <span>Refresh</span>
+            <RotateCcw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
+            <span>{isRefreshing ? 'Refreshing...' : 'Refresh'}</span>
           </button>
         )}
       </div>

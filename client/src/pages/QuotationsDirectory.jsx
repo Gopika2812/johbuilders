@@ -35,6 +35,7 @@ const SOURCE_TYPES = [
   'Facebook',
   'Instagram',
   'Youtube',
+  'Whatsapp',
   'Real Estate',
   'Magicbricks',
   'Website',
@@ -42,6 +43,7 @@ const SOURCE_TYPES = [
   'Direct Visit',
   'Old Customer',
   'Reference',
+  'Mediator',
   'Flexboard/Banner',
   'Stall'
 ];
