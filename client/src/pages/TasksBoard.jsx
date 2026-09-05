@@ -1731,33 +1731,18 @@ const TasksBoard = () => {
                                   <div 
                                     key={att._id || aIdx} 
                                     className="relative group shrink-0"
-                                    title={att.name || 'View Attachment'}
+                                    title={att.name || 'Click to View Attachment'}
                                   >
                                     <img 
                                       src={att.url} 
                                       alt={att.name || 'Attachment'} 
-                                      className="w-5 h-5 rounded object-cover border border-gray-200 cursor-pointer shadow-2xs"
+                                      className="w-5 h-5 rounded object-cover border border-gray-200 cursor-pointer shadow-2xs hover:scale-110 transition"
                                       onClick={() => setPreviewImageModal({ open: true, url: att.url, name: att.name, taskId: task._id, attachmentId: att._id })}
                                     />
-                                    <div className="absolute inset-0 bg-black/60 rounded opacity-0 group-hover:opacity-100 flex items-center justify-center gap-0.5 transition">
-                                      <button
-                                        type="button"
-                                        onClick={() => setPreviewImageModal({ open: true, url: att.url, name: att.name, taskId: task._id, attachmentId: att._id })}
-                                        className="p-0.5 text-white hover:text-emerald-300 transition cursor-pointer"
-                                        title="View Image"
-                                      >
-                                        <Eye className="w-2.5 h-2.5" />
-                                      </button>
-                                      {att._id && (
-                                        <button
-                                          type="button"
-                                          onClick={(e) => handleDeleteAttachment(task._id, att._id, e)}
-                                          className="p-0.5 text-rose-300 hover:text-rose-500 transition cursor-pointer"
-                                          title="Delete Attachment"
-                                        >
-                                          <Trash2 className="w-2.5 h-2.5" />
-                                        </button>
-                                      )}
+                                    <div 
+                                      className="absolute inset-0 bg-black/40 rounded opacity-0 group-hover:opacity-100 flex items-center justify-center transition cursor-pointer pointer-events-none"
+                                    >
+                                      <Eye className="w-2.5 h-2.5 text-white" />
                                     </div>
                                   </div>
                                 ))}
@@ -2548,17 +2533,6 @@ const TasksBoard = () => {
                   <Download className="w-4 h-4" />
                   <span>Download</span>
                 </a>
-
-                {previewImageModal.taskId && previewImageModal.attachmentId && (
-                  <button
-                    onClick={(e) => handleDeleteAttachment(previewImageModal.taskId, previewImageModal.attachmentId, e)}
-                    className="p-1.5 hover:bg-rose-600/40 text-rose-300 hover:text-white rounded-lg transition flex items-center gap-1 text-xs font-bold cursor-pointer"
-                    title="Delete Attachment"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                    <span>Delete</span>
-                  </button>
-                )}
 
                 <button
                   onClick={() => setPreviewImageModal({ open: false, url: '', name: '', taskId: '', attachmentId: '' })}
