@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useAuth, API_URL } from '../context/AuthContext';
 import { useLocation } from 'react-router-dom';
 import { sendTaskAssignmentEmail } from '../utils/emailService';
+import ExcelJS from 'exceljs';
+import { saveAs } from 'file-saver';
 import { 
   ClipboardList, 
   Plus, 
@@ -34,7 +36,11 @@ import {
   XCircle,
   ChevronLeft,
   ChevronRight,
-  MoreVertical
+  MoreVertical,
+  Mail,
+  FileSpreadsheet,
+  Share2,
+  Copy
 } from 'lucide-react';
 
 const getTodayString = () => {
@@ -374,6 +380,223 @@ const TasksBoard = () => {
 
   // Row Action Menu (3-dots) State
   const [openActionMenuId, setOpenActionMenuId] = useState(null);
+
+  // Card Details Popup Modal State
+  const [cardModal, setCardModal] = useState({ open: false, type: 'ALL', title: '', tasks: [] });
+  const [cardModalSearch, setCardModalSearch] = useState('');
+
+  // Email Share Dialog State
+  const [emailShareModal, setEmailShareModal] = useState({
+    open: false,
+    title: '',
+    tasks: [],
+    recipientEmail: '',
+    note: '',
+    sending: false,
+    copied: false
+  });
+
+  const handleCardClick = (type, title, tasksList) => {
+    setStatusFilter(type);
+    setCardModal({
+      open: true,
+      type: type,
+      title: title,
+      tasks: tasksList || []
+    });
+    setCardModalSearch('');
+  };
+
+  const exportModalTasksToExcel = async (tasksToExport, title = 'Tasks_Report') => {
+    try {
+      if (!tasksToExport || tasksToExport.length === 0) {
+        alert('No tasks available to export in this category.');
+        return;
+      }
+      const wb = new ExcelJS.Workbook();
+      const sheetName = title.replace(/[^a-zA-Z0-9_-]/g, '_').substring(0, 30) || 'Tasks_Report';
+      const ws = wb.addWorksheet(sheetName);
+
+      // Title Row
+      ws.mergeCells('A1:K1');
+      const titleCell = ws.getCell('A1');
+      titleCell.value = `JOHN BUILDERS - ${title.toUpperCase()}`;
+      titleCell.font = { name: 'Calibri', size: 14, bold: true, color: { argb: 'FFFFFFFF' } };
+      titleCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0E623A' } };
+      titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
+      ws.getRow(1).height = 32;
+
+      // Subtitle / Date Row
+      ws.mergeCells('A2:K2');
+      const subCell = ws.getCell('A2');
+      subCell.value = `Generated On: ${new Date().toLocaleString('en-GB')} | Total Tasks: ${tasksToExport.length}`;
+      subCell.font = { name: 'Calibri', size: 10, italic: true, color: { argb: 'FF333333' } };
+      subCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8F5E9' } };
+      subCell.alignment = { horizontal: 'center', vertical: 'middle' };
+      ws.getRow(2).height = 20;
+
+      // Headers Row
+      const headers = [
+        'S.No',
+        'Project Name',
+        'Task Title',
+        'Description',
+        'Department',
+        'Assigned To',
+        'Assigned By',
+        'Priority',
+        'Assigned Date',
+        'Due Date',
+        'Status'
+      ];
+
+      const headerRow = ws.addRow(headers);
+      headerRow.height = 26;
+      headerRow.eachCell((cell) => {
+        cell.font = { name: 'Calibri', size: 11, bold: true, color: { argb: 'FFFFFFFF' } };
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF004D2A' } };
+        cell.alignment = { horizontal: 'center', vertical: 'middle' };
+        cell.border = {
+          top: { style: 'thin', color: { argb: 'FFCCCCCC' } },
+          left: { style: 'thin', color: { argb: 'FFCCCCCC' } },
+          bottom: { style: 'thin', color: { argb: 'FFCCCCCC' } },
+          right: { style: 'thin', color: { argb: 'FFCCCCCC' } }
+        };
+      });
+
+      // Data Rows
+      tasksToExport.forEach((task, idx) => {
+        const assignedDateStr = task.createdAt 
+          ? new Date(task.createdAt).toLocaleDateString('en-GB') 
+          : (task.assignedDate ? new Date(task.assignedDate).toLocaleDateString('en-GB') : '—');
+        const dueDateStr = task.dueDate ? new Date(task.dueDate).toLocaleDateString('en-GB') : '—';
+
+        const row = ws.addRow([
+          idx + 1,
+          task.projectName || '—',
+          task.title || '—',
+          task.description || '—',
+          task.category || 'General',
+          task.assignedTo?.name || 'Unassigned',
+          task.assignedBy?.name || 'Admin',
+          task.priority || 'Medium',
+          assignedDateStr,
+          dueDateStr,
+          task.status || 'New'
+        ]);
+
+        row.height = 22;
+        const isEven = idx % 2 === 0;
+        row.eachCell((cell, colNumber) => {
+          cell.font = { name: 'Calibri', size: 10 };
+          cell.alignment = { vertical: 'middle', horizontal: [1, 8, 9, 10, 11].includes(colNumber) ? 'center' : 'left' };
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: isEven ? 'FFFFFFFF' : 'FFF9FBF9' } };
+          cell.border = {
+            top: { style: 'thin', color: { argb: 'FFE5E5E5' } },
+            left: { style: 'thin', color: { argb: 'FFE5E5E5' } },
+            bottom: { style: 'thin', color: { argb: 'FFE5E5E5' } },
+            right: { style: 'thin', color: { argb: 'FFE5E5E5' } }
+          };
+        });
+      });
+
+      // Column Widths
+      ws.columns = [
+        { width: 8 },  // S.No
+        { width: 20 }, // Project
+        { width: 28 }, // Title
+        { width: 32 }, // Description
+        { width: 16 }, // Department
+        { width: 20 }, // Assigned To
+        { width: 18 }, // Assigned By
+        { width: 12 }, // Priority
+        { width: 16 }, // Assigned Date
+        { width: 16 }, // Due Date
+        { width: 14 }  // Status
+      ];
+
+      const buffer = await wb.xlsx.writeBuffer();
+      const cleanFileName = `${title.replace(/[^a-zA-Z0-9_-]/g, '_')}_${new Date().toISOString().slice(0, 10)}.xlsx`;
+      saveAs(new Blob([buffer]), cleanFileName);
+      setSuccessMsg(`Exported ${tasksToExport.length} tasks to Excel successfully!`);
+      setTimeout(() => setSuccessMsg(''), 3500);
+    } catch (err) {
+      console.error('Failed to export tasks to Excel:', err);
+      setError('Failed to export to Excel: ' + (err.message || 'Unknown error'));
+      setTimeout(() => setError(''), 4000);
+    }
+  };
+
+  const handleOpenEmailShare = (title, tasksList) => {
+    setEmailShareModal({
+      open: true,
+      title: title,
+      tasks: tasksList,
+      recipientEmail: '',
+      note: '',
+      sending: false,
+      copied: false
+    });
+  };
+
+  const generateTaskSummaryText = (title, tasksList, customNote = '') => {
+    let summary = `JOHN BUILDERS - ${title.toUpperCase()}\n`;
+    summary += `Date: ${new Date().toLocaleString('en-GB')}\n`;
+    summary += `Total Tasks: ${tasksList.length}\n\n`;
+    if (customNote.trim()) {
+      summary += `Note:\n${customNote.trim()}\n\n`;
+    }
+    summary += `------------------------------------------------------------\n`;
+    tasksList.forEach((t, i) => {
+      const assignedDate = t.createdAt ? new Date(t.createdAt).toLocaleDateString('en-GB') : (t.assignedDate ? new Date(t.assignedDate).toLocaleDateString('en-GB') : '—');
+      const dueDate = t.dueDate ? new Date(t.dueDate).toLocaleDateString('en-GB') : '—';
+      summary += `${i + 1}. [${t.status || 'New'}] ${t.title || 'Untitled'}\n`;
+      if (t.projectName) summary += `   Project: ${t.projectName}\n`;
+      summary += `   Assigned To: ${t.assignedTo?.name || 'Unassigned'} (${t.category || 'General'})\n`;
+      summary += `   Due Date: ${dueDate} | Priority: ${t.priority || 'Medium'}\n\n`;
+    });
+    summary += `------------------------------------------------------------\n`;
+    summary += `Sent via John Builders Task Scheduler\n`;
+    return summary;
+  };
+
+  const handleSendEmailReport = async (e) => {
+    e.preventDefault();
+    if (!emailShareModal.recipientEmail.trim()) {
+      alert('Please enter or select a recipient email address.');
+      return;
+    }
+
+    try {
+      setEmailShareModal(prev => ({ ...prev, sending: true }));
+      const subject = `Task Report: ${emailShareModal.title} (${emailShareModal.tasks.length} Tasks) - John Builders`;
+      const body = generateTaskSummaryText(emailShareModal.title, emailShareModal.tasks, emailShareModal.note);
+
+      // Launch email client via mailto
+      const mailtoUrl = `mailto:${encodeURIComponent(emailShareModal.recipientEmail)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+      window.open(mailtoUrl, '_blank');
+
+      setSuccessMsg(`Email client launched with report for ${emailShareModal.recipientEmail}!`);
+      setTimeout(() => setSuccessMsg(''), 4000);
+      setEmailShareModal(prev => ({ ...prev, open: false, sending: false }));
+    } catch (err) {
+      console.error('Failed to send email:', err);
+      setError('Failed to process email sharing');
+      setTimeout(() => setError(''), 4000);
+      setEmailShareModal(prev => ({ ...prev, sending: false }));
+    }
+  };
+
+  const handleCopyEmailReport = (title, tasksList, note) => {
+    const text = generateTaskSummaryText(title, tasksList, note);
+    navigator.clipboard.writeText(text);
+    setEmailShareModal(prev => ({ ...prev, copied: true }));
+    setSuccessMsg('Task summary report copied to clipboard!');
+    setTimeout(() => {
+      setSuccessMsg('');
+      setEmailShareModal(prev => ({ ...prev, copied: false }));
+    }, 3000);
+  };
 
   useEffect(() => {
     const handleDocClick = (e) => {
@@ -1004,12 +1227,13 @@ const TasksBoard = () => {
       <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
         {/* 1. Total (Highlighted Dark Green) */}
         <div 
-          onClick={() => setStatusFilter('ALL')}
+          onClick={() => handleCardClick('ALL', 'Total Tasks', tasks)}
           className={`p-3.5 rounded-2xl border transition-all cursor-pointer ${
             statusFilter === 'ALL' 
               ? 'bg-[#003822] text-white border-emerald-700 shadow-md ring-2 ring-emerald-500 scale-[1.02]' 
               : 'bg-[#0e623a] text-white border-[#0e623a] hover:bg-[#003822]'
           }`}
+          title="Click to view full list & export / share Total tasks"
         >
           <div className="flex items-center justify-between">
             <span className="text-[10px] font-extrabold uppercase text-emerald-200">Total</span>
@@ -1020,12 +1244,13 @@ const TasksBoard = () => {
 
         {/* 2. Pending Tasks (Highlighted Green identical to Total card format - right after Total) */}
         <div 
-          onClick={() => setStatusFilter('PENDING')}
+          onClick={() => handleCardClick('PENDING', 'Pending Tasks', tasks.filter(t => t.status === 'New' || t.status === 'In Progress'))}
           className={`p-3.5 rounded-2xl border transition-all cursor-pointer ${
             statusFilter === 'PENDING' 
               ? 'bg-[#003822] text-white border-emerald-700 shadow-md ring-2 ring-emerald-500 scale-[1.02]' 
               : 'bg-[#0e623a] text-white border-[#0e623a] hover:bg-[#003822]'
           }`}
+          title="Click to view full list & export / share Pending tasks"
         >
           <div className="flex items-center justify-between">
             <span className="text-[10px] font-extrabold uppercase text-emerald-200">Pending Tasks</span>
@@ -1036,8 +1261,9 @@ const TasksBoard = () => {
 
         {/* 3. New */}
         <div 
-          onClick={() => setStatusFilter('NEW')}
+          onClick={() => handleCardClick('NEW', 'New Tasks', tasks.filter(t => t.status === 'New'))}
           className={`p-3.5 rounded-2xl border transition-all cursor-pointer ${statusFilter === 'NEW' ? 'bg-blue-950 text-white border-blue-800 shadow-md ring-2 ring-blue-600' : 'bg-white border-gray-150 hover:border-gray-300'}`}
+          title="Click to view full list & export / share New tasks"
         >
           <div className="flex items-center justify-between">
             <span className={`text-[10px] font-extrabold uppercase ${statusFilter === 'NEW' ? 'text-blue-300' : 'text-blue-600'}`}>New</span>
@@ -1048,8 +1274,9 @@ const TasksBoard = () => {
 
         {/* 4. In Progress */}
         <div 
-          onClick={() => setStatusFilter('IN_PROGRESS')}
+          onClick={() => handleCardClick('IN_PROGRESS', 'In Progress Tasks', tasks.filter(t => t.status === 'In Progress'))}
           className={`p-3.5 rounded-2xl border transition-all cursor-pointer ${statusFilter === 'IN_PROGRESS' ? 'bg-amber-950 text-white border-amber-800 shadow-md ring-2 ring-amber-600' : 'bg-white border-gray-150 hover:border-gray-300'}`}
+          title="Click to view full list & export / share In Progress tasks"
         >
           <div className="flex items-center justify-between">
             <span className={`text-[10px] font-extrabold uppercase ${statusFilter === 'IN_PROGRESS' ? 'text-amber-300' : 'text-amber-600'}`}>In Progress</span>
@@ -1060,8 +1287,9 @@ const TasksBoard = () => {
 
         {/* 5. On Hold */}
         <div 
-          onClick={() => setStatusFilter('ON_HOLD')}
+          onClick={() => handleCardClick('ON_HOLD', 'On Hold Tasks', tasks.filter(t => t.status === 'On Hold'))}
           className={`p-3.5 rounded-2xl border transition-all cursor-pointer ${statusFilter === 'ON_HOLD' ? 'bg-purple-950 text-white border-purple-800 shadow-md ring-2 ring-purple-600' : 'bg-white border-gray-150 hover:border-gray-300'}`}
+          title="Click to view full list & export / share On Hold tasks"
         >
           <div className="flex items-center justify-between">
             <span className={`text-[10px] font-extrabold uppercase ${statusFilter === 'ON_HOLD' ? 'text-purple-300' : 'text-purple-600'}`}>On Hold</span>
@@ -1072,8 +1300,9 @@ const TasksBoard = () => {
 
         {/* 6. Completed */}
         <div 
-          onClick={() => setStatusFilter('COMPLETED')}
+          onClick={() => handleCardClick('COMPLETED', 'Completed Tasks', tasks.filter(t => t.status === 'Completed'))}
           className={`p-3.5 rounded-2xl border transition-all cursor-pointer ${statusFilter === 'COMPLETED' ? 'bg-emerald-900 text-white border-emerald-700 shadow-md ring-2 ring-emerald-500' : 'bg-white border-gray-150 hover:border-gray-300'}`}
+          title="Click to view full list & export / share Completed tasks"
         >
           <div className="flex items-center justify-between">
             <span className={`text-[10px] font-extrabold uppercase ${statusFilter === 'COMPLETED' ? 'text-emerald-300' : 'text-emerald-600'}`}>Completed</span>
@@ -1084,8 +1313,9 @@ const TasksBoard = () => {
 
         {/* 7. Cancelled */}
         <div 
-          onClick={() => setStatusFilter('CANCELLED')}
+          onClick={() => handleCardClick('CANCELLED', 'Cancelled Tasks', tasks.filter(t => t.status === 'Cancelled'))}
           className={`p-3.5 rounded-2xl border transition-all cursor-pointer ${statusFilter === 'CANCELLED' ? 'bg-gray-800 text-white border-gray-700 shadow-md ring-2 ring-gray-600' : 'bg-white border-gray-150 hover:border-gray-300'}`}
+          title="Click to view full list & export / share Cancelled tasks"
         >
           <div className="flex items-center justify-between">
             <span className={`text-[10px] font-extrabold uppercase ${statusFilter === 'CANCELLED' ? 'text-gray-300' : 'text-gray-600'}`}>Cancelled</span>
@@ -1096,8 +1326,9 @@ const TasksBoard = () => {
 
         {/* 8. Overdated */}
         <div 
-          onClick={() => setStatusFilter('OVERDATED')}
+          onClick={() => handleCardClick('OVERDATED', 'Overdated Tasks', tasks.filter(t => isOverdated(t)))}
           className={`p-3.5 rounded-2xl border transition-all cursor-pointer ${statusFilter === 'OVERDATED' ? 'bg-rose-950 text-white border-rose-800 shadow-md ring-2 ring-rose-600' : 'bg-rose-50/50 border-rose-200 hover:border-rose-300'}`}
+          title="Click to view full list & export / share Overdated tasks"
         >
           <div className="flex items-center justify-between">
             <span className={`text-[10px] font-extrabold uppercase ${statusFilter === 'OVERDATED' ? 'text-rose-300' : 'text-rose-700'}`}>Overdated</span>
@@ -2290,6 +2521,332 @@ const TasksBoard = () => {
                 className="max-h-[70vh] max-w-full object-contain rounded-xl shadow-lg"
               />
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Card Details Popup Modal with Table, Export Excel & Email Share */}
+      {cardModal.open && (() => {
+        const filteredModalTasks = (cardModal.tasks || []).filter(t => {
+          if (!cardModalSearch.trim()) return true;
+          const term = cardModalSearch.toLowerCase();
+          return (
+            (t.title || '').toLowerCase().includes(term) ||
+            (t.description || '').toLowerCase().includes(term) ||
+            (t.projectName || '').toLowerCase().includes(term) ||
+            (t.category || '').toLowerCase().includes(term) ||
+            (t.assignedTo?.name || '').toLowerCase().includes(term) ||
+            (t.assignedBy?.name || '').toLowerCase().includes(term)
+          );
+        });
+
+        return (
+          <div className="fixed inset-0 bg-gray-900/70 backdrop-blur-md z-[99990] flex items-center justify-center p-3 sm:p-5">
+            <div className="bg-white rounded-3xl border border-gray-200 shadow-2xl w-full max-w-6xl max-h-[92vh] flex flex-col overflow-hidden animate-fadeIn">
+              {/* Modal Header */}
+              <div className="px-6 py-4 bg-gradient-to-r from-[#004d2a] to-[#0e623a] text-white flex flex-wrap items-center justify-between gap-3 shrink-0">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="p-2 bg-white/10 rounded-xl">
+                    <ClipboardList className="w-5 h-5 text-emerald-300" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-extrabold text-base tracking-wide">{cardModal.title}</h3>
+                      <span className="px-2.5 py-0.5 bg-emerald-400/20 text-emerald-200 border border-emerald-400/30 rounded-full text-xs font-black">
+                        {filteredModalTasks.length} {filteredModalTasks.length === 1 ? 'Task' : 'Tasks'}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-emerald-100/80 font-medium">Detailed breakdown of tasks in this category</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  {/* Export to Excel Button */}
+                  <button
+                    type="button"
+                    onClick={() => exportModalTasksToExcel(filteredModalTasks, cardModal.title)}
+                    className="px-3.5 py-2 bg-white text-[#0e623a] hover:bg-emerald-50 font-black text-xs rounded-xl shadow transition cursor-pointer flex items-center gap-1.5"
+                    title="Export tasks to formatted Excel file (.xlsx)"
+                  >
+                    <FileSpreadsheet className="w-4 h-4 text-[#0e623a]" />
+                    <span>Export Excel</span>
+                  </button>
+
+                  {/* Share via Email Button */}
+                  <button
+                    type="button"
+                    onClick={() => handleOpenEmailShare(cardModal.title, filteredModalTasks)}
+                    className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-black text-xs rounded-xl shadow transition cursor-pointer flex items-center gap-1.5"
+                    title="Share task list via Email"
+                  >
+                    <Mail className="w-4 h-4" />
+                    <span>Share via Email</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setCardModal({ open: false, type: 'ALL', title: '', tasks: [] })}
+                    className="p-1.5 hover:bg-white/20 rounded-xl transition text-white cursor-pointer ml-1"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Modal Search Bar */}
+              <div className="p-4 bg-gray-50 border-b border-gray-200 flex items-center justify-between gap-3 shrink-0">
+                <div className="relative flex-1 max-w-md">
+                  <Search className="w-4 h-4 absolute left-3.5 top-2.5 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Search in this list by title, project, assignee..."
+                    value={cardModalSearch}
+                    onChange={(e) => setCardModalSearch(e.target.value)}
+                    className="w-full pl-9 pr-3.5 py-2 bg-white border border-gray-200 rounded-xl text-xs font-semibold text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#0e623a]"
+                  />
+                </div>
+                <div className="text-xs text-gray-500 font-bold hidden sm:block">
+                  Showing {filteredModalTasks.length} of {cardModal.tasks?.length || 0} tasks
+                </div>
+              </div>
+
+              {/* Modal Table Container */}
+              <div className="overflow-auto flex-1 p-4 custom-scrollbar">
+                {filteredModalTasks.length === 0 ? (
+                  <div className="p-12 text-center text-gray-400 bg-gray-50 rounded-2xl border border-dashed border-gray-200 space-y-2">
+                    <ClipboardList className="w-10 h-10 mx-auto text-gray-300" />
+                    <p className="text-sm font-bold text-gray-600">No tasks match your search in this category</p>
+                  </div>
+                ) : (
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead>
+                      <tr className="border-b border-gray-200 bg-gray-100/80 text-gray-600 font-black uppercase tracking-wider text-[10px] sticky top-0 z-10">
+                        <th className="p-2.5 w-8 text-center">S.No</th>
+                        <th className="p-2.5 min-w-[90px]">Project</th>
+                        <th className="p-2.5 min-w-[140px]">Task Title</th>
+                        <th className="p-2.5 min-w-[90px]">Department</th>
+                        <th className="p-2.5 min-w-[110px]">Assigned To</th>
+                        <th className="p-2.5 min-w-[95px]">Assigned By</th>
+                        <th className="p-2.5 min-w-[70px] text-center">Priority</th>
+                        <th className="p-2.5 min-w-[85px]">Assigned Date</th>
+                        <th className="p-2.5 min-w-[95px]">Due Date</th>
+                        <th className="p-2.5 min-w-[90px] text-center">Status</th>
+                        <th className="p-2.5 w-16 text-center">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {filteredModalTasks.map((task, idx) => {
+                        const over = isOverdated(task);
+                        let statusBadge = 'bg-blue-50 text-blue-700 border-blue-200';
+                        if (task.status === 'In Progress') statusBadge = 'bg-amber-50 text-amber-700 border-amber-200';
+                        if (task.status === 'On Hold') statusBadge = 'bg-purple-50 text-purple-700 border-purple-200';
+                        if (task.status === 'Completed') statusBadge = 'bg-emerald-50 text-emerald-700 border-emerald-200';
+                        if (task.status === 'Cancelled') statusBadge = 'bg-gray-100 text-gray-600 border-gray-300';
+
+                        let priorityBadge = 'bg-blue-50 text-blue-800 border-blue-200 font-bold';
+                        if (task.priority === 'High') priorityBadge = 'bg-amber-100 text-amber-800 border-amber-300 font-extrabold';
+                        if (task.priority === 'Low') priorityBadge = 'bg-gray-100 text-gray-700 border-gray-300 font-semibold';
+
+                        return (
+                          <tr key={task._id} className="hover:bg-gray-50/80 transition">
+                            <td className="p-2.5 text-center font-bold text-gray-400">{idx + 1}</td>
+                            <td className="p-2.5 font-bold text-[#0e623a]">
+                              {task.projectName || <span className="text-gray-400 italic font-normal">—</span>}
+                            </td>
+                            <td className="p-2.5 font-bold text-gray-900 max-w-[200px] truncate" title={task.title}>
+                              {task.title}
+                            </td>
+                            <td className="p-2.5">
+                              <span className="px-2 py-0.5 border font-extrabold text-[10px] rounded-md bg-gray-50 text-gray-700 border-gray-200">
+                                {task.category || 'General'}
+                              </span>
+                            </td>
+                            <td className="p-2.5">
+                              <p className="font-bold text-gray-800 truncate">{task.assignedTo?.name || 'Unassigned'}</p>
+                              {task.assignedTo?.role && <span className="text-[9px] text-gray-400 block">{task.assignedTo?.role}</span>}
+                            </td>
+                            <td className="p-2.5 font-semibold text-gray-600">
+                              {task.assignedBy?.name || 'Admin'}
+                            </td>
+                            <td className="p-2.5 text-center">
+                              <span className={`px-2 py-0.5 text-[9px] uppercase tracking-wider border rounded ${priorityBadge}`}>
+                                {task.priority || 'Medium'}
+                              </span>
+                            </td>
+                            <td className="p-2.5 text-gray-700 font-medium whitespace-nowrap">
+                              {task.createdAt ? new Date(task.createdAt).toLocaleDateString('en-GB') : (task.assignedDate ? new Date(task.assignedDate).toLocaleDateString('en-GB') : '—')}
+                            </td>
+                            <td className="p-2.5">
+                              <span className="font-bold text-gray-800 whitespace-nowrap block">
+                                {task.dueDate ? new Date(task.dueDate).toLocaleDateString('en-GB') : '—'}
+                              </span>
+                              {over && (
+                                <span className="inline-block px-1 py-0.2 rounded text-[8px] font-black uppercase tracking-wide bg-rose-100 text-rose-700 border border-rose-300 whitespace-nowrap">
+                                  OVERDATED
+                                </span>
+                              )}
+                            </td>
+                            <td className="p-2.5 text-center">
+                              <span className={`px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide border rounded-lg inline-block ${statusBadge}`}>
+                                {task.status}
+                              </span>
+                            </td>
+                            <td className="p-2.5 text-center">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setCardModal({ open: false, type: 'ALL', title: '', tasks: [] });
+                                  handleOpenHistoryModal(task);
+                                }}
+                                className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition font-bold text-xs flex items-center gap-1 mx-auto cursor-pointer"
+                                title="Reply / View History"
+                              >
+                                <MessageSquare className="w-3.5 h-3.5" />
+                                <span>Reply</span>
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+
+              {/* Modal Footer */}
+              <div className="p-4 bg-gray-50 border-t border-gray-200 flex items-center justify-between gap-3 shrink-0">
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => exportModalTasksToExcel(filteredModalTasks, cardModal.title)}
+                    className="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl shadow transition cursor-pointer flex items-center gap-1.5"
+                  >
+                    <FileSpreadsheet className="w-4 h-4" />
+                    <span>Download Excel</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleOpenEmailShare(cardModal.title, filteredModalTasks)}
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow transition cursor-pointer flex items-center gap-1.5"
+                  >
+                    <Mail className="w-4 h-4" />
+                    <span>Share via Email</span>
+                  </button>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setCardModal({ open: false, type: 'ALL', title: '', tasks: [] })}
+                  className="px-5 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold text-xs rounded-xl transition cursor-pointer"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* Email Sharing Sub-Modal */}
+      {emailShareModal.open && (
+        <div className="fixed inset-0 bg-gray-900/80 backdrop-blur-md z-[99999] flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl border border-gray-200 shadow-2xl w-full max-w-lg overflow-hidden animate-fadeIn">
+            <div className="px-6 py-4 bg-gradient-to-r from-blue-700 to-indigo-700 text-white flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Mail className="w-5 h-5 text-blue-200" />
+                <div>
+                  <h3 className="font-extrabold text-sm">Share Tasks Report via Email</h3>
+                  <p className="text-[10px] text-blue-100">{emailShareModal.title} ({emailShareModal.tasks?.length || 0} Tasks)</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEmailShareModal(prev => ({ ...prev, open: false }))}
+                className="p-1 hover:bg-white/20 rounded-lg transition text-white cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSendEmailReport} className="p-6 space-y-4 text-xs">
+              {/* Recipient Selector / Input */}
+              <div className="space-y-1.5">
+                <label className="font-bold text-gray-700 block">Recipient Email Address <span className="text-red-500">*</span></label>
+                <div className="space-y-2">
+                  <input
+                    type="email"
+                    required
+                    placeholder="Enter recipient email (e.g. manager@builders.com)..."
+                    value={emailShareModal.recipientEmail}
+                    onChange={(e) => setEmailShareModal(prev => ({ ...prev, recipientEmail: e.target.value }))}
+                    className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-600"
+                  />
+
+                  {/* Quick Pick from Team Members */}
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="text-[10px] font-bold text-gray-400">Quick select:</span>
+                    {employees.filter(e => e.email).slice(0, 5).map(emp => (
+                      <button
+                        key={emp._id || emp.email}
+                        type="button"
+                        onClick={() => setEmailShareModal(prev => ({ ...prev, recipientEmail: emp.email }))}
+                        className="px-2 py-0.5 bg-gray-100 hover:bg-blue-50 hover:text-blue-700 text-gray-700 rounded-lg text-[10px] font-semibold transition border border-gray-200 cursor-pointer"
+                      >
+                        {emp.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Optional Custom Note */}
+              <div className="space-y-1.5">
+                <label className="font-bold text-gray-700 block">Optional Message / Note</label>
+                <textarea
+                  rows={3}
+                  placeholder="Add any specific instructions or note to include with the report..."
+                  value={emailShareModal.note}
+                  onChange={(e) => setEmailShareModal(prev => ({ ...prev, note: e.target.value }))}
+                  className="w-full px-3.5 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-blue-600 resize-none"
+                />
+              </div>
+
+              {/* Preview Box */}
+              <div className="p-3 bg-gray-50 rounded-xl border border-gray-200 space-y-1">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-gray-600 text-[11px]">Report Summary Preview</span>
+                  <button
+                    type="button"
+                    onClick={() => handleCopyEmailReport(emailShareModal.title, emailShareModal.tasks, emailShareModal.note)}
+                    className="text-blue-600 hover:text-blue-800 font-bold text-[10px] flex items-center gap-1 cursor-pointer"
+                  >
+                    <Copy className="w-3 h-3" />
+                    <span>{emailShareModal.copied ? 'Copied!' : 'Copy Text'}</span>
+                  </button>
+                </div>
+                <p className="text-[10px] text-gray-500 line-clamp-3 font-mono bg-white p-2 rounded border border-gray-150">
+                  {generateTaskSummaryText(emailShareModal.title, emailShareModal.tasks, emailShareModal.note)}
+                </p>
+              </div>
+
+              <div className="pt-2 flex items-center justify-end gap-2 border-t border-gray-100">
+                <button
+                  type="button"
+                  onClick={() => setEmailShareModal(prev => ({ ...prev, open: false }))}
+                  className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold text-xs rounded-xl transition cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={emailShareModal.sending || !emailShareModal.recipientEmail}
+                  className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow transition cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+                >
+                  <Send className="w-3.5 h-3.5" />
+                  <span>Send Email</span>
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
