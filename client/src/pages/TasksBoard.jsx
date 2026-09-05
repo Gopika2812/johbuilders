@@ -1078,18 +1078,6 @@ const TasksBoard = () => {
           </div>
           <p className={`text-xl font-black mt-1 ${statusFilter === 'OVERDATED' ? 'text-white' : 'text-rose-700'}`}>{overdatedCount}</p>
         </div>
-
-        {/* 8. Pending Tasks Card (Placed below Overdated card: lg:col-start-7) */}
-        <div 
-          onClick={() => setStatusFilter('PENDING')}
-          className={`p-3.5 rounded-2xl border transition-all cursor-pointer lg:col-start-7 ${statusFilter === 'PENDING' ? 'bg-amber-950 text-white border-amber-800 shadow-md ring-2 ring-amber-600' : 'bg-amber-50/70 border-amber-200 hover:border-amber-300'}`}
-        >
-          <div className="flex items-center justify-between">
-            <span className={`text-[10px] font-extrabold uppercase ${statusFilter === 'PENDING' ? 'text-amber-300' : 'text-amber-800'}`}>Pending Tasks</span>
-            <Clock className={`w-3.5 h-3.5 ${statusFilter === 'PENDING' ? 'text-amber-300' : 'text-amber-600'}`} />
-          </div>
-          <p className={`text-xl font-black mt-1 ${statusFilter === 'PENDING' ? 'text-white' : 'text-amber-800'}`}>{pendingCount}</p>
-        </div>
       </div>
 
       {/* Messages */}
@@ -1117,7 +1105,7 @@ const TasksBoard = () => {
         </div>
       )}
 
-      {/* View Tabs: All Tasks (Highlighted Default), Assigned to Me, Other Tasks */}
+      {/* View Tabs Bar: Left = All Tasks, Assigned to Me, Assigned to | Right = Green Highlighted Pending Tasks Card */}
       <div className="flex flex-wrap items-center justify-between gap-3 bg-white border border-gray-150 p-2.5 rounded-2xl shadow-sm">
         <div className="flex flex-wrap items-center gap-2">
           {/* All Tasks (DEFAULT & HIGHLIGHTED) */}
@@ -1176,6 +1164,27 @@ const TasksBoard = () => {
               {iAssignedCount}
             </span>
           </button>
+        </div>
+
+        {/* Direct Opposite: Green Highlighted Pending Tasks Card */}
+        <div 
+          onClick={() => setStatusFilter(statusFilter === 'PENDING' ? 'ALL' : 'PENDING')}
+          className={`flex items-center gap-2.5 px-4 py-2 rounded-xl border transition-all cursor-pointer shadow-xs select-none shrink-0 ${
+            statusFilter === 'PENDING'
+              ? 'bg-[#006838] text-white border-[#006838] shadow-md ring-2 ring-emerald-500/50 scale-[1.02]'
+              : 'bg-emerald-50 hover:bg-emerald-100/90 text-[#006838] border-emerald-300'
+          }`}
+          title="Click to filter Pending Tasks (New + In Progress)"
+        >
+          <div className="flex items-center gap-1.5">
+            <Clock className={`w-4 h-4 ${statusFilter === 'PENDING' ? 'text-emerald-200' : 'text-[#006838]'}`} />
+            <span className="text-xs font-black uppercase tracking-wide">Pending Tasks</span>
+          </div>
+          <span className={`px-2.5 py-0.5 rounded-full text-xs font-black ${
+            statusFilter === 'PENDING' ? 'bg-white text-[#006838]' : 'bg-[#006838] text-white'
+          }`}>
+            {pendingCount}
+          </span>
         </div>
       </div>
 
