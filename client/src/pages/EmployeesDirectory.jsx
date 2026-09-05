@@ -25,7 +25,8 @@ import {
   EyeOff,
   User as UserIcon,
   Check,
-  AlertCircle
+  AlertCircle,
+  Building2
 } from 'lucide-react';
 
 const DEFAULT_ROLES = ['Superadmin', 'Crd team', 'sales person', 'ped team', 'accounts team'];
@@ -36,11 +37,13 @@ const EmployeesDirectory = () => {
   const [employees, setEmployees] = useState([]);
   const [availableRoles, setAvailableRoles] = useState(DEFAULT_ROLES);
   const [availableDepartments, setAvailableDepartments] = useState(DEFAULT_DEPARTMENTS);
+  const [departmentObjects, setDepartmentObjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
   const [approvingId, setApprovingId] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
+  const [returnToModal, setReturnToModal] = useState(null);
 
   // Search & Filter state
   const [searchTerm, setSearchTerm] = useState('');
@@ -71,6 +74,14 @@ const EmployeesDirectory = () => {
   const [roleError, setRoleError] = useState('');
   const [roleSuccess, setRoleSuccess] = useState('');
   const [deletingRole, setDeletingRole] = useState(null);
+
+  // Department Creation / Management Modal state
+  const [isDeptModalOpen, setIsDeptModalOpen] = useState(false);
+  const [newDeptName, setNewDeptName] = useState('');
+  const [savingDept, setSavingDept] = useState(false);
+  const [deptError, setDeptError] = useState('');
+  const [deptSuccess, setDeptSuccess] = useState('');
+  const [deletingDeptId, setDeletingDeptId] = useState(null);
 
   // Edit Modal state
   const [editingEmployee, setEditingEmployee] = useState(null);
@@ -142,6 +153,7 @@ const EmployeesDirectory = () => {
       if (response.ok) {
         const data = await response.json();
         if (Array.isArray(data) && data.length > 0) {
+          setDepartmentObjects(data);
           const names = data.map(d => typeof d === 'string' ? d : d.name).filter(Boolean);
           setAvailableDepartments(Array.from(new Set([...DEFAULT_DEPARTMENTS, ...names])));
         }
@@ -232,6 +244,8 @@ const EmployeesDirectory = () => {
         setRoleSuccess(`Role "${trimmed}" created successfully!`);
         setMessage(`New role "${trimmed}" has been created.`);
         setNewRoleName('');
+        setAddFormData(prev => ({ ...prev, role: trimmed }));
+        setEditFormData(prev => ({ ...prev, role: trimmed }));
         await fetchRoles();
         setTimeout(() => setRoleSuccess(''), 3000);
       } else {
@@ -277,6 +291,97 @@ const EmployeesDirectory = () => {
       setRoleError('Connection error deleting role');
     } finally {
       setDeletingRole(null);
+    }
+  };
+
+  // Create Department Handler
+  const handleCreateDepartment = async (e) => {
+    e.preventDefault();
+    if (!newDeptName.trim()) {
+      setDeptError('Please enter a valid department name');
+      return;
+    }
+
+    const trimmed = newDeptName.trim();
+    if (availableDepartments.some(d => d.toLowerCase() === trimmed.toLowerCase())) {
+      setDeptError(`Department "${trimmed}" already exists.`);
+      return;
+    }
+
+    setDeptError('');
+    setDeptSuccess('');
+    setSavingDept(true);
+
+    try {
+      const response = await fetch(`${API_URL}/task-categories`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ name: trimmed })
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setDeptSuccess(`Department "${trimmed}" created successfully!`);
+        setMessage(`New department "${trimmed}" has been created.`);
+        setNewDeptName('');
+        setAddFormData(prev => ({ ...prev, department: trimmed }));
+        setEditFormData(prev => ({ ...prev, department: trimmed }));
+        await fetchDepartments();
+        setTimeout(() => setDeptSuccess(''), 3000);
+      } else {
+        setDeptError(data.message || 'Failed to create department');
+      }
+    } catch (err) {
+      console.error('Error creating department:', err);
+      setDeptError('Connection error while creating department');
+    } finally {
+      setSavingDept(false);
+    }
+  };
+
+  // Delete Custom Department Handler
+  const handleDeleteDepartment = async (deptName) => {
+    if (!window.confirm(`Are you sure you want to delete department "${deptName}"?`)) {
+      return;
+    }
+
+    setDeptError('');
+    setDeptSuccess('');
+    setDeletingDeptId(deptName);
+
+    try {
+      const deptObj = departmentObjects.find(d => (typeof d === 'object' ? d.name : d) === deptName);
+      if (!deptObj || !deptObj._id) {
+        setAvailableDepartments(prev => prev.filter(d => d.toLowerCase() !== deptName.toLowerCase()));
+        setDeptSuccess(`Department "${deptName}" removed.`);
+        return;
+      }
+
+      const response = await fetch(`${API_URL}/task-categories/${deptObj._id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setDeptSuccess(data.message || `Department "${deptName}" deleted.`);
+        setMessage(`Department "${deptName}" deleted.`);
+        await fetchDepartments();
+      } else {
+        setDeptError(data.message || 'Failed to delete department');
+      }
+    } catch (err) {
+      console.error('Error deleting department:', err);
+      setDeptError('Connection error deleting department');
+    } finally {
+      setDeletingDeptId(null);
     }
   };
 
@@ -492,12 +597,28 @@ const EmployeesDirectory = () => {
               <>
                 {/* Role Creation / Management button */}
                 <button
-                  onClick={() => setIsRoleModalOpen(true)}
+                  onClick={() => {
+                    setReturnToModal(null);
+                    setIsRoleModalOpen(true);
+                  }}
                   className="px-3.5 py-2 bg-white/15 hover:bg-white/25 text-white border border-white/30 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm backdrop-blur-sm"
                   title="Create or Manage Custom Roles"
                 >
                   <ShieldPlus className="w-4 h-4 text-emerald-200" />
                   <span>Role Creation</span>
+                </button>
+
+                {/* Department Creation / Management button */}
+                <button
+                  onClick={() => {
+                    setReturnToModal(null);
+                    setIsDeptModalOpen(true);
+                  }}
+                  className="px-3.5 py-2 bg-white/15 hover:bg-white/25 text-white border border-white/30 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm backdrop-blur-sm"
+                  title="Create or Manage Departments"
+                >
+                  <Building2 className="w-4 h-4 text-emerald-200" />
+                  <span>Department Creation</span>
                 </button>
 
                 {/* Add Employee button */}
@@ -801,6 +922,7 @@ const EmployeesDirectory = () => {
                       type="button"
                       onClick={() => {
                         setIsAddModalOpen(false);
+                        setReturnToModal('add');
                         setIsRoleModalOpen(true);
                       }}
                       className="text-[11px] font-bold text-[#0e623a] hover:underline flex items-center gap-1"
@@ -821,7 +943,21 @@ const EmployeesDirectory = () => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1.5">Department *</label>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="block text-xs font-bold text-slate-700">Department *</label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsAddModalOpen(false);
+                        setReturnToModal('add');
+                        setIsDeptModalOpen(true);
+                      }}
+                      className="text-[11px] font-bold text-[#0e623a] hover:underline flex items-center gap-1"
+                    >
+                      <Plus className="w-3 h-3" />
+                      <span>Create New Department</span>
+                    </button>
+                  </div>
                   <select
                     value={addFormData.department}
                     onChange={(e) => setAddFormData({ ...addFormData, department: e.target.value })}
@@ -1048,7 +1184,158 @@ const EmployeesDirectory = () => {
             <div className="p-4 bg-slate-50 border-t border-slate-100 flex justify-end shrink-0">
               <button
                 type="button"
-                onClick={() => setIsRoleModalOpen(false)}
+                onClick={() => {
+                  setIsRoleModalOpen(false);
+                  if (returnToModal === 'add') {
+                    setIsAddModalOpen(true);
+                  }
+                  setReturnToModal(null);
+                }}
+                className="px-5 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl text-xs font-bold transition"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Department Creation / Management Modal */}
+      {isDeptModalOpen && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl shadow-2xl border border-slate-100 w-full max-w-lg overflow-hidden animate-in fade-in zoom-in duration-200 flex flex-col max-h-[90vh]">
+            <div className="bg-[#0e623a] p-6 text-white flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 bg-white/10 rounded-2xl border border-white/20">
+                  <Building2 className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold">Department Management</h3>
+                  <p className="text-emerald-100 text-xs">Create, view and manage organizational departments</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => {
+                  setIsDeptModalOpen(false);
+                  if (returnToModal === 'add') {
+                    setIsAddModalOpen(true);
+                  }
+                  setReturnToModal(null);
+                }} 
+                className="p-1.5 rounded-full hover:bg-white/10 transition text-emerald-100 hover:text-white"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-6 overflow-y-auto flex-1">
+              {deptError && (
+                <div className="bg-red-50 border border-red-200 text-red-700 p-3.5 rounded-2xl text-xs font-medium flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0" />
+                  <span>{deptError}</span>
+                </div>
+              )}
+
+              {deptSuccess && (
+                <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 p-3.5 rounded-2xl text-xs font-medium flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 shrink-0" />
+                  <span>{deptSuccess}</span>
+                </div>
+              )}
+
+              {/* Create New Department Form */}
+              <form onSubmit={handleCreateDepartment} className="p-4 bg-emerald-50/60 border border-emerald-100 rounded-2xl space-y-3">
+                <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-900">
+                  <Building2 className="w-4 h-4 text-emerald-700" />
+                  <span>Create New Department</span>
+                </div>
+
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    required
+                    value={newDeptName}
+                    onChange={(e) => setNewDeptName(e.target.value)}
+                    placeholder="Enter department name (e.g. Quality Assurance)"
+                    className="flex-1 px-3.5 py-2.5 bg-white border border-emerald-200 rounded-xl text-xs font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#0e623a]"
+                  />
+                  <button
+                    type="submit"
+                    disabled={savingDept || !newDeptName.trim()}
+                    className="px-4 py-2.5 bg-[#0e623a] text-white hover:bg-[#0b4d2d] rounded-xl text-xs font-bold transition flex items-center gap-1.5 disabled:opacity-50 shrink-0"
+                  >
+                    {savingDept ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
+                    <span>Create Department</span>
+                  </button>
+                </div>
+                <p className="text-[11px] text-emerald-700/80">
+                  Newly created departments will immediately become available across employee registration, task management, and directory filters.
+                </p>
+              </form>
+
+              {/* Existing Departments List */}
+              <div className="space-y-3">
+                <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider">Existing System & Custom Departments</h4>
+                <div className="divide-y divide-slate-100 border border-slate-200 rounded-2xl overflow-hidden">
+                  {availableDepartments.map((deptName) => {
+                    const isDefault = DEFAULT_DEPARTMENTS.some(d => d.toLowerCase() === deptName.toLowerCase());
+                    const assignedUsersCount = employees.filter(e => (e.department || 'General').toLowerCase() === deptName.toLowerCase()).length;
+
+                    return (
+                      <div key={deptName} className="p-3.5 flex items-center justify-between bg-white hover:bg-slate-50 transition">
+                        <div className="flex items-center gap-2.5">
+                          <div className={`w-2 h-2 rounded-full ${isDefault ? 'bg-[#0e623a]' : 'bg-purple-500'}`} />
+                          <div>
+                            <div className="text-xs font-bold text-slate-800 flex items-center gap-2">
+                              <span>{deptName}</span>
+                              {isDefault ? (
+                                <span className="text-[10px] bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-md font-semibold border border-emerald-100">
+                                  Default
+                                </span>
+                              ) : (
+                                <span className="text-[10px] bg-purple-50 text-purple-700 px-2 py-0.5 rounded-md font-semibold border border-purple-100">
+                                  Custom
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-[11px] text-slate-400 mt-0.5">
+                              {assignedUsersCount} active {assignedUsersCount === 1 ? 'employee' : 'employees'} assigned
+                            </div>
+                          </div>
+                        </div>
+
+                        {!isDefault && (
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteDepartment(deptName)}
+                            disabled={deletingDeptId === deptName || assignedUsersCount > 0}
+                            title={assignedUsersCount > 0 ? "Cannot delete department assigned to employees" : "Delete Department"}
+                            className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition disabled:opacity-30 disabled:cursor-not-allowed"
+                          >
+                            {deletingDeptId === deptName ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <Trash2 className="w-4 h-4" />
+                            )}
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            <div className="p-4 bg-slate-50 border-t border-slate-100 flex justify-end shrink-0">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsDeptModalOpen(false);
+                  if (returnToModal === 'add') {
+                    setIsAddModalOpen(true);
+                  }
+                  setReturnToModal(null);
+                }}
                 className="px-5 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl text-xs font-bold transition"
               >
                 Close
@@ -1143,7 +1430,22 @@ const EmployeesDirectory = () => {
               {/* Role & Department Selection grid */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1.5">Active System Role *</label>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="block text-xs font-bold text-slate-700">Active System Role *</label>
+                    {user?.role === 'Superadmin' && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setReturnToModal(null);
+                          setIsRoleModalOpen(true);
+                        }}
+                        className="text-[11px] font-bold text-[#0e623a] hover:underline flex items-center gap-1"
+                      >
+                        <Plus className="w-3 h-3" />
+                        <span>Create Role</span>
+                      </button>
+                    )}
+                  </div>
                   <select
                     disabled={user?.role !== 'Superadmin'}
                     value={editFormData.role}
@@ -1160,7 +1462,20 @@ const EmployeesDirectory = () => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1.5">Department *</label>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="block text-xs font-bold text-slate-700">Department *</label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setReturnToModal(null);
+                        setIsDeptModalOpen(true);
+                      }}
+                      className="text-[11px] font-bold text-[#0e623a] hover:underline flex items-center gap-1"
+                    >
+                      <Plus className="w-3 h-3" />
+                      <span>Create Dept</span>
+                    </button>
+                  </div>
                   <select
                     value={editFormData.department}
                     onChange={(e) => setEditFormData({ ...editFormData, department: e.target.value })}
