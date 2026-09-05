@@ -41,7 +41,12 @@ import {
   Mail,
   FileSpreadsheet,
   Share2,
-  Copy
+  Copy,
+  BarChart3,
+  TrendingUp,
+  Award,
+  Activity,
+  Percent
 } from 'lucide-react';
 
 const getTodayString = () => {
@@ -396,6 +401,296 @@ const TasksBoard = () => {
     sending: false,
     copied: false
   });
+
+  // Task Performance Report Modal State
+  const [performanceModal, setPerformanceModal] = useState({
+    open: false,
+    startDate: '',
+    endDate: '',
+    loading: false,
+    tasks: []
+  });
+
+  const fetchPerformanceTasks = async (sDate, eDate) => {
+    try {
+      setPerformanceModal(prev => ({ ...prev, loading: true }));
+      let url = `${API_URL}/user-tasks`;
+      const queryParts = [];
+      if (sDate) queryParts.push(`startDate=${sDate}`);
+      if (eDate) queryParts.push(`endDate=${eDate}`);
+      if (queryParts.length > 0) {
+        url += `?${queryParts.join('&')}`;
+      }
+      const res = await fetch(url, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setPerformanceModal(prev => ({ ...prev, tasks: data, loading: false }));
+      } else {
+        setPerformanceModal(prev => ({ ...prev, loading: false }));
+      }
+    } catch (err) {
+      console.error(err);
+      setPerformanceModal(prev => ({ ...prev, loading: false }));
+    }
+  };
+
+  const handleOpenPerformanceModal = () => {
+    if (startDate && !endDate) {
+      alert("Please select To Date. You didn't select To Date!");
+      return;
+    }
+    if (!startDate && endDate) {
+      alert("Please select From Date. You didn't select From Date!");
+      return;
+    }
+    if (startDate && endDate && startDate > endDate) {
+      alert("From Date cannot be after To Date. Please select a valid date range!");
+      return;
+    }
+
+    const sDate = startDate || '';
+    const eDate = endDate || '';
+    setPerformanceModal({
+      open: true,
+      startDate: sDate,
+      endDate: eDate,
+      loading: false,
+      tasks: tasks
+    });
+
+    if (sDate || eDate) {
+      fetchPerformanceTasks(sDate, eDate);
+    }
+  };
+
+  const calculateUserPerformanceRows = (tasksList) => {
+    const userMap = {};
+
+    employees.forEach(emp => {
+      userMap[emp._id] = {
+        userId: emp._id,
+        userName: emp.name || 'Unknown',
+        role: emp.role || 'Staff',
+        department: emp.department || 'General',
+        totalTasks: 0,
+        withinDueDate: 0,
+        overdatedCompleted: 0,
+        pendingTasks: 0,
+        cancelledTasks: 0,
+        completedTasks: 0
+      };
+    });
+
+    (tasksList || []).forEach(task => {
+      const assignedId = task.assignedTo?._id || task.assignedTo;
+      if (!assignedId) return;
+
+      if (!userMap[assignedId]) {
+        userMap[assignedId] = {
+          userId: assignedId,
+          userName: task.assignedTo?.name || 'Unassigned User',
+          role: task.assignedTo?.role || 'Staff',
+          department: task.assignedTo?.department || task.category || 'General',
+          totalTasks: 0,
+          withinDueDate: 0,
+          overdatedCompleted: 0,
+          pendingTasks: 0,
+          cancelledTasks: 0,
+          completedTasks: 0
+        };
+      }
+
+      const u = userMap[assignedId];
+      u.totalTasks += 1;
+
+      if (task.status === 'Completed') {
+        u.completedTasks += 1;
+        let isWithin = true;
+        if (task.dueDate) {
+          const due = new Date(task.dueDate);
+          due.setHours(23, 59, 59, 999);
+
+          const compHistory = task.history?.slice().reverse().find(h => h.status === 'Completed' || (h.action && h.action.toLowerCase().includes('completed')));
+          const compDate = compHistory?.timestamp ? new Date(compHistory.timestamp) : new Date(task.updatedAt || task.createdAt);
+          
+          if (compDate > due) {
+            isWithin = false;
+          }
+        }
+
+        if (isWithin) {
+          u.withinDueDate += 1;
+        } else {
+          u.overdatedCompleted += 1;
+        }
+      } else if (task.status === 'Cancelled') {
+        u.cancelledTasks += 1;
+      } else {
+        u.pendingTasks += 1;
+      }
+    });
+
+    return Object.values(userMap)
+      .filter(u => u.totalTasks > 0)
+      .map(u => {
+        const activeTasks = u.totalTasks - u.cancelledTasks;
+        const overallPct = activeTasks > 0 
+          ? Math.round(((u.withinDueDate + u.overdatedCompleted) / activeTasks) * 100) 
+          : 0;
+        const onTimePct = activeTasks > 0
+          ? Math.round((u.withinDueDate / activeTasks) * 100)
+          : 0;
+
+        return {
+          ...u,
+          overallPercentage: overallPct,
+          onTimePercentage: onTimePct
+        };
+      })
+      .sort((a, b) => b.totalTasks - a.totalTasks || b.overallPercentage - a.overallPercentage);
+  };
+
+  const exportPerformanceReportToExcel = async (rows, sDate, eDate) => {
+    try {
+      if (!rows || rows.length === 0) {
+        alert('No user performance data to export for this date range.');
+        return;
+      }
+
+      const wb = new ExcelJS.Workbook();
+      const ws = wb.addWorksheet('Performance_Report');
+
+      // Title Banner
+      ws.mergeCells('A1:H1');
+      const titleCell = ws.getCell('A1');
+      titleCell.value = 'JOHN BUILDERS - USER TASK PERFORMANCE REPORT';
+      titleCell.font = { name: 'Calibri', size: 14, bold: true, color: { argb: 'FFFFFFFF' } };
+      titleCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0E623A' } };
+      titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
+      ws.getRow(1).height = 32;
+
+      // Subtitle Row
+      ws.mergeCells('A2:H2');
+      const subCell = ws.getCell('A2');
+      const periodStr = sDate && eDate ? `Period: ${sDate} to ${eDate}` : 'Period: All Records';
+      subCell.value = `${periodStr} | Generated On: ${new Date().toLocaleString('en-GB')} | Total Assignees: ${rows.length}`;
+      subCell.font = { name: 'Calibri', size: 10, italic: true, color: { argb: 'FF333333' } };
+      subCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8F5E9' } };
+      subCell.alignment = { horizontal: 'center', vertical: 'middle' };
+      ws.getRow(2).height = 20;
+
+      // Table Headers
+      const headers = [
+        'S.No',
+        'User Name',
+        'Department / Role',
+        'Total Tasks',
+        'Within Due Date (Completed)',
+        'Overdated Completed',
+        'Pending Tasks',
+        'Overall Percentage (%)'
+      ];
+      const headerRow = ws.addRow(headers);
+      headerRow.height = 26;
+      headerRow.eachCell((cell) => {
+        cell.font = { name: 'Calibri', size: 11, bold: true, color: { argb: 'FFFFFFFF' } };
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF004D2A' } };
+        cell.alignment = { horizontal: 'center', vertical: 'middle' };
+        cell.border = {
+          top: { style: 'thin', color: { argb: 'FFCCCCCC' } },
+          left: { style: 'thin', color: { argb: 'FFCCCCCC' } },
+          bottom: { style: 'thin', color: { argb: 'FFCCCCCC' } },
+          right: { style: 'thin', color: { argb: 'FFCCCCCC' } }
+        };
+      });
+
+      let totalTasksSum = 0;
+      let withinDueSum = 0;
+      let overdatedSum = 0;
+      let pendingSum = 0;
+
+      // Data Rows
+      rows.forEach((r, idx) => {
+        totalTasksSum += r.totalTasks;
+        withinDueSum += r.withinDueDate;
+        overdatedSum += r.overdatedCompleted;
+        pendingSum += r.pendingTasks;
+
+        const row = ws.addRow([
+          idx + 1,
+          r.userName,
+          r.department ? `${r.department} (${r.role || ''})` : (r.role || 'Staff'),
+          r.totalTasks,
+          r.withinDueDate,
+          r.overdatedCompleted,
+          r.pendingTasks,
+          `${r.overallPercentage}%`
+        ]);
+
+        row.height = 22;
+        const isEven = idx % 2 === 0;
+        row.eachCell((cell, colNumber) => {
+          cell.font = { name: 'Calibri', size: 10, bold: colNumber === 2 || colNumber === 8 };
+          cell.alignment = { vertical: 'middle', horizontal: [1, 4, 5, 6, 7, 8].includes(colNumber) ? 'center' : 'left' };
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: isEven ? 'FFFFFFFF' : 'FFF9FBF9' } };
+          cell.border = {
+            top: { style: 'thin', color: { argb: 'FFE5E5E5' } },
+            left: { style: 'thin', color: { argb: 'FFE5E5E5' } },
+            bottom: { style: 'thin', color: { argb: 'FFE5E5E5' } },
+            right: { style: 'thin', color: { argb: 'FFE5E5E5' } }
+          };
+          if (colNumber === 5) cell.font = { name: 'Calibri', size: 10, bold: true, color: { argb: 'FF15803D' } };
+          if (colNumber === 6) cell.font = { name: 'Calibri', size: 10, bold: true, color: { argb: 'FFB45309' } };
+          if (colNumber === 7) cell.font = { name: 'Calibri', size: 10, bold: true, color: { argb: 'FFBE123C' } };
+          if (colNumber === 8) cell.font = { name: 'Calibri', size: 10, bold: true, color: { argb: 'FF4338CA' } };
+        });
+      });
+
+      // Total Row
+      const totalActive = totalTasksSum;
+      const overallAvgPct = totalActive > 0 ? Math.round(((withinDueSum + overdatedSum) / totalActive) * 100) : 0;
+      const totalRow = ws.addRow([
+        '',
+        'TOTAL SUMMARY',
+        '',
+        totalTasksSum,
+        withinDueSum,
+        overdatedSum,
+        pendingSum,
+        `${overallAvgPct}%`
+      ]);
+      totalRow.height = 26;
+      totalRow.eachCell((cell, colNumber) => {
+        cell.font = { name: 'Calibri', size: 11, bold: true, color: { argb: 'FFFFFFFF' } };
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0E623A' } };
+        cell.alignment = { vertical: 'middle', horizontal: [1, 4, 5, 6, 7, 8].includes(colNumber) ? 'center' : 'left' };
+        cell.border = {
+          top: { style: 'medium', color: { argb: 'FF004D2A' } },
+          bottom: { style: 'medium', color: { argb: 'FF004D2A' } }
+        };
+      });
+
+      ws.columns = [
+        { width: 8 },
+        { width: 28 },
+        { width: 24 },
+        { width: 14 },
+        { width: 26 },
+        { width: 22 },
+        { width: 16 },
+        { width: 22 }
+      ];
+
+      const buf = await wb.xlsx.writeBuffer();
+      const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      saveAs(blob, `JB_Task_Performance_Report_${new Date().toISOString().slice(0, 10)}.xlsx`);
+    } catch (err) {
+      console.error('Error exporting performance report:', err);
+      alert('Failed to export performance report to Excel.');
+    }
+  };
 
   const handleCardClick = (type, title, tasksList) => {
     setStatusFilter(type);
@@ -1450,8 +1745,18 @@ const TasksBoard = () => {
             />
           </div>
 
-          {/* Export Excel & Send Email Actions above columns */}
-          <div className="flex items-center gap-2 shrink-0">
+          {/* Export Excel, Performance Report & Send Email Actions above columns */}
+          <div className="flex items-center gap-2 shrink-0 flex-wrap">
+            <button
+              type="button"
+              onClick={handleOpenPerformanceModal}
+              className="px-3.5 py-2 bg-indigo-700 hover:bg-indigo-800 text-white font-bold text-xs rounded-xl shadow-xs hover:shadow-md transition flex items-center gap-1.5 cursor-pointer shrink-0"
+              title="View User Task Performance Report & Statistics"
+            >
+              <BarChart3 className="w-4 h-4" />
+              <span>Performance Report</span>
+            </button>
+
             <button
               type="button"
               onClick={() => {
@@ -2552,6 +2857,253 @@ const TasksBoard = () => {
           </div>
         </div>
       )}
+
+      {/* 📊 Task Performance Report Preview Modal with In-Preview Date Filtration */}
+      {performanceModal.open && (() => {
+        const perfTasks = performanceModal.tasks && performanceModal.tasks.length > 0 
+          ? performanceModal.tasks 
+          : tasks;
+        const perfRows = calculateUserPerformanceRows(perfTasks);
+
+        const totalTasksCount = perfRows.reduce((sum, r) => sum + r.totalTasks, 0);
+        const totalWithinDue = perfRows.reduce((sum, r) => sum + r.withinDueDate, 0);
+        const totalOverdated = perfRows.reduce((sum, r) => sum + r.overdatedCompleted, 0);
+        const totalPending = perfRows.reduce((sum, r) => sum + r.pendingTasks, 0);
+        const avgOverallPct = totalTasksCount > 0 
+          ? Math.round(((totalWithinDue + totalOverdated) / totalTasksCount) * 100) 
+          : 0;
+        const avgOnTimePct = totalTasksCount > 0 
+          ? Math.round((totalWithinDue / totalTasksCount) * 100) 
+          : 0;
+
+        return (
+          <div className="fixed inset-0 bg-black/70 backdrop-blur-md z-[9999] flex items-center justify-center p-3 sm:p-6 animate-fadeIn">
+            <div className="bg-white rounded-3xl shadow-2xl w-full max-w-6xl max-h-[92vh] flex flex-col overflow-hidden border border-gray-150">
+              {/* Modal Top Header */}
+              <div className="p-5 bg-gradient-to-r from-[#004d2a] via-[#0e623a] to-[#004d2a] text-white flex items-center justify-between shadow-md shrink-0">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-white/15 flex items-center justify-center shadow-inner">
+                    <BarChart3 className="w-5 h-5 text-emerald-300" />
+                  </div>
+                  <div>
+                    <h3 className="text-base sm:text-lg font-black tracking-wide flex items-center gap-2">
+                      <span>User Task Performance Report Preview</span>
+                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-white/20 text-emerald-200 border border-white/20">
+                        {perfRows.length} Users
+                      </span>
+                    </h3>
+                    <p className="text-[11px] text-emerald-100/90 font-medium">
+                      Live performance metrics: tasks completed within due date, overdated completions, and pending tasks
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setPerformanceModal({ open: false, startDate: '', endDate: '', loading: false, tasks: [] })}
+                  className="p-2 text-white/80 hover:text-white hover:bg-white/20 rounded-xl transition cursor-pointer"
+                  title="Close Preview"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* In-Preview Date Filtration & Summary Cards Bar */}
+              <div className="p-4 bg-gray-50 border-b border-gray-200 space-y-3 shrink-0">
+                <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+                  <div className="text-xs font-bold text-gray-700 flex items-center gap-1.5">
+                    <Calendar className="w-4 h-4 text-[#0e623a]" />
+                    <span>Filter Performance Period:</span>
+                  </div>
+
+                  <div className="w-full md:w-auto">
+                    <DateRangeFilter
+                      fromDate={performanceModal.startDate}
+                      toDate={performanceModal.endDate}
+                      onDateChange={(s, e) => {
+                        setPerformanceModal(prev => ({ ...prev, startDate: s, endDate: e }));
+                        fetchPerformanceTasks(s, e);
+                      }}
+                      onRefresh={() => fetchPerformanceTasks(performanceModal.startDate, performanceModal.endDate)}
+                    />
+                  </div>
+                </div>
+
+                {/* KPI Summary Cards */}
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
+                  <div className="bg-white p-3 rounded-2xl border border-gray-200 shadow-2xs">
+                    <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block">Assignees</span>
+                    <span className="text-lg font-black text-gray-900">{perfRows.length}</span>
+                  </div>
+
+                  <div className="bg-white p-3 rounded-2xl border border-gray-200 shadow-2xs">
+                    <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block">Total Tasks</span>
+                    <span className="text-lg font-black text-gray-900">{totalTasksCount}</span>
+                  </div>
+
+                  <div className="bg-emerald-50/70 p-3 rounded-2xl border border-emerald-200 shadow-2xs">
+                    <span className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider block">Within Due Date</span>
+                    <span className="text-lg font-black text-emerald-700">{totalWithinDue}</span>
+                  </div>
+
+                  <div className="bg-amber-50/70 p-3 rounded-2xl border border-amber-200 shadow-2xs">
+                    <span className="text-[10px] font-bold text-amber-800 uppercase tracking-wider block">Overdated Done</span>
+                    <span className="text-lg font-black text-amber-700">{totalOverdated}</span>
+                  </div>
+
+                  <div className="bg-rose-50/70 p-3 rounded-2xl border border-rose-200 shadow-2xs">
+                    <span className="text-[10px] font-bold text-rose-800 uppercase tracking-wider block">Pending Tasks</span>
+                    <span className="text-lg font-black text-rose-700">{totalPending}</span>
+                  </div>
+
+                  <div className="bg-indigo-50/70 p-3 rounded-2xl border border-indigo-200 shadow-2xs">
+                    <span className="text-[10px] font-bold text-indigo-800 uppercase tracking-wider block">Overall %</span>
+                    <span className="text-lg font-black text-indigo-700">{avgOverallPct}%</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Scrollable Table Area */}
+              <div className="flex-grow p-4 overflow-y-auto max-h-[50vh] scrollbar-thin">
+                {performanceModal.loading ? (
+                  <div className="py-20 text-center text-gray-500 italic flex flex-col items-center justify-center gap-2">
+                    <Loader2 className="w-7 h-7 text-[#0e623a] animate-spin" />
+                    <span className="text-xs font-bold">Calculating live user performance statistics...</span>
+                  </div>
+                ) : perfRows.length === 0 ? (
+                  <div className="py-20 text-center text-gray-400 italic text-xs">
+                    No task performance records found for the selected date range.
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto rounded-2xl border border-gray-200 shadow-xs">
+                    <table className="w-full text-left border-collapse text-xs">
+                      <thead>
+                        <tr className="bg-[#0e623a] text-white text-[11px] font-black uppercase tracking-wider border-b border-emerald-800">
+                          <th className="p-3 w-12 text-center">S.No</th>
+                          <th className="p-3 min-w-[160px]">User Name</th>
+                          <th className="p-3 min-w-[130px]">Department / Role</th>
+                          <th className="p-3 text-center min-w-[95px]">Total Tasks</th>
+                          <th className="p-3 text-center min-w-[140px] bg-emerald-900/40">Within Due Date</th>
+                          <th className="p-3 text-center min-w-[140px] bg-amber-900/30">Overdated Completed</th>
+                          <th className="p-3 text-center min-w-[110px] bg-rose-900/30">Pending Tasks</th>
+                          <th className="p-3 text-center min-w-[130px] bg-indigo-900/40">Overall Percentage</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-200 font-medium">
+                        {perfRows.map((r, idx) => {
+                          let pctBadge = 'bg-emerald-100 text-emerald-800 border-emerald-300';
+                          if (r.overallPercentage < 50) {
+                            pctBadge = 'bg-rose-100 text-rose-800 border-rose-300';
+                          } else if (r.overallPercentage < 80) {
+                            pctBadge = 'bg-amber-100 text-amber-800 border-amber-300';
+                          }
+
+                          return (
+                            <tr key={r.userId || idx} className="hover:bg-gray-50/90 transition">
+                              <td className="p-3 text-center font-bold text-gray-400">{idx + 1}</td>
+                              <td className="p-3">
+                                <div className="flex flex-col">
+                                  <span className="font-black text-gray-900 text-xs uppercase">{r.userName}</span>
+                                </div>
+                              </td>
+                              <td className="p-3">
+                                <div className="flex flex-col gap-0.5">
+                                  <span className="font-bold text-[#0e623a] text-xs">{r.department || 'General'}</span>
+                                  <span className="text-[10px] text-gray-500 uppercase">{r.role || 'Staff'}</span>
+                                </div>
+                              </td>
+                              <td className="p-3 text-center font-black text-gray-900 text-xs">
+                                <span className="px-2.5 py-1 bg-gray-100 rounded-lg inline-block">{r.totalTasks}</span>
+                              </td>
+                              <td className="p-3 text-center font-black text-emerald-700 bg-emerald-50/40">
+                                <span className="px-2.5 py-1 bg-emerald-100/80 rounded-lg inline-block border border-emerald-200">
+                                  {r.withinDueDate}
+                                </span>
+                              </td>
+                              <td className="p-3 text-center font-black text-amber-700 bg-amber-50/40">
+                                <span className="px-2.5 py-1 bg-amber-100/80 rounded-lg inline-block border border-amber-200">
+                                  {r.overdatedCompleted}
+                                </span>
+                              </td>
+                              <td className="p-3 text-center font-black text-rose-700 bg-rose-50/40">
+                                <span className="px-2.5 py-1 bg-rose-100/80 rounded-lg inline-block border border-rose-200">
+                                  {r.pendingTasks}
+                                </span>
+                              </td>
+                              <td className="p-3 text-center bg-indigo-50/30">
+                                <div className="flex items-center justify-center gap-2">
+                                  <div className="w-16 bg-gray-200 rounded-full h-2 overflow-hidden hidden sm:block">
+                                    <div 
+                                      className={`h-full rounded-full ${
+                                        r.overallPercentage >= 80 ? 'bg-emerald-600' : r.overallPercentage >= 50 ? 'bg-amber-500' : 'bg-rose-500'
+                                      }`}
+                                      style={{ width: `${Math.min(100, Math.max(0, r.overallPercentage))}%` }}
+                                    ></div>
+                                  </div>
+                                  <span className={`px-2 py-0.5 rounded-md text-[11px] font-black border ${pctBadge}`}>
+                                    {r.overallPercentage}%
+                                  </span>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                      <tfoot>
+                        <tr className="bg-[#0e623a] text-white font-black text-xs border-t-2 border-emerald-900">
+                          <td colSpan={3} className="p-3 text-right uppercase tracking-wider font-extrabold text-emerald-100">
+                            TOTAL SUMMARY:
+                          </td>
+                          <td className="p-3 text-center font-black text-sm">{totalTasksCount}</td>
+                          <td className="p-3 text-center font-black text-sm text-emerald-200">{totalWithinDue}</td>
+                          <td className="p-3 text-center font-black text-sm text-amber-200">{totalOverdated}</td>
+                          <td className="p-3 text-center font-black text-sm text-rose-200">{totalPending}</td>
+                          <td className="p-3 text-center font-black text-sm text-yellow-300">
+                            <span className="px-2 py-0.5 rounded-md bg-white/20 border border-white/30 inline-block">
+                              {avgOverallPct}%
+                            </span>
+                          </td>
+                        </tr>
+                      </tfoot>
+                    </table>
+                  </div>
+                )}
+              </div>
+
+              {/* Modal Footer with Actions */}
+              <div className="p-4 bg-gray-50 border-t border-gray-200 flex flex-col sm:flex-row items-center justify-between gap-3 shrink-0">
+                <div className="text-xs text-gray-500 font-semibold">
+                  <span>Showing performance for </span>
+                  <span className="font-extrabold text-[#0e623a]">
+                    {performanceModal.startDate && performanceModal.endDate 
+                      ? `${performanceModal.startDate} to ${performanceModal.endDate}`
+                      : 'All Available Tasks'}
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-2.5 w-full sm:w-auto justify-end">
+                  <button
+                    type="button"
+                    onClick={() => setPerformanceModal({ open: false, startDate: '', endDate: '', loading: false, tasks: [] })}
+                    className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold text-xs rounded-xl transition cursor-pointer"
+                  >
+                    Close
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => exportPerformanceReportToExcel(perfRows, performanceModal.startDate, performanceModal.endDate)}
+                    className="px-5 py-2 bg-[#0e623a] hover:bg-[#0b4d2d] text-white font-extrabold text-xs rounded-xl shadow-md hover:shadow-lg transition flex items-center gap-2 cursor-pointer active:scale-95"
+                  >
+                    <FileSpreadsheet className="w-4 h-4 text-emerald-200" />
+                    <span>Download Excel</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Email Sharing Modal */}
 
