@@ -158,7 +158,10 @@ const EmployeesDirectory = () => {
         if (Array.isArray(data) && data.length > 0) {
           setDepartmentObjects(data);
           const names = data.map(d => typeof d === 'string' ? d : d.name).filter(Boolean);
-          setAvailableDepartments(Array.from(new Set([...DEFAULT_DEPARTMENTS, ...names])));
+          const missingDefaults = DEFAULT_DEPARTMENTS.filter(
+            def => !names.some(n => n.toLowerCase() === def.toLowerCase())
+          );
+          setAvailableDepartments([...names, ...missingDefaults]);
         }
       }
     } catch (err) {
@@ -406,12 +409,16 @@ const EmployeesDirectory = () => {
     }
 
     const trimmed = editDeptInput.trim();
-    if (trimmed.toLowerCase() === oldDeptName.toLowerCase()) {
+    if (trimmed === oldDeptName) {
       setEditingDeptName(null);
       return;
     }
 
-    if (availableDepartments.some(d => d.toLowerCase() === trimmed.toLowerCase() && d.toLowerCase() !== oldDeptName.toLowerCase())) {
+    // Check if another DIFFERENT department already has this name
+    const isDuplicateWithOther = availableDepartments.some(
+      d => d.toLowerCase() === trimmed.toLowerCase() && d.toLowerCase() !== oldDeptName.toLowerCase()
+    );
+    if (isDuplicateWithOther) {
       setDeptError(`Department "${trimmed}" already exists.`);
       return;
     }
@@ -443,8 +450,20 @@ const EmployeesDirectory = () => {
         setMessage(`Department "${oldDeptName}" renamed to "${trimmed}".`);
         setEditingDeptName(null);
         setEditDeptInput('');
+        
+        // Immediate optimistic UI update
+        setAvailableDepartments(prev => prev.map(d => d.toLowerCase() === oldDeptName.toLowerCase() ? trimmed : d));
+        setDepartmentObjects(prev => prev.map(d => {
+          if (typeof d === 'object') {
+            return (d.name || '').toLowerCase() === oldDeptName.toLowerCase() ? { ...d, name: trimmed } : d;
+          }
+          return d.toLowerCase() === oldDeptName.toLowerCase() ? trimmed : d;
+        }));
+        setEmployees(prev => prev.map(emp => (emp.department || '').toLowerCase() === oldDeptName.toLowerCase() ? { ...emp, department: trimmed } : emp));
+
         setAddFormData(prev => prev.department?.toLowerCase() === oldDeptName.toLowerCase() ? { ...prev, department: trimmed } : prev);
         setEditFormData(prev => prev.department?.toLowerCase() === oldDeptName.toLowerCase() ? { ...prev, department: trimmed } : prev);
+        
         await fetchDepartments();
         await fetchEmployees();
         setTimeout(() => setDeptSuccess(''), 3000);

@@ -129,7 +129,7 @@ router.put('/:id', protect, async (req, res) => {
     }
 
     // Sync all tasks & employees with old category name to new category name
-    if (oldName && oldName.toLowerCase() !== trimmed.toLowerCase()) {
+    if (oldName && oldName !== trimmed) {
       const safeOldRegex = oldName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       await UserTask.updateMany({ category: new RegExp(`^${safeOldRegex}$`, 'i') }, { category: trimmed });
       await User.updateMany({ department: new RegExp(`^${safeOldRegex}$`, 'i') }, { department: trimmed });
