@@ -1200,32 +1200,9 @@ const TasksBoard = () => {
   const currentTasks = sortedTasks.slice(indexOfFirstTask, indexOfLastTask);
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-            <ClipboardList className="w-7 h-7 text-[#0e623a]" />
-            <span>Task Board</span>
-          </h1>
-          <p className="text-gray-500 text-xs mt-1">
-            {user?.role === 'Superadmin' 
-              ? 'Create, assign, and manage all team tasks with due date monitoring & overdue notifications.'
-              : 'Create tasks for any team member, and track tasks assigned to or created by you.'}
-          </p>
-        </div>
-
-        <button
-          onClick={handleOpenCreateModal}
-          className="flex items-center justify-center gap-2 px-5 py-2.5 bg-gradient-to-r from-[#006838] to-[#008c4a] hover:from-[#00522c] hover:to-[#00703b] text-white font-bold text-xs rounded-xl shadow-md hover:shadow-lg transition cursor-pointer"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Create New Task</span>
-        </button>
-      </div>
-
+    <div className="space-y-3">
       {/* Stats Overview (8 Status Cards in 1 Clean Row) */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2.5">
         {/* 1. Total (Highlighted Dark Green) */}
         <div 
           onClick={() => handleCardClick('ALL', 'Total Tasks', tasks)}
@@ -1341,7 +1318,7 @@ const TasksBoard = () => {
 
       {/* Messages */}
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-800 text-xs px-4 py-3 rounded-xl flex items-center justify-between">
+        <div className="bg-red-50 border border-red-200 text-red-800 text-xs px-4 py-2.5 rounded-xl flex items-center justify-between">
           <div className="flex items-center gap-2">
             <AlertCircle className="w-4 h-4 shrink-0" />
             <span>{error}</span>
@@ -1353,7 +1330,7 @@ const TasksBoard = () => {
       )}
 
       {successMsg && (
-        <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs px-4 py-3 rounded-xl flex items-center justify-between">
+        <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs px-4 py-2.5 rounded-xl flex items-center justify-between">
           <div className="flex items-center gap-2">
             <CheckCircle className="w-4 h-4 shrink-0" />
             <span>{successMsg}</span>
@@ -1364,14 +1341,14 @@ const TasksBoard = () => {
         </div>
       )}
 
-      {/* View Tabs Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-3 bg-white border border-gray-150 p-2.5 rounded-2xl shadow-sm">
+      {/* View Tabs Bar with Add New Task Button directly opposite */}
+      <div className="flex flex-wrap items-center justify-between gap-3 bg-white border border-gray-150 p-2 rounded-2xl shadow-xs">
         <div className="flex flex-wrap items-center gap-2">
           {/* All Tasks (DEFAULT & HIGHLIGHTED) */}
           <button
             type="button"
             onClick={() => setViewTab('ALL')}
-            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-black transition cursor-pointer shrink-0 ${
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black transition cursor-pointer shrink-0 ${
               viewTab === 'ALL'
                 ? 'bg-gradient-to-r from-[#006838] to-[#008c4a] text-white shadow-md ring-2 ring-emerald-500/50 scale-[1.02]'
                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-200'
@@ -1390,7 +1367,7 @@ const TasksBoard = () => {
           <button
             type="button"
             onClick={() => setViewTab('ASSIGNED_TO_ME')}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition cursor-pointer shrink-0 ${
+            className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition cursor-pointer shrink-0 ${
               viewTab === 'ASSIGNED_TO_ME'
                 ? 'bg-[#0e623a] text-white shadow-md ring-2 ring-emerald-600/40'
                 : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900 border border-gray-200'
@@ -1409,7 +1386,7 @@ const TasksBoard = () => {
           <button
             type="button"
             onClick={() => setViewTab('I_ASSIGNED')}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition cursor-pointer shrink-0 ${
+            className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition cursor-pointer shrink-0 ${
               viewTab === 'I_ASSIGNED'
                 ? 'bg-purple-800 text-white shadow-md ring-2 ring-purple-500/40'
                 : 'text-gray-600 hover:bg-purple-50 hover:text-purple-900 border border-gray-200'
@@ -1424,28 +1401,38 @@ const TasksBoard = () => {
             </span>
           </button>
         </div>
+
+        {/* Add New Task Button directly opposite */}
+        <button
+          type="button"
+          onClick={handleOpenCreateModal}
+          className="flex items-center justify-center gap-1.5 px-4 py-2 bg-gradient-to-r from-[#006838] to-[#008c4a] hover:from-[#00522c] hover:to-[#00703b] text-white font-bold text-xs rounded-xl shadow-md hover:shadow-lg transition cursor-pointer shrink-0"
+        >
+          <Plus className="w-4 h-4" />
+          <span>Add New Task</span>
+        </button>
       </div>
 
       {/* Search & Filter Toolbar Box */}
-      <div className="bg-white border border-gray-150 rounded-3xl p-5 shadow-sm space-y-4">
+      <div className="bg-white border border-gray-150 rounded-2xl p-3.5 shadow-xs space-y-2.5">
         {/* Row 1: Main Search Bar & Date Filtration */}
-        <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-3">
+        <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-2.5">
           <div className="relative flex-1 min-w-[240px]">
-            <Search className="w-4 h-4 absolute left-4 top-3.5 text-[#0e623a]" />
+            <Search className="w-4 h-4 absolute left-3.5 top-2.5 text-[#0e623a]" />
             <input
               type="text"
               placeholder="Search tasks by title, description, project, or assignee name..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-11 pr-10 py-3 bg-gray-50 hover:bg-white focus:bg-white border border-gray-200 rounded-2xl text-xs font-semibold text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#0e623a] shadow-xs transition"
+              className="w-full pl-10 pr-9 py-2 bg-gray-50 hover:bg-white focus:bg-white border border-gray-200 rounded-xl text-xs font-semibold text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#0e623a] shadow-xs transition"
             />
             {searchTerm && (
               <button
                 type="button"
                 onClick={() => setSearchTerm('')}
-                className="absolute right-3.5 top-3 text-gray-400 hover:text-gray-600 p-0.5 rounded-full hover:bg-gray-200 transition cursor-pointer"
+                className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600 p-0.5 rounded-full hover:bg-gray-200 transition cursor-pointer"
               >
-                <X className="w-4 h-4" />
+                <X className="w-3.5 h-3.5" />
               </button>
             )}
           </div>
