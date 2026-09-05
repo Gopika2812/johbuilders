@@ -339,9 +339,20 @@ const TasksBoard = () => {
 
   // Search & Filter
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('ALL');
+  const [statusFilter, setStatusFilter] = useState(() => {
+    const s = new URLSearchParams(location.search).get('status');
+    return s ? s.toUpperCase() : 'ALL';
+  });
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+
+  // Sync status filter if navigated with ?status=...
+  useEffect(() => {
+    const s = new URLSearchParams(location.search).get('status');
+    if (s) {
+      setStatusFilter(s.toUpperCase());
+    }
+  }, [location.search]);
 
   // Highlighted Task ID from query param (if coming from notification)
   const queryParams = new URLSearchParams(location.search);
@@ -1454,13 +1465,27 @@ const TasksBoard = () => {
       if (targetDate && targetDate > end) return false;
     }
 
-    if (statusFilter === 'NEW') return task.status === 'New';
-    if (statusFilter === 'IN_PROGRESS') return task.status === 'In Progress';
-    if (statusFilter === 'PENDING') return task.status === 'New' || task.status === 'In Progress';
-    if (statusFilter === 'ON_HOLD') return task.status === 'On Hold';
-    if (statusFilter === 'COMPLETED') return task.status === 'Completed';
-    if (statusFilter === 'CANCELLED') return task.status === 'Cancelled';
-    if (statusFilter === 'OVERDATED') return isOverdated(task);
+    if (statusFilter === 'TODAY') {
+      const today = new Date();
+      const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+      const dueStr = task.dueDate ? new Date(task.dueDate).toISOString().slice(0, 10) : '';
+      const createdStr = task.createdAt ? new Date(task.createdAt).toISOString().slice(0, 10) : '';
+      if (dueStr !== todayStr && createdStr !== todayStr) return false;
+    } else if (statusFilter === 'NEW') {
+      if (task.status !== 'New') return false;
+    } else if (statusFilter === 'IN_PROGRESS') {
+      if (task.status !== 'In Progress') return false;
+    } else if (statusFilter === 'PENDING') {
+      if (task.status !== 'New' && task.status !== 'In Progress' && task.status !== 'Pending') return false;
+    } else if (statusFilter === 'ON_HOLD') {
+      if (task.status !== 'On Hold') return false;
+    } else if (statusFilter === 'COMPLETED') {
+      if (task.status !== 'Completed') return false;
+    } else if (statusFilter === 'CANCELLED') {
+      if (task.status !== 'Cancelled') return false;
+    } else if (statusFilter === 'OVERDATED') {
+      if (!isOverdated(task)) return false;
+    }
 
     if (categoryFilter !== 'ALL' && task.category !== categoryFilter) return false;
     if (priorityFilter !== 'ALL' && task.priority !== priorityFilter) return false;

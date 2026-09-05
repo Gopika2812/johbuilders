@@ -25,7 +25,11 @@ import {
   Layers,
   Download,
   Clock,
-  UserCheck
+  UserCheck,
+  CheckCircle2,
+  AlertTriangle,
+  AlertCircle,
+  ClipboardList
 } from 'lucide-react';
 
 const getCoordinatesForPercent = (percent) => {
@@ -394,6 +398,86 @@ const Dashboard = () => {
   const [hotModalOpen, setHotModalOpen] = useState(false);
   const [bookedModalOpen, setBookedModalOpen] = useState(false);
   const [lostModalOpen, setLostModalOpen] = useState(false);
+
+  // User Tasks Dashboard State & Role Filtering
+  const [dashboardTasks, setDashboardTasks] = useState([]);
+  const [tasksLoading, setTasksLoading] = useState(false);
+
+  const fetchDashboardTasks = async () => {
+    try {
+      setTasksLoading(true);
+      const res = await fetch(`${API_URL}/user-tasks`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data)) {
+          setDashboardTasks(data);
+        }
+      }
+    } catch (e) {
+      console.error('Error fetching dashboard tasks:', e);
+    } finally {
+      setTasksLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (token) {
+      fetchDashboardTasks();
+    }
+  }, [token]);
+
+  const isTaskOverdated = (t) => {
+    if (t.status === 'Completed' || t.status === 'Cancelled') return false;
+    if (!t.dueDate) return false;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const due = new Date(t.dueDate);
+    due.setHours(0, 0, 0, 0);
+    return due < today;
+  };
+
+  const isTaskToday = (t) => {
+    const today = new Date();
+    const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+    const dueStr = t.dueDate ? new Date(t.dueDate).toISOString().slice(0, 10) : '';
+    const createdStr = t.createdAt ? new Date(t.createdAt).toISOString().slice(0, 10) : '';
+    return dueStr === todayStr || createdStr === todayStr;
+  };
+
+  const roleNorm = (user?.role || '').toLowerCase().replace(/[\s_-]+/g, '');
+  const isSuperAdmin = roleNorm === 'superadmin' || roleNorm === 'admin';
+
+  const relevantTasks = React.useMemo(() => {
+    if (!dashboardTasks || !Array.isArray(dashboardTasks)) return [];
+    if (isSuperAdmin) {
+      if (selectedUser) {
+        return dashboardTasks.filter(t => (t.assignedTo?._id || t.assignedTo) === selectedUser);
+      }
+      return dashboardTasks;
+    }
+    return dashboardTasks.filter(t => (t.assignedTo?._id || t.assignedTo) === user?._id);
+  }, [dashboardTasks, isSuperAdmin, selectedUser, user]);
+
+  const taskMetrics = React.useMemo(() => {
+    const todayTasks = relevantTasks.filter(t => isTaskToday(t));
+    const newTasks = relevantTasks.filter(t => t.status === 'New');
+    const inProgressTasks = relevantTasks.filter(t => t.status === 'In Progress');
+    const completedTasks = relevantTasks.filter(t => t.status === 'Completed');
+    const pendingTasks = relevantTasks.filter(t => t.status === 'New' || t.status === 'In Progress' || t.status === 'Pending');
+    const overdatedTasks = relevantTasks.filter(t => isTaskOverdated(t));
+
+    return {
+      todayCount: todayTasks.length,
+      newCount: newTasks.length,
+      inProgressCount: inProgressTasks.length,
+      completedCount: completedTasks.length,
+      pendingCount: pendingTasks.length,
+      overdatedCount: overdatedTasks.length
+    };
+  }, [relevantTasks]);
+
   const clickTimeoutRef = useRef(null);
   const bookedClickTimeoutRef = useRef(null);
 
@@ -2147,6 +2231,133 @@ const Dashboard = () => {
         </div>
       ) : (
         <>
+          {/* Row 0: Task Details Cards */}
+          <div>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-3 gap-2">
+              <div className="flex items-center gap-2">
+                <h4 className="text-sm font-black text-black uppercase tracking-wider text-left">
+                  Task Details
+                </h4>
+                <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-[#0e623a] border border-emerald-200">
+                  {isSuperAdmin 
+                    ? (selectedUser ? `Filtered User (${(stats.users || []).find(u => u._id === selectedUser)?.name || 'Selected'})` : 'All Users Combined') 
+                    : (user?.name || 'My Tasks')}
+                </span>
+              </div>
+              <button
+                onClick={() => navigate('/tasks')}
+                className="text-xs font-bold text-[#0e623a] hover:text-emerald-800 flex items-center gap-1 cursor-pointer transition self-start sm:self-auto"
+              >
+                <span>Task Scheduler</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+              {/* Card 1: Today Task */}
+              <div
+                onClick={() => navigate('/tasks?status=TODAY')}
+                className="bg-[#f0fbf4] border border-emerald-100/60 rounded-3xl p-5 shadow-xs hover:shadow-md transition cursor-pointer select-none active:scale-[0.99] duration-150 flex flex-col justify-between"
+                title="Click to view tasks due or assigned today"
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-xs text-black font-extrabold uppercase tracking-wider">Today Task</span>
+                    <h3 className="text-3xl font-extrabold text-[#0e623a] mt-1">{taskMetrics.todayCount}</h3>
+                    <div className="text-[11px] text-gray-500 font-bold mt-1">
+                      today ({taskMetrics.todayCount})
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Card 2: New */}
+              <div
+                onClick={() => navigate('/tasks?status=NEW')}
+                className="bg-[#f0fbf4] border border-emerald-100/60 rounded-3xl p-5 shadow-xs hover:shadow-md transition cursor-pointer select-none active:scale-[0.99] duration-150 flex flex-col justify-between"
+                title="Click to view new tasks"
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-xs text-black font-extrabold uppercase tracking-wider">New</span>
+                    <h3 className="text-3xl font-extrabold text-blue-700 mt-1">{taskMetrics.newCount}</h3>
+                    <div className="text-[11px] text-gray-500 font-bold mt-1">
+                      new ({taskMetrics.newCount})
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Card 3: In Progress */}
+              <div
+                onClick={() => navigate('/tasks?status=IN_PROGRESS')}
+                className="bg-[#f0fbf4] border border-emerald-100/60 rounded-3xl p-5 shadow-xs hover:shadow-md transition cursor-pointer select-none active:scale-[0.99] duration-150 flex flex-col justify-between"
+                title="Click to view tasks in progress"
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-xs text-black font-extrabold uppercase tracking-wider">In Progress</span>
+                    <h3 className="text-3xl font-extrabold text-amber-600 mt-1">{taskMetrics.inProgressCount}</h3>
+                    <div className="text-[11px] text-gray-500 font-bold mt-1">
+                      active ({taskMetrics.inProgressCount})
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Card 4: Completed */}
+              <div
+                onClick={() => navigate('/tasks?status=COMPLETED')}
+                className="bg-[#f0fbf4] border border-emerald-100/60 rounded-3xl p-5 shadow-xs hover:shadow-md transition cursor-pointer select-none active:scale-[0.99] duration-150 flex flex-col justify-between"
+                title="Click to view completed tasks"
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-xs text-black font-extrabold uppercase tracking-wider">Completed</span>
+                    <h3 className="text-3xl font-extrabold text-emerald-700 mt-1">{taskMetrics.completedCount}</h3>
+                    <div className="text-[11px] text-gray-500 font-bold mt-1">
+                      done ({taskMetrics.completedCount})
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Card 5: Pending */}
+              <div
+                onClick={() => navigate('/tasks?status=PENDING')}
+                className="bg-[#f0fbf4] border border-emerald-100/60 rounded-3xl p-5 shadow-xs hover:shadow-md transition cursor-pointer select-none active:scale-[0.99] duration-150 flex flex-col justify-between"
+                title="Click to view pending tasks"
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-xs text-black font-extrabold uppercase tracking-wider">Pending</span>
+                    <h3 className="text-3xl font-extrabold text-rose-700 mt-1">{taskMetrics.pendingCount}</h3>
+                    <div className="text-[11px] text-gray-500 font-bold mt-1">
+                      pending ({taskMetrics.pendingCount})
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Card 6: Overdated */}
+              <div
+                onClick={() => navigate('/tasks?status=OVERDATED')}
+                className="bg-[#f0fbf4] border border-rose-100 rounded-3xl p-5 shadow-xs hover:shadow-md transition cursor-pointer select-none active:scale-[0.99] duration-150 flex flex-col justify-between"
+                title="Click to view overdated tasks past due date"
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-xs text-rose-800 font-extrabold uppercase tracking-wider">Overdated</span>
+                    <h3 className="text-3xl font-extrabold text-red-600 mt-1">{taskMetrics.overdatedCount}</h3>
+                    <div className="text-[11px] text-rose-600 font-bold mt-1">
+                      overdue ({taskMetrics.overdatedCount})
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
           {/* Row 1: Total Performance Cards */}
           <div>
             <h4 className="text-sm font-black text-black uppercase tracking-wider mb-3 text-left">Lead Details</h4>
