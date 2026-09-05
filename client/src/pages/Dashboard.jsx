@@ -398,86 +398,6 @@ const Dashboard = () => {
   const [hotModalOpen, setHotModalOpen] = useState(false);
   const [bookedModalOpen, setBookedModalOpen] = useState(false);
   const [lostModalOpen, setLostModalOpen] = useState(false);
-
-  // User Tasks Dashboard State & Role Filtering
-  const [dashboardTasks, setDashboardTasks] = useState([]);
-  const [tasksLoading, setTasksLoading] = useState(false);
-
-  const fetchDashboardTasks = async () => {
-    try {
-      setTasksLoading(true);
-      const res = await fetch(`${API_URL}/user-tasks`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (res.ok) {
-        const data = await res.json();
-        if (Array.isArray(data)) {
-          setDashboardTasks(data);
-        }
-      }
-    } catch (e) {
-      console.error('Error fetching dashboard tasks:', e);
-    } finally {
-      setTasksLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    if (token) {
-      fetchDashboardTasks();
-    }
-  }, [token]);
-
-  const isTaskOverdated = (t) => {
-    if (t.status === 'Completed' || t.status === 'Cancelled') return false;
-    if (!t.dueDate) return false;
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const due = new Date(t.dueDate);
-    due.setHours(0, 0, 0, 0);
-    return due < today;
-  };
-
-  const isTaskToday = (t) => {
-    const today = new Date();
-    const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-    const dueStr = t.dueDate ? new Date(t.dueDate).toISOString().slice(0, 10) : '';
-    const createdStr = t.createdAt ? new Date(t.createdAt).toISOString().slice(0, 10) : '';
-    return dueStr === todayStr || createdStr === todayStr;
-  };
-
-  const roleNorm = (user?.role || '').toLowerCase().replace(/[\s_-]+/g, '');
-  const isSuperAdmin = roleNorm === 'superadmin' || roleNorm === 'admin';
-
-  const relevantTasks = React.useMemo(() => {
-    if (!dashboardTasks || !Array.isArray(dashboardTasks)) return [];
-    if (isSuperAdmin) {
-      if (selectedUser) {
-        return dashboardTasks.filter(t => (t.assignedTo?._id || t.assignedTo) === selectedUser);
-      }
-      return dashboardTasks;
-    }
-    return dashboardTasks.filter(t => (t.assignedTo?._id || t.assignedTo) === user?._id);
-  }, [dashboardTasks, isSuperAdmin, selectedUser, user]);
-
-  const taskMetrics = React.useMemo(() => {
-    const todayTasks = relevantTasks.filter(t => isTaskToday(t));
-    const newTasks = relevantTasks.filter(t => t.status === 'New');
-    const inProgressTasks = relevantTasks.filter(t => t.status === 'In Progress');
-    const completedTasks = relevantTasks.filter(t => t.status === 'Completed');
-    const pendingTasks = relevantTasks.filter(t => t.status === 'New' || t.status === 'In Progress' || t.status === 'Pending');
-    const overdatedTasks = relevantTasks.filter(t => isTaskOverdated(t));
-
-    return {
-      todayCount: todayTasks.length,
-      newCount: newTasks.length,
-      inProgressCount: inProgressTasks.length,
-      completedCount: completedTasks.length,
-      pendingCount: pendingTasks.length,
-      overdatedCount: overdatedTasks.length
-    };
-  }, [relevantTasks]);
-
   const clickTimeoutRef = useRef(null);
   const bookedClickTimeoutRef = useRef(null);
 
@@ -631,6 +551,85 @@ const Dashboard = () => {
       setSelectedUser(user._id);
     }
   }, [user]);
+
+  // User Tasks Dashboard State & Role Filtering (placed after selectedUser is declared)
+  const [dashboardTasks, setDashboardTasks] = useState([]);
+  const [tasksLoading, setTasksLoading] = useState(false);
+
+  const fetchDashboardTasks = async () => {
+    try {
+      setTasksLoading(true);
+      const res = await fetch(`${API_URL}/user-tasks`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data)) {
+          setDashboardTasks(data);
+        }
+      }
+    } catch (e) {
+      console.error('Error fetching dashboard tasks:', e);
+    } finally {
+      setTasksLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (token) {
+      fetchDashboardTasks();
+    }
+  }, [token]);
+
+  const isTaskOverdated = (t) => {
+    if (t.status === 'Completed' || t.status === 'Cancelled') return false;
+    if (!t.dueDate) return false;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const due = new Date(t.dueDate);
+    due.setHours(0, 0, 0, 0);
+    return due < today;
+  };
+
+  const isTaskToday = (t) => {
+    const today = new Date();
+    const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+    const dueStr = t.dueDate ? new Date(t.dueDate).toISOString().slice(0, 10) : '';
+    const createdStr = t.createdAt ? new Date(t.createdAt).toISOString().slice(0, 10) : '';
+    return dueStr === todayStr || createdStr === todayStr;
+  };
+
+  const roleNorm = (user?.role || '').toLowerCase().replace(/[\s_-]+/g, '');
+  const isSuperAdmin = roleNorm === 'superadmin' || roleNorm === 'admin';
+
+  const relevantTasks = React.useMemo(() => {
+    if (!dashboardTasks || !Array.isArray(dashboardTasks)) return [];
+    if (isSuperAdmin) {
+      if (selectedUser) {
+        return dashboardTasks.filter(t => (t.assignedTo?._id || t.assignedTo) === selectedUser);
+      }
+      return dashboardTasks;
+    }
+    return dashboardTasks.filter(t => (t.assignedTo?._id || t.assignedTo) === user?._id);
+  }, [dashboardTasks, isSuperAdmin, selectedUser, user]);
+
+  const taskMetrics = React.useMemo(() => {
+    const todayTasks = relevantTasks.filter(t => isTaskToday(t));
+    const newTasks = relevantTasks.filter(t => t.status === 'New');
+    const inProgressTasks = relevantTasks.filter(t => t.status === 'In Progress');
+    const completedTasks = relevantTasks.filter(t => t.status === 'Completed');
+    const pendingTasks = relevantTasks.filter(t => t.status === 'New' || t.status === 'In Progress' || t.status === 'Pending');
+    const overdatedTasks = relevantTasks.filter(t => isTaskOverdated(t));
+
+    return {
+      todayCount: todayTasks.length,
+      newCount: newTasks.length,
+      inProgressCount: inProgressTasks.length,
+      completedCount: completedTasks.length,
+      pendingCount: pendingTasks.length,
+      overdatedCount: overdatedTasks.length
+    };
+  }, [relevantTasks]);
 
   const [selectedProject, setSelectedProject] = useState('');
   const [selectedProjectType, setSelectedProjectType] = useState('');
