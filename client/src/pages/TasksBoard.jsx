@@ -599,7 +599,7 @@ const TasksBoard = () => {
         'Department / Role',
         'Total Tasks',
         'Within Due Date (Completed)',
-        'Overdated Completed',
+        'Overdue Completed',
         'Pending Tasks',
         'Overall Percentage (%)'
       ];
@@ -924,7 +924,7 @@ const TasksBoard = () => {
     assignedTo: '',
     status: 'New',
     priority: 'Medium',
-    category: 'Sales Team',
+    category: '',
     repeatType: 'None',
     reminderInterval: 1,
     attachments: []
@@ -1201,18 +1201,15 @@ const TasksBoard = () => {
     setEditingCategoryObj(null);
     setNewCategoryName('');
     setProjectSelectOption('');
-    const defaultAssignedId = user?._id || (employees.length > 0 ? employees[0]._id : '');
-    const assignedEmp = employees.find(emp => emp._id === defaultAssignedId) || user;
-    const assignedDept = assignedEmp?.department || user?.department || 'General';
     setFormData({
       title: '',
       description: '',
       projectName: '',
       dueDate: '',
-      assignedTo: defaultAssignedId,
+      assignedTo: '',
       status: 'New',
       priority: 'Medium',
-      category: assignedDept,
+      category: '',
       repeatType: 'None',
       reminderInterval: 1,
       attachments: []
@@ -1343,25 +1340,29 @@ const TasksBoard = () => {
     }
   };
 
-  const handleDeleteTask = async (taskId) => {
-    if (!window.confirm('Are you sure you want to delete this task?')) return;
+  const handleCancelTask = async (taskId) => {
+    if (!window.confirm('Are you sure you want to cancel this task?')) return;
 
     try {
       const res = await fetch(`${API_URL}/user-tasks/${taskId}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ status: 'Cancelled' })
       });
 
       if (res.ok) {
-        setTasks(prev => prev.filter(t => t._id !== taskId));
-        setSuccessMsg('Task deleted successfully');
+        setTasks(prev => prev.map(t => t._id === taskId ? { ...t, status: 'Cancelled' } : t));
+        setSuccessMsg('Task cancelled successfully');
         setTimeout(() => setSuccessMsg(''), 3000);
       } else {
         const data = await parseResponseJSON(res);
-        setError(data?.message || 'Failed to delete task');
+        setError(data?.message || 'Failed to cancel task');
       }
     } catch (err) {
-      setError('Error deleting task');
+      setError('Error cancelling task');
     }
   };
 
@@ -1622,14 +1623,14 @@ const TasksBoard = () => {
           <p className={`text-xl font-black mt-1 ${statusFilter === 'CANCELLED' ? 'text-white' : 'text-gray-800'}`}>{cancelledCount}</p>
         </div>
 
-        {/* 8. Overdated */}
+        {/* 8. Overdue */}
         <div 
           onClick={() => setStatusFilter(prev => prev === 'OVERDATED' ? 'ALL' : 'OVERDATED')}
           className={`p-3.5 rounded-2xl border transition-all cursor-pointer ${statusFilter === 'OVERDATED' ? 'bg-rose-950 text-white border-rose-800 shadow-md ring-2 ring-rose-600' : 'bg-rose-50/50 border-rose-200 hover:border-rose-300'}`}
-          title="Click to filter Overdated tasks"
+          title="Click to filter Overdue tasks"
         >
           <div className="flex items-center justify-between">
-            <span className={`text-[10px] font-extrabold uppercase ${statusFilter === 'OVERDATED' ? 'text-rose-300' : 'text-rose-700'}`}>Overdated</span>
+            <span className={`text-[10px] font-extrabold uppercase ${statusFilter === 'OVERDATED' ? 'text-rose-300' : 'text-rose-700'}`}>Overdue</span>
             <AlertTriangle className={`w-3.5 h-3.5 ${statusFilter === 'OVERDATED' ? 'text-rose-300' : 'text-rose-600 animate-pulse'}`} />
           </div>
           <p className={`text-xl font-black mt-1 ${statusFilter === 'OVERDATED' ? 'text-white' : 'text-rose-700'}`}>{overdatedCount}</p>
@@ -1889,7 +1890,7 @@ const TasksBoard = () => {
               { id: 'ON_HOLD', name: `On Hold (${onHoldCount})` },
               { id: 'COMPLETED', name: `Completed (${completedCount})` },
               { id: 'CANCELLED', name: `Cancelled (${cancelledCount})` },
-              { id: 'OVERDATED', name: `Overdated (${overdatedCount})` }
+              { id: 'OVERDATED', name: `Overdue (${overdatedCount})` }
             ]}
             onChange={(val) => setStatusFilter(val)}
             colorScheme="emerald"
@@ -2031,7 +2032,7 @@ const TasksBoard = () => {
 
                             {over && (
                               <span className="inline-block px-1 py-0.2 rounded text-[8px] font-black uppercase tracking-wide bg-rose-100 text-rose-700 border border-rose-300 animate-pulse whitespace-nowrap">
-                                OVERDATED
+                                OVERDUE
                               </span>
                             )}
                           </div>
@@ -2144,12 +2145,12 @@ const TasksBoard = () => {
                               <button
                                 onClick={() => {
                                   setOpenActionMenuId(null);
-                                  handleDeleteTask(task._id);
+                                  handleCancelTask(task._id);
                                 }}
                                 className="w-full px-2.5 py-1.5 text-xs text-rose-600 hover:bg-rose-50 flex items-center gap-2 font-semibold transition cursor-pointer"
                               >
-                                <Trash2 className="w-3.5 h-3.5 text-rose-600 shrink-0" />
-                                <span>Delete</span>
+                                <XCircle className="w-3.5 h-3.5 text-rose-600 shrink-0" />
+                                <span>Cancel</span>
                               </button>
                             </div>
                           )}
@@ -2335,7 +2336,7 @@ const TasksBoard = () => {
                       setFormData(prev => ({
                         ...prev,
                         assignedTo: selectedId,
-                        category: empDept
+                        category: selectedId ? empDept : ''
                       }));
                     }}
                     placeholder="-- Select Person --"
@@ -2366,8 +2367,10 @@ const TasksBoard = () => {
                   </label>
                   <div className="w-full px-3.5 py-2.5 bg-gray-100 border border-gray-200 rounded-xl text-xs font-bold text-gray-700 flex items-center justify-between">
                     <span className="flex items-center gap-1.5 min-w-0">
-                      <span className="w-2 h-2 rounded-full bg-purple-500 shrink-0"></span>
-                      <span className="truncate">{formData.category || 'General'}</span>
+                      <span className={`w-2 h-2 rounded-full ${formData.category ? 'bg-purple-500' : 'bg-gray-400'} shrink-0`}></span>
+                      <span className={`truncate ${formData.category ? 'text-gray-800' : 'text-gray-400 font-normal italic'}`}>
+                        {formData.category || 'Auto assigned on person select'}
+                      </span>
                     </span>
                     <span className="text-[10px] bg-purple-50 text-purple-800 font-extrabold px-2 py-0.5 rounded border border-purple-200 shrink-0 ml-2">
                       Auto Assigned
@@ -2918,7 +2921,7 @@ const TasksBoard = () => {
                       </span>
                     </h3>
                     <p className="text-[11px] text-emerald-100/90 font-medium">
-                      Live performance metrics: tasks completed within due date, overdated completions, and pending tasks
+                      Live performance metrics: tasks completed within due date, overdue completions, and pending tasks
                     </p>
                   </div>
                 </div>
@@ -2972,7 +2975,7 @@ const TasksBoard = () => {
                   </div>
 
                   <div className="bg-amber-50/70 p-3 rounded-2xl border border-amber-200 shadow-2xs">
-                    <span className="text-[10px] font-bold text-amber-800 uppercase tracking-wider block">Overdated Done</span>
+                    <span className="text-[10px] font-bold text-amber-800 uppercase tracking-wider block">Overdue Done</span>
                     <span className="text-lg font-black text-amber-700">{totalOverdated}</span>
                   </div>
 
@@ -3009,7 +3012,7 @@ const TasksBoard = () => {
                           <th className="p-3 min-w-[130px]">Department / Role</th>
                           <th className="p-3 text-center min-w-[95px]">Total Tasks</th>
                           <th className="p-3 text-center min-w-[140px] bg-emerald-900/40">Within Due Date</th>
-                          <th className="p-3 text-center min-w-[140px] bg-amber-900/30">Overdated Completed</th>
+                          <th className="p-3 text-center min-w-[140px] bg-amber-900/30">Overdue Completed</th>
                           <th className="p-3 text-center min-w-[110px] bg-rose-900/30">Pending Tasks</th>
                           <th className="p-3 text-center min-w-[130px] bg-indigo-900/40">Overall Percentage</th>
                         </tr>

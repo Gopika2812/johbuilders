@@ -2299,15 +2299,15 @@ const Dashboard = () => {
                 </div>
               </div>
 
-              {/* Card 6: Overdated */}
+              {/* Card 6: Overdue */}
               <div
                 onClick={() => navigate('/tasks?status=OVERDATED')}
                 className="bg-[#f0fbf4] border border-rose-100 rounded-3xl p-5 shadow-xs hover:shadow-md transition cursor-pointer select-none active:scale-[0.99] duration-150 flex flex-col justify-between"
-                title="Click to view overdated tasks past due date"
+                title="Click to view overdue tasks past due date"
               >
                 <div className="flex items-center justify-between">
                   <div>
-                    <span className="text-xs text-rose-800 font-extrabold uppercase tracking-wider">Overdated</span>
+                    <span className="text-xs text-rose-800 font-extrabold uppercase tracking-wider">Overdue</span>
                     <h3 className="text-3xl font-extrabold text-red-600 mt-1">{taskMetrics.overdatedCount}</h3>
                     <div className="text-[11px] text-rose-600 font-bold mt-1">
                       overdue ({taskMetrics.overdatedCount})
