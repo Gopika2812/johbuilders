@@ -247,7 +247,7 @@ router.get('/stats', protect, async (req, res) => {
             if (s === 'Site Visit' || s === 'Site Visit Follow-up') enteredSiteVisit = true;
             if (s === 'Hot List' || entry.leadCategory === 'Hot' || (entry.leadCategory && entry.leadCategory.toLowerCase() === 'hot')) enteredHotList = true;
             if (s === 'Future Follow-up' || s === 'Future Followup' || (s && s.toLowerCase().includes('future'))) enteredFutureFollowup = true;
-            if (s === 'Booking' || s === 'Booked') enteredBooked = true;
+            if ((s === 'Booking' || s === 'Booked') && (!entry.note || !entry.note.toLowerCase().includes('quotation updated'))) enteredBooked = true;
             if (s === 'Won' || s === 'Handover') enteredHandover = true;
             if (s === 'Lost' || s === 'Cancelled' || s === 'Closed') enteredLost = true;
           }
@@ -1011,7 +1011,7 @@ router.get('/stats', protect, async (req, res) => {
             hasSiteVisitToday = true;
           } else if (status === 'Hot List') {
             hasHotListToday = true;
-          } else if (status === 'Booking') {
+          } else if (status === 'Booking' && (!entry.note || !entry.note.toLowerCase().includes('quotation updated'))) {
             hasBookingToday = true;
           } else if (status === 'Won') {
             hasHandoverToday = true;

@@ -1943,7 +1943,9 @@ const LeadsDirectory = () => {
           remarksStr = remarksStr.replace(/\[Lost at .*? stage\]( - )?/, '');
         }
         const rowClass = index % 2 === 1 ? 'class="even-row"' : '';
-        const regDate = lead.createdAt ? new Date(lead.createdAt).toLocaleDateString('en-GB') : '';
+        const isBooking = lead.status === 'Booking' || lead.status === 'Won';
+        const effDate = isBooking ? getLeadBookingDate(lead) : (lead.createdAt ? new Date(lead.createdAt) : null);
+        const regDate = effDate ? effDate.toLocaleDateString('en-GB') : '';
 
         html += `
           <tr ${rowClass}>
@@ -2008,6 +2010,25 @@ const LeadsDirectory = () => {
     setDirectFollowRemarks('');
   };
 
+  const getLeadBookingDate = (lead) => {
+    if (lead.history && lead.history.length > 0) {
+      const firstBookingEntry = lead.history.find(h =>
+        (h.status === 'Booking' || h.stage === 'Booking') &&
+        (!h.note || !h.note.toLowerCase().includes('quotation updated'))
+      );
+      if (firstBookingEntry && firstBookingEntry.timestamp) {
+        return new Date(firstBookingEntry.timestamp);
+      }
+      const anyBookingEntry = lead.history.find(h => h.status === 'Booking' || h.stage === 'Booking');
+      if (anyBookingEntry && anyBookingEntry.timestamp) {
+        return new Date(anyBookingEntry.timestamp);
+      }
+    }
+    if (lead.bookingInfo && lead.bookingInfo.bookingDate) return new Date(lead.bookingInfo.bookingDate);
+    if (lead.bookingDate) return new Date(lead.bookingDate);
+    return lead.createdAt ? new Date(lead.createdAt) : null;
+  };
+
   // Filter list matching Search & Date & Advanced Filters (excluding Tab)
   const getBaseFilteredLeads = () => {
     const startTime = startDate ? new Date(startDate).setHours(0, 0, 0, 0) : null;
@@ -2023,7 +2044,9 @@ const LeadsDirectory = () => {
         lead.alternativePhone?.includes(searchTerm) ||
         lead.project?.code?.toLowerCase().includes(searchTerm.toLowerCase());
 
-      const itemTime = lead.createdAt ? new Date(lead.createdAt).getTime() : null;
+      const isBookingStage = lead.status === 'Booking' || lead.status === 'Won';
+      const effectiveDate = isBookingStage ? getLeadBookingDate(lead) : (lead.createdAt ? new Date(lead.createdAt) : null);
+      const itemTime = effectiveDate ? effectiveDate.getTime() : null;
       const matchesStartDate = !startTime || !itemTime || itemTime >= startTime;
       const matchesEndDate = !endTime || !itemTime || itemTime <= endTime;
 
@@ -2310,7 +2333,11 @@ const LeadsDirectory = () => {
                     {hasColumnPermission('leads', 'date') && (
                       <td className="px-3 py-1.5 border-b border-black-100">
                         <div className="text-[11px] font-bold whitespace-nowrap">
-                          {lead.createdAt ? new Date(lead.createdAt).toLocaleDateString('en-GB') : '—'}
+                          {(() => {
+                            const isBooking = lead.status === 'Booking' || lead.status === 'Won';
+                            const effDate = isBooking ? getLeadBookingDate(lead) : (lead.createdAt ? new Date(lead.createdAt) : null);
+                            return effDate ? effDate.toLocaleDateString('en-GB') : '—';
+                          })()}
                         </div>
                       </td>
                     )}
