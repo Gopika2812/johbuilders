@@ -453,7 +453,7 @@ router.get('/stats', protect, async (req, res) => {
         liveHandover++;
       }
 
-      if (status === 'Booking' || status === 'Won') {
+      if (enteredBooked || enteredHandover) {
         siteConversionsCount += 1;
       }
 
@@ -1107,7 +1107,7 @@ router.get('/stats', protect, async (req, res) => {
         booked: {
           total: cumulativeBooked,
           live: liveBooked,
-          count: liveBooked,
+          count: cumulativeBooked,
           value: bookedTotalValue,
           received: bookedReceivedValue,
           pending: bookedPendingValue

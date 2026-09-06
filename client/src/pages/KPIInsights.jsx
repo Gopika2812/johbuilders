@@ -3173,8 +3173,7 @@ const KPIInsights = () => {
             {/* Booking Stage Conversions */}
             <div className="bg-white border border-black-150 p-5 rounded-3xl shadow-sm hover:shadow-md transition">
               <span className="text-[11px] font-bold text-black-400 uppercase tracking-wider block">Total Bookings Count</span>
-              <h3 className="text-2xl font-black text-black-800 mt-1">{stats.cards.conversion.count} Converted</h3>
-              
+              <h3 className="text-2xl font-black text-black-800 mt-1">{(stats.cards.booked?.total ?? stats.cards.conversion?.count ?? 0)} Converted</h3>
             </div>
 
 
