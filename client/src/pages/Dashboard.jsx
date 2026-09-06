@@ -1993,10 +1993,10 @@ const Dashboard = () => {
   ];
 
   return (
-    <div className="space-y-6 w-full mx-auto text-left animate-fadeIn">
+    <div className="space-y-4 w-full mx-auto text-left animate-fadeIn">
 
       {/* Filtration Header Card */}
-      <div className="glass-card border-none shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-3xl p-3 sm:p-4 w-full relative transition-all duration-300">
+      <div className="glass-card border-none shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-2xl p-2.5 sm:p-3.5 w-full relative transition-all duration-300">
         <div className="flex flex-col lg:flex-row items-stretch lg:items-end gap-2.5 w-full">
 
           {/* User Select */}
@@ -2075,7 +2075,7 @@ const Dashboard = () => {
       </div>
 
       {/* Project Wise Inventory Pie Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3.5">
         {Object.keys(stats.projectUnitsStats || {}).map(projCode => {
           // If a specific project is selected, only render that one
           if (selectedProject) {
@@ -2130,8 +2130,8 @@ const Dashboard = () => {
           }
 
           return (
-            <div key={projCode} className="bg-[#f0fbf4] border-none rounded-3xl p-6 shadow-sm hover:shadow-md transition space-y-4">
-              <div className="flex justify-between items-center border-b border-black-100 pb-3 text-left">
+            <div key={projCode} className="bg-[#f0fbf4] border-none rounded-2xl p-4 sm:p-5 shadow-sm hover:shadow-md transition space-y-3">
+              <div className="flex justify-between items-center border-b border-black-100 pb-2.5 text-left">
                 <div>
                   <h3 className="text-sm font-extrabold text-black-800 uppercase tracking-wide flex items-center gap-2">
                     <Building className="w-4 h-4 text-[#0e623a]" />
@@ -2140,13 +2140,13 @@ const Dashboard = () => {
 
                 </div>
               </div>
-              <div className="py-4 px-2">
+              <div className="py-2 px-1">
                 {chartData.length === 0 && (pStats.cancelled || 0) === 0 ? (
-                  <div className="h-24 flex items-center justify-center text-black-400 italic text-xs">
+                  <div className="h-20 flex items-center justify-center text-black-400 italic text-xs">
                     No units registered
                   </div>
                 ) : (
-                  <div className={`grid gap-4 w-full ${projObj?.hasReadyBuilt !== false ? 'grid-cols-2 md:grid-cols-3 lg:grid-cols-5' : 'grid-cols-2 lg:grid-cols-4'}`}>
+                  <div className={`grid gap-3 w-full ${projObj?.hasReadyBuilt !== false ? 'grid-cols-2 md:grid-cols-3 lg:grid-cols-5' : 'grid-cols-2 lg:grid-cols-4'}`}>
                     {slots.map((slot, index) => {
                       return (
                         <div key={index}
@@ -2154,13 +2154,13 @@ const Dashboard = () => {
                             setSelectedInventoryProj({ projCode, stats: pStats, view: slot.view });
                             setInventoryModalOpen(true);
                           }}
-                          className={`flex flex-col items-start rounded-2xl p-4 transition shadow-sm cursor-pointer w-full ${slot.bgClass}`}>
-                          <div className="flex items-center gap-2 mb-2">
-                            <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: slot.color }}></span>
-                            <span className={`text-[11px] font-black uppercase tracking-wider ${slot.titleColor}`}>{slot.label}</span>
+                          className={`flex flex-col items-start rounded-xl p-3 transition shadow-sm cursor-pointer w-full ${slot.bgClass}`}>
+                          <div className="flex items-center gap-1.5 mb-1">
+                            <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: slot.color }}></span>
+                            <span className={`text-[10px] font-black uppercase tracking-wider ${slot.titleColor}`}>{slot.label}</span>
                           </div>
                           <div className="flex flex-col items-start gap-0.5 mt-auto">
-                            <span className={`grand-heading text-4xl leading-none mt-1 ${slot.countColor}`}>{slot.count}</span>
+                            <span className={`grand-heading text-2xl sm:text-3xl leading-none mt-0.5 ${slot.countColor}`}>{slot.count}</span>
                           </div>
                         </div>
                       );
@@ -2169,13 +2169,13 @@ const Dashboard = () => {
                 )}
               </div>
 
-              <div className="pt-2 text-center border-t border-black-50">
+              <div className="pt-1.5 text-center border-t border-black-50">
                 <button
                   onClick={() => {
                     setSelectedInventoryProj({ projCode, stats: pStats });
                     setInventoryModalOpen(true);
                   }}
-                  className="text-[12px] font-bold text-[#0e623a] hover:underline"
+                  className="text-[11px] font-bold text-[#0e623a] hover:underline"
                 >
                   View Detailed Units Breakdown
                 </button>
@@ -2186,19 +2186,19 @@ const Dashboard = () => {
       </div>
 
       {loading ? (
-        <div className="py-24 text-center text-black-400 italic">
+        <div className="py-16 text-center text-black-400 italic">
           Fetching dynamic interactive dashboard metrics...
         </div>
       ) : (
         <>
           {/* Row 0: Task Details Cards */}
-          <div>
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-3 gap-2">
+          <div className="space-y-2">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-1.5 gap-2">
               <div className="flex items-center gap-2">
                 <h4 className="text-sm font-black text-black uppercase tracking-wider text-left">
                   Task Details
                 </h4>
-                <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-[#0e623a] border border-emerald-200">
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-[#0e623a] border border-emerald-200">
                   {isSuperAdmin 
                     ? (selectedUser ? `Filtered User (${(stats.users || []).find(u => u._id === selectedUser)?.name || 'Selected'})` : 'All Users Combined') 
                     : (user?.name || 'My Tasks')}
@@ -2213,18 +2213,18 @@ const Dashboard = () => {
               </button>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
               {/* Card 1: Today Task */}
               <div
                 onClick={() => navigate('/tasks?status=TODAY')}
-                className="bg-[#f0fbf4] border border-emerald-100/60 rounded-3xl p-5 shadow-xs hover:shadow-md transition cursor-pointer select-none active:scale-[0.99] duration-150 flex flex-col justify-between"
+                className="bg-[#f0fbf4] border border-emerald-100/60 rounded-2xl p-3.5 shadow-xs hover:shadow-md transition cursor-pointer select-none active:scale-[0.99] duration-150 flex flex-col justify-between"
                 title="Click to view tasks due or assigned today"
               >
                 <div className="flex items-center justify-between">
                   <div>
-                    <span className="text-xs text-black font-extrabold uppercase tracking-wider">Today Task</span>
-                    <h3 className="text-3xl font-extrabold text-[#0e623a] mt-1">{taskMetrics.todayCount}</h3>
-                    <div className="text-[11px] text-gray-500 font-bold mt-1">
+                    <span className="text-[11px] text-black font-extrabold uppercase tracking-wider">Today Task</span>
+                    <h3 className="text-2xl font-extrabold text-[#0e623a] mt-0.5">{taskMetrics.todayCount}</h3>
+                    <div className="text-[10px] text-gray-500 font-bold mt-0.5">
                       today ({taskMetrics.todayCount})
                     </div>
                   </div>
@@ -2234,14 +2234,14 @@ const Dashboard = () => {
               {/* Card 2: New */}
               <div
                 onClick={() => navigate('/tasks?status=NEW')}
-                className="bg-[#f0fbf4] border border-emerald-100/60 rounded-3xl p-5 shadow-xs hover:shadow-md transition cursor-pointer select-none active:scale-[0.99] duration-150 flex flex-col justify-between"
+                className="bg-[#f0fbf4] border border-emerald-100/60 rounded-2xl p-3.5 shadow-xs hover:shadow-md transition cursor-pointer select-none active:scale-[0.99] duration-150 flex flex-col justify-between"
                 title="Click to view new tasks"
               >
                 <div className="flex items-center justify-between">
                   <div>
-                    <span className="text-xs text-black font-extrabold uppercase tracking-wider">New</span>
-                    <h3 className="text-3xl font-extrabold text-blue-700 mt-1">{taskMetrics.newCount}</h3>
-                    <div className="text-[11px] text-gray-500 font-bold mt-1">
+                    <span className="text-[11px] text-black font-extrabold uppercase tracking-wider">New</span>
+                    <h3 className="text-2xl font-extrabold text-blue-700 mt-0.5">{taskMetrics.newCount}</h3>
+                    <div className="text-[10px] text-gray-500 font-bold mt-0.5">
                       new ({taskMetrics.newCount})
                     </div>
                   </div>
@@ -2251,14 +2251,14 @@ const Dashboard = () => {
               {/* Card 3: In Progress */}
               <div
                 onClick={() => navigate('/tasks?status=IN_PROGRESS')}
-                className="bg-[#f0fbf4] border border-emerald-100/60 rounded-3xl p-5 shadow-xs hover:shadow-md transition cursor-pointer select-none active:scale-[0.99] duration-150 flex flex-col justify-between"
+                className="bg-[#f0fbf4] border border-emerald-100/60 rounded-2xl p-3.5 shadow-xs hover:shadow-md transition cursor-pointer select-none active:scale-[0.99] duration-150 flex flex-col justify-between"
                 title="Click to view tasks in progress"
               >
                 <div className="flex items-center justify-between">
                   <div>
-                    <span className="text-xs text-black font-extrabold uppercase tracking-wider">In Progress</span>
-                    <h3 className="text-3xl font-extrabold text-amber-600 mt-1">{taskMetrics.inProgressCount}</h3>
-                    <div className="text-[11px] text-gray-500 font-bold mt-1">
+                    <span className="text-[11px] text-black font-extrabold uppercase tracking-wider">In Progress</span>
+                    <h3 className="text-2xl font-extrabold text-amber-600 mt-0.5">{taskMetrics.inProgressCount}</h3>
+                    <div className="text-[10px] text-gray-500 font-bold mt-0.5">
                       active ({taskMetrics.inProgressCount})
                     </div>
                   </div>
@@ -2268,14 +2268,14 @@ const Dashboard = () => {
               {/* Card 4: Completed */}
               <div
                 onClick={() => navigate('/tasks?status=COMPLETED')}
-                className="bg-[#f0fbf4] border border-emerald-100/60 rounded-3xl p-5 shadow-xs hover:shadow-md transition cursor-pointer select-none active:scale-[0.99] duration-150 flex flex-col justify-between"
+                className="bg-[#f0fbf4] border border-emerald-100/60 rounded-2xl p-3.5 shadow-xs hover:shadow-md transition cursor-pointer select-none active:scale-[0.99] duration-150 flex flex-col justify-between"
                 title="Click to view completed tasks"
               >
                 <div className="flex items-center justify-between">
                   <div>
-                    <span className="text-xs text-black font-extrabold uppercase tracking-wider">Completed</span>
-                    <h3 className="text-3xl font-extrabold text-emerald-700 mt-1">{taskMetrics.completedCount}</h3>
-                    <div className="text-[11px] text-gray-500 font-bold mt-1">
+                    <span className="text-[11px] text-black font-extrabold uppercase tracking-wider">Completed</span>
+                    <h3 className="text-2xl font-extrabold text-emerald-700 mt-0.5">{taskMetrics.completedCount}</h3>
+                    <div className="text-[10px] text-gray-500 font-bold mt-0.5">
                       done ({taskMetrics.completedCount})
                     </div>
                   </div>
@@ -2285,14 +2285,14 @@ const Dashboard = () => {
               {/* Card 5: Pending */}
               <div
                 onClick={() => navigate('/tasks?status=PENDING')}
-                className="bg-[#f0fbf4] border border-emerald-100/60 rounded-3xl p-5 shadow-xs hover:shadow-md transition cursor-pointer select-none active:scale-[0.99] duration-150 flex flex-col justify-between"
+                className="bg-[#f0fbf4] border border-emerald-100/60 rounded-2xl p-3.5 shadow-xs hover:shadow-md transition cursor-pointer select-none active:scale-[0.99] duration-150 flex flex-col justify-between"
                 title="Click to view pending tasks"
               >
                 <div className="flex items-center justify-between">
                   <div>
-                    <span className="text-xs text-black font-extrabold uppercase tracking-wider">Pending</span>
-                    <h3 className="text-3xl font-extrabold text-rose-700 mt-1">{taskMetrics.pendingCount}</h3>
-                    <div className="text-[11px] text-gray-500 font-bold mt-1">
+                    <span className="text-[11px] text-black font-extrabold uppercase tracking-wider">Pending</span>
+                    <h3 className="text-2xl font-extrabold text-rose-700 mt-0.5">{taskMetrics.pendingCount}</h3>
+                    <div className="text-[10px] text-gray-500 font-bold mt-0.5">
                       pending ({taskMetrics.pendingCount})
                     </div>
                   </div>
@@ -2302,14 +2302,14 @@ const Dashboard = () => {
               {/* Card 6: Overdue */}
               <div
                 onClick={() => navigate('/tasks?status=OVERDATED')}
-                className="bg-[#f0fbf4] border border-rose-100 rounded-3xl p-5 shadow-xs hover:shadow-md transition cursor-pointer select-none active:scale-[0.99] duration-150 flex flex-col justify-between"
+                className="bg-[#f0fbf4] border border-rose-100 rounded-2xl p-3.5 shadow-xs hover:shadow-md transition cursor-pointer select-none active:scale-[0.99] duration-150 flex flex-col justify-between"
                 title="Click to view overdue tasks past due date"
               >
                 <div className="flex items-center justify-between">
                   <div>
-                    <span className="text-xs text-rose-800 font-extrabold uppercase tracking-wider">Overdue</span>
-                    <h3 className="text-3xl font-extrabold text-red-600 mt-1">{taskMetrics.overdatedCount}</h3>
-                    <div className="text-[11px] text-rose-600 font-bold mt-1">
+                    <span className="text-[11px] text-rose-800 font-extrabold uppercase tracking-wider">Overdue</span>
+                    <h3 className="text-2xl font-extrabold text-red-600 mt-0.5">{taskMetrics.overdatedCount}</h3>
+                    <div className="text-[10px] text-rose-600 font-bold mt-0.5">
                       overdue ({taskMetrics.overdatedCount})
                     </div>
                   </div>
@@ -2319,22 +2319,21 @@ const Dashboard = () => {
           </div>
 
           {/* Row 1: Total Performance Cards */}
-          <div>
-            <h4 className="text-sm font-black text-black uppercase tracking-wider mb-3 text-left">Lead Details</h4>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
+          <div className="space-y-2">
+            <h4 className="text-sm font-black text-black uppercase tracking-wider mb-1.5 text-left">Lead Details</h4>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
 
               {/* Card 1: Total Leads */}
               <div
                 onClick={() => setLeadsModalOpen(true)}
-                className="bg-[#f0fbf4] border-none rounded-3xl p-6 shadow-sm hover:shadow-md transition cursor-pointer select-none active:scale-[0.99] duration-150 flex flex-col justify-between"
+                className="bg-[#f0fbf4] border-none rounded-2xl p-3.5 shadow-sm hover:shadow-md transition cursor-pointer select-none active:scale-[0.99] duration-150 flex flex-col justify-between"
               >
                 <div className="flex items-center justify-between">
                   <div>
-                    <span className="text-sm text-black font-extrabold uppercase tracking-wider">Total Leads</span>
-                    <h3 className="text-3xl font-extrabold text-black-800 mt-1">{stats.cards.totalLeads || 0}</h3>
-                    <div className="text-xs text-gray-500 font-bold mt-1 space-y-0.5">
-                      <div>new ({stats.cards.newLeads || 0})</div>
-                      <div>assigned ({stats.cards.assignedLeads || 0})</div>
+                    <span className="text-xs text-black font-extrabold uppercase tracking-wider">Total Leads</span>
+                    <h3 className="text-2xl font-extrabold text-black-800 mt-0.5">{stats.cards.totalLeads || 0}</h3>
+                    <div className="text-[10px] text-gray-500 font-bold mt-0.5 space-y-0.5">
+                      <div>new ({stats.cards.newLeads || 0}) • assigned ({stats.cards.assignedLeads || 0})</div>
                     </div>
                   </div>
                 </div>
@@ -2343,15 +2342,15 @@ const Dashboard = () => {
               {/* Card 2: Total Followup */}
               <div
                 onClick={() => setFollowupModalOpen(true)}
-                className="bg-[#f0fbf4] border-none rounded-3xl p-6 shadow-sm hover:shadow-md transition cursor-pointer select-none active:scale-[0.99] duration-150 flex flex-col justify-between"
+                className="bg-[#f0fbf4] border-none rounded-2xl p-3.5 shadow-sm hover:shadow-md transition cursor-pointer select-none active:scale-[0.99] duration-150 flex flex-col justify-between"
               >
                 <div className="flex items-center justify-between">
                   <div>
-                    <span className="text-sm text-black font-extrabold uppercase tracking-wider">Total Followup</span>
-                    <h3 className="text-3xl font-extrabold text-black-800 mt-1">
+                    <span className="text-xs text-black font-extrabold uppercase tracking-wider">Total Followup</span>
+                    <h3 className="text-2xl font-extrabold text-black-800 mt-0.5">
                       {(stats.cards.enquiries?.contacted || 0) + (stats.cards.enquiries?.followup || 0) + (stats.cards.siteVisits?.live || 0)}
                     </h3>
-                    <div className="text-xs text-gray-500 font-bold mt-1">
+                    <div className="text-[10px] text-gray-500 font-bold mt-0.5">
                       active ({(stats.cards.enquiries?.contacted || 0) + (stats.cards.enquiries?.followup || 0) + (stats.cards.siteVisits?.live || 0)})
                     </div>
                   </div>
@@ -2361,15 +2360,15 @@ const Dashboard = () => {
               {/* Card 3: Hot List */}
               <div
                 onClick={() => setHotModalOpen(true)}
-                className="bg-[#f0fbf4] border-none rounded-3xl p-6 shadow-sm hover:shadow-md transition cursor-pointer select-none active:scale-[0.99] duration-150 flex flex-col justify-between"
+                className="bg-[#f0fbf4] border-none rounded-2xl p-3.5 shadow-sm hover:shadow-md transition cursor-pointer select-none active:scale-[0.99] duration-150 flex flex-col justify-between"
               >
                 <div className="flex items-center justify-between">
                   <div>
-                    <span className="text-sm text-black font-extrabold uppercase tracking-wider">Hot List</span>
-                    <h3 className="text-3xl font-extrabold text-black-800 mt-1">
+                    <span className="text-xs text-black font-extrabold uppercase tracking-wider">Hot List</span>
+                    <h3 className="text-2xl font-extrabold text-black-800 mt-0.5">
                       {stats.cards.hotList?.total || stats.cards.hotList?.live || 0}
                     </h3>
-                    <div className="text-xs text-gray-500 font-bold mt-1">
+                    <div className="text-[10px] text-gray-500 font-bold mt-0.5">
                       hot ({stats.cards.hotList?.total || stats.cards.hotList?.live || 0})
                     </div>
                   </div>
@@ -2379,13 +2378,13 @@ const Dashboard = () => {
               {/* Card 4: Total Booked */}
               <div
                 onClick={() => setBookedModalOpen(true)}
-                className="bg-[#f0fbf4] border-none rounded-3xl p-6 shadow-sm hover:shadow-md transition cursor-pointer select-none active:scale-[0.99] duration-150 flex flex-col justify-between"
+                className="bg-[#f0fbf4] border-none rounded-2xl p-3.5 shadow-sm hover:shadow-md transition cursor-pointer select-none active:scale-[0.99] duration-150 flex flex-col justify-between"
               >
                 <div className="flex items-center justify-between">
                   <div>
-                    <span className="text-sm text-black font-extrabold uppercase tracking-wider">Total Booked</span>
-                    <h3 className="text-3xl font-extrabold text-black-800 mt-1">{stats.cards.booked?.total || 0}</h3>
-                    <div className="text-xs text-gray-500 font-bold mt-1">
+                    <span className="text-xs text-black font-extrabold uppercase tracking-wider">Total Booked</span>
+                    <h3 className="text-2xl font-extrabold text-black-800 mt-0.5">{stats.cards.booked?.total || 0}</h3>
+                    <div className="text-[10px] text-gray-500 font-bold mt-0.5">
                       booked ({stats.cards.booked?.total || 0})
                     </div>
                   </div>
@@ -2395,15 +2394,15 @@ const Dashboard = () => {
               {/* Card 5: Lost Leads */}
               <div
                 onClick={() => setLostModalOpen(true)}
-                className="bg-[#f0fbf4] border-none rounded-3xl p-6 shadow-sm hover:shadow-md transition cursor-pointer select-none active:scale-[0.99] duration-150 flex flex-col justify-between"
+                className="bg-[#f0fbf4] border-none rounded-2xl p-3.5 shadow-sm hover:shadow-md transition cursor-pointer select-none active:scale-[0.99] duration-150 flex flex-col justify-between"
               >
                 <div className="flex items-center justify-between">
                   <div>
-                    <span className="text-sm text-black font-extrabold uppercase tracking-wider">Lost Leads</span>
-                    <h3 className="text-3xl font-extrabold text-black-800 mt-1">
+                    <span className="text-xs text-black font-extrabold uppercase tracking-wider">Lost Leads</span>
+                    <h3 className="text-2xl font-extrabold text-black-800 mt-0.5">
                       {(stats.cards.enquiries?.closed || 0) + (stats.cards.siteVisits?.closed || 0)}
                     </h3>
-                    <div className="text-xs text-gray-500 font-bold mt-1">
+                    <div className="text-[10px] text-gray-500 font-bold mt-0.5">
                       closed ({(stats.cards.enquiries?.closed || 0) + (stats.cards.siteVisits?.closed || 0)})
                     </div>
                   </div>
@@ -2419,11 +2418,11 @@ const Dashboard = () => {
 
 
           {/* User Wise & Stage Wise Performance Pie Reports */}
-          <div className="flex flex-col gap-8">
+          <div className="flex flex-col gap-4">
 
             {/* User turn over Pie Chart */}
-            <div className="bg-[#f0fbf4] border-none rounded-3xl p-6 shadow-sm space-y-6">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-black-100 pb-3 gap-2">
+            <div className="bg-[#f0fbf4] border-none rounded-2xl p-4 sm:p-5 shadow-sm space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-black-100 pb-2.5 gap-2">
                 <div>
                   <h3 className="text-sm font-extrabold text-black-800 uppercase tracking-wide">
                     User Wise Lead Details
@@ -2464,7 +2463,7 @@ const Dashboard = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
                 <div className="md:col-span-7 flex flex-col items-start w-full relative">
                   {userPerformanceData.length === 0 ? (
                     <p className="text-black-400 italic text-xs py-8 text-center w-full">No user performance recorded</p>
@@ -2551,8 +2550,8 @@ const Dashboard = () => {
             </div>
 
             {/* Source Wise drill down Pie Chart */}
-            <div className="bg-[#f0fbf4] border-none rounded-3xl p-6 shadow-sm space-y-6">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-black-100 pb-3 gap-2">
+            <div className="bg-[#f0fbf4] border-none rounded-2xl p-4 sm:p-5 shadow-sm space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-black-100 pb-2.5 gap-2">
                 <div>
                   <h3 className="text-sm font-extrabold text-black-800 uppercase tracking-wide">
                     Source Wise Lead Details

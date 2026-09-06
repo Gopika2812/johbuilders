@@ -3061,9 +3061,9 @@ const KPIInsights = () => {
   ];
 
   return (
-    <div className="space-y-8 w-full mx-auto text-left animate-fadeIn">
+    <div className="space-y-4 w-full mx-auto text-left animate-fadeIn">
       {/* Filters Panel */}
-      <div className="flex flex-wrap items-center gap-4 bg-white p-3 rounded-2xl border border-black-150 shadow-xs">
+      <div className="flex flex-wrap items-center gap-3 bg-white p-2.5 rounded-2xl border border-black-150 shadow-xs">
         {/* User Select */}
         {(user?.role === 'Superadmin' || user?.role === 'Superadmin') && (
           <div className="w-48">
@@ -3129,58 +3129,53 @@ const KPIInsights = () => {
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center min-h-[400px]">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#0e623a]"></div>
+        <div className="flex items-center justify-center min-h-[300px]">
+          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#0e623a]"></div>
         </div>
       ) : (
-        <div className="space-y-8">
+        <div className="space-y-4">
           {/* Top 3 KPI Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             
             {/* Card 1: Marketing Investment */}
-            <div className="bg-white border border-black-150 rounded-3xl p-6 shadow-sm space-y-4">
-              <span className="text-xs font-black text-black-400 uppercase tracking-widest block">Marketing Investment</span>
-              <h3 className="text-3xl font-black text-black-800">₹{(stats.insights?.totalMarketingSpend || overallTotalSpent).toLocaleString()}</h3>
-              <div className="grid grid-cols-2 gap-4 pt-2 border-t border-black-100">
+            <div className="bg-white border border-black-150 rounded-2xl p-4 shadow-sm space-y-2">
+              <span className="text-[11px] font-black text-black-400 uppercase tracking-wider block">Marketing Investment</span>
+              <h3 className="text-2xl font-black text-black-800">₹{(stats.insights?.totalMarketingSpend || overallTotalSpent).toLocaleString()}</h3>
+              <div className="grid grid-cols-2 gap-2 pt-2 border-t border-black-100">
                 <div>
-                  <span className="text-[11px] font-bold text-black-400 uppercase block">Overall Leads</span>
-                  <span className="text-base font-extrabold text-black-800">{overallTotalLeads}</span>
+                  <span className="text-[10px] font-bold text-black-400 uppercase block">Overall Leads</span>
+                  <span className="text-sm font-extrabold text-black-800">{overallTotalLeads}</span>
                 </div>
                 <div>
-                  <span className="text-[11px] font-bold text-black-400 uppercase block">Cost Per Lead</span>
-                  <span className="text-base font-extrabold text-black-800">₹{Math.round(overallTotalLeads > 0 ? (stats.insights?.totalMarketingSpend || overallTotalSpent) / overallTotalLeads : 0).toLocaleString()}</span>
+                  <span className="text-[10px] font-bold text-black-400 uppercase block">Cost Per Lead</span>
+                  <span className="text-sm font-extrabold text-black-800">₹{Math.round(overallTotalLeads > 0 ? (stats.insights?.totalMarketingSpend || overallTotalSpent) / overallTotalLeads : 0).toLocaleString()}</span>
                 </div>
               </div>
             </div>
 
             {/* Card 2: Cost Per Converted Lead */}
-            <div className="bg-white border border-black-150 rounded-3xl p-6 shadow-sm flex flex-col justify-between">
-              <div>
-                <span className="text-xs font-black text-black-400 uppercase tracking-widest block">Cost Per Converted Lead</span>
-                <h3 className="text-3xl font-black text-[#0e623a] mt-2">₹{Math.round(overallCostPerLead).toLocaleString()}</h3>
-              </div>
+            <div className="bg-white border border-black-150 rounded-2xl p-4 shadow-sm flex flex-col justify-center space-y-1">
+              <span className="text-[11px] font-black text-black-400 uppercase tracking-wider block">Cost Per Converted Lead</span>
+              <h3 className="text-2xl font-black text-[#0e623a]">₹{Math.round(overallCostPerLead).toLocaleString()}</h3>
             </div>
 
             {/* Card 3: Total Bookings Count */}
-            <div className="bg-white border border-black-150 rounded-3xl p-6 shadow-sm flex flex-col justify-between">
-              <div>
-                <span className="text-xs font-black text-black-400 uppercase tracking-widest block">Total Bookings Count</span>
-              </div>
-              <h3 className="text-2xl font-black text-black-800 mt-1">{(stats.cards.booked?.total ?? stats.cards.conversion?.count ?? 0)} Converted</h3>
+            <div className="bg-white border border-black-150 rounded-2xl p-4 shadow-sm flex flex-col justify-center space-y-1">
+              <span className="text-[11px] font-black text-black-400 uppercase tracking-wider block">Total Bookings Count</span>
+              <h3 className="text-2xl font-black text-black-800">{(stats.cards.booked?.total ?? stats.cards.conversion?.count ?? 0)} Converted</h3>
             </div>
-
 
           </div>
 
           {/* 🟢 DAILY LEAD COST ANALYSIS TABLE GRID */}
-          <div className="bg-white border border-black-150 rounded-3xl p-6 shadow-sm space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-black-100 pb-3">
+          <div className="bg-white border border-black-150 rounded-2xl p-4 sm:p-5 shadow-sm space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-black-100 pb-2.5">
               <h3 className="text-sm font-extrabold text-black-800 uppercase tracking-wide flex items-center gap-2">
-                <BarChart3 className="w-5 h-5 text-[#0e623a]" />
+                <BarChart3 className="w-4 h-4 text-[#0e623a]" />
                 <span>Daily Lead Cost Analysis Report</span>
               </h3>
-              <div className="flex items-center gap-3">
-                <div className="w-[200px]">
+              <div className="flex items-center gap-2.5">
+                <div className="w-[180px]">
                   <SearchableMultiSelect
                     options={Array.from(new Set([...SOURCE_TYPES, ...Object.keys(stats.sourceStats || {})])).sort()}
                     selectedValues={selectedSource}
@@ -3191,7 +3186,7 @@ const KPIInsights = () => {
                 </div>
                 <button
                   onClick={handleExportLeadCostAnalysis}
-                  className="px-4 py-2 bg-[#0e623a] text-white rounded-xl text-xs font-bold hover:bg-[#0b4d2d] transition flex items-center gap-2 shadow-sm cursor-pointer"
+                  className="px-3.5 py-1.5 bg-[#0e623a] text-white rounded-xl text-xs font-bold hover:bg-[#0b4d2d] transition flex items-center gap-1.5 shadow-sm cursor-pointer"
                 >
                   <FileText className="w-3.5 h-3.5" />
                   <span>Export Report</span>
@@ -3200,26 +3195,26 @@ const KPIInsights = () => {
             </div>
             
             {/* Table / Grid Format for Daily Lead Cost Analysis */}
-            <div className="overflow-x-auto rounded-2xl border border-black-150 shadow-xs bg-white">
+            <div className="overflow-x-auto rounded-xl border border-black-150 shadow-xs bg-white">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="bg-gray-50/90 border-b border-black-150 text-[11px] font-black uppercase text-black-600 tracking-wider">
-                    <th className="py-3.5 px-4 text-center w-12">#</th>
-                    <th className="py-3.5 px-4">Lead Source</th>
-                    <th className="py-3.5 px-4 text-right">Budget</th>
-                    <th className="py-3.5 px-4 text-right">Spent</th>
-                    <th className="py-3.5 px-4 text-right">Cost / Lead</th>
-                    <th className="py-3.5 px-4 text-center">Leads</th>
-                    <th className="py-3.5 px-4 text-center">Followup</th>
-                    <th className="py-3.5 px-4 text-center">Site Visit</th>
-                    <th className="py-3.5 px-4 text-center">Booked</th>
-                    <th className="py-3.5 px-4 text-center">Lost</th>
+                  <tr className="bg-gray-50/90 border-b border-black-150 text-[10px] font-black uppercase text-black-600 tracking-wider">
+                    <th className="py-2.5 px-3.5 text-center w-10">#</th>
+                    <th className="py-2.5 px-3.5">Lead Source</th>
+                    <th className="py-2.5 px-3.5 text-right">Budget</th>
+                    <th className="py-2.5 px-3.5 text-right">Spent</th>
+                    <th className="py-2.5 px-3.5 text-right">Cost / Lead</th>
+                    <th className="py-2.5 px-3.5 text-center">Leads</th>
+                    <th className="py-2.5 px-3.5 text-center">Followup</th>
+                    <th className="py-2.5 px-3.5 text-center">Site Visit</th>
+                    <th className="py-2.5 px-3.5 text-center">Booked</th>
+                    <th className="py-2.5 px-3.5 text-center">Lost</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-black-100 text-xs text-black-800">
                   {Object.keys(filteredSourceStats).length === 0 ? (
                     <tr>
-                      <td colSpan={10} className="py-8 text-center text-black-400 italic font-medium">
+                      <td colSpan={10} className="py-6 text-center text-black-400 italic font-medium">
                         No source stats found for the selected filters.
                       </td>
                     </tr>
@@ -3230,20 +3225,20 @@ const KPIInsights = () => {
                         const costPerLead = data.count > 0 ? (data.spent / data.count) : 0;
                         return (
                           <tr key={index} className="hover:bg-gray-50/80 transition-colors">
-                            <td className="py-3.5 px-4 text-center text-black-400 font-bold">{index + 1}</td>
-                            <td className="py-3.5 px-4 font-black uppercase text-black-800 tracking-wide">{source}</td>
-                            <td className="py-3.5 px-4 text-right font-bold text-black-700">₹{Math.round(data.budget || 0).toLocaleString()}</td>
-                            <td className="py-3.5 px-4 text-right font-bold text-rose-600">₹{Math.round(data.spent || 0).toLocaleString()}</td>
-                            <td className="py-3.5 px-4 text-right font-black text-[#0e623a]">₹{Math.round(costPerLead).toLocaleString()}</td>
-                            <td className="py-3.5 px-4 text-center font-extrabold text-black-800">{data.count || 0}</td>
-                            <td className="py-3.5 px-4 text-center font-bold text-blue-600">{data.enquiries || 0}</td>
-                            <td className="py-3.5 px-4 text-center font-bold text-purple-600">{data.siteVisits || 0}</td>
-                            <td className="py-3.5 px-4 text-center">
+                            <td className="py-2 px-3.5 text-center text-black-400 font-bold">{index + 1}</td>
+                            <td className="py-2 px-3.5 font-black uppercase text-black-800 tracking-wide">{source}</td>
+                            <td className="py-2 px-3.5 text-right font-bold text-black-700">₹{Math.round(data.budget || 0).toLocaleString()}</td>
+                            <td className="py-2 px-3.5 text-right font-bold text-rose-600">₹{Math.round(data.spent || 0).toLocaleString()}</td>
+                            <td className="py-2 px-3.5 text-right font-black text-[#0e623a]">₹{Math.round(costPerLead).toLocaleString()}</td>
+                            <td className="py-2 px-3.5 text-center font-extrabold text-black-800">{data.count || 0}</td>
+                            <td className="py-2 px-3.5 text-center font-bold text-blue-600">{data.enquiries || 0}</td>
+                            <td className="py-2 px-3.5 text-center font-bold text-purple-600">{data.siteVisits || 0}</td>
+                            <td className="py-2 px-3.5 text-center">
                               <span className="inline-block px-2.5 py-0.5 rounded-full bg-emerald-50 text-[#0e623a] font-black border border-emerald-200/80">
                                 {data.booked || 0}
                               </span>
                             </td>
-                            <td className="py-3.5 px-4 text-center font-bold text-rose-600">{data.lost || 0}</td>
+                            <td className="py-2 px-3.5 text-center font-bold text-rose-600">{data.lost || 0}</td>
                           </tr>
                         );
                       })
@@ -3252,30 +3247,30 @@ const KPIInsights = () => {
                 {Object.keys(filteredSourceStats).length > 0 && (
                   <tfoot>
                     <tr className="bg-gray-100/90 border-t-2 border-black-200 text-xs font-black text-black-900">
-                      <td className="py-3.5 px-4 text-center text-black-500">TOTAL</td>
-                      <td className="py-3.5 px-4 uppercase tracking-wider">Overall Summary</td>
-                      <td className="py-3.5 px-4 text-right">
+                      <td className="py-2.5 px-3.5 text-center text-black-500">TOTAL</td>
+                      <td className="py-2.5 px-3.5 uppercase tracking-wider">Overall Summary</td>
+                      <td className="py-2.5 px-3.5 text-right">
                         ₹{Math.round(Object.values(filteredSourceStats).reduce((sum, d) => sum + (d.budget || 0), 0)).toLocaleString()}
                       </td>
-                      <td className="py-3.5 px-4 text-right text-rose-600">
+                      <td className="py-2.5 px-3.5 text-right text-rose-600">
                         ₹{Math.round(overallTotalSpent).toLocaleString()}
                       </td>
-                      <td className="py-3.5 px-4 text-right text-[#0e623a]">
+                      <td className="py-2.5 px-3.5 text-right text-[#0e623a]">
                         ₹{Math.round(overallTotalLeads > 0 ? overallTotalSpent / overallTotalLeads : 0).toLocaleString()}
                       </td>
-                      <td className="py-3.5 px-4 text-center">{overallTotalLeads}</td>
-                      <td className="py-3.5 px-4 text-center text-blue-700">
+                      <td className="py-2.5 px-3.5 text-center">{overallTotalLeads}</td>
+                      <td className="py-2.5 px-3.5 text-center text-blue-700">
                         {Object.values(filteredSourceStats).reduce((sum, d) => sum + (d.enquiries || 0), 0)}
                       </td>
-                      <td className="py-3.5 px-4 text-center text-purple-700">
+                      <td className="py-2.5 px-3.5 text-center text-purple-700">
                         {Object.values(filteredSourceStats).reduce((sum, d) => sum + (d.siteVisits || 0), 0)}
                       </td>
-                      <td className="py-3.5 px-4 text-center">
+                      <td className="py-2.5 px-3.5 text-center">
                         <span className="inline-block px-2.5 py-0.5 rounded-full bg-[#0e623a] text-white font-black">
                           {Object.values(filteredSourceStats).reduce((sum, d) => sum + (d.booked || 0), 0)}
                         </span>
                       </td>
-                      <td className="py-3.5 px-4 text-center text-rose-700">
+                      <td className="py-2.5 px-3.5 text-center text-rose-700">
                         {Object.values(filteredSourceStats).reduce((sum, d) => sum + (d.lost || 0), 0)}
                       </td>
                     </tr>
@@ -3286,11 +3281,11 @@ const KPIInsights = () => {
           </div>
 
           {/* 🟢 COMPARISON PIE CHARTS */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
             
             {/* Chart 1: Budget Allocation Sources */}
-            <div className="bg-white border border-black-150 rounded-3xl p-6 shadow-sm space-y-4 text-center">
-              <h3 className="text-sm font-extrabold text-black-800 uppercase tracking-wide text-left">
+            <div className="bg-white border border-black-150 rounded-2xl p-4 shadow-sm space-y-3 text-center">
+              <h3 className="text-xs font-extrabold text-black-800 uppercase tracking-wide text-left">
                 Budget Allocation Sources
               </h3>
               <ObservedPieChart 
@@ -3302,8 +3297,8 @@ const KPIInsights = () => {
             </div>
 
             {/* Chart 2: Spent Marketing Sources */}
-            <div className="bg-white border border-black-150 rounded-3xl p-6 shadow-sm space-y-4 text-center">
-              <h3 className="text-sm font-extrabold text-black-800 uppercase tracking-wide text-left">
+            <div className="bg-white border border-black-150 rounded-2xl p-4 shadow-sm space-y-3 text-center">
+              <h3 className="text-xs font-extrabold text-black-800 uppercase tracking-wide text-left">
                 Spent Marketing Sources
               </h3>
               <ObservedPieChart 
@@ -3315,8 +3310,8 @@ const KPIInsights = () => {
             </div>
 
             {/* Chart 3: Incoming Networth Value */}
-            <div className="bg-white border border-black-150 rounded-3xl p-6 shadow-sm space-y-4 text-center">
-              <h3 className="text-sm font-extrabold text-black-800 uppercase tracking-wide text-left">
+            <div className="bg-white border border-black-150 rounded-2xl p-4 shadow-sm space-y-3 text-center">
+              <h3 className="text-xs font-extrabold text-black-800 uppercase tracking-wide text-left">
                 Incoming Networth Value
               </h3>
               <ObservedPieChart 
