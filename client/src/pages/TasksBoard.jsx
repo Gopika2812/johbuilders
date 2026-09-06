@@ -1218,6 +1218,12 @@ const TasksBoard = () => {
   };
 
   const handleOpenEditModal = (task) => {
+    const assignedById = (task?.assignedBy?._id || task?.assignedBy)?.toString();
+    const currentUserId = (user?._id || user?.id)?.toString();
+    if (assignedById && currentUserId && assignedById !== currentUserId && !isSuperAdmin) {
+      setError('Only the person who assigned this task can edit it.');
+      return;
+    }
     setEditingTask(task);
     setShowCategoryManager(false);
     setEditingCategoryObj(null);
@@ -1341,6 +1347,13 @@ const TasksBoard = () => {
   };
 
   const handleCancelTask = async (taskId) => {
+    const targetTask = tasks.find(t => t._id === taskId);
+    const assignedById = (targetTask?.assignedBy?._id || targetTask?.assignedBy)?.toString();
+    const currentUserId = (user?._id || user?.id)?.toString();
+    if (assignedById && currentUserId && assignedById !== currentUserId && !isSuperAdmin) {
+      setError('Only the person who assigned this task can cancel it.');
+      return;
+    }
     if (!window.confirm('Are you sure you want to cancel this task?')) return;
 
     try {
@@ -1936,6 +1949,10 @@ const TasksBoard = () => {
                     const over = isOverdated(task);
                     const isHighlighted = highlightTaskId === task._id;
                     const sNo = (safeCurrentPage - 1) * tasksPerPage + idx + 1;
+                    const assignedById = (task.assignedBy?._id || task.assignedBy)?.toString();
+                    const currentUserId = (user?._id || user?.id)?.toString();
+                    const isAssignedByMe = Boolean(assignedById && currentUserId && assignedById === currentUserId);
+                    const canEditOrCancel = isAssignedByMe || isSuperAdmin;
 
                     let statusBadge = 'bg-blue-50 text-blue-700 border-blue-200';
                     if (task.status === 'In Progress') statusBadge = 'bg-amber-50 text-amber-700 border-amber-200';
@@ -2131,27 +2148,32 @@ const TasksBoard = () => {
                                 <History className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
                                 <span>History</span>
                               </button>
-                              <button
-                                onClick={() => {
-                                  setOpenActionMenuId(null);
-                                  handleOpenEditModal(task);
-                                }}
-                                className="w-full px-2.5 py-1.5 text-xs text-gray-700 hover:bg-gray-50 flex items-center gap-2 font-semibold transition cursor-pointer"
-                              >
-                                <Edit3 className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-                                <span>Edit</span>
-                              </button>
-                              <div className="border-t border-gray-100 my-0.5"></div>
-                              <button
-                                onClick={() => {
-                                  setOpenActionMenuId(null);
-                                  handleCancelTask(task._id);
-                                }}
-                                className="w-full px-2.5 py-1.5 text-xs text-rose-600 hover:bg-rose-50 flex items-center gap-2 font-semibold transition cursor-pointer"
-                              >
-                                <XCircle className="w-3.5 h-3.5 text-rose-600 shrink-0" />
-                                <span>Cancel</span>
-                              </button>
+
+                              {canEditOrCancel && (
+                                <>
+                                  <button
+                                    onClick={() => {
+                                      setOpenActionMenuId(null);
+                                      handleOpenEditModal(task);
+                                    }}
+                                    className="w-full px-2.5 py-1.5 text-xs text-gray-700 hover:bg-gray-50 flex items-center gap-2 font-semibold transition cursor-pointer"
+                                  >
+                                    <Edit3 className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                                    <span>Edit</span>
+                                  </button>
+                                  <div className="border-t border-gray-100 my-0.5"></div>
+                                  <button
+                                    onClick={() => {
+                                      setOpenActionMenuId(null);
+                                      handleCancelTask(task._id);
+                                    }}
+                                    className="w-full px-2.5 py-1.5 text-xs text-rose-600 hover:bg-rose-50 flex items-center gap-2 font-semibold transition cursor-pointer"
+                                  >
+                                    <XCircle className="w-3.5 h-3.5 text-rose-600 shrink-0" />
+                                    <span>Cancel</span>
+                                  </button>
+                                </>
+                              )}
                             </div>
                           )}
                         </td>

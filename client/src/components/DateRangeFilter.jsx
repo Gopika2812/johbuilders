@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, ChevronDown, RotateCcw } from 'lucide-react';
+import { Calendar, ChevronDown } from 'lucide-react';
 
-const DateRangeFilter = ({ fromDate, toDate, onDateChange, onRefresh, label = '' }) => {
+const DateRangeFilter = ({ fromDate, toDate, onDateChange, label = '' }) => {
   const [filterMode, setFilterMode] = useState('month'); // 'month', 'custom', 'this_month', 'last_month', 'quarterly', 'half_yearly', 'yearly', 'financial_year'
-  const [isRefreshing, setIsRefreshing] = useState(false);
   const [selectedYear, setSelectedYear] = useState(() => new Date().getFullYear());
   const [selectedMonthVal, setSelectedMonthVal] = useState(() => {
     if (fromDate) return fromDate.substring(0, 7);
@@ -294,40 +293,6 @@ const DateRangeFilter = ({ fromDate, toDate, onDateChange, onRefresh, label = ''
           <span className="text-[10px] text-rose-700 bg-rose-50 border border-rose-300 px-2 py-0.5 rounded-lg font-bold flex items-center gap-1 shadow-xs animate-pulse shrink-0">
             ⚠️ Select To Date
           </span>
-        )}
-
-        {onRefresh && (
-          <button
-            type="button"
-            disabled={isRefreshing}
-            onClick={async () => {
-              if (fromDate && !toDate) {
-                alert("Please select To Date. You didn't select To Date!");
-                return;
-              }
-              if (!fromDate && toDate) {
-                alert("Please select From Date. You didn't select From Date!");
-                return;
-              }
-              if (fromDate && toDate && fromDate > toDate) {
-                alert("From Date cannot be after To Date. Please select a valid date range!");
-                return;
-              }
-              setIsRefreshing(true);
-              try {
-                await onRefresh();
-              } catch (e) {
-                console.error("Error during refresh:", e);
-              } finally {
-                setTimeout(() => setIsRefreshing(false), 500);
-              }
-            }}
-            title="Refresh & Apply Date Filters"
-            className="flex items-center gap-1 bg-[#0e623a] text-white hover:bg-[#0b4d2d] px-2.5 py-1 rounded-lg text-xs font-bold transition shadow-xs cursor-pointer ml-auto shrink-0 disabled:opacity-75"
-          >
-            <RotateCcw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
-            <span>{isRefreshing ? '...' : 'Refresh'}</span>
-          </button>
         )}
       </div>
     </div>
