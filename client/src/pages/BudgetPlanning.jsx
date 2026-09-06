@@ -234,14 +234,9 @@ const BudgetPlanning = () => {
 
   return (
     <div className="max-w-7xl mx-auto space-y-6 text-left animate-fadeIn">
-      {/* Top Header Panel */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-white p-6 border border-black-100 shadow-sm rounded-3xl">
-        <div>
-          <h2 className="text-xl font-extrabold text-black-800">Budget Planning</h2>
-          {/* <p className="text-xs text-black-500 mt-1">Plan and track budget vs spent metrics for all client lead source types</p> */}
-        </div>
-
-        <div className="flex items-center gap-3">
+      {/* Top Actions Panel */}
+      <div className="flex flex-col md:flex-row md:items-center justify-end gap-4 bg-white p-4 border border-black-100 shadow-sm rounded-3xl">
+        <div className="flex items-center gap-3 ml-auto">
           {saveSuccess && (
             <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-200">
               Budget Plan Saved!

@@ -214,17 +214,9 @@ const AccessControl = () => {
   return (
     <div className="w-full mx-auto space-y-6 text-left animate-fadeIn">
       
-      {/* Top Header Panel */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-white p-6 border border-black-100 shadow-sm rounded-3xl">
-        <div>
-          <h2 className="text-xl font-extrabold text-black-800 flex items-center gap-2">
-            <ShieldCheck className="w-6 h-6 text-[#0e623a]" />
-            <span>User-Based Access Control</span>
-          </h2>
-          {/* <p className="text-xs text-black-500 mt-1">Configure module-level view and edit permissions dynamically per enterprise role</p> */}
-        </div>
-
-        <div className="flex items-center gap-3">
+      {/* Top Actions Panel */}
+      <div className="flex flex-col md:flex-row md:items-center justify-end gap-4 bg-white p-4 border border-black-100 shadow-sm rounded-3xl">
+        <div className="flex items-center gap-3 ml-auto">
           {saveSuccess && (
             <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-200">
               Permissions Saved!

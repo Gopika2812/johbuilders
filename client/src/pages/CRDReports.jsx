@@ -3302,31 +3302,18 @@ const CRDReports = () => {
 
   return (
     <div className="space-y-8 w-full mx-auto text-left animate-fadeIn">
-      {/* Page Header */}
-      <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-6 border-b border-black-200 pb-5">
-        <div>
-          <h1 className="text-2xl font-black text-black-800 flex items-center gap-2">
-            <CheckCircle className="w-6 h-6 text-[#0e623a]" />
-            <span>CRD Reports</span>
-          </h1>
-          {/* <p className="text-black-500 text-xs mt-1">
-            Download specific CRD reports directly.
-          </p> */}
-        </div>
-
-        {/* Filters Panel */}
-        <div className="flex flex-wrap items-center gap-4 bg-white p-3 rounded-2xl border border-black-150 shadow-xs">
-          {/* Date Range & Presets Filter */}
-          <div className="w-full lg:w-auto">
-            <DateRangeFilter
-              fromDate={fromDate}
-              toDate={toDate}
-              onDateChange={(newFrom, newTo) => {
-                setFromDate(newFrom);
-                setToDate(newTo);
-              }}
-            />
-          </div>
+      {/* Filters Panel */}
+      <div className="flex flex-wrap items-center justify-end gap-4 bg-white p-3 rounded-2xl border border-black-150 shadow-xs">
+        {/* Date Range & Presets Filter */}
+        <div className="w-full lg:w-auto">
+          <DateRangeFilter
+            fromDate={fromDate}
+            toDate={toDate}
+            onDateChange={(newFrom, newTo) => {
+              setFromDate(newFrom);
+              setToDate(newTo);
+            }}
+          />
         </div>
       </div>
 

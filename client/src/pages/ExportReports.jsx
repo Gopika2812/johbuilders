@@ -2884,29 +2884,16 @@ const ExportReports = () => {
 
   return (
     <div className="max-w-7xl mx-auto space-y-6 animate-fadeIn">
-      {/* Header & Global Filters */}
-      <div className="bg-white border border-black-150 rounded-3xl p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6 relative overflow-hidden">
-        <div className="absolute right-0 top-0 w-64 h-full bg-gradient-to-l from-[#0e623a]/5 to-transparent pointer-events-none"></div>
-        
-        <div className="flex items-center gap-4 relative z-10">
-          <div className="p-3 bg-[#0e623a]/10 text-[#0e623a] rounded-2xl border border-[#0e623a]/20">
-            <FolderOpen className="w-6 h-6" />
+      {/* Global Filters Panel */}
+      <div className="bg-white border border-black-150 rounded-3xl p-4 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative overflow-hidden">
+        {loading && (
+          <div className="flex items-center gap-1.5 px-3 py-1 bg-emerald-50 border border-emerald-200 text-[#0e623a] rounded-full text-xs font-bold animate-pulse shadow-xs w-fit">
+            <Loader2 className="w-3.5 h-3.5 text-[#0e623a] animate-spin" />
+            <span>Syncing filtered data...</span>
           </div>
-          <div>
-            <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-black text-black-800 tracking-tight">Sales Reports</h1>
-              {loading && (
-                <div className="flex items-center gap-1.5 px-3 py-1 bg-emerald-50 border border-emerald-200 text-[#0e623a] rounded-full text-xs font-bold animate-pulse shadow-xs">
-                  <Loader2 className="w-3.5 h-3.5 text-[#0e623a] animate-spin" />
-                  <span>Syncing filtered data...</span>
-                </div>
-              )}
-            </div>
-            {/* <p className="text-xs text-black-500 mt-1">Download operational and performance reports.</p> */}
-          </div>
-        </div>
+        )}
 
-        <div className="flex flex-wrap items-center gap-3 relative z-10">
+        <div className="flex flex-wrap items-center gap-3 relative z-10 w-full sm:w-auto ml-auto">
           {/* User Filter */}
           {(user?.role === 'Superadmin' || user?.role === 'Superadmin') && (
             <div className="flex items-center bg-black-50 border border-black-200 rounded-xl px-3 py-2">

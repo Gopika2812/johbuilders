@@ -365,17 +365,9 @@ const SummaryPlanning = () => {
   return (
     <div className="max-w-7xl mx-auto space-y-6 text-left animate-fadeIn font-sans">
       
-      {/* Page Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-white p-6 border border-black-100 shadow-sm rounded-3xl">
-        <div>
-          <h2 className="text-xl font-extrabold text-black-800 flex items-center gap-2">
-            <Layers className="w-6 h-6 text-[#0e623a]" />
-            <span>Summary Planning</span>
-          </h2>
-          {/* <p className="text-xs text-black-500 mt-1">Manage corporate parameters, turnover projections, and project wise weekly actuals</p> */}
-        </div>
-
-        <div className="flex flex-wrap items-center gap-3">
+      {/* Actions Panel */}
+      <div className="flex flex-col md:flex-row md:items-center justify-end gap-4 bg-white p-4 border border-black-100 shadow-sm rounded-3xl">
+        <div className="flex flex-wrap items-center gap-3 ml-auto">
           {inheritedNotice && !saveSuccess && (
             <span className="text-xs font-bold text-amber-700 bg-amber-50 px-3 py-1.5 rounded-xl border border-amber-200 flex items-center gap-1 shadow-2xs">
               <span>Carried forward yearly targets from {inheritedNotice}</span>

@@ -170,16 +170,9 @@ const OverallReport = () => {
 
   return (
     <div className="p-1 sm:p-4 md:p-6 lg:p-8 max-w-full lg:max-w-[96%] mx-auto min-h-screen font-sans">
-      <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-sm border border-black-150 mb-6 sm:mb-8 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+      <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-sm border border-black-150 mb-6 sm:mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3 sm:gap-4 text-[#0e623a]">
           <img src="/JB logo.png" alt="JB Logo" className="h-9 sm:h-12 w-auto object-contain shrink-0" />
-          <div className="p-2 sm:p-3 bg-emerald-50 rounded-xl sm:rounded-2xl shrink-0">
-            <BarChart2 className="w-5 h-5 sm:w-6 h-6" />
-          </div>
-          <div className="min-w-0">
-            <h1 className="text-lg sm:text-xl font-black tracking-tight">Overall Collected Report</h1>
-            <p className="text-[11px] sm:text-xs text-emerald-700/70 font-semibold mt-0.5 sm:mt-1">Track targets, debtors, and weekly collections</p>
-          </div>
         </div>
         <div className="flex flex-col sm:flex-row flex-wrap lg:flex-nowrap items-stretch sm:items-center gap-2.5 sm:gap-3 w-full lg:w-auto">
           <DateRangeFilter

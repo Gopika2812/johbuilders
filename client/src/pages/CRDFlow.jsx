@@ -911,18 +911,6 @@ const CRDFlow = () => {
 
   return (
     <div className="space-y-6 w-full mx-auto px-4 lg:px-8">
-      {/* Top Header Section */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white border border-black-150 p-6 rounded-3xl shadow-sm">
-        <div>
-          <h1 className="text-xl font-bold text-black-800 flex items-center gap-2">
-            <BookOpen className="w-5 h-5 text-[#0e623a]" />
-            <span>CRD Flow: Milestone Payment Crd team</span>
-          </h1>
-         
-        </div>
-
-
-      </div>
 
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-800 text-xs px-4 py-3 rounded-2xl flex items-center gap-2 animate-bounce">

@@ -167,16 +167,9 @@ const ParameterPlanning = () => {
   return (
     <div className="max-w-7xl mx-auto space-y-6 text-left animate-fadeIn font-sans pb-10">
       
-      {/* Page Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-white p-6 border border-black-100 shadow-sm rounded-3xl">
-        <div>
-          <h2 className="text-xl font-extrabold text-black-800 flex items-center gap-2">
-            <Layers className="w-6 h-6 text-[#006838]" />
-            <span>Parameter Planning</span>
-          </h2>
-        </div>
-
-        <div className="flex items-center gap-3">
+      {/* Top Actions Panel */}
+      <div className="flex flex-col md:flex-row md:items-center justify-end gap-4 bg-white p-4 border border-black-100 shadow-sm rounded-3xl">
+        <div className="flex items-center gap-3 ml-auto">
           {saveSuccess && (
             <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-200">
               Targets Saved!

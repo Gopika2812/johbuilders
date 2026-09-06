@@ -198,14 +198,6 @@ const Customers = () => {
 
   return (
     <div className="space-y-6">
-      {/* Title Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-black-800 flex items-center gap-2">
-          <Users className="w-6 h-6 text-[#0e623a]" />
-          <span>Customers Management</span>
-        </h1>
-        {/* <p className="text-black-500 text-xs mt-1">Track complaints, milestones, and extra works for customers in the handover pipeline</p> */}
-      </div>
 
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-800 text-xs px-4 py-3 rounded-2xl flex items-center gap-1.5">

@@ -403,13 +403,8 @@ const ComplaintsFlow = () => {
 
   return (
     <div className="p-6 md:p-8 w-full mx-auto space-y-6 animate-fade-in pb-24">
-      {/* Header Banner & Filter Controls */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-white/70 backdrop-blur-xl p-6 rounded-[2rem] border border-white/60 shadow-sm">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">Complaints Tracking</h1>
-          <p className="text-xs text-gray-500 mt-1">Manage client complaints and track resolution progress.</p>
-        </div>
-
+      {/* Filter Controls Panel */}
+      <div className="flex flex-col lg:flex-row lg:items-center justify-end gap-4 bg-white/70 backdrop-blur-xl p-4 rounded-[2rem] border border-white/60 shadow-sm">
         <div className="flex flex-wrap items-center gap-3">
           {/* Search Box */}
           <div className="flex items-center gap-2 bg-white border border-[#006838]/20 p-2 rounded-xl shadow-sm px-3">

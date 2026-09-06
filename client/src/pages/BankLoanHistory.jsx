@@ -196,17 +196,6 @@ const BankLoanHistory = () => {
 
   return (
     <div className="space-y-6 w-full mx-auto px-4 lg:px-8">
-      {/* Header Panel */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white border border-black-150 p-6 rounded-3xl shadow-sm">
-        <div>
-          <h1 className="text-xl font-bold text-black-800 flex items-center gap-2">
-            <Landmark className="w-5 h-5 text-[#0e623a]" />
-            <span>Bank Loan History Ledger</span>
-          </h1>
-          {/* <p className="text-xs text-black-500 mt-1">Track stages disbursement history, payments split through Bank Loans, and pending releases.</p> */}
-        </div>
-      </div>
-
       {/* Metrics Row */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="bg-white border border-black-150 p-5 rounded-2xl shadow-sm flex items-center gap-4">

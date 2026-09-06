@@ -227,18 +227,6 @@ const QuotationsDirectory = () => {
 
   return (
     <div className="space-y-6">
-      {/* Upper Title Header Card */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white border border-black-150 p-6 rounded-3xl shadow-sm">
-        <div>
-          <h2 className="text-xl font-black text-black-800 flex items-center gap-2">
-            <FileText className="w-6 h-6 text-[#0e623a]" />
-            <span>{getLabel ? getLabel('quotations', 'title', 'Quotation Records Directory') : 'Quotation Records Directory'}</span>
-          </h2>
-          {getLabel && getLabel('quotations', 'subtitle') && (
-            <p className="text-xs text-black-400 mt-0.5">{getLabel('quotations', 'subtitle')}</p>
-          )}
-        </div>
-      </div>
 
       {/* Success/Error Alerts */}
       {success && (

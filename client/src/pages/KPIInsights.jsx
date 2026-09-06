@@ -3061,81 +3061,70 @@ const KPIInsights = () => {
 
   return (
     <div className="space-y-8 w-full mx-auto text-left animate-fadeIn">
-      {/* Page Header */}
-      <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-6 border-b border-black-200 pb-5">
-        <div>
-          <h1 className="text-2xl font-black text-black-800 flex items-center gap-2">
-            <BarChart3 className="w-6 h-6 text-[#0e623a]" />
-            <span>KPI Insights & Conversions</span>
-          </h1>
-         
-        </div>
-
-        {/* Filters Panel */}
-        <div className="flex flex-wrap items-center gap-4 bg-white p-3 rounded-2xl border border-black-150 shadow-xs">
-          {/* User Select */}
-          {(user?.role === 'Superadmin' || user?.role === 'Superadmin') && (
-            <div className="w-48">
-              <SearchableSelect
-                icon={User}
-                options={[
-                  { value: '', label: 'All Users' },
-                  ...(stats.users || []).map(u => ({
-                    value: u._id,
-                    label: u.name,
-                    subLabel: u.role,
-                    badge: u.role
-                  }))
-                ]}
-                value={selectedUser}
-                onChange={(val) => setSelectedUser(val)}
-                placeholder="All Users"
-                searchPlaceholder="Search users..."
-              />
-            </div>
-          )}
-
-          {/* Project Select */}
+      {/* Filters Panel */}
+      <div className="flex flex-wrap items-center gap-4 bg-white p-3 rounded-2xl border border-black-150 shadow-xs">
+        {/* User Select */}
+        {(user?.role === 'Superadmin' || user?.role === 'Superadmin') && (
           <div className="w-48">
             <SearchableSelect
-              icon={FolderOpen}
+              icon={User}
               options={[
-                { value: '', label: 'All Projects' },
-                ...(stats.projects || []).map(p => ({
-                  value: p._id,
-                  label: p.code || p.name,
-                  subLabel: p.name && p.code ? p.name : undefined
+                { value: '', label: 'All Users' },
+                ...(stats.users || []).map(u => ({
+                  value: u._id,
+                  label: u.name,
+                  subLabel: u.role,
+                  badge: u.role
                 }))
               ]}
-              value={selectedProject}
-              onChange={(val) => setSelectedProject(val)}
-              placeholder="All Projects"
-              searchPlaceholder="Search projects..."
+              value={selectedUser}
+              onChange={(val) => setSelectedUser(val)}
+              placeholder="All Users"
+              searchPlaceholder="Search users..."
             />
           </div>
+        )}
 
-          {/* Source Select */}
-          <div className="w-[180px]">
-            <SearchableMultiSelect
-              options={Array.from(new Set([...SOURCE_TYPES, ...Object.keys(stats.sourceStats || {})])).sort()}
-              selectedValues={selectedSource}
-              onChange={(newSources) => setSelectedSource(newSources)}
-              placeholder="All Sources"
-              icon={Filter}
-            />
-          </div>
+        {/* Project Select */}
+        <div className="w-48">
+          <SearchableSelect
+            icon={FolderOpen}
+            options={[
+              { value: '', label: 'All Projects' },
+              ...(stats.projects || []).map(p => ({
+                value: p._id,
+                label: p.code || p.name,
+                subLabel: p.name && p.code ? p.name : undefined
+              }))
+            ]}
+            value={selectedProject}
+            onChange={(val) => setSelectedProject(val)}
+            placeholder="All Projects"
+            searchPlaceholder="Search projects..."
+          />
+        </div>
 
-          {/* Date Filtration Mode */}
-          <div className="flex-1 min-w-[320px]">
-            <DateRangeFilter
-              fromDate={fromDate}
-              toDate={toDate}
-              onDateChange={(s, e) => {
-                setFromDate(s);
-                setToDate(e);
-              }}
-            />
-          </div>
+        {/* Source Select */}
+        <div className="w-[180px]">
+          <SearchableMultiSelect
+            options={Array.from(new Set([...SOURCE_TYPES, ...Object.keys(stats.sourceStats || {})])).sort()}
+            selectedValues={selectedSource}
+            onChange={(newSources) => setSelectedSource(newSources)}
+            placeholder="All Sources"
+            icon={Filter}
+          />
+        </div>
+
+        {/* Date Filtration Mode */}
+        <div className="flex-1 min-w-[320px]">
+          <DateRangeFilter
+            fromDate={fromDate}
+            toDate={toDate}
+            onDateChange={(s, e) => {
+              setFromDate(s);
+              setToDate(e);
+            }}
+          />
         </div>
       </div>
 
