@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Calendar, ChevronDown } from 'lucide-react';
 
-const DateRangeFilter = ({ fromDate, toDate, onDateChange, label = '' }) => {
+const DateRangeFilter = ({ fromDate, toDate, onDateChange, label = '', className = '' }) => {
   const [filterMode, setFilterMode] = useState('month'); // 'month', 'custom', 'this_month', 'last_month', 'quarterly', 'half_yearly', 'yearly', 'financial_year'
   const [selectedYear, setSelectedYear] = useState(() => new Date().getFullYear());
   const [selectedMonthVal, setSelectedMonthVal] = useState(() => {
@@ -112,7 +112,7 @@ const DateRangeFilter = ({ fromDate, toDate, onDateChange, label = '' }) => {
   };
 
   return (
-    <div className="flex flex-col gap-1.5 w-full">
+    <div className={`flex flex-col gap-1 w-auto shrink-0 max-w-full ${className}`}>
       {label && (
         <div className="flex items-center justify-between">
           <label className="text-[11px] font-black text-[#0e623a] uppercase tracking-wider flex items-center gap-1.5">
@@ -123,10 +123,10 @@ const DateRangeFilter = ({ fromDate, toDate, onDateChange, label = '' }) => {
       )}
 
       {/* Date UI Container single line (non-scrollable) */}
-      <div className="flex items-center flex-wrap sm:flex-nowrap gap-1 bg-[#f0fbf4] border border-[#0e623a]/25 p-1 rounded-xl shadow-xs w-full max-w-full">
+      <div className="flex items-center flex-wrap sm:flex-nowrap gap-1 bg-[#f0fbf4] border border-[#0e623a]/25 p-0.5 rounded-xl shadow-xs shrink-0 max-w-full">
         {/* Preset Selector Dropdown */}
-        <div className="flex items-center gap-1 bg-white border border-[#0e623a]/30 px-2 py-1 rounded-lg shadow-xs shrink-0 hover:border-[#0e623a] transition">
-          <Calendar className="w-3.5 h-3.5 text-[#0e623a] shrink-0" />
+        <div className="flex items-center gap-1 bg-white border border-[#0e623a]/30 px-1.5 py-0.5 rounded-lg shadow-xs shrink-0 hover:border-[#0e623a] transition">
+          <Calendar className="w-3 h-3 text-[#0e623a] shrink-0" />
           <select
             value={filterMode}
             onChange={(e) => handleModeChange(e.target.value)}
@@ -145,7 +145,7 @@ const DateRangeFilter = ({ fromDate, toDate, onDateChange, label = '' }) => {
 
         {/* Dynamic Controls based on selected mode */}
         {filterMode === 'month' && (
-          <div className="flex items-center gap-1 bg-white border border-[#0e623a]/30 px-2 py-1 rounded-lg shadow-xs hover:border-[#0e623a] transition shrink-0">
+          <div className="flex items-center gap-1 bg-white border border-[#0e623a]/30 px-1.5 py-0.5 rounded-lg shadow-xs hover:border-[#0e623a] transition shrink-0">
             <input
               type="month"
               value={selectedMonthVal}

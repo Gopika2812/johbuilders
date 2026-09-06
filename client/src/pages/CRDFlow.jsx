@@ -928,27 +928,24 @@ const CRDFlow = () => {
 
       {/* Conditionally Render: Leads Directory OR Active Stage Stepper */}
       
-      <div className="bg-white border border-black-150 p-6 rounded-3xl shadow-sm mb-6">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+      <div className="bg-white border border-black-150 p-3 sm:p-4 rounded-2xl shadow-xs mb-4">
+        <div className="flex flex-wrap items-center justify-between gap-2.5 mb-3">
           <div>
-            <h2 className="text-base font-bold text-black-800">Booked Leads Directory</h2>
-           
+            <h2 className="text-sm font-bold text-black-800 whitespace-nowrap">Booked Leads Directory</h2>
           </div>
           
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2">
             {/* Project Code Filter */}
-            <div>
-              <select
-                value={filterProjectCode}
-                onChange={(e) => setFilterProjectCode(e.target.value)}
-                className="px-3 py-2 bg-black-50 border border-black-250 rounded-xl text-xs font-semibold text-black-700 focus:outline-none focus:ring-1 focus:ring-[#0e623a]"
-              >
-                <option value="">All Projects</option>
-                {Array.from(new Set(projects.map(p => p.code).filter(Boolean))).map(code => (
-                  <option key={code} value={code}>{code}</option>
-                ))}
-              </select>
-            </div>
+            <select
+              value={filterProjectCode}
+              onChange={(e) => setFilterProjectCode(e.target.value)}
+              className="px-2.5 py-1 bg-black-50 border border-black-250 rounded-xl text-xs font-semibold text-black-700 focus:outline-none focus:ring-1 focus:ring-[#0e623a] shrink-0"
+            >
+              <option value="">All Projects</option>
+              {Array.from(new Set(projects.map(p => p.code).filter(Boolean))).map(code => (
+                <option key={code} value={code}>{code}</option>
+              ))}
+            </select>
 
             {/* Date Filters */}
             <DateRangeFilter
@@ -964,7 +961,7 @@ const CRDFlow = () => {
             {(filterProjectCode || filterFromDate || filterToDate) && (
               <button
                 onClick={() => { setFilterProjectCode(''); setFilterFromDate(''); setFilterToDate(''); }}
-                className="text-xs font-bold text-red-600 hover:text-red-800 transition cursor-pointer"
+                className="text-xs font-bold text-red-600 hover:text-red-800 transition cursor-pointer whitespace-nowrap px-1"
               >
                 Clear Filters
               </button>
@@ -975,22 +972,22 @@ const CRDFlow = () => {
         {/* Booked Leads Grid / Table */}
         <div className="overflow-x-auto">
           <table className="w-full text-xs text-left">
-            <thead className="bg-black-50 text-black-500 font-bold uppercase tracking-wider border-b">
+            <thead className="bg-[#0e623a] text-white font-bold uppercase tracking-wider border-b">
               <tr>
-                {hasColumnPermission('crdFlow', 'sno') && <th className="p-4">S.No</th>}
-                {hasColumnPermission('crdFlow', 'bookingDate') && <th className="p-4">Booked Date</th>}
-                {hasColumnPermission('crdFlow', 'customerName') && <th className="p-4">Customer Name</th>}
-                {hasColumnPermission('crdFlow', 'phoneNumber') && <th className="p-4">Phone Number</th>}
-                {hasColumnPermission('crdFlow', 'project') && <th className="p-4">Project</th>}
-                {hasColumnPermission('crdFlow', 'units') && <th className="p-4">Units</th>}
-                {hasColumnPermission('crdFlow', 'finalValue') && <th className="p-4">Final Quotation Value</th>}
-                {hasColumnPermission('crdFlow', 'receivedValue') && <th className="p-4">Received Value</th>}
-                {hasColumnPermission('crdFlow', 'pendingValue') && <th className="p-4">Pending Value</th>}
-                {hasColumnPermission('crdFlow', 'assignedPerson') && <th className="p-4">Assigned Person</th>}
-                {hasColumnPermission('crdFlow', 'crdPerson') && <th className="p-4">CRD Person</th>}
-                {hasColumnPermission('crdFlow', 'pedPerson') && <th className="p-4">PED Person</th>}
-                {hasColumnPermission('crdFlow', 'accountsPerson') && <th className="p-4">Accounts Person</th>}
-                {hasColumnPermission('crdFlow', 'actions') && <th className="p-4 text-center">Quick Actions</th>}
+                {hasColumnPermission('crdFlow', 'sno') && <th className="px-3 py-2.5">S.No</th>}
+                {hasColumnPermission('crdFlow', 'bookingDate') && <th className="px-3 py-2.5">Booked Date</th>}
+                {hasColumnPermission('crdFlow', 'customerName') && <th className="px-3 py-2.5">Customer Name</th>}
+                {hasColumnPermission('crdFlow', 'phoneNumber') && <th className="px-3 py-2.5">Phone Number</th>}
+                {hasColumnPermission('crdFlow', 'project') && <th className="px-3 py-2.5">Project</th>}
+                {hasColumnPermission('crdFlow', 'units') && <th className="px-3 py-2.5">Units</th>}
+                {hasColumnPermission('crdFlow', 'finalValue') && <th className="px-3 py-2.5">Final Quotation Value</th>}
+                {hasColumnPermission('crdFlow', 'receivedValue') && <th className="px-3 py-2.5">Received Value</th>}
+                {hasColumnPermission('crdFlow', 'pendingValue') && <th className="px-3 py-2.5">Pending Value</th>}
+                {hasColumnPermission('crdFlow', 'assignedPerson') && <th className="px-3 py-2.5">Assigned Person</th>}
+                {hasColumnPermission('crdFlow', 'crdPerson') && <th className="px-3 py-2.5">CRD Person</th>}
+                {hasColumnPermission('crdFlow', 'pedPerson') && <th className="px-3 py-2.5">PED Person</th>}
+                {hasColumnPermission('crdFlow', 'accountsPerson') && <th className="px-3 py-2.5">Accounts Person</th>}
+                {hasColumnPermission('crdFlow', 'actions') && <th className="px-3 py-2.5 text-center">Quick Actions</th>}
               </tr>
             </thead>
             <tbody className="divide-y divide-black-50">
@@ -1060,14 +1057,14 @@ const CRDFlow = () => {
                           }
                         }}
                       >
-                        {hasColumnPermission('crdFlow', 'sno') && <td className="p-4">{index + 1}</td>}
+                        {hasColumnPermission('crdFlow', 'sno') && <td className="px-3 py-2">{index + 1}</td>}
                         {hasColumnPermission('crdFlow', 'bookingDate') && (
-                          <td className="p-4 text-black-600">
+                          <td className="px-3 py-2 text-black-600">
                             {new Date(lead.bookingInfo?.bookingDate || lead.createdAt).toLocaleDateString('en-GB')}
                           </td>
                         )}
                         {hasColumnPermission('crdFlow', 'customerName') && (
-                          <td className="p-4">
+                          <td className="px-3 py-2">
                             <div className="flex flex-wrap items-center gap-2">
                               <div className={`font-bold ${isCancelled ? 'text-red-950 line-through' : isCancelRequested ? 'text-amber-950' : 'text-black-800'}`}>{lead.name}</div>
                               {isCancelled && (
@@ -1084,87 +1081,87 @@ const CRDFlow = () => {
                           </td>
                         )}
                         {hasColumnPermission('crdFlow', 'phoneNumber') && (
-                          <td className="p-4">
+                          <td className="px-3 py-2">
                             <div className="font-semibold text-black-700">{lead.phone}</div>
                           </td>
                         )}
                         {hasColumnPermission('crdFlow', 'project') && (
-                          <td className="p-4">
+                          <td className="px-3 py-2">
                             <div className="font-semibold text-black-700">
                               {lead.project?.name || lead.project?.code || 'N/A'}
                             </div>
                           </td>
                         )}
                         {hasColumnPermission('crdFlow', 'units') && (
-                          <td className="p-4">
+                          <td className="px-3 py-2">
                             <div className="text-[11px] text-emerald-800 font-bold bg-emerald-50 px-2 py-0.5 rounded inline-block">
                               {lead.bookingInfo?.selectedUnits?.join(', ') || 'N/A'}
                             </div>
                           </td>
                         )}
                         {hasColumnPermission('crdFlow', 'finalValue') && (
-                          <td className="p-4">
+                          <td className="px-3 py-2">
                             {value !== null ? (
-                              <div className="text-blue-800 font-black text-sm">
+                              <div className="text-blue-800 font-black text-xs">
                                 Rs. {value.toLocaleString()}
                               </div>
                             ) : (
-                              <span className="text-black-400 text-sm">N/A</span>
+                              <span className="text-black-400 text-xs">N/A</span>
                             )}
                           </td>
                         )}
                         {hasColumnPermission('crdFlow', 'receivedValue') && (
-                          <td className="p-4">
+                          <td className="px-3 py-2">
                             {value !== null ? (
-                              <div className="text-emerald-800 font-black text-sm">
+                              <div className="text-emerald-800 font-black text-xs">
                                 Rs. {received.toLocaleString()}
                               </div>
                             ) : (
-                              <span className="text-black-400 text-sm">N/A</span>
+                              <span className="text-black-400 text-xs">N/A</span>
                             )}
                           </td>
                         )}
                         {hasColumnPermission('crdFlow', 'pendingValue') && (
-                          <td className="p-4">
+                          <td className="px-3 py-2">
                             {value !== null ? (
-                              <div className="text-rose-800 font-black text-sm">
+                              <div className="text-rose-800 font-black text-xs">
                                 Rs. {(pending || 0).toLocaleString()}
                               </div>
                             ) : (
-                              <span className="text-black-400 text-sm">N/A</span>
+                              <span className="text-black-400 text-xs">N/A</span>
                             )}
                           </td>
                         )}
                         {hasColumnPermission('crdFlow', 'assignedPerson') && (
-                          <td className="p-4">
+                          <td className="px-3 py-2">
                             <div className="font-semibold text-black-800 text-xs">
                               {lead.assignedTo?.name || (typeof lead.assignedTo === 'string' ? users.find(u => u._id === lead.assignedTo)?.name : null) || 'Unassigned'}
                             </div>
                           </td>
                         )}
                         {hasColumnPermission('crdFlow', 'crdPerson') && (
-                          <td className="p-4">
+                          <td className="px-3 py-2">
                             <div className="font-semibold text-[#0e623a] text-xs">
                               {quot?.crdPerson?.name || 'Unassigned'}
                             </div>
                           </td>
                         )}
                         {hasColumnPermission('crdFlow', 'pedPerson') && (
-                          <td className="p-4">
+                          <td className="px-3 py-2">
                             <div className="font-semibold text-purple-700 text-xs">
                               {quot?.pedPerson?.name || 'Unassigned'}
                             </div>
                           </td>
                         )}
                         {hasColumnPermission('crdFlow', 'accountsPerson') && (
-                          <td className="p-4">
+                          <td className="px-3 py-2">
                             <div className="font-semibold text-blue-700 text-xs">
                               {quot?.accountsPerson?.name || 'Unassigned'}
                             </div>
                           </td>
                         )}
                         {hasColumnPermission('crdFlow', 'actions') && (
-                          <td className="p-4 text-center" onClick={(e) => e.stopPropagation()}>
+                          <td className="px-3 py-2 text-center" onClick={(e) => e.stopPropagation()}>
                             <div className="relative inline-block text-left">
                               <button
                                 onClick={(e) => {
