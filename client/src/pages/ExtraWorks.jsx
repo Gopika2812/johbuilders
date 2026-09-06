@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { saveAs } from 'file-saver';
 import { useAuth, API_URL } from '../context/AuthContext';
 import { formatUnitWithLabel } from '../utils/formatUtils';
+import DateRangeFilter from '../components/DateRangeFilter';
 import {
   Building,
   ChevronDown,
@@ -1008,21 +1009,14 @@ const ExtraWorksInner = () => {
         </div>
 
         <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
-          <div className="flex items-center gap-2">
-            <input
-              type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              className="px-3 py-2 bg-white/50 border border-emerald-100 rounded-xl text-sm text-gray-700 focus:outline-none focus:ring-1 focus:ring-emerald-500"
-            />
-            <span className="text-sm text-gray-400 font-medium">to</span>
-            <input
-              type="date"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-              className="px-3 py-2 bg-white/50 border border-emerald-100 rounded-xl text-sm text-gray-700 focus:outline-none focus:ring-1 focus:ring-emerald-500"
-            />
-          </div>
+          <DateRangeFilter
+            fromDate={startDate}
+            toDate={endDate}
+            onDateChange={(s, e) => {
+              setStartDate(s);
+              setEndDate(e);
+            }}
+          />
 
           <select
             value={statusFilter}

@@ -4,6 +4,7 @@ import { LOGO_BASE64 } from '../utils/logoBase64';
 import { useNavigate } from 'react-router-dom';
 import SearchableSelect from '../components/SearchableSelect';
 import SearchableMultiSelect from '../components/SearchableMultiSelect';
+import DateRangeFilter from '../components/DateRangeFilter';
 import { 
   TrendingUp, 
   Users, 
@@ -1638,38 +1639,17 @@ const CRDDashboard = () => {
             />
           </div>
 
-          {/* Month Wise */}
-          <div className="flex flex-col gap-1 w-full">
-            <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Select Month</label>
-            <div className="flex items-center gap-2 bg-transparent border-none px-3 py-1.5 rounded-xl">
-              <Calendar className="w-4 h-4 text-[#0e623a] shrink-0" />
-              <input
-                type="month"
-                value={selectedMonth}
-                onChange={(e) => handleMonthChange(e.target.value)}
-                className="w-full bg-transparent text-xs text-gray-700 font-bold focus:outline-none focus:ring-0 border-0 p-0"
-              />
-            </div>
-          </div>
-
-          {/* Range picker */}
-          <div className="flex flex-col gap-1 w-full">
-            <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Custom Date Range</label>
-            <div className="flex items-center gap-2 bg-transparent border-none px-3 py-1.5 rounded-xl">
-              <input
-                type="date"
-                value={fromDate}
-                onChange={(e) => setFromDate(e.target.value)}
-                className="w-1/2 min-w-[125px] bg-transparent text-xs text-gray-700 font-bold focus:outline-none focus:ring-0 border-0 p-0 text-center"
-              />
-              <span className="text-[11px] text-gray-400 font-bold">to</span>
-              <input
-                type="date"
-                value={toDate}
-                onChange={(e) => setToDate(e.target.value)}
-                className="w-1/2 min-w-[125px] bg-transparent text-xs text-gray-700 font-bold focus:outline-none focus:ring-0 border-0 p-0 text-center"
-              />
-            </div>
+          {/* Date Filtration Mode */}
+          <div className="flex flex-col gap-1 w-full md:col-span-2">
+            <DateRangeFilter
+              label="Date Filtration Mode"
+              fromDate={fromDate}
+              toDate={toDate}
+              onDateChange={(s, e) => {
+                setFromDate(s);
+                setToDate(e);
+              }}
+            />
           </div>
 
         </div>

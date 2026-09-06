@@ -4,6 +4,7 @@ import { LOGO_BASE64 } from '../utils/logoBase64';
 import { formatUnitWithLabel } from '../utils/formatUtils';
 import SearchableSelect from '../components/SearchableSelect';
 import SearchableMultiSelect from '../components/SearchableMultiSelect';
+import DateRangeFilter from '../components/DateRangeFilter';
 import { 
   TrendingUp, 
   Calendar, 
@@ -3124,47 +3125,17 @@ const KPIInsights = () => {
             />
           </div>
 
-          <div className="border-l border-black-200 h-5"></div>
-
-          
-         
-
-          {/* Date Picker */}
-          <div className="flex items-center gap-1 text-xs text-black-500 font-bold">
-            <span>Range:</span>
+          {/* Date Filtration Mode */}
+          <div className="flex-1 min-w-[320px]">
+            <DateRangeFilter
+              fromDate={fromDate}
+              toDate={toDate}
+              onDateChange={(s, e) => {
+                setFromDate(s);
+                setToDate(e);
+              }}
+            />
           </div>
-          <input
-            type="date"
-            value={fromDate}
-            onChange={(e) => setFromDate(e.target.value)}
-            onBlur={(e) => {
-              if (e.target.value && !toDate) {
-                alert("Please select To Date. You didn't select To Date!");
-              }
-            }}
-            className="px-2 py-1.5 text-xs bg-black-50 border border-black-200 rounded-lg focus:outline-none text-black-700 font-bold cursor-pointer"
-          />
-          <span className="text-xs text-black-400 font-bold">to</span>
-          <input
-            type="date"
-            value={toDate}
-            onChange={(e) => setToDate(e.target.value)}
-            onBlur={(e) => {
-              if (e.target.value && !fromDate) {
-                alert("Please select From Date. You didn't select From Date!");
-              } else if (fromDate && e.target.value && fromDate > e.target.value) {
-                alert("From Date cannot be after To Date. Please select a valid date range!");
-              }
-            }}
-            className={`px-2 py-1.5 text-xs bg-black-50 border rounded-lg focus:outline-none font-bold cursor-pointer ${
-              fromDate && !toDate ? 'border-rose-400 ring-2 ring-rose-400/30 text-rose-700 animate-pulse' : 'border-black-200 text-black-700'
-            }`}
-          />
-          {fromDate && !toDate && (
-            <span className="text-[10px] text-rose-700 bg-rose-50 border border-rose-300 px-2 py-0.5 rounded-md font-bold animate-pulse">
-              ⚠️ Please select To Date
-            </span>
-          )}
         </div>
       </div>
 

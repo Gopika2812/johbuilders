@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth, API_URL } from '../context/AuthContext';
+import DateRangeFilter from '../components/DateRangeFilter';
 import { 
   FileText, 
   Search, 
@@ -284,26 +285,16 @@ const QuotationsDirectory = () => {
             </select>
           </div>
 
-          {/* Date Filtration: From Date -> To Date */}
-          <div className="md:col-span-4 flex items-center gap-2">
-            <div className="flex-1 flex items-center gap-1.5 bg-black-50 border border-black-200 rounded-xl px-2.5 py-1.5 focus-within:ring-1 focus-within:ring-[#0e623a]">
-              <span className="text-[10px] font-bold text-black-400 uppercase">From:</span>
-              <input
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                className="w-full bg-transparent text-xs font-bold text-black-700 outline-none cursor-pointer"
-              />
-            </div>
-            <div className="flex-1 flex items-center gap-1.5 bg-black-50 border border-black-200 rounded-xl px-2.5 py-1.5 focus-within:ring-1 focus-within:ring-[#0e623a]">
-              <span className="text-[10px] font-bold text-black-400 uppercase">To:</span>
-              <input
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                className="w-full bg-transparent text-xs font-bold text-black-700 outline-none cursor-pointer"
-              />
-            </div>
+          {/* Date Filtration Mode */}
+          <div className="md:col-span-5">
+            <DateRangeFilter
+              fromDate={startDate}
+              toDate={endDate}
+              onDateChange={(s, e) => {
+                setStartDate(s);
+                setEndDate(e);
+              }}
+            />
           </div>
 
           {/* Reset / Clear Button */}

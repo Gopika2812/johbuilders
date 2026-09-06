@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth, API_URL } from '../context/AuthContext';
+import DateRangeFilter from '../components/DateRangeFilter';
 import { 
   Building, 
   MapPin, 
@@ -299,25 +300,15 @@ const ProjectsDictionary = () => {
             </select>
           </div>
 
-          {/* From Date */}
-          <div className="relative">
-            <span className="absolute left-3 top-3 text-[11px] font-bold text-black-400 uppercase pointer-events-none">From</span>
-            <input
-              type="date"
-              value={fromDate}
-              onChange={(e) => setFromDate(e.target.value)}
-              className="w-full pl-12 pr-3 py-2 text-sm bg-black-50 border border-black-200 rounded-xl focus:outline-none focus:border-[#0e623a] focus:ring-1 focus:ring-[#0e623a] transition text-black-700"
-            />
-          </div>
-
-          {/* To Date */}
-          <div className="relative">
-            <span className="absolute left-3 top-3 text-[11px] font-bold text-black-400 uppercase pointer-events-none">To</span>
-            <input
-              type="date"
-              value={toDate}
-              onChange={(e) => setToDate(e.target.value)}
-              className="w-full pl-8 pr-3 py-2 text-sm bg-black-50 border border-black-200 rounded-xl focus:outline-none focus:border-[#0e623a] focus:ring-1 focus:ring-[#0e623a] transition text-black-700"
+          {/* Date Filtration Mode */}
+          <div className="md:col-span-2">
+            <DateRangeFilter
+              fromDate={fromDate}
+              toDate={toDate}
+              onDateChange={(s, e) => {
+                setFromDate(s);
+                setToDate(e);
+              }}
             />
           </div>
         </div>

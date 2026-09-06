@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth, API_URL } from '../context/AuthContext';
 import { History, Calendar, User, Search, Filter, ChevronLeft, ChevronRight, RefreshCw, Layers } from 'lucide-react';
+import DateRangeFilter from '../components/DateRangeFilter';
 
 const AuditLogs = () => {
   const { token } = useAuth();
@@ -156,38 +157,18 @@ const AuditLogs = () => {
             </div>
           </div>
 
-          {/* Date From */}
-          <div className="flex flex-col gap-1 w-full">
-            <label className="text-[11px] font-bold text-black-400 uppercase tracking-wider">From Date</label>
-            <div className="flex items-center gap-2 bg-black-50 border border-black-200 px-3 py-2 rounded-xl">
-              <Calendar className="w-4 h-4 text-black-450 shrink-0" />
-              <input
-                type="date"
-                value={fromDate}
-                onChange={(e) => {
-                  setFromDate(e.target.value);
-                  setPage(1);
-                }}
-                className="w-full bg-transparent text-xs text-black-700 font-bold focus:outline-none border-none p-0"
-              />
-            </div>
-          </div>
-
-          {/* Date To */}
-          <div className="flex flex-col gap-1 w-full">
-            <label className="text-[11px] font-bold text-black-400 uppercase tracking-wider">To Date</label>
-            <div className="flex items-center gap-2 bg-black-50 border border-black-200 px-3 py-2 rounded-xl">
-              <Calendar className="w-4 h-4 text-black-450 shrink-0" />
-              <input
-                type="date"
-                value={toDate}
-                onChange={(e) => {
-                  setToDate(e.target.value);
-                  setPage(1);
-                }}
-                className="w-full bg-transparent text-xs text-black-700 font-bold focus:outline-none border-none p-0"
-              />
-            </div>
+          {/* Date Filtration Mode */}
+          <div className="w-full md:col-span-2">
+            <DateRangeFilter
+              label="Date Filtration Mode"
+              fromDate={fromDate}
+              toDate={toDate}
+              onDateChange={(s, e) => {
+                setFromDate(s);
+                setToDate(e);
+                setPage(1);
+              }}
+            />
           </div>
 
           {/* Controls button */}

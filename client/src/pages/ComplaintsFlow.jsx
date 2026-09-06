@@ -4,6 +4,7 @@ import { formatUnitWithLabel } from '../utils/formatUtils';
 import { AlertCircle, Clock, CheckCircle2, FileText, Send, Loader2, Star, MessageSquare, ChevronDown, ChevronUp, Activity, X, Search, Eye, Image } from 'lucide-react';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
+import DateRangeFilter from '../components/DateRangeFilter';
 
 const ComplaintsFlow = () => {
   const { token, user, isAdmin, hasColumnPermission } = useAuth();
@@ -423,21 +424,14 @@ const ComplaintsFlow = () => {
           </div>
 
           {/* Date Range */}
-          <div className="flex items-center gap-2 bg-white border border-[#006838]/20 p-1.5 rounded-xl shadow-sm">
-            <input
-              type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              className="px-2.5 py-1 bg-white border border-gray-200 rounded-lg text-xs text-gray-700 focus:outline-none focus:ring-1 focus:ring-[#006838]"
-            />
-            <span className="text-xs text-gray-400 font-bold">to</span>
-            <input
-              type="date"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-              className="px-2.5 py-1 bg-white border border-gray-200 rounded-lg text-xs text-gray-700 focus:outline-none focus:ring-1 focus:ring-[#006838]"
-            />
-          </div>
+          <DateRangeFilter
+            fromDate={startDate}
+            toDate={endDate}
+            onDateChange={(s, e) => {
+              setStartDate(s);
+              setEndDate(e);
+            }}
+          />
 
           {/* New / Old Status Dropdown */}
           <select

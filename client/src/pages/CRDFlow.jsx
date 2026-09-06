@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth, API_URL } from '../context/AuthContext';
 import { formatUnitWithLabel } from '../utils/formatUtils';
+import DateRangeFilter from '../components/DateRangeFilter';
 import { 
   Building, 
   FileSpreadsheet, 
@@ -962,23 +963,14 @@ const CRDFlow = () => {
             </div>
 
             {/* Date Filters */}
-            <div className="flex items-center gap-2">
-              <input
-                type="date"
-                value={filterFromDate}
-                onChange={(e) => setFilterFromDate(e.target.value)}
-                className="px-3 py-2 bg-black-50 border border-black-250 rounded-xl text-xs font-semibold text-black-700 focus:outline-none focus:ring-1 focus:ring-[#0e623a]"
-                title="From Date"
-              />
-              <span className="text-xs text-black-500 font-bold">to</span>
-              <input
-                type="date"
-                value={filterToDate}
-                onChange={(e) => setFilterToDate(e.target.value)}
-                className="px-3 py-2 bg-black-50 border border-black-250 rounded-xl text-xs font-semibold text-black-700 focus:outline-none focus:ring-1 focus:ring-[#0e623a]"
-                title="To Date"
-              />
-            </div>
+            <DateRangeFilter
+              fromDate={filterFromDate}
+              toDate={filterToDate}
+              onDateChange={(s, e) => {
+                setFilterFromDate(s);
+                setFilterToDate(e);
+              }}
+            />
 
             {/* Reset Filters */}
             {(filterProjectCode || filterFromDate || filterToDate) && (

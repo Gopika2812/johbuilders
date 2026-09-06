@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth, API_URL } from '../context/AuthContext';
 import { Search, Download, BarChart2 } from 'lucide-react';
 import * as XLSX from 'xlsx-js-style';
+import DateRangeFilter from '../components/DateRangeFilter';
 
 const OverallReport = () => {
   const { token } = useAuth();
@@ -181,21 +182,14 @@ const OverallReport = () => {
           </div>
         </div>
         <div className="flex flex-col sm:flex-row flex-wrap lg:flex-nowrap items-stretch sm:items-center gap-2.5 sm:gap-3 w-full lg:w-auto">
-          <div className="flex items-center gap-2 w-full sm:w-auto">
-            <input 
-              type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              className="flex-1 sm:flex-none w-full sm:w-auto px-2.5 sm:px-3 py-2 bg-black-50 border border-black-250 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 text-black-600"
-            />
-            <span className="text-black-400 text-xs sm:text-sm font-semibold shrink-0">to</span>
-            <input 
-              type="date"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-              className="flex-1 sm:flex-none w-full sm:w-auto px-2.5 sm:px-3 py-2 bg-black-50 border border-black-250 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 text-black-600"
-            />
-          </div>
+          <DateRangeFilter
+            fromDate={startDate}
+            toDate={endDate}
+            onDateChange={(s, e) => {
+              setStartDate(s);
+              setEndDate(e);
+            }}
+          />
           <div className="relative w-full sm:w-56">
             <Search className="w-4 h-4 text-black-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
