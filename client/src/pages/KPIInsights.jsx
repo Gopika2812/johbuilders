@@ -3000,7 +3000,7 @@ const KPIInsights = () => {
 
     } catch (err) {
       console.error(err);
-      alert('Error exporting customer complaints report');
+      alert('Error exporting customer complaints');
     } finally {
       setReportLoading(false);
     }
@@ -3017,6 +3017,7 @@ const KPIInsights = () => {
     setFromDate(firstDay);
     setToDate(lastDay);
   };
+
   const filteredSourceStats = Object.entries(stats.sourceStats || {}).reduce((acc, [src, data]) => {
     const selArr = Array.isArray(selectedSource) ? selectedSource : (selectedSource ? selectedSource.split(',').map(s => s.trim()).filter(Boolean) : []);
     if (selArr.length > 0 && !selArr.some(s => s.toLowerCase() === src.toLowerCase())) return acc;
@@ -3120,55 +3121,58 @@ const KPIInsights = () => {
           <DateRangeFilter
             fromDate={fromDate}
             toDate={toDate}
-            onDateChange={(s, e) => {
-              setFromDate(s);
-              setToDate(e);
-            }}
+            onFromDateChange={setFromDate}
+            onToDateChange={setToDate}
+            onMonthChange={handleMonthChange}
           />
         </div>
       </div>
 
       {loading ? (
-        <div className="py-24 text-center text-black-400 italic">
-          Fetching conversion matrices and chart metrics...
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#0e623a]"></div>
         </div>
       ) : (
         <div className="space-y-8">
-          {/* 🟢 TOP ANALYTICAL SUMMARY CARD GRID */}
-          {/* 🟢 TOP ANALYTICAL SUMMARY CARD GRID */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {/* Enquiry Spend KPI */}
-            <div className="bg-white border border-black-150 p-5 rounded-3xl shadow-sm hover:shadow-md transition">
-              <span className="text-[11px] font-bold text-black-400 uppercase tracking-wider block">Marketing Investment</span>
-              <h3 className="text-2xl font-black text-black-800 mt-1">₹{Math.round(stats.insights?.totalMarketingSpend || 0).toLocaleString()}</h3>
-              <div className="mt-3 pt-3 border-t border-black-100 grid grid-cols-2 gap-2 text-left">
+          {/* Top 3 KPI Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            
+            {/* Card 1: Marketing Investment */}
+            <div className="bg-white border border-black-150 rounded-3xl p-6 shadow-sm space-y-4">
+              <span className="text-xs font-black text-black-400 uppercase tracking-widest block">Marketing Investment</span>
+              <h3 className="text-3xl font-black text-black-800">₹{(stats.insights?.totalMarketingSpend || overallTotalSpent).toLocaleString()}</h3>
+              <div className="grid grid-cols-2 gap-4 pt-2 border-t border-black-100">
                 <div>
-                  <span className="text-[10px] text-black-400 font-bold uppercase block">Overall Leads</span>
-                  <span className="text-sm font-black text-black-700">{overallTotalLeads}</span>
+                  <span className="text-[11px] font-bold text-black-400 uppercase block">Overall Leads</span>
+                  <span className="text-base font-extrabold text-black-800">{overallTotalLeads}</span>
                 </div>
                 <div>
-                  <span className="text-[10px] text-black-400 font-bold uppercase block">Cost Per Lead</span>
-                  <span className="text-sm font-black text-[#0e623a]">₹{Math.round(overallCostPerLead).toLocaleString()}</span>
+                  <span className="text-[11px] font-bold text-black-400 uppercase block">Cost Per Lead</span>
+                  <span className="text-base font-extrabold text-black-800">₹{Math.round(overallTotalLeads > 0 ? (stats.insights?.totalMarketingSpend || overallTotalSpent) / overallTotalLeads : 0).toLocaleString()}</span>
                 </div>
               </div>
             </div>
 
-            {/* Cost Per Converted Lead */}
-            <div className="bg-white border border-black-150 p-5 rounded-3xl shadow-sm hover:shadow-md transition">
-              <span className="text-[11px] font-bold text-black-400 uppercase tracking-wider block">Cost Per Converted Lead</span>
-              <h3 className="text-2xl font-black text-[#0e623a] mt-1">₹{Math.round(overallCostPerLead || stats.insights?.costPerEnquiry || 0).toLocaleString()}</h3>
+            {/* Card 2: Cost Per Converted Lead */}
+            <div className="bg-white border border-black-150 rounded-3xl p-6 shadow-sm flex flex-col justify-between">
+              <div>
+                <span className="text-xs font-black text-black-400 uppercase tracking-widest block">Cost Per Converted Lead</span>
+                <h3 className="text-3xl font-black text-[#0e623a] mt-2">₹{Math.round(overallCostPerLead).toLocaleString()}</h3>
+              </div>
             </div>
 
-            {/* Booking Stage Conversions */}
-            <div className="bg-white border border-black-150 p-5 rounded-3xl shadow-sm hover:shadow-md transition">
-              <span className="text-[11px] font-bold text-black-400 uppercase tracking-wider block">Total Bookings Count</span>
+            {/* Card 3: Total Bookings Count */}
+            <div className="bg-white border border-black-150 rounded-3xl p-6 shadow-sm flex flex-col justify-between">
+              <div>
+                <span className="text-xs font-black text-black-400 uppercase tracking-widest block">Total Bookings Count</span>
+              </div>
               <h3 className="text-2xl font-black text-black-800 mt-1">{(stats.cards.booked?.total ?? stats.cards.conversion?.count ?? 0)} Converted</h3>
             </div>
 
 
           </div>
 
-          {/* 🟢 DAILY LEAD COST ANALYSIS ELABORATE TABLE */}
+          {/* 🟢 DAILY LEAD COST ANALYSIS GRID */}
           <div className="bg-white border border-black-150 rounded-3xl p-6 shadow-sm space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-black-100 pb-3">
               <h3 className="text-sm font-extrabold text-black-800 uppercase tracking-wide flex items-center gap-2">
@@ -3176,18 +3180,9 @@ const KPIInsights = () => {
                 <span>Daily Lead Cost Analysis Report</span>
               </h3>
               <div className="flex items-center gap-3">
-                <div className="w-[200px]">
-                  <SearchableMultiSelect
-                    options={Array.from(new Set([...SOURCE_TYPES, ...Object.keys(stats.sourceStats || {})])).sort()}
-                    selectedValues={selectedSource}
-                    onChange={(newSources) => setSelectedSource(newSources)}
-                    placeholder="All Lead Sources"
-                    icon={Filter}
-                  />
-                </div>
                 <button
                   onClick={handleExportLeadCostAnalysis}
-                  className="px-4 py-2 bg-[#0e623a] text-white rounded-xl text-xs font-bold hover:bg-[#0b4d2d] transition flex items-center gap-2 shadow-sm"
+                  className="px-4 py-2 bg-[#0e623a] text-white rounded-xl text-xs font-bold hover:bg-[#0b4d2d] transition flex items-center gap-2 shadow-sm cursor-pointer"
                 >
                   <FileText className="w-3.5 h-3.5" />
                   <span>Export Report</span>
@@ -3195,83 +3190,81 @@ const KPIInsights = () => {
               </div>
             </div>
             
-            
-
-            <div className="space-y-6 pt-2">
+            {/* Grid Format for Daily Lead Cost Analysis */}
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 pt-2">
               {Object.keys(filteredSourceStats).length === 0 ? (
-                <div className="p-8 text-center text-black-400 italic font-medium border border-dashed rounded-xl">
+                <div className="col-span-full p-8 text-center text-black-400 italic font-medium border border-dashed rounded-xl bg-gray-50/50">
                   No source stats found for the selected filters.
                 </div>
               ) : (
                 Object.entries(filteredSourceStats)
                   .sort((a, b) => (b[1].count || 0) - (a[1].count || 0))
                   .map(([source, data], index) => {
-                  const costPerLead = data.count > 0 ? (data.spent / data.count) : 0;
-                  const isExpanded = expandedSources[source] || false;
-                  
-                  return (
-                    <div key={index} className="bg-white border border-black-150 rounded-2xl p-6 shadow-sm hover:shadow-md transition">
-                      {/* Row 1: Source, Budget, Spent, Cost per Lead */}
+                    const costPerLead = data.count > 0 ? (data.spent / data.count) : 0;
+                    
+                    return (
                       <div 
-                        className={`grid grid-cols-1 sm:grid-cols-4 gap-4 cursor-pointer ${isExpanded ? 'mb-5 pb-5 border-b border-black-100' : ''}`}
-                        onClick={() => setExpandedSources(prev => ({ ...prev, [source]: !prev[source] }))}
+                        key={index} 
+                        className="bg-white border border-black-150 rounded-2xl p-5 shadow-xs hover:shadow-md transition-all duration-200 flex flex-col justify-between space-y-4"
                       >
-                        <div className="flex items-center justify-between sm:block">
-                          <div>
-                            <span className="text-[11px] text-black-400 font-bold uppercase block">Lead Source</span>
-                            <h4 className="text-xl font-black text-black-800 uppercase tracking-wider">{source}</h4>
+                        {/* Header: Source Name + Cost / Lead */}
+                        <div className="flex items-start justify-between gap-3 border-b border-black-100 pb-3">
+                          <div className="min-w-0">
+                            <span className="text-[10px] font-extrabold text-black-400 uppercase tracking-wider block">Lead Source</span>
+                            <h4 className="text-base font-black text-black-800 uppercase tracking-wide truncate" title={source}>
+                              {source}
+                            </h4>
                           </div>
-                          <div className="sm:hidden">
-                            {isExpanded ? <ChevronUp className="w-5 h-5 text-gray-400" /> : <ChevronDown className="w-5 h-5 text-gray-400" />}
+                          <div className="text-right shrink-0">
+                            <span className="text-[10px] font-extrabold text-black-400 uppercase tracking-wider block">Cost / Lead</span>
+                            <span className="inline-block px-2.5 py-0.5 rounded-lg bg-emerald-50 border border-emerald-200/80 text-xs font-black text-[#0e623a]">
+                              ₹{Math.round(costPerLead).toLocaleString()}
+                            </span>
                           </div>
                         </div>
-                        <div className="text-center sm:text-left">
-                          <span className="text-[11px] text-black-400 font-bold uppercase block">Budget</span>
-                          <span className="text-xl font-bold text-black-800">₹{Math.round(data.budget || 0).toLocaleString()}</span>
-                        </div>
-                        <div className="text-center sm:text-left">
-                          <span className="text-[11px] text-black-400 font-bold uppercase block">Spent</span>
-                          <span className="text-xl font-bold text-rose-600">₹{Math.round(data.spent || 0).toLocaleString()}</span>
-                        </div>
-                        <div className="text-center sm:text-left flex items-center justify-between sm:block">
-                          <div>
-                            <span className="text-[11px] text-black-400 font-bold uppercase block">Cost / Lead</span>
-                            <span className="text-xl font-black text-[#0e623a]">₹{Math.round(costPerLead).toLocaleString()}</span>
+
+                        {/* Financials: Budget & Spent */}
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="bg-slate-50/80 border border-slate-150/80 rounded-xl p-3">
+                            <span className="text-[10px] font-extrabold text-black-400 uppercase tracking-wider block">Budget</span>
+                            <span className="text-base font-black text-black-800">
+                              ₹{Math.round(data.budget || 0).toLocaleString()}
+                            </span>
                           </div>
-                          <div className="hidden sm:block mt-2">
-                            {isExpanded ? <ChevronUp className="w-5 h-5 text-gray-400" /> : <ChevronDown className="w-5 h-5 text-gray-400" />}
+                          <div className="bg-rose-50/60 border border-rose-150/80 rounded-xl p-3">
+                            <span className="text-[10px] font-extrabold text-rose-500 uppercase tracking-wider block">Spent</span>
+                            <span className="text-base font-black text-rose-600">
+                              ₹{Math.round(data.spent || 0).toLocaleString()}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Funnel Metrics Breakdown: 5 Stages */}
+                        <div className="grid grid-cols-5 gap-1.5 pt-1 text-center">
+                          <div className="bg-gray-50 rounded-lg p-2 border border-gray-150 flex flex-col justify-center">
+                            <span className="text-[9px] font-extrabold text-black-400 uppercase block truncate">Leads</span>
+                            <span className="text-sm font-black text-black-800 mt-0.5">{data.count || 0}</span>
+                          </div>
+                          <div className="bg-blue-50/50 rounded-lg p-2 border border-blue-150 flex flex-col justify-center">
+                            <span className="text-[9px] font-extrabold text-blue-500 uppercase block truncate">Followup</span>
+                            <span className="text-sm font-black text-blue-600 mt-0.5">{data.enquiries || 0}</span>
+                          </div>
+                          <div className="bg-purple-50/50 rounded-lg p-2 border border-purple-150 flex flex-col justify-center">
+                            <span className="text-[9px] font-extrabold text-purple-500 uppercase block truncate">Visit</span>
+                            <span className="text-sm font-black text-purple-600 mt-0.5">{data.siteVisits || 0}</span>
+                          </div>
+                          <div className="bg-emerald-50/80 rounded-lg p-2 border border-emerald-200/80 flex flex-col justify-center">
+                            <span className="text-[9px] font-extrabold text-emerald-700 uppercase block truncate">Booked</span>
+                            <span className="text-sm font-black text-[#0e623a] mt-0.5">{data.booked || 0}</span>
+                          </div>
+                          <div className="bg-rose-50/60 rounded-lg p-2 border border-rose-150 flex flex-col justify-center">
+                            <span className="text-[9px] font-extrabold text-rose-500 uppercase block truncate">Lost</span>
+                            <span className="text-sm font-black text-red-600 mt-0.5">{data.lost || 0}</span>
                           </div>
                         </div>
                       </div>
-                      
-                      {/* Row 2: 5 Metric Cards */}
-                      {isExpanded && (
-                        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 animate-fade-in-up">
-                          <div className="bg-black-50 rounded-xl p-4 border border-black-100 text-center">
-                            <span className="text-[11px] font-extrabold text-black-500 uppercase block mb-1">Lead Count</span>
-                            <span className="text-2xl font-black text-black-800">{data.count || 0}</span>
-                          </div>
-                          <div className="bg-black-50 rounded-xl p-4 border border-black-100 text-center">
-                            <span className="text-[11px] font-extrabold text-black-500 uppercase block mb-1">Followup Count</span>
-                            <span className="text-2xl font-black text-blue-600">{data.enquiries || 0}</span>
-                          </div>
-                          <div className="bg-black-50 rounded-xl p-4 border border-black-100 text-center">
-                            <span className="text-[11px] font-extrabold text-black-500 uppercase block mb-1">Site Visit Count</span>
-                            <span className="text-2xl font-black text-purple-600">{data.siteVisits || 0}</span>
-                          </div>
-                          <div className="bg-black-50 rounded-xl p-4 border border-black-100 text-center">
-                            <span className="text-[11px] font-extrabold text-black-500 uppercase block mb-1">Booked Count</span>
-                            <span className="text-2xl font-black text-[#0e623a]">{data.booked || 0}</span>
-                          </div>
-                          <div className="bg-black-50 rounded-xl p-4 border border-red-100 text-center">
-                            <span className="text-[11px] font-extrabold text-red-500 uppercase block mb-1">Lost Count</span>
-                            <span className="text-2xl font-black text-red-600">{data.lost || 0}</span>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })
+                    );
+                  })
               )}
             </div>
           </div>
