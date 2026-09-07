@@ -429,7 +429,7 @@ const LeadsDirectory = () => {
             timeStr = ` at ${d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
           }
         }
-      } catch (e) {}
+      } catch (e) { }
     }
 
     const msgText = `Dear Sir/Madam,\n\nThank you for choosing John Buildwell. Your site visit has been scheduled on ${formattedDate || 'scheduled date'}${timeStr}. Looking forward to meet you on sight`;
@@ -628,9 +628,9 @@ const LeadsDirectory = () => {
   const parsePastedTextData = (text) => {
     const lines = text.trim().split(/\r?\n/).filter(line => line.trim());
     if (lines.length === 0) return [];
-    
+
     const firstLineCols = lines[0].split('\t').map(c => c.trim());
-    const hasHeaders = firstLineCols.some(h => 
+    const hasHeaders = firstLineCols.some(h =>
       /date|project|name|customer|phone|source|executive|assigned/i.test(h)
     );
 
@@ -700,7 +700,7 @@ const LeadsDirectory = () => {
         });
 
         if (rowNumber === 1) {
-          const hasHeaders = rowValues.some(h => 
+          const hasHeaders = rowValues.some(h =>
             /date|project|name|customer|phone|source|executive|assigned/i.test(h)
           );
           if (hasHeaders) {
@@ -1937,7 +1937,7 @@ const LeadsDirectory = () => {
         const wStatus = lead.status || '';
 
         const isLostOrClosed = lead.status === 'Lost' || lead.status === 'Closed' || lead.isClosed;
-        let remarksStr = isLostOrClosed 
+        let remarksStr = isLostOrClosed
           ? (lead.closeRemarks || lead.followUpInfo?.remarks || '')
           : (lead.followUpInfo?.remarks || lead.closeRemarks || '');
         if (remarksStr.match(/\[Lost at (.*?) stage\]/)) {
@@ -2280,7 +2280,7 @@ const LeadsDirectory = () => {
 
       {/* Leads Main Table */}
       <div className="bg-white border border-black-150 shadow-xs rounded-xl overflow-hidden">
-        <div className="overflow-x-auto overflow-y-auto w-full h-[250px] max-h-[250px] min-h-[250px] scrollbar-thin">
+        <div className="overflow-x-auto overflow-y-auto w-full h-[450px] max-h-[450px] min-h-[450px] scrollbar-thin">
           <table className="w-full text-left border-collapse min-w-[900px]">
             <thead className="sticky top-0 z-20 shadow-xs">
               <tr className="bg-black-50 border-b border-black-150 text-[10.5px] font-bold text-black-600 uppercase tracking-wider">
@@ -3261,364 +3261,362 @@ const LeadsDirectory = () => {
       {/* 🔐 MODAL: Edit Lead Record */}
       {editModalOpen && selectedLeadForEdit && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-            <div className="bg-white rounded-3xl max-w-xl w-full overflow-hidden shadow-2xl border border-black-100 flex flex-col max-h-[90vh]">
-              <div className="bg-amber-600 p-6 text-white flex justify-between items-start shrink-0">
-                <div>
-                  <h3 className="text-lg font-bold">Edit Lead Information</h3>
-                  <p className="text-amber-100 text-xs mt-1">Modify details for: {selectedLeadForEdit.name}</p>
+          <div className="bg-white rounded-3xl max-w-xl w-full overflow-hidden shadow-2xl border border-black-100 flex flex-col max-h-[90vh]">
+            <div className="bg-amber-600 p-6 text-white flex justify-between items-start shrink-0">
+              <div>
+                <h3 className="text-lg font-bold">Edit Lead Information</h3>
+                <p className="text-amber-100 text-xs mt-1">Modify details for: {selectedLeadForEdit.name}</p>
+              </div>
+              <button
+                onClick={() => setEditModalOpen(false)}
+                className="text-amber-100 hover:text-white transition cursor-pointer"
+                title="Close"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleUpdateLead} noValidate className="p-6 space-y-4 flex-1 overflow-y-auto">
+              {isLockedForNonAdmin && (
+                <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900 font-semibold flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+                  <span>After lead assignment, Phone Number, Lead Source, Project Code, and Assigned Executive are locked for sales team and editable only by Super Admin.</span>
                 </div>
-                <button
-                  onClick={() => setEditModalOpen(false)}
-                  className="text-amber-100 hover:text-white transition cursor-pointer"
-                  title="Close"
-                >
-                  <X className="w-5 h-5" />
-                </button>
+              )}
+
+              {/* Lead Type Radio Group */}
+              <div className="bg-black-50 p-4 rounded-2xl border border-black-150">
+                <label className="text-[11px] font-bold text-black-400 uppercase tracking-wider block mb-2 font-extrabold text-[#0e623a]">Lead Record Category [LOCKED]</label>
+                <div className="flex gap-6">
+                  <label className="flex items-center gap-2 text-sm font-semibold text-black-700 cursor-not-allowed opacity-70">
+                    <input
+                      type="radio"
+                      name="editLeadType"
+                      value="Lead"
+                      checked={editLeadType === 'Lead'}
+                      disabled
+                      className="text-amber-600 focus:ring-amber-600 w-4 h-4 cursor-not-allowed"
+                    />
+                    <span>Lead (Campaigns & Referrals)</span>
+                  </label>
+                  <label className="flex items-center gap-2 text-sm font-semibold text-black-700 cursor-not-allowed opacity-70">
+                    <input
+                      type="radio"
+                      name="editLeadType"
+                      value="Direct Visit"
+                      checked={editLeadType === 'Direct Visit'}
+                      disabled
+                      className="text-amber-600 focus:ring-amber-600 w-4 h-4 cursor-not-allowed"
+                    />
+                    <span>Direct Visit</span>
+                  </label>
+                </div>
               </div>
 
-              <form onSubmit={handleUpdateLead} noValidate className="p-6 space-y-4 flex-1 overflow-y-auto">
-                {isLockedForNonAdmin && (
-                  <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900 font-semibold flex items-center gap-2">
-                    <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
-                    <span>After lead assignment, Phone Number, Lead Source, Project Code, and Assigned Executive are locked for sales team and editable only by Super Admin.</span>
-                  </div>
-                )}
-
-                {/* Lead Type Radio Group */}
-                <div className="bg-black-50 p-4 rounded-2xl border border-black-150">
-                  <label className="text-[11px] font-bold text-black-400 uppercase tracking-wider block mb-2 font-extrabold text-[#0e623a]">Lead Record Category [LOCKED]</label>
-                  <div className="flex gap-6">
-                    <label className="flex items-center gap-2 text-sm font-semibold text-black-700 cursor-not-allowed opacity-70">
-                      <input
-                        type="radio"
-                        name="editLeadType"
-                        value="Lead"
-                        checked={editLeadType === 'Lead'}
-                        disabled
-                        className="text-amber-600 focus:ring-amber-600 w-4 h-4 cursor-not-allowed"
-                      />
-                      <span>Lead (Campaigns & Referrals)</span>
-                    </label>
-                    <label className="flex items-center gap-2 text-sm font-semibold text-black-700 cursor-not-allowed opacity-70">
-                      <input
-                        type="radio"
-                        name="editLeadType"
-                        value="Direct Visit"
-                        checked={editLeadType === 'Direct Visit'}
-                        disabled
-                        className="text-amber-600 focus:ring-amber-600 w-4 h-4 cursor-not-allowed"
-                      />
-                      <span>Direct Visit</span>
-                    </label>
-                  </div>
+              {/* Name & Profession */}
+              <div className="text-left">
+                <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Lead / Customer Name <span className="text-red-500">*</span></label>
+                <div className="flex items-center bg-black-55 border border-black-200 rounded-xl focus-within:ring-2 focus-within:ring-amber-600 focus-within:border-transparent transition-all overflow-hidden">
+                  <select
+                    value={editSalutation}
+                    onChange={(e) => setEditSalutation(e.target.value)}
+                    required
+                    className="bg-transparent pl-3 pr-6 py-3 text-sm font-bold text-black-700 outline-none cursor-pointer border-r border-black-200/80 hover:bg-black-100/50 transition-colors w-24 appearance-none"
+                    style={{ backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 6px center', backgroundSize: '12px' }}
+                  >
+                    <option value="Mr.">Mr.</option>
+                    <option value="Mrs.">Mrs.</option>
+                    <option value="Ms.">Ms.</option>
+                  </select>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. David Brown"
+                    value={editName}
+                    onChange={(e) => setEditName(e.target.value)}
+                    className="flex-grow px-4 py-3 bg-transparent outline-none text-sm text-black-800"
+                  />
                 </div>
+              </div>
 
-                {/* Name & Profession */}
-                <div className="text-left">
-                  <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Lead / Customer Name <span className="text-red-500">*</span></label>
-                  <div className="flex items-center bg-black-55 border border-black-200 rounded-xl focus-within:ring-2 focus-within:ring-amber-600 focus-within:border-transparent transition-all overflow-hidden">
+              {/* Phone & Alt Phone */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-left">
+                <div>
+                  <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5 flex items-center justify-between">
+                    <span>Phone Number <span className="text-red-500">*</span></span>
+                    {isLockedForNonAdmin && <span className="text-[10px] text-amber-800 bg-amber-100 font-extrabold px-2 py-0.5 rounded border border-amber-300">[LOCKED]</span>}
+                  </label>
+                  <div className={`flex items-center border rounded-xl overflow-hidden transition-all ${isLockedForNonAdmin
+                      ? 'bg-gray-100 border-gray-300 opacity-75 cursor-not-allowed'
+                      : editPhoneErr
+                        ? 'bg-black-55 border-red-500 focus-within:ring-2 focus-within:ring-red-500'
+                        : 'bg-black-55 border-black-200 focus-within:ring-2 focus-within:ring-amber-600 focus-within:border-transparent'
+                    }`}>
                     <select
-                      value={editSalutation}
-                      onChange={(e) => setEditSalutation(e.target.value)}
-                      required
-                      className="bg-transparent pl-3 pr-6 py-3 text-sm font-bold text-black-700 outline-none cursor-pointer border-r border-black-200/80 hover:bg-black-100/50 transition-colors w-24 appearance-none"
+                      disabled={isLockedForNonAdmin}
+                      value={editPhoneCountryCode}
+                      onChange={(e) => {
+                        setEditPhoneCountryCode(e.target.value);
+                        setEditPhoneLocal('');
+                        setEditPhoneErr('');
+                      }}
+                      className={`bg-transparent pl-4 pr-6 py-3 text-sm font-bold text-black-700 outline-none border-r border-black-200/80 ${isLockedForNonAdmin ? 'cursor-not-allowed' : 'cursor-pointer hover:bg-black-100/50'} transition-colors w-24 appearance-none`}
                       style={{ backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 6px center', backgroundSize: '12px' }}
                     >
-                      <option value="Mr.">Mr.</option>
-                      <option value="Mrs.">Mrs.</option>
-                      <option value="Ms.">Ms.</option>
+                      <option value="+91">🇮🇳 +91</option>
+                      <option value="+971">🇦🇪 +971</option>
+                      <option value="+1">🇺🇸 +1</option>
+                      <option value="+44">🇬🇧 +44</option>
+                      <option value="+966">🇸🇦 +966</option>
+                      <option value="+">Other</option>
                     </select>
                     <input
                       type="text"
                       required
-                      placeholder="e.g. David Brown"
-                      value={editName}
-                      onChange={(e) => setEditName(e.target.value)}
-                      className="flex-grow px-4 py-3 bg-transparent outline-none text-sm text-black-800"
+                      disabled={isLockedForNonAdmin}
+                      readOnly={isLockedForNonAdmin}
+                      placeholder={editPhoneCountryCode === '+91' ? '10 digit number' : editPhoneCountryCode === '+971' ? '9 digit number' : 'Phone number'}
+                      value={editPhoneLocal}
+                      onChange={(e) => {
+                        handleLocalPhoneChange(e.target.value, editPhoneCountryCode, setEditPhoneLocal);
+                        setEditPhoneErr('');
+                      }}
+                      onBlur={() => {
+                        const err = validatePhone(editPhoneCountryCode, editPhoneLocal, 'Phone number');
+                        setEditPhoneErr(err || '');
+                      }}
+                      className={`flex-grow px-4 py-3 bg-transparent border-none focus:outline-none focus:ring-0 text-sm ${isLockedForNonAdmin ? 'cursor-not-allowed text-gray-600 font-medium' : ''}`}
                     />
                   </div>
-                </div>
-
-                {/* Phone & Alt Phone */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-left">
-                  <div>
-                    <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5 flex items-center justify-between">
-                      <span>Phone Number <span className="text-red-500">*</span></span>
-                      {isLockedForNonAdmin && <span className="text-[10px] text-amber-800 bg-amber-100 font-extrabold px-2 py-0.5 rounded border border-amber-300">[LOCKED]</span>}
-                    </label>
-                    <div className={`flex items-center border rounded-xl overflow-hidden transition-all ${
-                      isLockedForNonAdmin
-                        ? 'bg-gray-100 border-gray-300 opacity-75 cursor-not-allowed'
-                        : editPhoneErr
-                        ? 'bg-black-55 border-red-500 focus-within:ring-2 focus-within:ring-red-500'
-                        : 'bg-black-55 border-black-200 focus-within:ring-2 focus-within:ring-amber-600 focus-within:border-transparent'
-                    }`}>
-                      <select
-                        disabled={isLockedForNonAdmin}
-                        value={editPhoneCountryCode}
-                        onChange={(e) => {
-                          setEditPhoneCountryCode(e.target.value);
-                          setEditPhoneLocal('');
-                          setEditPhoneErr('');
-                        }}
-                        className={`bg-transparent pl-4 pr-6 py-3 text-sm font-bold text-black-700 outline-none border-r border-black-200/80 ${isLockedForNonAdmin ? 'cursor-not-allowed' : 'cursor-pointer hover:bg-black-100/50'} transition-colors w-24 appearance-none`}
-                        style={{ backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 6px center', backgroundSize: '12px' }}
-                      >
-                        <option value="+91">🇮🇳 +91</option>
-                        <option value="+971">🇦🇪 +971</option>
-                        <option value="+1">🇺🇸 +1</option>
-                        <option value="+44">🇬🇧 +44</option>
-                        <option value="+966">🇸🇦 +966</option>
-                        <option value="+">Other</option>
-                      </select>
-                      <input
-                        type="text"
-                        required
-                        disabled={isLockedForNonAdmin}
-                        readOnly={isLockedForNonAdmin}
-                        placeholder={editPhoneCountryCode === '+91' ? '10 digit number' : editPhoneCountryCode === '+971' ? '9 digit number' : 'Phone number'}
-                        value={editPhoneLocal}
-                        onChange={(e) => {
-                          handleLocalPhoneChange(e.target.value, editPhoneCountryCode, setEditPhoneLocal);
-                          setEditPhoneErr('');
-                        }}
-                        onBlur={() => {
-                          const err = validatePhone(editPhoneCountryCode, editPhoneLocal, 'Phone number');
-                          setEditPhoneErr(err || '');
-                        }}
-                        className={`flex-grow px-4 py-3 bg-transparent border-none focus:outline-none focus:ring-0 text-sm ${isLockedForNonAdmin ? 'cursor-not-allowed text-gray-600 font-medium' : ''}`}
-                      />
-                    </div>
-                    {editPhoneErr && (
-                      <p className="text-[11px] text-red-500 font-bold mt-1">{editPhoneErr}</p>
-                    )}
-                  </div>
-
-                  <div>
-                    <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5 flex items-center justify-between">
-                      <span>Alt Phone Number <span className="text-black-400 font-normal lowercase">(optional)</span></span>
-                    </label>
-                    <div className={`flex items-center border rounded-xl overflow-hidden transition-all ${
-                      editAltPhoneErr
-                        ? 'bg-black-55 border-red-500 focus-within:ring-2 focus-within:ring-red-500'
-                        : 'bg-black-55 border-black-200 focus-within:ring-2 focus-within:ring-amber-600 focus-within:border-transparent'
-                    }`}>
-                      <select
-                        value={editAltPhoneCountryCode}
-                        onChange={(e) => {
-                          setEditAltPhoneCountryCode(e.target.value);
-                          setEditAltPhoneLocal('');
-                          setEditAltPhoneErr('');
-                        }}
-                        className="bg-transparent pl-4 pr-6 py-3 text-sm font-bold text-black-700 outline-none border-r border-black-200/80 cursor-pointer hover:bg-black-100/50 transition-colors w-24 appearance-none"
-                        style={{ backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 6px center', backgroundSize: '12px' }}
-                      >
-                        <option value="+91">🇮🇳 +91</option>
-                        <option value="+971">🇦🇪 +971</option>
-                        <option value="+1">🇺🇸 +1</option>
-                        <option value="+44">🇬🇧 +44</option>
-                        <option value="+966">🇸🇦 +966</option>
-                        <option value="+">Other</option>
-                      </select>
-                      <input
-                        type="text"
-                        placeholder={editAltPhoneCountryCode === '+91' ? '10 digit number (optional)' : editAltPhoneCountryCode === '+971' ? '9 digit number (optional)' : 'Alt phone number'}
-                        value={editAltPhoneLocal}
-                        onChange={(e) => {
-                          handleLocalPhoneChange(e.target.value, editAltPhoneCountryCode, setEditAltPhoneLocal);
-                          setEditAltPhoneErr('');
-                        }}
-                        onBlur={() => {
-                          if (editAltPhoneLocal && editAltPhoneLocal.trim()) {
-                            const err = validatePhone(editAltPhoneCountryCode, editAltPhoneLocal, 'Alt phone number');
-                            setEditAltPhoneErr(err || '');
-                          } else {
-                            setEditAltPhoneErr('');
-                          }
-                        }}
-                        className="flex-grow px-4 py-3 bg-transparent border-none focus:outline-none focus:ring-0 text-sm"
-                      />
-                    </div>
-                    {editAltPhoneErr && (
-                      <p className="text-[11px] text-red-500 font-bold mt-1">{editAltPhoneErr}</p>
-                    )}
-                  </div>
-                </div>
-
-                {/* Address */}
-                <div className="text-left">
-                  <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Customer Address</label>
-                  <textarea
-                    rows="2"
-                    placeholder="Street details, city, pincode..."
-                    value={editAddress}
-                    onChange={(e) => setEditAddress(e.target.value)}
-                    className="w-full px-4 py-3 bg-black-55 border border-black-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-600 text-sm"
-                  />
-                </div>
-
-                {/* Conditionally rendered details based on Lead Type */}
-                {editLeadType === 'Lead' ? (
-                  <>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-left">
-                      {/* Lead Source */}
-                      <div className="flex flex-col">
-                        <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5 flex items-center justify-between">
-                          <span>Lead Source <span className="text-red-500">*</span></span>
-                          {isLockedForNonAdmin && <span className="text-[10px] text-amber-800 bg-amber-100 font-extrabold px-2 py-0.5 rounded border border-amber-300">[LOCKED]</span>}
-                        </label>
-                        <SearchableSelect
-                          disabled={isLockedForNonAdmin}
-                          options={availableSources}
-                          value={editLeadSource}
-                          onChange={setEditLeadSource}
-                          placeholder="Select Ad Source / Campaign"
-                        />
-                      </div>
-
-                      {/* Project Code selection */}
-                      <div className="flex flex-col">
-                        <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5 flex items-center justify-between">
-                          <span>Project Code <span className="text-red-500">*</span></span>
-                          {isLockedForNonAdmin && <span className="text-[10px] text-amber-800 bg-amber-100 font-extrabold px-2 py-0.5 rounded border border-amber-300">[LOCKED]</span>}
-                        </label>
-                        <SearchableSelect
-                          disabled={isLockedForNonAdmin}
-                          options={projects.map(p => ({ value: p._id, label: `${p.code} - ${p.name} (${formatProjectTypeLabel(p.projectType)})` }))}
-                          value={editProjectId}
-                          onChange={setEditProjectId}
-                          placeholder="Select Project"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Ads Sub-dropdown (dynamic based on project) */}
-                    {editProjectId && editLeadSource === 'Digital Marketing' && (
-                      <div className="bg-amber-50/50 p-4 rounded-2xl border border-amber-200/40 space-y-3 text-left">
-                        <div className="flex flex-col">
-                          <label className="text-xs font-bold text-amber-800 uppercase tracking-wider block mb-1.5 flex items-center justify-between">
-                            <span>Active Ad Campaign</span>
-                            {isLockedForNonAdmin && <span className="text-[10px] text-amber-800 bg-amber-100 font-extrabold px-2 py-0.5 rounded border border-amber-300">[LOCKED]</span>}
-                          </label>
-                          <SearchableSelect
-                            disabled={isLockedForNonAdmin}
-                            options={editActiveAds.map(ad => ({ value: ad.id, label: `[${ad.type}] ${ad.name} (₹${ad.cost || 0})` }))}
-                            value={editAdId}
-                            onChange={setEditAdId}
-                            placeholder="Select Active Campaign Ad"
-                          />
-                        </div>
-                      </div>
-                    )}
-                  </>
-                ) : (
-                  <>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-left">
-                      {/* Lead Source */}
-                      <div className="flex flex-col">
-                        <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5 flex items-center justify-between">
-                          <span>Lead Source <span className="text-red-500">*</span></span>
-                          {isLockedForNonAdmin && <span className="text-[10px] text-amber-800 bg-amber-100 font-extrabold px-2 py-0.5 rounded border border-amber-300">[LOCKED]</span>}
-                        </label>
-                        <SearchableSelect
-                          disabled={isLockedForNonAdmin}
-                          options={availableSources}
-                          value={editLeadSource}
-                          onChange={setEditLeadSource}
-                          placeholder="Select Ad Source / Campaign"
-                        />
-                      </div>
-
-                      {/* Project Code selection */}
-                      <div className="flex flex-col">
-                        <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5 flex items-center justify-between">
-                          <span>Project Code <span className="text-red-500">*</span></span>
-                          {isLockedForNonAdmin && <span className="text-[10px] text-amber-800 bg-amber-100 font-extrabold px-2 py-0.5 rounded border border-amber-300">[LOCKED]</span>}
-                        </label>
-                        <SearchableSelect
-                          disabled={isLockedForNonAdmin}
-                          options={projects.map(p => ({ value: p._id, label: `${p.code} - ${p.name} (${formatProjectTypeLabel(p.projectType)})` }))}
-                          value={editProjectId}
-                          onChange={setEditProjectId}
-                          placeholder="Select Project"
-                        />
-                      </div>
-                    </div>
-                  </>
-                )}
-
-                {/* Bank Loan Selection */}
-                <div className="bg-black-50 p-4 rounded-2xl border border-black-150 text-left space-y-3">
-                  <div>
-                    <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-2">Requires Bank Loan?</label>
-                    <div className="flex gap-6">
-                      <label className="flex items-center gap-2 text-sm font-semibold text-black-700 cursor-pointer">
-                        <input
-                          type="radio"
-                          name="editBankLoan"
-                          value="Yes"
-                          checked={editBankLoan === 'Yes'}
-                          onChange={() => setEditBankLoan('Yes')}
-                          className="text-amber-600 focus:ring-amber-600 w-4 h-4"
-                        />
-                        <span>Yes</span>
-                      </label>
-                      <label className="flex items-center gap-2 text-sm font-semibold text-black-700 cursor-pointer">
-                        <input
-                          type="radio"
-                          name="editBankLoan"
-                          value="No"
-                          checked={editBankLoan === 'No'}
-                          onChange={() => {
-                            setEditBankLoan('No');
-                            setEditBankLoanPercentage(0);
-                          }}
-                          className="text-amber-600 focus:ring-amber-600 w-4 h-4"
-                        />
-                        <span>No</span>
-                      </label>
-                    </div>
-                  </div>
-
-                  {editBankLoan === 'Yes' && (
-                    <div className="pt-2 border-t border-black-200/50">
-                      <label className="text-xs font-semibold text-[#4b5563] block mb-1">Bank Loan Percentage (%) <span className="text-red-500">*</span></label>
-                      <input
-                        type="number"
-                        placeholder="e.g. 30"
-                        value={editBankLoanPercentage}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          if (val === '') {
-                            setEditBankLoanPercentage('');
-                          } else {
-                            const num = Number(val);
-                            if (num >= 0 && num <= 100) setEditBankLoanPercentage(num);
-                          }
-                        }}
-                        onBlur={() => setEditBankLoanPercentage(prev => prev === '' ? 0 : Number(prev))}
-                        className="w-full px-3 py-2 bg-white border border-[#d1d5db] rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-600 text-sm"
-                      />
-                    </div>
+                  {editPhoneErr && (
+                    <p className="text-[11px] text-red-500 font-bold mt-1">{editPhoneErr}</p>
                   )}
                 </div>
 
-                {/* Assigned Executive */}
-                <div className="flex flex-col text-left">
+                <div>
                   <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5 flex items-center justify-between">
-                    <span>Assigned Executive / Member <span className="text-red-500">*</span></span>
-                    {isLockedForNonAdmin && <span className="text-[10px] text-amber-800 bg-amber-100 font-extrabold px-2 py-0.5 rounded border border-amber-300">[LOCKED]</span>}
+                    <span>Alt Phone Number <span className="text-black-400 font-normal lowercase">(optional)</span></span>
                   </label>
-                  <SearchableSelect
-                    disabled={isLockedForNonAdmin}
-                    options={employees
-                      .filter(emp => emp.role?.toLowerCase() === 'sales person' || emp._id === editAssignedToId)
-                      .map(emp => ({ value: emp._id, label: `${emp.name} (${emp.role})` }))}
-                    value={editAssignedToId}
-                    onChange={setEditAssignedToId}
-                    placeholder="Select Executive"
-                  />
+                  <div className={`flex items-center border rounded-xl overflow-hidden transition-all ${editAltPhoneErr
+                      ? 'bg-black-55 border-red-500 focus-within:ring-2 focus-within:ring-red-500'
+                      : 'bg-black-55 border-black-200 focus-within:ring-2 focus-within:ring-amber-600 focus-within:border-transparent'
+                    }`}>
+                    <select
+                      value={editAltPhoneCountryCode}
+                      onChange={(e) => {
+                        setEditAltPhoneCountryCode(e.target.value);
+                        setEditAltPhoneLocal('');
+                        setEditAltPhoneErr('');
+                      }}
+                      className="bg-transparent pl-4 pr-6 py-3 text-sm font-bold text-black-700 outline-none border-r border-black-200/80 cursor-pointer hover:bg-black-100/50 transition-colors w-24 appearance-none"
+                      style={{ backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 6px center', backgroundSize: '12px' }}
+                    >
+                      <option value="+91">🇮🇳 +91</option>
+                      <option value="+971">🇦🇪 +971</option>
+                      <option value="+1">🇺🇸 +1</option>
+                      <option value="+44">🇬🇧 +44</option>
+                      <option value="+966">🇸🇦 +966</option>
+                      <option value="+">Other</option>
+                    </select>
+                    <input
+                      type="text"
+                      placeholder={editAltPhoneCountryCode === '+91' ? '10 digit number (optional)' : editAltPhoneCountryCode === '+971' ? '9 digit number (optional)' : 'Alt phone number'}
+                      value={editAltPhoneLocal}
+                      onChange={(e) => {
+                        handleLocalPhoneChange(e.target.value, editAltPhoneCountryCode, setEditAltPhoneLocal);
+                        setEditAltPhoneErr('');
+                      }}
+                      onBlur={() => {
+                        if (editAltPhoneLocal && editAltPhoneLocal.trim()) {
+                          const err = validatePhone(editAltPhoneCountryCode, editAltPhoneLocal, 'Alt phone number');
+                          setEditAltPhoneErr(err || '');
+                        } else {
+                          setEditAltPhoneErr('');
+                        }
+                      }}
+                      className="flex-grow px-4 py-3 bg-transparent border-none focus:outline-none focus:ring-0 text-sm"
+                    />
+                  </div>
+                  {editAltPhoneErr && (
+                    <p className="text-[11px] text-red-500 font-bold mt-1">{editAltPhoneErr}</p>
+                  )}
                 </div>
+              </div>
+
+              {/* Address */}
+              <div className="text-left">
+                <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Customer Address</label>
+                <textarea
+                  rows="2"
+                  placeholder="Street details, city, pincode..."
+                  value={editAddress}
+                  onChange={(e) => setEditAddress(e.target.value)}
+                  className="w-full px-4 py-3 bg-black-55 border border-black-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-600 text-sm"
+                />
+              </div>
+
+              {/* Conditionally rendered details based on Lead Type */}
+              {editLeadType === 'Lead' ? (
+                <>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-left">
+                    {/* Lead Source */}
+                    <div className="flex flex-col">
+                      <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5 flex items-center justify-between">
+                        <span>Lead Source <span className="text-red-500">*</span></span>
+                        {isLockedForNonAdmin && <span className="text-[10px] text-amber-800 bg-amber-100 font-extrabold px-2 py-0.5 rounded border border-amber-300">[LOCKED]</span>}
+                      </label>
+                      <SearchableSelect
+                        disabled={isLockedForNonAdmin}
+                        options={availableSources}
+                        value={editLeadSource}
+                        onChange={setEditLeadSource}
+                        placeholder="Select Ad Source / Campaign"
+                      />
+                    </div>
+
+                    {/* Project Code selection */}
+                    <div className="flex flex-col">
+                      <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5 flex items-center justify-between">
+                        <span>Project Code <span className="text-red-500">*</span></span>
+                        {isLockedForNonAdmin && <span className="text-[10px] text-amber-800 bg-amber-100 font-extrabold px-2 py-0.5 rounded border border-amber-300">[LOCKED]</span>}
+                      </label>
+                      <SearchableSelect
+                        disabled={isLockedForNonAdmin}
+                        options={projects.map(p => ({ value: p._id, label: `${p.code} - ${p.name} (${formatProjectTypeLabel(p.projectType)})` }))}
+                        value={editProjectId}
+                        onChange={setEditProjectId}
+                        placeholder="Select Project"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Ads Sub-dropdown (dynamic based on project) */}
+                  {editProjectId && editLeadSource === 'Digital Marketing' && (
+                    <div className="bg-amber-50/50 p-4 rounded-2xl border border-amber-200/40 space-y-3 text-left">
+                      <div className="flex flex-col">
+                        <label className="text-xs font-bold text-amber-800 uppercase tracking-wider block mb-1.5 flex items-center justify-between">
+                          <span>Active Ad Campaign</span>
+                          {isLockedForNonAdmin && <span className="text-[10px] text-amber-800 bg-amber-100 font-extrabold px-2 py-0.5 rounded border border-amber-300">[LOCKED]</span>}
+                        </label>
+                        <SearchableSelect
+                          disabled={isLockedForNonAdmin}
+                          options={editActiveAds.map(ad => ({ value: ad.id, label: `[${ad.type}] ${ad.name} (₹${ad.cost || 0})` }))}
+                          value={editAdId}
+                          onChange={setEditAdId}
+                          placeholder="Select Active Campaign Ad"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-left">
+                    {/* Lead Source */}
+                    <div className="flex flex-col">
+                      <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5 flex items-center justify-between">
+                        <span>Lead Source <span className="text-red-500">*</span></span>
+                        {isLockedForNonAdmin && <span className="text-[10px] text-amber-800 bg-amber-100 font-extrabold px-2 py-0.5 rounded border border-amber-300">[LOCKED]</span>}
+                      </label>
+                      <SearchableSelect
+                        disabled={isLockedForNonAdmin}
+                        options={availableSources}
+                        value={editLeadSource}
+                        onChange={setEditLeadSource}
+                        placeholder="Select Ad Source / Campaign"
+                      />
+                    </div>
+
+                    {/* Project Code selection */}
+                    <div className="flex flex-col">
+                      <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5 flex items-center justify-between">
+                        <span>Project Code <span className="text-red-500">*</span></span>
+                        {isLockedForNonAdmin && <span className="text-[10px] text-amber-800 bg-amber-100 font-extrabold px-2 py-0.5 rounded border border-amber-300">[LOCKED]</span>}
+                      </label>
+                      <SearchableSelect
+                        disabled={isLockedForNonAdmin}
+                        options={projects.map(p => ({ value: p._id, label: `${p.code} - ${p.name} (${formatProjectTypeLabel(p.projectType)})` }))}
+                        value={editProjectId}
+                        onChange={setEditProjectId}
+                        placeholder="Select Project"
+                      />
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {/* Bank Loan Selection */}
+              <div className="bg-black-50 p-4 rounded-2xl border border-black-150 text-left space-y-3">
+                <div>
+                  <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-2">Requires Bank Loan?</label>
+                  <div className="flex gap-6">
+                    <label className="flex items-center gap-2 text-sm font-semibold text-black-700 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="editBankLoan"
+                        value="Yes"
+                        checked={editBankLoan === 'Yes'}
+                        onChange={() => setEditBankLoan('Yes')}
+                        className="text-amber-600 focus:ring-amber-600 w-4 h-4"
+                      />
+                      <span>Yes</span>
+                    </label>
+                    <label className="flex items-center gap-2 text-sm font-semibold text-black-700 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="editBankLoan"
+                        value="No"
+                        checked={editBankLoan === 'No'}
+                        onChange={() => {
+                          setEditBankLoan('No');
+                          setEditBankLoanPercentage(0);
+                        }}
+                        className="text-amber-600 focus:ring-amber-600 w-4 h-4"
+                      />
+                      <span>No</span>
+                    </label>
+                  </div>
+                </div>
+
+                {editBankLoan === 'Yes' && (
+                  <div className="pt-2 border-t border-black-200/50">
+                    <label className="text-xs font-semibold text-[#4b5563] block mb-1">Bank Loan Percentage (%) <span className="text-red-500">*</span></label>
+                    <input
+                      type="number"
+                      placeholder="e.g. 30"
+                      value={editBankLoanPercentage}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (val === '') {
+                          setEditBankLoanPercentage('');
+                        } else {
+                          const num = Number(val);
+                          if (num >= 0 && num <= 100) setEditBankLoanPercentage(num);
+                        }
+                      }}
+                      onBlur={() => setEditBankLoanPercentage(prev => prev === '' ? 0 : Number(prev))}
+                      className="w-full px-3 py-2 bg-white border border-[#d1d5db] rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-600 text-sm"
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* Assigned Executive */}
+              <div className="flex flex-col text-left">
+                <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5 flex items-center justify-between">
+                  <span>Assigned Executive / Member <span className="text-red-500">*</span></span>
+                  {isLockedForNonAdmin && <span className="text-[10px] text-amber-800 bg-amber-100 font-extrabold px-2 py-0.5 rounded border border-amber-300">[LOCKED]</span>}
+                </label>
+                <SearchableSelect
+                  disabled={isLockedForNonAdmin}
+                  options={employees
+                    .filter(emp => emp.role?.toLowerCase() === 'sales person' || emp._id === editAssignedToId)
+                    .map(emp => ({ value: emp._id, label: `${emp.name} (${emp.role})` }))}
+                  value={editAssignedToId}
+                  onChange={setEditAssignedToId}
+                  placeholder="Select Executive"
+                />
+              </div>
 
               {/* Workflow Status & Lead Category */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-left">
@@ -4090,9 +4088,8 @@ const LeadsDirectory = () => {
                                   }
                                   setUnitDropdownOpen(false);
                                 }}
-                                className={`flex items-center gap-2.5 px-3 py-2 cursor-pointer transition-colors rounded-lg select-none ${
-                                  isSelected ? 'bg-emerald-50 text-[#0e623a]' : 'hover:bg-emerald-50/50 text-black-700'
-                                }`}
+                                className={`flex items-center gap-2.5 px-3 py-2 cursor-pointer transition-colors rounded-lg select-none ${isSelected ? 'bg-emerald-50 text-[#0e623a]' : 'hover:bg-emerald-50/50 text-black-700'
+                                  }`}
                               >
                                 <input
                                   type="checkbox"
