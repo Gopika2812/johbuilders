@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth, API_URL } from '../context/AuthContext';
 import { LOGO_BASE64 } from '../utils/logoBase64';
@@ -40,7 +40,8 @@ import {
   FileUp,
   ClipboardPaste,
   Loader2,
-  RotateCcw
+  RotateCcw,
+  Filter
 } from 'lucide-react';
 import ExcelJS from 'exceljs';
 
@@ -2180,49 +2181,16 @@ const LeadsDirectory = () => {
           </div>
 
           {/* Campaigns / Sources Multi-Select */}
-          <div className="relative">
-            <button
-              type="button"
-              onClick={() => setIsCampaignDropdownOpen(!isCampaignDropdownOpen)}
-              className="w-full flex items-center justify-between px-2 py-1 bg-black-50 border border-black-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-xs font-semibold text-black-700 cursor-pointer"
-            >
-              <span className="truncate">
-                {campaignFilter.length === 0
-                  ? 'All Campaigns / Sources'
-                  : `${campaignFilter.length} Campaign(s) selected`}
-              </span>
-              <Filter className="w-3 h-3 text-black-400 shrink-0 ml-1" />
-            </button>
-            {isCampaignDropdownOpen && (
-              <div className="absolute left-0 top-full mt-1 w-64 bg-white border border-black-150 rounded-xl shadow-lg z-50 p-2 max-h-56 overflow-y-auto space-y-1">
-                <div className="flex justify-between items-center pb-1 mb-1 border-b border-black-100 text-[11px] font-bold text-black-600">
-                  <span>Filter by Campaign</span>
-                  <button
-                    onClick={() => setCampaignFilter([])}
-                    className="text-[#0e623a] hover:underline cursor-pointer"
-                  >
-                    Reset
-                  </button>
-                </div>
-                {availableCampaigns.map(camp => (
-                  <label key={camp} className="flex items-center gap-2 p-1 hover:bg-black-50 rounded-lg text-xs font-medium text-black-700 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={campaignFilter.includes(camp)}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          setCampaignFilter([...campaignFilter, camp]);
-                        } else {
-                          setCampaignFilter(campaignFilter.filter(c => c !== camp));
-                        }
-                      }}
-                      className="rounded text-[#0e623a] focus:ring-[#0e623a]"
-                    />
-                    <span className="truncate">{camp}</span>
-                  </label>
-                ))}
-              </div>
-            )}
+          <div>
+            <SearchableMultiSelect
+              options={availableSources}
+              selectedValues={campaignFilter}
+              selectedOptions={campaignFilter}
+              onChange={(selected) => setCampaignFilter(selected)}
+              placeholder="All Campaigns / Sources"
+              allLabel="All Campaigns"
+              size="sm"
+            />
           </div>
 
           {/* Lead Category */}
