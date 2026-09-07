@@ -330,6 +330,8 @@ const SearchableDropdown = ({
 const TasksBoard = () => {
   const { token, user } = useAuth();
   const location = useLocation();
+  const roleNorm = (user?.role || '').toLowerCase().replace(/[\s_-]+/g, '');
+  const isSuperAdmin = roleNorm === 'superadmin' || roleNorm === 'admin';
 
   const [tasks, setTasks] = useState([]);
   const [employees, setEmployees] = useState([]);
@@ -1430,9 +1432,6 @@ const TasksBoard = () => {
     due.setHours(0, 0, 0, 0);
     return due < today;
   };
-
-  const roleNorm = (user?.role || '').toLowerCase().replace(/[\s_-]+/g, '');
-  const isSuperAdmin = roleNorm === 'superadmin' || roleNorm === 'admin';
 
   // Tab Counts
   const assignedToMeCount = tasks.filter(t => (t.assignedTo?._id || t.assignedTo) === user?._id).length;

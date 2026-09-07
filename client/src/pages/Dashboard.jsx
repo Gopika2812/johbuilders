@@ -393,6 +393,8 @@ const groupUnitsByCustomer = (unitsList) => {
 
 const Dashboard = () => {
   const { token, user, hasFullDashboardAccess } = useAuth();
+  const roleNorm = (user?.role || '').toLowerCase().replace(/[\s_-]+/g, '');
+  const isSuperAdmin = roleNorm === 'superadmin' || roleNorm === 'admin' || hasFullDashboardAccess;
   const navigate = useNavigate();
   const [leadsModalOpen, setLeadsModalOpen] = useState(false);
   const [followupModalOpen, setFollowupModalOpen] = useState(false);
