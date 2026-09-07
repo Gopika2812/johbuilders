@@ -2092,23 +2092,23 @@ const LeadsDirectory = () => {
   const paginatedLeadsList = filteredLeadsList.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   return (
-    <div className="space-y-1.5 w-full max-w-full overflow-hidden">
+    <div className="flex-1 flex flex-col space-y-1.5 w-full max-w-full overflow-hidden min-h-0">
       {/* Notifications */}
       {successMsg && (
-        <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs px-3 py-1.5 rounded-xl flex items-center gap-1.5 animate-pulse">
+        <div className="shrink-0 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs px-3 py-1.5 rounded-xl flex items-center gap-1.5 animate-pulse">
           <CheckCircle2 className="w-4 h-4 text-emerald-600" />
           <span>{successMsg}</span>
         </div>
       )}
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-800 text-xs px-3 py-1.5 rounded-xl flex items-center gap-1.5">
+        <div className="shrink-0 bg-red-50 border border-red-200 text-red-800 text-xs px-3 py-1.5 rounded-xl flex items-center gap-1.5">
           <AlertCircle className="w-4 h-4 text-red-600" />
           <span>{error}</span>
         </div>
       )}
 
       {/* Unified Compact Filters & Search Menu */}
-      <div className="bg-white p-2 sm:p-2.5 border border-black-150 shadow-xs rounded-xl space-y-1.5">
+      <div className="shrink-0 bg-white p-2 sm:p-2.5 border border-black-150 shadow-xs rounded-xl space-y-1.5">
         {/* Row 1: Search + Date Range */}
         <div className="flex flex-col xl:flex-row items-center gap-2">
           <div className="w-full xl:w-72 2xl:w-80 relative shrink-0">
@@ -2210,7 +2210,7 @@ const LeadsDirectory = () => {
       </div>
 
       {/* Tab Switcher - Leads Phases & Action Buttons */}
-      <div className="w-full max-w-full overflow-x-auto bg-white border border-black-150 p-1 rounded-xl shadow-xs scrollbar-none flex flex-col md:flex-row items-center justify-between gap-1.5">
+      <div className="shrink-0 w-full max-w-full overflow-x-auto bg-white border border-black-150 p-1 rounded-xl shadow-xs scrollbar-none flex flex-col md:flex-row items-center justify-between gap-1.5">
         <div className="flex gap-1 min-w-max items-center">
           <button
             onClick={() => setActiveTab('All')}
@@ -2279,9 +2279,9 @@ const LeadsDirectory = () => {
       </div>
 
       {/* Leads Main Table */}
-      <div className="bg-white border border-black-150 shadow-xs rounded-xl overflow-hidden">
-        <div className="overflow-x-auto overflow-y-hidden w-full scrollbar-none">
-          <table className="w-full text-left border-collapse min-w-[900px]">
+      <div className="flex-1 flex flex-col min-h-0 bg-white border border-black-150 shadow-xs rounded-xl overflow-hidden">
+        <div className="flex-1 overflow-x-auto overflow-y-hidden w-full scrollbar-none flex flex-col min-h-0">
+          <table className="w-full flex-1 text-left border-collapse min-w-[900px]">
             <thead>
               <tr className="bg-black-50 border-b border-black-150 text-[10.5px] font-bold text-black-600 uppercase tracking-wider">
                 {hasColumnPermission('leads', 'sno') && <th className="px-2.5 py-1.5 w-10 text-center">S.No</th>}
@@ -2319,7 +2319,7 @@ const LeadsDirectory = () => {
                   <tr
                     key={lead._id}
                     className={`transition duration-150 border-b border-black-100 custom-text-row hover:opacity-90 ${contrastClass === 'dark-row' ? 'dark-row' : ''}`}
-                    style={{ backgroundColor: rowColor, color: rowTextColor }}
+                    style={{ backgroundColor: rowColor, color: rowTextColor, height: '10%' }}
                   >
                     {/* S.No */}
                     {hasColumnPermission('leads', 'sno') && (
@@ -2593,7 +2593,7 @@ const LeadsDirectory = () => {
         </div>
 
         {/* Pagination Controls */}
-        <div className="flex flex-col sm:flex-row items-center justify-between px-3 py-1.5 border-t border-black-150 gap-2 bg-black-50/50 rounded-b-xl">
+        <div className="shrink-0 flex flex-col sm:flex-row items-center justify-between px-3 py-1.5 border-t border-black-150 gap-2 bg-black-50/50 rounded-b-xl">
           <div className="text-xs text-black-600 font-bold">
             Showing {filteredLeadsList.length > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0} to {Math.min(currentPage * itemsPerPage, totalItems)} of {totalItems} entries
           </div>
