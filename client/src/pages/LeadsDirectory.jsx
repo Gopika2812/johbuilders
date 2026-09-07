@@ -2279,8 +2279,8 @@ const LeadsDirectory = () => {
       </div>
 
       {/* Leads Main Table */}
-      <div className="bg-white border border-black-150 shadow-xs rounded-xl overflow-hidden h-fit">
-        <div className="overflow-x-auto w-full">
+      <div className="bg-white border border-black-150 shadow-xs rounded-xl overflow-hidden h-auto">
+        <div className="overflow-x-auto overflow-y-hidden w-full">
           <table className="w-full text-left border-collapse min-w-[900px]">
             <thead className="sticky top-0 z-20 shadow-xs">
               <tr className="bg-black-50 border-b border-black-150 text-[10.5px] font-bold text-black-600 uppercase tracking-wider">
