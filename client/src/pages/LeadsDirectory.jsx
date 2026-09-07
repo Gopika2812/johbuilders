@@ -212,9 +212,9 @@ const LeadsDirectory = () => {
   const [reopenedFilter, setReopenedFilter] = useState('');
   const [projectFilter, setProjectFilter] = useState('');
 
-  // Pagination States (Fixed 10 records per page)
+  // Pagination States (Default 10 records per page)
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   // Reset page when filters change
   useEffect(() => {
@@ -2092,7 +2092,7 @@ const LeadsDirectory = () => {
   const paginatedLeadsList = filteredLeadsList.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   return (
-    <div className="space-y-1 w-full max-w-full pb-0">
+    <div className="flex-1 flex flex-col space-y-1 w-full max-w-full pb-0 min-h-0">
       {/* Notifications */}
       {successMsg && (
         <div className="shrink-0 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs px-3 py-1.5 rounded-xl flex items-center gap-1.5 animate-pulse">
@@ -2279,9 +2279,9 @@ const LeadsDirectory = () => {
       </div>
 
       {/* Leads Main Table */}
-      <div className="bg-white border border-black-150 shadow-xs rounded-xl overflow-hidden h-auto">
-        <div className="overflow-x-auto overflow-y-hidden w-full">
-          <table className="w-full text-left border-collapse min-w-[900px]">
+      <div className="flex-1 flex flex-col min-h-0 bg-white border border-black-150 shadow-xs rounded-xl overflow-hidden">
+        <div className="flex-1 overflow-x-auto overflow-y-auto w-full min-h-0">
+          <table className="w-full h-full text-left border-collapse min-w-[900px]">
             <thead className="sticky top-0 z-20 shadow-xs">
               <tr className="bg-black-50 border-b border-black-150 text-[10.5px] font-bold text-black-600 uppercase tracking-wider">
                 {hasColumnPermission('leads', 'sno') && <th className="px-2 py-1 w-10 text-center">S.No</th>}
@@ -2319,7 +2319,11 @@ const LeadsDirectory = () => {
                   <tr
                     key={lead._id}
                     className={`transition duration-150 border-b border-black-100 custom-text-row hover:opacity-90 ${contrastClass === 'dark-row' ? 'dark-row' : ''}`}
-                    style={{ backgroundColor: rowColor, color: rowTextColor }}
+                    style={{
+                      backgroundColor: rowColor,
+                      color: rowTextColor,
+                      height: `${100 / Math.max(paginatedLeadsList.length, 10)}%`
+                    }}
                   >
                     {/* S.No */}
                     {hasColumnPermission('leads', 'sno') && (
@@ -2582,8 +2586,8 @@ const LeadsDirectory = () => {
                 );
               })}
               {filteredLeadsList.length === 0 && (
-                <tr>
-                  <td colSpan="13" className="p-8 text-center text-black-400 text-xs">
+                <tr className="h-full">
+                  <td colSpan="13" className="p-8 text-center text-black-400 text-xs align-middle">
                     No lead records found matching selected filters.
                   </td>
                 </tr>
@@ -2594,8 +2598,28 @@ const LeadsDirectory = () => {
 
         {/* Pagination Controls */}
         <div className="shrink-0 flex flex-col sm:flex-row items-center justify-between px-3 py-1.5 border-t border-black-150 gap-2 bg-black-50/50 rounded-b-xl">
-          <div className="text-xs text-black-600 font-bold">
-            Showing {filteredLeadsList.length > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0} to {Math.min(currentPage * itemsPerPage, totalItems)} of {totalItems} entries
+          <div className="flex items-center gap-3">
+            <div className="text-xs text-black-600 font-bold">
+              Showing {filteredLeadsList.length > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0} to {Math.min(currentPage * itemsPerPage, totalItems)} of {totalItems} entries
+            </div>
+            <div className="flex items-center gap-1 text-xs text-black-500 font-medium">
+              <span>Show</span>
+              <select
+                value={itemsPerPage}
+                onChange={(e) => {
+                  setItemsPerPage(Number(e.target.value));
+                  setCurrentPage(1);
+                }}
+                className="px-1.5 py-0.5 bg-white border border-black-200 rounded font-bold text-xs text-black-700 focus:outline-none focus:ring-1 focus:ring-[#0e623a] cursor-pointer"
+              >
+                <option value={10}>10</option>
+                <option value={15}>15</option>
+                <option value={20}>20</option>
+                <option value={25}>25</option>
+                <option value={50}>50</option>
+              </select>
+              <span>entries</span>
+            </div>
           </div>
 
           <div className="flex gap-1.5 items-center">
