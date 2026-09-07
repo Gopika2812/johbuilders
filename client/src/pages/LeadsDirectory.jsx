@@ -2092,7 +2092,7 @@ const LeadsDirectory = () => {
   const paginatedLeadsList = filteredLeadsList.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   return (
-    <div className="flex-1 flex flex-col space-y-1.5 w-full max-w-full overflow-hidden min-h-0">
+    <div className="space-y-1.5 w-full max-w-full pb-4">
       {/* Notifications */}
       {successMsg && (
         <div className="shrink-0 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs px-3 py-1.5 rounded-xl flex items-center gap-1.5 animate-pulse">
@@ -2279,8 +2279,8 @@ const LeadsDirectory = () => {
       </div>
 
       {/* Leads Main Table */}
-      <div className="flex-1 flex flex-col min-h-0 bg-white border border-black-150 shadow-xs rounded-xl overflow-hidden">
-        <div className="flex-1 overflow-x-auto overflow-y-auto w-full min-h-0 scrollbar-thin">
+      <div className="bg-white border border-black-150 shadow-xs rounded-xl overflow-hidden">
+        <div className="overflow-x-auto overflow-y-auto w-full h-[250px] max-h-[250px] min-h-[250px] scrollbar-thin">
           <table className="w-full text-left border-collapse min-w-[900px]">
             <thead className="sticky top-0 z-20 shadow-xs">
               <tr className="bg-black-50 border-b border-black-150 text-[10.5px] font-bold text-black-600 uppercase tracking-wider">
