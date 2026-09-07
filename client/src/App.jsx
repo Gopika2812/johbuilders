@@ -72,7 +72,7 @@ const Layout = ({ children }) => {
         <Navbar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
 
         {/* Dynamic Page Views */}
-        <main className="flex-1 overflow-y-auto p-2 sm:p-2.5 scrollbar-thin relative z-10">
+        <main className="flex-1 overflow-hidden p-2 sm:p-2.5 relative z-10 flex flex-col min-h-0">
           {children}
         </main>
       </div>
