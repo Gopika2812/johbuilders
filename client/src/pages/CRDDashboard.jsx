@@ -1050,30 +1050,30 @@ const CRDDashboard = () => {
           <tr><td colspan="9" style="border:none; height: 15px;"></td></tr>
           
           <!-- PART 1 -->
-          <tr><td colspan="9" class="section-banner">PART 1: PROJECTS & UNIT TYPE SUMMARY</td></tr>
+          <tr><td colspan="7" class="section-banner">PART 1: PROJECTS & UNIT TYPE SUMMARY</td></tr>
           <tr>
             <th colspan="3">Metric</th>
-            <th colspan="3">Count</th>
-            <th colspan="3">Total Value (INR)</th>
+            <th colspan="2">Count</th>
+            <th colspan="2">Total Value (INR)</th>
           </tr>
           <tr>
             <td colspan="3" class="bold-label">Available Projects (Common)</td>
-            <td colspan="3">${availableProjCount}</td>
-            <td colspan="3">Rs. ${availableProjVal.toLocaleString()}</td>
+            <td colspan="2">${availableProjCount}</td>
+            <td colspan="2">Rs. ${availableProjVal.toLocaleString()}</td>
           </tr>
           ${plotProjCount > 0 || plotProjVal > 0 ? `
           <tr class="even-row">
             <td colspan="3" class="bold-label">Available Projects (Plot)</td>
-            <td colspan="3">${plotProjCount}</td>
-            <td colspan="3">Rs. ${plotProjVal.toLocaleString()}</td>
+            <td colspan="2">${plotProjCount}</td>
+            <td colspan="2">Rs. ${plotProjVal.toLocaleString()}</td>
           </tr>` : ''}
           ${unitProjCount > 0 || unitProjVal > 0 ? `
           <tr>
             <td colspan="3" class="bold-label">Available Projects (Unit)</td>
-            <td colspan="3">${unitProjCount}</td>
-            <td colspan="3">Rs. ${unitProjVal.toLocaleString()}</td>
+            <td colspan="2">${unitProjCount}</td>
+            <td colspan="2">Rs. ${unitProjVal.toLocaleString()}</td>
           </tr>` : ''}
-          <tr><td colspan="9" style="border:none; height: 10px;"></td></tr>
+          <tr><td colspan="7" style="border:none; height: 10px;"></td></tr>
           
           <tr>
             <th>Project Type</th>
@@ -1083,8 +1083,6 @@ const CRDDashboard = () => {
             <th>Available Value (INR)</th>
             <th>Booked Count</th>
             <th>Booked Value (INR)</th>
-            <th>Handover Count</th>
-            <th>Handover Value (INR)</th>
           </tr>
      `;
 
@@ -1102,8 +1100,6 @@ const CRDDashboard = () => {
       const availVal = (inventory.availableValueByType?.[type] || 0) + (type === 'Villa' ? (inventory.availableValueByType?.House || 0) : 0);
       const bookedCount = (inventory.bookedByType?.[type] || 0) + (type === 'Villa' ? (inventory.bookedByType?.House || 0) : 0);
       const bookedVal = (inventory.bookedValueByType?.[type] || 0) + (type === 'Villa' ? (inventory.bookedValueByType?.House || 0) : 0);
-      const handCount = (inventory.handoverByType?.[type] || 0) + (type === 'Villa' ? (inventory.handoverByType?.House || 0) : 0);
-      const handVal = (inventory.handoverValueByType?.[type] || 0) + (type === 'Villa' ? (inventory.handoverValueByType?.House || 0) : 0);
       
       const rowClass = idx % 2 === 1 ? 'class="even-row"' : '';
       
@@ -1116,8 +1112,6 @@ const CRDDashboard = () => {
           <td>Rs. ${availVal.toLocaleString()}</td>
           <td>${bookedCount}</td>
           <td>Rs. ${bookedVal.toLocaleString()}</td>
-          <td>${handCount}</td>
-          <td>Rs. ${handVal.toLocaleString()}</td>
         </tr>
       `;
     });

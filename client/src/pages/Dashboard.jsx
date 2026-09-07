@@ -1472,74 +1472,31 @@ const Dashboard = () => {
   const getUserPerformanceDataFromStats = (statsObj, startD, endD) => {
     if (!statsObj) return [];
     const data = {};
-    (statsObj.users || []).forEach(u => {
+    const salesUsers = (statsObj.users || []).filter(u => (u.role || '').toLowerCase().includes('sales'));
+
+    salesUsers.forEach(u => {
       data[u.name] = {
         userName: u.name,
         totalLeads: 0,
-        assigned: 0,
         enquiries: 0,
         siteVisits: 0,
         hotList: 0,
-        futureFollowup: 0,
         booked: 0,
-        handover: 0,
-        lost: 0
+        salesValue: 0
       };
     });
 
-    const rangeStart = startD ? new Date(startD) : null;
-    let rangeEnd = null;
-    if (endD) {
-      rangeEnd = new Date(endD);
-      rangeEnd.setHours(23, 59, 59, 999);
-    }
-
-    const inDateRange = (dateStr) => {
-      if (!startD && !endD) return true;
-      if (!dateStr) return false;
-      const d = new Date(dateStr);
-      if (rangeStart && d < rangeStart) return false;
-      if (rangeEnd && d > rangeEnd) return false;
-      return true;
-    };
-
-    if (statsObj.cards?.leadsList && Array.isArray(statsObj.cards.leadsList)) {
-      statsObj.cards.leadsList.forEach(lead => {
-        const isCreated = inDateRange(lead.createdAt);
-        if (!isCreated) return;
-
-        const uName = lead.assignedTo || 'Unassigned';
-        if (!data[uName]) {
-          data[uName] = {
-            userName: uName,
-            totalLeads: 0,
-            assigned: 0,
-            enquiries: 0,
-            siteVisits: 0,
-            hotList: 0,
-            futureFollowup: 0,
-            booked: 0,
-            handover: 0,
-            lost: 0
-          };
-        }
-
-        data[uName].totalLeads += 1;
-        const status = lead.status || '';
-        const isHot = lead.leadCategory === 'Hot' || lead.leadCategory === 'HOT' || (lead.leadCategory && lead.leadCategory.toLowerCase() === 'hot') || status === 'Hot List';
-
-        if (status === 'Assigned') data[uName].assigned = (data[uName].assigned || 0) + 1;
-        else if (status === 'Contacted' || status === 'Follow-Up' || status === 'Followup') data[uName].enquiries += 1;
-        else if (status === 'Site Visit' || status === 'Site Visit Follow-up') data[uName].siteVisits += 1;
-        if (isHot) data[uName].hotList += 1;
-        if (status === 'Future Follow-up' || status === 'Future Followup' || (status && status.toLowerCase().includes('future'))) data[uName].futureFollowup = (data[uName].futureFollowup || 0) + 1;
-        else if (status === 'Booking' || status === 'Booked') data[uName].booked += 1;
-        else if (status === 'Won' || status === 'Handover') data[uName].handover += 1;
-        else if (status === 'Lost' || status === 'Closed' || status === 'Cancelled' || lead.isClosed) data[uName].lost += 1;
-      });
-
-      return Object.values(data).filter(u => u.totalLeads > 0 || (u.assigned || 0) > 0 || u.enquiries > 0 || u.siteVisits > 0 || u.hotList > 0 || (u.futureFollowup || 0) > 0 || u.booked > 0 || u.handover > 0 || u.lost > 0);
-    }
+    Object.keys(statsObj.personProjectStages || {}).forEach(key => {
+      const row = statsObj.personProjectStages[key];
+      if (data[row.personName]) {
+        data[row.personName].totalLeads += (row.totalLeads || 0);
+        data[row.personName].enquiries += (row.enquiries || 0);
+        data[row.personName].siteVisits += (row.siteVisits || 0);
+        data[row.personName].hotList += (row.hotList || 0);
+        data[row.personName].booked += (row.booked || 0);
+        data[row.personName].salesValue += (row.salesValue || row.bookedValue || 0);
+      }
+    });
 
     return Object.values(data);
   };
@@ -1584,33 +1541,33 @@ const Dashboard = () => {
       </head>
       <body>
         <table>
-          ${getExcelHeader('OVERALL PERFORMANCE SUMMARY REPORT', dateTitle, 9)}
+          ${getExcelHeader('OVERALL PERFORMANCE SUMMARY REPORT', dateTitle, 7)}
           
           <!-- PART 1 -->
-          <tr><td colspan="9" class="section-banner">PART 1: PROJECTS & UNIT TYPE SUMMARY</td></tr>
+          <tr><td colspan="7" class="section-banner">PART 1: PROJECTS & UNIT TYPE SUMMARY</td></tr>
           <tr>
             <th colspan="3" class="text-left">Metric</th>
-            <th colspan="3" class="text-right">Count</th>
-            <th colspan="3" class="text-right">Total Value (INR)</th>
+            <th colspan="2" class="text-right">Count</th>
+            <th colspan="2" class="text-right">Total Value (INR)</th>
           </tr>
           <tr>
             <td colspan="3" class="bold-label text-left">Available Projects (Common)</td>
-            <td colspan="3" class="text-right">${availableProjCount}</td>
-            <td colspan="3" class="text-right">Rs. ${availableProjVal.toLocaleString()}</td>
+            <td colspan="2" class="text-right">${availableProjCount}</td>
+            <td colspan="2" class="text-right">Rs. ${availableProjVal.toLocaleString()}</td>
           </tr>
           ${plotProjCount > 0 || plotProjVal > 0 ? `
           <tr class="even-row">
             <td colspan="3" class="bold-label text-left">Available Projects (Plot)</td>
-            <td colspan="3" class="text-right">${plotProjCount}</td>
-            <td colspan="3" class="text-right">Rs. ${plotProjVal.toLocaleString()}</td>
+            <td colspan="2" class="text-right">${plotProjCount}</td>
+            <td colspan="2" class="text-right">Rs. ${plotProjVal.toLocaleString()}</td>
           </tr>` : ''}
           ${unitProjCount > 0 || unitProjVal > 0 ? `
           <tr>
             <td colspan="3" class="bold-label text-left">Available Projects (Unit)</td>
-            <td colspan="3" class="text-right">${unitProjCount}</td>
-            <td colspan="3" class="text-right">Rs. ${unitProjVal.toLocaleString()}</td>
+            <td colspan="2" class="text-right">${unitProjCount}</td>
+            <td colspan="2" class="text-right">Rs. ${unitProjVal.toLocaleString()}</td>
           </tr>` : ''}
-          <tr><td colspan="9" style="border:none; height: 10px;"></td></tr>
+          <tr><td colspan="7" style="border:none; height: 10px;"></td></tr>
           
           <tr>
             <th class="text-left">Project Type</th>
@@ -1620,8 +1577,6 @@ const Dashboard = () => {
             <th class="text-right">Available Value (INR)</th>
             <th class="text-right">Booked Count</th>
             <th class="text-right">Booked Value (INR)</th>
-            <th class="text-right">Handover Count</th>
-            <th class="text-right">Handover Value (INR)</th>
           </tr>
     `;
 
@@ -1639,8 +1594,6 @@ const Dashboard = () => {
       const availVal = (inventory.availableValueByType?.[type] || 0) + (type === 'Villa' ? (inventory.availableValueByType?.House || 0) : 0);
       const bookedCount = (inventory.bookedByType?.[type] || 0) + (type === 'Villa' ? (inventory.bookedByType?.House || 0) : 0);
       const bookedVal = (inventory.bookedValueByType?.[type] || 0) + (type === 'Villa' ? (inventory.bookedValueByType?.House || 0) : 0);
-      const handCount = (inventory.handoverByType?.[type] || 0) + (type === 'Villa' ? (inventory.handoverByType?.House || 0) : 0);
-      const handVal = (inventory.handoverValueByType?.[type] || 0) + (type === 'Villa' ? (inventory.handoverValueByType?.House || 0) : 0);
 
       const rowClass = idx % 2 === 1 ? 'class="even-row"' : '';
 
@@ -1653,16 +1606,14 @@ const Dashboard = () => {
           <td class="text-right">Rs. ${availVal.toLocaleString()}</td>
           <td class="text-right">${bookedCount}</td>
           <td class="text-right">Rs. ${bookedVal.toLocaleString()}</td>
-          <td class="text-right">${handCount}</td>
-          <td class="text-right">Rs. ${handVal.toLocaleString()}</td>
         </tr>
       `;
     });
 
     htmlContent += `
           <!-- PART 2 -->
-          <tr><td colspan="9" style="border:none; height: 15px;"></td></tr>
-          <tr><td colspan="9" class="section-banner">PART 2: USER PERFORMANCE SUMMARY</td></tr>
+          <tr><td colspan="7" style="border:none; height: 15px;"></td></tr>
+          <tr><td colspan="7" class="section-banner">PART 2: USER PERFORMANCE SUMMARY</td></tr>
           <tr>
             <th class="text-left">User Name</th>
             <th class="text-right">Total Leads</th>
@@ -1670,7 +1621,7 @@ const Dashboard = () => {
             <th class="text-right">Site Visit</th>
             <th class="text-right">Hot List</th>
             <th class="text-right">Booking</th>
-            <th colspan="3" class="text-right">Handover</th>
+            <th class="text-right">Sales Value</th>
           </tr>
     `;
 
@@ -1685,7 +1636,7 @@ const Dashboard = () => {
           <td class="text-right">${row.siteVisits}</td>
           <td class="text-right">${row.hotList}</td>
           <td class="text-right">${row.booked}</td>
-          <td colspan="3" class="text-right">${row.handover}</td>
+          <td class="text-right">Rs. ${(row.salesValue || 0).toLocaleString()}</td>
         </tr>
       `;
     });
@@ -3070,8 +3021,6 @@ const Dashboard = () => {
                                   <th className="p-3 text-right">Available Value</th>
                                   <th className="p-3 text-right">Booked Count</th>
                                   <th className="p-3 text-right">Booked Value</th>
-                                  <th className="p-3 text-right">Handover Count</th>
-                                  <th className="p-3 text-right">Handover Value</th>
                                 </tr>
                               </thead>
                               <tbody className="divide-y divide-black-100 font-medium">
@@ -3082,8 +3031,6 @@ const Dashboard = () => {
                                   const availVal = (inventory.availableValueByType?.[type] || 0) + (type === 'Villa' ? (inventory.availableValueByType?.House || 0) : 0);
                                   const bookedCount = (inventory.bookedByType?.[type] || 0) + (type === 'Villa' ? (inventory.bookedByType?.House || 0) : 0);
                                   const bookedVal = (inventory.bookedValueByType?.[type] || 0) + (type === 'Villa' ? (inventory.bookedValueByType?.House || 0) : 0);
-                                  const handCount = (inventory.handoverByType?.[type] || 0) + (type === 'Villa' ? (inventory.handoverByType?.House || 0) : 0);
-                                  const handVal = (inventory.handoverValueByType?.[type] || 0) + (type === 'Villa' ? (inventory.handoverValueByType?.House || 0) : 0);
 
                                   return (
                                     <tr key={type} className={idx % 2 === 1 ? 'bg-black-50/40' : ''}>
@@ -3094,8 +3041,6 @@ const Dashboard = () => {
                                       <td className="p-3 text-right text-emerald-700">₹{availVal.toLocaleString()}</td>
                                       <td className="p-3 text-right text-red-700 font-bold">{bookedCount}</td>
                                       <td className="p-3 text-right text-red-700">₹{bookedVal.toLocaleString()}</td>
-                                      <td className="p-3 text-right text-blue-700 font-bold">{handCount}</td>
-                                      <td className="p-3 text-right text-blue-700">₹{handVal.toLocaleString()}</td>
                                     </tr>
                                   );
                                 })}
@@ -3115,14 +3060,11 @@ const Dashboard = () => {
                                 <tr className="bg-[#0e623a] text-white text-[11px] font-bold uppercase">
                                   <th className="p-3">User Name</th>
                                   <th className="p-3 text-right">Total Leads</th>
-                                  <th className="p-3 text-right">Assigned</th>
                                   <th className="p-3 text-right">Enquiries</th>
                                   <th className="p-3 text-right">Site Visit</th>
                                   <th className="p-3 text-right">Hot List</th>
-                                  <th className="p-3 text-right">Future Followup</th>
                                   <th className="p-3 text-right">Booking</th>
-                                  <th className="p-3 text-right">Handover</th>
-                                  <th className="p-3 text-right text-red-300">Lost</th>
+                                  <th className="p-3 text-right">Sales Value</th>
                                 </tr>
                               </thead>
                               <tbody className="divide-y divide-black-100 font-medium">
@@ -3130,28 +3072,22 @@ const Dashboard = () => {
                                   <tr key={row.userName || idx} className={idx % 2 === 1 ? 'bg-black-50/40' : ''}>
                                     <td className="p-3 font-bold text-black-850 uppercase">{row.userName}</td>
                                     <td className="p-3 text-right font-black text-black-900">{row.totalLeads}</td>
-                                    <td className="p-3 text-right text-purple-700 font-bold">{row.assigned || 0}</td>
                                     <td className="p-3 text-right text-emerald-700 font-bold">{row.enquiries}</td>
                                     <td className="p-3 text-right text-blue-700 font-bold">{row.siteVisits}</td>
                                     <td className="p-3 text-right text-amber-700 font-bold">{row.hotList}</td>
-                                    <td className="p-3 text-right text-cyan-700 font-bold">{row.futureFollowup || 0}</td>
                                     <td className="p-3 text-right text-rose-700 font-bold">{row.booked}</td>
-                                    <td className="p-3 text-right text-emerald-800 font-bold">{row.handover}</td>
-                                    <td className="p-3 text-right text-red-600 font-bold">{row.lost}</td>
+                                    <td className="p-3 text-right text-emerald-800 font-bold">₹{(row.salesValue || 0).toLocaleString()}</td>
                                   </tr>
                                 ))}
                                 {uData.length > 0 && (
                                   <tr className="bg-emerald-50 font-black text-black-900 border-t-2 border-[#0e623a]">
                                     <td className="p-3 uppercase font-extrabold text-[#0e623a]">TOTAL SUM</td>
                                     <td className="p-3 text-right">{uData.reduce((s, u) => s + u.totalLeads, 0)}</td>
-                                    <td className="p-3 text-right text-purple-700">{uData.reduce((s, u) => s + (u.assigned || 0), 0)}</td>
                                     <td className="p-3 text-right text-emerald-700">{uData.reduce((s, u) => s + u.enquiries, 0)}</td>
                                     <td className="p-3 text-right text-blue-700">{uData.reduce((s, u) => s + u.siteVisits, 0)}</td>
                                     <td className="p-3 text-right text-amber-700">{uData.reduce((s, u) => s + u.hotList, 0)}</td>
-                                    <td className="p-3 text-right text-cyan-700">{uData.reduce((s, u) => s + (u.futureFollowup || 0), 0)}</td>
                                     <td className="p-3 text-right text-rose-700">{uData.reduce((s, u) => s + u.booked, 0)}</td>
-                                    <td className="p-3 text-right text-emerald-800">{uData.reduce((s, u) => s + u.handover, 0)}</td>
-                                    <td className="p-3 text-right text-red-600">{uData.reduce((s, u) => s + u.lost, 0)}</td>
+                                    <td className="p-3 text-right text-emerald-800">₹{uData.reduce((s, u) => s + (u.salesValue || 0), 0).toLocaleString()}</td>
                                   </tr>
                                 )}
                               </tbody>
