@@ -2092,7 +2092,7 @@ const LeadsDirectory = () => {
   const paginatedLeadsList = filteredLeadsList.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   return (
-    <div className="space-y-1.5 w-full max-w-full pb-4">
+    <div className="space-y-1 w-full max-w-full pb-0">
       {/* Notifications */}
       {successMsg && (
         <div className="shrink-0 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs px-3 py-1.5 rounded-xl flex items-center gap-1.5 animate-pulse">
@@ -2108,7 +2108,7 @@ const LeadsDirectory = () => {
       )}
 
       {/* Unified Compact Filters & Search Menu */}
-      <div className="shrink-0 bg-white p-2 sm:p-2.5 border border-black-150 shadow-xs rounded-xl space-y-1.5">
+      <div className="shrink-0 bg-white p-1.5 sm:p-2 border border-black-150 shadow-xs rounded-xl space-y-1">
         {/* Row 1: Search + Date Range */}
         <div className="flex flex-col xl:flex-row items-center gap-2">
           <div className="w-full xl:w-72 2xl:w-80 relative shrink-0">
@@ -2284,19 +2284,19 @@ const LeadsDirectory = () => {
           <table className="w-full text-left border-collapse min-w-[900px]">
             <thead className="sticky top-0 z-20 shadow-xs">
               <tr className="bg-black-50 border-b border-black-150 text-[10.5px] font-bold text-black-600 uppercase tracking-wider">
-                {hasColumnPermission('leads', 'sno') && <th className="px-2.5 py-1.5 w-10 text-center">S.No</th>}
-                {hasColumnPermission('leads', 'date') && <th className="px-2.5 py-1.5">Date</th>}
-                {hasColumnPermission('leads', 'customerName') && <th className="px-2.5 py-1.5">Customer Name</th>}
-                {hasColumnPermission('leads', 'phoneNumber') && <th className="px-2.5 py-1.5">Phone Number</th>}
-                {hasColumnPermission('leads', 'sourceDetails') && <th className="px-2.5 py-1.5">Source Details</th>}
-                {hasColumnPermission('leads', 'project') && <th className="px-2.5 py-1.5">Project</th>}
-                {hasColumnPermission('leads', 'category') && <th className="px-2.5 py-1.5 text-center">Category</th>}
-                {hasColumnPermission('leads', 'assignedBy') && <th className="px-2.5 py-1.5">Assigned By</th>}
-                {hasColumnPermission('leads', 'assignedTo') && <th className="px-2.5 py-1.5">Assigned To</th>}
-                {hasColumnPermission('leads', 'leadStatus') && <th className="px-2.5 py-1.5">Lead Status</th>}
-                {hasColumnPermission('leads', 'nextFollowup') && <th className="px-2.5 py-1.5 text-center">Next Followup</th>}
-                <th className="px-2.5 py-1.5 text-center">WhatsApp</th>
-                {hasColumnPermission('leads', 'actions') && <th className="px-2.5 py-1.5 text-center">Actions</th>}
+                {hasColumnPermission('leads', 'sno') && <th className="px-2 py-1 w-10 text-center">S.No</th>}
+                {hasColumnPermission('leads', 'date') && <th className="px-2 py-1">Date</th>}
+                {hasColumnPermission('leads', 'customerName') && <th className="px-2 py-1">Customer Name</th>}
+                {hasColumnPermission('leads', 'phoneNumber') && <th className="px-2 py-1">Phone Number</th>}
+                {hasColumnPermission('leads', 'sourceDetails') && <th className="px-2 py-1">Source Details</th>}
+                {hasColumnPermission('leads', 'project') && <th className="px-2 py-1">Project</th>}
+                {hasColumnPermission('leads', 'category') && <th className="px-2 py-1 text-center">Category</th>}
+                {hasColumnPermission('leads', 'assignedBy') && <th className="px-2 py-1">Assigned By</th>}
+                {hasColumnPermission('leads', 'assignedTo') && <th className="px-2 py-1">Assigned To</th>}
+                {hasColumnPermission('leads', 'leadStatus') && <th className="px-2 py-1">Lead Status</th>}
+                {hasColumnPermission('leads', 'nextFollowup') && <th className="px-2 py-1 text-center">Next Followup</th>}
+                <th className="px-2 py-1 text-center">WhatsApp</th>
+                {hasColumnPermission('leads', 'actions') && <th className="px-2 py-1 text-center">Actions</th>}
               </tr>
             </thead>
             <tbody className="divide-y divide-black-100 text-sm">
@@ -2323,7 +2323,7 @@ const LeadsDirectory = () => {
                   >
                     {/* S.No */}
                     {hasColumnPermission('leads', 'sno') && (
-                      <td className="px-2.5 py-1 sm:py-1.5 border-b border-black-100 text-center">
+                      <td className="px-2 py-0.5 sm:py-1 border-b border-black-100 text-center">
                         <div className="text-[11px] font-bold text-black-500">
                           {(currentPage - 1) * itemsPerPage + index + 1}
                         </div>
@@ -2332,7 +2332,7 @@ const LeadsDirectory = () => {
 
                     {/* Date */}
                     {hasColumnPermission('leads', 'date') && (
-                      <td className="px-2.5 py-1 sm:py-1.5 border-b border-black-100">
+                      <td className="px-2 py-0.5 sm:py-1 border-b border-black-100">
                         <div className="text-[11px] font-bold whitespace-nowrap">
                           {lead.createdAt ? new Date(lead.createdAt).toLocaleDateString('en-GB') : '—'}
                         </div>
@@ -2341,7 +2341,7 @@ const LeadsDirectory = () => {
 
                     {/* Customer */}
                     {hasColumnPermission('leads', 'customerName') && (
-                      <td className="px-2.5 py-1 sm:py-1.5 border-b border-black-100">
+                      <td className="px-2 py-0.5 sm:py-1 border-b border-black-100">
                         <div className="flex items-center gap-2">
                           <span className="font-bold text-black-800 text-xs">
                             {lead.salutation && !lead.name?.startsWith(lead.salutation) ? `${lead.salutation} ` : ''}{lead.name}
@@ -2357,13 +2357,13 @@ const LeadsDirectory = () => {
 
                     {/* Phone Number */}
                     {hasColumnPermission('leads', 'phoneNumber') && (
-                      <td className="px-2.5 py-1 sm:py-1.5 border-b border-black-100">
-                        <div className="flex items-center gap-1 font-semibold text-[11px] text-black-500">
-                          <Phone className="w-3 h-3 text-black-300" />
+                      <td className="px-2 py-0.5 sm:py-1 border-b border-black-100">
+                        <div className="flex items-center gap-1 font-semibold text-[11px] text-black-500 leading-tight">
+                          <Phone className="w-3 h-3 text-black-300 shrink-0" />
                           <span>{lead.phone}</span>
                         </div>
                         {lead.alternativePhone && (
-                          <div className="flex items-center gap-1 font-medium text-[10px] text-black-400 mt-0.5">
+                          <div className="flex items-center gap-1 font-medium text-[10px] text-black-400 leading-tight mt-0.5">
                             <span className="text-black-400 font-bold">Alt:</span>
                             <span>{lead.alternativePhone}</span>
                           </div>
@@ -2373,8 +2373,8 @@ const LeadsDirectory = () => {
 
                     {/* Source Details */}
                     {hasColumnPermission('leads', 'sourceDetails') && (
-                      <td className="px-2.5 py-1 sm:py-1.5 border-b border-black-100">
-                        <div className="space-y-0.5">
+                      <td className="px-2 py-0.5 sm:py-1 border-b border-black-100">
+                        <div className="space-y-0.5 leading-tight">
                           <div className="text-[11px] font-semibold text-black-700">{lead.leadSource || (lead.leadType === 'Direct Visit' ? 'Direct Visit' : '—')}</div>
                           {lead.leadType === 'Lead' && lead.activeAd?.name && (
                             <div className="text-[11px] text-black-500 flex flex-col gap-0.5">
@@ -2399,7 +2399,7 @@ const LeadsDirectory = () => {
 
                     {/* Project */}
                     {hasColumnPermission('leads', 'project') && (
-                      <td className="px-2.5 py-1 sm:py-1.5 border-b border-black-100">
+                      <td className="px-2 py-0.5 sm:py-1 border-b border-black-100">
                         <div className="text-[11px] font-semibold text-black-700">
                           {projects.find(p => p._id === (lead.project?._id || lead.project))?.code || '—'}
                         </div>
@@ -2408,14 +2408,14 @@ const LeadsDirectory = () => {
 
                     {/* Lead Category */}
                     {hasColumnPermission('leads', 'category') && (
-                      <td className="px-2.5 py-1 sm:py-1.5 border-b border-black-100 text-center">
+                      <td className="px-2 py-0.5 sm:py-1 border-b border-black-100 text-center">
                         <span className={`px-2 py-0.5 text-[10.5px] font-extrabold uppercase tracking-wider`}>{lead.leadCategory || 'Cold'}</span>
                       </td>
                     )}
 
                     {/* Assigned By */}
                     {hasColumnPermission('leads', 'assignedBy') && (
-                      <td className="px-2.5 py-1 sm:py-1.5 border-b border-black-100">
+                      <td className="px-2 py-0.5 sm:py-1 border-b border-black-100">
                         <div className="text-[11px] font-semibold text-black-600">
                           {lead.assignedBy?.name || 'Superadmin'}
                         </div>
@@ -2424,7 +2424,7 @@ const LeadsDirectory = () => {
 
                     {/* Assigned To */}
                     {hasColumnPermission('leads', 'assignedTo') && (
-                      <td className="px-2.5 py-1 sm:py-1.5 border-b border-black-100">
+                      <td className="px-2 py-0.5 sm:py-1 border-b border-black-100">
                         <div className="text-[11px] font-semibold text-black-800">
                           {lead.assignedTo?.name || 'Unassigned'}
                         </div>
@@ -2433,7 +2433,7 @@ const LeadsDirectory = () => {
 
                     {/* Workflow Status Dropdown */}
                     {hasColumnPermission('leads', 'leadStatus') && (
-                      <td className="px-2.5 py-1 sm:py-1.5 border-b border-black-100">
+                      <td className="px-2 py-0.5 sm:py-1 border-b border-black-100">
                         {lead.isClosed ? (
                           <div className="flex flex-col gap-0.5 items-start">
                             {(() => {
@@ -2481,7 +2481,7 @@ const LeadsDirectory = () => {
 
                     {/* Next Followup Date */}
                     {hasColumnPermission('leads', 'nextFollowup') && (
-                      <td className="px-2.5 py-1 sm:py-1.5 border-b border-black-100 text-center">
+                      <td className="px-2 py-0.5 sm:py-1 border-b border-black-100 text-center">
                         <div className="text-[11px] font-semibold text-black-700">
                           {lead.followUpInfo?.nextFollowUpDate
                             ? new Date(lead.followUpInfo.nextFollowUpDate).toLocaleString('en-GB', { dateStyle: 'short' })
@@ -2491,7 +2491,7 @@ const LeadsDirectory = () => {
                     )}
 
                     {/* Dedicated WhatsApp Column */}
-                    <td className="px-2.5 py-1 sm:py-1.5 border-b border-black-100 text-center">
+                    <td className="px-2 py-0.5 sm:py-1 border-b border-black-100 text-center">
                       <button
                         onClick={() => handleOpenWhatsAppShareModal(lead, lead.status === 'Booking' ? 'booking' : lead.status === 'Site Visit' ? 'sitevisit' : 'assignment')}
                         title="Share WhatsApp Alert"
@@ -2504,7 +2504,7 @@ const LeadsDirectory = () => {
 
                     {/* Action Triggers: History, Edit & Delete */}
                     {hasColumnPermission('leads', 'actions') && (
-                      <td className="px-2.5 py-1 sm:py-1.5 border-b border-black-100 text-center">
+                      <td className="px-2 py-0.5 sm:py-1 border-b border-black-100 text-center">
                         <div className="relative group inline-block text-left">
                           <button className="p-1 text-black-500 hover:bg-black-100 rounded-full transition">
                             <MoreVertical className="w-3.5 h-3.5" />
