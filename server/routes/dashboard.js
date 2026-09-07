@@ -111,7 +111,7 @@ router.get('/stats', protect, async (req, res) => {
       (userId || sourceFilter) ? Lead.find(userId && sourceFilter ? { assignedTo: userId, leadSource: sourceFilter } : (userId ? { assignedTo: userId } : { leadSource: sourceFilter }), '_id').lean() : Promise.resolve([]),
       BudgetPlan.find(budgetQuery).lean(),
       User.find({ role: { $nin: ['Superadmin', 'superadmin', 'Super Admin'] }, name: { $ne: 'Super Admin' } }, 'name role').lean(),
-      Project.find({}, 'name code projectType').lean()
+      Project.find({}, 'name code projectType units').lean()
     ]);
 
     if (userId || sourceFilter) {
@@ -124,6 +124,14 @@ router.get('/stats', protect, async (req, res) => {
       .populate('project', 'name code')
       .populate('createdBy', 'name role')
       .lean();
+
+    const quotationMap = {};
+    quotations.forEach(q => {
+      if (q.lead) {
+        const leadIdStr = (q.lead._id || q.lead).toString();
+        quotationMap[leadIdStr] = (quotationMap[leadIdStr] || 0) + (q.totalValue || 0);
+      }
+    });
 
     // Computation variables
     const rangeStart = fromDate ? new Date(fromDate) : null;
@@ -367,6 +375,23 @@ router.get('/stats', protect, async (req, res) => {
       const pCodeVal = lead.project?.code || lead.project?.name || 'No Project';
       const personProjectKey = `${uName}___${pCodeVal}`;
 
+      let leadBookedValue = 0;
+      const leadIdStr = lead._id ? lead._id.toString() : '';
+      if (quotationMap[leadIdStr]) {
+        leadBookedValue = quotationMap[leadIdStr];
+      } else if (lead.bookingInfo?.selectedUnits?.length > 0) {
+        const projId = (lead.project?._id || lead.project)?.toString();
+        const proj = dbProjects.find(p => p._id && p._id.toString() === projId);
+        if (proj && proj.units) {
+          lead.bookingInfo.selectedUnits.forEach(uId => {
+            const u = proj.units.find(unit => unit.unitId === uId);
+            if (u && u.price) {
+              leadBookedValue += u.price;
+            }
+          });
+        }
+      }
+
       if (!personProjectStages[personProjectKey]) {
         personProjectStages[personProjectKey] = {
           personName: uName,
@@ -379,6 +404,8 @@ router.get('/stats', protect, async (req, res) => {
           futureFollowup: 0,
           booked: 0,
           handover: 0,
+          salesValue: 0,
+          bookedValue: 0,
           siteConversions: 0,
           lost: 0
         };
@@ -392,6 +419,10 @@ router.get('/stats', protect, async (req, res) => {
       if (enteredSiteVisit) personProjectStages[personProjectKey].siteVisits += 1;
       if (enteredHotList) personProjectStages[personProjectKey].hotList += 1;
       if (enteredFutureFollowup) personProjectStages[personProjectKey].futureFollowup += 1;
+      if (enteredBooked || (createdInRange && (status === 'Booking' || status === 'Won'))) {
+        personProjectStages[personProjectKey].salesValue += leadBookedValue;
+        personProjectStages[personProjectKey].bookedValue += leadBookedValue;
+      }
       if (enteredBooked) personProjectStages[personProjectKey].booked += 1;
       if (enteredHandover || (createdInRange && isLeadHandover)) personProjectStages[personProjectKey].handover += 1;
       if (isSiteConversion && (createdInRange || enteredSiteVisit || enteredBooked || enteredHandover)) {

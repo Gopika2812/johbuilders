@@ -195,7 +195,8 @@ const SearchableSelect = ({
       {/* Dropdown Popover */}
       {isOpen && (
         <div
-          className={`absolute left-0 z-50 w-full min-w-[220px] max-w-[340px] mt-1.5 bg-white border border-gray-200 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150 flex flex-col ${dropdownClassName}`}
+          style={{ zIndex: 99999 }}
+          className={`absolute left-0 top-full z-[99999] w-full min-w-[220px] max-w-[340px] mt-1.5 bg-white border border-gray-200 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150 flex flex-col ${dropdownClassName}`}
         >
           {/* Search Box */}
           {showSearch && normalizedOptions.length > 5 && (

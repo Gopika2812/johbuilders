@@ -2885,7 +2885,7 @@ const ExportReports = () => {
   return (
     <div className="max-w-7xl mx-auto space-y-6 animate-fadeIn">
       {/* Global Filters Panel */}
-      <div className="bg-white border border-black-150 rounded-3xl p-4 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative overflow-hidden">
+      <div className="bg-white border border-black-150 rounded-3xl p-4 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-30">
         {loading && (
           <div className="flex items-center gap-1.5 px-3 py-1 bg-emerald-50 border border-emerald-200 text-[#0e623a] rounded-full text-xs font-bold animate-pulse shadow-xs w-fit">
             <Loader2 className="w-3.5 h-3.5 text-[#0e623a] animate-spin" />

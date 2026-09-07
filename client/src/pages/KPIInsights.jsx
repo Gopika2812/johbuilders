@@ -3062,7 +3062,7 @@ const KPIInsights = () => {
   return (
     <div className="space-y-4 w-full mx-auto text-left animate-fadeIn">
       {/* Filters Panel */}
-      <div className="flex flex-wrap items-center gap-3 bg-white p-2.5 rounded-2xl border border-black-150 shadow-xs">
+      <div className="flex flex-wrap items-center gap-3 bg-white p-2.5 rounded-2xl border border-black-150 shadow-xs relative z-30">
         {/* User Select */}
         {hasFullKpiAccess && (
           <div className="w-48">
@@ -3070,17 +3070,19 @@ const KPIInsights = () => {
               icon={User}
               options={[
                 { value: '', label: 'All Users' },
-                ...(stats.users || []).map(u => ({
-                  value: u._id,
-                  label: u.name,
-                  subLabel: u.role,
-                  badge: u.role
-                }))
+                ...(stats.users || [])
+                  .filter(u => (u.role || '').toLowerCase().includes('sales'))
+                  .map(u => ({
+                    value: u._id,
+                    label: u.name,
+                    subLabel: u.role,
+                    badge: u.role
+                  }))
               ]}
               value={selectedUser}
               onChange={(val) => setSelectedUser(val)}
               placeholder="All Users"
-              searchPlaceholder="Search users..."
+              searchPlaceholder="Search sales user..."
             />
           </div>
         )}

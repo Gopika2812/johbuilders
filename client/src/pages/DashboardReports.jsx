@@ -61,7 +61,7 @@ const getExcelHeader = (titleText, dateRangeTitle, totalColumns) => {
 };
 
 const DashboardReports = () => {
-  const { token, user } = useAuth();
+  const { token, user, hasFullDashboardAccess } = useAuth();
 
   // Date filters - default to current month
   const [fromDate, setFromDate] = useState(() => {
@@ -80,10 +80,15 @@ const DashboardReports = () => {
 
   // User and Project filters
   const [selectedUser, setSelectedUser] = useState(() => {
-    const isPrivileged = user?.role === 'Superadmin' || user?.role === 'Admin' || user?.role === 'superadmin' || user?.role === 'admin';
-    return isPrivileged ? '' : (user?._id || '');
+    return hasFullDashboardAccess ? '' : (user?._id || '');
   });
   const [selectedProject, setSelectedProject] = useState('');
+
+  useEffect(() => {
+    if (user && !hasFullDashboardAccess) {
+      setSelectedUser(user._id || '');
+    }
+  }, [user, hasFullDashboardAccess]);
 
   const [stats, setStats] = useState({ users: [], projects: [] });
   const [loading, setLoading] = useState(true);
@@ -409,9 +414,10 @@ const DashboardReports = () => {
             ${getExcelHeader('JOHN BUILDWELL ERP - EXECUTIVE WISE PERFORMANCE REPORT', dateTitle, 7)}
       `;
 
+      const salesUsers = (activeStats.users || []).filter(u => (u.role || '').toLowerCase().includes('sales'));
       const targetUsers = selectedUser
-        ? [(activeStats.users || []).find(u => u._id === selectedUser)?.name].filter(Boolean)
-        : (activeStats.users || []).map(u => u.name);
+        ? [(salesUsers.find(u => u._id === selectedUser) || (activeStats.users || []).find(u => u._id === selectedUser))?.name].filter(Boolean)
+        : salesUsers.map(u => u.name);
 
       targetUsers.forEach(uName => {
         let uTotalLeads = 0;
@@ -419,7 +425,7 @@ const DashboardReports = () => {
         let uSiteVisits = 0;
         let uHotList = 0;
         let uBooked = 0;
-        let uHandover = 0;
+        let uSalesValue = 0;
         const rows = [];
 
         Object.keys(activeStats.personProjectStages || {}).forEach(key => {
@@ -430,13 +436,13 @@ const DashboardReports = () => {
             uSiteVisits += row.siteVisits;
             uHotList += row.hotList;
             uBooked += row.booked;
-            uHandover += row.handover;
+            uSalesValue += (row.salesValue || row.bookedValue || 0);
             rows.push(row);
           }
         });
 
         html += `
-          <tr><td colspan="7" class="section-banner">USER: ${uName.toUpperCase()} (TOTAL LEADS: ${uTotalLeads})</td></tr>
+          <tr><td colspan="7" class="section-banner">USER: ${uName.toUpperCase()} (TOTAL LEADS: ${uTotalLeads}${uSalesValue > 0 ? ` | SALES VALUE: Rs. ${uSalesValue.toLocaleString('en-IN')}` : ''})</td></tr>
           <tr class="table-headers">
             <th class="text-left">Project Name</th>
             <th class="text-right">Total Leads</th>
@@ -444,12 +450,13 @@ const DashboardReports = () => {
             <th class="text-right">Site Visit</th>
             <th class="text-right">Hot List</th>
             <th class="text-right">Booked</th>
-            <th class="text-right">Handover</th>
+            <th class="text-right">Sales Value</th>
           </tr>
         `;
 
         rows.forEach((row, idx) => {
           const rowClass = idx % 2 === 1 ? 'class="even-row"' : '';
+          const rowVal = row.salesValue || row.bookedValue || 0;
           html += `
             <tr ${rowClass}>
               <td class="bold-label text-left">${row.projectName}</td>
@@ -458,7 +465,7 @@ const DashboardReports = () => {
               <td class="text-right">${row.siteVisits}</td>
               <td class="text-right">${row.hotList}</td>
               <td class="text-right">${row.booked}</td>
-              <td class="text-right">${row.handover}</td>
+              <td class="text-right">Rs. ${rowVal.toLocaleString('en-IN')}</td>
             </tr>
           `;
         });
@@ -687,40 +694,37 @@ const DashboardReports = () => {
   return (
     <div className="max-w-7xl mx-auto space-y-6 animate-fadeIn">
       {/* Global Filters Panel */}
-      <div className="bg-white border border-gray-200 rounded-3xl p-4 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative overflow-hidden">
-        {loading && (
-          <div className="flex items-center gap-1.5 px-3 py-1 bg-emerald-50 border border-emerald-200 text-[#0e623a] rounded-full text-xs font-bold animate-pulse shadow-xs w-fit">
-            <Loader2 className="w-3.5 h-3.5 text-[#0e623a] animate-spin" />
-            <span>Syncing filtered data...</span>
-          </div>
-        )}
-
-        <div className="flex flex-wrap items-center gap-3 relative z-10 w-full sm:w-auto ml-auto">
+      <div className="bg-white border border-gray-200 rounded-3xl p-4 sm:p-5 shadow-sm relative z-30 transition-all">
+        <div className="flex flex-col lg:flex-row items-stretch lg:items-end gap-3.5 w-full">
           {/* User Filter */}
-          {(user?.role === 'Superadmin' || user?.role === 'Admin' || user?.role === 'superadmin' || user?.role === 'admin') && (
-            <div className="w-48">
+          {hasFullDashboardAccess && (
+            <div className="flex flex-col gap-1 w-full lg:w-52 shrink-0">
               <SearchableSelect
+                label="Filtered User"
                 icon={User}
                 options={[
                   { value: '', label: 'All Users' },
-                  ...(stats.users || []).map(u => ({
-                    value: u._id,
-                    label: u.name,
-                    subLabel: u.role,
-                    badge: u.role
-                  }))
+                  ...(stats.users || [])
+                    .filter(u => (u.role || '').toLowerCase().includes('sales'))
+                    .map(u => ({
+                      value: u._id,
+                      label: u.name,
+                      subLabel: u.role,
+                      badge: u.role
+                    }))
                 ]}
                 value={selectedUser}
                 onChange={(val) => setSelectedUser(val)}
                 placeholder="All Users"
-                searchPlaceholder="Search users..."
+                searchPlaceholder="Search sales user..."
               />
             </div>
           )}
 
           {/* Project Filter */}
-          <div className="w-48">
+          <div className="flex flex-col gap-1 w-full lg:w-52 shrink-0">
             <SearchableSelect
+              label="Filtered Project"
               icon={FolderOpen}
               options={[
                 { value: '', label: 'All Projects' },
@@ -738,8 +742,9 @@ const DashboardReports = () => {
           </div>
 
           {/* Date Range & Presets Filter */}
-          <div className="w-full lg:w-auto">
+          <div className="w-full lg:flex-1 min-w-0">
             <DateRangeFilter
+              label="Date Filtration Mode"
               fromDate={fromDate}
               toDate={toDate}
               onDateChange={(newFrom, newTo) => {
@@ -748,6 +753,13 @@ const DashboardReports = () => {
               }}
             />
           </div>
+
+          {loading && (
+            <div className="flex items-center gap-1.5 px-3 py-2 bg-emerald-50 border border-emerald-200 text-[#0e623a] rounded-xl text-xs font-bold animate-pulse shadow-xs shrink-0 self-end">
+              <Loader2 className="w-3.5 h-3.5 text-[#0e623a] animate-spin" />
+              <span>Syncing...</span>
+            </div>
+          )}
         </div>
       </div>
 

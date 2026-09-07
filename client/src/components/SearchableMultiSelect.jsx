@@ -173,7 +173,7 @@ const SearchableMultiSelect = ({
       {/* Dropdown Popover */}
       {isOpen && (
         <div
-          className={`absolute left-0 z-50 w-full min-w-[240px] max-w-[340px] mt-1.5 bg-white border border-gray-200 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150 flex flex-col ${dropdownClassName}`}
+          className={`absolute left-0 z-[100] w-full min-w-[240px] max-w-[340px] mt-1.5 bg-white border border-gray-200 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150 flex flex-col ${dropdownClassName}`}
         >
           {/* Header Search Box */}
           <div className="p-2 bg-gray-50/95 border-b border-gray-150 shrink-0 space-y-1.5">

@@ -1725,12 +1725,13 @@ const Dashboard = () => {
           ${getExcelHeader('JOHN BUILDWELL ERP - USER WISE PERFORMANCE REPORT', dateTitle, 7)}
     `;
 
-    const targetUsers = (selectedUserNames && selectedUserNames.length > 0)
-      ? selectedUserNames
-      : (activeStats.users || []).map(u => u.name);
+    const salesUsers = (activeStats.users || []).filter(u => (u.role || '').toLowerCase().includes('sales'));
+    const targetUsers = customUserId
+      ? [(salesUsers.find(u => u._id === customUserId) || (activeStats.users || []).find(u => u._id === customUserId))?.name].filter(Boolean)
+      : salesUsers.map(u => u.name);
 
     targetUsers.forEach(uName => {
-      let uTotalLeads = 0, uEnquiries = 0, uSiteVisits = 0, uHotList = 0, uBooked = 0, uHandover = 0;
+      let uTotalLeads = 0, uEnquiries = 0, uSiteVisits = 0, uHotList = 0, uBooked = 0, uSalesValue = 0;
       let rows = [];
 
       Object.keys(activeStats.personProjectStages || {}).forEach(key => {
@@ -1741,13 +1742,13 @@ const Dashboard = () => {
           uSiteVisits += row.siteVisits;
           uHotList += row.hotList;
           uBooked += row.booked;
-          uHandover += row.handover;
+          uSalesValue += (row.salesValue || row.bookedValue || 0);
           rows.push(row);
         }
       });
 
       htmlContent += `
-        <tr><td colspan="7" class="section-banner">USER: ${uName.toUpperCase()}</td></tr>
+        <tr><td colspan="7" class="section-banner">USER: ${uName.toUpperCase()} (TOTAL LEADS: ${uTotalLeads}${uSalesValue > 0 ? ` | SALES VALUE: Rs. ${uSalesValue.toLocaleString('en-IN')}` : ''})</td></tr>
         <tr>
           <th class="text-left">Project Name</th>
           <th class="text-right">Total Leads</th>
@@ -1755,7 +1756,7 @@ const Dashboard = () => {
           <th class="text-right">Site Visit</th>
           <th class="text-right">Hot List</th>
           <th class="text-right">Booked</th>
-          <th class="text-right">Site Conversion (Handover)</th>
+          <th class="text-right">Sales Value</th>
         </tr>
         <tr class="summary-row">
           <td class="bold-label text-left">OVERALL SUMMARY</td>
@@ -1764,12 +1765,13 @@ const Dashboard = () => {
           <td class="text-right">${uSiteVisits}</td>
           <td class="text-right">${uHotList}</td>
           <td class="text-right">${uBooked}</td>
-          <td class="text-right">${uHandover}</td>
+          <td class="text-right">Rs. ${uSalesValue.toLocaleString('en-IN')}</td>
         </tr>
       `;
 
       rows.forEach((row, idx) => {
         const rowClass = idx % 2 === 1 ? 'class="even-row"' : '';
+        const rowVal = row.salesValue || row.bookedValue || 0;
         htmlContent += `
           <tr ${rowClass}>
             <td class="bold-label text-left">${row.projectName}</td>
@@ -1778,7 +1780,7 @@ const Dashboard = () => {
             <td class="text-right">${row.siteVisits}</td>
             <td class="text-right">${row.hotList}</td>
             <td class="text-right">${row.booked}</td>
-            <td class="text-right">${row.handover}</td>
+            <td class="text-right">Rs. ${rowVal.toLocaleString('en-IN')}</td>
           </tr>
         `;
       });
@@ -1992,7 +1994,7 @@ const Dashboard = () => {
     <div className="space-y-4 w-full mx-auto text-left animate-fadeIn">
 
       {/* Filtration Header Card */}
-      <div className="glass-card border-none shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-2xl p-2.5 sm:p-3.5 w-full relative transition-all duration-300">
+      <div className="glass-card border-none shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-2xl p-2.5 sm:p-3.5 w-full relative z-30 transition-all duration-300">
         <div className="flex flex-col lg:flex-row items-stretch lg:items-end gap-2.5 w-full">
 
           {/* User Select */}
@@ -2003,17 +2005,19 @@ const Dashboard = () => {
                 icon={User}
                 options={[
                   { value: '', label: 'All Users' },
-                  ...(stats.users || []).map(u => ({
-                    value: u._id,
-                    label: u.name,
-                    subLabel: u.role,
-                    badge: u.role
-                  }))
+                  ...(stats.users || [])
+                    .filter(u => (u.role || '').toLowerCase().includes('sales'))
+                    .map(u => ({
+                      value: u._id,
+                      label: u.name,
+                      subLabel: u.role,
+                      badge: u.role
+                    }))
                 ]}
                 value={selectedUser}
                 onChange={(val) => setSelectedUser(val)}
                 placeholder="All Users"
-                searchPlaceholder="Search users..."
+                searchPlaceholder="Search sales user..."
               />
             </div>
           )}
@@ -3160,14 +3164,15 @@ const Dashboard = () => {
 
                   // 2. USER WISE REPORT PREVIEW
                   if (reportPreviewType === 'user') {
+                    const salesUsers = (activeStats.users || []).filter(u => (u.role || '').toLowerCase().includes('sales'));
                     const targetUsers = reportUserFilter
                       ? [reportUserFilter]
-                      : (activeStats.users || []).map(u => u.name);
+                      : salesUsers.map(u => u.name);
 
                     return (
                       <div className="space-y-6">
                         {targetUsers.map(uName => {
-                          let uTotalLeads = 0, uEnquiries = 0, uSiteVisits = 0, uHotList = 0, uBooked = 0, uHandover = 0;
+                          let uTotalLeads = 0, uEnquiries = 0, uSiteVisits = 0, uHotList = 0, uBooked = 0, uSalesValue = 0;
                           let rows = [];
 
                           Object.keys(activeStats.personProjectStages || {}).forEach(key => {
@@ -3178,7 +3183,7 @@ const Dashboard = () => {
                               uSiteVisits += row.siteVisits;
                               uHotList += row.hotList;
                               uBooked += row.booked;
-                              uHandover += row.handover;
+                              uSalesValue += (row.salesValue || row.bookedValue || 0);
                               rows.push(row);
                             }
                           });
@@ -3187,9 +3192,16 @@ const Dashboard = () => {
                             <div key={uName} className="rounded-2xl border border-black-150 bg-white overflow-hidden shadow-sm">
                               <div className="bg-[#0e623a] text-white p-3 font-extrabold text-xs uppercase flex items-center justify-between">
                                 <span>USER: {uName}</span>
-                                <span className="text-[10px] bg-white/20 px-2 py-0.5 rounded-full">
-                                  Total: {uTotalLeads} Leads
-                                </span>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-[10px] bg-white/20 px-2 py-0.5 rounded-full">
+                                    Total: {uTotalLeads} Leads
+                                  </span>
+                                  {uSalesValue > 0 && (
+                                    <span className="text-[10px] bg-emerald-400 text-emerald-950 font-black px-2 py-0.5 rounded-full">
+                                      Sales Value: ₹{uSalesValue.toLocaleString('en-IN')}
+                                    </span>
+                                  )}
+                                </div>
                               </div>
                               <div className="overflow-x-auto">
                                 <table className="w-full text-left border-collapse text-xs">
@@ -3201,7 +3213,7 @@ const Dashboard = () => {
                                       <th className="p-3 text-right">Site Visit</th>
                                       <th className="p-3 text-right">Hot List</th>
                                       <th className="p-3 text-right">Booked</th>
-                                      <th className="p-3 text-right">Site Conversion (Handover)</th>
+                                      <th className="p-3 text-right">Sales Value</th>
                                     </tr>
                                   </thead>
                                   <tbody className="divide-y divide-black-100 font-medium">
@@ -3212,19 +3224,22 @@ const Dashboard = () => {
                                       <td className="p-3 text-right text-blue-700">{uSiteVisits}</td>
                                       <td className="p-3 text-right text-amber-700">{uHotList}</td>
                                       <td className="p-3 text-right text-rose-700">{uBooked}</td>
-                                      <td className="p-3 text-right text-emerald-800">{uHandover}</td>
+                                      <td className="p-3 text-right text-emerald-800 font-bold">₹{uSalesValue.toLocaleString('en-IN')}</td>
                                     </tr>
-                                    {rows.map((row, idx) => (
-                                      <tr key={idx} className={idx % 2 === 1 ? 'bg-black-50/30' : ''}>
-                                        <td className="p-3 font-bold text-black-800">{row.projectName}</td>
-                                        <td className="p-3 text-right">{row.totalLeads}</td>
-                                        <td className="p-3 text-right text-emerald-700">{row.enquiries}</td>
-                                        <td className="p-3 text-right text-blue-700">{row.siteVisits}</td>
-                                        <td className="p-3 text-right text-amber-700">{row.hotList}</td>
-                                        <td className="p-3 text-right text-rose-700">{row.booked}</td>
-                                        <td className="p-3 text-right text-emerald-800">{row.handover}</td>
-                                      </tr>
-                                    ))}
+                                    {rows.map((row, idx) => {
+                                      const rowVal = row.salesValue || row.bookedValue || 0;
+                                      return (
+                                        <tr key={idx} className={idx % 2 === 1 ? 'bg-black-50/30' : ''}>
+                                          <td className="p-3 font-bold text-black-800">{row.projectName}</td>
+                                          <td className="p-3 text-right">{row.totalLeads}</td>
+                                          <td className="p-3 text-right text-emerald-700">{row.enquiries}</td>
+                                          <td className="p-3 text-right text-blue-700">{row.siteVisits}</td>
+                                          <td className="p-3 text-right text-amber-700">{row.hotList}</td>
+                                          <td className="p-3 text-right text-rose-700">{row.booked}</td>
+                                          <td className="p-3 text-right text-emerald-800 font-bold">₹{rowVal.toLocaleString('en-IN')}</td>
+                                        </tr>
+                                      );
+                                    })}
                                   </tbody>
                                 </table>
                               </div>
