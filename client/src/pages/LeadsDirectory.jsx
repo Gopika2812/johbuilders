@@ -2092,7 +2092,7 @@ const LeadsDirectory = () => {
   const paginatedLeadsList = filteredLeadsList.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   return (
-    <div className="flex-1 flex flex-col space-y-1 w-full max-w-full pb-0 min-h-0">
+    <div className="space-y-1 w-full max-w-full pb-0">
       {/* Notifications */}
       {successMsg && (
         <div className="shrink-0 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs px-3 py-1.5 rounded-xl flex items-center gap-1.5 animate-pulse">
@@ -2279,9 +2279,9 @@ const LeadsDirectory = () => {
       </div>
 
       {/* Leads Main Table */}
-      <div className="flex-1 flex flex-col min-h-0 bg-white border border-black-150 shadow-xs rounded-xl overflow-hidden">
-        <div className="flex-1 overflow-x-auto overflow-y-auto w-full min-h-0">
-          <table className="w-full h-full text-left border-collapse min-w-[900px]">
+      <div className="bg-white border border-black-150 shadow-xs rounded-xl overflow-hidden">
+        <div className="overflow-x-auto w-full">
+          <table className="w-full text-left border-collapse min-w-[900px]">
             <thead className="sticky top-0 z-20 shadow-xs">
               <tr className="bg-black-50 border-b border-black-150 text-[10.5px] font-bold text-black-600 uppercase tracking-wider">
                 {hasColumnPermission('leads', 'sno') && <th className="px-2 py-1 w-10 text-center">S.No</th>}
@@ -2319,11 +2319,7 @@ const LeadsDirectory = () => {
                   <tr
                     key={lead._id}
                     className={`transition duration-150 border-b border-black-100 custom-text-row hover:opacity-90 ${contrastClass === 'dark-row' ? 'dark-row' : ''}`}
-                    style={{
-                      backgroundColor: rowColor,
-                      color: rowTextColor,
-                      height: `${100 / Math.max(paginatedLeadsList.length, 10)}%`
-                    }}
+                    style={{ backgroundColor: rowColor, color: rowTextColor }}
                   >
                     {/* S.No */}
                     {hasColumnPermission('leads', 'sno') && (
@@ -2586,8 +2582,8 @@ const LeadsDirectory = () => {
                 );
               })}
               {filteredLeadsList.length === 0 && (
-                <tr className="h-full">
-                  <td colSpan="13" className="p-8 text-center text-black-400 text-xs align-middle">
+                <tr>
+                  <td colSpan="13" className="p-8 text-center text-black-400 text-xs">
                     No lead records found matching selected filters.
                   </td>
                 </tr>
