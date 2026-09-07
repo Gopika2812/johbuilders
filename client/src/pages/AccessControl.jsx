@@ -15,6 +15,15 @@ import {
 } from 'lucide-react';
 
 const PAGE_COLUMNS = {
+  dashboard: [
+    { key: 'fullAccess', label: 'Full Dashboard Access (Superadmin View: All Users & Global Metrics)', defaultFalse: true },
+    { key: 'allTasks', label: 'View All Tasks (Across All Users)', defaultFalse: true },
+    { key: 'userFilter', label: 'Enable User Filter Dropdown', defaultFalse: true }
+  ],
+  kpi_insights: [
+    { key: 'fullAccess', label: 'Full KPI Insights Access (All Users & Global Metrics)', defaultFalse: true },
+    { key: 'userFilter', label: 'Enable User Filter Dropdown', defaultFalse: true }
+  ],
   quotations: [
     { key: 'customerDetails', label: 'Customer Details' },
     { key: 'project', label: 'Project' },
@@ -138,10 +147,27 @@ const AccessControl = () => {
           ...config,
           permissions: config.permissions.map(p => {
             if (p.pageId !== pageId) return p;
-            return {
+            const nextVal = !p[field];
+            const updated = {
               ...p,
-              [field]: !p[field]
+              [field]: nextVal
             };
+            if (pageId === 'dashboard' && field === 'canEdit') {
+              updated.columns = {
+                ...(p.columns || {}),
+                fullAccess: nextVal,
+                allTasks: nextVal,
+                userFilter: nextVal
+              };
+            }
+            if (pageId === 'kpi_insights' && field === 'canEdit') {
+              updated.columns = {
+                ...(p.columns || {}),
+                fullAccess: nextVal,
+                userFilter: nextVal
+              };
+            }
+            return updated;
           })
         };
       })
@@ -153,21 +179,34 @@ const AccessControl = () => {
       prev.map(config => {
         if (config.userId !== userId) return config;
         
+        const colDef = PAGE_COLUMNS[pageId]?.find(c => c.key === columnKey);
+        const defaultVal = colDef?.defaultFalse ? false : true;
+
         return {
           ...config,
           permissions: config.permissions.map(p => {
             if (p.pageId !== pageId) return p;
             
             const currentColumns = p.columns || {};
-            // Default to true if undefined, otherwise toggle
-            const isEnabled = currentColumns[columnKey] !== undefined ? currentColumns[columnKey] : true;
+            const isEnabled = currentColumns[columnKey] !== undefined ? currentColumns[columnKey] : (p.canEdit && colDef?.defaultFalse ? true : defaultVal);
+            const nextVal = !isEnabled;
+            const updatedCols = {
+              ...currentColumns,
+              [columnKey]: nextVal
+            };
+
+            let nextCanEdit = p.canEdit;
+            if (pageId === 'dashboard' && columnKey === 'fullAccess') {
+              nextCanEdit = nextVal;
+            }
+            if (pageId === 'kpi_insights' && columnKey === 'fullAccess') {
+              nextCanEdit = nextVal;
+            }
             
             return {
               ...p,
-              columns: {
-                ...currentColumns,
-                [columnKey]: !isEnabled
-              }
+              canEdit: nextCanEdit,
+              columns: updatedCols
             };
           })
         };
@@ -362,12 +401,16 @@ const AccessControl = () => {
                               </h4>
                               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                                 {PAGE_COLUMNS[permission.pageId].map(col => {
-                                  const isEnabled = permission.columns?.[col.key] !== undefined ? permission.columns[col.key] : true;
+                                  const defaultVal = col.defaultFalse ? false : true;
+                                  const activeUserRole = userConfigs.find(c => c.userId === activeUserId)?.userRole;
+                                  const isEnabled = permission.columns?.[col.key] !== undefined 
+                                    ? permission.columns[col.key] 
+                                    : (activeUserRole === 'Superadmin' || (permission.canEdit && col.defaultFalse) ? true : defaultVal);
                                   return (
                                     <button
                                       key={col.key}
                                       onClick={() => handleToggleColumnPermission(activeUserId, permission.pageId, col.key)}
-                                      className={`flex items-center gap-3 p-3 rounded-xl border text-left transition-all ${
+                                      className={`flex items-center gap-3 p-3 rounded-xl border text-left transition-all cursor-pointer ${
                                         isEnabled 
                                           ? 'border-[#0e623a] bg-emerald-50/20 shadow-sm'
                                           : 'border-black-200 bg-black-50 opacity-60 hover:opacity-100'

@@ -202,6 +202,14 @@ export const AuthProvider = ({ children }) => {
   const isSales = user?.role === 'sales person';
   const isSiteEngineer = user?.role === 'ped team';
 
+  const hasFullDashboardAccess = isAdmin || 
+    (user?.permissions?.find(p => p.pageId === 'dashboard')?.canEdit === true) || 
+    (user?.permissions?.find(p => p.pageId === 'dashboard')?.columns?.fullAccess === true);
+
+  const hasFullKpiAccess = isAdmin || 
+    (user?.permissions?.find(p => p.pageId === 'kpi_insights' || p.pageId === 'dashboard')?.canEdit === true) || 
+    (user?.permissions?.find(p => p.pageId === 'kpi_insights' || p.pageId === 'dashboard')?.columns?.fullAccess === true);
+
   const hasPermission = (pageId) => {
     if (pageId === 'tasks_board' || pageId === 'tasksBoard' || pageId === 'tasks') {
       return !!user; // All logged in users can view and edit task board
@@ -335,6 +343,8 @@ export const AuthProvider = ({ children }) => {
     isManager,
     isSales,
     isSiteEngineer,
+    hasFullDashboardAccess,
+    hasFullKpiAccess,
     isAuthenticated: !!user,
     hasPermission,
     hasColumnPermission,

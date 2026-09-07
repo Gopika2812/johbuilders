@@ -392,7 +392,7 @@ const groupUnitsByCustomer = (unitsList) => {
 };
 
 const Dashboard = () => {
-  const { token, user } = useAuth();
+  const { token, user, hasFullDashboardAccess } = useAuth();
   const navigate = useNavigate();
   const [leadsModalOpen, setLeadsModalOpen] = useState(false);
   const [followupModalOpen, setFollowupModalOpen] = useState(false);
@@ -543,15 +543,14 @@ const Dashboard = () => {
 
   // User and Project filters
   const [selectedUser, setSelectedUser] = useState(() => {
-    const isPrivileged = user?.role === 'Superadmin' || user?.role === 'Superadmin';
-    return isPrivileged ? '' : (user?._id || '');
+    return hasFullDashboardAccess ? '' : (user?._id || '');
   });
 
   useEffect(() => {
-    if (user && user.role !== 'Superadmin' && user.role !== 'Superadmin') {
+    if (user && !hasFullDashboardAccess) {
       setSelectedUser(user._id);
     }
-  }, [user]);
+  }, [user, hasFullDashboardAccess]);
 
   // User Tasks Dashboard State & Role Filtering (placed after selectedUser is declared)
   const [dashboardTasks, setDashboardTasks] = useState([]);
@@ -600,19 +599,16 @@ const Dashboard = () => {
     return dueStr === todayStr || createdStr === todayStr;
   };
 
-  const roleNorm = (user?.role || '').toLowerCase().replace(/[\s_-]+/g, '');
-  const isSuperAdmin = roleNorm === 'superadmin' || roleNorm === 'admin';
-
   const relevantTasks = React.useMemo(() => {
     if (!dashboardTasks || !Array.isArray(dashboardTasks)) return [];
-    if (isSuperAdmin) {
+    if (hasFullDashboardAccess) {
       if (selectedUser) {
         return dashboardTasks.filter(t => (t.assignedTo?._id || t.assignedTo) === selectedUser);
       }
       return dashboardTasks;
     }
-    return dashboardTasks.filter(t => (t.assignedTo?._id || t.assignedTo) === user?._id);
-  }, [dashboardTasks, isSuperAdmin, selectedUser, user]);
+    return dashboardTasks.filter(t => (t.assignedTo?._id || t.assignedTo) === user?._id || (t.assignedTo?.name || t.assignedTo) === user?.name);
+  }, [dashboardTasks, hasFullDashboardAccess, selectedUser, user]);
 
   const taskMetrics = React.useMemo(() => {
     const todayTasks = relevantTasks.filter(t => isTaskToday(t));
@@ -2000,7 +1996,7 @@ const Dashboard = () => {
         <div className="flex flex-col lg:flex-row items-stretch lg:items-end gap-2.5 w-full">
 
           {/* User Select */}
-          {(user?.role === 'Superadmin' || user?.role === 'Superadmin') && (
+          {hasFullDashboardAccess && (
             <div className="flex flex-col gap-1 w-full lg:w-44 shrink-0">
               <SearchableSelect
                 label="Filtered User"

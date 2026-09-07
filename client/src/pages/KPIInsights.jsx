@@ -344,7 +344,7 @@ const ObservedBarChart = ({ dataArray, xKey, yKey, barColor, isPercent = false }
 };
 
 const KPIInsights = () => {
-  const { token, user } = useAuth();
+  const { token, user, hasFullKpiAccess } = useAuth();
   const logoPath = LOGO_BASE64;
   
   // Date filters - default to current month
@@ -363,15 +363,14 @@ const KPIInsights = () => {
   });
 
   const [selectedUser, setSelectedUser] = useState(() => {
-    const isPrivileged = user?.role === 'Superadmin' || user?.role === 'Superadmin';
-    return isPrivileged ? '' : (user?._id || '');
+    return hasFullKpiAccess ? '' : (user?._id || '');
   });
   
   useEffect(() => {
-    if (user && user.role !== 'Superadmin' && user.role !== 'Superadmin') {
+    if (user && !hasFullKpiAccess) {
       setSelectedUser(user._id);
     }
-  }, [user]);
+  }, [user, hasFullKpiAccess]);
 
   const [selectedProject, setSelectedProject] = useState('');
   const [selectedSource, setSelectedSource] = useState('');
@@ -3065,7 +3064,7 @@ const KPIInsights = () => {
       {/* Filters Panel */}
       <div className="flex flex-wrap items-center gap-3 bg-white p-2.5 rounded-2xl border border-black-150 shadow-xs">
         {/* User Select */}
-        {(user?.role === 'Superadmin' || user?.role === 'Superadmin') && (
+        {hasFullKpiAccess && (
           <div className="w-48">
             <SearchableSelect
               icon={User}
