@@ -213,7 +213,20 @@ const LeadsDirectory = () => {
 
   // Pagination States
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [itemsPerPage, setItemsPerPage] = useState('fit');
+  const [fitPageSize, setFitPageSize] = useState(15);
+
+  useEffect(() => {
+    const calculateFitRows = () => {
+      const availableHeight = window.innerHeight - 340;
+      const calculated = Math.max(5, Math.floor(availableHeight / 38));
+      setFitPageSize(calculated);
+    };
+
+    calculateFitRows();
+    window.addEventListener('resize', calculateFitRows);
+    return () => window.removeEventListener('resize', calculateFitRows);
+  }, []);
 
   // Reset page when filters change
   useEffect(() => {
@@ -1943,8 +1956,7 @@ const LeadsDirectory = () => {
           remarksStr = remarksStr.replace(/\[Lost at .*? stage\]( - )?/, '');
         }
         const rowClass = index % 2 === 1 ? 'class="even-row"' : '';
-        const isBooking = lead.status === 'Booking' || lead.status === 'Won';
-        const effDate = isBooking ? getLeadBookingDate(lead) : (lead.createdAt ? new Date(lead.createdAt) : null);
+        const effDate = lead.createdAt ? new Date(lead.createdAt) : null;
         const regDate = effDate ? effDate.toLocaleDateString('en-GB') : '';
 
         html += `
@@ -2088,8 +2100,13 @@ const LeadsDirectory = () => {
 
   const filteredLeadsList = getFilteredLeads();
   const totalItems = filteredLeadsList.length;
-  const totalPages = Math.ceil(totalItems / itemsPerPage) || 1;
-  const paginatedLeadsList = filteredLeadsList.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  const effectiveItemsPerPage = itemsPerPage === 'all'
+    ? (totalItems || 10)
+    : itemsPerPage === 'fit'
+      ? fitPageSize
+      : Number(itemsPerPage);
+  const totalPages = Math.ceil(totalItems / effectiveItemsPerPage) || 1;
+  const paginatedLeadsList = filteredLeadsList.slice((currentPage - 1) * effectiveItemsPerPage, currentPage * effectiveItemsPerPage);
 
   return (
     <div className="space-y-2.5 w-full max-w-full overflow-hidden">
@@ -2324,7 +2341,7 @@ const LeadsDirectory = () => {
                     {hasColumnPermission('leads', 'sno') && (
                       <td className="px-3 py-1.5 border-b border-black-100 text-center">
                         <div className="text-[11px] font-bold text-black-500">
-                          {(currentPage - 1) * itemsPerPage + index + 1}
+                          {(currentPage - 1) * effectiveItemsPerPage + index + 1}
                         </div>
                       </td>
                     )}
@@ -2333,11 +2350,7 @@ const LeadsDirectory = () => {
                     {hasColumnPermission('leads', 'date') && (
                       <td className="px-3 py-1.5 border-b border-black-100">
                         <div className="text-[11px] font-bold whitespace-nowrap">
-                          {(() => {
-                            const isBooking = lead.status === 'Booking' || lead.status === 'Won';
-                            const effDate = isBooking ? getLeadBookingDate(lead) : (lead.createdAt ? new Date(lead.createdAt) : null);
-                            return effDate ? effDate.toLocaleDateString('en-GB') : '—';
-                          })()}
+                          {lead.createdAt ? new Date(lead.createdAt).toLocaleDateString('en-GB') : '—'}
                         </div>
                       </td>
                     )}
@@ -2596,26 +2609,31 @@ const LeadsDirectory = () => {
         </div>
 
         {/* Pagination Controls */}
-        <div className="flex flex-col sm:flex-row items-center justify-between p-4 border-t border-black-150 gap-4 bg-black-50/50 rounded-b-3xl">
+        <div className="flex flex-col sm:flex-row items-center justify-between p-3 border-t border-black-150 gap-4 bg-black-50/50 rounded-b-2xl">
           <div className="flex items-center gap-2">
             <span className="text-xs text-black-500 font-bold">Rows per page:</span>
             <select
               value={itemsPerPage}
               onChange={(e) => {
-                setItemsPerPage(Number(e.target.value));
+                const val = e.target.value;
+                setItemsPerPage(val === 'all' || val === 'fit' ? val : Number(val));
                 setCurrentPage(1);
               }}
-              className="border border-black-200 rounded-lg px-2 py-1 text-xs font-bold text-black-700 focus:outline-none focus:border-[#0e623a] bg-white cursor-pointer"
+              className="border border-black-200 rounded-lg px-2.5 py-1 text-xs font-bold text-black-700 focus:outline-none focus:border-[#0e623a] bg-white cursor-pointer"
             >
+              <option value="fit">Fit in Page ({fitPageSize})</option>
               <option value={10}>10</option>
+              <option value={15}>15</option>
+              <option value={20}>20</option>
               <option value={25}>25</option>
               <option value={50}>50</option>
               <option value={100}>100</option>
+              <option value="all">All ({totalItems})</option>
             </select>
           </div>
 
           <div className="text-xs text-black-500 font-bold">
-            Showing {filteredLeadsList.length > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0} to {Math.min(currentPage * itemsPerPage, totalItems)} of {totalItems} entries
+            Showing {filteredLeadsList.length > 0 ? (currentPage - 1) * effectiveItemsPerPage + 1 : 0} to {Math.min(currentPage * effectiveItemsPerPage, totalItems)} of {totalItems} entries
           </div>
 
           <div className="flex gap-1.5">
