@@ -1356,10 +1356,37 @@ const TasksBoard = () => {
     setShowModal(true);
   };
 
-  const handleOpenEditModal = (task) => {
-    const assignedById = (task?.assignedBy?._id || task?.assignedBy)?.toString();
+  const checkCanEditOrCancel = (targetTask) => {
+    if (!targetTask) return false;
+    const assignedById = (targetTask?.assignedBy?._id || targetTask?.assignedBy)?.toString();
+    const assignedToId = (targetTask?.assignedTo?._id || targetTask?.assignedTo)?.toString();
     const currentUserId = (user?._id || user?.id)?.toString();
-    if (assignedById && currentUserId && assignedById !== currentUserId && !isSuperAdmin) {
+    const userEmail = user?.email?.trim().toLowerCase();
+    const assignedByEmail = targetTask?.assignedBy?.email?.trim().toLowerCase();
+    const assignedToEmail = targetTask?.assignedTo?.email?.trim().toLowerCase();
+    const userName = user?.name?.trim().toLowerCase();
+    const assignedByName = (typeof targetTask?.assignedBy === 'string' ? targetTask?.assignedBy : targetTask?.assignedBy?.name)?.trim().toLowerCase();
+    const assignedToName = (typeof targetTask?.assignedTo === 'string' ? targetTask?.assignedTo : targetTask?.assignedTo?.name)?.trim().toLowerCase();
+
+    const isAssignedByMe = Boolean(
+      (assignedById && currentUserId && assignedById === currentUserId) ||
+      (userEmail && assignedByEmail && userEmail === assignedByEmail) ||
+      (userName && assignedByName && userName === assignedByName)
+    );
+
+    const isAssignedToMe = Boolean(
+      (assignedToId && currentUserId && assignedToId === currentUserId) ||
+      (userEmail && assignedToEmail && userEmail === assignedToEmail) ||
+      (userName && assignedToName && userName === assignedToName)
+    );
+
+    // Cancel & Edit are available for the person who assigned the task (and Super Admin when not assigned to them).
+    // Assigned-to persons do NOT have cancel & edit permissions.
+    return isAssignedByMe || (isSuperAdmin && !isAssignedToMe);
+  };
+
+  const handleOpenEditModal = (task) => {
+    if (!checkCanEditOrCancel(task)) {
       setError('Only the person who assigned this task can edit it.');
       return;
     }
@@ -1464,6 +1491,14 @@ const TasksBoard = () => {
   const handleStatusChange = async (taskId, newStatus) => {
     const targetTask = tasks.find(t => t._id === taskId);
     const prevStatus = targetTask?.status;
+
+    if (newStatus === 'Cancelled') {
+      if (!checkCanEditOrCancel(targetTask)) {
+        setError('Only the person who assigned this task can cancel it.');
+        return;
+      }
+    }
+
     try {
       const res = await fetch(`${API_URL}/user-tasks/${taskId}`, {
         method: 'PUT',
@@ -1507,9 +1542,7 @@ const TasksBoard = () => {
 
   const handleCancelTask = async (taskId) => {
     const targetTask = tasks.find(t => t._id === taskId);
-    const assignedById = (targetTask?.assignedBy?._id || targetTask?.assignedBy)?.toString();
-    const currentUserId = (user?._id || user?.id)?.toString();
-    if (assignedById && currentUserId && assignedById !== currentUserId && !isSuperAdmin) {
+    if (!checkCanEditOrCancel(targetTask)) {
       setError('Only the person who assigned this task can cancel it.');
       return;
     }
@@ -2176,10 +2209,7 @@ const TasksBoard = () => {
                     const over = isOverdated(task);
                     const isHighlighted = highlightTaskId === task._id;
                     const sNo = (safeCurrentPage - 1) * tasksPerPage + idx + 1;
-                    const assignedById = (task.assignedBy?._id || task.assignedBy)?.toString();
-                    const currentUserId = (user?._id || user?.id)?.toString();
-                    const isAssignedByMe = Boolean(assignedById && currentUserId && assignedById === currentUserId);
-                    const canEditOrCancel = isAssignedByMe || isSuperAdmin;
+                    const canEditOrCancel = checkCanEditOrCancel(task);
 
                     let statusBadge = 'bg-blue-50 text-blue-700 border-blue-200';
                     if (task.status === 'In Progress') statusBadge = 'bg-amber-50 text-amber-700 border-amber-200';
@@ -2287,13 +2317,16 @@ const TasksBoard = () => {
                           <select
                             value={task.status}
                             onChange={(e) => handleStatusChange(task._id, e.target.value)}
+                            disabled={task.status === 'Cancelled' && !canEditOrCancel}
                             className={`px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide border focus:outline-none focus:ring-1 focus:ring-[#0e623a] cursor-pointer ${statusBadge}`}
                           >
                             <option value="New">New</option>
                             <option value="In Progress">In Progress</option>
                             <option value="On Hold">On Hold</option>
                             <option value="Completed">Completed</option>
-                            <option value="Cancelled">Cancelled</option>
+                            {(canEditOrCancel || task.status === 'Cancelled') && (
+                              <option value="Cancelled">Cancelled</option>
+                            )}
                           </select>
                         </td>
 
@@ -2379,6 +2412,16 @@ const TasksBoard = () => {
                               {canEditOrCancel && (
                                 <>
                                   <div className="border-t border-gray-100 my-0.5"></div>
+                                  <button
+                                    onClick={() => {
+                                      setOpenActionMenuId(null);
+                                      handleOpenEditModal(task);
+                                    }}
+                                    className="w-full px-2.5 py-1.5 text-xs text-amber-600 hover:bg-amber-50 flex items-center gap-2 font-semibold transition cursor-pointer"
+                                  >
+                                    <Edit3 className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                                    <span>Edit</span>
+                                  </button>
                                   <button
                                     onClick={() => {
                                       setOpenActionMenuId(null);
