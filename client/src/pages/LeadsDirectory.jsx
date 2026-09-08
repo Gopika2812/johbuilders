@@ -186,7 +186,6 @@ const LeadsDirectory = () => {
   const [successMsg, setSuccessMsg] = useState('');
 
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [deletingId, setDeletingId] = useState(null);
   const [reopeningId, setReopeningId] = useState(null);
   const [statusChangingId, setStatusChangingId] = useState(null);
 
@@ -1041,8 +1040,10 @@ const LeadsDirectory = () => {
     }
   };
 
-  const handleCancelBooking = async (lead) => {
-    if (!window.confirm(`Are you sure you want to cancel the booking for "${lead.name}"? This will mark the lead as Cancelled.`)) {
+  const handleCancelLead = async (lead) => {
+    const stage = lead.status === 'Booking' ? 'Booking' : (lead.status || 'Lead');
+    const label = lead.status === 'Booking' ? 'booking' : 'lead';
+    if (!window.confirm(`Are you sure you want to cancel ${label} "${lead.name}"? This will mark the lead as Cancelled.`)) {
       return;
     }
     setError('');
@@ -1052,7 +1053,7 @@ const LeadsDirectory = () => {
       const payload = {
         status: 'Lost',
         isClosed: true,
-        closeRemarks: '[Lost at Booking stage] - Cancelled'
+        closeRemarks: `[Lost at ${stage} stage] - Cancelled`
       };
       const res = await fetch(`${API_URL}/leads/${lead._id}`, {
         method: 'PUT',
@@ -1063,48 +1064,18 @@ const LeadsDirectory = () => {
         body: JSON.stringify(payload)
       });
       if (res.ok) {
-        setSuccessMsg('Booking cancelled successfully!');
+        setSuccessMsg(`Lead "${lead.name}" marked as Cancelled successfully!`);
         fetchLeads();
+        fetchProjects();
         setTimeout(() => setSuccessMsg(''), 3000);
       } else {
         const data = await res.json();
-        setError(data.message || 'Failed to cancel booking');
+        setError(data.message || 'Failed to cancel lead');
       }
     } catch (err) {
-      setError('Connection error cancelling booking');
+      setError('Connection error cancelling lead');
     } finally {
       setStatusChangingId(null);
-    }
-  };
-
-  const handleDeleteLead = async (leadId, leadName) => {
-    if (!window.confirm(`Are you sure you want to permanently delete lead "${leadName}"?\n\nThis action will delete the lead record, release any booked project units back to Available status, and remove all linked quotations and CRD flows across all modules.`)) {
-      return;
-    }
-    setError('');
-    setSuccessMsg('');
-    setDeletingId(leadId);
-    try {
-      const res = await fetch(`${API_URL}/leads/${leadId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setSuccessMsg(data.message || 'Lead and all associated records deleted successfully!');
-        fetchLeads();
-        fetchProjects();
-        setTimeout(() => setSuccessMsg(''), 4000);
-      } else {
-        const data = await res.json();
-        setError(data.message || 'Failed to delete lead');
-      }
-    } catch (err) {
-      setError('Connection error deleting lead record');
-    } finally {
-      setDeletingId(null);
     }
   };
 
@@ -2427,6 +2398,7 @@ const LeadsDirectory = () => {
                         {lead.isClosed ? (
                           <div className="flex flex-col gap-0.5 items-start">
                             {(() => {
+                              const isCancelled = lead.closeRemarks?.toLowerCase().includes('cancelled');
                               const match = lead.closeRemarks?.match(/\[Lost at (.*?) stage\]/);
                               const lostStage = match ? match[1] : null;
                               const isSiteVisit = lostStage === 'Site Visit';
@@ -2434,19 +2406,25 @@ const LeadsDirectory = () => {
                               const isBooking = lostStage === 'Booking';
                               return (
                                 <span className="px-2 py-0.5 text-[11px] font-extrabold uppercase tracking-wider">
-                                  {lostStage ? (
+                                  {isCancelled ? (
                                     isBooking ? 'Booking - Cancelled' :
-                                      isSiteVisit ? 'Site Visit - Lost' :
-                                        isFollowUp ? 'Follow-Up - Lost' :
-                                          `${lostStage} - Lost`
-                                  ) : 'Lost'}
+                                      lostStage ? `${lostStage} - Cancelled` : 'Cancelled'
+                                  ) : (
+                                    lostStage ? (
+                                      isBooking ? 'Booking - Cancelled' :
+                                        isSiteVisit ? 'Site Visit - Lost' :
+                                          isFollowUp ? 'Follow-Up - Lost' :
+                                            `${lostStage} - Lost`
+                                    ) : 'Lost'
+                                  )}
                                 </span>
                               );
                             })()}
                             {(() => {
                               const match = lead.closeRemarks?.match(/\[Lost at (.*?) stage\]/);
                               const lostStage = match ? match[1] : null;
-                              if (lostStage === 'Site Visit' || lostStage === 'Follow-Up' || lostStage === 'Assigned') return null; // Don't show reopen option
+                              const isCancelled = lead.closeRemarks?.toLowerCase().includes('cancelled');
+                              if (!isCancelled && (lostStage === 'Site Visit' || lostStage === 'Follow-Up' || lostStage === 'Assigned')) return null;
                               return (
                                 <button
                                   onClick={() => handleReopenClosedLead(lead)}
@@ -2538,32 +2516,16 @@ const LeadsDirectory = () => {
                                 </button>
                               );
                             })()}
-                            {lead.status === 'Booking' && !lead.isClosed && (
+                            {!lead.isClosed && (
                               <button
-                                onClick={() => handleCancelBooking(lead)}
+                                onClick={() => handleCancelLead(lead)}
                                 disabled={statusChangingId === lead._id}
-                                className="w-full text-left px-4 py-2 text-[11px] font-bold hover:bg-red-50 flex items-center gap-2 disabled:opacity-50"
-                                style={{ color: '#dc2626' }}
+                                className="w-full text-left px-4 py-2 text-[11px] font-bold hover:bg-red-50 flex items-center gap-2 text-red-600 border-t border-black-100 disabled:opacity-50 mt-1 pt-1.5 cursor-pointer"
                               >
-                                {statusChangingId === lead._id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <XCircle className="w-3.5 h-3.5" />}
-                                Cancel
+                                {statusChangingId === lead._id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <XCircle className="w-3.5 h-3.5 text-red-600" />}
+                                Cancel Lead
                               </button>
                             )}
-                            {(() => {
-                              const roleNorm = (user?.role || '').toLowerCase().replace(/[\s_-]+/g, '');
-                              const isSuperAdmin = roleNorm === 'superadmin' || roleNorm === 'admin';
-                              if (!isSuperAdmin) return null;
-                              return (
-                                <button
-                                  onClick={() => handleDeleteLead(lead._id, lead.name)}
-                                  disabled={deletingId === lead._id}
-                                  className="w-full text-left px-4 py-2 text-[11px] font-bold hover:bg-red-50 flex items-center gap-2 text-red-600 border-t border-black-100 disabled:opacity-50 mt-1 pt-1.5 cursor-pointer"
-                                >
-                                  {deletingId === lead._id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5 text-red-600" />}
-                                  Delete Lead
-                                </button>
-                              );
-                            })()}
                           </div>
                         </div>
                       </td>

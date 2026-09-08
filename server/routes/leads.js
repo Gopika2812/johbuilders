@@ -479,6 +479,26 @@ router.put('/:id', protect, async (req, res) => {
       }
     }
 
+    if ((status === 'Lost' || isClosed === true) && (prevStatus === 'Booking' || (lead.bookingInfo && lead.bookingInfo.selectedUnits && lead.bookingInfo.selectedUnits.length > 0))) {
+      const Project = require('../models/Project');
+      const proj = await Project.findById(lead.project);
+      if (proj) {
+        let isModified = false;
+        proj.units.forEach(unit => {
+          if (unit.customerPhone === lead.phone && (unit.status === 'Booked' || unit.status === 'Hold')) {
+            unit.status = 'New';
+            unit.customerName = '';
+            unit.customerPhone = '';
+            unit.leadName = '';
+            isModified = true;
+          }
+        });
+        if (isModified) {
+          await proj.save();
+        }
+      }
+    }
+
     if (canEditLockedFields && leadSource) lead.leadSource = leadSource;
     if (canEditLockedFields && referenceName !== undefined) lead.referenceName = referenceName;
     if (lead.leadType === 'Lead') {
