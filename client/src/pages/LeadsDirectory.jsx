@@ -213,6 +213,18 @@ const LeadsDirectory = () => {
   // Pagination States (Default 10 records per page)
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [openActionMenuId, setOpenActionMenuId] = useState(null);
+
+  // Close row action dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (!e.target.closest('.lead-action-menu-container')) {
+        setOpenActionMenuId(null);
+      }
+    };
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, []);
 
   // Reset page when filters change
   useEffect(() => {
@@ -2236,7 +2248,7 @@ const LeadsDirectory = () => {
 
       {/* Leads Main Table */}
       <div className="bg-white border border-black-150 shadow-xs rounded-xl overflow-hidden">
-        <div className="overflow-x-auto overflow-y-hidden w-full">
+        <div className={`overflow-x-auto w-full ${paginatedLeadsList.length > 0 && paginatedLeadsList.length <= 4 ? 'min-h-[260px]' : ''}`}>
           <table className="w-full text-left border-collapse min-w-[900px]">
             <thead className="sticky top-0 z-20 shadow-xs">
               <tr className="bg-black-50 border-b border-black-150 text-[10.5px] font-bold text-black-600 uppercase tracking-wider">
@@ -2472,61 +2484,100 @@ const LeadsDirectory = () => {
 
                     {/* Action Triggers: History, Edit & Delete */}
                     {hasColumnPermission('leads', 'actions') && (
-                      <td className="px-2 py-1.5 sm:py-2 border-b border-black-100 text-center">
-                        <div className="relative group inline-block text-left">
-                          <button className="p-1 text-black-500 hover:bg-black-100 rounded-full transition">
+                      <td className="px-2 py-1.5 sm:py-2 border-b border-black-100 text-center relative lead-action-menu-container">
+                        <div 
+                          className="relative inline-block text-left"
+                          onMouseEnter={() => setOpenActionMenuId(lead._id)}
+                          onMouseLeave={() => setOpenActionMenuId(null)}
+                        >
+                          <button 
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setOpenActionMenuId(prev => prev === lead._id ? null : lead._id);
+                            }}
+                            className="p-1 text-black-500 hover:bg-black-100 rounded-full transition cursor-pointer"
+                            title="Actions"
+                          >
                             <MoreVertical className="w-3.5 h-3.5" />
                           </button>
-                          <div className={`absolute right-6 ${index >= Math.max(paginatedLeadsList.length - 3, 0) ? 'bottom-0' : 'top-0'} w-32 bg-white border border-black-150 rounded-xl shadow-lg hidden group-hover:block z-50 py-1 dropdown-menu`}>
-                            <button
-                              onClick={() => {
-                                setSelectedLeadForHistory(lead);
-                                setHistoryModalOpen(true);
-                              }}
-                              className="w-full text-left px-4 py-2 text-[11px] font-bold hover:bg-gray-100 flex items-center gap-2"
-                              style={{ color: '#374151' }}
-                            >
-                              <History className="w-3.5 h-3.5" /> History
-                            </button>
-                            <button
-                              onClick={() => handleOpenWhatsAppShareModal(lead, 'assignment')}
-                              className="w-full text-left px-4 py-2 text-[11px] font-bold hover:bg-emerald-50 flex items-center gap-2 text-[#0e623a]"
-                            >
-                              <MessageCircle className="w-3.5 h-3.5 text-[#0e623a]" /> WhatsApp Share
-                            </button>
-                            <button
-                              onClick={() => handleOpenEditModal(lead)}
-                              className="w-full text-left px-4 py-2 text-[11px] font-bold hover:bg-amber-50 flex items-center gap-2"
-                              style={{ color: '#d97706' }}
-                            >
-                              <Edit2 className="w-3.5 h-3.5" /> Edit
-                            </button>
-                            {(() => {
-                              const roleNorm = (user?.role || '').toLowerCase().replace(/[\s_-]+/g, '');
-                              const isSuperAdmin = roleNorm === 'superadmin' || roleNorm === 'admin';
-                              const prevSt = getPreviousStatus(lead);
-                              if (!isSuperAdmin || !prevSt || lead.isClosed) return null;
-                              return (
-                                <button
-                                  onClick={() => handleStatusChange(lead._id, prevSt, true)}
-                                  disabled={statusChangingId === lead._id}
-                                  className="w-full text-left px-4 py-2 text-[11px] font-bold hover:bg-blue-50 flex items-center gap-2 text-blue-600 disabled:opacity-50"
-                                >
-                                  <RotateCcw className="w-3.5 h-3.5" /> Revert to {prevSt}
-                                </button>
-                              );
-                            })()}
-                            {!lead.isClosed && (
-                              <button
-                                onClick={() => handleCancelLead(lead)}
-                                disabled={statusChangingId === lead._id}
-                                className="w-full text-left px-4 py-2 text-[11px] font-bold hover:bg-red-50 flex items-center gap-2 text-red-600 border-t border-black-100 disabled:opacity-50 mt-1 pt-1.5 cursor-pointer"
+                          
+                          {openActionMenuId === lead._id && (() => {
+                            const shouldOpenUp = paginatedLeadsList.length > 4 && index >= paginatedLeadsList.length - 2;
+                            return (
+                              <div 
+                                className={`absolute right-0 ${shouldOpenUp ? 'bottom-full mb-1' : 'top-full mt-1'} w-36 bg-white border border-black-150 rounded-xl shadow-xl z-[100] py-1 text-left dropdown-menu animate-in fade-in zoom-in-95 duration-100`}
+                                onClick={(e) => e.stopPropagation()}
                               >
-                                {statusChangingId === lead._id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <XCircle className="w-3.5 h-3.5 text-red-600" />}
-                                Cancel Lead
-                              </button>
-                            )}
-                          </div>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setOpenActionMenuId(null);
+                                    setSelectedLeadForHistory(lead);
+                                    setHistoryModalOpen(true);
+                                  }}
+                                  className="w-full text-left px-3.5 py-1.5 text-[11px] font-bold hover:bg-gray-100 flex items-center gap-2 cursor-pointer"
+                                  style={{ color: '#374151' }}
+                                >
+                                  <History className="w-3.5 h-3.5" /> History
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setOpenActionMenuId(null);
+                                    handleOpenWhatsAppShareModal(lead, 'assignment');
+                                  }}
+                                  className="w-full text-left px-3.5 py-1.5 text-[11px] font-bold hover:bg-emerald-50 flex items-center gap-2 text-[#0e623a] cursor-pointer"
+                                >
+                                  <MessageCircle className="w-3.5 h-3.5 text-[#0e623a]" /> WhatsApp Share
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setOpenActionMenuId(null);
+                                    handleOpenEditModal(lead);
+                                  }}
+                                  className="w-full text-left px-3.5 py-1.5 text-[11px] font-bold hover:bg-amber-50 flex items-center gap-2 cursor-pointer"
+                                  style={{ color: '#d97706' }}
+                                >
+                                  <Edit2 className="w-3.5 h-3.5" /> Edit
+                                </button>
+                                {(() => {
+                                  const roleNorm = (user?.role || '').toLowerCase().replace(/[\s_-]+/g, '');
+                                  const isSuperAdmin = roleNorm === 'superadmin' || roleNorm === 'admin';
+                                  const prevSt = getPreviousStatus(lead);
+                                  if (!isSuperAdmin || !prevSt || lead.isClosed) return null;
+                                  return (
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setOpenActionMenuId(null);
+                                        handleStatusChange(lead._id, prevSt, true);
+                                      }}
+                                      disabled={statusChangingId === lead._id}
+                                      className="w-full text-left px-3.5 py-1.5 text-[11px] font-bold hover:bg-blue-50 flex items-center gap-2 text-blue-600 disabled:opacity-50 cursor-pointer"
+                                    >
+                                      <RotateCcw className="w-3.5 h-3.5" /> Revert to {prevSt}
+                                    </button>
+                                  );
+                                })()}
+                                {!lead.isClosed && (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setOpenActionMenuId(null);
+                                      handleCancelLead(lead);
+                                    }}
+                                    disabled={statusChangingId === lead._id}
+                                    className="w-full text-left px-3.5 py-1.5 text-[11px] font-bold hover:bg-red-50 flex items-center gap-2 text-red-600 border-t border-black-100 disabled:opacity-50 mt-1 pt-1.5 cursor-pointer"
+                                  >
+                                    {statusChangingId === lead._id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <XCircle className="w-3.5 h-3.5 text-red-600" />}
+                                    Cancel Lead
+                                  </button>
+                                )}
+                              </div>
+                            );
+                          })()}
                         </div>
                       </td>
                     )}
