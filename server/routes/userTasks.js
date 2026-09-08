@@ -163,6 +163,19 @@ router.put('/:id', protect, async (req, res) => {
       return res.status(404).json({ message: 'Task not found' });
     }
 
+    // Strictly enforce: Only the person who assigned the task can edit details or cancel it
+    const isAssigner = task.assignedBy && task.assignedBy.toString() === req.user._id.toString();
+    const isModifyingDetailsOrCancelling = (
+      title !== undefined || description !== undefined || projectName !== undefined || 
+      dueDate !== undefined || assignedTo !== undefined || priority !== undefined || 
+      category !== undefined || repeatType !== undefined || reminderInterval !== undefined ||
+      status === 'Cancelled'
+    );
+
+    if (isModifyingDetailsOrCancelling && !isAssigner) {
+      return res.status(403).json({ message: 'Only the person who assigned this task can edit or cancel it.' });
+    }
+
     let changeDesc = [];
     if (title !== undefined && title !== task.title) {
       changeDesc.push(`Title changed from "${task.title}" to "${title}"`);

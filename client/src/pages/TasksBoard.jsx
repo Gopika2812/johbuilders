@@ -1386,14 +1386,11 @@ const TasksBoard = () => {
   const checkCanEditOrCancel = (targetTask) => {
     if (!targetTask) return false;
     const assignedById = (targetTask?.assignedBy?._id || targetTask?.assignedBy)?.toString();
-    const assignedToId = (targetTask?.assignedTo?._id || targetTask?.assignedTo)?.toString();
     const currentUserId = (user?._id || user?.id)?.toString();
     const userEmail = user?.email?.trim().toLowerCase();
     const assignedByEmail = targetTask?.assignedBy?.email?.trim().toLowerCase();
-    const assignedToEmail = targetTask?.assignedTo?.email?.trim().toLowerCase();
     const userName = user?.name?.trim().toLowerCase();
     const assignedByName = (typeof targetTask?.assignedBy === 'string' ? targetTask?.assignedBy : targetTask?.assignedBy?.name)?.trim().toLowerCase();
-    const assignedToName = (typeof targetTask?.assignedTo === 'string' ? targetTask?.assignedTo : targetTask?.assignedTo?.name)?.trim().toLowerCase();
 
     const isAssignedByMe = Boolean(
       (assignedById && currentUserId && assignedById === currentUserId) ||
@@ -1401,15 +1398,9 @@ const TasksBoard = () => {
       (userName && assignedByName && userName === assignedByName)
     );
 
-    const isAssignedToMe = Boolean(
-      (assignedToId && currentUserId && assignedToId === currentUserId) ||
-      (userEmail && assignedToEmail && userEmail === assignedToEmail) ||
-      (userName && assignedToName && userName === assignedToName)
-    );
-
-    // Cancel & Edit are available for the person who assigned the task (and Super Admin when not assigned to them).
-    // Assigned-to persons do NOT have cancel & edit permissions.
-    return isAssignedByMe || (isSuperAdmin && !isAssignedToMe);
+    // STRICT: Only the person who assigned the task can see Edit and Cancel options.
+    // No other person (including Super Admin, Admin, or the assignee) can edit or cancel.
+    return isAssignedByMe;
   };
 
   const handleOpenEditModal = (task) => {
