@@ -66,12 +66,24 @@ const getTomorrowString = () => {
   return `${year}-${month}-${day}`;
 };
 
-const CustomPersonSelector = ({ employees, value, onChange, placeholder = "-- Select Person --" }) => {
+const CustomPersonSelector = ({ employees, value, onChange, placeholder = "-- Select Person --", currentUser = null }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const dropdownRef = React.useRef(null);
 
-  const selectedEmp = employees.find(e => e._id === value);
+  const displayEmployees = React.useMemo(() => {
+    if (!currentUser || !currentUser.name) return employees;
+    const exists = employees.some(e => 
+      e._id === (currentUser._id || currentUser.id) || 
+      (currentUser.email && e.email?.toLowerCase() === currentUser.email.toLowerCase())
+    );
+    if (!exists) {
+      return [{ _id: currentUser._id || currentUser.id || 'current_user', name: currentUser.name, department: currentUser.department || 'General' }, ...employees];
+    }
+    return employees;
+  }, [employees, currentUser]);
+
+  const selectedEmp = displayEmployees.find(e => e._id === value) || (value && (value === currentUser?._id || value === currentUser?.id) ? currentUser : null);
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -83,11 +95,8 @@ const CustomPersonSelector = ({ employees, value, onChange, placeholder = "-- Se
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const filteredEmployees = employees.filter(emp => 
-    emp.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    emp.role?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    emp.department?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    emp.email?.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredEmployees = displayEmployees.filter(emp => 
+    emp.name?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
@@ -98,19 +107,11 @@ const CustomPersonSelector = ({ employees, value, onChange, placeholder = "-- Se
         className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 hover:border-emerald-600 rounded-xl text-xs font-semibold text-gray-800 flex items-center justify-between transition focus:outline-none focus:ring-2 focus:ring-[#0e623a] cursor-pointer shadow-xs"
       >
         {selectedEmp ? (
-          <div className="flex items-center gap-2 truncate flex-wrap">
+          <div className="flex items-center gap-2 truncate">
             <span className="w-5 h-5 rounded-full bg-[#0e623a] text-white flex items-center justify-center text-[10px] font-bold shrink-0">
               {selectedEmp.name ? selectedEmp.name.charAt(0).toUpperCase() : 'U'}
             </span>
-            <span className="font-bold text-gray-900 truncate">{selectedEmp.name}</span>
-            <span className="text-[10px] font-extrabold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-200 shrink-0">
-              {selectedEmp.role || 'Staff'}
-            </span>
-            {selectedEmp.department && (
-              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-purple-100 text-purple-800 border border-purple-200 shrink-0">
-                {selectedEmp.department}
-              </span>
-            )}
+            <span className="font-bold text-gray-900 truncate text-xs">{selectedEmp.name}</span>
           </div>
         ) : (
           <span className="text-gray-400 font-medium">{placeholder}</span>
@@ -124,7 +125,7 @@ const CustomPersonSelector = ({ employees, value, onChange, placeholder = "-- Se
             <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-gray-400" />
             <input
               type="text"
-              placeholder="Search user, department, role..."
+              placeholder="Search user name..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-8 pr-3 py-1.5 bg-gray-50 border border-gray-200 rounded-xl text-xs text-gray-800 focus:outline-none focus:ring-1 focus:ring-[#0e623a]"
@@ -146,28 +147,15 @@ const CustomPersonSelector = ({ employees, value, onChange, placeholder = "-- Se
                       setIsOpen(false);
                       setSearchTerm('');
                     }}
-                    className={`p-2 rounded-xl flex items-center justify-between cursor-pointer transition ${
+                    className={`px-3 py-2 rounded-xl flex items-center justify-between cursor-pointer transition ${
                       isSelected ? 'bg-emerald-50 border border-emerald-200' : 'hover:bg-gray-50'
                     }`}
                   >
                     <div className="flex items-center gap-2.5 min-w-0">
-                      <span className="w-7 h-7 rounded-full bg-emerald-700 text-white flex items-center justify-center text-xs font-bold shrink-0 shadow-xs">
+                      <span className="w-6 h-6 rounded-full bg-emerald-700 text-white flex items-center justify-center text-[11px] font-bold shrink-0 shadow-xs">
                         {emp.name ? emp.name.charAt(0).toUpperCase() : 'U'}
                       </span>
-                      <div className="flex flex-col min-w-0 text-left">
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          <span className="font-bold text-gray-900 text-xs truncate">{emp.name}</span>
-                          <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded bg-gray-100 text-gray-700 border border-gray-200 shrink-0">
-                            {emp.role || 'Staff'}
-                          </span>
-                          {emp.department && (
-                            <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-purple-50 text-purple-700 border border-purple-100 shrink-0">
-                              {emp.department}
-                            </span>
-                          )}
-                        </div>
-                        {emp.email && <span className="text-[10px] text-gray-500 truncate">{emp.email}</span>}
-                      </div>
+                      <span className="font-bold text-gray-900 text-xs truncate">{emp.name}</span>
                     </div>
                     {isSelected && <Check className="w-4 h-4 text-[#0e623a] shrink-0" />}
                   </div>
@@ -1211,15 +1199,26 @@ const TasksBoard = () => {
     setEditingCategoryObj(null);
     setNewCategoryName('');
     setProjectSelectOption('');
+
+    // Default assignee to currently logged-in user
+    const currentUserId = (user?._id || user?.id)?.toString();
+    const matchedCurrentUserEmp = employees.find(emp => 
+      emp._id?.toString() === currentUserId || 
+      (user?.email && emp.email?.toLowerCase() === user.email.toLowerCase()) ||
+      (user?.name && emp.name?.toLowerCase() === user.name.toLowerCase())
+    );
+    const initialAssignedId = matchedCurrentUserEmp?._id || currentUserId || '';
+    const initialCategory = matchedCurrentUserEmp?.department || user?.department || 'General';
+
     setFormData({
       title: '',
       description: '',
       projectName: '',
       dueDate: '',
-      assignedTo: '',
+      assignedTo: initialAssignedId,
       status: 'New',
       priority: 'Medium',
-      category: '',
+      category: initialCategory,
       repeatType: 'None',
       reminderInterval: 1,
       attachments: []
@@ -2435,8 +2434,9 @@ const TasksBoard = () => {
                   <CustomPersonSelector
                     employees={employees}
                     value={formData.assignedTo}
+                    currentUser={user}
                     onChange={(selectedId) => {
-                      const selectedEmp = employees.find(emp => emp._id === selectedId);
+                      const selectedEmp = employees.find(emp => emp._id === selectedId) || (selectedId === (user?._id || user?.id) ? user : null);
                       const empDept = selectedEmp?.department || 'General';
                       setFormData(prev => ({
                         ...prev,
