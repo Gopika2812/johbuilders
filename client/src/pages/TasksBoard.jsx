@@ -2412,27 +2412,34 @@ const TasksBoard = () => {
 
                         {/* 12. Actions (3 Dots Menu) */}
                         <td className="p-2 text-center relative action-menu-container">
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setOpenActionMenuId(openActionMenuId === task._id ? null : task._id);
-                            }}
-                            className="p-1 text-gray-500 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition cursor-pointer inline-flex items-center justify-center"
-                            title="More Actions"
-                          >
-                            <MoreVertical className="w-4 h-4" />
-                          </button>
+                          <div className="relative inline-flex items-center justify-center">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setOpenActionMenuId(openActionMenuId === task._id ? null : task._id);
+                              }}
+                              className={`w-7 h-6 inline-flex items-center justify-center rounded-md font-bold text-xs cursor-pointer select-none transition-colors border shadow-2xs ${
+                                openActionMenuId === task._id
+                                  ? 'bg-[#0e623a] text-white border-[#0e623a] ring-2 ring-[#0e623a]/30'
+                                  : 'bg-[#0e623a] hover:bg-[#0b4d2d] active:bg-[#083820] text-white border-[#0a4d2d]'
+                              }`}
+                              title="More Actions"
+                            >
+                              <MoreVertical className="w-3.5 h-3.5" />
+                            </button>
 
-                          {openActionMenuId === task._id && (
-                            <div className="absolute right-2 top-8 z-[100] bg-white border border-gray-200 rounded-xl shadow-xl py-1 w-32 text-left animate-in fade-in zoom-in-95 duration-100">
-                              <button
-                                onClick={() => {
-                                  setOpenActionMenuId(null);
-                                  handleOpenHistoryModal(task);
-                                }}
-                                className="w-full px-2.5 py-1.5 text-xs text-blue-600 hover:bg-blue-50 flex items-center gap-2 font-semibold transition cursor-pointer"
-                              >
+                            {openActionMenuId === task._id && (() => {
+                              const shouldOpenUp = currentTasks.length > 3 && idx >= Math.min(currentTasks.length - 2, 4);
+                              return (
+                                <div className={`absolute right-0 ${shouldOpenUp ? 'bottom-full mb-1' : 'top-full mt-1'} z-[100] bg-white border border-gray-200 rounded-xl shadow-xl py-1 w-32 text-left`}>
+                                  <button
+                                    onClick={() => {
+                                      setOpenActionMenuId(null);
+                                      handleOpenHistoryModal(task);
+                                    }}
+                                    className="w-full px-2.5 py-1.5 text-xs text-blue-600 hover:bg-blue-50 flex items-center gap-2 font-semibold transition cursor-pointer"
+                                  >
                                 <MessageSquare className="w-3.5 h-3.5 text-blue-600 shrink-0" />
                                 <span>Reply</span>
                               </button>
@@ -2473,8 +2480,10 @@ const TasksBoard = () => {
                                 </>
                               )}
                             </div>
-                          )}
-                        </td>
+                          );
+                        })()}
+                      </div>
+                    </td>
                       </tr>
                     );
                   })}

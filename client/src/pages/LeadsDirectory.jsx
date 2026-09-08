@@ -2286,7 +2286,7 @@ const LeadsDirectory = () => {
                 return (
                   <tr
                     key={lead._id}
-                    className={`transition duration-150 border-b border-black-100 custom-text-row hover:opacity-90 ${contrastClass === 'dark-row' ? 'dark-row' : ''}`}
+                    className={`border-b border-black-100 custom-text-row ${contrastClass === 'dark-row' ? 'dark-row' : ''}`}
                     style={{ backgroundColor: rowColor, color: rowTextColor }}
                   >
                     {/* S.No */}
@@ -2485,24 +2485,28 @@ const LeadsDirectory = () => {
                     {/* Action Triggers: History, Edit & Delete */}
                     {hasColumnPermission('leads', 'actions') && (
                       <td className="px-2 py-1.5 sm:py-2 border-b border-black-100 text-center relative lead-action-menu-container">
-                        <div className="relative inline-block text-left">
+                        <div className="relative inline-flex items-center justify-center">
                           <button 
                             type="button"
                             onClick={(e) => {
                               e.stopPropagation();
                               setOpenActionMenuId(prev => prev === lead._id ? null : lead._id);
                             }}
-                            className="p-1 text-black-500 hover:bg-black-100 rounded-full transition cursor-pointer"
+                            className={`w-7 h-6 inline-flex items-center justify-center rounded-md font-bold text-xs cursor-pointer select-none transition-colors border shadow-2xs ${
+                              openActionMenuId === lead._id
+                                ? 'bg-[#0e623a] text-white border-[#0e623a] ring-2 ring-[#0e623a]/30'
+                                : 'bg-[#0e623a] hover:bg-[#0b4d2d] active:bg-[#083820] text-white border-[#0a4d2d]'
+                            }`}
                             title="Actions"
                           >
                             <MoreVertical className="w-3.5 h-3.5" />
                           </button>
                           
                           {openActionMenuId === lead._id && (() => {
-                            const shouldOpenUp = paginatedLeadsList.length > 4 && index >= paginatedLeadsList.length - 2;
+                            const shouldOpenUp = paginatedLeadsList.length > 4 && index >= Math.min(paginatedLeadsList.length - 2, 4);
                             return (
                               <div 
-                                className={`absolute right-0 ${shouldOpenUp ? 'bottom-full mb-1' : 'top-full mt-1'} w-40 bg-white border border-gray-200 rounded-xl shadow-xl z-[100] py-1 text-left dropdown-menu animate-in fade-in zoom-in-95 duration-100`}
+                                className={`absolute right-0 ${shouldOpenUp ? 'bottom-full mb-1' : 'top-full mt-1'} w-40 bg-white border border-gray-200 rounded-xl shadow-xl z-[100] py-1 text-left dropdown-menu`}
                                 onClick={(e) => e.stopPropagation()}
                               >
                                 <button
