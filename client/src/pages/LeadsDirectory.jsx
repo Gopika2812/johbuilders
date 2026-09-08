@@ -2280,7 +2280,7 @@ const LeadsDirectory = () => {
 
       {/* Leads Main Table */}
       <div className="bg-white border border-black-150 shadow-xs rounded-xl overflow-hidden">
-        <div className="overflow-x-auto w-full">
+        <div className="overflow-x-auto overflow-y-hidden w-full">
           <table className="w-full text-left border-collapse min-w-[900px]">
             <thead className="sticky top-0 z-20 shadow-xs">
               <tr className="bg-black-50 border-b border-black-150 text-[10.5px] font-bold text-black-600 uppercase tracking-wider">
@@ -2509,7 +2509,7 @@ const LeadsDirectory = () => {
                           <button className="p-1 text-black-500 hover:bg-black-100 rounded-full transition">
                             <MoreVertical className="w-3.5 h-3.5" />
                           </button>
-                          <div className="absolute right-6 top-0 mt-0 w-32 bg-white border border-black-150 rounded-xl shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 py-1 dropdown-menu">
+                          <div className={`absolute right-6 ${index >= Math.max(paginatedLeadsList.length - 3, 0) ? 'bottom-0' : 'top-0'} w-32 bg-white border border-black-150 rounded-xl shadow-lg hidden group-hover:block z-50 py-1 dropdown-menu`}>
                             <button
                               onClick={() => {
                                 setSelectedLeadForHistory(lead);
