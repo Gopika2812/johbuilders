@@ -797,7 +797,8 @@ const EmployeesDirectory = () => {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-slate-50 border-b border-slate-100 text-xs font-bold text-slate-500 uppercase tracking-wider">
-                <th className="p-5">Name & Phone</th>
+                <th className="p-5">Name</th>
+                <th className="p-5">Phone Number</th>
                 <th className="p-5">Email</th>
                 <th className="p-5">Department</th>
                 <th className="p-5">Active Role</th>
@@ -808,7 +809,7 @@ const EmployeesDirectory = () => {
             <tbody className="divide-y divide-slate-50 text-sm">
               {filteredEmployees.length === 0 ? (
                 <tr>
-                  <td colSpan="6" className="p-8 text-center text-slate-400 font-medium">
+                  <td colSpan="7" className="p-8 text-center text-slate-400 font-medium">
                     No employees matching search criteria.
                   </td>
                 </tr>
@@ -817,11 +818,15 @@ const EmployeesDirectory = () => {
                   <tr key={emp._id} className="hover:bg-slate-50/50 transition">
                     <td className="p-5">
                       <div className="font-semibold text-slate-800">{emp.name}</div>
-                      {emp.phone && (
-                        <div className="text-xs text-slate-400 flex items-center gap-1 mt-0.5">
-                          <Phone className="w-3 h-3" />
+                    </td>
+                    <td className="p-5">
+                      {emp.phone ? (
+                        <div className="text-xs text-slate-600 flex items-center gap-1.5 font-medium">
+                          <Phone className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                           <span>{emp.phone}</span>
                         </div>
+                      ) : (
+                        <span className="text-slate-400 text-xs italic">—</span>
                       )}
                     </td>
                     <td className="p-5 text-slate-600">{emp.email}</td>

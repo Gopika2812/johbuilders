@@ -49,7 +49,8 @@ import {
   Activity,
   Percent,
   ArrowRight,
-  CheckCheck
+  CheckCheck,
+  Shield
 } from 'lucide-react';
 
 const getTodayString = () => {
@@ -234,6 +235,14 @@ const SearchableDropdown = ({
       icon: 'text-emerald-700',
       ring: 'focus:ring-emerald-500',
       activeItem: 'bg-emerald-100 text-emerald-900 font-extrabold border border-emerald-300'
+    },
+    amber: {
+      btn: 'bg-amber-50/90 hover:bg-amber-100/90 border-amber-200 text-amber-950 shadow-xs',
+      label: 'text-amber-700',
+      valText: 'text-amber-950 font-black',
+      icon: 'text-amber-700',
+      ring: 'focus:ring-amber-500',
+      activeItem: 'bg-amber-100 text-amber-900 font-extrabold border border-amber-300'
     }
   };
 
@@ -369,8 +378,9 @@ const TasksBoard = () => {
   const [viewTab, setViewTab] = useState('ALL');
   const [assignedToFilter, setAssignedToFilter] = useState('ALL');
 
-  // Department, Priority & Project Filters
+  // Department, Priority, Project & Role Filters
   const [categoryFilter, setCategoryFilter] = useState('ALL');
+  const [roleFilter, setRoleFilter] = useState('ALL');
   const [priorityFilter, setPriorityFilter] = useState('ALL');
   const [projectFilter, setProjectFilter] = useState('ALL');
 
@@ -382,6 +392,22 @@ const TasksBoard = () => {
 
   const [projects, setProjects] = useState([]);
   const [projectSelectOption, setProjectSelectOption] = useState('');
+
+  // Extract available unique roles from employees and tasks for Role filter
+  const availableRoles = useMemo(() => {
+    const rolesSet = new Set();
+    employees.forEach(emp => {
+      if (emp.role && typeof emp.role === 'string' && emp.role.trim()) {
+        rolesSet.add(emp.role.trim());
+      }
+    });
+    tasks.forEach(t => {
+      if (t.assignedTo?.role && typeof t.assignedTo.role === 'string' && t.assignedTo.role.trim()) {
+        rolesSet.add(t.assignedTo.role.trim());
+      }
+    });
+    return Array.from(rolesSet).sort();
+  }, [employees, tasks]);
 
   // Attachments & Preview Modal State
   const [uploadingFile, setUploadingFile] = useState(false);
@@ -1062,7 +1088,7 @@ const TasksBoard = () => {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, statusFilter, categoryFilter, priorityFilter, projectFilter, viewTab, assignedToFilter, startDate, endDate]);
+  }, [searchTerm, statusFilter, categoryFilter, roleFilter, priorityFilter, projectFilter, viewTab, assignedToFilter, startDate, endDate]);
 
   const fetchTasks = async (isSilent = false) => {
     try {
@@ -1757,6 +1783,10 @@ const TasksBoard = () => {
     }
 
     if (categoryFilter !== 'ALL' && task.category !== categoryFilter) return false;
+    if (roleFilter !== 'ALL') {
+      const taskRole = (task.assignedTo?.role || '').trim().toLowerCase();
+      if (taskRole !== roleFilter.toLowerCase()) return false;
+    }
     if (priorityFilter !== 'ALL' && task.priority !== priorityFilter) return false;
     if (projectFilter !== 'ALL' && (task.projectName || '').trim() !== projectFilter) return false;
 
@@ -2106,8 +2136,8 @@ const TasksBoard = () => {
           </div>
         </div>
 
-        {/* Row 2: Exactly 4 Color-Highlighted Searchable Filters (Project, Department, Assigned to, Status) */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        {/* Row 2: Searchable Filters (Project, Department, Role, Assigned to, Status) */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
           {/* 1. Project Filter (Indigo Theme) */}
           <SearchableDropdown
             label="Project"
@@ -2136,7 +2166,21 @@ const TasksBoard = () => {
             allLabel="All Departments"
           />
 
-          {/* 3. Assigned to Filter (Blue Theme) */}
+          {/* 3. Role Filter (Amber Theme) */}
+          <SearchableDropdown
+            label="Role"
+            icon={Shield}
+            value={roleFilter}
+            options={availableRoles.map(r => ({
+              id: r,
+              name: r
+            }))}
+            onChange={(val) => setRoleFilter(val)}
+            colorScheme="amber"
+            allLabel="All Roles"
+          />
+
+          {/* 4. Assigned to Filter (Blue Theme) */}
           <SearchableDropdown
             label="Assigned to"
             icon={User}
@@ -2151,7 +2195,7 @@ const TasksBoard = () => {
             allLabel="All Assignees"
           />
 
-          {/* 4. Status Filter (Emerald Theme) */}
+          {/* 5. Status Filter (Emerald Theme) */}
           <SearchableDropdown
             label="Status"
             icon={Clock}
@@ -2297,12 +2341,6 @@ const TasksBoard = () => {
                             <span className="text-gray-800 font-bold text-xs whitespace-nowrap block">
                               {task.dueDate ? new Date(task.dueDate).toLocaleDateString('en-GB') : '—'}
                             </span>
-
-                            {task.repeatType && task.repeatType !== 'None' && (
-                              <div className="text-[8.5px] font-bold text-purple-700 bg-purple-50 border border-purple-200 px-1 py-0.2 rounded w-fit whitespace-nowrap">
-                                Every {task.reminderInterval || 1} {task.repeatType === 'Hourly' ? 'Hr' : 'Day'}
-                              </div>
-                            )}
 
                             {over && (
                               <span className="inline-block px-1 py-0.2 rounded text-[8px] font-black uppercase tracking-wide bg-rose-100 text-rose-700 border border-rose-300 animate-pulse whitespace-nowrap">
