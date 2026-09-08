@@ -2485,11 +2485,7 @@ const LeadsDirectory = () => {
                     {/* Action Triggers: History, Edit & Delete */}
                     {hasColumnPermission('leads', 'actions') && (
                       <td className="px-2 py-1.5 sm:py-2 border-b border-black-100 text-center relative lead-action-menu-container">
-                        <div 
-                          className="relative inline-block text-left"
-                          onMouseEnter={() => setOpenActionMenuId(lead._id)}
-                          onMouseLeave={() => setOpenActionMenuId(null)}
-                        >
+                        <div className="relative inline-block text-left">
                           <button 
                             type="button"
                             onClick={(e) => {
@@ -2506,7 +2502,7 @@ const LeadsDirectory = () => {
                             const shouldOpenUp = paginatedLeadsList.length > 4 && index >= paginatedLeadsList.length - 2;
                             return (
                               <div 
-                                className={`absolute right-0 ${shouldOpenUp ? 'bottom-full mb-1' : 'top-full mt-1'} w-36 bg-white border border-black-150 rounded-xl shadow-xl z-[100] py-1 text-left dropdown-menu animate-in fade-in zoom-in-95 duration-100`}
+                                className={`absolute right-0 ${shouldOpenUp ? 'bottom-full mb-1' : 'top-full mt-1'} w-40 bg-white border border-gray-200 rounded-xl shadow-xl z-[100] py-1 text-left dropdown-menu animate-in fade-in zoom-in-95 duration-100`}
                                 onClick={(e) => e.stopPropagation()}
                               >
                                 <button
