@@ -80,6 +80,13 @@ const UserTaskSchema = new mongoose.Schema({
         ref: 'User'
       },
       note: { type: String, default: '' },
+      attachments: [
+        {
+          url: { type: String, default: '' },
+          name: { type: String, default: '' },
+          uploadedAt: { type: Date, default: Date.now }
+        }
+      ],
       timestamp: {
         type: Date,
         default: Date.now

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth, API_URL } from '../context/AuthContext';
 import { useLocation } from 'react-router-dom';
 import { sendTaskAssignmentEmail } from '../utils/emailService';
@@ -370,6 +370,9 @@ const TasksBoard = () => {
   const [selectedTaskForHistory, setSelectedTaskForHistory] = useState(null);
   const [newCommentNote, setNewCommentNote] = useState('');
   const [commentSubmitting, setCommentSubmitting] = useState(false);
+  const [replyFiles, setReplyFiles] = useState([]);
+  const [replyUploading, setReplyUploading] = useState(false);
+  const replyFileInputRef = useRef(null);
 
   // View Tab Filter State: 'ALL' (Default), 'ASSIGNED_TO_ME', 'ASSIGNED_TO', 'OTHER_TASKS'
   const [viewTab, setViewTab] = useState('ALL');
@@ -1107,13 +1110,18 @@ const TasksBoard = () => {
     formData.append('file', file);
     formData.append('upload_preset', uploadPreset);
 
-    const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
+    const isImage = file.type && file.type.startsWith('image/');
+    const endpoint = isImage
+      ? `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`
+      : `https://api.cloudinary.com/v1_1/${cloudName}/auto/upload`;
+
+    const res = await fetch(endpoint, {
       method: 'POST',
       body: formData
     });
 
     const data = await res.json();
-    if (!res.ok) throw new Error(data.error?.message || 'Failed to upload image');
+    if (!res.ok) throw new Error(data.error?.message || 'Failed to upload file');
     return {
       url: data.secure_url,
       name: file.name
@@ -1384,22 +1392,49 @@ const TasksBoard = () => {
   const handleOpenHistoryModal = (task) => {
     setSelectedTaskForHistory(task);
     setNewCommentNote('');
+    setReplyFiles([]);
     setHistoryModalOpen(true);
+  };
+
+  const handleReplyFileChange = (e) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const newFiles = Array.from(e.target.files);
+      setReplyFiles(prev => [...prev, ...newFiles]);
+    }
+    if (e.target) e.target.value = '';
+  };
+
+  const removeReplyFile = (indexToRemove) => {
+    setReplyFiles(prev => prev.filter((_, idx) => idx !== indexToRemove));
   };
 
   const handleAddComment = async (e) => {
     e.preventDefault();
-    if (!newCommentNote || !newCommentNote.trim() || !selectedTaskForHistory) return;
+    if ((!newCommentNote || !newCommentNote.trim()) && replyFiles.length === 0) return;
+    if (!selectedTaskForHistory) return;
 
     try {
       setCommentSubmitting(true);
+      setReplyUploading(true);
+
+      const uploadedAttachments = [];
+      if (replyFiles.length > 0) {
+        for (const file of replyFiles) {
+          const up = await uploadToCloudinary(file);
+          uploadedAttachments.push(up);
+        }
+      }
+
       const res = await fetch(`${API_URL}/user-tasks/${selectedTaskForHistory._id}/comments`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ note: newCommentNote })
+        body: JSON.stringify({
+          note: (newCommentNote || '').trim(),
+          attachments: uploadedAttachments
+        })
       });
 
       if (res.ok) {
@@ -1409,16 +1444,18 @@ const TasksBoard = () => {
           setTasks(prev => prev.map(t => t._id === updatedTask._id ? updatedTask : t));
         }
         setNewCommentNote('');
-        setSuccessMsg('Comment added to task history');
+        setReplyFiles([]);
+        setSuccessMsg('Reply added successfully');
         setTimeout(() => setSuccessMsg(''), 3000);
       } else {
         const data = await parseResponseJSON(res);
-        setError(data?.message || 'Failed to add comment');
+        setError(data?.message || 'Failed to add reply');
       }
     } catch (err) {
-      setError('Error adding comment');
+      setError(err.message || 'Error adding reply');
     } finally {
       setCommentSubmitting(false);
+      setReplyUploading(false);
     }
   };
 
@@ -2695,6 +2732,43 @@ const TasksBoard = () => {
                                 {item.note}
                               </p>
                             )}
+
+                            {item.attachments && item.attachments.length > 0 && (
+                              <div className="mt-2 pt-2 border-t border-gray-200/60 flex flex-wrap gap-2">
+                                {item.attachments.map((att, aIdx) => {
+                                  const isImg = att.url && (att.url.match(/\.(jpeg|jpg|gif|png|webp)/i) || att.url.includes('/image/upload'));
+                                  return isImg ? (
+                                    <div
+                                      key={aIdx}
+                                      className="relative group cursor-pointer shrink-0"
+                                      onClick={() => setPreviewImageModal({ open: true, url: att.url, name: att.name, taskId: selectedTaskForHistory._id })}
+                                      title={`View ${att.name || 'Image'}`}
+                                    >
+                                      <img
+                                        src={att.url}
+                                        alt={att.name || 'Attachment'}
+                                        className="w-14 h-14 rounded-lg object-cover border border-gray-200 shadow-2xs group-hover:scale-105 transition"
+                                      />
+                                      <div className="absolute inset-0 bg-black/40 rounded-lg opacity-0 group-hover:opacity-100 flex items-center justify-center transition">
+                                        <Eye className="w-3.5 h-3.5 text-white" />
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    <a
+                                      key={aIdx}
+                                      href={att.url}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-white hover:bg-gray-50 border border-gray-200 rounded-lg text-[11px] font-bold text-gray-700 hover:text-[#0e623a] transition shadow-2xs"
+                                    >
+                                      <Paperclip className="w-3.5 h-3.5 text-[#0e623a]" />
+                                      <span className="truncate max-w-[140px]">{att.name || 'Attachment'}</span>
+                                      <Download className="w-3 h-3 text-gray-400" />
+                                    </a>
+                                  );
+                                })}
+                              </div>
+                            )}
                           </div>
                         </div>
                       );
@@ -2714,22 +2788,76 @@ const TasksBoard = () => {
                   </div>
                   <span className="text-[10px] text-gray-400 font-semibold">Replies will be recorded in task history</span>
                 </div>
-                <div className="flex gap-2">
+
+                {/* Selected attachments preview */}
+                {replyFiles.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 p-2 bg-emerald-50/70 border border-emerald-200 rounded-xl">
+                    {replyFiles.map((file, fIdx) => (
+                      <div key={fIdx} className="flex items-center gap-1.5 px-2 py-1 bg-white border border-emerald-200 rounded-lg text-[11px] font-semibold text-gray-700 shadow-2xs">
+                        <Paperclip className="w-3 h-3 text-[#0e623a] shrink-0" />
+                        <span className="max-w-[130px] truncate">{file.name}</span>
+                        <span className="text-[9px] text-gray-400 font-normal">
+                          ({(file.size / 1024).toFixed(0)} KB)
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => removeReplyFile(fIdx)}
+                          className="text-gray-400 hover:text-red-500 transition cursor-pointer p-0.5"
+                          title="Remove attachment"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <div className="flex gap-2 items-end">
+                  {/* Hidden file input */}
+                  <input
+                    ref={replyFileInputRef}
+                    type="file"
+                    multiple
+                    className="hidden"
+                    onChange={handleReplyFileChange}
+                  />
+
                   <textarea
                     rows={2}
-                    required
                     placeholder={`Write your reply or update note to ${recipientName}...`}
                     value={newCommentNote}
                     onChange={(e) => setNewCommentNote(e.target.value)}
-                    className="flex-1 px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-[#0e623a] resize-none"
+                    className="flex-1 px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-[#0e623a] resize-none font-medium"
                   />
+
+                  {/* Attachment button */}
+                  <button
+                    type="button"
+                    onClick={() => replyFileInputRef.current?.click()}
+                    disabled={commentSubmitting}
+                    className="p-2 text-gray-600 hover:text-[#0e623a] hover:bg-emerald-50 border border-gray-200 hover:border-emerald-300 rounded-xl transition cursor-pointer shrink-0 flex items-center justify-center disabled:opacity-50"
+                    title="Attach File / Image"
+                  >
+                    <Paperclip className="w-4 h-4" />
+                  </button>
+
+                  {/* Send Reply button */}
                   <button
                     type="submit"
-                    disabled={commentSubmitting || !newCommentNote.trim()}
-                    className="px-4 py-2 bg-[#0e623a] hover:bg-[#0b4d2d] text-white font-bold text-xs rounded-xl shadow transition cursor-pointer disabled:opacity-50 flex items-center gap-1.5 shrink-0 self-end"
+                    disabled={commentSubmitting || (!newCommentNote.trim() && replyFiles.length === 0)}
+                    className="px-4 py-2 bg-[#0e623a] hover:bg-[#0b4d2d] text-white font-bold text-xs rounded-xl shadow transition cursor-pointer disabled:opacity-50 flex items-center gap-1.5 shrink-0"
                   >
-                    {commentSubmitting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
-                    <span>Send Reply</span>
+                    {commentSubmitting ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        <span>{replyUploading ? 'Uploading...' : 'Sending...'}</span>
+                      </>
+                    ) : (
+                      <>
+                        <Send className="w-3.5 h-3.5" />
+                        <span>Send Reply</span>
+                      </>
+                    )}
                   </button>
                 </div>
               </form>

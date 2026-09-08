@@ -245,12 +245,13 @@ router.put('/:id', protect, async (req, res) => {
 });
 
 // @route   POST /api/user-tasks/:id/comments
-// @desc    Add comment / login history note to task
+// @desc    Add comment / login history note to task (with optional file attachments)
 // @access  Private
 router.post('/:id/comments', protect, async (req, res) => {
-  const { note, action } = req.body;
-  if (!note || !note.trim()) {
-    return res.status(400).json({ message: 'Reply note is required' });
+  const { note, action, attachments } = req.body;
+  const hasAttachments = Array.isArray(attachments) && attachments.length > 0;
+  if ((!note || !note.trim()) && !hasAttachments) {
+    return res.status(400).json({ message: 'Reply note or attachment is required' });
   }
 
   try {
@@ -266,13 +267,24 @@ router.post('/:id/comments', protect, async (req, res) => {
       defaultAction = 'Reply to Assignee';
     }
 
+    const cleanAttachments = hasAttachments ? attachments.map(a => ({
+      url: a.url || '',
+      name: a.name || 'Attachment',
+      uploadedAt: new Date()
+    })) : [];
+
     task.history.push({
       action: action || defaultAction,
       status: task.status,
       updatedBy: req.user._id,
-      note: note.trim(),
+      note: (note || '').trim(),
+      attachments: cleanAttachments,
       timestamp: new Date()
     });
+
+    if (cleanAttachments.length > 0) {
+      task.attachments.push(...cleanAttachments);
+    }
 
     await task.save();
 
