@@ -89,3 +89,88 @@ export const sendTaskAssignmentEmail = async (assignedPerson, task, assignedByNa
     return null;
   }
 };
+
+/**
+ * Sends a notification email to the assignee whenever the task status changes.
+ */
+export const sendTaskStatusChangeEmail = async (assignee, task, updatedByName, previousStatus, newStatus, taskUrl) => {
+  const serviceId = SERVICE_ID;
+  const templateId = TASK_TEMPLATE_ID;
+  const publicKey = PUBLIC_KEY;
+
+  if (!assignee?.email) {
+    console.warn('Cannot send task status email: Assignee email is missing.');
+    return;
+  }
+
+  const prevText = previousStatus ? ` (Previous status: ${previousStatus})` : '';
+  const templateParams = {
+    to_name: assignee.name || 'Team Member',
+    to_email: assignee.email,
+    task_title: `[Status: ${newStatus}] ${task.title || 'Untitled Task'}`,
+    task_description: `Task status has been updated to "${newStatus}" by ${updatedByName || 'System Admin'}.${prevText}\n\nTask details: ${task.description || 'No description provided.'}`,
+    priority: task.priority || 'Medium',
+    department: task.category || task.department || 'General',
+    project_name: task.projectName || 'N/A',
+    due_date: task.dueDate ? new Date(task.dueDate).toLocaleDateString('en-GB') : 'N/A',
+    assigned_by: updatedByName || 'System Admin',
+    assigned_date: new Date().toLocaleDateString('en-GB'),
+    task_url: taskUrl || `${window.location.origin}/tasks-board`
+  };
+
+  console.log('Attempting to send Task Status Change EmailJS notification:', { serviceId, templateId, publicKey, templateParams });
+
+  try {
+    const response = await emailjs.send(serviceId, templateId, templateParams, publicKey);
+    console.log('Task status update email sent successfully!', response.status, response.text);
+    return response;
+  } catch (error) {
+    console.error('Failed to send task status update email:', error);
+    return null;
+  }
+};
+
+/**
+ * Sends a notification email with the reply text to the intended recipient.
+ */
+export const sendTaskReplyEmail = async (recipient, task, replyNote, senderName, attachmentsCount = 0, taskUrl) => {
+  const serviceId = SERVICE_ID;
+  const templateId = TASK_TEMPLATE_ID;
+  const publicKey = PUBLIC_KEY;
+
+  if (!recipient?.email) {
+    console.warn('Cannot send task reply email: Recipient email is missing.');
+    return;
+  }
+
+  let desc = `New reply from ${senderName || 'Team Member'}:\n\n"${replyNote || '(Attachment only)'}"`;
+  if (attachmentsCount > 0) {
+    desc += `\n\n[${attachmentsCount} file attachment(s) included]`;
+  }
+  desc += `\n\nTask: ${task.title || 'Task'}`;
+
+  const templateParams = {
+    to_name: recipient.name || 'Team Member',
+    to_email: recipient.email,
+    task_title: `[New Reply] ${task.title || 'Task'}`,
+    task_description: desc,
+    priority: task.priority || 'Medium',
+    department: task.category || task.department || 'General',
+    project_name: task.projectName || 'N/A',
+    due_date: task.dueDate ? new Date(task.dueDate).toLocaleDateString('en-GB') : 'N/A',
+    assigned_by: senderName || 'Team Member',
+    assigned_date: new Date().toLocaleDateString('en-GB'),
+    task_url: taskUrl || `${window.location.origin}/tasks-board`
+  };
+
+  console.log('Attempting to send Task Reply EmailJS notification:', { serviceId, templateId, publicKey, templateParams });
+
+  try {
+    const response = await emailjs.send(serviceId, templateId, templateParams, publicKey);
+    console.log('Task reply email sent successfully!', response.status, response.text);
+    return response;
+  } catch (error) {
+    console.error('Failed to send task reply email:', error);
+    return null;
+  }
+};

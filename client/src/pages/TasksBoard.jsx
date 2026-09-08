@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth, API_URL } from '../context/AuthContext';
 import { useLocation } from 'react-router-dom';
-import { sendTaskAssignmentEmail } from '../utils/emailService';
+import { sendTaskAssignmentEmail, sendTaskStatusChangeEmail, sendTaskReplyEmail } from '../utils/emailService';
 import DateRangeFilter from '../components/DateRangeFilter';
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
@@ -1333,6 +1333,8 @@ const TasksBoard = () => {
   };
 
   const handleStatusChange = async (taskId, newStatus) => {
+    const targetTask = tasks.find(t => t._id === taskId);
+    const prevStatus = targetTask?.status;
     try {
       const res = await fetch(`${API_URL}/user-tasks/${taskId}`, {
         method: 'PUT',
@@ -1344,9 +1346,27 @@ const TasksBoard = () => {
       });
 
       if (res.ok) {
-        setTasks(prev => prev.map(t => t._id === taskId ? { ...t, status: newStatus } : t));
+        const updatedTask = await parseResponseJSON(res);
+        setTasks(prev => prev.map(t => t._id === taskId ? (updatedTask || { ...t, status: newStatus }) : t));
         setSuccessMsg('Status updated successfully');
         setTimeout(() => setSuccessMsg(''), 3000);
+
+        // Send EmailJS Task Status Change notification to the assignee
+        const assignedPerson = updatedTask?.assignedTo?.email 
+          ? updatedTask.assignedTo 
+          : (employees.find(emp => emp._id === (targetTask?.assignedTo?._id || targetTask?.assignedTo)) || targetTask?.assignedTo);
+
+        if (assignedPerson && assignedPerson.email) {
+          const taskUrl = `${window.location.origin}/tasks-board`;
+          sendTaskStatusChangeEmail(
+            assignedPerson,
+            updatedTask || targetTask,
+            user?.name || 'System Admin',
+            prevStatus,
+            newStatus,
+            taskUrl
+          ).catch(err => console.error('EmailJS status change email error:', err));
+        }
       } else {
         const data = await parseResponseJSON(res);
         setError(data?.message || 'Failed to update status');
@@ -1377,9 +1397,27 @@ const TasksBoard = () => {
       });
 
       if (res.ok) {
-        setTasks(prev => prev.map(t => t._id === taskId ? { ...t, status: 'Cancelled' } : t));
+        const updatedTask = await parseResponseJSON(res);
+        setTasks(prev => prev.map(t => t._id === taskId ? (updatedTask || { ...t, status: 'Cancelled' }) : t));
         setSuccessMsg('Task cancelled successfully');
         setTimeout(() => setSuccessMsg(''), 3000);
+
+        // Send EmailJS Task Status Change notification to the assignee
+        const assignedPerson = updatedTask?.assignedTo?.email 
+          ? updatedTask.assignedTo 
+          : (employees.find(emp => emp._id === (targetTask?.assignedTo?._id || targetTask?.assignedTo)) || targetTask?.assignedTo);
+
+        if (assignedPerson && assignedPerson.email) {
+          const taskUrl = `${window.location.origin}/tasks-board`;
+          sendTaskStatusChangeEmail(
+            assignedPerson,
+            updatedTask || targetTask,
+            user?.name || 'System Admin',
+            targetTask?.status,
+            'Cancelled',
+            taskUrl
+          ).catch(err => console.error('EmailJS cancel task email error:', err));
+        }
       } else {
         const data = await parseResponseJSON(res);
         setError(data?.message || 'Failed to cancel task');
@@ -1443,6 +1481,25 @@ const TasksBoard = () => {
           setSelectedTaskForHistory(updatedTask);
           setTasks(prev => prev.map(t => t._id === updatedTask._id ? updatedTask : t));
         }
+
+        // Send EmailJS Task Reply Notification to the recipient
+        const isCurrentAssignee = (user?._id || user?.id)?.toString() === (selectedTaskForHistory.assignedTo?._id || selectedTaskForHistory.assignedTo)?.toString();
+        const recipientUser = isCurrentAssignee
+          ? (updatedTask?.assignedBy || selectedTaskForHistory.assignedBy || employees.find(e => e._id === (selectedTaskForHistory.assignedBy?._id || selectedTaskForHistory.assignedBy)))
+          : (updatedTask?.assignedTo || selectedTaskForHistory.assignedTo || employees.find(e => e._id === (selectedTaskForHistory.assignedTo?._id || selectedTaskForHistory.assignedTo)));
+
+        if (recipientUser && recipientUser.email) {
+          const taskUrl = `${window.location.origin}/tasks-board`;
+          sendTaskReplyEmail(
+            recipientUser,
+            updatedTask || selectedTaskForHistory,
+            (newCommentNote || '').trim(),
+            user?.name || 'Team Member',
+            replyFiles.length,
+            taskUrl
+          ).catch(err => console.error('EmailJS reply email error:', err));
+        }
+
         setNewCommentNote('');
         setReplyFiles([]);
         setSuccessMsg('Reply added successfully');
