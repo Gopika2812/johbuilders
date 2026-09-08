@@ -6,7 +6,6 @@ import { exportHtmlSheetsToExcel } from '../utils/excelExporter';
 import SearchableSelect from '../components/SearchableSelect';
 import SearchableMultiSelect from '../components/SearchableMultiSelect';
 import DateRangeFilter from '../components/DateRangeFilter';
-import { sendLeadAssignmentEmail } from '../utils/emailService';
 import {
   Users,
   Plus,
@@ -1019,24 +1018,6 @@ const LeadsDirectory = () => {
         setEditModalOpen(false);
         fetchLeads();
 
-        // Send EmailJS notification on employee assignment update
-        const prevAssigneeId = selectedLeadForEdit.assignedTo?._id || selectedLeadForEdit.assignedTo || '';
-        const newAssigneeId = editAssignedToId || '';
-        console.log("Email Notification Check (Update):", { prevAssigneeId, newAssigneeId, emailTriggerEnabled: newAssigneeId && newAssigneeId !== prevAssigneeId });
-        if (newAssigneeId && newAssigneeId !== prevAssigneeId) {
-          const matchedEmployee = employees.find(emp => emp._id === newAssigneeId);
-          console.log("Email Notification Employee (Update):", { employeeFound: !!matchedEmployee, employeeEmail: matchedEmployee?.email });
-          if (matchedEmployee && matchedEmployee.email) {
-            const proj = projects.find(p => p._id === editProjectId);
-            console.log("Triggering EmailJS lead assignment email (Update)...");
-            sendLeadAssignmentEmail(
-              matchedEmployee,
-              { name: editName, phone: editPhoneCountryCode + editPhoneLocal, projectCode: proj ? proj.code : 'N/A' },
-              user.name || 'System Admin',
-              user.email
-            ).catch(e => console.error("EmailJS Error:", e));
-          }
-        }
 
         // Trigger WhatsApp notification if moved to Site Visit or Booking
         if (editStatus === 'Site Visit') {
@@ -1322,24 +1303,10 @@ const LeadsDirectory = () => {
         setSuccessMsg(data.message);
         setCreateModalOpen(false);
 
-        // Send EmailJS notification on lead creation assignment
+        // 📲 Trigger WhatsApp Notification if enabled
         const assignedId = payload.assignedTo || '';
-        console.log("Email Notification Check (Create):", { assignedId });
         if (assignedId) {
           const matchedEmployee = employees.find(emp => emp._id === assignedId) || (assignedId === user?._id ? user : null);
-          console.log("Email Notification Employee (Create):", { employeeFound: !!matchedEmployee, employeeEmail: matchedEmployee?.email });
-          if (matchedEmployee && matchedEmployee.email) {
-            const proj = projects.find(p => p._id === selectedProjectId);
-            console.log("Triggering EmailJS lead assignment email (Create)...");
-            sendLeadAssignmentEmail(
-              matchedEmployee,
-              { name: payload.name, phone: payload.phone, projectCode: proj ? proj.code : 'N/A' },
-              user.name || 'System Admin',
-              user.email
-            ).catch(e => console.error("EmailJS Error:", e));
-          }
-
-          // 📲 Trigger WhatsApp Notification if enabled
           if (sendWhatsAppAlert && matchedEmployee) {
             const phoneRaw = matchedEmployee.phone || matchedEmployee.mobile || '';
             if (phoneRaw) {
