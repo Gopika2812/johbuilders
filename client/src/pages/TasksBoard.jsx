@@ -418,11 +418,15 @@ const TasksBoard = () => {
     tasks: []
   });
 
-  // Pending Tasks Alert Modal State
+  // Pending Tasks Alert Modal State (Only tasks assigned to the logged-in user)
+  const userIdentifier = user?._id || user?.id || user?.email || 'current_user';
+  const dismissedStorageKey = `jb_dismissed_pending_tasks_${userIdentifier}`;
+  const dismissedAllStorageKey = `jb_pending_alert_dismissed_all_${userIdentifier}`;
+
   const [pendingAlertModalOpen, setPendingAlertModalOpen] = useState(false);
   const [dismissedPendingTaskIds, setDismissedPendingTaskIds] = useState(() => {
     try {
-      const saved = sessionStorage.getItem('jb_dismissed_pending_task_ids');
+      const saved = sessionStorage.getItem(`jb_dismissed_pending_tasks_${user?._id || user?.id || user?.email || 'current_user'}`);
       return saved ? JSON.parse(saved) : [];
     } catch (e) {
       return [];
@@ -431,40 +435,50 @@ const TasksBoard = () => {
   const [pendingModalSearch, setPendingModalSearch] = useState('');
   const hasAutoOpenedPendingAlertRef = useRef(false);
 
-  // All pending tasks (status !== 'Completed' && status !== 'Cancelled')
+  // All pending tasks assigned to the currently logged in user (status !== 'Completed' && status !== 'Cancelled')
   const allPendingTasks = useMemo(() => {
+    if (!user) return [];
     return tasks.filter(t => {
       const isPendingStatus = t.status !== 'Completed' && t.status !== 'Cancelled';
       if (!isPendingStatus) return false;
-      if (isSuperAdmin) return true;
+
+      // Only show tasks assigned to the currently logged in user
       const assignedId = (t.assignedTo?._id || t.assignedTo)?.toString();
       const currentUserId = (user?._id || user?.id)?.toString();
-      const userEmail = user?.email?.toLowerCase();
-      const taskEmail = t.assignedTo?.email?.toLowerCase();
-      return (assignedId && assignedId === currentUserId) || (userEmail && taskEmail && userEmail === taskEmail);
+      const isIdMatch = Boolean(assignedId && currentUserId && assignedId === currentUserId);
+
+      const userEmail = user?.email?.trim().toLowerCase();
+      const taskEmail = t.assignedTo?.email?.trim().toLowerCase();
+      const isEmailMatch = Boolean(userEmail && taskEmail && userEmail === taskEmail);
+
+      const userName = user?.name?.trim().toLowerCase();
+      const taskAssignedName = (typeof t.assignedTo === 'string' ? t.assignedTo : t.assignedTo?.name)?.trim().toLowerCase();
+      const isNameMatch = Boolean(userName && taskAssignedName && userName === taskAssignedName);
+
+      return isIdMatch || isEmailMatch || isNameMatch;
     });
-  }, [tasks, isSuperAdmin, user]);
+  }, [tasks, user]);
 
   const visiblePendingTasks = useMemo(() => {
     return allPendingTasks.filter(t => !dismissedPendingTaskIds.includes(t._id));
   }, [allPendingTasks, dismissedPendingTaskIds]);
 
-  // Auto-open on initial entry of Task Scheduler (only 1st time)
+  // Auto-open on initial entry of Task Scheduler (only 1st time, only if this user has pending tasks)
   useEffect(() => {
     if (!loading && tasks.length > 0 && !hasAutoOpenedPendingAlertRef.current) {
       hasAutoOpenedPendingAlertRef.current = true;
-      const dismissedAllSession = sessionStorage.getItem('jb_pending_alert_dismissed_all');
+      const dismissedAllSession = sessionStorage.getItem(dismissedAllStorageKey);
       if (!dismissedAllSession && visiblePendingTasks.length > 0) {
         setPendingAlertModalOpen(true);
       }
     }
-  }, [loading, tasks, visiblePendingTasks.length]);
+  }, [loading, tasks, visiblePendingTasks.length, dismissedAllStorageKey]);
 
   const handleDismissSinglePending = (taskId) => {
     setDismissedPendingTaskIds(prev => {
       const updated = [...prev, taskId];
       try {
-        sessionStorage.setItem('jb_dismissed_pending_task_ids', JSON.stringify(updated));
+        sessionStorage.setItem(dismissedStorageKey, JSON.stringify(updated));
       } catch (e) {}
       if (allPendingTasks.filter(t => !updated.includes(t._id)).length === 0) {
         setPendingAlertModalOpen(false);
@@ -475,7 +489,7 @@ const TasksBoard = () => {
 
   const handleDismissAllPending = () => {
     try {
-      sessionStorage.setItem('jb_pending_alert_dismissed_all', 'true');
+      sessionStorage.setItem(dismissedAllStorageKey, 'true');
     } catch (e) {}
     setDismissedPendingTaskIds(allPendingTasks.map(t => t._id));
     setPendingAlertModalOpen(false);
@@ -516,11 +530,13 @@ const TasksBoard = () => {
     if (visiblePendingTasks.length === 0 && allPendingTasks.length > 0) {
       setDismissedPendingTaskIds([]);
       try {
-        sessionStorage.removeItem('jb_pending_alert_dismissed_all');
-        sessionStorage.removeItem('jb_dismissed_pending_task_ids');
+        sessionStorage.removeItem(dismissedAllStorageKey);
+        sessionStorage.removeItem(dismissedStorageKey);
       } catch (e) {}
     }
-    setPendingAlertModalOpen(true);
+    if (allPendingTasks.length > 0) {
+      setPendingAlertModalOpen(true);
+    }
   };
 
   const fetchPerformanceTasks = async (sDate, eDate) => {
@@ -3598,13 +3614,13 @@ const TasksBoard = () => {
                 </div>
                 <div>
                   <h3 className="text-base sm:text-lg font-black tracking-wide flex items-center gap-2">
-                    <span>Pending Tasks Requiring Action</span>
+                    <span>Pending Tasks Assigned to You</span>
                     <span className="px-2.5 py-0.5 rounded-full text-[11px] font-extrabold bg-white/20 text-rose-100 border border-white/20">
                       {visiblePendingTasks.length} Pending
                     </span>
                   </h3>
                   <p className="text-[11px] text-rose-100/90 font-medium">
-                    Review your pending tasks below. Take action on each task individually or dismiss.
+                    Review pending tasks assigned to you. Take action on each task individually or dismiss.
                   </p>
                 </div>
               </div>
