@@ -1118,6 +1118,7 @@ router.get('/stats', protect, async (req, res) => {
             name: l.name,
             phone: l.phone,
             leadSource: l.leadSource || 'Direct Visit',
+            referenceName: l.referenceName || '',
             projectType: l.project?.projectType || 'N/A',
             projectName: l.project?.name || 'N/A',
             assignedTo: l.assignedTo?.name || 'Unassigned',

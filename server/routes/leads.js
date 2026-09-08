@@ -150,7 +150,7 @@ router.get('/phone/:phone', protect, async (req, res) => {
 // @route   POST /api/leads
 // @desc    Create a new lead (or reopen existing if duplicate phone)
 router.post('/', protect, async (req, res) => {
-  const { leadType, salutation, name, phone, alternativePhone, address, profession, email, location, bankLoan, bankLoanPercentage, leadSource, activeAd, projectLocation, project, assignedTo, leadCost, followUpInfo, leadCategory, creationDate } = req.body;
+  const { leadType, salutation, name, phone, alternativePhone, address, profession, email, location, bankLoan, bankLoanPercentage, leadSource, referenceName, activeAd, projectLocation, project, assignedTo, leadCost, followUpInfo, leadCategory, creationDate } = req.body;
 
   try {
     let targetCreatedAt = undefined;
@@ -241,6 +241,7 @@ router.post('/', protect, async (req, res) => {
       lead.isReopened = true;
       lead.leadCost = Number(leadCost) || 0;
       if (leadCategory) lead.leadCategory = leadCategory;
+      if (referenceName !== undefined) lead.referenceName = referenceName || '';
 
       if (leadType === 'Lead') {
         lead.leadSource = leadSource || '';
@@ -295,6 +296,7 @@ router.post('/', protect, async (req, res) => {
       bankLoan: bankLoan || 'No',
       bankLoanPercentage: Number(bankLoanPercentage) || 0,
       project,
+      referenceName: referenceName || '',
       assignedTo: (finalAssignedTo && finalAssignedTo.toString().trim() !== '') ? finalAssignedTo : undefined,
       assignedBy: (finalAssignedTo && finalAssignedTo.toString().trim() !== '') ? req.user._id : undefined,
       status: defaultStatus,
@@ -349,7 +351,7 @@ router.post('/', protect, async (req, res) => {
 // @route   PUT /api/leads/:id
 // @desc    Update lead details (status, assignment)
 router.put('/:id', protect, async (req, res) => {
-  const { status, assignedTo, salutation, name, phone, alternativePhone, leadType, leadCost, address, profession, email, location, bankLoan, bankLoanPercentage, leadSource, activeAd, projectLocation, project, bookingInfo, followUpInfo, isClosed, closeRemarks, isRevert, leadCategory } = req.body;
+  const { status, assignedTo, salutation, name, phone, alternativePhone, leadType, leadCost, address, profession, email, location, bankLoan, bankLoanPercentage, leadSource, referenceName, activeAd, projectLocation, project, bookingInfo, followUpInfo, isClosed, closeRemarks, isRevert, leadCategory } = req.body;
 
   try {
     const lead = await Lead.findById(req.params.id);
@@ -478,6 +480,7 @@ router.put('/:id', protect, async (req, res) => {
     }
 
     if (canEditLockedFields && leadSource) lead.leadSource = leadSource;
+    if (canEditLockedFields && referenceName !== undefined) lead.referenceName = referenceName;
     if (lead.leadType === 'Lead') {
       if (canEditLockedFields && activeAd) lead.activeAd = activeAd;
     } else {
@@ -769,10 +772,19 @@ router.post('/bulk-import', protect, async (req, res) => {
 
       let existingLead = await Lead.findOne({ phone: cleanPhone, project: matchedProject._id });
 
+      let parsedLeadSource = rawLeadSource ? String(rawLeadSource).trim() : '';
+      let parsedRefName = item.referenceName || item['Reference Name'] || item['Referred By'] || '';
+      const refMatch = parsedLeadSource.match(/^reference\s*[\(\-:]\s*(?:ref:)?\s*(.*?)\)?$/i);
+      if (refMatch) {
+        parsedLeadSource = 'Reference';
+        if (!parsedRefName) parsedRefName = refMatch[1].replace(/\)$/, '').trim();
+      }
+
       if (existingLead) {
         existingLead.name = String(rawCustomerName).trim();
         if (cleanAltPhone) existingLead.alternativePhone = cleanAltPhone;
-        if (rawLeadSource) existingLead.leadSource = String(rawLeadSource).trim();
+        if (parsedLeadSource) existingLead.leadSource = parsedLeadSource;
+        if (parsedRefName) existingLead.referenceName = parsedRefName;
         if (matchedUser) {
           existingLead.assignedTo = matchedUser._id;
           existingLead.assignedBy = req.user._id;
@@ -788,7 +800,8 @@ router.post('/bulk-import', protect, async (req, res) => {
           phone: cleanPhone,
           alternativePhone: cleanAltPhone || '',
           project: matchedProject._id,
-          leadSource: rawLeadSource ? String(rawLeadSource).trim() : 'Bulk Import',
+          leadSource: parsedLeadSource || 'Bulk Import',
+          referenceName: parsedRefName || '',
           assignedTo: matchedUser ? matchedUser._id : undefined,
           assignedBy: matchedUser ? req.user._id : undefined,
           status: defaultStatus,

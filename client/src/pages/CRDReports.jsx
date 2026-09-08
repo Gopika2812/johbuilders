@@ -611,7 +611,9 @@ const CRDReports = () => {
         groupedByExec[execName].forEach((lead, idx) => {
           const dateStr = new Date(lead.createdAt).toLocaleDateString('en-GB').replace(/\//g, '.');
           const phoneStr = lead.phone || '&nbsp;';
-          const sourceStr = lead.leadSource || '&nbsp;';
+          const sourceStr = (lead.leadSource?.toLowerCase() === 'reference' && lead.referenceName)
+            ? `Reference (Ref: ${lead.referenceName})`
+            : (lead.leadSource || '&nbsp;');
           const projectStr = lead.project?.code || '&nbsp;';
           const placeStr = lead.address ? lead.address.split(',')[0] : '&nbsp;';
           const statusStr = formatLeadStatusForReport(lead);
@@ -782,7 +784,9 @@ const CRDReports = () => {
           // Enquiry Status column is workflow status (e.g. lost, future followup, followup)
           const statusStr = formatLeadStatusForReport(lead);
           const remarksStr = getFormattedLeadRemarks(lead, '&nbsp;');
-          const sourceStr = lead.leadSource || '&nbsp;';
+          const sourceStr = (lead.leadSource?.toLowerCase() === 'reference' && lead.referenceName)
+            ? `Reference (Ref: ${lead.referenceName})`
+            : (lead.leadSource || '&nbsp;');
           const rowClass = idx % 2 === 1 ? 'class="even-row"' : '';
 
           html += `

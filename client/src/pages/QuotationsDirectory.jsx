@@ -392,6 +392,7 @@ const QuotationsDirectory = () => {
                           {q.lead?.leadSource && (
                             <span className="px-2 py-0.5 bg-[#0e623a]/10 text-[#0e623a] text-[10px] font-extrabold rounded-md border border-[#0e623a]/20 shrink-0">
                               {q.lead.leadSource}
+                              {q.lead.leadSource?.toLowerCase() === 'reference' && q.lead.referenceName ? ` (Ref: ${q.lead.referenceName})` : ''}
                             </span>
                           )}
                         </div>

@@ -696,7 +696,9 @@ const KPIInsights = () => {
         groupedByExec[execName].forEach((lead, idx) => {
           const dateStr = new Date(lead.createdAt).toLocaleDateString('en-GB').replace(/\//g, '.');
           const phoneStr = lead.phone || '';
-          const sourceStr = lead.leadSource || '';
+          const sourceStr = (lead.leadSource?.toLowerCase() === 'reference' && lead.referenceName)
+            ? `Reference (Ref: ${lead.referenceName})`
+            : (lead.leadSource || '');
           const projectStr = lead.project?.code || '';
           const placeStr = lead.address ? lead.address.split(',')[0] : '';
           const statusStr = formatLeadStatusForReport(lead);
@@ -876,7 +878,9 @@ const KPIInsights = () => {
           // Enquiry Status column is workflow status (e.g. lost, future followup, followup)
           const statusStr = formatLeadStatusForReport(lead);
           const remarksStr = getFormattedLeadRemarks(lead, '');
-          const sourceStr = lead.leadSource || '';
+          const sourceStr = (lead.leadSource?.toLowerCase() === 'reference' && lead.referenceName)
+            ? `Reference (Ref: ${lead.referenceName})`
+            : (lead.leadSource || '');
           const rowClass = idx % 2 === 1 ? 'class="even-row"' : '';
 
           html += `

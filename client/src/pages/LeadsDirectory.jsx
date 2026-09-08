@@ -485,6 +485,7 @@ const LeadsDirectory = () => {
   // Lead-specific fields
   const [availableSources, setAvailableSources] = useState(SOURCE_TYPES);
   const [leadSource, setLeadSource] = useState('');
+  const [referenceName, setReferenceName] = useState('');
   const [activeAds, setActiveAds] = useState([]); // List of active ads from selected project
   const [selectedAdId, setSelectedAdId] = useState('');
   const [fetchedAdLink, setFetchedAdLink] = useState('');
@@ -520,6 +521,7 @@ const LeadsDirectory = () => {
   const [editProjectId, setEditProjectId] = useState('');
   const [editAssignedToId, setEditAssignedToId] = useState('');
   const [editLeadSource, setEditLeadSource] = useState('');
+  const [editReferenceName, setEditReferenceName] = useState('');
   const [editAdId, setEditAdId] = useState('');
   const [editBankLoan, setEditBankLoan] = useState('No');
   const [editBankLoanPercentage, setEditBankLoanPercentage] = useState(0);
@@ -905,6 +907,7 @@ const LeadsDirectory = () => {
     setEditAssignedToId(lead.assignedTo?._id || lead.assignedTo || '');
     setEditStatus(lead.status || 'New');
     setEditLeadSource(lead.leadSource || '');
+    setEditReferenceName(lead.referenceName || '');
     setEditBankLoan(lead.bankLoan || 'No');
     setEditBankLoanPercentage(lead.bankLoanPercentage || 0);
     setEditLeadCost(String(lead.leadCost || '0'));
@@ -942,6 +945,10 @@ const LeadsDirectory = () => {
         setError('Please fill in all mandatory fields.');
         return;
       }
+    }
+    if (editLeadSource?.toLowerCase() === 'reference' && !editReferenceName.trim()) {
+      setError('Please enter the reference name.');
+      return;
     }
     if (!editAssignedToId) {
       setError('Please select an assigned executive.');
@@ -988,6 +995,7 @@ const LeadsDirectory = () => {
       status: editStatus,
       leadCost: Number(editLeadCost) || 0,
       leadSource: editLeadSource,
+      referenceName: editReferenceName.trim(),
       leadCategory: editLeadCategory,
       activeAd: editLeadType === 'Lead' && adObj ? { name: adObj.name, link: adObj.link } : { name: '', link: '' },
       followUpInfo: {
@@ -1230,6 +1238,10 @@ const LeadsDirectory = () => {
       setError('Please fill in all mandatory fields (Title, Name, Lead Source, Project Code).');
       return;
     }
+    if (leadSource?.toLowerCase() === 'reference' && !referenceName.trim()) {
+      setError('Please enter the reference name.');
+      return;
+    }
     if (leadType === 'Direct Visit' && (!directFollowRemarks || !directFollowRemarks.trim())) {
       setError('Notes (Narration) is required for Direct Visit.');
       return;
@@ -1277,6 +1289,7 @@ const LeadsDirectory = () => {
       assignedTo: previouslyAssignedExecutive ? previouslyAssignedExecutive._id : (leadType === 'Direct Visit' ? user?._id : (assignedToId || user?._id)),
       leadCost: Number(leadCost) || 0,
       leadSource: leadSource,
+      referenceName: referenceName.trim(),
       leadCategory: leadCategory,
       creationDate: creationDate,
       activeAd: leadType === 'Lead' && adObj ? { name: adObj.name, link: adObj.link } : undefined
@@ -1930,7 +1943,11 @@ const LeadsDirectory = () => {
       filteredLeadsList.forEach((lead, index) => {
         const custName = `${lead.salutation && !lead.name?.startsWith(lead.salutation) ? `${lead.salutation} ` : ''}${lead.name || ''}`.trim();
         const contactNo = lead.phone || '';
-        const sourceStr = lead.leadSource || (lead.leadType === 'Direct Visit' ? 'Direct Visit' : '');
+        const sourceStr = lead.leadSource
+          ? (lead.leadSource.toLowerCase() === 'reference' && lead.referenceName
+              ? `${lead.leadSource} (Ref: ${lead.referenceName})`
+              : lead.leadSource)
+          : (lead.leadType === 'Direct Visit' ? 'Direct Visit' : '');
         const projectStr = lead.project?.code || lead.project?.name || '';
         const execName = lead.assignedTo?.name || 'UNASSIGNED';
         const assignerName = lead.assignedBy?.name || '—';
@@ -1995,6 +2012,7 @@ const LeadsDirectory = () => {
     setAssignedToId(user?.role?.toLowerCase() === 'sales person' ? user._id : '');
     setLeadType(user?.role?.toLowerCase() === 'sales person' ? 'Direct Visit' : 'Lead');
     setLeadSource('');
+    setReferenceName('');
     setSelectedAdId('');
     setFetchedAdLink('');
     setProjectLocation('');
@@ -2376,6 +2394,11 @@ const LeadsDirectory = () => {
                       <td className="px-2 py-1.5 sm:py-2 border-b border-black-100">
                         <div className="space-y-0.5 leading-tight">
                           <div className="text-[11px] font-semibold text-black-700">{lead.leadSource || (lead.leadType === 'Direct Visit' ? 'Direct Visit' : '—')}</div>
+                          {lead.leadSource?.toLowerCase() === 'reference' && lead.referenceName && (
+                            <div className="text-[10.5px] font-bold text-[#0e623a]">
+                              Ref: <span className="font-semibold text-black-800">{lead.referenceName}</span>
+                            </div>
+                          )}
                           {lead.leadType === 'Lead' && lead.activeAd?.name && (
                             <div className="text-[11px] text-black-500 flex flex-col gap-0.5">
                               <div className="flex items-center gap-1">
@@ -2900,6 +2923,23 @@ const LeadsDirectory = () => {
                     </div>
                   </div>
 
+                  {/* Reference Name Field */}
+                  {leadSource?.toLowerCase() === 'reference' && (
+                    <div className="bg-[#f0f9f4] p-3.5 rounded-2xl border border-[#bce2cb]/60 space-y-1.5 animate-in fade-in duration-200">
+                      <label className="text-xs font-bold text-[#0e623a] uppercase tracking-wider block">
+                        Reference Name / Referred By <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Enter name of person who referred this lead..."
+                        value={referenceName}
+                        onChange={(e) => setReferenceName(e.target.value)}
+                        className="w-full px-4 py-2.5 bg-white border border-[#bce2cb] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0e623a] text-sm font-semibold text-black-800 placeholder:text-black-400 placeholder:font-normal"
+                        required
+                      />
+                    </div>
+                  )}
+
                   {/* Ads Sub-dropdown (dynamic based on project) */}
                   {selectedProjectId && leadSource === 'Digital Marketing' && (
                     <div className="bg-[#f0f9f4] p-4 rounded-2xl border border-[#bce2cb]/40 space-y-3">
@@ -2953,6 +2993,23 @@ const LeadsDirectory = () => {
                       />
                     </div>
                   </div>
+
+                  {/* Reference Name Field for Direct Visit / Other */}
+                  {leadSource?.toLowerCase() === 'reference' && (
+                    <div className="bg-[#f0f9f4] p-3.5 rounded-2xl border border-[#bce2cb]/60 space-y-1.5 animate-in fade-in duration-200">
+                      <label className="text-xs font-bold text-[#0e623a] uppercase tracking-wider block">
+                        Reference Name / Referred By <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Enter name of person who referred this lead..."
+                        value={referenceName}
+                        onChange={(e) => setReferenceName(e.target.value)}
+                        className="w-full px-4 py-2.5 bg-white border border-[#bce2cb] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0e623a] text-sm font-semibold text-black-800 placeholder:text-black-400 placeholder:font-normal"
+                        required
+                      />
+                    </div>
+                  )}
                 </>
               )}
 
@@ -3510,6 +3567,25 @@ const LeadsDirectory = () => {
                     </div>
                   </div>
 
+                  {/* Reference Name Field */}
+                  {editLeadSource?.toLowerCase() === 'reference' && (
+                    <div className="bg-[#f0f9f4] p-3.5 rounded-2xl border border-[#bce2cb]/60 space-y-1.5 text-left animate-in fade-in duration-200">
+                      <label className="text-xs font-bold text-[#0e623a] uppercase tracking-wider block flex items-center justify-between">
+                        <span>Reference Name / Referred By <span className="text-red-500">*</span></span>
+                        {isLockedForNonAdmin && <span className="text-[10px] text-amber-800 bg-amber-100 font-extrabold px-2 py-0.5 rounded border border-amber-300">[LOCKED]</span>}
+                      </label>
+                      <input
+                        type="text"
+                        disabled={isLockedForNonAdmin}
+                        placeholder="Enter name of person who referred this lead..."
+                        value={editReferenceName}
+                        onChange={(e) => setEditReferenceName(e.target.value)}
+                        className="w-full px-4 py-2.5 bg-white border border-[#bce2cb] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0e623a] text-sm font-semibold text-black-800 placeholder:text-black-400 placeholder:font-normal disabled:bg-gray-100 disabled:cursor-not-allowed"
+                        required
+                      />
+                    </div>
+                  )}
+
                   {/* Ads Sub-dropdown (dynamic based on project) */}
                   {editProjectId && editLeadSource === 'Digital Marketing' && (
                     <div className="bg-amber-50/50 p-4 rounded-2xl border border-amber-200/40 space-y-3 text-left">
@@ -3562,6 +3638,25 @@ const LeadsDirectory = () => {
                       />
                     </div>
                   </div>
+
+                  {/* Reference Name Field */}
+                  {editLeadSource?.toLowerCase() === 'reference' && (
+                    <div className="bg-[#f0f9f4] p-3.5 rounded-2xl border border-[#bce2cb]/60 space-y-1.5 text-left animate-in fade-in duration-200">
+                      <label className="text-xs font-bold text-[#0e623a] uppercase tracking-wider block flex items-center justify-between">
+                        <span>Reference Name / Referred By <span className="text-red-500">*</span></span>
+                        {isLockedForNonAdmin && <span className="text-[10px] text-amber-800 bg-amber-100 font-extrabold px-2 py-0.5 rounded border border-amber-300">[LOCKED]</span>}
+                      </label>
+                      <input
+                        type="text"
+                        disabled={isLockedForNonAdmin}
+                        placeholder="Enter name of person who referred this lead..."
+                        value={editReferenceName}
+                        onChange={(e) => setEditReferenceName(e.target.value)}
+                        className="w-full px-4 py-2.5 bg-white border border-[#bce2cb] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0e623a] text-sm font-semibold text-black-800 placeholder:text-black-400 placeholder:font-normal disabled:bg-gray-100 disabled:cursor-not-allowed"
+                        required
+                      />
+                    </div>
+                  )}
                 </>
               )}
 
@@ -3741,6 +3836,20 @@ const LeadsDirectory = () => {
             </div>
 
             <div className="p-6 space-y-4 max-h-[50vh] overflow-y-auto">
+              {selectedLeadForHistory.leadSource && (
+                <div className="bg-[#f0f9f4] p-3 rounded-2xl border border-[#bce2cb]/60 text-xs flex flex-wrap justify-between items-center gap-2">
+                  <div>
+                    <span className="text-black-400 font-semibold">Lead Source: </span>
+                    <strong className="text-black-800 font-bold">{selectedLeadForHistory.leadSource}</strong>
+                  </div>
+                  {selectedLeadForHistory.leadSource?.toLowerCase() === 'reference' && selectedLeadForHistory.referenceName && (
+                    <div className="bg-white px-2.5 py-1 rounded-lg border border-[#bce2cb] text-[#0e623a] font-bold text-[11px]">
+                      Ref: <span className="text-black-800">{selectedLeadForHistory.referenceName}</span>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {selectedLeadForHistory.history?.length > 0 ? (
                 <div className="relative border-l border-black-200 ml-3 space-y-6">
                   {[...selectedLeadForHistory.history].reverse().map((hist, idx) => (

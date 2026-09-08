@@ -58,6 +58,11 @@ const LeadSchema = new mongoose.Schema({
     type: String,
     default: ''
   },
+  referenceName: {
+    type: String,
+    default: '',
+    trim: true
+  },
   activeAd: {
     name: { type: String, default: '' },
     link: { type: String, default: '' }

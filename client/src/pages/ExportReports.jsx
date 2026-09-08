@@ -624,7 +624,9 @@ const ExportReports = () => {
         leadsList.forEach((lead, idx) => {
           const dateStr = new Date(lead.createdAt).toLocaleDateString('en-GB').replace(/\//g, '.');
           const phoneStr = lead.phone || '&nbsp;';
-          const sourceStr = lead.leadSource || '&nbsp;';
+          const sourceStr = (lead.leadSource?.toLowerCase() === 'reference' && lead.referenceName)
+            ? `Reference (Ref: ${lead.referenceName})`
+            : (lead.leadSource || '&nbsp;');
           const projectStr = lead.project?.name || lead.project?.code || 'Potheri';
           const locationStr = lead.address || lead.location || '&nbsp;';
           const statusStr = formatLeadStatusForReport(lead);
@@ -800,7 +802,9 @@ const ExportReports = () => {
             : new Date(lead.createdAt).toLocaleDateString('en-GB').replace(/\//g, '.');
 
           const phoneStr = lead.phone || '&nbsp;';
-          const sourceStr = lead.leadSource || '&nbsp;';
+          const sourceStr = (lead.leadSource?.toLowerCase() === 'reference' && lead.referenceName)
+            ? `Reference (Ref: ${lead.referenceName})`
+            : (lead.leadSource || '&nbsp;');
           const projectStr = lead.project?.name || lead.project?.code || 'Potheri';
           const locationStr = lead.address || lead.location || '&nbsp;';
           const statusStr = formatLeadStatusForReport(lead);
@@ -958,7 +962,9 @@ const ExportReports = () => {
         leadsList.forEach(lead => {
           const dateStr = new Date(lead.createdAt).toLocaleDateString('en-GB').replace(/\//g, '.');
           const phoneStr = lead.phone || '&nbsp;';
-          const sourceStr = lead.leadSource || '&nbsp;';
+          const sourceStr = (lead.leadSource?.toLowerCase() === 'reference' && lead.referenceName)
+            ? `Reference (Ref: ${lead.referenceName})`
+            : (lead.leadSource || '&nbsp;');
           const projectStr = lead.project?.name || lead.project?.code || 'Potheri';
           const locationStr = lead.address || lead.location || '&nbsp;';
           const statusStr = formatLeadStatusForReport(lead);
