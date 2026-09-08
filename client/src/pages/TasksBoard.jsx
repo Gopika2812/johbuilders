@@ -2150,16 +2150,6 @@ const TasksBoard = () => {
 
                               {canEditOrCancel && (
                                 <>
-                                  <button
-                                    onClick={() => {
-                                      setOpenActionMenuId(null);
-                                      handleOpenEditModal(task);
-                                    }}
-                                    className="w-full px-2.5 py-1.5 text-xs text-gray-700 hover:bg-gray-50 flex items-center gap-2 font-semibold transition cursor-pointer"
-                                  >
-                                    <Edit3 className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-                                    <span>Edit</span>
-                                  </button>
                                   <div className="border-t border-gray-100 my-0.5"></div>
                                   <button
                                     onClick={() => {
