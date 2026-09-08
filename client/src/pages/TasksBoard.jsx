@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useAuth, API_URL } from '../context/AuthContext';
 import { useLocation } from 'react-router-dom';
 import { sendTaskAssignmentEmail, sendTaskStatusChangeEmail, sendTaskReplyEmail } from '../utils/emailService';
@@ -31,6 +31,7 @@ import {
   Building,
   UploadCloud,
   Eye,
+  EyeOff,
   Download,
   Paperclip,
   PauseCircle,
@@ -46,7 +47,9 @@ import {
   TrendingUp,
   Award,
   Activity,
-  Percent
+  Percent,
+  ArrowRight,
+  CheckCheck
 } from 'lucide-react';
 
 const getTodayString = () => {
@@ -414,6 +417,111 @@ const TasksBoard = () => {
     loading: false,
     tasks: []
   });
+
+  // Pending Tasks Alert Modal State
+  const [pendingAlertModalOpen, setPendingAlertModalOpen] = useState(false);
+  const [dismissedPendingTaskIds, setDismissedPendingTaskIds] = useState(() => {
+    try {
+      const saved = sessionStorage.getItem('jb_dismissed_pending_task_ids');
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) {
+      return [];
+    }
+  });
+  const [pendingModalSearch, setPendingModalSearch] = useState('');
+  const hasAutoOpenedPendingAlertRef = useRef(false);
+
+  // All pending tasks (status !== 'Completed' && status !== 'Cancelled')
+  const allPendingTasks = useMemo(() => {
+    return tasks.filter(t => {
+      const isPendingStatus = t.status !== 'Completed' && t.status !== 'Cancelled';
+      if (!isPendingStatus) return false;
+      if (isSuperAdmin) return true;
+      const assignedId = (t.assignedTo?._id || t.assignedTo)?.toString();
+      const currentUserId = (user?._id || user?.id)?.toString();
+      const userEmail = user?.email?.toLowerCase();
+      const taskEmail = t.assignedTo?.email?.toLowerCase();
+      return (assignedId && assignedId === currentUserId) || (userEmail && taskEmail && userEmail === taskEmail);
+    });
+  }, [tasks, isSuperAdmin, user]);
+
+  const visiblePendingTasks = useMemo(() => {
+    return allPendingTasks.filter(t => !dismissedPendingTaskIds.includes(t._id));
+  }, [allPendingTasks, dismissedPendingTaskIds]);
+
+  // Auto-open on initial entry of Task Scheduler (only 1st time)
+  useEffect(() => {
+    if (!loading && tasks.length > 0 && !hasAutoOpenedPendingAlertRef.current) {
+      hasAutoOpenedPendingAlertRef.current = true;
+      const dismissedAllSession = sessionStorage.getItem('jb_pending_alert_dismissed_all');
+      if (!dismissedAllSession && visiblePendingTasks.length > 0) {
+        setPendingAlertModalOpen(true);
+      }
+    }
+  }, [loading, tasks, visiblePendingTasks.length]);
+
+  const handleDismissSinglePending = (taskId) => {
+    setDismissedPendingTaskIds(prev => {
+      const updated = [...prev, taskId];
+      try {
+        sessionStorage.setItem('jb_dismissed_pending_task_ids', JSON.stringify(updated));
+      } catch (e) {}
+      if (allPendingTasks.filter(t => !updated.includes(t._id)).length === 0) {
+        setPendingAlertModalOpen(false);
+      }
+      return updated;
+    });
+  };
+
+  const handleDismissAllPending = () => {
+    try {
+      sessionStorage.setItem('jb_pending_alert_dismissed_all', 'true');
+    } catch (e) {}
+    setDismissedPendingTaskIds(allPendingTasks.map(t => t._id));
+    setPendingAlertModalOpen(false);
+  };
+
+  const handleTakeActionOnPendingTask = (task) => {
+    setPendingAlertModalOpen(false);
+    handleOpenHistoryModal(task);
+  };
+
+  const getTaskOverdueInfo = (task) => {
+    if (!task.dueDate) return { isOverdue: false, days: 0 };
+    const due = new Date(task.dueDate);
+    due.setHours(23, 59, 59, 999);
+    const now = new Date();
+    if (now > due) {
+      const diffTime = Math.abs(now - due);
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      return { isOverdue: true, days: diffDays };
+    }
+    return { isOverdue: false, days: 0 };
+  };
+
+  const filteredVisiblePendingTasks = useMemo(() => {
+    if (!pendingModalSearch.trim()) return visiblePendingTasks;
+    const q = pendingModalSearch.toLowerCase();
+    return visiblePendingTasks.filter(t => {
+      const title = (t.title || '').toLowerCase();
+      const desc = (t.description || '').toLowerCase();
+      const proj = (t.project || '').toLowerCase();
+      const dept = (t.category || t.department || '').toLowerCase();
+      const assignee = (t.assignedTo?.name || '').toLowerCase();
+      return title.includes(q) || desc.includes(q) || proj.includes(q) || dept.includes(q) || assignee.includes(q);
+    });
+  }, [visiblePendingTasks, pendingModalSearch]);
+
+  const handleOpenPendingAlertManually = () => {
+    if (visiblePendingTasks.length === 0 && allPendingTasks.length > 0) {
+      setDismissedPendingTaskIds([]);
+      try {
+        sessionStorage.removeItem('jb_pending_alert_dismissed_all');
+        sessionStorage.removeItem('jb_dismissed_pending_task_ids');
+      } catch (e) {}
+    }
+    setPendingAlertModalOpen(true);
+  };
 
   const fetchPerformanceTasks = async (sDate, eDate) => {
     try {
@@ -1654,13 +1762,18 @@ const TasksBoard = () => {
 
         {/* 2. Pending Tasks (Red Colored Highlighted - right after Total) */}
         <div 
-          onClick={() => setStatusFilter(prev => prev === 'PENDING' ? 'ALL' : 'PENDING')}
+          onClick={() => {
+            setStatusFilter(prev => prev === 'PENDING' ? 'ALL' : 'PENDING');
+            if (allPendingTasks.length > 0) {
+              handleOpenPendingAlertManually();
+            }
+          }}
           className={`p-3.5 rounded-2xl border transition-all cursor-pointer ${
             statusFilter === 'PENDING' 
               ? 'bg-[#800d0d] text-white border-rose-600 shadow-md ring-2 ring-rose-500 scale-[1.02]' 
               : 'bg-[#b91c1c] text-white border-[#b91c1c] hover:bg-[#991b1b] shadow-sm'
           }`}
-          title="Click to filter Pending tasks (New & In Progress)"
+          title="Click to filter Pending tasks & open Pending alert popup"
         >
           <div className="flex items-center justify-between">
             <span className="text-[10px] font-extrabold uppercase text-rose-100">Pending Tasks</span>
@@ -3469,6 +3582,218 @@ const TasksBoard = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* 🚨 Pending Tasks Alert Popup Modal (Shows on 1st open of Task Scheduler) */}
+      {pendingAlertModalOpen && visiblePendingTasks.length > 0 && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[9999] flex items-center justify-center p-3 sm:p-6 animate-fadeIn">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden border border-gray-150">
+            {/* Modal Header */}
+            <div className="p-4 sm:p-5 bg-gradient-to-r from-[#800d0d] via-[#b91c1c] to-[#991b1b] text-white flex items-center justify-between shadow-md shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-white/15 flex items-center justify-center shadow-inner shrink-0">
+                  <Clock className="w-5 h-5 text-rose-200 animate-pulse" />
+                </div>
+                <div>
+                  <h3 className="text-base sm:text-lg font-black tracking-wide flex items-center gap-2">
+                    <span>Pending Tasks Requiring Action</span>
+                    <span className="px-2.5 py-0.5 rounded-full text-[11px] font-extrabold bg-white/20 text-rose-100 border border-white/20">
+                      {visiblePendingTasks.length} Pending
+                    </span>
+                  </h3>
+                  <p className="text-[11px] text-rose-100/90 font-medium">
+                    Review your pending tasks below. Take action on each task individually or dismiss.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleDismissAllPending}
+                  className="px-3 py-1.5 bg-white/15 hover:bg-white/25 text-white border border-white/30 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1.5 shadow-sm"
+                  title="Dismiss all pending tasks from this alert"
+                >
+                  <CheckCheck className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Dismiss All</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPendingAlertModalOpen(false)}
+                  className="p-2 text-white/80 hover:text-white hover:bg-white/20 rounded-xl transition cursor-pointer"
+                  title="Close popup"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Quick Search & Summary Bar */}
+            <div className="p-3 sm:px-5 sm:py-3 bg-rose-50/50 border-b border-rose-100 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 shrink-0">
+              <div className="relative flex-1 max-w-md">
+                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                <input
+                  type="text"
+                  value={pendingModalSearch}
+                  onChange={(e) => setPendingModalSearch(e.target.value)}
+                  placeholder="Filter pending tasks by title, project, assignee..."
+                  className="w-full pl-9 pr-3 py-1.5 bg-white border border-gray-200 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-rose-500"
+                />
+              </div>
+
+              <div className="flex items-center gap-2 text-xs font-bold text-gray-600">
+                <span>Showing <strong className="text-gray-900">{filteredVisiblePendingTasks.length}</strong> of <strong className="text-rose-700">{visiblePendingTasks.length}</strong> tasks</span>
+              </div>
+            </div>
+
+            {/* Scrollable Tasks List */}
+            <div className="overflow-y-auto p-4 sm:p-5 space-y-3.5 flex-1 bg-gray-50/60 max-h-[58vh]">
+              {filteredVisiblePendingTasks.length === 0 ? (
+                <div className="p-10 text-center text-gray-400 bg-white rounded-2xl border border-dashed border-gray-200 space-y-1">
+                  <AlertCircle className="w-8 h-8 mx-auto text-gray-300" />
+                  <p className="text-xs font-bold text-gray-600">No pending tasks match your search</p>
+                  <p className="text-[11px] text-gray-400">Try clearing the search query above.</p>
+                </div>
+              ) : (
+                filteredVisiblePendingTasks.map((task, idx) => {
+                  const overdueInfo = getTaskOverdueInfo(task);
+                  const priority = (task.priority || 'Medium').toUpperCase();
+                  const priorityColor = priority === 'HIGH' 
+                    ? 'bg-rose-50 text-rose-700 border-rose-200' 
+                    : priority === 'LOW' 
+                      ? 'bg-blue-50 text-blue-700 border-blue-200' 
+                      : 'bg-amber-50 text-amber-700 border-amber-200';
+
+                  const statusColor = task.status === 'In Progress'
+                    ? 'bg-amber-100 text-amber-800 border-amber-300'
+                    : task.status === 'On Hold'
+                      ? 'bg-purple-100 text-purple-800 border-purple-300'
+                      : 'bg-blue-100 text-blue-800 border-blue-300';
+
+                  return (
+                    <div 
+                      key={task._id || idx}
+                      className="bg-white rounded-2xl p-4 border border-gray-200 shadow-sm hover:shadow-md transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+                    >
+                      {/* Left side: Task metadata & details */}
+                      <div className="space-y-1.5 flex-1 min-w-0">
+                        {/* Top Badges Row */}
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          {task.project && (
+                            <span className="px-2 py-0.5 rounded-lg text-[10px] font-extrabold bg-blue-50 text-blue-700 border border-blue-200">
+                              {task.project}
+                            </span>
+                          )}
+                          {(task.category || task.department) && (
+                            <span className="px-2 py-0.5 rounded-lg text-[10px] font-extrabold bg-emerald-50 text-[#0e623a] border border-emerald-200">
+                              {task.category || task.department}
+                            </span>
+                          )}
+                          <span className={`px-2 py-0.5 rounded-lg text-[10px] font-extrabold uppercase border ${priorityColor}`}>
+                            {task.priority || 'Medium'}
+                          </span>
+                          <span className={`px-2 py-0.5 rounded-lg text-[10px] font-extrabold uppercase border ${statusColor}`}>
+                            {task.status || 'New'}
+                          </span>
+                          {overdueInfo.isOverdue ? (
+                            <span className="px-2 py-0.5 rounded-lg text-[10px] font-extrabold bg-rose-100 text-rose-700 border border-rose-300 flex items-center gap-1 animate-pulse">
+                              <AlertTriangle className="w-3 h-3" />
+                              <span>Overdue by {overdueInfo.days} day{overdueInfo.days > 1 ? 's' : ''}</span>
+                            </span>
+                          ) : task.dueDate ? (
+                            <span className="px-2 py-0.5 rounded-lg text-[10px] font-semibold bg-gray-100 text-gray-700 flex items-center gap-1">
+                              <Calendar className="w-3 h-3 text-gray-500" />
+                              <span>Due: {new Date(task.dueDate).toLocaleDateString('en-GB')}</span>
+                            </span>
+                          ) : null}
+                          {task.repeatType && task.repeatType !== 'None' && (
+                            <span className="px-2 py-0.5 rounded-lg text-[10px] font-bold text-purple-700 bg-purple-50 border border-purple-200">
+                              Every {task.reminderInterval || 1} {task.repeatType === 'Hourly' ? 'Hr' : 'Day'}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Title */}
+                        <h4 className="text-sm font-black text-gray-900 leading-snug">
+                          {task.title}
+                        </h4>
+
+                        {/* Assignee & Description */}
+                        <div className="flex items-center gap-3 text-xs text-gray-500 flex-wrap">
+                          <span className="flex items-center gap-1">
+                            <span className="font-semibold text-gray-400">Assigned To:</span>
+                            <strong className="text-gray-700">{task.assignedTo?.name || 'Unassigned'}</strong>
+                          </span>
+                          {task.assignedBy?.name && (
+                            <span className="flex items-center gap-1">
+                              <span className="font-semibold text-gray-400">By:</span>
+                              <span className="text-gray-600">{task.assignedBy.name}</span>
+                            </span>
+                          )}
+                          {task.description && (
+                            <span className="text-[11px] text-gray-400 line-clamp-1 italic">
+                              "{task.description}"
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Right side: Action Buttons for this task */}
+                      <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
+                        <button
+                          type="button"
+                          onClick={() => handleTakeActionOnPendingTask(task)}
+                          className="px-3.5 py-2 bg-gradient-to-r from-[#0e623a] to-[#004d2a] hover:from-[#0b502f] hover:to-[#003822] text-white font-bold text-xs rounded-xl shadow-sm hover:shadow transition cursor-pointer flex items-center gap-1.5 whitespace-nowrap"
+                          title="Open task to reply, attach files, or update status"
+                        >
+                          <ArrowRight className="w-3.5 h-3.5" />
+                          <span>Take Action</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => handleDismissSinglePending(task._id)}
+                          className="px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs rounded-xl border border-gray-200 transition cursor-pointer flex items-center gap-1 whitespace-nowrap"
+                          title="Dismiss this pending task from the alert popup"
+                        >
+                          <EyeOff className="w-3.5 h-3.5 text-gray-500" />
+                          <span>Dismiss</span>
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            {/* Modal Bottom Footer */}
+            <div className="p-3.5 sm:px-6 sm:py-4 bg-white border-t border-gray-200 flex flex-col sm:flex-row items-center justify-between gap-3 shrink-0">
+              <div className="text-xs text-gray-500 font-medium">
+                <span>Tip: Click <strong>Take Action</strong> to reply, upload attachments, or update status.</span>
+              </div>
+
+              <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+                <button
+                  type="button"
+                  onClick={handleDismissAllPending}
+                  className="px-4 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-bold text-xs rounded-xl transition cursor-pointer flex items-center gap-1.5"
+                  title="Dismiss all pending tasks"
+                >
+                  <CheckCheck className="w-3.5 h-3.5" />
+                  <span>Dismiss All ({visiblePendingTasks.length})</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setPendingAlertModalOpen(false)}
+                  className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs rounded-xl transition cursor-pointer"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
