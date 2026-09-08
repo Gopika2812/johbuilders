@@ -368,6 +368,7 @@ const TasksBoard = () => {
   // Task History & Comments Modal State
   const [historyModalOpen, setHistoryModalOpen] = useState(false);
   const [selectedTaskForHistory, setSelectedTaskForHistory] = useState(null);
+  const [viewingTask, setViewingTask] = useState(null);
   const [newCommentNote, setNewCommentNote] = useState('');
   const [commentSubmitting, setCommentSubmitting] = useState(false);
   const [replyFiles, setReplyFiles] = useState([]);
@@ -1793,8 +1794,39 @@ const TasksBoard = () => {
     return true;
   });
 
-  // Sort tasks so newest created/assigned tasks appear at the fresh top
+  // Status Priority Order for Task Board:
+  // 1. Pending tasks (In Progress, On Hold, Pending)
+  // 2. Overdue tasks
+  // 3. New
+  // 4. Completed
+  // 5. Cancelled
+  const getTaskStatusPriority = (task) => {
+    const over = isOverdated(task);
+    if ((task.status === 'In Progress' || task.status === 'On Hold' || task.status === 'Pending') && !over) {
+      return 1;
+    }
+    if (over) {
+      return 2;
+    }
+    if (task.status === 'New') {
+      return 3;
+    }
+    if (task.status === 'Completed') {
+      return 4;
+    }
+    if (task.status === 'Cancelled') {
+      return 5;
+    }
+    return 6;
+  };
+
+  // Sort tasks by Status Order (Pending -> Overdue -> New -> Completed), then newest first within group
   const sortedTasks = [...filteredTasks].sort((a, b) => {
+    const pA = getTaskStatusPriority(a);
+    const pB = getTaskStatusPriority(b);
+    if (pA !== pB) {
+      return pA - pB;
+    }
     const timeA = a.createdAt ? new Date(a.createdAt).getTime() : (a._id ? parseInt(a._id.substring(0, 8), 16) * 1000 : 0);
     const timeB = b.createdAt ? new Date(b.createdAt).getTime() : (b._id ? parseInt(b._id.substring(0, 8), 16) * 1000 : 0);
     return timeB - timeA;
@@ -2286,9 +2318,14 @@ const TasksBoard = () => {
 
                         {/* 3. Task Title */}
                         <td className="p-2">
-                          <span className="font-bold text-gray-900 text-xs block truncate max-w-[130px]" title={task.title}>
+                          <button
+                            type="button"
+                            onClick={() => setViewingTask(task)}
+                            className="font-bold text-[#0e623a] hover:text-[#0b4d2d] hover:underline text-xs text-left block truncate max-w-[130px] cursor-pointer transition"
+                            title={`Click to view details: ${task.title}`}
+                          >
                             {task.title}
-                          </span>
+                          </button>
                         </td>
 
                         {/* 4. Department */}
@@ -2304,12 +2341,11 @@ const TasksBoard = () => {
                           </span>
                         </td>
 
-                        {/* 5. Assigned To (No initials avatar badge as requested) */}
+                        {/* 5. Assigned To */}
                         <td className="p-2">
-                          <div className="min-w-0">
-                            <p className="font-bold text-gray-800 text-xs truncate max-w-[105px]" title={task.assignedTo?.name}>{task.assignedTo?.name || 'Unassigned'}</p>
-                            {task.assignedTo?.role && <span className="text-[9px] text-gray-400 font-semibold block truncate max-w-[105px]">{task.assignedTo?.role}</span>}
-                          </div>
+                          <span className="font-bold text-gray-800 text-xs truncate block max-w-[110px]" title={task.assignedTo?.name}>
+                            {task.assignedTo?.name || 'Unassigned'}
+                          </span>
                         </td>
 
                         {/* 6. Assigned By */}
@@ -3147,6 +3183,218 @@ const TasksBoard = () => {
           </div>
         );
       })()}
+
+      {/* 🔍 View Task Details Modal */}
+      {viewingTask && (
+        <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl border border-gray-150 shadow-2xl w-full max-w-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150 flex flex-col max-h-[92vh]">
+            {/* Modal Header */}
+            <div className="px-6 py-4 bg-[#0e623a] text-white flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-white/10 rounded-xl">
+                  <ClipboardList className="w-5 h-5 text-emerald-300" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-base">Task Details</h3>
+                  <p className="text-emerald-100 text-xs">Complete task information & progress overview</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setViewingTask(null)}
+                className="p-1.5 hover:bg-white/20 rounded-xl transition text-white cursor-pointer"
+                title="Close"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6 overflow-y-auto space-y-5 flex-1 custom-scrollbar text-xs">
+              {/* Title & Badges */}
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className={`px-2.5 py-0.5 rounded-md text-[10px] font-extrabold uppercase border ${
+                    viewingTask.status === 'In Progress' ? 'bg-amber-50 text-amber-700 border-amber-200' :
+                    viewingTask.status === 'On Hold' ? 'bg-purple-50 text-purple-700 border-purple-200' :
+                    viewingTask.status === 'Completed' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                    viewingTask.status === 'Cancelled' ? 'bg-gray-100 text-gray-600 border-gray-300' :
+                    'bg-blue-50 text-blue-700 border-blue-200'
+                  }`}>
+                    {viewingTask.status || 'New'}
+                  </span>
+
+                  <span className={`px-2.5 py-0.5 rounded-md text-[10px] font-extrabold uppercase border ${
+                    viewingTask.priority === 'High' ? 'bg-amber-100 text-amber-800 border-amber-300' :
+                    viewingTask.priority === 'Low' ? 'bg-gray-100 text-gray-700 border-gray-300' :
+                    'bg-blue-50 text-blue-800 border-blue-200'
+                  }`}>
+                    Priority: {viewingTask.priority || 'Medium'}
+                  </span>
+
+                  {viewingTask.category && (
+                    <span className="px-2.5 py-0.5 rounded-md text-[10px] font-extrabold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                      Dept: {viewingTask.category}
+                    </span>
+                  )}
+
+                  {isOverdated(viewingTask) && (
+                    <span className="px-2.5 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wide bg-rose-100 text-rose-700 border border-rose-300 animate-pulse flex items-center gap-1">
+                      <AlertTriangle className="w-3 h-3" />
+                      <span>Overdue</span>
+                    </span>
+                  )}
+                </div>
+
+                <h2 className="text-lg font-black text-gray-900 leading-snug">
+                  {viewingTask.title}
+                </h2>
+              </div>
+
+              {/* Grid of Key Info */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {/* Project */}
+                <div className="p-3 bg-gray-50 rounded-2xl border border-gray-150 space-y-1">
+                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block flex items-center gap-1">
+                    <Building className="w-3 h-3 text-[#0e623a]" /> Project
+                  </span>
+                  <p className="font-extrabold text-[#0e623a] text-sm truncate">
+                    {viewingTask.projectName || '—'}
+                  </p>
+                </div>
+
+                {/* Due Date */}
+                <div className="p-3 bg-gray-50 rounded-2xl border border-gray-150 space-y-1">
+                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block flex items-center gap-1">
+                    <Calendar className="w-3 h-3 text-[#0e623a]" /> Due Date
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <p className="font-extrabold text-gray-800 text-sm">
+                      {viewingTask.dueDate ? new Date(viewingTask.dueDate).toLocaleDateString('en-GB') : '—'}
+                    </p>
+                    {viewingTask.repeatType && viewingTask.repeatType !== 'None' && (
+                      <span className="text-[9px] font-bold text-purple-700 bg-purple-50 border border-purple-200 px-1.5 py-0.5 rounded">
+                        Every {viewingTask.reminderInterval || 1} {viewingTask.repeatType === 'Hourly' ? 'Hr' : 'Day'}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Assigned To */}
+                <div className="p-3 bg-gray-50 rounded-2xl border border-gray-150 space-y-1">
+                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block flex items-center gap-1">
+                    <User className="w-3 h-3 text-[#0e623a]" /> Assigned To
+                  </span>
+                  <p className="font-extrabold text-gray-900 text-sm">
+                    {viewingTask.assignedTo?.name || 'Unassigned'}
+                  </p>
+                  {viewingTask.assignedTo?.role && (
+                    <span className="text-[10px] font-semibold text-gray-500 block">
+                      Role: {viewingTask.assignedTo.role}
+                    </span>
+                  )}
+                  {viewingTask.assignedTo?.phone && (
+                    <span className="text-[10px] font-medium text-gray-500 block">
+                      Phone: {viewingTask.assignedTo.phone}
+                    </span>
+                  )}
+                </div>
+
+                {/* Assigned By & Creation */}
+                <div className="p-3 bg-gray-50 rounded-2xl border border-gray-150 space-y-1">
+                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block flex items-center gap-1">
+                    <UserCheck className="w-3 h-3 text-[#0e623a]" /> Assigned By
+                  </span>
+                  <p className="font-extrabold text-gray-900 text-sm">
+                    {viewingTask.assignedBy?.name || 'Admin'}
+                  </p>
+                  <span className="text-[10px] font-semibold text-gray-400 block">
+                    Created: {viewingTask.createdAt ? new Date(viewingTask.createdAt).toLocaleDateString('en-GB') : '—'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Description Box */}
+              <div className="space-y-1.5">
+                <span className="text-[10px] font-extrabold text-gray-500 uppercase tracking-wider block">
+                  Description / Task Scope
+                </span>
+                <div className="p-4 bg-gray-50 rounded-2xl border border-gray-200 text-gray-800 text-xs whitespace-pre-wrap leading-relaxed min-h-[70px]">
+                  {viewingTask.description || <span className="text-gray-400 italic">No description provided for this task.</span>}
+                </div>
+              </div>
+
+              {/* Attachments Section */}
+              {viewingTask.attachments && viewingTask.attachments.length > 0 && (
+                <div className="space-y-2">
+                  <span className="text-[10px] font-extrabold text-gray-500 uppercase tracking-wider block flex items-center gap-1">
+                    <Paperclip className="w-3 h-3 text-[#0e623a]" /> Attachments ({viewingTask.attachments.length})
+                  </span>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    {viewingTask.attachments.map((att, aIdx) => (
+                      <div
+                        key={att._id || aIdx}
+                        onClick={() => setPreviewImageModal({ open: true, url: att.url, name: att.name, taskId: viewingTask._id, attachmentId: att._id })}
+                        className="p-2 bg-gray-50 hover:bg-emerald-50/60 border border-gray-200 hover:border-emerald-300 rounded-xl flex items-center gap-2 cursor-pointer transition group"
+                      >
+                        <img
+                          src={att.url}
+                          alt={att.name || 'Attachment'}
+                          className="w-8 h-8 rounded-lg object-cover border border-gray-200 shrink-0 group-hover:scale-105 transition"
+                        />
+                        <div className="min-w-0 flex-1">
+                          <p className="font-bold text-gray-800 text-[11px] truncate group-hover:text-[#0e623a]">{att.name || `Attachment ${aIdx + 1}`}</p>
+                          <span className="text-[9px] text-gray-400">Click to preview</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer Actions */}
+            <div className="px-6 py-3.5 bg-gray-50 border-t border-gray-200 flex items-center justify-between shrink-0">
+              <button
+                type="button"
+                onClick={() => {
+                  const target = viewingTask;
+                  setViewingTask(null);
+                  handleOpenHistoryModal(target);
+                }}
+                className="px-3.5 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold text-xs rounded-xl border border-blue-200 transition flex items-center gap-1.5 cursor-pointer"
+              >
+                <MessageSquare className="w-3.5 h-3.5" />
+                <span>Comments & History</span>
+              </button>
+
+              <div className="flex items-center gap-2">
+                {checkCanEditOrCancel(viewingTask) && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const target = viewingTask;
+                      setViewingTask(null);
+                      handleOpenEditModal(target);
+                    }}
+                    className="px-3.5 py-2 bg-amber-50 hover:bg-amber-100 text-amber-700 font-bold text-xs rounded-xl border border-amber-200 transition flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <Edit3 className="w-3.5 h-3.5" />
+                    <span>Edit Task</span>
+                  </button>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => setViewingTask(null)}
+                  className="px-4 py-2 bg-[#0e623a] hover:bg-[#0b4d2d] text-white font-bold text-xs rounded-xl transition shadow-xs cursor-pointer"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Manage Departments Modal */}
       {showCategoryManager && (
