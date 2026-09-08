@@ -567,7 +567,7 @@ const TasksBoard = () => {
       const ws = wb.addWorksheet('Performance_Report');
 
       // Title Banner
-      ws.mergeCells('A1:H1');
+      ws.mergeCells('A1:I1');
       const titleCell = ws.getCell('A1');
       titleCell.value = 'JOHN BUILDERS - USER TASK PERFORMANCE REPORT';
       titleCell.font = { name: 'Calibri', size: 14, bold: true, color: { argb: 'FFFFFFFF' } };
@@ -576,7 +576,7 @@ const TasksBoard = () => {
       ws.getRow(1).height = 32;
 
       // Subtitle Row
-      ws.mergeCells('A2:H2');
+      ws.mergeCells('A2:I2');
       const subCell = ws.getCell('A2');
       const periodStr = sDate && eDate ? `Period: ${sDate} to ${eDate}` : 'Period: All Records';
       subCell.value = `${periodStr} | Generated On: ${new Date().toLocaleString('en-GB')} | Total Assignees: ${rows.length}`;
@@ -592,6 +592,7 @@ const TasksBoard = () => {
         'Department / Role',
         'Total Tasks',
         'Within Due Date (Completed)',
+        'Within Due Date %',
         'Overdue Completed',
         'Pending Tasks',
         'Overall Percentage (%)'
@@ -628,6 +629,7 @@ const TasksBoard = () => {
           r.department ? `${r.department} (${r.role || ''})` : (r.role || 'Staff'),
           r.totalTasks,
           r.withinDueDate,
+          `${r.onTimePercentage}%`,
           r.overdatedCompleted,
           r.pendingTasks,
           `${r.overallPercentage}%`
@@ -636,8 +638,8 @@ const TasksBoard = () => {
         row.height = 22;
         const isEven = idx % 2 === 0;
         row.eachCell((cell, colNumber) => {
-          cell.font = { name: 'Calibri', size: 10, bold: colNumber === 2 || colNumber === 8 };
-          cell.alignment = { vertical: 'middle', horizontal: [1, 4, 5, 6, 7, 8].includes(colNumber) ? 'center' : 'left' };
+          cell.font = { name: 'Calibri', size: 10, bold: colNumber === 2 || colNumber === 6 || colNumber === 9 };
+          cell.alignment = { vertical: 'middle', horizontal: [1, 4, 5, 6, 7, 8, 9].includes(colNumber) ? 'center' : 'left' };
           cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: isEven ? 'FFFFFFFF' : 'FFF9FBF9' } };
           cell.border = {
             top: { style: 'thin', color: { argb: 'FFE5E5E5' } },
@@ -646,21 +648,24 @@ const TasksBoard = () => {
             right: { style: 'thin', color: { argb: 'FFE5E5E5' } }
           };
           if (colNumber === 5) cell.font = { name: 'Calibri', size: 10, bold: true, color: { argb: 'FF15803D' } };
-          if (colNumber === 6) cell.font = { name: 'Calibri', size: 10, bold: true, color: { argb: 'FFB45309' } };
-          if (colNumber === 7) cell.font = { name: 'Calibri', size: 10, bold: true, color: { argb: 'FFBE123C' } };
-          if (colNumber === 8) cell.font = { name: 'Calibri', size: 10, bold: true, color: { argb: 'FF4338CA' } };
+          if (colNumber === 6) cell.font = { name: 'Calibri', size: 10, bold: true, color: { argb: 'FF0D9488' } };
+          if (colNumber === 7) cell.font = { name: 'Calibri', size: 10, bold: true, color: { argb: 'FFB45309' } };
+          if (colNumber === 8) cell.font = { name: 'Calibri', size: 10, bold: true, color: { argb: 'FFBE123C' } };
+          if (colNumber === 9) cell.font = { name: 'Calibri', size: 10, bold: true, color: { argb: 'FF4338CA' } };
         });
       });
 
       // Total Row
       const totalActive = totalTasksSum;
       const overallAvgPct = totalActive > 0 ? Math.round(((withinDueSum + overdatedSum) / totalActive) * 100) : 0;
+      const onTimeAvgPct = totalActive > 0 ? Math.round((withinDueSum / totalActive) * 100) : 0;
       const totalRow = ws.addRow([
         '',
         'TOTAL SUMMARY',
         '',
         totalTasksSum,
         withinDueSum,
+        `${onTimeAvgPct}%`,
         overdatedSum,
         pendingSum,
         `${overallAvgPct}%`
@@ -669,7 +674,7 @@ const TasksBoard = () => {
       totalRow.eachCell((cell, colNumber) => {
         cell.font = { name: 'Calibri', size: 11, bold: true, color: { argb: 'FFFFFFFF' } };
         cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0E623A' } };
-        cell.alignment = { vertical: 'middle', horizontal: [1, 4, 5, 6, 7, 8].includes(colNumber) ? 'center' : 'left' };
+        cell.alignment = { vertical: 'middle', horizontal: [1, 4, 5, 6, 7, 8, 9].includes(colNumber) ? 'center' : 'left' };
         cell.border = {
           top: { style: 'medium', color: { argb: 'FF004D2A' } },
           bottom: { style: 'medium', color: { argb: 'FF004D2A' } }
@@ -682,6 +687,7 @@ const TasksBoard = () => {
         { width: 24 },
         { width: 14 },
         { width: 26 },
+        { width: 20 },
         { width: 22 },
         { width: 16 },
         { width: 22 }
@@ -3154,7 +3160,7 @@ const TasksBoard = () => {
                 </div>
 
                 {/* KPI Summary Cards */}
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-2.5">
                   <div className="bg-white p-3 rounded-2xl border border-gray-200 shadow-2xs">
                     <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block">Assignees</span>
                     <span className="text-lg font-black text-gray-900">{perfRows.length}</span>
@@ -3168,6 +3174,11 @@ const TasksBoard = () => {
                   <div className="bg-emerald-50/70 p-3 rounded-2xl border border-emerald-200 shadow-2xs">
                     <span className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider block">Within Due Date</span>
                     <span className="text-lg font-black text-emerald-700">{totalWithinDue}</span>
+                  </div>
+
+                  <div className="bg-teal-50/70 p-3 rounded-2xl border border-teal-200 shadow-2xs">
+                    <span className="text-[10px] font-bold text-teal-800 uppercase tracking-wider block">Within Due %</span>
+                    <span className="text-lg font-black text-teal-700">{avgOnTimePct}%</span>
                   </div>
 
                   <div className="bg-amber-50/70 p-3 rounded-2xl border border-amber-200 shadow-2xs">
@@ -3204,13 +3215,14 @@ const TasksBoard = () => {
                       <thead>
                         <tr className="bg-[#0e623a] text-white text-[11px] font-black uppercase tracking-wider border-b border-emerald-800">
                           <th className="p-3 w-12 text-center">S.No</th>
-                          <th className="p-3 min-w-[160px]">User Name</th>
-                          <th className="p-3 min-w-[130px]">Department / Role</th>
-                          <th className="p-3 text-center min-w-[95px]">Total Tasks</th>
-                          <th className="p-3 text-center min-w-[140px] bg-emerald-900/40">Within Due Date</th>
-                          <th className="p-3 text-center min-w-[140px] bg-amber-900/30">Overdue Completed</th>
-                          <th className="p-3 text-center min-w-[110px] bg-rose-900/30">Pending Tasks</th>
-                          <th className="p-3 text-center min-w-[130px] bg-indigo-900/40">Overall Percentage</th>
+                          <th className="p-3 min-w-[150px]">User Name</th>
+                          <th className="p-3 min-w-[120px]">Department / Role</th>
+                          <th className="p-3 text-center min-w-[90px]">Total Tasks</th>
+                          <th className="p-3 text-center min-w-[130px] bg-emerald-900/40">Within Due Date</th>
+                          <th className="p-3 text-center min-w-[140px] bg-teal-900/40">Within Due Date %</th>
+                          <th className="p-3 text-center min-w-[130px] bg-amber-900/30">Overdue Completed</th>
+                          <th className="p-3 text-center min-w-[100px] bg-rose-900/30">Pending Tasks</th>
+                          <th className="p-3 text-center min-w-[140px] bg-indigo-900/40">Overall Percentage</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-200 font-medium">
@@ -3243,6 +3255,27 @@ const TasksBoard = () => {
                                 <span className="px-2.5 py-1 bg-emerald-100/80 rounded-lg inline-block border border-emerald-200">
                                   {r.withinDueDate}
                                 </span>
+                              </td>
+                              <td className="p-3 text-center bg-teal-50/30">
+                                <div className="flex items-center justify-center gap-2">
+                                  <div className="w-14 bg-gray-200 rounded-full h-1.5 overflow-hidden hidden sm:block">
+                                    <div 
+                                      className={`h-full rounded-full ${
+                                        r.onTimePercentage >= 80 ? 'bg-emerald-600' : r.onTimePercentage >= 50 ? 'bg-teal-500' : 'bg-gray-400'
+                                      }`}
+                                      style={{ width: `${Math.min(100, Math.max(0, r.onTimePercentage))}%` }}
+                                    ></div>
+                                  </div>
+                                  <span className={`px-2 py-0.5 rounded-md text-[11px] font-black border ${
+                                    r.onTimePercentage >= 80
+                                      ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                                      : r.onTimePercentage >= 50
+                                      ? 'bg-teal-100 text-teal-800 border-teal-300'
+                                      : 'bg-gray-100 text-gray-700 border-gray-200'
+                                  }`}>
+                                    {r.onTimePercentage}%
+                                  </span>
+                                </div>
                               </td>
                               <td className="p-3 text-center font-black text-amber-700 bg-amber-50/40">
                                 <span className="px-2.5 py-1 bg-amber-100/80 rounded-lg inline-block border border-amber-200">
@@ -3280,6 +3313,11 @@ const TasksBoard = () => {
                           </td>
                           <td className="p-3 text-center font-black text-sm">{totalTasksCount}</td>
                           <td className="p-3 text-center font-black text-sm text-emerald-200">{totalWithinDue}</td>
+                          <td className="p-3 text-center font-black text-sm text-teal-200">
+                            <span className="px-2 py-0.5 rounded-md bg-white/20 border border-white/30 inline-block">
+                              {avgOnTimePct}%
+                            </span>
+                          </td>
                           <td className="p-3 text-center font-black text-sm text-amber-200">{totalOverdated}</td>
                           <td className="p-3 text-center font-black text-sm text-rose-200">{totalPending}</td>
                           <td className="p-3 text-center font-black text-sm text-yellow-300">
