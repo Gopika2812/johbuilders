@@ -90,19 +90,21 @@ const getExcelStyles = (titleBg, monthBg, headerBg, execBg) => {
 
 const getExcelHeader = (titleText, monthTitle, totalColumns, themeColor, logoPath) => {
     const safeCols = Math.max(3, totalColumns);
+    const logoCols = safeCols <= 4 ? 1 : 2;
+    const titleCols = safeCols - logoCols;
     const webLogo = LOGO_BASE64;
     return `
       <tr style="height: 60px;">
-        <td colspan="2" bgcolor="#FFFFFF" class="logo-cell" style="background-color: #FFFFFF; padding: 4px 8px; text-align: center; vertical-align: middle; border: 1px solid #CBD5E1; height: 60px; width: 140px;">
-          ${webLogo ? `<img src="${webLogo}" style="max-height: 48px; max-width: 130px; width: auto; height: 48px; object-fit: contain; display: block; margin: 0 auto;" alt="JOHN BUILDWELL" />` : `<div style="color: #0F5233; font-size: 11pt; font-weight: bold; text-align: center;">JOHN BUILDWELL</div>`}
+        <td colspan="${logoCols}" bgcolor="#FFFFFF" class="logo-cell" style="background-color: #FFFFFF; padding: 6px 12px; text-align: center; vertical-align: middle; border: 1.5px solid #0F5233; height: 60px;">
+          ${webLogo ? `<img src="${webLogo}" style="max-height: 48px; max-width: 140px; width: auto; height: 48px; object-fit: contain; display: block; margin: 0 auto;" alt="JOHN BUILDWELL" />` : `<div style="color: #0F5233; font-size: 11pt; font-weight: bold; text-align: center;">JOHN BUILDWELL</div>`}
         </td>
-        <td colspan="${safeCols - 2}" class="title-row text-center" style="background-color: #0F5233; color: #FFFFFF; border: 1px solid #0D4329; border-left: none; vertical-align:middle; text-align:center; font-size: 14pt; font-weight: bold; height: 60px; letter-spacing: 0.5px;">
+        <td colspan="${titleCols}" class="title-row text-center" style="background-color: #0F5233; color: #FFFFFF; border: 1.5px solid #0F5233; vertical-align:middle; text-align:center; font-size: 13pt; font-weight: bold; height: 60px; letter-spacing: 0.5px; padding: 6px 16px;">
           ${titleText}
         </td>
       </tr>
       ${monthTitle ? `
       <tr>
-        <td colspan="${safeCols}" class="month-header" style="height: 28px; vertical-align: middle; font-size: 10pt; font-weight: bold; background-color: #E6F4EA; color: #0F5233; border: 1px solid #C3E6CB; text-align: center; text-transform: uppercase; letter-spacing: 0.5px;">
+        <td colspan="${safeCols}" class="month-header" style="height: 30px; vertical-align: middle; font-size: 10pt; font-weight: bold; background-color: #E6F4EA; color: #0F5233; border: 1.5px solid #0F5233; border-top: none; text-align: center; text-transform: uppercase; letter-spacing: 0.5px; padding: 4px;">
           ${monthTitle}
         </td>
       </tr>` : ''}

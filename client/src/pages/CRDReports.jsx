@@ -25,7 +25,8 @@ import {
   CheckCircle,
   Key,
   AlertCircle,
-  Loader2
+  Loader2,
+  X
 } from 'lucide-react';
 
 const getCoordinatesForPercent = (percent) => {
@@ -40,10 +41,10 @@ const getExcelStyles = (titleBg, monthBg, headerBg, execBg) => {
       table { border-collapse: collapse; width: 100%; font-family: 'Segoe UI', Calibri, Arial, sans-serif; }
       td, th { border: 1px solid #CBD5E1; padding: 8px 12px; font-size: 9.5pt; color: #1E293B; }
       th, .table-headers th { font-weight: bold; background-color: #0F5233 !important; color: #FFFFFF !important; border: 1px solid #0D4329 !important; text-align: center; height: 34px; font-size: 10pt; vertical-align: middle; }
-      .title-row { font-size: 14pt; font-weight: bold; color: #FFFFFF !important; background-color: #0F5233 !important; text-align: center; border: 1px solid #0D4329 !important; height: 65px; vertical-align: middle; }
-      .month-header { height: 28px; vertical-align: middle; font-size: 10pt; font-weight: bold; background-color: #E6F4EA !important; color: #0F5233 !important; border: 1px solid #C3E6CB !important; text-align: center; text-transform: uppercase; letter-spacing: 0.5px; }
-      .exec-banner { background-color: #E6F4EA !important; font-weight: bold; text-align: left; color: #0F5233 !important; border: 1px solid #CBD5E1; }
-      .logo-cell { background-color: #FFFFFF !important; border: 1px solid #CBD5E1; text-align: center; vertical-align: middle; padding: 4px 8px; }
+      .title-row { font-size: 13pt; font-weight: 800; color: #FFFFFF !important; background-color: #0F5233 !important; text-align: center; border: 1.5px solid #0F5233 !important; height: 64px; vertical-align: middle; letter-spacing: 0.5px; }
+      .month-header { height: 28px; vertical-align: middle; font-size: 9.5pt; font-weight: 700; background-color: #F0FDF4 !important; color: #166534 !important; border: 1.5px solid #0F5233 !important; text-align: center; text-transform: uppercase; letter-spacing: 0.8px; }
+      .exec-banner { background-color: #F0FDF4 !important; font-weight: bold; text-align: left; color: #166534 !important; border: 1px solid #CBD5E1; }
+      .logo-cell { background-color: #FFFFFF !important; border: 1.5px solid #0F5233 !important; border-right: none !important; text-align: center; vertical-align: middle; padding: 6px 12px; }
       .bg-header-blue { background-color: #0F5233 !important; color: #FFFFFF !important; font-weight: bold; text-align: center; border: 1px solid #0D4329 !important; }
       .bg-header-green { background-color: #0F5233 !important; color: #FFFFFF !important; font-weight: bold; text-align: center; border: 1px solid #0D4329 !important; }
       .bg-black-row { background-color: #F8FAFC !important; color: #64748B !important; border: 1px solid #E2E8F0 !important; }
@@ -60,19 +61,21 @@ const getExcelStyles = (titleBg, monthBg, headerBg, execBg) => {
 
 const getExcelHeader = (titleText, monthTitle, totalColumns, themeColor, logoPath) => {
     const safeCols = Math.max(3, totalColumns);
+    const logoCols = safeCols <= 4 ? 1 : 2;
+    const titleCols = safeCols - logoCols;
     const webLogo = LOGO_BASE64;
     return `
-      <tr style="height: 60px;">
-        <td colspan="2" bgcolor="#FFFFFF" class="logo-cell" style="background-color: #FFFFFF; padding: 4px 8px; text-align: center; vertical-align: middle; border: 1px solid #CBD5E1; height: 60px; width: 140px;">
+      <tr style="height: 64px;">
+        <td colspan="${logoCols}" bgcolor="#FFFFFF" class="logo-cell" style="background-color: #FFFFFF; padding: 6px 12px; text-align: center; vertical-align: middle; border: 1.5px solid #0F5233; border-right: none; height: 64px; width: 140px;">
           ${webLogo ? `<img src="${webLogo}" style="max-height: 48px; max-width: 130px; width: auto; height: 48px; object-fit: contain; display: block; margin: 0 auto;" alt="JOHN BUILDWELL" />` : `<div style="color: #0F5233; font-size: 11pt; font-weight: bold; text-align: center;">JOHN BUILDWELL</div>`}
         </td>
-        <td colspan="${safeCols - 2}" class="title-row text-center" style="background-color: #0F5233; color: #FFFFFF; border: 1px solid #0D4329; border-left: none; vertical-align:middle; text-align:center; font-size: 14pt; font-weight: bold; height: 60px; letter-spacing: 0.5px;">
+        <td colspan="${titleCols}" class="title-row text-center" style="background-color: #0F5233; color: #FFFFFF; border: 1.5px solid #0F5233; vertical-align: middle; text-align: center; font-size: 13pt; font-weight: 800; height: 64px; letter-spacing: 0.5px; padding: 0 16px;">
           ${titleText}
         </td>
       </tr>
       ${monthTitle ? `
       <tr>
-        <td colspan="${safeCols}" class="month-header" style="height: 28px; vertical-align: middle; font-size: 10pt; font-weight: bold; background-color: #E6F4EA; color: #0F5233; border: 1px solid #C3E6CB; text-align: center; text-transform: uppercase; letter-spacing: 0.5px;">
+        <td colspan="${safeCols}" class="month-header" style="height: 28px; vertical-align: middle; font-size: 9.5pt; font-weight: 700; background-color: #F0FDF4; color: #166534; border: 1.5px solid #0F5233; border-top: none; text-align: center; text-transform: uppercase; letter-spacing: 0.8px;">
           ${monthTitle}
         </td>
       </tr>` : ''}
@@ -3444,14 +3447,26 @@ const CRDReports = () => {
           <div className="bg-white w-full max-w-6xl h-[90vh] rounded-3xl flex flex-col shadow-2xl overflow-hidden relative">
             
             {/* Modal Header */}
-            <div className="px-6 py-4 border-b flex items-center justify-between bg-gray-50 shrink-0">
-              <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
-                <FileText className="w-5 h-5 text-gray-500" />
-                {previewSheets.length > 0 ? `${previewSheets[currentSheetIndex].name} - Preview` : 'Report Preview'}
-              </h2>
+            <div className="px-6 py-3.5 border-b border-gray-200 flex items-center justify-between bg-white shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-emerald-50 rounded-xl border border-emerald-200 text-[#0e623a]">
+                  <FileText className="w-5 h-5" />
+                </div>
+                <div>
+                  <h2 className="text-base font-extrabold text-gray-900 leading-tight">
+                    {previewSheets.length > 0 
+                      ? (previewSheets[currentSheetIndex].name.toLowerCase().includes('preview') 
+                          ? previewSheets[currentSheetIndex].name 
+                          : `${previewSheets[currentSheetIndex].name} - Preview`)
+                      : 'Report Preview'}
+                  </h2>
+                  <p className="text-[11px] text-gray-400 font-semibold">Excel Layout & Print Preview</p>
+                </div>
+              </div>
               
-              {previewSheets.length > 0 && (
-                 <div className="flex items-center gap-4">
+              <div className="flex items-center gap-3">
+                {previewSheets.length > 1 && (
+                  <div className="flex items-center gap-2 bg-gray-50 px-2.5 py-1 rounded-xl border border-gray-200">
                     <button 
                       onClick={() => {
                         const newIdx = Math.max(0, currentSheetIndex - 1);
@@ -3460,12 +3475,12 @@ const CRDReports = () => {
                         if (previewSheets[newIdx].originalWs) setPreviewOriginalWs(previewSheets[newIdx].originalWs);
                       }}
                       disabled={currentSheetIndex === 0}
-                      className="px-4 py-1.5 rounded-lg font-bold text-gray-600 bg-white border hover:bg-gray-50 transition disabled:opacity-50"
+                      className="px-2.5 py-1 rounded-lg font-bold text-xs text-gray-700 bg-white border border-gray-200 hover:bg-gray-100 transition disabled:opacity-40 cursor-pointer shadow-2xs"
                     >
-                      &larr; Prev Sheet
+                      &larr; Prev
                     </button>
-                    <span className="font-bold text-sm text-gray-600">
-                      {currentSheetIndex + 1} of {previewSheets.length}
+                    <span className="font-bold text-xs text-gray-700 px-1">
+                      Sheet {currentSheetIndex + 1} of {previewSheets.length}
                     </span>
                     <button 
                       onClick={() => {
@@ -3475,43 +3490,45 @@ const CRDReports = () => {
                         if (previewSheets[newIdx].originalWs) setPreviewOriginalWs(previewSheets[newIdx].originalWs);
                       }}
                       disabled={currentSheetIndex === previewSheets.length - 1}
-                      className="px-4 py-1.5 rounded-lg font-bold text-gray-600 bg-white border hover:bg-gray-50 transition disabled:opacity-50"
+                      className="px-2.5 py-1 rounded-lg font-bold text-xs text-gray-700 bg-white border border-gray-200 hover:bg-gray-100 transition disabled:opacity-40 cursor-pointer shadow-2xs"
                     >
-                      Next Sheet &rarr;
+                      Next &rarr;
                     </button>
-                 </div>
-              )}
+                  </div>
+                )}
 
-              <button 
-                onClick={() => setPreviewModalOpen(false)}
-                className="text-gray-400 hover:text-red-500 transition ml-4"
-              >
-                <div className="w-6 h-6 flex items-center justify-center font-bold text-xl leading-none">&times;</div>
-              </button>
+                <button 
+                  onClick={() => setPreviewModalOpen(false)}
+                  className="p-1.5 rounded-xl text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition cursor-pointer"
+                  title="Close Preview"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
             </div>
 
-            {/* Modal Body (Scrollable HTML Preview) */}
-            <div className="p-6 overflow-auto flex-1 bg-gray-100">
+            {/* Modal Body (Scrollable HTML Preview with elegant card framing) */}
+            <div className="p-6 overflow-auto flex-1 bg-slate-100 flex justify-center items-start">
               <div 
-                className="bg-white shadow-sm border p-4 inline-block min-w-full"
+                className="bg-white shadow-md rounded-2xl border border-gray-200 p-6 inline-block min-w-[720px] max-w-full"
                 dangerouslySetInnerHTML={{ __html: previewHtml }}
               />
             </div>
 
             {/* Modal Footer */}
-            <div className="px-6 py-4 border-t bg-gray-50 flex items-center justify-end gap-3 shrink-0">
+            <div className="px-6 py-3.5 border-t border-gray-200 bg-white flex items-center justify-end gap-3 shrink-0">
               <button
                 onClick={() => setPreviewModalOpen(false)}
-                className="px-5 py-2.5 rounded-xl font-bold text-gray-600 bg-white border hover:bg-gray-50 transition"
+                className="px-4 py-2 rounded-xl font-bold text-xs text-gray-600 bg-white border border-gray-200 hover:bg-gray-50 transition cursor-pointer"
               >
                 Cancel
               </button>
               <button
                 onClick={downloadFromPreview}
-                className="px-5 py-2.5 rounded-xl font-bold text-white bg-green-600 hover:bg-green-700 shadow-sm flex items-center gap-2 transition"
+                className="px-5 py-2 rounded-xl font-bold text-xs text-white bg-[#0e623a] hover:bg-[#0b4d2d] shadow-sm flex items-center gap-2 transition cursor-pointer"
               >
                 <CheckCircle className="w-4 h-4" />
-                Download Excel
+                <span>Download Excel</span>
               </button>
             </div>
 

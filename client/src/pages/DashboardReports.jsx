@@ -15,7 +15,8 @@ import {
   User,
   Loader2,
   TrendingUp,
-  Compass
+  Compass,
+  X
 } from 'lucide-react';
 
 const getExcelStyles = (titleBg, monthBg, headerBg, execBg) => {
@@ -24,10 +25,10 @@ const getExcelStyles = (titleBg, monthBg, headerBg, execBg) => {
       table { border-collapse: collapse; width: 100%; font-family: 'Segoe UI', Calibri, Arial, sans-serif; }
       td, th { border: 1px solid #CBD5E1; padding: 8px 12px; font-size: 9.5pt; color: #1E293B; }
       th, .table-headers th { font-weight: bold; background-color: #0F5233 !important; color: #FFFFFF !important; border: 1px solid #0D4329 !important; text-align: center; height: 34px; font-size: 10pt; vertical-align: middle; }
-      .title-row { font-size: 14pt; font-weight: bold; color: #FFFFFF !important; background-color: #0F5233 !important; text-align: center; border: 1px solid #0D4329 !important; height: 65px; vertical-align: middle; }
-      .month-header { height: 28px; vertical-align: middle; font-size: 10pt; font-weight: bold; background-color: #E6F4EA !important; color: #0F5233 !important; border: 1px solid #C3E6CB !important; text-align: center; text-transform: uppercase; letter-spacing: 0.5px; }
-      .section-banner { font-size: 11pt; font-weight: bold; background-color: #E6F4EA !important; color: #0F5233 !important; padding: 10px; border: 1px solid #C3E6CB; text-align: center; text-transform: uppercase; letter-spacing: 0.5px; }
-      .logo-cell { background-color: #FFFFFF !important; border: 1px solid #CBD5E1; text-align: center; vertical-align: middle; padding: 4px 8px; }
+      .title-row { font-size: 13pt; font-weight: 800; color: #FFFFFF !important; background-color: #0F5233 !important; text-align: center; border: 1.5px solid #0F5233 !important; height: 64px; vertical-align: middle; letter-spacing: 0.5px; }
+      .month-header { height: 28px; vertical-align: middle; font-size: 9.5pt; font-weight: 700; background-color: #F0FDF4 !important; color: #166534 !important; border: 1.5px solid #0F5233 !important; text-align: center; text-transform: uppercase; letter-spacing: 0.8px; }
+      .section-banner { font-size: 11pt; font-weight: bold; background-color: #F0FDF4 !important; color: #166534 !important; padding: 10px; border: 1px solid #C3E6CB; text-align: center; text-transform: uppercase; letter-spacing: 0.5px; }
+      .logo-cell { background-color: #FFFFFF !important; border: 1.5px solid #0F5233 !important; border-right: none !important; text-align: center; vertical-align: middle; padding: 6px 12px; }
       .even-row { background-color: #F8FAFC !important; }
       .bold-label { font-weight: bold; color: #0F172A; }
       .font-bold { font-weight: bold; }
@@ -40,19 +41,21 @@ const getExcelStyles = (titleBg, monthBg, headerBg, execBg) => {
 
 const getExcelHeader = (titleText, dateRangeTitle, totalColumns) => {
   const safeCols = Math.max(3, totalColumns);
+  const logoCols = safeCols <= 4 ? 1 : 2;
+  const titleCols = safeCols - logoCols;
   const webLogo = LOGO_BASE64;
   return `
-    <tr style="height: 60px;">
-      <td colspan="2" bgcolor="#FFFFFF" class="logo-cell" style="background-color: #FFFFFF; padding: 4px 8px; text-align: center; vertical-align: middle; border: 1px solid #CBD5E1; height: 60px; width: 140px;">
+    <tr style="height: 64px;">
+      <td colspan="${logoCols}" bgcolor="#FFFFFF" class="logo-cell" style="background-color: #FFFFFF; padding: 6px 12px; text-align: center; vertical-align: middle; border: 1.5px solid #0F5233; border-right: none; height: 64px; width: 140px;">
         ${webLogo ? `<img src="${webLogo}" style="max-height: 48px; max-width: 130px; width: auto; height: 48px; object-fit: contain; display: block; margin: 0 auto;" alt="JOHN BUILDWELL" />` : `<div style="color: #0F5233; font-size: 11pt; font-weight: bold; text-align: center;">JOHN BUILDWELL</div>`}
       </td>
-      <td colspan="${safeCols - 2}" class="title-row text-center" style="background-color: #0F5233; color: #FFFFFF; border: 1px solid #0D4329; border-left: none; vertical-align:middle; text-align:center; font-size: 14pt; font-weight: bold; height: 60px; letter-spacing: 0.5px;">
+      <td colspan="${titleCols}" class="title-row text-center" style="background-color: #0F5233; color: #FFFFFF; border: 1.5px solid #0F5233; vertical-align: middle; text-align: center; font-size: 13pt; font-weight: 800; height: 64px; letter-spacing: 0.5px; padding: 0 16px;">
         ${titleText}
       </td>
     </tr>
     ${dateRangeTitle ? `
     <tr>
-      <td colspan="${safeCols}" class="month-header" style="height: 28px; vertical-align: middle; font-size: 10pt; font-weight: bold; background-color: #E6F4EA; color: #0F5233; border: 1px solid #C3E6CB; text-align: center; text-transform: uppercase; letter-spacing: 0.5px;">
+      <td colspan="${safeCols}" class="month-header" style="height: 28px; vertical-align: middle; font-size: 9.5pt; font-weight: 700; background-color: #F0FDF4; color: #166534; border: 1.5px solid #0F5233; border-top: none; text-align: center; text-transform: uppercase; letter-spacing: 0.8px;">
         ${dateRangeTitle}
       </td>
     </tr>` : ''}
@@ -136,12 +139,12 @@ const DashboardReports = () => {
     return await fetchDashboardStats(true);
   };
 
-  const handlePreview = (html, filename) => {
+  const handlePreview = (html, filename, reportName = 'Report') => {
     if (window.__isDownloadingAll) {
       window.__capturedHtml = html;
       return;
     }
-    setPreviewSheets([{ name: 'Report Preview', html }]);
+    setPreviewSheets([{ name: reportName, html }]);
     setCurrentSheetIndex(0);
     setPreviewHtml(html);
     setPreviewFilename(filename);
@@ -336,7 +339,7 @@ const DashboardReports = () => {
         </html>
       `;
 
-      handlePreview(html, `JB_OVERALL_SUMMARY_REPORT_${new Date().toISOString().substring(0, 10)}.xlsx`);
+      handlePreview(html, `JB_OVERALL_SUMMARY_REPORT_${new Date().toISOString().substring(0, 10)}.xlsx`, 'Overall Performance Summary Report');
     } catch (err) {
       console.error(err);
       alert('Error generating summary report');
@@ -430,7 +433,7 @@ const DashboardReports = () => {
         </html>
       `;
 
-      handlePreview(html, `JB_EXECUTIVE_WISE_REPORT_${new Date().toISOString().substring(0, 10)}.xlsx`);
+      handlePreview(html, `JB_EXECUTIVE_WISE_REPORT_${new Date().toISOString().substring(0, 10)}.xlsx`, 'Executive Wise Performance Report');
     } catch (err) {
       console.error(err);
       alert('Error generating executive report');
@@ -537,7 +540,7 @@ const DashboardReports = () => {
         </html>
       `;
 
-      handlePreview(html, `JB_PROJECT_WISE_REPORT_${new Date().toISOString().substring(0, 10)}.xlsx`);
+      handlePreview(html, `JB_PROJECT_WISE_REPORT_${new Date().toISOString().substring(0, 10)}.xlsx`, 'Project Wise Performance Report');
     } catch (err) {
       console.error(err);
       alert('Error generating project report');
@@ -593,7 +596,7 @@ const DashboardReports = () => {
         </html>
       `;
 
-      handlePreview(html, `JB_SOURCE_WISE_REPORT_${new Date().toISOString().substring(0, 10)}.xlsx`);
+      handlePreview(html, `JB_SOURCE_WISE_REPORT_${new Date().toISOString().substring(0, 10)}.xlsx`, 'Marketing Source Performance Report');
     } catch (err) {
       console.error(err);
       alert('Error generating source report');
@@ -776,76 +779,90 @@ const DashboardReports = () => {
 
       {/* Full Preview Modal */}
       {previewModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4">
-          <div className="bg-white w-full max-w-6xl h-[90vh] rounded-3xl flex flex-col shadow-2xl overflow-hidden relative">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
+          <div className="bg-white w-full max-w-6xl h-[90vh] rounded-3xl flex flex-col shadow-2xl overflow-hidden relative border border-gray-100">
             
             {/* Modal Header */}
-            <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between bg-gray-50 shrink-0">
-              <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
-                <FileText className="w-5 h-5 text-gray-500" />
-                {previewSheets.length > 0 ? `${previewSheets[currentSheetIndex].name} - Preview` : 'Report Preview'}
-              </h2>
-              
-              {previewSheets.length > 1 && (
-                <div className="flex items-center gap-4">
-                  <button 
-                    onClick={() => {
-                      const newIdx = Math.max(0, currentSheetIndex - 1);
-                      setCurrentSheetIndex(newIdx);
-                      setPreviewHtml(previewSheets[newIdx].html);
-                    }}
-                    disabled={currentSheetIndex === 0}
-                    className="px-4 py-1.5 rounded-lg font-bold text-gray-600 bg-white border hover:bg-gray-50 transition disabled:opacity-50 cursor-pointer"
-                  >
-                    &larr; Prev Sheet
-                  </button>
-                  <span className="font-bold text-sm text-gray-600">
-                    {currentSheetIndex + 1} of {previewSheets.length}
-                  </span>
-                  <button 
-                    onClick={() => {
-                      const newIdx = Math.min(previewSheets.length - 1, currentSheetIndex + 1);
-                      setCurrentSheetIndex(newIdx);
-                      setPreviewHtml(previewSheets[newIdx].html);
-                    }}
-                    disabled={currentSheetIndex === previewSheets.length - 1}
-                    className="px-4 py-1.5 rounded-lg font-bold text-gray-600 bg-white border hover:bg-gray-50 transition disabled:opacity-50 cursor-pointer"
-                  >
-                    Next Sheet &rarr;
-                  </button>
+            <div className="px-6 py-3.5 border-b border-gray-200 flex items-center justify-between bg-white shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-emerald-50 rounded-xl border border-emerald-200 text-[#0e623a]">
+                  <FileText className="w-5 h-5" />
                 </div>
-              )}
+                <div>
+                  <h2 className="text-base font-extrabold text-gray-900 leading-tight">
+                    {previewSheets.length > 0 
+                      ? (previewSheets[currentSheetIndex].name.toLowerCase().includes('preview') 
+                          ? previewSheets[currentSheetIndex].name 
+                          : `${previewSheets[currentSheetIndex].name} - Preview`)
+                      : 'Report Preview'}
+                  </h2>
+                  <p className="text-[11px] text-gray-400 font-semibold">Excel Layout & Print Preview</p>
+                </div>
+              </div>
+              
+              <div className="flex items-center gap-3">
+                {previewSheets.length > 1 && (
+                  <div className="flex items-center gap-2 bg-gray-50 px-2.5 py-1 rounded-xl border border-gray-200">
+                    <button 
+                      onClick={() => {
+                        const newIdx = Math.max(0, currentSheetIndex - 1);
+                        setCurrentSheetIndex(newIdx);
+                        setPreviewHtml(previewSheets[newIdx].html);
+                      }}
+                      disabled={currentSheetIndex === 0}
+                      className="px-2.5 py-1 rounded-lg font-bold text-xs text-gray-700 bg-white border border-gray-200 hover:bg-gray-100 transition disabled:opacity-40 cursor-pointer shadow-2xs"
+                    >
+                      &larr; Prev
+                    </button>
+                    <span className="font-bold text-xs text-gray-700 px-1">
+                      Sheet {currentSheetIndex + 1} of {previewSheets.length}
+                    </span>
+                    <button 
+                      onClick={() => {
+                        const newIdx = Math.min(previewSheets.length - 1, currentSheetIndex + 1);
+                        setCurrentSheetIndex(newIdx);
+                        setPreviewHtml(previewSheets[newIdx].html);
+                      }}
+                      disabled={currentSheetIndex === previewSheets.length - 1}
+                      className="px-2.5 py-1 rounded-lg font-bold text-xs text-gray-700 bg-white border border-gray-200 hover:bg-gray-100 transition disabled:opacity-40 cursor-pointer shadow-2xs"
+                    >
+                      Next &rarr;
+                    </button>
+                  </div>
+                )}
 
-              <button 
-                onClick={() => setPreviewModalOpen(false)}
-                className="text-gray-400 hover:text-red-500 transition ml-4 cursor-pointer"
-              >
-                <div className="w-6 h-6 flex items-center justify-center font-bold text-xl leading-none">&times;</div>
-              </button>
+                <button 
+                  onClick={() => setPreviewModalOpen(false)}
+                  className="p-1.5 rounded-xl text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition cursor-pointer"
+                  title="Close Preview"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
             </div>
 
-            {/* Modal Body (Scrollable HTML Preview) */}
-            <div className="p-6 overflow-auto flex-1 bg-gray-100">
+            {/* Modal Body (Scrollable HTML Preview with elegant card framing) */}
+            <div className="p-6 overflow-auto flex-1 bg-slate-100 flex justify-center items-start">
               <div 
-                className="bg-white shadow-sm border border-gray-200 p-4 inline-block min-w-full"
+                className="bg-white shadow-md rounded-2xl border border-gray-200 p-6 inline-block min-w-[720px] max-w-full"
                 dangerouslySetInnerHTML={{ __html: previewHtml }}
               />
             </div>
 
             {/* Modal Footer */}
-            <div className="px-6 py-4 border-t border-gray-200 bg-gray-50 flex items-center justify-end gap-3 shrink-0">
+            <div className="px-6 py-3.5 border-t border-gray-200 bg-white flex items-center justify-end gap-3 shrink-0">
               <button
                 onClick={() => setPreviewModalOpen(false)}
-                className="px-5 py-2.5 rounded-xl font-bold text-gray-600 bg-white border border-gray-200 hover:bg-gray-50 transition cursor-pointer"
+                className="px-4 py-2 rounded-xl font-bold text-xs text-gray-600 bg-white border border-gray-200 hover:bg-gray-50 transition cursor-pointer"
               >
                 Cancel
               </button>
               <button
                 onClick={downloadFromPreview}
-                className="px-5 py-2.5 rounded-xl font-bold text-white bg-green-600 hover:bg-green-700 shadow-sm flex items-center gap-2 transition cursor-pointer"
+                className="px-5 py-2 rounded-xl font-bold text-xs text-white bg-[#0e623a] hover:bg-[#0b4d2d] shadow-sm flex items-center gap-2 transition cursor-pointer"
               >
                 <Download className="w-4 h-4" />
-                Download Excel
+                <span>Download Excel</span>
               </button>
             </div>
 
