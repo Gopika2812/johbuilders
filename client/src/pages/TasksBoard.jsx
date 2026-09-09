@@ -899,8 +899,8 @@ const TasksBoard = () => {
         'Task Title',
         'Description',
         'Department',
-        'Assigned To',
         'Assigned By',
+        'Assigned To',
         'Priority',
         'Assigned Date',
         'Due Date',
@@ -934,8 +934,8 @@ const TasksBoard = () => {
           task.title || '—',
           task.description || '—',
           task.category || 'General',
-          task.assignedTo?.name || 'Unassigned',
           task.assignedBy?.name || 'Admin',
+          task.assignedTo?.name || 'Unassigned',
           task.priority || 'Medium',
           assignedDateStr,
           dueDateStr,
@@ -964,8 +964,8 @@ const TasksBoard = () => {
         { width: 28 }, // Title
         { width: 32 }, // Description
         { width: 16 }, // Department
-        { width: 20 }, // Assigned To
         { width: 18 }, // Assigned By
+        { width: 20 }, // Assigned To
         { width: 12 }, // Priority
         { width: 16 }, // Assigned Date
         { width: 16 }, // Due Date
@@ -1787,27 +1787,13 @@ const TasksBoard = () => {
 
   // Status Priority Order for Task Board:
   // 1. Pending tasks (In Progress, On Hold, Pending)
-  // 2. Overdue tasks
-  // 3. New
-  // 4. Completed
-  // 5. Cancelled
+  // Sort tasks by Status Order (New -> In Progress -> On Hold -> Completed -> Cancelled)
   const getTaskStatusPriority = (task) => {
-    const over = isOverdated(task);
-    if ((task.status === 'In Progress' || task.status === 'On Hold' || task.status === 'Pending') && !over) {
-      return 1;
-    }
-    if (over) {
-      return 2;
-    }
-    if (task.status === 'New') {
-      return 3;
-    }
-    if (task.status === 'Completed') {
-      return 4;
-    }
-    if (task.status === 'Cancelled') {
-      return 5;
-    }
+    if (task.status === 'New') return 1;
+    if (task.status === 'In Progress') return 2;
+    if (task.status === 'On Hold') return 3;
+    if (task.status === 'Completed') return 4;
+    if (task.status === 'Cancelled') return 5;
     return 6;
   };
 
@@ -2040,7 +2026,7 @@ const TasksBoard = () => {
             }`}
           >
             <UserCheck className="w-4 h-4" />
-            <span>Assigned to</span>
+            <span>Assigned by Me</span>
             <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
               viewTab === 'I_ASSIGNED' ? 'bg-white/20 text-white' : 'bg-purple-100 text-purple-800'
             }`}>
@@ -2224,13 +2210,13 @@ const TasksBoard = () => {
             icon={Clock}
             value={statusFilter}
             options={[
-              { id: 'PENDING', name: `Pending (${pendingCount})` },
               { id: 'NEW', name: `New (${newCount})` },
               { id: 'IN_PROGRESS', name: `In Progress (${inProgressCount})` },
               { id: 'ON_HOLD', name: `On Hold (${onHoldCount})` },
               { id: 'COMPLETED', name: `Completed (${completedCount})` },
-              { id: 'CANCELLED', name: `Cancelled (${cancelledCount})` },
-              { id: 'OVERDATED', name: `Overdue (${overdatedCount})` }
+              { id: 'PENDING', name: `Pending (${pendingCount})` },
+              { id: 'OVERDATED', name: `Overdue (${overdatedCount})` },
+              { id: 'CANCELLED', name: `Cancelled (${cancelledCount})` }
             ]}
             onChange={(val) => setStatusFilter(val)}
             colorScheme="emerald"
@@ -2259,13 +2245,13 @@ const TasksBoard = () => {
                   <tr className="border-b border-gray-200 bg-gray-50/80 text-gray-500 font-extrabold uppercase tracking-wider text-[10px]">
                     <th className="p-2 w-7 text-center">S.No</th>
                     <th className="p-2 min-w-[70px] max-w-[90px]">Project</th>
-                    <th className="p-2 min-w-[100px] max-w-[130px]">Task Title</th>
-                    <th className="p-2 min-w-[70px] max-w-[85px]">Department</th>
-                    <th className="p-2 min-w-[80px] max-w-[105px]">Assigned To</th>
-                    <th className="p-2 min-w-[75px] max-w-[90px]">Assigned By</th>
+                    <th className="p-2 min-w-[160px] max-w-[240px]">Task Title</th>
+                    <th className="p-2 min-w-[55px] max-w-[70px] text-center">Department</th>
+                    <th className="p-2 min-w-[75px] max-w-[95px]">Assigned By</th>
+                    <th className="p-2 min-w-[75px] max-w-[95px]">Assigned To</th>
                     <th className="p-2 min-w-[55px] text-center">Priority</th>
-                    <th className="p-2 min-w-[75px]">Assigned Date</th>
-                    <th className="p-2 min-w-[80px]">Due Date</th>
+                    <th className="p-2 min-w-[65px] max-w-[75px] text-center">Assigned Date</th>
+                    <th className="p-2 min-w-[65px] max-w-[75px] text-center">Due Date</th>
                     <th className="p-2 min-w-[80px] text-center">Status</th>
                     <th className="p-2 min-w-[70px] text-center">Attachments</th>
                     <th className="p-2 w-8 text-center">Actions</th>
@@ -2307,21 +2293,21 @@ const TasksBoard = () => {
                           )}
                         </td>
 
-                        {/* 3. Task Title */}
+                        {/* 3. Task Title (Increased width) */}
                         <td className="p-2">
                           <button
                             type="button"
                             onClick={() => setViewingTask(task)}
-                            className="font-bold text-[#0e623a] hover:text-[#0b4d2d] hover:underline text-xs text-left block truncate max-w-[130px] cursor-pointer transition"
+                            className="font-bold text-[#0e623a] hover:text-[#0b4d2d] hover:underline text-xs text-left block truncate max-w-[240px] cursor-pointer transition"
                             title={`Click to view details: ${task.title}`}
                           >
                             {task.title}
                           </button>
                         </td>
 
-                        {/* 4. Department */}
-                        <td className="p-2">
-                          <span className={`px-1.5 py-0.5 border font-extrabold text-[10px] rounded-md inline-block max-w-[85px] truncate ${
+                        {/* 4. Department (Reduced width) */}
+                        <td className="p-2 text-center">
+                          <span className={`px-1.5 py-0.5 border font-extrabold text-[9.5px] rounded-md inline-block max-w-[70px] truncate ${
                             task.category === 'Sales Team' ? 'bg-blue-50 border-blue-200 text-blue-800' :
                             task.category === 'CRD Team' ? 'bg-purple-50 border-purple-200 text-purple-800' :
                             task.category === 'Accounts Team' ? 'bg-amber-50 border-amber-200 text-amber-800' :
@@ -2332,16 +2318,16 @@ const TasksBoard = () => {
                           </span>
                         </td>
 
-                        {/* 5. Assigned To */}
+                        {/* 5. Assigned By (1st) */}
                         <td className="p-2">
-                          <span className="font-bold text-gray-800 text-xs truncate block max-w-[110px]" title={task.assignedTo?.name}>
-                            {task.assignedTo?.name || 'Unassigned'}
-                          </span>
+                          <span className="font-semibold text-gray-700 text-xs truncate block max-w-[95px]" title={task.assignedBy?.name}>{task.assignedBy?.name || 'Admin'}</span>
                         </td>
 
-                        {/* 6. Assigned By */}
+                        {/* 6. Assigned To (2nd) */}
                         <td className="p-2">
-                          <span className="font-semibold text-gray-700 text-xs truncate block max-w-[90px]" title={task.assignedBy?.name}>{task.assignedBy?.name || 'Admin'}</span>
+                          <span className="font-bold text-gray-800 text-xs truncate block max-w-[95px]" title={task.assignedTo?.name}>
+                            {task.assignedTo?.name || 'Unassigned'}
+                          </span>
                         </td>
 
                         {/* 7. Priority */}
@@ -2351,8 +2337,8 @@ const TasksBoard = () => {
                           </span>
                         </td>
 
-                        {/* 8. Assigned Date (No calendar icon as requested) */}
-                        <td className="p-2">
+                        {/* 8. Assigned Date (Reduced width, centered) */}
+                        <td className="p-2 text-center whitespace-nowrap">
                           <span className="text-gray-700 font-medium text-xs whitespace-nowrap block">
                             {task.createdAt 
                               ? new Date(task.createdAt).toLocaleDateString('en-GB') 
@@ -2362,8 +2348,8 @@ const TasksBoard = () => {
                           </span>
                         </td>
 
-                        {/* 9. Due Date (No calendar icon as requested) */}
-                        <td className="p-2">
+                        {/* 9. Due Date (Reduced width, centered) */}
+                        <td className="p-2 text-center whitespace-nowrap">
                           <div className="space-y-0.5">
                             <span className="text-gray-800 font-bold text-xs whitespace-nowrap block">
                               {task.dueDate ? new Date(task.dueDate).toLocaleDateString('en-GB') : '—'}
@@ -2377,20 +2363,20 @@ const TasksBoard = () => {
                           </div>
                         </td>
 
-                        {/* 10. Status */}
+                        {/* 10. Status (Order: New, In Progress, On Hold, Completed - Cancelled removed from options) */}
                         <td className="p-2 text-center">
                           <select
                             value={task.status}
                             onChange={(e) => handleStatusChange(task._id, e.target.value)}
-                            disabled={task.status === 'Cancelled' && !canEditOrCancel}
+                            disabled={task.status === 'Cancelled'}
                             className={`px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide border focus:outline-none focus:ring-1 focus:ring-[#0e623a] cursor-pointer ${statusBadge}`}
                           >
                             <option value="New">New</option>
                             <option value="In Progress">In Progress</option>
                             <option value="On Hold">On Hold</option>
                             <option value="Completed">Completed</option>
-                            {(canEditOrCancel || task.status === 'Cancelled') && (
-                              <option value="Cancelled">Cancelled</option>
+                            {task.status === 'Cancelled' && (
+                              <option value="Cancelled" disabled>Cancelled</option>
                             )}
                           </select>
                         </td>
