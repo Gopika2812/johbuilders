@@ -779,87 +779,127 @@ const DashboardReports = () => {
 
       {/* Full Preview Modal */}
       {previewModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
-          <div className="bg-white w-full max-w-6xl h-[90vh] rounded-3xl flex flex-col shadow-2xl overflow-hidden relative border border-gray-100">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-xs p-2 sm:p-4 animate-fadeIn">
+          <div className="bg-white w-full max-w-6xl h-[94vh] sm:h-[90vh] rounded-2xl sm:rounded-3xl flex flex-col shadow-2xl overflow-hidden relative border border-gray-100 animate-in zoom-in-95 duration-200">
             
             {/* Modal Header */}
-            <div className="px-6 py-3.5 border-b border-gray-200 flex items-center justify-between bg-white shrink-0">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-emerald-50 rounded-xl border border-emerald-200 text-[#0e623a]">
-                  <FileText className="w-5 h-5" />
-                </div>
-                <div>
-                  <h2 className="text-base font-extrabold text-gray-900 leading-tight">
-                    {previewSheets.length > 0 
-                      ? (previewSheets[currentSheetIndex].name.toLowerCase().includes('preview') 
-                          ? previewSheets[currentSheetIndex].name 
-                          : `${previewSheets[currentSheetIndex].name} - Preview`)
-                      : 'Report Preview'}
-                  </h2>
-                  <p className="text-[11px] text-gray-400 font-semibold">Excel Layout & Print Preview</p>
-                </div>
-              </div>
-              
-              <div className="flex items-center gap-3">
-                {previewSheets.length > 1 && (
-                  <div className="flex items-center gap-2 bg-gray-50 px-2.5 py-1 rounded-xl border border-gray-200">
-                    <button 
-                      onClick={() => {
-                        const newIdx = Math.max(0, currentSheetIndex - 1);
-                        setCurrentSheetIndex(newIdx);
-                        setPreviewHtml(previewSheets[newIdx].html);
-                      }}
-                      disabled={currentSheetIndex === 0}
-                      className="px-2.5 py-1 rounded-lg font-bold text-xs text-gray-700 bg-white border border-gray-200 hover:bg-gray-100 transition disabled:opacity-40 cursor-pointer shadow-2xs"
-                    >
-                      &larr; Prev
-                    </button>
-                    <span className="font-bold text-xs text-gray-700 px-1">
-                      Sheet {currentSheetIndex + 1} of {previewSheets.length}
-                    </span>
-                    <button 
-                      onClick={() => {
-                        const newIdx = Math.min(previewSheets.length - 1, currentSheetIndex + 1);
-                        setCurrentSheetIndex(newIdx);
-                        setPreviewHtml(previewSheets[newIdx].html);
-                      }}
-                      disabled={currentSheetIndex === previewSheets.length - 1}
-                      className="px-2.5 py-1 rounded-lg font-bold text-xs text-gray-700 bg-white border border-gray-200 hover:bg-gray-100 transition disabled:opacity-40 cursor-pointer shadow-2xs"
-                    >
-                      Next &rarr;
-                    </button>
+            <div className="px-3.5 sm:px-6 py-2.5 sm:py-3.5 border-b border-gray-200 bg-white shrink-0">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                  <div className="p-1.5 sm:p-2 bg-emerald-50 rounded-xl border border-emerald-200 text-[#0e623a] shrink-0">
+                    <FileText className="w-4 h-4 sm:w-5 sm:h-5" />
                   </div>
-                )}
+                  <div className="min-w-0">
+                    <h2 className="text-sm sm:text-base font-extrabold text-gray-900 leading-tight truncate">
+                      {previewSheets.length > 0 
+                        ? (previewSheets[currentSheetIndex].name.toLowerCase().includes('preview') 
+                            ? previewSheets[currentSheetIndex].name 
+                            : `${previewSheets[currentSheetIndex].name} - Preview`)
+                        : 'Report Preview'}
+                    </h2>
+                    <p className="text-[10px] sm:text-[11px] text-gray-400 font-semibold truncate">Excel Layout & Print Preview</p>
+                  </div>
+                </div>
+                
+                <div className="flex items-center gap-2 shrink-0">
+                  {/* Desktop Sheet switcher */}
+                  {previewSheets.length > 1 && (
+                    <div className="hidden sm:flex items-center gap-1.5 bg-gray-50 px-2 py-1 rounded-xl border border-gray-200">
+                      <button 
+                        onClick={() => {
+                          const newIdx = Math.max(0, currentSheetIndex - 1);
+                          setCurrentSheetIndex(newIdx);
+                          setPreviewHtml(previewSheets[newIdx].html);
+                        }}
+                        disabled={currentSheetIndex === 0}
+                        className="px-2 py-0.5 rounded-lg font-bold text-xs text-gray-700 bg-white border border-gray-200 hover:bg-gray-100 transition disabled:opacity-40 cursor-pointer shadow-2xs"
+                      >
+                        &larr; Prev
+                      </button>
+                      <span className="font-bold text-xs text-gray-700 px-1">
+                        {currentSheetIndex + 1} / {previewSheets.length}
+                      </span>
+                      <button 
+                        onClick={() => {
+                          const newIdx = Math.min(previewSheets.length - 1, currentSheetIndex + 1);
+                          setCurrentSheetIndex(newIdx);
+                          setPreviewHtml(previewSheets[newIdx].html);
+                        }}
+                        disabled={currentSheetIndex === previewSheets.length - 1}
+                        className="px-2 py-0.5 rounded-lg font-bold text-xs text-gray-700 bg-white border border-gray-200 hover:bg-gray-100 transition disabled:opacity-40 cursor-pointer shadow-2xs"
+                      >
+                        Next &rarr;
+                      </button>
+                    </div>
+                  )}
 
-                <button 
-                  onClick={() => setPreviewModalOpen(false)}
-                  className="p-1.5 rounded-xl text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition cursor-pointer"
-                  title="Close Preview"
-                >
-                  <X className="w-5 h-5" />
-                </button>
+                  <button 
+                    onClick={() => setPreviewModalOpen(false)}
+                    className="p-1.5 rounded-xl text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition cursor-pointer"
+                    title="Close Preview"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
               </div>
+
+              {/* Mobile Sheet switcher bar */}
+              {previewSheets.length > 1 && (
+                <div className="flex sm:hidden items-center justify-between gap-2 mt-2 pt-2 border-t border-gray-100">
+                  <button 
+                    onClick={() => {
+                      const newIdx = Math.max(0, currentSheetIndex - 1);
+                      setCurrentSheetIndex(newIdx);
+                      setPreviewHtml(previewSheets[newIdx].html);
+                    }}
+                    disabled={currentSheetIndex === 0}
+                    className="flex-1 py-1 px-2 rounded-lg font-bold text-xs text-gray-700 bg-gray-50 border border-gray-200 disabled:opacity-30 text-center"
+                  >
+                    &larr; Prev Sheet
+                  </button>
+                  <span className="font-extrabold text-xs text-[#0e623a] px-2 whitespace-nowrap">
+                    Sheet {currentSheetIndex + 1} of {previewSheets.length}
+                  </span>
+                  <button 
+                    onClick={() => {
+                      const newIdx = Math.min(previewSheets.length - 1, currentSheetIndex + 1);
+                      setCurrentSheetIndex(newIdx);
+                      setPreviewHtml(previewSheets[newIdx].html);
+                    }}
+                    disabled={currentSheetIndex === previewSheets.length - 1}
+                    className="flex-1 py-1 px-2 rounded-lg font-bold text-xs text-gray-700 bg-gray-50 border border-gray-200 disabled:opacity-30 text-center"
+                  >
+                    Next Sheet &rarr;
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Mobile Scroll Hint Banner */}
+            <div className="sm:hidden px-3 py-1 bg-emerald-50/80 border-b border-emerald-100 flex items-center justify-between text-[10px] text-[#0e623a] font-semibold shrink-0">
+              <span>↔ Swipe horizontally to view full table</span>
+              <span className="text-[9px] text-gray-500 font-bold">100% EXCEL VIEW</span>
             </div>
 
             {/* Modal Body (Scrollable HTML Preview with elegant card framing) */}
-            <div className="p-6 overflow-auto flex-1 bg-slate-100 flex justify-center items-start">
+            <div className="p-2 sm:p-6 overflow-x-auto overflow-y-auto flex-1 bg-slate-100 flex justify-start sm:justify-center items-start">
               <div 
-                className="bg-white shadow-md rounded-2xl border border-gray-200 p-6 inline-block min-w-[720px] max-w-full"
+                className="bg-white shadow-md rounded-xl sm:rounded-2xl border border-gray-200 p-3 sm:p-6 inline-block min-w-[640px] sm:min-w-[720px] max-w-none my-1"
                 dangerouslySetInnerHTML={{ __html: previewHtml }}
               />
             </div>
 
             {/* Modal Footer */}
-            <div className="px-6 py-3.5 border-t border-gray-200 bg-white flex items-center justify-end gap-3 shrink-0">
+            <div className="px-3 sm:px-6 py-2.5 sm:py-3.5 border-t border-gray-200 bg-white flex flex-row items-center justify-end gap-2 sm:gap-3 shrink-0">
               <button
                 onClick={() => setPreviewModalOpen(false)}
-                className="px-4 py-2 rounded-xl font-bold text-xs text-gray-600 bg-white border border-gray-200 hover:bg-gray-50 transition cursor-pointer"
+                className="flex-1 sm:flex-none px-4 py-2 rounded-xl font-bold text-xs text-gray-600 bg-white border border-gray-200 hover:bg-gray-50 transition cursor-pointer text-center"
               >
                 Cancel
               </button>
               <button
                 onClick={downloadFromPreview}
-                className="px-5 py-2 rounded-xl font-bold text-xs text-white bg-[#0e623a] hover:bg-[#0b4d2d] shadow-sm flex items-center gap-2 transition cursor-pointer"
+                className="flex-1 sm:flex-none px-5 py-2 rounded-xl font-bold text-xs text-white bg-[#0e623a] hover:bg-[#0b4d2d] shadow-sm flex items-center justify-center gap-2 transition cursor-pointer text-center whitespace-nowrap"
               >
                 <Download className="w-4 h-4" />
                 <span>Download Excel</span>

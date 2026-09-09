@@ -16,7 +16,8 @@ import {
   Coins,
   BarChart3,
   ClipboardList,
-  FileSpreadsheet
+  FileSpreadsheet,
+  X
 } from 'lucide-react';
 
 const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
@@ -48,12 +49,19 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
       <div className="absolute bottom-[-10%] right-[-10%] w-[80%] h-[30%] bg-emerald-600/10 rounded-full blur-[70px] pointer-events-none z-0"></div>
 
       {/* Brand Logo Header */}
-      <div className={`px-4 py-3 flex items-center justify-center w-full relative z-10 border-b border-white/10 shrink-0`}>
+      <div className={`px-4 py-3 flex items-center justify-between md:justify-center w-full relative z-10 border-b border-white/10 shrink-0`}>
         {isExpanded ? (
           <img src="/logo_white.jpg" alt="JB Logo" className="h-14 w-auto max-w-[160px] object-contain rounded-xl shadow-sm" />
         ) : (
           <img src="/logo_white.jpg" alt="JB Logo" className="w-10 h-10 object-contain rounded-lg" />
         )}
+        <button
+          onClick={() => setSidebarOpen(false)}
+          className="md:hidden p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-xl transition cursor-pointer"
+          title="Close Navigation"
+        >
+          <X className="w-5 h-5" />
+        </button>
       </div>
 
       {/* Navigation Items */}

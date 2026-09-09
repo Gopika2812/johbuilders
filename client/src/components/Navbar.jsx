@@ -231,21 +231,21 @@ const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
 
   return (
     <>
-      <header className={`h-16 bg-transparent border-none flex items-center justify-between px-4 md:px-8 z-30 shadow-sm transition-all duration-300 w-full`}>
+      <header className={`h-16 bg-transparent border-none flex items-center justify-between px-3 sm:px-4 md:px-8 z-30 shadow-sm transition-all duration-300 w-full`}>
         {/* Title & Hamburger */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition cursor-pointer"
+            className="p-1.5 text-gray-600 hover:text-gray-900 hover:bg-white/80 rounded-xl transition cursor-pointer shrink-0"
             title="Toggle Sidebar"
           >
             <Menu className="w-5 h-5" />
           </button>
-          <h2 className="text-base md:text-xl font-bold text-gray-800 tracking-tight truncate max-w-[180px] sm:max-w-none">{getPageTitle()}</h2>
+          <h2 className="text-sm sm:text-base md:text-xl font-extrabold text-gray-850 tracking-tight truncate max-w-[130px] xs:max-w-[180px] sm:max-w-none">{getPageTitle()}</h2>
         </div>
 
         {/* Profile info / Date status */}
-        <div className="flex items-center gap-4 md:gap-6">
+        <div className="flex items-center gap-2 sm:gap-3 md:gap-6 shrink-0">
           <div className="hidden md:flex items-center gap-2 text-sm text-gray-500 bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-200">
             <Calendar className="w-4 h-4 text-[#0e623a]" />
             <span>{new Date().toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}</span>
@@ -265,7 +265,7 @@ const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
             </button>
 
             {showDropdown && (
-              <div className="absolute -right-12 sm:right-0 mt-2.5 w-[320px] sm:w-96 bg-white border border-gray-150 rounded-2xl shadow-xl z-[100] p-4 text-left animate-fadeIn max-h-96 flex flex-col">
+              <div className="absolute right-[-48px] sm:right-0 mt-2.5 w-[calc(100vw-32px)] max-w-[360px] sm:w-96 bg-white border border-gray-150 rounded-2xl shadow-xl z-[100] p-4 text-left animate-fadeIn max-h-96 flex flex-col">
                 <div className="flex items-center justify-between border-b border-gray-100 pb-2 mb-2">
                   <span className="text-[11px] font-bold text-gray-800 uppercase tracking-wide">Notifications & Tasks</span>
                   <span className="text-[11px] font-extrabold px-2 py-0.5 bg-[#0e623a]/10 text-[#0e623a] rounded-full">
@@ -353,23 +353,23 @@ const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
             )}
           </div>
 
-          <div className="flex items-center gap-2">
-            <div className="glass-card px-3 sm:px-4 py-1.5 sm:py-2 rounded-full flex items-center gap-2 sm:gap-3 pointer-events-auto shadow-sm hover:shadow-md transition-all border border-white/60 bg-white/60 backdrop-blur-xl">
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+            <div className="glass-card px-2 sm:px-4 py-1.5 sm:py-2 rounded-full flex items-center gap-1.5 sm:gap-3 pointer-events-auto shadow-xs border border-white/60 bg-white/60 backdrop-blur-xl">
               <div className="flex flex-col items-end hidden sm:flex">
                 <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">{user?.role}</span>
                 <span className="text-sm font-black text-black">{user?.name}</span>
               </div>
-              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-gradient-to-br from-[#006838] to-[#008c4a] flex items-center justify-center text-white shadow-inner font-bold text-xs">
+              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-gradient-to-br from-[#006838] to-[#008c4a] flex items-center justify-center text-white shadow-inner font-bold text-xs shrink-0">
                 {user?.name?.slice(0, 2).toUpperCase() || <User className="w-4 h-4" />}
               </div>
             </div>
 
             <button
               onClick={logout}
-              className="p-2 sm:p-2.5 text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 rounded-full transition flex items-center justify-center border border-red-200 cursor-pointer shadow-sm"
+              className="p-2 sm:p-2.5 text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 rounded-full transition flex items-center justify-center border border-red-200 cursor-pointer shadow-xs shrink-0"
               title="Logout"
             >
-              <LogOut className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-red-600" />
+              <LogOut className="w-4 h-4 text-red-600" />
             </button>
           </div>
         </div>
