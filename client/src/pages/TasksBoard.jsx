@@ -1682,6 +1682,8 @@ const TasksBoard = () => {
 
         setNewCommentNote('');
         setReplyFiles([]);
+        setHistoryModalOpen(false);
+        setSelectedTaskForHistory(null);
         setSuccessMsg('Reply added successfully');
         setTimeout(() => setSuccessMsg(''), 3000);
       } else {
@@ -2293,16 +2295,24 @@ const TasksBoard = () => {
                           )}
                         </td>
 
-                        {/* 3. Task Title (Increased width) */}
+                        {/* 3. Task Title (Increased width & blue hyperlink colored) */}
                         <td className="p-2">
                           <button
                             type="button"
                             onClick={() => setViewingTask(task)}
-                            className="font-bold text-[#0e623a] hover:text-[#0b4d2d] hover:underline text-xs text-left block truncate max-w-[240px] cursor-pointer transition"
+                            className="font-bold text-blue-600 hover:text-blue-800 hover:underline text-xs text-left block truncate max-w-[240px] cursor-pointer transition"
                             title={`Click to view details: ${task.title}`}
                           >
                             {task.title}
                           </button>
+                          {task.description && (
+                            <p 
+                              className="text-[10px] text-gray-500 truncate max-w-[240px] leading-tight mt-0.5" 
+                              title={task.description}
+                            >
+                              {task.description}
+                            </p>
+                          )}
                         </td>
 
                         {/* 4. Department (Reduced width) */}
@@ -3227,6 +3237,16 @@ const TasksBoard = () => {
                 </h2>
               </div>
 
+              {/* Description Box (Placed directly below Task Title as requested) */}
+              <div className="space-y-1.5">
+                <span className="text-[10px] font-extrabold text-gray-500 uppercase tracking-wider block">
+                  Description / Task Scope
+                </span>
+                <div className="p-3.5 bg-gray-50 rounded-2xl border border-gray-200 text-gray-800 text-xs whitespace-pre-wrap leading-relaxed min-h-[60px]">
+                  {viewingTask.description || <span className="text-gray-400 italic">No description provided for this task.</span>}
+                </div>
+              </div>
+
               {/* Grid of Key Info */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {/* Project */}
@@ -3287,16 +3307,6 @@ const TasksBoard = () => {
                   <span className="text-[10px] font-semibold text-gray-400 block">
                     Created: {viewingTask.createdAt ? new Date(viewingTask.createdAt).toLocaleDateString('en-GB') : '—'}
                   </span>
-                </div>
-              </div>
-
-              {/* Description Box */}
-              <div className="space-y-1.5">
-                <span className="text-[10px] font-extrabold text-gray-500 uppercase tracking-wider block">
-                  Description / Task Scope
-                </span>
-                <div className="p-4 bg-gray-50 rounded-2xl border border-gray-200 text-gray-800 text-xs whitespace-pre-wrap leading-relaxed min-h-[70px]">
-                  {viewingTask.description || <span className="text-gray-400 italic">No description provided for this task.</span>}
                 </div>
               </div>
 
