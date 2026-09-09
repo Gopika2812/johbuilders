@@ -32,25 +32,6 @@ router.get('/stats', protect, async (req, res) => {
       ];
     }
 
-    let matchingProjectIds = null;
-    if (projectType) {
-      const matchingProjects = await Project.find({ projectType: projectType }, '_id').lean();
-      matchingProjectIds = matchingProjects.map(p => p._id);
-      if (projectId) {
-        if (matchingProjectIds.map(id => id.toString()).includes(projectId.toString())) {
-          query.project = projectId;
-        } else {
-          query.project = new mongoose.Types.ObjectId();
-        }
-      } else {
-        query.project = { $in: matchingProjectIds };
-      }
-    } else if (projectId) {
-      query.project = projectId;
-    }
-
-    if (userId) query.assignedTo = userId;
-
     let sourceFilter = null;
     if (source) {
       const sourceArr = String(source).split(',').map(s => s.trim()).filter(Boolean);
@@ -61,27 +42,6 @@ router.get('/stats', protect, async (req, res) => {
           $in: sourceArr.map(s => new RegExp(`^${s.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')}$`, 'i'))
         };
       }
-      if (sourceFilter) {
-        query.leadSource = sourceFilter;
-      }
-    }
-
-    // Build quotations query
-    let qQuery = {};
-    if (dateFilter) qQuery.createdAt = dateFilter;
-    if (projectType && matchingProjectIds) {
-      qQuery.projectType = projectType;
-      if (projectId) {
-        if (matchingProjectIds.map(id => id.toString()).includes(projectId.toString())) {
-          qQuery.project = projectId;
-        } else {
-          qQuery.project = new mongoose.Types.ObjectId();
-        }
-      } else {
-        qQuery.project = { $in: matchingProjectIds };
-      }
-    } else if (projectId) {
-      qQuery.project = projectId;
     }
 
     let budgetQuery = {};
@@ -97,33 +57,107 @@ router.get('/stats', protect, async (req, res) => {
       }
     }
 
-    // Execute queries in parallel using Promise.all & .lean()
-    const [
-      projectsForHandover,
-      leads,
-      userLeads,
-      budgetPlans,
-      allUsers,
-      dbProjects
-    ] = await Promise.all([
-      Project.find({}, 'units').lean(),
-      Lead.find(query).populate('project', 'name code').populate('assignedTo', 'name role').lean(),
-      (userId || sourceFilter) ? Lead.find(userId && sourceFilter ? { assignedTo: userId, leadSource: sourceFilter } : (userId ? { assignedTo: userId } : { leadSource: sourceFilter }), '_id').lean() : Promise.resolve([]),
-      BudgetPlan.find(budgetQuery).lean(),
-      User.find({ role: { $nin: ['Superadmin', 'superadmin', 'Super Admin'] }, name: { $ne: 'Super Admin' } }, 'name role').lean(),
-      Project.find({}, 'name code projectType units').lean()
+    // Step 1: In parallel, fetch Projects and user-matching lead IDs (if user/source filter active)
+    const [allDbProjects, userLeads] = await Promise.all([
+      Project.find({}, 'name code projectType units createdAt updatedAt').lean(),
+      (userId || sourceFilter)
+        ? Lead.find(
+            userId && sourceFilter
+              ? { assignedTo: userId, leadSource: sourceFilter }
+              : (userId ? { assignedTo: userId } : { leadSource: sourceFilter }),
+            '_id'
+          ).lean()
+        : Promise.resolve([])
     ]);
+
+    const dbProjects = allDbProjects;
+    const projectsForHandover = allDbProjects;
+
+    let matchingProjectIds = null;
+    if (projectType) {
+      const matchingProjects = allDbProjects.filter(p =>
+        Array.isArray(p.projectType) ? p.projectType.includes(projectType) : p.projectType === projectType
+      );
+      matchingProjectIds = matchingProjects.map(p => p._id);
+      if (projectId) {
+        if (matchingProjectIds.some(id => id.toString() === projectId.toString())) {
+          query.project = projectId;
+        } else {
+          query.project = new mongoose.Types.ObjectId();
+        }
+      } else {
+        query.project = { $in: matchingProjectIds };
+      }
+    } else if (projectId) {
+      query.project = projectId;
+    }
+
+    if (userId) query.assignedTo = userId;
+    if (sourceFilter) query.leadSource = sourceFilter;
+
+    // Build quotations query
+    let qQuery = {};
+    if (dateFilter) qQuery.createdAt = dateFilter;
+    if (projectType && matchingProjectIds) {
+      qQuery.projectType = projectType;
+      if (projectId) {
+        if (matchingProjectIds.some(id => id.toString() === projectId.toString())) {
+          qQuery.project = projectId;
+        } else {
+          qQuery.project = new mongoose.Types.ObjectId();
+        }
+      } else {
+        qQuery.project = { $in: matchingProjectIds };
+      }
+    } else if (projectId) {
+      qQuery.project = projectId;
+    }
 
     if (userId || sourceFilter) {
       const leadIds = userLeads.map(ul => ul._id);
       qQuery.lead = { $in: leadIds };
     }
 
-    const quotations = await Quotation.find(qQuery)
-      .populate('lead', 'name phone status assignedTo leadSource')
-      .populate('project', 'name code')
-      .populate('createdBy', 'name role')
-      .lean();
+    // Prepare today's date boundaries & query
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    const todayEnd = new Date();
+    todayEnd.setHours(23, 59, 59, 999);
+
+    const todayQuery = {
+      $or: [
+        { createdAt: { $gte: todayStart, $lte: todayEnd } },
+        { 'history.timestamp': { $gte: todayStart, $lte: todayEnd } }
+      ]
+    };
+    if (query.project) todayQuery.project = query.project;
+    if (query.assignedTo) todayQuery.assignedTo = query.assignedTo;
+    if (query.leadSource) todayQuery.leadSource = query.leadSource;
+
+    // Step 2: In parallel, fetch ALL remaining data in a SINGLE batch
+    const [
+      leads,
+      quotations,
+      allCrdFlows,
+      budgetPlans,
+      allUsers,
+      leadsWithSelectedUnits,
+      leadGroups,
+      todayLeads
+    ] = await Promise.all([
+      Lead.find(query).populate('project', 'name code').populate('assignedTo', 'name role').lean(),
+      Quotation.find(qQuery)
+        .populate('lead', 'name phone status assignedTo leadSource')
+        .populate('project', 'name code')
+        .populate('createdBy', 'name role')
+        .lean(),
+      CRDFlow.find({}).populate('project', 'name code projectType').lean(),
+      BudgetPlan.find(budgetQuery).lean(),
+      User.find({ role: { $nin: ['Superadmin', 'superadmin', 'Super Admin'] }, name: { $ne: 'Super Admin' } }, 'name role').lean(),
+      Lead.find({ 'bookingInfo.selectedUnits': { $exists: true, $ne: [] } }, 'bookingInfo project createdAt').lean(),
+      LeadGroup.find({}).lean(),
+      Lead.find(todayQuery).lean()
+    ]);
 
     const quotationMap = {};
     quotations.forEach(q => {
@@ -563,8 +597,7 @@ router.get('/stats', protect, async (req, res) => {
     });
 
     // Calculate Projects & Units Inventory Stats
-    const leadsWithSelectedUnits = await Lead.find({ 'bookingInfo.selectedUnits': { $exists: true, $ne: [] } }).lean();
-    const crdFlowsWithUnits = await CRDFlow.find({ unitId: { $exists: true, $ne: '' } }).lean();
+    const crdFlowsWithUnits = allCrdFlows.filter(cf => cf.unitId && cf.unitId !== '');
     const bookingDatesMap = new Map();
 
     leadsWithSelectedUnits.forEach(lead => {
@@ -593,15 +626,15 @@ router.get('/stats', protect, async (req, res) => {
       }
     });
 
-    let projectFilter = {};
+    let allProjects = allDbProjects;
     if (projectType) {
-      projectFilter.projectType = projectType;
+      allProjects = allProjects.filter(p =>
+        Array.isArray(p.projectType) ? p.projectType.includes(projectType) : p.projectType === projectType
+      );
     }
     if (projectId) {
-      projectFilter._id = projectId;
+      allProjects = allProjects.filter(p => p._id.toString() === projectId.toString());
     }
-    // Project createdAt filter removed so that projects are always visible
-    const allProjects = await Project.find(projectFilter).lean();
     let totalProjects = allProjects.length;
     let totalUnits = 0;
     let availableUnits = 0;
@@ -770,7 +803,7 @@ router.get('/stats', protect, async (req, res) => {
       });
     });
 
-    const cancelledFlows = await CRDFlow.find({ status: { $in: ['Cancelled', 'Returned'] } }).populate('project', 'name code projectType').lean();
+    const cancelledFlows = allCrdFlows.filter(cf => cf.status === 'Cancelled' || cf.status === 'Returned');
     cancelledFlows.forEach(cf => {
       if (cf.project) {
         const pCode = cf.project.code || cf.project.name;
@@ -813,7 +846,8 @@ router.get('/stats', protect, async (req, res) => {
     // Compute stage-by-stage payments from CRD Flow
     const bookingLeads = leads.filter(l => l.status === 'Booking' || l.status === 'Won');
     const bookingLeadIds = bookingLeads.map(l => l._id);
-    const crdFlows = await CRDFlow.find({ lead: { $in: bookingLeadIds }, status: { $nin: ['Cancelled', 'Returned'] } }).lean();
+    const bookingLeadIdsSet = new Set(bookingLeadIds.map(id => id.toString()));
+    const crdFlows = allCrdFlows.filter(cf => cf.lead && bookingLeadIdsSet.has(cf.lead.toString()) && !['Cancelled', 'Returned'].includes(cf.status));
 
     let crdTotalValue = 0;
     let crdReceivedValue = 0;
@@ -898,8 +932,7 @@ router.get('/stats', protect, async (req, res) => {
     const bookingConversionRate = cumulativeEnquiries > 0 ? (siteConversionsCount / cumulativeEnquiries) * 100 : 0;
     const handoverRate = totalUnits > 0 ? (handoverUnits / totalUnits) * 100 : 0;
 
-    // Calculate Group-wise stats for marketing spend drill-down
-    const leadGroups = await LeadGroup.find({}).lean();
+    // Calculate Group-wise stats for marketing spend drill-down (leadGroups already loaded in parallel)
     const groupStats = {};
     const processedSources = new Set();
 
@@ -996,25 +1029,7 @@ router.get('/stats', protect, async (req, res) => {
       delete groupStats['Direct Visit'];
     }
 
-    // Calculate today's stable counts
-    const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0);
-    const todayEnd = new Date();
-    todayEnd.setHours(23, 59, 59, 999);
-
-    const todayQuery = {
-      $or: [
-        { createdAt: { $gte: todayStart, $lte: todayEnd } },
-        { 'history.timestamp': { $gte: todayStart, $lte: todayEnd } }
-      ]
-    };
-
-    if (query.project) todayQuery.project = query.project;
-    if (query.assignedTo) todayQuery.assignedTo = query.assignedTo;
-    if (query.leadSource) todayQuery.leadSource = query.leadSource;
-
-    const todayLeads = await Lead.find(todayQuery).lean();
-
+    // todayLeads already loaded in parallel above
     let todayLeadsCount = 0;
     let todayEnquiriesCount = 0;
     let todaySiteVisitsCount = 0;
@@ -1064,7 +1079,7 @@ router.get('/stats', protect, async (req, res) => {
       totalActive: 0
     };
 
-    const allStatsCrdFlows = await CRDFlow.find({ lead: { $in: bookingLeadIds } }).lean();
+    const allStatsCrdFlows = allCrdFlows.filter(flow => flow.lead && bookingLeadIdsSet.has(flow.lead.toString()));
 
     allStatsCrdFlows.forEach(flow => {
       crdFlowStats.totalActive++;

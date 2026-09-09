@@ -61,7 +61,7 @@ router.get('/', protect, async (req, res) => {
 
   try {
     const leads = await Lead.find(query)
-      .populate('project', 'name code location units')
+      .populate('project', 'name code location')
       .populate('assignedTo', 'name role phone mobile phoneNumber')
       .populate('assignedBy', 'name role phone mobile phoneNumber')
       .populate('history.assignedTo', 'name role phone mobile phoneNumber')

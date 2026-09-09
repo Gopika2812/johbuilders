@@ -173,15 +173,20 @@ const formatProjectTypeLabel = (projectType) => {
   return typeStr.replace(/Flat|Villa|House/gi, 'Unit');
 };
 
+let leadsDirectoryCache = null;
+let projectsDirectoryCache = null;
+let employeesDirectoryCache = null;
+let quotationsDirectoryCache = null;
+
 const LeadsDirectory = () => {
   const { token, user, hasColumnPermission } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
-  const [leads, setLeads] = useState([]);
-  const [projects, setProjects] = useState([]);
-  const [employees, setEmployees] = useState([]);
-  const [quotations, setQuotations] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [leads, setLeads] = useState(() => leadsDirectoryCache || []);
+  const [projects, setProjects] = useState(() => projectsDirectoryCache || []);
+  const [employees, setEmployees] = useState(() => employeesDirectoryCache || []);
+  const [quotations, setQuotations] = useState(() => quotationsDirectoryCache || []);
+  const [loading, setLoading] = useState(() => !leadsDirectoryCache);
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
 
@@ -1098,6 +1103,7 @@ const LeadsDirectory = () => {
       });
       if (res.ok) {
         const data = await res.json();
+        leadsDirectoryCache = data;
         setLeads(data);
         const leadSources = (data || []).map(l => l.leadSource).filter(Boolean);
         setAvailableSources(prev => Array.from(new Set([...prev, ...leadSources])).filter(Boolean));
@@ -1118,6 +1124,7 @@ const LeadsDirectory = () => {
       });
       if (res.ok) {
         const data = await res.json();
+        projectsDirectoryCache = data;
         setProjects(data);
         // Extract unique locations
         const locs = Array.from(new Set(data.map(p => p.location))).filter(Boolean);
@@ -1133,8 +1140,9 @@ const LeadsDirectory = () => {
       });
       if (res.ok) {
         const data = await res.json();
-        // Only show approved employees with role 'sales person'
-        setEmployees(data.filter(emp => emp.isApproved && emp.role?.toLowerCase() === 'sales person'));
+        const filtered = data.filter(emp => emp.isApproved && emp.role?.toLowerCase() === 'sales person');
+        employeesDirectoryCache = filtered;
+        setEmployees(filtered);
       }
     } catch (err) { }
   };
@@ -1146,6 +1154,7 @@ const LeadsDirectory = () => {
       });
       if (res.ok) {
         const data = await res.json();
+        quotationsDirectoryCache = data;
         setQuotations(data);
       }
     } catch (err) { }

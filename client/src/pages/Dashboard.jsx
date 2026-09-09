@@ -566,6 +566,9 @@ const ApartmentLayoutView = ({ selectedProj, projObj }) => {
   );
 };
 
+const dashboardStatsCache = {};
+let pendingFollowUpsCache = null;
+
 const Dashboard = () => {
   const { token, user, hasFullDashboardAccess } = useAuth();
   const roleNorm = (user?.role || '').toLowerCase().replace(/[\s_-]+/g, '');
@@ -848,9 +851,12 @@ const Dashboard = () => {
   const [showDetailedPreviewModal, setShowDetailedPreviewModal] = useState(false);
   const [showSourceDetailedPreviewModal, setShowSourceDetailedPreviewModal] = useState(false);
 
-  const [pendingFollowUps, setPendingFollowUps] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState({
+  const initialSrcParam = selectedSource && (Array.isArray(selectedSource) ? selectedSource.join(',') : selectedSource);
+  const initialCacheKey = `${fromDate}_${toDate}_${selectedUser || ''}_${selectedProject || ''}_${selectedProjectType || ''}_${initialSrcParam || ''}`;
+
+  const [pendingFollowUps, setPendingFollowUps] = useState(() => pendingFollowUpsCache || []);
+  const [loading, setLoading] = useState(() => !dashboardStatsCache[initialCacheKey]);
+  const [stats, setStats] = useState(() => dashboardStatsCache[initialCacheKey] || {
     cards: {
       totalLeads: 0,
       assignedLeads: 0,
@@ -1636,7 +1642,15 @@ const Dashboard = () => {
   };
 
   useEffect(() => {
-    fetchDashboardStats();
+    const srcParam = selectedSource && (Array.isArray(selectedSource) ? selectedSource.join(',') : selectedSource);
+    const cacheKey = `${fromDate}_${toDate}_${selectedUser || ''}_${selectedProject || ''}_${selectedProjectType || ''}_${srcParam || ''}`;
+    if (dashboardStatsCache[cacheKey]) {
+      setStats(dashboardStatsCache[cacheKey]);
+      setLoading(false);
+      fetchDashboardStats(true);
+    } else {
+      fetchDashboardStats(false);
+    }
     fetchPendingFollowUps();
   }, [fromDate, toDate, selectedUser, selectedProject, selectedProjectType, selectedSource]);
 
@@ -1657,6 +1671,9 @@ const Dashboard = () => {
       });
       if (response.ok) {
         const data = await response.json();
+        const srcParam = selectedSource && (Array.isArray(selectedSource) ? selectedSource.join(',') : selectedSource);
+        const cacheKey = `${fromDate}_${toDate}_${selectedUser || ''}_${selectedProject || ''}_${selectedProjectType || ''}_${srcParam || ''}`;
+        dashboardStatsCache[cacheKey] = data;
         setStats(data);
       }
     } catch (err) {
@@ -1687,6 +1704,7 @@ const Dashboard = () => {
       });
       if (response.ok) {
         const data = await response.json();
+        pendingFollowUpsCache = data;
         setPendingFollowUps(data);
       }
     } catch (err) {
