@@ -2985,14 +2985,33 @@ const Dashboard = () => {
                           <td className="p-4 font-extrabold text-black-800 uppercase">{pCode}</td>
                           <td className="p-4">
                             <div className="flex flex-wrap gap-2">
-                              {Object.keys(p.stages || {}).filter(stageName => stageName !== 'Site Conversion').map(stageName => (
-                                <span
-                                  key={stageName}
-                                  className="text-[13px] font-bold px-2.5 py-1 bg-black-50 border-none text-black-650 rounded-xl"
-                                >
-                                  {stageName === 'Booking' ? 'Booked' : stageName === 'Won' ? 'Handover' : stageName}: <span className="text-[15px] font-black text-black-900 ml-1">{p.stages[stageName]}</span>
-                                </span>
-                              ))}
+                              {Object.keys(p.stages || {})
+                                .filter(stageName => stageName !== 'Site Conversion')
+                                .sort((a, b) => {
+                                  const getRank = (name) => {
+                                    const norm = String(name || '').toLowerCase().trim();
+                                    if (norm === 'assigned') return 1;
+                                    if (norm === 'contacted') return 2;
+                                    if (norm === 'follow-up' || norm === 'followup' || norm === 'follow up') return 3;
+                                    if (norm === 'site visit') return 4;
+                                    if (norm === 'site visit follow-up' || norm === 'site visit followup') return 5;
+                                    if (norm === 'hot list' || norm === 'hotlist') return 6;
+                                    if (norm.includes('future')) return 7;
+                                    if (norm === 'booking' || norm === 'booked') return 8;
+                                    if (norm === 'won' || norm === 'handover') return 9;
+                                    if (norm === 'lost' || norm === 'closed' || norm === 'cancelled') return 999;
+                                    return 50;
+                                  };
+                                  return getRank(a) - getRank(b);
+                                })
+                                .map(stageName => (
+                                  <span
+                                    key={stageName}
+                                    className="text-[13px] font-bold px-2.5 py-1 bg-black-50 border-none text-black-650 rounded-xl"
+                                  >
+                                    {stageName === 'Booking' ? 'Booked' : stageName === 'Won' ? 'Handover' : stageName}: <span className="text-[15px] font-black text-black-900 ml-1">{p.stages[stageName]}</span>
+                                  </span>
+                                ))}
                             </div>
                           </td>
 
