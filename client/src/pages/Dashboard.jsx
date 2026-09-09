@@ -632,6 +632,24 @@ const Dashboard = () => {
 
     let filtered = [...stats.cards.leadsList];
 
+    // 0. Filter by Date Range (consistent with User Wise & Source Wise summaries)
+    const rangeStart = fromDate ? new Date(fromDate) : null;
+    let rangeEnd = null;
+    if (toDate) {
+      rangeEnd = new Date(toDate);
+      rangeEnd.setHours(23, 59, 59, 999);
+    }
+    const inDateRange = (dateStr) => {
+      if (!fromDate && !toDate) return true;
+      if (!dateStr) return false;
+      const d = new Date(dateStr);
+      if (rangeStart && d < rangeStart) return false;
+      if (rangeEnd && d > rangeEnd) return false;
+      return true;
+    };
+
+    filtered = filtered.filter(l => inDateRange(l.createdAt));
+
     // 1. Filter by Context
     if (sourceContext === 'user') {
       if (selectedUserPerfName) {
@@ -661,11 +679,11 @@ const Dashboard = () => {
     } else if (stageLabel === 'Future Follow-up' || stageLabel === 'Future Followup') {
       filtered = filtered.filter(l => l.status === 'Future Follow-up' || l.status === 'Future Followup' || (l.status && l.status.toLowerCase().includes('future')));
     } else if (stageLabel === 'Booking' || stageLabel === 'Booked') {
-      filtered = filtered.filter(l => l.status === 'Booking');
+      filtered = filtered.filter(l => l.status === 'Booking' || l.status === 'Booked');
     } else if (stageLabel === 'Handover' || stageLabel === 'Site Conversion') {
       filtered = filtered.filter(l => l.status === 'Won' || l.status === 'Handover');
     } else if (stageLabel === 'Lost') {
-      filtered = filtered.filter(l => l.status === 'Lost');
+      filtered = filtered.filter(l => l.status === 'Lost' || l.status === 'Closed' || l.status === 'Cancelled');
     }
     // 'Total Leads' needs no status filter.
 
@@ -3760,6 +3778,18 @@ const Dashboard = () => {
                         </tr>
                       ))}
                     </tbody>
+                    <tfoot className="bg-black-50/90 font-extrabold text-black-900 border-t-2 border-black-200">
+                      <tr>
+                        <td colSpan={4} className="p-4 uppercase tracking-wider text-xs font-black">
+                          Total Leads
+                        </td>
+                        <td className="p-4 text-right">
+                          <span className="bg-[#0e623a] text-white px-3 py-1 rounded-xl font-extrabold text-xs shadow-xs">
+                            {breakdownModalData.comboData.reduce((acc, r) => acc + (r.count || 0), 0)}
+                          </span>
+                        </td>
+                      </tr>
+                    </tfoot>
                   </table>
                 </div>
               ) : (
