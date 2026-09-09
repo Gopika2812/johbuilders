@@ -415,17 +415,24 @@ const ApartmentLayoutView = ({ selectedProj, projObj }) => {
         <div className="bg-slate-50 border-none rounded-2xl p-4 min-h-[50px] grid grid-cols-[repeat(auto-fill,minmax(75px,1fr))] gap-3">
           {rawList.length > 0 ? (
             rawList.map(uid => {
-              const isAvail = selectedProj.stats.availableUnitsList?.includes(uid);
-              const isBkd = selectedProj.stats.bookedUnitsList?.includes(uid) || selectedProj.stats.handoverUnitsList?.includes(uid);
-              const isHld = selectedProj.stats.holdUnitsList?.some(u => (typeof u === 'object' ? u.unitId : u) === uid) || selectedProj.stats.cancelledUnitsList?.some(u => (typeof u === 'object' ? u.unitId : u) === uid);
-              const isRb = selectedProj.stats.readyBuiltUnitsList?.includes(uid);
+              const cleanId = String(uid).replace(/[-_ ]/g, '').toUpperCase();
+              const uObj = projObj?.units?.find(u => String(u.unitId || '').replace(/[-_ ]/g, '').toUpperCase() === cleanId);
+              const uStatus = String(uObj?.status || '').toLowerCase();
+              const isHld = uStatus.includes('hold') || selectedProj?.stats?.holdUnitsList?.some(u => {
+                const hId = typeof u === 'object' ? u?.unitId : u;
+                return String(hId || '').replace(/[-_ ]/g, '').toUpperCase() === cleanId;
+              });
+              const isRb = uStatus === 'ready built' || uStatus === 'under construction' || uStatus === 'build' || selectedProj?.stats?.readyBuiltUnitsList?.some(id => String(id).replace(/[-_ ]/g, '').toUpperCase() === cleanId);
+              const isBkd = uStatus === 'booked' || uStatus === 'sold out' || (selectedProj?.stats?.bookedUnitsList || []).concat(selectedProj?.stats?.handoverUnitsList || []).some(id => String(id).replace(/[-_ ]/g, '').toUpperCase() === cleanId);
+              const isAvail = !isHld && !isRb && !isBkd;
+
               let bgClass = "bg-slate-100 text-slate-800 border-slate-200";
-              if (isAvail) bgClass = "bg-emerald-100 text-emerald-800 border-emerald-200";
-              if (isHld) bgClass = "bg-yellow-100 text-yellow-800 border-yellow-200";
-              if (isBkd) bgClass = "bg-red-100 text-red-800 border-red-200";
-              if (isRb) bgClass = "bg-purple-100 text-purple-800 border-purple-200";
+              if (isAvail) bgClass = "bg-emerald-100 text-emerald-800 border-emerald-300";
+              if (isHld) bgClass = "bg-amber-100 text-amber-800 border-amber-300";
+              if (isBkd) bgClass = "bg-red-100 text-red-800 border-red-300";
+              if (isRb) bgClass = "bg-purple-100 text-purple-800 border-purple-300";
               return (
-                <span key={uid} className={`border text-xs font-bold px-1 py-2 rounded-xl flex items-center justify-center text-center ${bgClass}`}>
+                <span key={uid} className={`border text-xs font-bold px-1 py-2 rounded-xl flex items-center justify-center text-center shadow-2xs ${bgClass}`}>
                   {uid}
                 </span>
               );
@@ -446,19 +453,20 @@ const ApartmentLayoutView = ({ selectedProj, projObj }) => {
     <div className="space-y-3">
       <div className="flex items-center justify-between flex-wrap gap-2">
         <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wide flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded-full bg-slate-500"></span>
+          <span className="w-2.5 h-2.5 rounded-full bg-[#1b4332]"></span>
           <span>Apartment Flat Layout ({rawList.length} Units • {floorList.length} Floors × {flatCols.length} Flats)</span>
         </h4>
       </div>
 
       <div className="bg-white border-2 border-slate-400 rounded-2xl overflow-hidden shadow-sm">
-        <div className="overflow-x-auto p-4 custom-scrollbar">
-          <table className="w-full border-collapse border-2 border-slate-400 text-center min-w-[700px]">
+        <div className="overflow-x-auto p-3 sm:p-4 custom-scrollbar">
+          <table className="w-full border-collapse border-2 border-slate-400 text-center min-w-[720px]">
             <thead>
               <tr>
                 <th
                   colSpan={flatCols.length}
-                  className="bg-white border-2 border-slate-400 py-3.5 px-4 text-center font-black text-sm text-slate-900 tracking-wider uppercase"
+                  style={{ backgroundColor: '#1b4332', color: '#ffffff' }}
+                  className="py-3 px-4 text-center font-black text-xs sm:text-sm tracking-wider uppercase border-2 border-slate-400"
                 >
                   APARTMENT FLAT LAYOUT – {floorList.length} FLOORS × {flatCols.length} FLATS
                 </th>
@@ -473,7 +481,7 @@ const ApartmentLayoutView = ({ selectedProj, projObj }) => {
                       return (
                         <td
                           key={flatNum}
-                          className="border border-slate-400 p-3 bg-slate-50/60 text-center text-slate-300 text-xs min-w-[80px] h-[64px]"
+                          className="border border-slate-300 p-2.5 bg-slate-50/70 text-center text-slate-400 text-xs min-w-[85px] h-[68px]"
                         >
                           —
                         </td>
@@ -482,49 +490,68 @@ const ApartmentLayoutView = ({ selectedProj, projObj }) => {
 
                     const uid = found.rawId;
                     const displayId = found.displayId;
-                    const unitObj = projObj?.units?.find(u => 
-                      u.unitId === uid || 
-                      u.unitId === displayId || 
-                      String(u.unitId || '').replace(/[-_ ]/g, '') === String(uid).replace(/[-_ ]/g, '')
-                    );
-                    const bhkType = unitObj?.unitType || (flatNum <= 4 ? '3 BHK' : '2 BHK');
+                    const cleanId = String(uid).replace(/[-_ ]/g, '').toUpperCase();
 
-                    const isAvailable = selectedProj.stats.availableUnitsList?.includes(uid) || selectedProj.stats.availableUnitsList?.includes(displayId);
-                    const isBooked = (selectedProj.stats.bookedUnitsList || []).concat(selectedProj.stats.handoverUnitsList || []).some(id => id === uid || id === displayId);
-                    const isHold = (selectedProj.stats.holdUnitsList || []).concat(selectedProj.stats.cancelledUnitsList || []).some(u => {
-                      const hId = typeof u === 'object' ? u?.unitId : u;
-                      return hId === uid || hId === displayId;
+                    const unitObj = projObj?.units?.find(u => {
+                      const uClean = String(u.unitId || '').replace(/[-_ ]/g, '').toUpperCase();
+                      return uClean === cleanId || u.unitId === uid || u.unitId === displayId;
                     });
-                    const isReadyBuilt = selectedProj.stats.readyBuiltUnitsList?.includes(uid) || selectedProj.stats.readyBuiltUnitsList?.includes(displayId);
+                    const bhkType = unitObj?.unitType || (flatNum <= 4 ? '3 BHK' : '2 BHK');
+                    const uStatus = String(unitObj?.status || '').toLowerCase();
 
-                    let bgStyle = { backgroundColor: '#ffffff', color: '#1e293b' };
-                    let statusText = "Registered";
-                    if (isAvailable) {
-                      bgStyle = { backgroundColor: '#d1fae5', color: '#065f46' };
-                      statusText = "Available";
-                    } else if (isHold) {
-                      bgStyle = { backgroundColor: '#fef3c7', color: '#92400e' };
-                      statusText = "Hold";
-                    } else if (isBooked) {
-                      bgStyle = { backgroundColor: '#fee2e2', color: '#991b1b' };
-                      statusText = "Booked";
-                    } else if (isReadyBuilt) {
-                      bgStyle = { backgroundColor: '#f3e8ff', color: '#6b21a8' };
-                      statusText = "Ready Built";
+                    const inHold = uStatus.includes('hold') || (selectedProj?.stats?.holdUnitsList || []).concat(selectedProj?.stats?.cancelledUnitsList || []).some(u => {
+                      const hId = typeof u === 'object' ? u?.unitId : u;
+                      return String(hId || '').replace(/[-_ ]/g, '').toUpperCase() === cleanId;
+                    });
+                    const inReadyBuilt = uStatus === 'ready built' || uStatus === 'under construction' || uStatus === 'build' || (selectedProj?.stats?.readyBuiltUnitsList || []).some(id => String(id).replace(/[-_ ]/g, '').toUpperCase() === cleanId);
+                    const inBooked = uStatus === 'booked' || uStatus === 'sold out' || (selectedProj?.stats?.bookedUnitsList || []).concat(selectedProj?.stats?.handoverUnitsList || []).some(id => String(id).replace(/[-_ ]/g, '').toUpperCase() === cleanId);
+
+                    let cellBg = '#d1fae5'; // Available
+                    let titleColor = '#065f46';
+                    let subColor = '#047857';
+                    let badgeBg = '#059669';
+                    let statusLabel = 'Available';
+
+                    if (inHold) {
+                      cellBg = '#fef3c7'; // Hold
+                      titleColor = '#92400e';
+                      subColor = '#b45309';
+                      badgeBg = '#d97706';
+                      statusLabel = 'Hold';
+                    } else if (inReadyBuilt) {
+                      cellBg = '#f3e8ff'; // Ready Built
+                      titleColor = '#6b21a8';
+                      subColor = '#7e22ce';
+                      badgeBg = '#9333ea';
+                      statusLabel = 'Ready Built';
+                    } else if (inBooked) {
+                      cellBg = '#fee2e2'; // Booked
+                      titleColor = '#991b1b';
+                      subColor = '#b91c1c';
+                      badgeBg = '#dc2626';
+                      statusLabel = 'Booked';
                     }
 
                     return (
                       <td
                         key={flatNum}
-                        style={bgStyle}
-                        className="border border-slate-400 p-2.5 text-center transition cursor-default min-w-[80px] h-[64px]"
-                        title={`Unit: ${displayId} (${uid}) • Status: ${statusText} • Type: ${bhkType}${unitObj?.size ? ` • Size: ${unitObj.size} sq.ft` : ''}`}
+                        style={{ backgroundColor: cellBg }}
+                        className="border border-slate-400 p-2 text-center transition cursor-default min-w-[85px] h-[68px] hover:brightness-95"
+                        title={`Unit: ${displayId} (${uid}) • Status: ${statusLabel} • Type: ${bhkType}${unitObj?.size ? ` • Size: ${unitObj.size} sq.ft` : ''}${unitObj?.price ? ` • Price: ₹${unitObj.price.toLocaleString('en-IN')}` : ''}`}
                       >
-                        <div className="font-black text-xs sm:text-sm tracking-tight text-slate-900 leading-tight">
+                        <div style={{ color: titleColor }} className="font-black text-xs sm:text-sm tracking-tight leading-none">
                           {displayId}
                         </div>
-                        <div className="text-[10.5px] font-bold tracking-wide text-slate-700 mt-1">
+                        <div style={{ color: subColor }} className="text-[10px] font-bold mt-1 leading-none">
                           {bhkType}
+                        </div>
+                        <div className="mt-1.5">
+                          <span
+                            style={{ backgroundColor: badgeBg, color: '#ffffff' }}
+                            className="inline-block px-1.5 py-0.5 rounded text-[8.5px] font-black uppercase tracking-wider shadow-2xs leading-none"
+                          >
+                            {statusLabel}
+                          </span>
                         </div>
                       </td>
                     );
@@ -1517,37 +1544,45 @@ const Dashboard = () => {
 
         const uid = unit.rawId;
         const displayId = unit.displayId;
-        const unitObj = projObj?.units?.find(u => 
-          u.unitId === uid || 
-          u.unitId === displayId || 
-          String(u.unitId || '').replace(/[-_ ]/g, '') === String(uid).replace(/[-_ ]/g, '')
-        );
-        const bhkType = unitObj?.unitType || (flatNum <= 4 ? '3 BHK' : '2 BHK');
+        const cleanId = String(uid).replace(/[-_ ]/g, '').toUpperCase();
 
-        const isAvailable = selectedProj.stats.availableUnitsList?.includes(uid) || selectedProj.stats.availableUnitsList?.includes(displayId);
-        const isBooked = (selectedProj.stats.bookedUnitsList || []).concat(selectedProj.stats.handoverUnitsList || []).some(id => id === uid || id === displayId);
-        const isHold = (selectedProj.stats.holdUnitsList || []).concat(selectedProj.stats.cancelledUnitsList || []).some(u => {
-          const hId = typeof u === 'object' ? u?.unitId : u;
-          return hId === uid || hId === displayId;
+        const unitObj = projObj?.units?.find(u => {
+          const uClean = String(u.unitId || '').replace(/[-_ ]/g, '').toUpperCase();
+          return uClean === cleanId || u.unitId === uid || u.unitId === displayId;
         });
+        const bhkType = unitObj?.unitType || (flatNum <= 4 ? '3 BHK' : '2 BHK');
+        const uStatus = String(unitObj?.status || '').toLowerCase();
 
-        let bgColor = '#ffffff';
-        let textColor = '#0f172a';
-        if (isAvailable) {
-          bgColor = '#d1fae5';
-          textColor = '#065f46';
-        } else if (isHold) {
+        const inHold = uStatus.includes('hold') || (selectedProj?.stats?.holdUnitsList || []).concat(selectedProj?.stats?.cancelledUnitsList || []).some(u => {
+          const hId = typeof u === 'object' ? u?.unitId : u;
+          return String(hId || '').replace(/[-_ ]/g, '').toUpperCase() === cleanId;
+        });
+        const inReadyBuilt = uStatus === 'ready built' || uStatus === 'under construction' || uStatus === 'build' || (selectedProj?.stats?.readyBuiltUnitsList || []).some(id => String(id).replace(/[-_ ]/g, '').toUpperCase() === cleanId);
+        const inBooked = uStatus === 'booked' || uStatus === 'sold out' || (selectedProj?.stats?.bookedUnitsList || []).concat(selectedProj?.stats?.handoverUnitsList || []).some(id => String(id).replace(/[-_ ]/g, '').toUpperCase() === cleanId);
+
+        let bgColor = '#d1fae5';
+        let textColor = '#065f46';
+        let statusLabel = 'Available';
+
+        if (inHold) {
           bgColor = '#fef3c7';
           textColor = '#92400e';
-        } else if (isBooked) {
+          statusLabel = 'Hold';
+        } else if (inReadyBuilt) {
+          bgColor = '#f3e8ff';
+          textColor = '#6b21a8';
+          statusLabel = 'Ready Built';
+        } else if (inBooked) {
           bgColor = '#fee2e2';
           textColor = '#991b1b';
+          statusLabel = 'Booked';
         }
 
         cellsHtml += `
-          <td style="border: 1px solid #64748b; padding: 14px 10px; text-align: center; background-color: ${bgColor}; color: ${textColor};">
+          <td style="border: 1px solid #64748b; padding: 12px 8px; text-align: center; background-color: ${bgColor}; color: ${textColor};">
             <div style="font-weight: 900; font-size: 11pt;">${displayId}</div>
-            <div style="font-size: 9pt; font-weight: bold; margin-top: 4px;">${bhkType}</div>
+            <div style="font-size: 9pt; font-weight: bold; margin-top: 3px;">${bhkType}</div>
+            <div style="font-size: 8pt; font-weight: 900; margin-top: 4px; text-transform: uppercase;">[${statusLabel}]</div>
           </td>
         `;
       });
@@ -1566,7 +1601,7 @@ const Dashboard = () => {
       <body>
         <table>
           <tr>
-            <th colspan="${flatCols.length}" style="border: 1px solid #000000; background-color: #ffffff; color: #000000; font-size: 13pt; font-weight: 900; padding: 14px; text-align: center;">
+            <th colspan="${flatCols.length}" style="border: 1px solid #000000; background-color: #1b4332; color: #ffffff; font-size: 13pt; font-weight: 900; padding: 14px; text-align: center;">
               APARTMENT FLAT LAYOUT – ${floorList.length} FLOORS × ${flatCols.length} FLATS
             </th>
           </tr>
@@ -4597,45 +4632,6 @@ const Dashboard = () => {
               {(() => {
                 const projObj = (allProjectsList.length > 0 ? allProjectsList : stats.projects || []).find(p => (p.code || p.name) === selectedInventoryProj.projCode);
                 const hasReadyBuilt = projObj?.hasReadyBuilt !== false;
-
-                const parseUnit = (uid) => {
-                  if (!uid || typeof uid !== 'string') return null;
-                  const match1 = uid.trim().match(/^(\d+)[Ff][-_ ]?(\d+)$/i);
-                  if (match1) {
-                    return {
-                      floorNum: parseInt(match1[1], 10),
-                      flatNum: parseInt(match1[2], 10),
-                      displayId: `${match1[1]}F-${match1[2]}`,
-                      rawId: uid.trim()
-                    };
-                  }
-                  const match2 = uid.trim().match(/^[Ff](\d+)[-_ ]?(\d+)$/i);
-                  if (match2) {
-                    return {
-                      floorNum: parseInt(match2[1], 10),
-                      flatNum: parseInt(match2[2], 10),
-                      displayId: `${match2[1]}F-${match2[2]}`,
-                      rawId: uid.trim()
-                    };
-                  }
-                  return null;
-                };
-
-                const parsedUnits = (selectedInventoryProj.stats.totalUnitsList || [])
-                  .map(uid => parseUnit(uid))
-                  .filter(Boolean);
-
-                const isApartmentFloorLayout = parsedUnits.length > 0 && parsedUnits.length >= (selectedInventoryProj.stats.totalUnitsList?.length || 0) * 0.7;
-
-                const floors = isApartmentFloorLayout
-                  ? Array.from(new Set(parsedUnits.map(u => u.floorNum))).sort((a, b) => b - a)
-                  : [];
-                const maxFlatNum = isApartmentFloorLayout
-                  ? Math.max(...parsedUnits.map(u => u.flatNum), 8)
-                  : 0;
-                const flatNumbers = isApartmentFloorLayout
-                  ? Array.from({ length: maxFlatNum }, (_, i) => i + 1)
-                  : [];
 
                 return (
                   <>
