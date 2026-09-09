@@ -391,6 +391,154 @@ const groupUnitsByCustomer = (unitsList) => {
   });
 };
 
+const ApartmentLayoutView = ({ selectedProj, projObj }) => {
+  const parseUnit = (uid) => {
+    if (!uid || typeof uid !== 'string') return null;
+    const m1 = uid.trim().match(/^(\d+)[Ff][-_ ]?(\d+)$/i);
+    if (m1) return { floorNum: parseInt(m1[1], 10), flatNum: parseInt(m1[2], 10), displayId: `${m1[1]}F-${m1[2]}`, rawId: uid.trim() };
+    const m2 = uid.trim().match(/^[Ff](\d+)[-_ ]?(\d+)$/i);
+    if (m2) return { floorNum: parseInt(m2[1], 10), flatNum: parseInt(m2[2], 10), displayId: `${m2[1]}F-${m2[2]}`, rawId: uid.trim() };
+    return null;
+  };
+
+  const rawList = selectedProj?.stats?.totalUnitsList || [];
+  const parsedUnitsList = rawList.map(parseUnit).filter(Boolean);
+  const isFloorLayout = parsedUnitsList.length > 0 && parsedUnitsList.length >= rawList.length * 0.7;
+
+  if (!isFloorLayout) {
+    return (
+      <div className="space-y-2">
+        <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wide flex items-center gap-1.5">
+          <span className="w-2.5 h-2.5 rounded-full bg-slate-500"></span>
+          <span>Total units ({rawList.length})</span>
+        </h4>
+        <div className="bg-slate-50 border-none rounded-2xl p-4 min-h-[50px] grid grid-cols-[repeat(auto-fill,minmax(75px,1fr))] gap-3">
+          {rawList.length > 0 ? (
+            rawList.map(uid => {
+              const isAvail = selectedProj.stats.availableUnitsList?.includes(uid);
+              const isBkd = selectedProj.stats.bookedUnitsList?.includes(uid) || selectedProj.stats.handoverUnitsList?.includes(uid);
+              const isHld = selectedProj.stats.holdUnitsList?.some(u => (typeof u === 'object' ? u.unitId : u) === uid) || selectedProj.stats.cancelledUnitsList?.some(u => (typeof u === 'object' ? u.unitId : u) === uid);
+              const isRb = selectedProj.stats.readyBuiltUnitsList?.includes(uid);
+              let bgClass = "bg-slate-100 text-slate-800 border-slate-200";
+              if (isAvail) bgClass = "bg-emerald-100 text-emerald-800 border-emerald-200";
+              if (isHld) bgClass = "bg-yellow-100 text-yellow-800 border-yellow-200";
+              if (isBkd) bgClass = "bg-red-100 text-red-800 border-red-200";
+              if (isRb) bgClass = "bg-purple-100 text-purple-800 border-purple-200";
+              return (
+                <span key={uid} className={`border text-xs font-bold px-1 py-2 rounded-xl flex items-center justify-center text-center ${bgClass}`}>
+                  {uid}
+                </span>
+              );
+            })
+          ) : (
+            <span className="text-black-400 italic text-xs">No units registered</span>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  const floorList = Array.from(new Set(parsedUnitsList.map(u => u.floorNum))).sort((a, b) => b - a);
+  const maxFlat = Math.max(...parsedUnitsList.map(u => u.flatNum), 8);
+  const flatCols = Array.from({ length: maxFlat }, (_, i) => i + 1);
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wide flex items-center gap-1.5">
+          <span className="w-2.5 h-2.5 rounded-full bg-slate-500"></span>
+          <span>Apartment Flat Layout ({rawList.length} Units • {floorList.length} Floors × {flatCols.length} Flats)</span>
+        </h4>
+      </div>
+
+      <div className="bg-white border-2 border-slate-400 rounded-2xl overflow-hidden shadow-sm">
+        <div className="overflow-x-auto p-4 custom-scrollbar">
+          <table className="w-full border-collapse border-2 border-slate-400 text-center min-w-[700px]">
+            <thead>
+              <tr>
+                <th
+                  colSpan={flatCols.length}
+                  className="bg-white border-2 border-slate-400 py-3.5 px-4 text-center font-black text-sm text-slate-900 tracking-wider uppercase"
+                >
+                  APARTMENT FLAT LAYOUT – {floorList.length} FLOORS × {flatCols.length} FLATS
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {floorList.map(floorNum => (
+                <tr key={floorNum}>
+                  {flatCols.map(flatNum => {
+                    const found = parsedUnitsList.find(u => u.floorNum === floorNum && u.flatNum === flatNum);
+                    if (!found) {
+                      return (
+                        <td
+                          key={flatNum}
+                          className="border border-slate-400 p-3 bg-slate-50/60 text-center text-slate-300 text-xs min-w-[80px] h-[64px]"
+                        >
+                          —
+                        </td>
+                      );
+                    }
+
+                    const uid = found.rawId;
+                    const displayId = found.displayId;
+                    const unitObj = projObj?.units?.find(u => 
+                      u.unitId === uid || 
+                      u.unitId === displayId || 
+                      String(u.unitId || '').replace(/[-_ ]/g, '') === String(uid).replace(/[-_ ]/g, '')
+                    );
+                    const bhkType = unitObj?.unitType || (flatNum <= 4 ? '3 BHK' : '2 BHK');
+
+                    const isAvailable = selectedProj.stats.availableUnitsList?.includes(uid) || selectedProj.stats.availableUnitsList?.includes(displayId);
+                    const isBooked = (selectedProj.stats.bookedUnitsList || []).concat(selectedProj.stats.handoverUnitsList || []).some(id => id === uid || id === displayId);
+                    const isHold = (selectedProj.stats.holdUnitsList || []).concat(selectedProj.stats.cancelledUnitsList || []).some(u => {
+                      const hId = typeof u === 'object' ? u?.unitId : u;
+                      return hId === uid || hId === displayId;
+                    });
+                    const isReadyBuilt = selectedProj.stats.readyBuiltUnitsList?.includes(uid) || selectedProj.stats.readyBuiltUnitsList?.includes(displayId);
+
+                    let bgStyle = { backgroundColor: '#ffffff', color: '#1e293b' };
+                    let statusText = "Registered";
+                    if (isAvailable) {
+                      bgStyle = { backgroundColor: '#d1fae5', color: '#065f46' };
+                      statusText = "Available";
+                    } else if (isHold) {
+                      bgStyle = { backgroundColor: '#fef3c7', color: '#92400e' };
+                      statusText = "Hold";
+                    } else if (isBooked) {
+                      bgStyle = { backgroundColor: '#fee2e2', color: '#991b1b' };
+                      statusText = "Booked";
+                    } else if (isReadyBuilt) {
+                      bgStyle = { backgroundColor: '#f3e8ff', color: '#6b21a8' };
+                      statusText = "Ready Built";
+                    }
+
+                    return (
+                      <td
+                        key={flatNum}
+                        style={bgStyle}
+                        className="border border-slate-400 p-2.5 text-center transition cursor-default min-w-[80px] h-[64px]"
+                        title={`Unit: ${displayId} (${uid}) • Status: ${statusText} • Type: ${bhkType}${unitObj?.size ? ` • Size: ${unitObj.size} sq.ft` : ''}`}
+                      >
+                        <div className="font-black text-xs sm:text-sm tracking-tight text-slate-900 leading-tight">
+                          {displayId}
+                        </div>
+                        <div className="text-[10.5px] font-bold tracking-wide text-slate-700 mt-1">
+                          {bhkType}
+                        </div>
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const Dashboard = () => {
   const { token, user, hasFullDashboardAccess } = useAuth();
   const roleNorm = (user?.role || '').toLowerCase().replace(/[\s_-]+/g, '');
@@ -1338,16 +1486,30 @@ const Dashboard = () => {
     await exportHtmlSheetsToExcel([{ name: 'Source Details', html: htmlContent }], `Source_Performance_Detailed_${selectedSourcePerfName || 'All'}_${new Date().toISOString().substring(0, 10)}.xlsx`);
   };
 
-  const handleExportApartmentLayoutExcel = async (selectedProj, projObj, floors, flatNumbers, parsedUnits) => {
+  const handleExportApartmentLayoutExcel = async (selectedProj, projObj) => {
     if (!selectedProj) return;
     const projCode = selectedProj.projCode || 'Project';
-    const totalCols = flatNumbers?.length || 8;
+    const rawList = selectedProj.stats?.totalUnitsList || [];
+
+    const parseUnit = (uid) => {
+      if (!uid || typeof uid !== 'string') return null;
+      const m1 = uid.trim().match(/^(\d+)[Ff][-_ ]?(\d+)$/i);
+      if (m1) return { floorNum: parseInt(m1[1], 10), flatNum: parseInt(m1[2], 10), displayId: `${m1[1]}F-${m1[2]}`, rawId: uid.trim() };
+      const m2 = uid.trim().match(/^[Ff](\d+)[-_ ]?(\d+)$/i);
+      if (m2) return { floorNum: parseInt(m2[1], 10), flatNum: parseInt(m2[2], 10), displayId: `${m2[1]}F-${m2[2]}`, rawId: uid.trim() };
+      return null;
+    };
+
+    const parsedUnitsList = rawList.map(parseUnit).filter(Boolean);
+    const floorList = Array.from(new Set(parsedUnitsList.map(u => u.floorNum))).sort((a, b) => b - a);
+    const maxFlat = Math.max(...parsedUnitsList.map(u => u.flatNum), 8);
+    const flatCols = Array.from({ length: maxFlat }, (_, i) => i + 1);
 
     let rowsHtml = '';
-    floors.forEach(floorNum => {
+    floorList.forEach(floorNum => {
       let cellsHtml = '';
-      flatNumbers.forEach(flatNum => {
-        const unit = parsedUnits.find(u => u.floorNum === floorNum && u.flatNum === flatNum);
+      flatCols.forEach(flatNum => {
+        const unit = parsedUnitsList.find(u => u.floorNum === floorNum && u.flatNum === flatNum);
         if (!unit) {
           cellsHtml += `<td style="border: 1px solid #cbd5e1; padding: 14px 8px; text-align: center; background-color: #f8fafc; color: #94a3b8;">—</td>`;
           return;
@@ -1358,16 +1520,16 @@ const Dashboard = () => {
         const unitObj = projObj?.units?.find(u => 
           u.unitId === uid || 
           u.unitId === displayId || 
-          u.unitId?.replace(/[-_ ]/g, '') === uid.replace(/[-_ ]/g, '')
+          String(u.unitId || '').replace(/[-_ ]/g, '') === String(uid).replace(/[-_ ]/g, '')
         );
         const bhkType = unitObj?.unitType || (flatNum <= 4 ? '3 BHK' : '2 BHK');
 
         const isAvailable = selectedProj.stats.availableUnitsList?.includes(uid) || selectedProj.stats.availableUnitsList?.includes(displayId);
-        const isBooked = selectedProj.stats.bookedUnitsList?.includes(uid) || selectedProj.stats.bookedUnitsList?.includes(displayId) ||
-          selectedProj.stats.handoverUnitsList?.includes(uid) || selectedProj.stats.handoverUnitsList?.includes(displayId);
-        const isHold = selectedProj.stats.holdUnitsList?.some(u => (typeof u === 'object' ? u.unitId : u) === uid || (typeof u === 'object' ? u.unitId : u) === displayId) ||
-          selectedProj.stats.cancelledUnitsList?.some(u => (typeof u === 'object' ? u.unitId : u) === uid || (typeof u === 'object' ? u.unitId : u) === displayId);
-        const isReadyBuilt = selectedProj.stats.readyBuiltUnitsList?.includes(uid) || selectedProj.stats.readyBuiltUnitsList?.includes(displayId);
+        const isBooked = (selectedProj.stats.bookedUnitsList || []).concat(selectedProj.stats.handoverUnitsList || []).some(id => id === uid || id === displayId);
+        const isHold = (selectedProj.stats.holdUnitsList || []).concat(selectedProj.stats.cancelledUnitsList || []).some(u => {
+          const hId = typeof u === 'object' ? u?.unitId : u;
+          return hId === uid || hId === displayId;
+        });
 
         let bgColor = '#ffffff';
         let textColor = '#0f172a';
@@ -1380,13 +1542,10 @@ const Dashboard = () => {
         } else if (isBooked) {
           bgColor = '#fee2e2';
           textColor = '#991b1b';
-        } else if (isReadyBuilt) {
-          bgColor = '#f3e8ff';
-          textColor = '#6b21a8';
         }
 
         cellsHtml += `
-          <td style="border: 1px solid #475569; padding: 14px 10px; text-align: center; background-color: ${bgColor}; color: ${textColor};">
+          <td style="border: 1px solid #64748b; padding: 14px 10px; text-align: center; background-color: ${bgColor}; color: ${textColor};">
             <div style="font-weight: 900; font-size: 11pt;">${displayId}</div>
             <div style="font-size: 9pt; font-weight: bold; margin-top: 4px;">${bhkType}</div>
           </td>
@@ -1407,8 +1566,8 @@ const Dashboard = () => {
       <body>
         <table>
           <tr>
-            <th colspan="${totalCols}" style="border: 1px solid #000000; background-color: #ffffff; color: #000000; font-size: 13pt; font-weight: 900; padding: 14px; text-align: center;">
-              APARTMENT FLAT LAYOUT – ${floors.length} FLOORS × ${totalCols} FLATS
+            <th colspan="${flatCols.length}" style="border: 1px solid #000000; background-color: #ffffff; color: #000000; font-size: 13pt; font-weight: 900; padding: 14px; text-align: center;">
+              APARTMENT FLAT LAYOUT – ${floorList.length} FLOORS × ${flatCols.length} FLATS
             </th>
           </tr>
           ${rowsHtml}
@@ -4517,123 +4676,12 @@ const Dashboard = () => {
                           <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-[#a855f7]"></span>Ready Built</span>
                         )}
                       </div>
- 
-                      {/* Apartment Flat Layout (Excel Sheet Format) or Fallback Total Units List */}
-                      {isApartmentFloorLayout ? (
-                        <div className="space-y-3">
-                          <div className="flex items-center justify-between flex-wrap gap-2">
-                            <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wide flex items-center gap-1.5">
-                              <span className="w-2.5 h-2.5 rounded-full bg-slate-500"></span>
-                              <span>Apartment Flat Layout ({selectedInventoryProj.stats.totalUnitsList?.length || 0} Units • {floors.length} Floors × {flatNumbers.length} Flats)</span>
-                            </h4>
-                          </div>
 
-                          <div className="bg-white border-2 border-slate-300 rounded-2xl overflow-hidden shadow-xs">
-                            {/* Excel Header Title Banner */}
-                            <div className="bg-white border-b-2 border-slate-300 py-3 px-4 text-center font-black text-xs sm:text-sm text-slate-900 tracking-wider">
-                              APARTMENT FLAT LAYOUT – {floors.length} FLOORS × {flatNumbers.length} FLATS
-                            </div>
-
-                            {/* Excel Grid Layout */}
-                            <div className="overflow-x-auto p-4 custom-scrollbar">
-                              <div className="min-w-[650px] border border-slate-300 rounded-xl overflow-hidden divide-y divide-slate-300">
-                                {floors.map(floorNum => (
-                                  <div key={floorNum} className="grid grid-cols-8 divide-x divide-slate-300 bg-white">
-                                    {flatNumbers.map(flatNum => {
-                                      const unitMatch = parsedUnits.find(u => u.floorNum === floorNum && u.flatNum === flatNum);
-                                      if (!unitMatch) {
-                                        return (
-                                          <div key={flatNum} className="p-3 bg-slate-50/50 flex flex-col items-center justify-center text-center text-slate-300 text-xs min-h-[64px]">
-                                            —
-                                          </div>
-                                        );
-                                      }
-
-                                      const uid = unitMatch.rawId;
-                                      const displayId = unitMatch.displayId;
-                                      const unitObj = projObj?.units?.find(u => 
-                                        u.unitId === uid || 
-                                        u.unitId === displayId || 
-                                        u.unitId?.replace(/[-_ ]/g, '') === uid.replace(/[-_ ]/g, '')
-                                      );
-                                      const bhkType = unitObj?.unitType || (flatNum <= 4 ? '3 BHK' : '2 BHK');
-
-                                      const isAvailable = selectedInventoryProj.stats.availableUnitsList?.includes(uid) || selectedInventoryProj.stats.availableUnitsList?.includes(displayId);
-                                      const isBooked = selectedInventoryProj.stats.bookedUnitsList?.includes(uid) || selectedInventoryProj.stats.bookedUnitsList?.includes(displayId) ||
-                                        selectedInventoryProj.stats.handoverUnitsList?.includes(uid) || selectedInventoryProj.stats.handoverUnitsList?.includes(displayId);
-                                      const isHold = selectedInventoryProj.stats.holdUnitsList?.some(u => (typeof u === 'object' ? u.unitId : u) === uid || (typeof u === 'object' ? u.unitId : u) === displayId) ||
-                                        selectedInventoryProj.stats.cancelledUnitsList?.some(u => (typeof u === 'object' ? u.unitId : u) === uid || (typeof u === 'object' ? u.unitId : u) === displayId);
-                                      const isReadyBuilt = selectedInventoryProj.stats.readyBuiltUnitsList?.includes(uid) || selectedInventoryProj.stats.readyBuiltUnitsList?.includes(displayId);
-
-                                      let bgClass = "bg-white text-slate-700 hover:bg-slate-50";
-                                      let statusText = "Registered";
-                                      if (isAvailable) {
-                                        bgClass = "bg-emerald-50 text-emerald-900 border-emerald-200 hover:bg-emerald-100";
-                                        statusText = "Available";
-                                      } else if (isHold) {
-                                        bgClass = "bg-yellow-50 text-yellow-900 border-yellow-200 hover:bg-yellow-100";
-                                        statusText = "Hold";
-                                      } else if (isBooked) {
-                                        bgClass = "bg-red-50 text-red-900 border-red-200 hover:bg-red-100";
-                                        statusText = "Booked";
-                                      } else if (isReadyBuilt) {
-                                        bgClass = "bg-purple-50 text-purple-900 border-purple-200 hover:bg-purple-100";
-                                        statusText = "Ready Built";
-                                      }
-
-                                      return (
-                                        <div
-                                          key={flatNum}
-                                          className={`p-2.5 flex flex-col items-center justify-center text-center transition cursor-default min-h-[64px] ${bgClass}`}
-                                          title={`Unit: ${displayId} (${uid}) • Status: ${statusText} • Type: ${bhkType}${unitObj?.size ? ` • Size: ${unitObj.size} sq.ft` : ''}`}
-                                        >
-                                          <span className="font-black text-xs sm:text-sm tracking-tight text-slate-900">
-                                            {displayId}
-                                          </span>
-                                          <span className="text-[10.5px] font-bold tracking-wide text-slate-600 mt-0.5">
-                                            {bhkType}
-                                          </span>
-                                        </div>
-                                      );
-                                    })}
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="space-y-2">
-                          <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wide flex items-center gap-1.5">
-                            <span className="w-2.5 h-2.5 rounded-full bg-slate-500"></span>
-                            <span>Total units ({selectedInventoryProj.stats.totalUnitsList?.length || 0})</span>
-                          </h4>
-                          <div className="bg-slate-50 border-none rounded-2xl p-4 min-h-[50px] grid grid-cols-[repeat(auto-fill,minmax(75px,1fr))] gap-3">
-                            {selectedInventoryProj.stats.totalUnitsList?.length > 0 ? (
-                              selectedInventoryProj.stats.totalUnitsList.map(uid => {
-                                const isAvailable = selectedInventoryProj.stats.availableUnitsList?.includes(uid);
-                                const isBooked = selectedInventoryProj.stats.bookedUnitsList?.includes(uid) || selectedInventoryProj.stats.handoverUnitsList?.includes(uid);
-                                const isHold = selectedInventoryProj.stats.holdUnitsList?.some(u => u.unitId === uid) || selectedInventoryProj.stats.cancelledUnitsList?.some(u => u.unitId === uid);
-                                const isReadyBuilt = selectedInventoryProj.stats.readyBuiltUnitsList?.includes(uid);
-
-                                let bgClass = "bg-slate-100 text-slate-800 border-slate-200"; // Fallback
-                                if (isAvailable) bgClass = "bg-emerald-100 text-emerald-800 border-emerald-200";
-                                if (isHold) bgClass = "bg-yellow-100 text-yellow-800 border-yellow-200";
-                                if (isBooked) bgClass = "bg-red-100 text-red-800 border-red-200";
-                                if (isReadyBuilt) bgClass = "bg-purple-100 text-purple-800 border-purple-200";
-
-                                return (
-                                  <span key={uid} className={`border text-xs font-bold px-1 py-2 rounded-xl flex items-center justify-center text-center ${bgClass}`}>
-                                    {uid}
-                                  </span>
-                                );
-                              })
-                            ) : (
-                              <span className="text-black-400 italic text-xs">No units registered</span>
-                            )}
-                          </div>
-                        </div>
-                      )}
+                      {/* Apartment Flat Layout or Fallback Total Units List */}
+                      <ApartmentLayoutView
+                        selectedProj={selectedInventoryProj}
+                        projObj={projObj}
+                      />
                     </div>
                   </>
                 );
@@ -4642,33 +4690,17 @@ const Dashboard = () => {
 
             {/* Footer */}
             <div className="p-5 border-t border-black-150 bg-black-50/30 flex justify-between items-center">
-              {(() => {
-                const projObj = (allProjectsList.length > 0 ? allProjectsList : stats.projects || []).find(p => (p.code || p.name) === selectedInventoryProj.projCode);
-                const parseUnit = (uid) => {
-                  if (!uid || typeof uid !== 'string') return null;
-                  const match1 = uid.trim().match(/^(\d+)[Ff][-_ ]?(\d+)$/i);
-                  if (match1) return { floorNum: parseInt(match1[1], 10), flatNum: parseInt(match1[2], 10), displayId: `${match1[1]}F-${match1[2]}`, rawId: uid.trim() };
-                  const match2 = uid.trim().match(/^[Ff](\d+)[-_ ]?(\d+)$/i);
-                  if (match2) return { floorNum: parseInt(match2[1], 10), flatNum: parseInt(match2[2], 10), displayId: `${match2[1]}F-${match2[2]}`, rawId: uid.trim() };
-                  return null;
-                };
-                const parsedUnits = (selectedInventoryProj.stats.totalUnitsList || []).map(uid => parseUnit(uid)).filter(Boolean);
-                const isApartmentFloorLayout = parsedUnits.length > 0 && parsedUnits.length >= (selectedInventoryProj.stats.totalUnitsList?.length || 0) * 0.7;
-                const floors = isApartmentFloorLayout ? Array.from(new Set(parsedUnits.map(u => u.floorNum))).sort((a, b) => b - a) : [];
-                const maxFlatNum = isApartmentFloorLayout ? Math.max(...parsedUnits.map(u => u.flatNum), 8) : 0;
-                const flatNumbers = isApartmentFloorLayout ? Array.from({ length: maxFlatNum }, (_, i) => i + 1) : [];
-
-                return isApartmentFloorLayout ? (
-                  <button
-                    type="button"
-                    onClick={() => handleExportApartmentLayoutExcel(selectedInventoryProj, projObj, floors, flatNumbers, parsedUnits)}
-                    className="px-4 py-2 bg-[#0e623a] hover:bg-[#0b4d2d] text-white text-xs font-bold rounded-xl transition shadow-xs flex items-center gap-1.5 cursor-pointer"
-                  >
-                    <Download className="w-3.5 h-3.5" />
-                    <span>Download Excel Layout</span>
-                  </button>
-                ) : <div />;
-              })()}
+              <button
+                type="button"
+                onClick={() => {
+                  const projObj = (allProjectsList.length > 0 ? allProjectsList : stats.projects || []).find(p => (p.code || p.name) === selectedInventoryProj.projCode);
+                  handleExportApartmentLayoutExcel(selectedInventoryProj, projObj);
+                }}
+                className="px-4 py-2 bg-[#0e623a] hover:bg-[#0b4d2d] text-white text-xs font-bold rounded-xl transition shadow-xs flex items-center gap-1.5 cursor-pointer"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>Download Excel Layout</span>
+              </button>
               <button
                 onClick={() => setInventoryModalOpen(false)}
                 className="px-5 py-2.5 bg-black-100 hover:bg-black-200 text-black-700 hover:text-black-900 text-xs font-bold rounded-xl transition cursor-pointer"
