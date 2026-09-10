@@ -20,12 +20,14 @@ export const sendLeadAssignmentEmail = async (executive, lead, assignedByName, s
   }
 
   const templateParams = {
+    from_name: assignedByName || 'System Admin',
+    assigned_by: assignedByName || 'System Admin',
     to_name: executive.name,
+    assigned_to: executive.name,
     to_email: executive.email,
     customer_name: lead.name,
     customer_phone: lead.phone,
     project_code: lead.projectCode || 'N/A',
-    assigned_by: assignedByName || 'System Admin',
     assigned_date: new Date().toLocaleDateString('en-GB'),
     reply_to_email: senderEmail || 'admin@builders.com'
   };
@@ -60,7 +62,10 @@ export const sendTaskAssignmentEmail = async (assignedPerson, task, assignedByNa
   }
 
   const templateParams = {
+    from_name: assignedByName || 'System Admin',
+    assigned_by: assignedByName || 'System Admin',
     to_name: assignedPerson.name || 'Team Member',
+    assigned_to: assignedPerson.name || 'Team Member',
     to_email: assignedPerson.email,
     task_title: task.title || 'Untitled Task',
     task_description: task.description || 'No description provided.',
@@ -68,7 +73,6 @@ export const sendTaskAssignmentEmail = async (assignedPerson, task, assignedByNa
     department: task.category || task.department || 'General',
     project_name: task.projectName || 'N/A',
     due_date: task.dueDate ? new Date(task.dueDate).toLocaleDateString('en-GB') : 'N/A',
-    assigned_by: assignedByName || 'System Admin',
     assigned_date: new Date().toLocaleDateString('en-GB'),
     task_url: taskUrl || window.location.href
   };
@@ -105,7 +109,10 @@ export const sendTaskStatusChangeEmail = async (assignee, task, updatedByName, p
 
   const prevText = previousStatus ? ` (Previous status: ${previousStatus})` : '';
   const templateParams = {
+    from_name: updatedByName || 'System Admin',
+    assigned_by: updatedByName || 'System Admin',
     to_name: assignee.name || 'Team Member',
+    assigned_to: assignee.name || 'Team Member',
     to_email: assignee.email,
     task_title: `[Status: ${newStatus}] ${task.title || 'Untitled Task'}`,
     task_description: `Task status has been updated to "${newStatus}" by ${updatedByName || 'System Admin'}.${prevText}\n\nTask details: ${task.description || 'No description provided.'}`,
@@ -113,7 +120,6 @@ export const sendTaskStatusChangeEmail = async (assignee, task, updatedByName, p
     department: task.category || task.department || 'General',
     project_name: task.projectName || 'N/A',
     due_date: task.dueDate ? new Date(task.dueDate).toLocaleDateString('en-GB') : 'N/A',
-    assigned_by: updatedByName || 'System Admin',
     assigned_date: new Date().toLocaleDateString('en-GB'),
     task_url: taskUrl || `${window.location.origin}/tasks-board`
   };
@@ -150,7 +156,10 @@ export const sendTaskReplyEmail = async (recipient, task, replyNote, senderName,
   desc += `\n\nTask: ${task.title || 'Task'}`;
 
   const templateParams = {
+    from_name: senderName || 'Team Member',
+    assigned_by: senderName || 'Team Member',
     to_name: recipient.name || 'Team Member',
+    assigned_to: recipient.name || 'Team Member',
     to_email: recipient.email,
     task_title: `[New Reply] ${task.title || 'Task'}`,
     task_description: desc,
@@ -158,7 +167,6 @@ export const sendTaskReplyEmail = async (recipient, task, replyNote, senderName,
     department: task.category || task.department || 'General',
     project_name: task.projectName || 'N/A',
     due_date: task.dueDate ? new Date(task.dueDate).toLocaleDateString('en-GB') : 'N/A',
-    assigned_by: senderName || 'Team Member',
     assigned_date: new Date().toLocaleDateString('en-GB'),
     task_url: taskUrl || `${window.location.origin}/tasks-board`
   };
