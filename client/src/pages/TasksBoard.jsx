@@ -343,7 +343,7 @@ const TasksBoard = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState(() => {
     const s = new URLSearchParams(location.search).get('status');
-    return s ? s.toUpperCase() : 'ALL';
+    return s ? s.toUpperCase() : 'PENDING';
   });
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
@@ -1852,18 +1852,13 @@ const TasksBoard = () => {
 
         {/* 2. Pending Tasks (Red Colored Highlighted - right after Total) */}
         <div 
-          onClick={() => {
-            setStatusFilter(prev => prev === 'PENDING' ? 'ALL' : 'PENDING');
-            if (allPendingTasks.length > 0) {
-              handleOpenPendingAlertManually();
-            }
-          }}
+          onClick={() => setStatusFilter(prev => prev === 'PENDING' ? 'ALL' : 'PENDING')}
           className={`p-3.5 rounded-2xl border transition-all cursor-pointer ${
             statusFilter === 'PENDING' 
               ? 'bg-[#800d0d] text-white border-rose-600 shadow-md ring-2 ring-rose-500 scale-[1.02]' 
               : 'bg-[#b91c1c] text-white border-[#b91c1c] hover:bg-[#991b1b] shadow-sm'
           }`}
-          title="Click to filter Pending tasks & open Pending alert popup"
+          title="Click to filter Pending tasks"
         >
           <div className="flex items-center justify-between">
             <span className="text-[10px] font-extrabold uppercase text-rose-100">Pending Tasks</span>
@@ -2212,11 +2207,11 @@ const TasksBoard = () => {
             icon={Clock}
             value={statusFilter}
             options={[
+              { id: 'PENDING', name: `Pending (${pendingCount})` },
               { id: 'NEW', name: `New (${newCount})` },
               { id: 'IN_PROGRESS', name: `In Progress (${inProgressCount})` },
               { id: 'ON_HOLD', name: `On Hold (${onHoldCount})` },
               { id: 'COMPLETED', name: `Completed (${completedCount})` },
-              { id: 'PENDING', name: `Pending (${pendingCount})` },
               { id: 'OVERDATED', name: `Overdue (${overdatedCount})` },
               { id: 'CANCELLED', name: `Cancelled (${cancelledCount})` }
             ]}
