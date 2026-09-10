@@ -2653,9 +2653,11 @@ const Dashboard = () => {
                 <div className="flex items-center justify-between">
                   <div>
                     <span className="text-xs text-black font-extrabold uppercase tracking-wider">Total Booked</span>
-                    <h3 className="text-2xl font-extrabold text-black-800 mt-0.5">{stats.cards.booked?.total || 0}</h3>
+                    <h3 className="text-2xl font-extrabold text-black-800 mt-0.5">
+                      {groupUnitsByCustomer(stats.cards.inventory?.bookedUnitsList).length || stats.cards.booked?.total || 0}
+                    </h3>
                     <div className="text-[10px] text-gray-500 font-bold mt-0.5">
-                      booked ({stats.cards.booked?.total || 0})
+                      booked ({groupUnitsByCustomer(stats.cards.inventory?.bookedUnitsList).length || stats.cards.booked?.total || 0})
                     </div>
                   </div>
                 </div>

@@ -1124,6 +1124,10 @@ router.get('/stats', protect, async (req, res) => {
       crdFlowStats.usersCount[userName] = (crdFlowStats.usersCount[userName] || 0) + 1;
     });
 
+    const bookedCustomerCount = (bookedUnitsList && bookedUnitsList.length > 0)
+      ? new Set(bookedUnitsList.map(u => `${(u.customerName || '').trim().toLowerCase()}_${(u.customerPhone || '').trim()}_${(u.projectName || '').trim().toLowerCase()}`)).size
+      : cumulativeBooked;
+
     res.json({
       crdFlowStats,
       cards: {
@@ -1168,9 +1172,9 @@ router.get('/stats', protect, async (req, res) => {
           pending: crdPendingValue
         },
         booked: {
-          total: cumulativeBooked,
+          total: bookedCustomerCount,
           live: liveBooked,
-          count: cumulativeBooked,
+          count: bookedCustomerCount,
           value: bookedTotalValue,
           received: bookedReceivedValue,
           pending: bookedPendingValue
