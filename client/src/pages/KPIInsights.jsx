@@ -764,18 +764,13 @@ const KPIInsights = () => {
 
       // Apply active dashboard filters
       const filtered = data.filter(lead => {
-        // 1. Must have conducted a site visit at any point (current status or history)
-        const hasSiteVisitHistory = lead.history?.some(h => 
-          h.status === 'Site Visit' || 
-          h.status === 'Site Visit Follow-up' || 
-          (h.stageName && h.stageName.toLowerCase().includes('site visit'))
-        );
+        // 1. Must be currently in Site Visit, or lost at Site Visit stage
+        const isClosed = lead.status === 'Lost' || lead.status === 'Closed' || lead.isClosed;
+        const isLostAtSiteVisit = isClosed && (lead.lostStage === 'Site Visit' || (lead.closeRemarks && lead.closeRemarks.includes('[Lost at Site Visit')));
         const isSiteVisit = 
           lead.status === 'Site Visit' || 
           lead.status === 'Site Visit Follow-up' || 
-          Boolean(lead.siteVisitDate) || 
-          hasSiteVisitHistory || 
-          (lead.closeRemarks && lead.closeRemarks.toLowerCase().includes('site visit'));
+          isLostAtSiteVisit;
 
         if (!isSiteVisit) return false;
 
