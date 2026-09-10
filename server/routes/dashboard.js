@@ -28,6 +28,8 @@ router.get('/stats', protect, async (req, res) => {
       }
       query.$or = [
         { createdAt: dateFilter },
+        { bookingDate: dateFilter },
+        { 'bookingInfo.bookingDate': dateFilter },
         { 'history.timestamp': dateFilter }
       ];
     }
@@ -223,11 +225,14 @@ router.get('/stats', protect, async (req, res) => {
     dbProjects.forEach(proj => {
       projectStages[proj.code || proj.name] = {
         totalLeads: 0,
+        assigned: 0,
         enquiries: 0,
         siteVisits: 0,
         hotList: 0,
+        futureFollowup: 0,
         booked: 0,
         handover: 0,
+        salesValue: 0,
         lost: 0
       };
     });
@@ -262,50 +267,38 @@ router.get('/stats', protect, async (req, res) => {
       return match || src;
     };
 
+    const getLeadBookingDateHelper = (lead) => {
+      if (lead.history && lead.history.length > 0) {
+        const firstBookingEntry = lead.history.find(h =>
+          (h.status === 'Booking' || h.stage === 'Booking') &&
+          (!h.note || !h.note.toLowerCase().includes('quotation updated'))
+        );
+        if (firstBookingEntry && firstBookingEntry.timestamp) {
+          return new Date(firstBookingEntry.timestamp);
+        }
+        const anyBookingEntry = lead.history.find(h => h.status === 'Booking' || h.stage === 'Booking');
+        if (anyBookingEntry && anyBookingEntry.timestamp) {
+          return new Date(anyBookingEntry.timestamp);
+        }
+      }
+      if (lead.bookingDate) return new Date(lead.bookingDate);
+      if (lead.bookingInfo && lead.bookingInfo.bookingDate) return new Date(lead.bookingInfo.bookingDate);
+      return lead.createdAt ? new Date(lead.createdAt) : null;
+    };
+
     leads.forEach(lead => {
+      const isBookingStage = lead.status === 'Booking' || lead.status === 'Won';
+      const effectiveDate = isBookingStage ? getLeadBookingDateHelper(lead) : (lead.createdAt ? new Date(lead.createdAt) : null);
+      const inEffectiveRange = (!fromDate && !toDate) || (effectiveDate && inRange(effectiveDate));
+
+      // Strictly filter to leads belonging to this range (matches LeadsDirectory exactly)
+      if (!inEffectiveRange) return;
+
       const status = lead.status || '';
       const srcRaw = lead.leadSource || 'Direct Visit';
       const src = getNormalizedSourceKey(srcRaw);
 
-      const createdInRange = (fromDate || toDate) ? inRange(lead.createdAt) : true;
-
-      let enteredAssigned = false;
-      let enteredEnquiry = false;
-      let enteredSiteVisit = false;
-      let enteredHotList = false;
-      let enteredFutureFollowup = false;
-      let enteredBooked = false;
-      let enteredHandover = false;
-      let enteredLost = false;
-
       const isHotLead = lead.leadCategory === 'Hot' || lead.leadCategory === 'HOT' || (lead.leadCategory && lead.leadCategory.toLowerCase() === 'hot') || status === 'Hot List';
-
-      if (lead.history && lead.history.length > 0) {
-        lead.history.forEach(entry => {
-          if (inRange(entry.timestamp)) {
-            const s = entry.status;
-            if (s === 'Assigned') enteredAssigned = true;
-            if (s === 'Contacted' || s === 'Follow-Up' || s === 'Followup') enteredEnquiry = true;
-            if (s === 'Site Visit' || s === 'Site Visit Follow-up') enteredSiteVisit = true;
-            if (s === 'Hot List' || entry.leadCategory === 'Hot' || (entry.leadCategory && entry.leadCategory.toLowerCase() === 'hot')) enteredHotList = true;
-            if (s === 'Future Follow-up' || s === 'Future Followup' || (s && s.toLowerCase().includes('future'))) enteredFutureFollowup = true;
-            if ((s === 'Booking' || s === 'Booked') && (!entry.note || !entry.note.toLowerCase().includes('quotation updated'))) enteredBooked = true;
-            if (s === 'Won' || s === 'Handover') enteredHandover = true;
-            if (s === 'Lost' || s === 'Cancelled' || s === 'Closed') enteredLost = true;
-          }
-        });
-      }
-
-      if (createdInRange) {
-        if (status === 'Assigned') enteredAssigned = true;
-        if (status === 'Contacted' || status === 'Follow-Up' || status === 'Followup') enteredEnquiry = true;
-        if (status === 'Site Visit' || status === 'Site Visit Follow-up') enteredSiteVisit = true;
-        if (isHotLead) enteredHotList = true;
-        if (status === 'Future Follow-up' || status === 'Future Followup' || (status && status.toLowerCase().includes('future'))) enteredFutureFollowup = true;
-        if (status === 'Booking' || status === 'Booked') enteredBooked = true;
-        if (status === 'Won' || status === 'Handover') enteredHandover = true;
-        if (status === 'Lost' || lead.isClosed) enteredLost = true;
-      }
 
       let isLeadHandover = status === 'Won';
       if (!isLeadHandover && lead.project && lead.bookingInfo?.selectedUnits?.length > 0) {
@@ -321,10 +314,27 @@ router.get('/stats', protect, async (req, res) => {
         }
       }
 
-      const isSiteConversion = (lead.leadType === 'Lead' || (lead.leadSource && lead.leadSource.toLowerCase() !== 'direct visit')) &&
-        !lead.isClosed && status !== 'Lost' && status !== 'Cancelled' &&
-        (status === 'Site Visit' || status === 'Site Visit Follow-up' || status === 'Booking' || status === 'Won' ||
-         lead.history?.some(h => h.status === 'Site Visit' || h.status === 'Site Visit Follow-up'));
+      // Single active stage matching Leads Directory tabs
+      let leadStage = 'New';
+      if (status === 'Lost' || (lead.isClosed && status !== 'Won')) {
+        leadStage = 'Lost';
+      } else if (status === 'Won' || isLeadHandover) {
+        leadStage = 'Won';
+      } else if (status === 'Booking' || status === 'Booked') {
+        leadStage = 'Booking';
+      } else if (status === 'Site Visit' || status === 'Site Visit Follow-up') {
+        leadStage = 'Site Visit';
+      } else if (status === 'Future Follow-up' || status === 'Future Followup' || (status && status.toLowerCase().includes('future'))) {
+        leadStage = 'Future Follow-up';
+      } else if (status === 'Follow-Up' || status === 'Followup' || status === 'Contacted') {
+        leadStage = 'Follow-Up';
+      } else if (status === 'Assigned') {
+        leadStage = 'Assigned';
+      } else {
+        leadStage = 'New';
+      }
+
+      const isSiteConversion = (leadStage === 'Booking' || leadStage === 'Won' || leadStage === 'Site Visit');
 
       // 1. Source Stats
       if (!sourceStats[src]) {
@@ -335,11 +345,14 @@ router.get('/stats', protect, async (req, res) => {
           value: 0,
           leadCost: 0,
           leads: [],
+          assigned: 0,
           enquiries: 0,
           siteVisits: 0,
           hotList: 0,
+          futureFollowup: 0,
           booked: 0,
           handover: 0,
+          siteConversions: 0,
           lost: 0
         };
       }
@@ -347,39 +360,32 @@ router.get('/stats', protect, async (req, res) => {
         sourceStats[src].leads = [];
       }
 
-      if (createdInRange) {
-        sourceStats[src].count += 1;
-        sourceStats[src].leadCost = (sourceStats[src].leadCost || 0) + (lead.leadCost || 0);
-        sourceStats[src].leads.push({
-          name: lead.name,
-          phone: lead.phone,
-          leadCost: lead.leadCost || 0,
-          projectType: lead.project?.projectType || 'N/A',
-          projectName: lead.project?.name || 'N/A'
-        });
-      }
+      sourceStats[src].count += 1;
+      sourceStats[src].leadCost = (sourceStats[src].leadCost || 0) + (lead.leadCost || 0);
+      sourceStats[src].leads.push({
+        name: lead.name,
+        phone: lead.phone,
+        leadCost: lead.leadCost || 0,
+        projectType: lead.project?.projectType || 'N/A',
+        projectName: lead.project?.name || 'N/A'
+      });
 
-      if (enteredAssigned) sourceStats[src].assigned = (sourceStats[src].assigned || 0) + 1;
-      if (enteredEnquiry) sourceStats[src].enquiries = (sourceStats[src].enquiries || 0) + 1;
-      if (enteredSiteVisit) sourceStats[src].siteVisits = (sourceStats[src].siteVisits || 0) + 1;
-      if (enteredHotList) sourceStats[src].hotList = (sourceStats[src].hotList || 0) + 1;
-      if (enteredFutureFollowup) sourceStats[src].futureFollowup = (sourceStats[src].futureFollowup || 0) + 1;
-      if (enteredBooked) sourceStats[src].booked = (sourceStats[src].booked || 0) + 1;
-      if (enteredHandover || (createdInRange && isLeadHandover)) sourceStats[src].handover = (sourceStats[src].handover || 0) + 1;
-      if (isSiteConversion && (createdInRange || enteredSiteVisit || enteredBooked || enteredHandover)) {
-        sourceStats[src].siteConversions = (sourceStats[src].siteConversions || 0) + 1;
-      }
-      if (enteredLost || (createdInRange && (status === 'Lost' || lead.isClosed))) sourceStats[src].lost = (sourceStats[src].lost || 0) + 1;
+      if (leadStage === 'Assigned') sourceStats[src].assigned = (sourceStats[src].assigned || 0) + 1;
+      if (leadStage === 'Follow-Up') sourceStats[src].enquiries = (sourceStats[src].enquiries || 0) + 1;
+      if (leadStage === 'Site Visit') sourceStats[src].siteVisits = (sourceStats[src].siteVisits || 0) + 1;
+      if (leadStage === 'Future Follow-up') sourceStats[src].futureFollowup = (sourceStats[src].futureFollowup || 0) + 1;
+      if (leadStage === 'Booking') sourceStats[src].booked = (sourceStats[src].booked || 0) + 1;
+      if (leadStage === 'Won') sourceStats[src].handover = (sourceStats[src].handover || 0) + 1;
+      if (leadStage === 'Lost') sourceStats[src].lost = (sourceStats[src].lost || 0) + 1;
+      if (isHotLead) sourceStats[src].hotList = (sourceStats[src].hotList || 0) + 1;
+      if (isSiteConversion) sourceStats[src].siteConversions = (sourceStats[src].siteConversions || 0) + 1;
 
       // 2. Stage & Project Stats
-      const displayStatus = status === 'Site Visit Follow-up' ? 'Site Visit' : (status || 'New');
-
-      if (createdInRange) {
-        if (!stageStats[displayStatus]) {
-          stageStats[displayStatus] = { count: 0, value: 0 };
-        }
-        stageStats[displayStatus].count += 1;
+      const displayStatus = leadStage;
+      if (!stageStats[displayStatus]) {
+        stageStats[displayStatus] = { count: 0, value: 0 };
       }
+      stageStats[displayStatus].count += 1;
 
       if (lead.project) {
         const pCode = lead.project.code || lead.project.name;
@@ -390,33 +396,8 @@ router.get('/stats', protect, async (req, res) => {
           if (!projectStats[pCode].stages) {
             projectStats[pCode].stages = {};
           }
-          if (createdInRange) {
-            projectStats[pCode].count += 1;
-
-            // Map current status to single active stage
-            let leadStage = 'New';
-            if (status === 'Lost' || (lead.isClosed && status !== 'Won')) {
-              leadStage = 'Lost';
-            } else if (status === 'Won' || status === 'Handover' || isLeadHandover) {
-              leadStage = 'Won';
-            } else if (status === 'Booking' || status === 'Booked') {
-              leadStage = 'Booking';
-            } else if (status === 'Site Visit' || status === 'Site Visit Follow-up') {
-              leadStage = 'Site Visit';
-            } else if (status === 'Future Follow-up' || status === 'Future Followup' || (status && status.toLowerCase().includes('future'))) {
-              leadStage = 'Future Follow-up';
-            } else if (status === 'Follow-Up' || status === 'Followup' || status === 'Contacted') {
-              leadStage = 'Follow-Up';
-            } else if (status === 'Assigned') {
-              leadStage = 'Assigned';
-            } else if (status === 'New') {
-              leadStage = 'New';
-            } else if (status) {
-              leadStage = status;
-            }
-
-            projectStats[pCode].stages[leadStage] = (projectStats[pCode].stages[leadStage] || 0) + 1;
-          }
+          projectStats[pCode].count += 1;
+          projectStats[pCode].stages[leadStage] = (projectStats[pCode].stages[leadStage] || 0) + 1;
         }
       }
 
@@ -426,10 +407,7 @@ router.get('/stats', protect, async (req, res) => {
       const personProjectKey = `${uName}___${pCodeVal}`;
 
       let leadBookedValue = 0;
-      const leadIdStr = lead._id ? lead._id.toString() : '';
-      if (quotationMap[leadIdStr]) {
-        leadBookedValue = quotationMap[leadIdStr];
-      } else if (lead.bookingInfo?.selectedUnits?.length > 0) {
+      if (lead.bookingInfo?.selectedUnits?.length > 0) {
         const projId = (lead.project?._id || lead.project)?.toString();
         const proj = dbProjects.find(p => p._id && p._id.toString() === projId);
         if (proj && proj.units) {
@@ -439,6 +417,12 @@ router.get('/stats', protect, async (req, res) => {
               leadBookedValue += u.price;
             }
           });
+        }
+      }
+      if (!leadBookedValue) {
+        const leadIdStr = lead._id ? lead._id.toString() : '';
+        if (quotationMap[leadIdStr]) {
+          leadBookedValue = quotationMap[leadIdStr];
         }
       }
 
@@ -461,90 +445,83 @@ router.get('/stats', protect, async (req, res) => {
         };
       }
 
-      if (createdInRange) {
-        personProjectStages[personProjectKey].totalLeads += 1;
+      const pps = personProjectStages[personProjectKey];
+      pps.totalLeads += 1;
+      if (leadStage === 'Assigned') pps.assigned += 1;
+      if (leadStage === 'Follow-Up') pps.enquiries += 1;
+      if (leadStage === 'Site Visit') pps.siteVisits += 1;
+      if (leadStage === 'Future Follow-up') pps.futureFollowup += 1;
+      if (leadStage === 'Booking') {
+        pps.booked += 1;
+        pps.salesValue += leadBookedValue;
+        pps.bookedValue += leadBookedValue;
       }
-      if (enteredAssigned) personProjectStages[personProjectKey].assigned += 1;
-      if (enteredEnquiry) personProjectStages[personProjectKey].enquiries += 1;
-      if (enteredSiteVisit) personProjectStages[personProjectKey].siteVisits += 1;
-      if (enteredHotList) personProjectStages[personProjectKey].hotList += 1;
-      if (enteredFutureFollowup) personProjectStages[personProjectKey].futureFollowup += 1;
-      if (enteredBooked || (createdInRange && (status === 'Booking' || status === 'Won'))) {
-        personProjectStages[personProjectKey].salesValue += leadBookedValue;
-        personProjectStages[personProjectKey].bookedValue += leadBookedValue;
+      if (leadStage === 'Won') {
+        pps.handover += 1;
+        pps.salesValue += leadBookedValue;
+        pps.bookedValue += leadBookedValue;
       }
-      if (enteredBooked) personProjectStages[personProjectKey].booked += 1;
-      if (enteredHandover || (createdInRange && isLeadHandover)) personProjectStages[personProjectKey].handover += 1;
-      if (isSiteConversion && (createdInRange || enteredSiteVisit || enteredBooked || enteredHandover)) {
-        personProjectStages[personProjectKey].siteConversions += 1;
-      }
-      if (enteredLost || (createdInRange && (status === 'Lost' || lead.isClosed))) personProjectStages[personProjectKey].lost += 1;
+      if (leadStage === 'Lost') pps.lost += 1;
+      if (isHotLead) pps.hotList += 1;
+      if (isSiteConversion) pps.siteConversions += 1;
 
       if (lead.project) {
         const pCodeStr = lead.project.code || lead.project.name;
         if (!projectStages[pCodeStr]) {
-          projectStages[pCodeStr] = { totalLeads: 0, assigned: 0, enquiries: 0, siteVisits: 0, hotList: 0, futureFollowup: 0, booked: 0, handover: 0, lost: 0 };
+          projectStages[pCodeStr] = { totalLeads: 0, assigned: 0, enquiries: 0, siteVisits: 0, hotList: 0, futureFollowup: 0, booked: 0, handover: 0, lost: 0, salesValue: 0 };
         }
-        if (createdInRange) {
-          projectStages[pCodeStr].totalLeads += 1;
+        const ps = projectStages[pCodeStr];
+        ps.totalLeads += 1;
+        if (leadStage === 'Assigned') ps.assigned += 1;
+        if (leadStage === 'Follow-Up') ps.enquiries += 1;
+        if (leadStage === 'Site Visit') ps.siteVisits += 1;
+        if (leadStage === 'Future Follow-up') ps.futureFollowup += 1;
+        if (leadStage === 'Booking') {
+          ps.booked += 1;
+          ps.salesValue = (ps.salesValue || 0) + leadBookedValue;
         }
-        if (enteredAssigned) projectStages[pCodeStr].assigned += 1;
-        if (enteredEnquiry) projectStages[pCodeStr].enquiries += 1;
-        if (enteredSiteVisit) projectStages[pCodeStr].siteVisits += 1;
-        if (enteredHotList) projectStages[pCodeStr].hotList += 1;
-        if (enteredFutureFollowup) projectStages[pCodeStr].futureFollowup += 1;
-        if (enteredBooked) projectStages[pCodeStr].booked += 1;
-        if (enteredHandover || (createdInRange && isLeadHandover)) projectStages[pCodeStr].handover += 1;
-        if (enteredLost || (createdInRange && (status === 'Lost' || lead.isClosed))) projectStages[pCodeStr].lost += 1;
+        if (leadStage === 'Won') {
+          ps.handover += 1;
+          ps.salesValue = (ps.salesValue || 0) + leadBookedValue;
+        }
+        if (leadStage === 'Lost') ps.lost += 1;
+        if (isHotLead) ps.hotList += 1;
       }
 
       // 4. Cumulative & Live Counters
-      if (createdInRange) {
-        cumulativeLeads++;
-        if (status === 'Assigned') {
-          assignedLeadsCount++;
-        } else if (status === 'New' || !status) {
-          newLeadsCount++;
-        }
-      }
-      if (!lead.isClosed && status !== 'Lost') {
-        liveLeadsCount++;
-      }
+      cumulativeLeads++;
+      if (leadStage === 'Assigned') assignedLeadsCount++;
+      if (leadStage === 'New') newLeadsCount++;
+      if (!lead.isClosed && status !== 'Lost') liveLeadsCount++;
 
-      if (enteredEnquiry) cumulativeEnquiries++;
-      if (enteredSiteVisit) cumulativeSiteVisits++;
-      if (enteredHotList) cumulativeHotList++;
-      if (enteredBooked) cumulativeBooked++;
-      if (enteredHandover) cumulativeHandover++;
-
-      if (status === 'Contacted' || status === 'Follow-Up') {
+      if (leadStage === 'Follow-Up') {
+        cumulativeEnquiries++;
         liveEnquiries++;
-        if (status === 'Contacted') contactedCount++;
-        if (status === 'Follow-Up') followupCount++;
-      } else if (status === 'Site Visit' || status === 'Site Visit Follow-up') {
+        followupCount++;
+      } else if (leadStage === 'Site Visit') {
+        cumulativeSiteVisits++;
         liveSiteVisits++;
-        if (status === 'Site Visit') siteVisitCount++;
-        if (status === 'Site Visit Follow-up') siteVisitFollowupCount++;
-      } else if (isHotLead) {
-        liveHotList++;
-        hotListCount++;
-      } else if (status === 'Booking') {
+        siteVisitCount++;
+      } else if (leadStage === 'Booking') {
+        cumulativeBooked++;
         liveBooked++;
-      } else if (status === 'Won') {
+      } else if (leadStage === 'Won') {
+        cumulativeHandover++;
         liveHandover++;
       }
 
-      if (enteredBooked || enteredHandover) {
+      if (isHotLead) {
+        cumulativeHotList++;
+        liveHotList++;
+        hotListCount++;
+      }
+
+      if (isSiteConversion) {
         siteConversionsCount += 1;
       }
 
-      if (status === 'Lost' || status === 'Closed' || lead.isClosed) {
-        const hasSiteVisitHistory = lead.history?.some(h => h.status === 'Site Visit' || h.status === 'Site Visit Follow-up');
-        if (hasSiteVisitHistory || status === 'Site Visit' || status === 'Site Visit Follow-up') {
-          closedSiteVisits += 1;
-        } else {
-          closedEnquiries += 1;
-        }
+      if (leadStage === 'Lost') {
+        closedEnquiries += 1;
       }
     });
 
@@ -615,25 +592,6 @@ router.get('/stats', protect, async (req, res) => {
     // Calculate Projects & Units Inventory Stats
     const crdFlowsWithUnits = allCrdFlows.filter(cf => cf.unitId && cf.unitId !== '');
     const bookingDatesMap = new Map();
-
-    const getLeadBookingDateHelper = (lead) => {
-      if (lead.history && lead.history.length > 0) {
-        const firstBookingEntry = lead.history.find(h =>
-          (h.status === 'Booking' || h.stage === 'Booking') &&
-          (!h.note || !h.note.toLowerCase().includes('quotation updated'))
-        );
-        if (firstBookingEntry && firstBookingEntry.timestamp) {
-          return new Date(firstBookingEntry.timestamp);
-        }
-        const anyBookingEntry = lead.history.find(h => h.status === 'Booking' || h.stage === 'Booking');
-        if (anyBookingEntry && anyBookingEntry.timestamp) {
-          return new Date(anyBookingEntry.timestamp);
-        }
-      }
-      if (lead.bookingDate) return new Date(lead.bookingDate);
-      if (lead.bookingInfo && lead.bookingInfo.bookingDate) return new Date(lead.bookingInfo.bookingDate);
-      return lead.createdAt ? new Date(lead.createdAt) : null;
-    };
 
     leadsWithSelectedUnits.forEach(lead => {
       const projId = (lead.project?._id || lead.project)?.toString();
@@ -907,7 +865,12 @@ router.get('/stats', protect, async (req, res) => {
     const crdPendingValue = Math.max(0, crdTotalValue - crdReceivedValue);
 
     // Booked Stage leads metrics
-    const bookedLeads = leads.filter(l => l.status === 'Booking');
+    const bookedLeads = leads.filter(l => {
+      if (l.status !== 'Booking') return false;
+      if (!fromDate && !toDate) return true;
+      const bDate = getLeadBookingDateHelper(l);
+      return bDate && inRange(bDate);
+    });
     const bookedLeadIds = bookedLeads.map(l => l._id);
     const bookedCrdFlows = crdFlows.filter(cf => cf.lead && bookedLeadIds.map(id => id.toString()).includes(cf.lead.toString()));
 
@@ -924,16 +887,37 @@ router.get('/stats', protect, async (req, res) => {
           });
         });
       } else {
-        const q = quotations.find(quot => quot.lead && quot.lead._id.toString() === lead._id.toString());
-        if (q) {
-          bookedTotalValue += q.totalValue || 0;
+        let bVal = 0;
+        if (lead.bookingInfo?.selectedUnits?.length > 0) {
+          const projId = (lead.project?._id || lead.project)?.toString();
+          const proj = dbProjects.find(p => p._id && p._id.toString() === projId);
+          if (proj && proj.units) {
+            lead.bookingInfo.selectedUnits.forEach(uId => {
+              const u = proj.units.find(unit => unit.unitId === uId);
+              if (u && u.price) {
+                bVal += u.price;
+              }
+            });
+          }
         }
+        if (!bVal) {
+          const q = quotations.find(quot => quot.lead && quot.lead._id.toString() === lead._id.toString());
+          if (q) {
+            bVal = q.totalValue || 0;
+          }
+        }
+        bookedTotalValue += bVal;
       }
     });
     const bookedPendingValue = Math.max(0, bookedTotalValue - bookedReceivedValue);
 
     // Handover (Won) Stage leads metrics
-    const handoverLeads = leads.filter(l => l.status === 'Won');
+    const handoverLeads = leads.filter(l => {
+      if (l.status !== 'Won') return false;
+      if (!fromDate && !toDate) return true;
+      const bDate = getLeadBookingDateHelper(l);
+      return bDate && inRange(bDate);
+    });
     const handoverLeadIds = handoverLeads.map(l => l._id);
     const handoverCrdFlows = crdFlows.filter(cf => cf.lead && handoverLeadIds.map(id => id.toString()).includes(cf.lead.toString()));
 
@@ -949,11 +933,26 @@ router.get('/stats', protect, async (req, res) => {
             handoverReceivedValue += p.amount || 0;
           });
         });
-      } else {
-        const q = quotations.find(quot => quot.lead && quot.lead._id.toString() === lead._id.toString());
-        if (q) {
-          handoverTotalValue += q.totalValue || 0;
+        let hVal = 0;
+        if (lead.bookingInfo?.selectedUnits?.length > 0) {
+          const projId = (lead.project?._id || lead.project)?.toString();
+          const proj = dbProjects.find(p => p._id && p._id.toString() === projId);
+          if (proj && proj.units) {
+            lead.bookingInfo.selectedUnits.forEach(uId => {
+              const u = proj.units.find(unit => unit.unitId === uId);
+              if (u && u.price) {
+                hVal += u.price;
+              }
+            });
+          }
         }
+        if (!hVal) {
+          const q = quotations.find(quot => quot.lead && quot.lead._id.toString() === lead._id.toString());
+          if (q) {
+            hVal = q.totalValue || 0;
+          }
+        }
+        handoverTotalValue += hVal;
       }
     });
     const handoverPendingValue = Math.max(0, handoverTotalValue - handoverReceivedValue);
@@ -1165,7 +1164,9 @@ router.get('/stats', protect, async (req, res) => {
         leadsList: leads
           .filter(l => {
             if (!fromDate && !toDate) return true;
-            return inRange(l.createdAt) || (l.history && l.history.some(h => inRange(h.timestamp)));
+            const isBookingStage = l.status === 'Booking' || l.status === 'Won';
+            const effectiveDate = isBookingStage ? getLeadBookingDateHelper(l) : (l.createdAt ? new Date(l.createdAt) : null);
+            return effectiveDate && inRange(effectiveDate);
           })
           .map(l => ({
             _id: l._id,
