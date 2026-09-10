@@ -1037,6 +1037,35 @@ const CRDReports = () => {
         allQuotations = await quotRes.json();
       }
 
+      let allProjectsList = [];
+      try {
+        const projRes = await fetch(`${API_URL}/projects`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (projRes.ok) allProjectsList = await projRes.json();
+      } catch (e) {
+        allProjectsList = stats.projects || [];
+      }
+
+      const getLeadBookingDateHelper = (lead) => {
+        if (lead.history && lead.history.length > 0) {
+          const firstBookingEntry = lead.history.find(h =>
+            (h.status === 'Booking' || h.stage === 'Booking') &&
+            (!h.note || !h.note.toLowerCase().includes('quotation updated'))
+          );
+          if (firstBookingEntry && firstBookingEntry.timestamp) {
+            return new Date(firstBookingEntry.timestamp);
+          }
+          const anyBookingEntry = lead.history.find(h => h.status === 'Booking' || h.stage === 'Booking');
+          if (anyBookingEntry && anyBookingEntry.timestamp) {
+            return new Date(anyBookingEntry.timestamp);
+          }
+        }
+        if (lead.bookingDate) return new Date(lead.bookingDate);
+        if (lead.bookingInfo && lead.bookingInfo.bookingDate) return new Date(lead.bookingInfo.bookingDate);
+        return lead.createdAt ? new Date(lead.createdAt) : null;
+      };
+
       // Apply active dashboard filters
       const filtered = data.filter(lead => {
         // 1. Must be booking stage (Booking or Won)
@@ -1049,10 +1078,9 @@ const CRDReports = () => {
         // 3. User/Executive filter
         if (selectedUser && (lead.assignedTo?._id || lead.assignedTo) !== selectedUser) return false;
 
-        // 4. Date range filter based on Booking Date
-        const bDate = lead.bookingInfo?.bookingDate 
-          ? new Date(lead.bookingInfo.bookingDate) 
-          : new Date(lead.createdAt);
+        // 4. Date range filter based on actual initial Booking Date
+        const bDate = getLeadBookingDateHelper(lead);
+        if (!bDate) return false;
 
         if (fromDate) {
           const start = new Date(fromDate);
@@ -1111,17 +1139,15 @@ const CRDReports = () => {
 
       // Sort chronologically by booked/created date (1st to 31st)
       filtered.sort((a, b) => {
-        const dA = a.bookingInfo?.bookingDate ? new Date(a.bookingInfo.bookingDate) : new Date(a.createdAt);
-        const dB = b.bookingInfo?.bookingDate ? new Date(b.bookingInfo.bookingDate) : new Date(b.createdAt);
+        const dA = getLeadBookingDateHelper(a) || new Date(a.createdAt);
+        const dB = getLeadBookingDateHelper(b) || new Date(b.createdAt);
         return dA - dB;
       });
 
       // Lead rows sequentially without exec banner groupings
       let totalUnitValue = 0;
       filtered.forEach((lead, index) => {
-        const bDate = lead.bookingInfo?.bookingDate 
-          ? new Date(lead.bookingInfo.bookingDate) 
-          : new Date(lead.createdAt);
+        const bDate = getLeadBookingDateHelper(lead) || new Date(lead.createdAt);
           
         const dateStr = bDate.toLocaleDateString('en-GB').replace(/\//g, '.');
         const custName = lead.name || '';
@@ -1131,9 +1157,22 @@ const CRDReports = () => {
         const projectStr = lead.project?.code || '';
         const unitNo = lead.bookingInfo?.selectedUnits?.join(', ') || '';
         
-        const leadQuots = allQuotations.filter(q => (q.lead?._id || q.lead) === lead._id);
-        const finalQuot = leadQuots[leadQuots.length - 1];
-        const unitValue = finalQuot ? (Number(finalQuot.totalValue) || 0) : (Number(lead.leadCost) || 0);
+        let unitValue = 0;
+        if (lead.bookingInfo?.selectedUnits?.length > 0) {
+          const projId = (lead.project?._id || lead.project)?.toString();
+          const proj = allProjectsList.find(p => (p._id && p._id.toString() === projId) || p.code === lead.project?.code);
+          if (proj && proj.units) {
+            lead.bookingInfo.selectedUnits.forEach(uId => {
+              const u = proj.units.find(unit => unit.unitId === uId);
+              if (u && u.price) unitValue += u.price;
+            });
+          }
+        }
+        if (!unitValue) {
+          const leadQuots = allQuotations.filter(q => (q.lead?._id || q.lead) === lead._id);
+          const finalQuot = leadQuots[leadQuots.length - 1];
+          unitValue = finalQuot ? (Number(finalQuot.totalValue) || 0) : (Number(lead.leadCost) || 0);
+        }
         totalUnitValue += unitValue;
 
         const unitValStr = unitValue.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
