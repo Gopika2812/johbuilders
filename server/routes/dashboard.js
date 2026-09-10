@@ -392,15 +392,31 @@ router.get('/stats', protect, async (req, res) => {
           }
           if (createdInRange) {
             projectStats[pCode].count += 1;
+
+            // Map current status to single active stage
+            let leadStage = 'New';
+            if (status === 'Lost' || (lead.isClosed && status !== 'Won')) {
+              leadStage = 'Lost';
+            } else if (status === 'Won' || status === 'Handover' || isLeadHandover) {
+              leadStage = 'Won';
+            } else if (status === 'Booking' || status === 'Booked') {
+              leadStage = 'Booking';
+            } else if (status === 'Site Visit' || status === 'Site Visit Follow-up') {
+              leadStage = 'Site Visit';
+            } else if (status === 'Future Follow-up' || status === 'Future Followup' || (status && status.toLowerCase().includes('future'))) {
+              leadStage = 'Future Follow-up';
+            } else if (status === 'Follow-Up' || status === 'Followup' || status === 'Contacted') {
+              leadStage = 'Follow-Up';
+            } else if (status === 'Assigned') {
+              leadStage = 'Assigned';
+            } else if (status === 'New') {
+              leadStage = 'New';
+            } else if (status) {
+              leadStage = status;
+            }
+
+            projectStats[pCode].stages[leadStage] = (projectStats[pCode].stages[leadStage] || 0) + 1;
           }
-          if (enteredAssigned) projectStats[pCode].stages['Assigned'] = (projectStats[pCode].stages['Assigned'] || 0) + 1;
-          if (enteredEnquiry) projectStats[pCode].stages['Contacted'] = (projectStats[pCode].stages['Contacted'] || 0) + 1;
-          if (enteredSiteVisit) projectStats[pCode].stages['Site Visit'] = (projectStats[pCode].stages['Site Visit'] || 0) + 1;
-          if (enteredHotList) projectStats[pCode].stages['Hot List'] = (projectStats[pCode].stages['Hot List'] || 0) + 1;
-          if (enteredFutureFollowup) projectStats[pCode].stages['Future Follow-up'] = (projectStats[pCode].stages['Future Follow-up'] || 0) + 1;
-          if (enteredBooked) projectStats[pCode].stages['Booking'] = (projectStats[pCode].stages['Booking'] || 0) + 1;
-          if (enteredHandover || (createdInRange && isLeadHandover)) projectStats[pCode].stages['Won'] = (projectStats[pCode].stages['Won'] || 0) + 1;
-          if (enteredLost || (createdInRange && (status === 'Lost' || lead.isClosed))) projectStats[pCode].stages['Lost'] = (projectStats[pCode].stages['Lost'] || 0) + 1;
         }
       }
 

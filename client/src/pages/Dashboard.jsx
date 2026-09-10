@@ -3004,10 +3004,11 @@ const Dashboard = () => {
                           <td className="p-4">
                             <div className="flex flex-wrap gap-2">
                               {Object.keys(p.stages || {})
-                                .filter(stageName => stageName !== 'Site Conversion')
+                                .filter(stageName => stageName !== 'Site Conversion' && p.stages[stageName] > 0)
                                 .sort((a, b) => {
                                   const getRank = (name) => {
                                     const norm = String(name || '').toLowerCase().trim();
+                                    if (norm === 'new') return 0;
                                     if (norm === 'assigned') return 1;
                                     if (norm === 'contacted') return 2;
                                     if (norm === 'follow-up' || norm === 'followup' || norm === 'follow up') return 3;
@@ -3103,7 +3104,7 @@ const Dashboard = () => {
                           { label: 'Total Leads', count: stats.projectStats[selectedProjectPerfCode].count, color: 'bg-black-400', icon: TrendingUp },
                           ...Object.keys(stats.projectStats[selectedProjectPerfCode].stages || {})
                             .sort((a, b) => {
-                              const order = { 'Assigned': 1, 'Contacted': 2, 'Follow-Up': 3, 'Site Visit': 4, 'Hot List': 5, 'Future Follow-up': 6, 'Booking': 7, 'Booked': 7, 'Site Conversion': 8, 'Handover': 8, 'Won': 8, 'Lost': 9 };
+                              const order = { 'New': 0, 'Assigned': 1, 'Contacted': 2, 'Follow-Up': 3, 'Site Visit': 4, 'Hot List': 5, 'Future Follow-up': 6, 'Booking': 7, 'Booked': 7, 'Site Conversion': 8, 'Handover': 8, 'Won': 8, 'Lost': 9 };
                               return (order[a] || 99) - (order[b] || 99);
                             })
                             .map((stageName) => {
