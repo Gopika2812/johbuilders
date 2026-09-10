@@ -154,7 +154,7 @@ router.get('/stats', protect, async (req, res) => {
       CRDFlow.find({}).populate('project', 'name code projectType').lean(),
       BudgetPlan.find(budgetQuery).lean(),
       User.find({ role: { $nin: ['Superadmin', 'superadmin', 'Super Admin'] }, name: { $ne: 'Super Admin' } }, 'name role').lean(),
-      Lead.find({ 'bookingInfo.selectedUnits': { $exists: true, $ne: [] } }, 'bookingInfo project createdAt').lean(),
+      Lead.find({ 'bookingInfo.selectedUnits': { $exists: true, $ne: [] } }, 'bookingInfo project createdAt history bookingDate').lean(),
       LeadGroup.find({}).lean(),
       Lead.find(todayQuery).lean()
     ]);
@@ -616,12 +616,31 @@ router.get('/stats', protect, async (req, res) => {
     const crdFlowsWithUnits = allCrdFlows.filter(cf => cf.unitId && cf.unitId !== '');
     const bookingDatesMap = new Map();
 
+    const getLeadBookingDateHelper = (lead) => {
+      if (lead.history && lead.history.length > 0) {
+        const firstBookingEntry = lead.history.find(h =>
+          (h.status === 'Booking' || h.stage === 'Booking') &&
+          (!h.note || !h.note.toLowerCase().includes('quotation updated'))
+        );
+        if (firstBookingEntry && firstBookingEntry.timestamp) {
+          return new Date(firstBookingEntry.timestamp);
+        }
+        const anyBookingEntry = lead.history.find(h => h.status === 'Booking' || h.stage === 'Booking');
+        if (anyBookingEntry && anyBookingEntry.timestamp) {
+          return new Date(anyBookingEntry.timestamp);
+        }
+      }
+      if (lead.bookingDate) return new Date(lead.bookingDate);
+      if (lead.bookingInfo && lead.bookingInfo.bookingDate) return new Date(lead.bookingInfo.bookingDate);
+      return lead.createdAt ? new Date(lead.createdAt) : null;
+    };
+
     leadsWithSelectedUnits.forEach(lead => {
       const projId = (lead.project?._id || lead.project)?.toString();
       const projCode = lead.project?.code;
       if (lead.bookingInfo?.selectedUnits) {
         lead.bookingInfo.selectedUnits.forEach(unitId => {
-          const date = lead.bookingInfo.bookingDate || lead.createdAt || new Date();
+          const date = getLeadBookingDateHelper(lead) || lead.createdAt || new Date();
           if (projId) bookingDatesMap.set(`${projId}_${unitId}`, date);
           if (projCode) bookingDatesMap.set(`${projCode}_${unitId}`, date);
           bookingDatesMap.set(`${unitId}`, date);
