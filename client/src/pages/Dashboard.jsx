@@ -450,117 +450,75 @@ const ApartmentLayoutView = ({ selectedProj, projObj }) => {
   const flatCols = Array.from({ length: maxFlat }, (_, i) => i + 1);
 
   return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between flex-wrap gap-2">
-        <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wide flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded-full bg-[#1b4332]"></span>
-          <span>Apartment Flat Layout ({rawList.length} Units • {floorList.length} Floors × {flatCols.length} Flats)</span>
-        </h4>
-      </div>
+    <div className="space-y-2">
+      <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wide flex items-center gap-1.5">
+        <span className="w-2.5 h-2.5 rounded-full bg-slate-500"></span>
+        <span>Total units ({rawList.length})</span>
+      </h4>
 
-      <div className="bg-white border-2 border-slate-400 rounded-2xl overflow-hidden shadow-sm">
-        <div className="overflow-x-auto p-3 sm:p-4 custom-scrollbar">
-          <table className="w-full border-collapse border-2 border-slate-400 text-center min-w-[720px]">
-            <thead>
-              <tr>
-                <th
-                  colSpan={flatCols.length}
-                  style={{ backgroundColor: '#1b4332', color: '#ffffff' }}
-                  className="py-3 px-4 text-center font-black text-xs sm:text-sm tracking-wider uppercase border-2 border-slate-400"
+      <div className="bg-slate-50 border-none rounded-2xl p-4 min-h-[50px] space-y-2.5">
+        {floorList.map(floorNum => (
+          <div key={floorNum} className="grid grid-cols-4 sm:grid-cols-8 gap-2.5">
+            {flatCols.map(flatNum => {
+              const found = parsedUnitsList.find(u => u.floorNum === floorNum && u.flatNum === flatNum);
+              if (!found) {
+                return (
+                  <span
+                    key={flatNum}
+                    className="border border-dashed border-slate-200 text-xs font-bold px-1 py-2 rounded-xl flex items-center justify-center text-slate-300 bg-white/40"
+                  >
+                    —
+                  </span>
+                );
+              }
+
+              const uid = found.rawId;
+              const displayId = found.displayId;
+              const cleanId = String(uid).replace(/[-_ ]/g, '').toUpperCase();
+
+              const unitObj = projObj?.units?.find(u => {
+                const uClean = String(u.unitId || '').replace(/[-_ ]/g, '').toUpperCase();
+                return uClean === cleanId || u.unitId === uid || u.unitId === displayId;
+              });
+              const bhkType = unitObj?.unitType || (flatNum <= 4 ? '3 BHK' : '2 BHK');
+              const uStatus = String(unitObj?.status || '').toLowerCase();
+
+              const inHold = uStatus.includes('hold') || (selectedProj?.stats?.holdUnitsList || []).concat(selectedProj?.stats?.cancelledUnitsList || []).some(u => {
+                const hId = typeof u === 'object' ? u?.unitId : u;
+                return String(hId || '').replace(/[-_ ]/g, '').toUpperCase() === cleanId;
+              });
+              const inReadyBuilt = uStatus === 'ready built' || uStatus === 'under construction' || uStatus === 'build' || (selectedProj?.stats?.readyBuiltUnitsList || []).some(id => String(id).replace(/[-_ ]/g, '').toUpperCase() === cleanId);
+              const inBooked = uStatus === 'booked' || uStatus === 'sold out' || (selectedProj?.stats?.bookedUnitsList || []).concat(selectedProj?.stats?.handoverUnitsList || []).some(id => String(id).replace(/[-_ ]/g, '').toUpperCase() === cleanId);
+              const inAvail = !inHold && !inReadyBuilt && !inBooked;
+
+              let bgClass = "bg-slate-100 text-slate-800 border-slate-200";
+              let statusLabel = 'Available';
+              if (inAvail) {
+                bgClass = "bg-emerald-100 text-emerald-800 border-emerald-300";
+                statusLabel = 'Available';
+              } else if (inHold) {
+                bgClass = "bg-amber-100 text-amber-800 border-amber-300";
+                statusLabel = 'Hold';
+              } else if (inReadyBuilt) {
+                bgClass = "bg-purple-100 text-purple-800 border-purple-300";
+                statusLabel = 'Ready Built';
+              } else if (inBooked) {
+                bgClass = "bg-red-100 text-red-800 border-red-300";
+                statusLabel = 'Booked';
+              }
+
+              return (
+                <span
+                  key={flatNum}
+                  title={`Unit: ${displayId} (${uid}) • Status: ${statusLabel} • Type: ${bhkType}${unitObj?.size ? ` • Size: ${unitObj.size} sq.ft` : ''}${unitObj?.price ? ` • Price: ₹${unitObj.price.toLocaleString('en-IN')}` : ''}`}
+                  className={`border text-xs font-bold px-1 py-2 rounded-xl flex items-center justify-center text-center shadow-2xs transition hover:scale-105 cursor-default ${bgClass}`}
                 >
-                  APARTMENT FLAT LAYOUT – {floorList.length} FLOORS × {flatCols.length} FLATS
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {floorList.map(floorNum => (
-                <tr key={floorNum}>
-                  {flatCols.map(flatNum => {
-                    const found = parsedUnitsList.find(u => u.floorNum === floorNum && u.flatNum === flatNum);
-                    if (!found) {
-                      return (
-                        <td
-                          key={flatNum}
-                          className="border border-slate-300 p-2.5 bg-slate-50/70 text-center text-slate-400 text-xs min-w-[85px] h-[68px]"
-                        >
-                          —
-                        </td>
-                      );
-                    }
-
-                    const uid = found.rawId;
-                    const displayId = found.displayId;
-                    const cleanId = String(uid).replace(/[-_ ]/g, '').toUpperCase();
-
-                    const unitObj = projObj?.units?.find(u => {
-                      const uClean = String(u.unitId || '').replace(/[-_ ]/g, '').toUpperCase();
-                      return uClean === cleanId || u.unitId === uid || u.unitId === displayId;
-                    });
-                    const bhkType = unitObj?.unitType || (flatNum <= 4 ? '3 BHK' : '2 BHK');
-                    const uStatus = String(unitObj?.status || '').toLowerCase();
-
-                    const inHold = uStatus.includes('hold') || (selectedProj?.stats?.holdUnitsList || []).concat(selectedProj?.stats?.cancelledUnitsList || []).some(u => {
-                      const hId = typeof u === 'object' ? u?.unitId : u;
-                      return String(hId || '').replace(/[-_ ]/g, '').toUpperCase() === cleanId;
-                    });
-                    const inReadyBuilt = uStatus === 'ready built' || uStatus === 'under construction' || uStatus === 'build' || (selectedProj?.stats?.readyBuiltUnitsList || []).some(id => String(id).replace(/[-_ ]/g, '').toUpperCase() === cleanId);
-                    const inBooked = uStatus === 'booked' || uStatus === 'sold out' || (selectedProj?.stats?.bookedUnitsList || []).concat(selectedProj?.stats?.handoverUnitsList || []).some(id => String(id).replace(/[-_ ]/g, '').toUpperCase() === cleanId);
-
-                    let cellBg = '#d1fae5'; // Available
-                    let titleColor = '#065f46';
-                    let subColor = '#047857';
-                    let badgeBg = '#059669';
-                    let statusLabel = 'Available';
-
-                    if (inHold) {
-                      cellBg = '#fef3c7'; // Hold
-                      titleColor = '#92400e';
-                      subColor = '#b45309';
-                      badgeBg = '#d97706';
-                      statusLabel = 'Hold';
-                    } else if (inReadyBuilt) {
-                      cellBg = '#f3e8ff'; // Ready Built
-                      titleColor = '#6b21a8';
-                      subColor = '#7e22ce';
-                      badgeBg = '#9333ea';
-                      statusLabel = 'Ready Built';
-                    } else if (inBooked) {
-                      cellBg = '#fee2e2'; // Booked
-                      titleColor = '#991b1b';
-                      subColor = '#b91c1c';
-                      badgeBg = '#dc2626';
-                      statusLabel = 'Booked';
-                    }
-
-                    return (
-                      <td
-                        key={flatNum}
-                        style={{ backgroundColor: cellBg }}
-                        className="border border-slate-400 p-2 text-center transition cursor-default min-w-[85px] h-[68px] hover:brightness-95"
-                        title={`Unit: ${displayId} (${uid}) • Status: ${statusLabel} • Type: ${bhkType}${unitObj?.size ? ` • Size: ${unitObj.size} sq.ft` : ''}${unitObj?.price ? ` • Price: ₹${unitObj.price.toLocaleString('en-IN')}` : ''}`}
-                      >
-                        <div style={{ color: titleColor }} className="font-black text-xs sm:text-sm tracking-tight leading-none">
-                          {displayId}
-                        </div>
-                        <div style={{ color: subColor }} className="text-[10px] font-bold mt-1 leading-none">
-                          {bhkType}
-                        </div>
-                        <div className="mt-1.5">
-                          <span
-                            style={{ backgroundColor: badgeBg, color: '#ffffff' }}
-                            className="inline-block px-1.5 py-0.5 rounded text-[8.5px] font-black uppercase tracking-wider shadow-2xs leading-none"
-                          >
-                            {statusLabel}
-                          </span>
-                        </div>
-                      </td>
-                    );
-                  })}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                  {displayId}
+                </span>
+              );
+            })}
+          </div>
+        ))}
       </div>
     </div>
   );
