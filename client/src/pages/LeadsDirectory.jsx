@@ -1104,6 +1104,36 @@ const LeadsDirectory = () => {
     }
   };
 
+  const handleDeleteLead = async (lead) => {
+    if (!window.confirm(`Are you sure you want to permanently delete lead "${lead.name}" (${lead.phone})?\n\nThis will remove the lead record and release any booked units. This action cannot be undone.`)) {
+      return;
+    }
+    setError('');
+    setSuccessMsg('');
+    setStatusChangingId(lead._id);
+    try {
+      const res = await fetch(`${API_URL}/leads/${lead._id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      if (res.ok) {
+        setSuccessMsg(`Lead "${lead.name}" permanently deleted!`);
+        fetchLeads();
+        fetchProjects();
+        setTimeout(() => setSuccessMsg(''), 3000);
+      } else {
+        const data = await res.json();
+        setError(data.message || 'Failed to delete lead');
+      }
+    } catch (err) {
+      setError('Connection error deleting lead');
+    } finally {
+      setStatusChangingId(null);
+    }
+  };
+
   const fetchLeads = async () => {
     try {
       const res = await fetch(`${API_URL}/leads`, {
@@ -2596,10 +2626,24 @@ const LeadsDirectory = () => {
                                       handleCancelLead(lead);
                                     }}
                                     disabled={statusChangingId === lead._id}
-                                    className="w-full text-left px-3.5 py-1.5 text-[11px] font-bold hover:bg-red-50 flex items-center gap-2 text-red-600 border-t border-black-100 disabled:opacity-50 mt-1 pt-1.5 cursor-pointer"
+                                    className="w-full text-left px-3.5 py-1.5 text-[11px] font-bold hover:bg-amber-50 flex items-center gap-2 text-amber-700 border-t border-black-100 disabled:opacity-50 mt-1 pt-1.5 cursor-pointer"
                                   >
-                                    {statusChangingId === lead._id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <XCircle className="w-3.5 h-3.5 text-red-600" />}
+                                    {statusChangingId === lead._id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <XCircle className="w-3.5 h-3.5 text-amber-600" />}
                                     Cancel Lead
+                                  </button>
+                                )}
+                                {hasColumnPermission('leads', 'deleteLead') && (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setOpenActionMenuId(null);
+                                      handleDeleteLead(lead);
+                                    }}
+                                    disabled={statusChangingId === lead._id}
+                                    className="w-full text-left px-3.5 py-1.5 text-[11px] font-bold hover:bg-rose-50 flex items-center gap-2 text-rose-600 border-t border-black-100 disabled:opacity-50 mt-1 pt-1.5 cursor-pointer"
+                                  >
+                                    {statusChangingId === lead._id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5 text-rose-600" />}
+                                    Delete Lead
                                   </button>
                                 )}
                               </div>

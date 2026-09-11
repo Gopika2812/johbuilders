@@ -250,11 +250,19 @@ export const AuthProvider = ({ children }) => {
     
     if (!perm) return false;
     
-    // If columns config doesn't exist or is empty, assume true
-    if (!perm.columns) return true;
+    // Special action permissions that default to false unless explicitly granted
+    const defaultFalseKeys = ['deleteLead', 'fullAccess', 'allTasks', 'userFilter'];
+    const isDefaultFalse = defaultFalseKeys.includes(columnKey);
+
+    // If columns config doesn't exist or is empty
+    if (!perm.columns) return isDefaultFalse ? false : true;
     
-    // If the specific column is undefined in the config, default to true, else return its value
-    return perm.columns[columnKey] !== undefined ? perm.columns[columnKey] : true;
+    // If the specific column is defined in the config, return its boolean value
+    if (perm.columns[columnKey] !== undefined) {
+      return Boolean(perm.columns[columnKey]);
+    }
+
+    return isDefaultFalse ? false : true;
   };
 
   // System Settings / Navigation & Page Headings Customization

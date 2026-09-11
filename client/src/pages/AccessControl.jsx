@@ -60,7 +60,8 @@ const PAGE_COLUMNS = {
     { key: 'assignedTo', label: 'Assigned To' },
     { key: 'leadStatus', label: 'Lead Status' },
     { key: 'nextFollowup', label: 'Next Followup' },
-    { key: 'actions', label: 'Actions' }
+    { key: 'actions', label: 'Actions Menu' },
+    { key: 'deleteLead', label: '🗑️ Delete Lead Permission (Allow user to permanently delete lead records)', defaultFalse: true }
   ],
   customers: [
     { key: 'sno', label: 'S.No' },

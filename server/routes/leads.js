@@ -627,8 +627,21 @@ router.get('/target-stats/:month', protect, async (req, res) => {
 
 // @route   DELETE /api/leads/:id
 // @desc    Delete a lead
-router.delete('/:id', protect, authorize('Superadmin'), async (req, res) => {
+router.delete('/:id', protect, async (req, res) => {
   try {
+    const userRoleNorm = (req.user?.role || '').toLowerCase().replace(/[\s_-]+/g, '');
+    const isSuperAdmin = userRoleNorm === 'superadmin' || userRoleNorm === 'admin';
+    
+    if (!isSuperAdmin) {
+      const { getMergedPermissions } = require('../utils/permissionHelper');
+      const permissions = await getMergedPermissions(req.user);
+      const leadPerm = permissions.find(p => p.pageId === 'leads');
+      const hasDeletePermission = leadPerm && (leadPerm.columns?.deleteLead === true || leadPerm.canEdit === true);
+      if (!hasDeletePermission) {
+        return res.status(403).json({ message: 'Access denied: You do not have permission to delete leads.' });
+      }
+    }
+
     const lead = await Lead.findById(req.params.id);
     if (!lead) {
       return res.status(404).json({ message: 'Lead not found' });
