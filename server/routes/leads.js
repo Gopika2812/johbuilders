@@ -217,6 +217,7 @@ router.post('/', protect, async (req, res) => {
       }
 
       const oldStatus = lead.status;
+      const wasLostOrCancelled = ['Lost', 'Cancelled', 'Site Visit - Cancelled', 'Follow-Up - Lost'].includes(oldStatus);
       // Reopen existing lead
       lead.leadType = leadType;
       if (salutation) lead.salutation = salutation;
@@ -238,7 +239,7 @@ router.post('/', protect, async (req, res) => {
       lead.assignedTo = (finalAssignedTo && finalAssignedTo.toString().trim() !== '') ? finalAssignedTo : undefined;
       lead.status = defaultStatus; // reset/set status on reopen
       lead.isClosed = false;
-      lead.isReopened = true;
+      lead.isReopened = wasLostOrCancelled;
       lead.leadCost = Number(leadCost) || 0;
       if (leadCategory) lead.leadCategory = leadCategory;
       if (referenceName !== undefined) lead.referenceName = referenceName || '';
@@ -351,7 +352,7 @@ router.post('/', protect, async (req, res) => {
 // @route   PUT /api/leads/:id
 // @desc    Update lead details (status, assignment)
 router.put('/:id', protect, async (req, res) => {
-  const { status, assignedTo, salutation, name, phone, alternativePhone, leadType, leadCost, address, profession, email, location, bankLoan, bankLoanPercentage, leadSource, referenceName, activeAd, projectLocation, project, bookingInfo, followUpInfo, isClosed, closeRemarks, isRevert, leadCategory } = req.body;
+  const { status, assignedTo, salutation, name, phone, alternativePhone, leadType, leadCost, address, profession, email, location, bankLoan, bankLoanPercentage, leadSource, referenceName, activeAd, projectLocation, project, bookingInfo, followUpInfo, isClosed, isReopened, closeRemarks, isRevert, leadCategory } = req.body;
 
   try {
     const lead = await Lead.findById(req.params.id);
@@ -428,15 +429,28 @@ router.put('/:id', protect, async (req, res) => {
     if (leadCategory) lead.leadCategory = leadCategory;
 
     if (followUpInfo !== undefined) lead.followUpInfo = followUpInfo;
+    
+    const isLostOrCancelled = ['Lost', 'Cancelled', 'Site Visit - Cancelled', 'Follow-Up - Lost'].includes(prevStatus) || Boolean(lead.lostStage);
+
     if (status && status !== 'Lost' && lead.isClosed === true && isClosed === undefined) {
       lead.isClosed = false;
-      lead.isReopened = true;
+      if (isLostOrCancelled && status !== 'Booking' && status !== 'Won') {
+        lead.isReopened = true;
+      }
     }
     if (isClosed !== undefined) {
       if (lead.isClosed === true && isClosed === false) {
-        lead.isReopened = true;
+        if (isLostOrCancelled && status !== 'Booking' && status !== 'Won') {
+          lead.isReopened = true;
+        }
       }
       lead.isClosed = isClosed;
+    }
+    if (isReopened !== undefined) {
+      lead.isReopened = Boolean(isReopened);
+    }
+    if (status === 'Booking' || status === 'Won' || lead.status === 'Booking' || lead.status === 'Won') {
+      lead.isReopened = false;
     }
     if (closeRemarks !== undefined) lead.closeRemarks = closeRemarks;
 

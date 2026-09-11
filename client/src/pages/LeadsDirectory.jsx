@@ -1752,6 +1752,7 @@ const LeadsDirectory = () => {
         },
         body: JSON.stringify({
           isClosed: false,
+          isReopened: true,
           closeRemarks: '',
           status: lead.assignedTo ? 'Assigned' : 'New',
           isRevert: true
@@ -2086,7 +2087,7 @@ const LeadsDirectory = () => {
       } else if (reopenedFilter === 'Closed') {
         matchesState = lead.isClosed;
       } else if (reopenedFilter === 'Reopened') {
-        matchesState = lead.isReopened === true || (lead.history && lead.history.some(h => h.note && h.note.toLowerCase().includes('reopened')));
+        matchesState = lead.isReopened === true && !['Booking', 'Won', 'Booked'].includes(lead.status);
       }
 
       return matchesStatus && matchesSearch && matchesStartDate && matchesEndDate &&
@@ -2369,7 +2370,7 @@ const LeadsDirectory = () => {
                           <span className="font-bold text-black-800 text-xs">
                             {lead.salutation && !lead.name?.startsWith(lead.salutation) ? `${lead.salutation} ` : ''}{lead.name}
                           </span>
-                          {(lead.isReopened === true || (lead.history && lead.history.some(h => h.note && h.note.toLowerCase().includes('reopened')))) && (
+                          {lead.isReopened === true && !['Booking', 'Won', 'Booked'].includes(lead.status) && (
                             <span className="bg-amber-600 border border-amber-700 text-[10px] font-extrabold px-1.5 py-0.5 rounded-full uppercase tracking-wider shrink-0 shadow-sm animate-pulse">
                               Reopened
                             </span>
