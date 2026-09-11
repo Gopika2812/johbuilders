@@ -361,6 +361,8 @@ router.put('/:id', protect, async (req, res) => {
 
     const prevStatus = lead.status;
     const prevAssigned = lead.assignedTo?.toString();
+    const statusChanged = Boolean(status && status !== lead.status);
+    const assignmentChanged = Boolean(assignedTo !== undefined && assignedTo?.toString() !== prevAssigned);
 
     const userRoleNorm = (req.user?.role || '').toLowerCase().replace(/[\s_-]+/g, '');
     const isSuperAdminUser = userRoleNorm === 'superadmin' || userRoleNorm === 'admin';
