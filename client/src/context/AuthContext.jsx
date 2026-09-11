@@ -83,9 +83,96 @@ export const DEFAULT_PAGE_LABELS = {
     subtitle: 'Configure company profile, lead groups, budget allocation, and navigation labels'
   },
   export_reports: {
-    sidebar: 'Export Reports',
+    sidebar: 'Sales Reports',
     title: 'Executive Reports & Analytics Center',
     subtitle: 'Generate and export executive summaries, excel sheets, and performance reports'
+  },
+  crd_reports: {
+    sidebar: 'CRD Reports',
+    title: 'CRD Handover & Collections Reports Center',
+    subtitle: 'Operations, registrations, key handovers, bank loans, and collection analytics'
+  },
+  // Sales Reports Cards & Sheet Names
+  report_download_all: {
+    sidebar: 'Download All Reports',
+    title: 'Download All Reports',
+    subtitle: 'Generate a single master workbook with all reports as separate tabs'
+  },
+  report_abstract: {
+    sidebar: 'Abstract of Report',
+    title: 'Abstract of Report',
+    subtitle: 'Complete overview of all leads, statuses, and values'
+  },
+  report_enquiry: {
+    sidebar: 'Enquiry Sheet',
+    title: 'Enquiry Sheet',
+    subtitle: 'Active and followed-up enquiries'
+  },
+  report_site_visit: {
+    sidebar: 'Site Visit Sheet',
+    title: 'Site Visit Sheet',
+    subtitle: 'Leads that progressed to site visits'
+  },
+  report_hot_list: {
+    sidebar: 'Hot List Sheet',
+    title: 'Hot List Sheet',
+    subtitle: 'Highly qualified, potential closing leads'
+  },
+  report_booking: {
+    sidebar: 'Booking Sheet',
+    title: 'Booking Sheet',
+    subtitle: 'Successfully closed bookings and amounts'
+  },
+  report_marketing: {
+    sidebar: 'Marketing Performance',
+    title: 'Marketing Performance',
+    subtitle: 'Conversion rates, CPE, and source performance'
+  },
+  report_lead_sources: {
+    sidebar: 'Lead Sources',
+    title: 'Lead Sources',
+    subtitle: 'Detailed breakdown of lead origins and counts'
+  },
+  // CRD Reports Cards & Sheet Names
+  report_crd_parameter: {
+    sidebar: 'Parameter Report',
+    title: 'Parameter Report',
+    subtitle: 'Collection parameters, KPIs and task metrics'
+  },
+  report_crd_registration: {
+    sidebar: 'Registration Report',
+    title: 'Registration Report',
+    subtitle: 'Registered units and values'
+  },
+  report_crd_key_handover: {
+    sidebar: 'Key Handover Report',
+    title: 'Key Handover Report',
+    subtitle: 'Handed over keys and status'
+  },
+  report_crd_collection: {
+    sidebar: 'Collection Report',
+    title: 'Collection Report',
+    subtitle: 'Payment tracking and collections'
+  },
+  report_crd_bank_loan: {
+    sidebar: 'Bank Loan Report',
+    title: 'Bank Loan Report',
+    subtitle: 'Bank loans associated with units'
+  },
+  report_crd_extra_works: {
+    sidebar: 'Extra Works',
+    title: 'Extra Works',
+    subtitle: 'Extra works requests and value'
+  },
+  report_crd_complaints: {
+    sidebar: 'Complaints',
+    title: 'Complaints',
+    subtitle: 'User complaints and statuses'
+  },
+  report_crd_npa_collected: {
+    sidebar: 'NPA Collected Reports',
+    title: 'NPA Collected Reports',
+    subtitle: 'Track targets, debtors, and weekly collections'
   }
 };
 

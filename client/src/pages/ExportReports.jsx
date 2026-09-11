@@ -312,7 +312,7 @@ const ObservedBarChart = ({ dataArray, xKey, yKey, barColor, isPercent = false }
 };
 
 const ExportReports = () => {
-  const { token, user } = useAuth();
+  const { token, user, getLabel } = useAuth();
   
   // Date filters - default to current month
   const [fromDate, setFromDate] = useState(() => {
@@ -2860,13 +2860,13 @@ const ExportReports = () => {
           allSheets.push({ name: sheetName, html: htmlString });
       };
 
-      await convertHtmlToSheet(handleExportSummaryReport, 'Abstract', 'Abstract of Report');
-      await convertHtmlToSheet(handleExportEnquiriesExcel, 'Enquiries', 'Enquiry Sheet');
-      await convertHtmlToSheet(handleExportSiteVisitsExcel, 'Site Visits', 'Site Visit Sheet');
-      await convertHtmlToSheet(handleExportHotListExcel, 'Hot List', 'Hot List Sheet');
-      await convertHtmlToSheet(handleExportBookingsExcel, 'Bookings', 'Booking Sheet');
-      await convertHtmlToSheet(handleExportMarketingReturnsReport, 'Marketing Returns', 'Marketing Performance');
-      await convertHtmlToSheet(handleExportLeadSourcesReport, 'Lead Sources', 'Lead Sources');
+      await convertHtmlToSheet(handleExportSummaryReport, 'Abstract', getLabel ? getLabel('report_abstract', 'sidebar', 'Abstract of Report') : 'Abstract of Report');
+      await convertHtmlToSheet(handleExportEnquiriesExcel, 'Enquiries', getLabel ? getLabel('report_enquiry', 'sidebar', 'Enquiry Sheet') : 'Enquiry Sheet');
+      await convertHtmlToSheet(handleExportSiteVisitsExcel, 'Site Visits', getLabel ? getLabel('report_site_visit', 'sidebar', 'Site Visit Sheet') : 'Site Visit Sheet');
+      await convertHtmlToSheet(handleExportHotListExcel, 'Hot List', getLabel ? getLabel('report_hot_list', 'sidebar', 'Hot List Sheet') : 'Hot List Sheet');
+      await convertHtmlToSheet(handleExportBookingsExcel, 'Bookings', getLabel ? getLabel('report_booking', 'sidebar', 'Booking Sheet') : 'Booking Sheet');
+      await convertHtmlToSheet(handleExportMarketingReturnsReport, 'Marketing Returns', getLabel ? getLabel('report_marketing', 'sidebar', 'Marketing Performance') : 'Marketing Performance');
+      await convertHtmlToSheet(handleExportLeadSourcesReport, 'Lead Sources', getLabel ? getLabel('report_lead_sources', 'sidebar', 'Lead Sources') : 'Lead Sources');
       
       if (allSheets.length > 0) {
         setPreviewSheets(allSheets);
@@ -2993,7 +2993,9 @@ const ExportReports = () => {
             <div className="p-4 bg-emerald-100 text-emerald-600 rounded-2xl">
               <Download className="w-8 h-8" />
             </div>
-            <h3 className="text-sm font-black text-emerald-800 uppercase tracking-wide">Download All Reports</h3>
+            <h3 className="text-sm font-black text-emerald-800 uppercase tracking-wide">
+              {getLabel ? getLabel('report_download_all', 'sidebar', 'Download All Reports') : 'Download All Reports'}
+            </h3>
             {/* <p className="text-[11px] text-emerald-600 font-semibold">Generate a single master workbook with all reports as separate tabs.</p> */}
           </div>
 
@@ -3005,7 +3007,9 @@ const ExportReports = () => {
           <div className="p-4 bg-indigo-100 text-indigo-600 rounded-2xl">
             <FolderOpen className="w-8 h-8" />
           </div>
-          <h3 className="text-sm font-black text-indigo-800 uppercase tracking-wide">Abstract of Report</h3>
+          <h3 className="text-sm font-black text-indigo-800 uppercase tracking-wide">
+            {getLabel ? getLabel('report_abstract', 'sidebar', 'Abstract of Report') : 'Abstract of Report'}
+          </h3>
           {/* <p className="text-[11px] text-indigo-500 font-semibold">Complete overview of all leads, statuses, and values.</p> */}
         </div>
 
@@ -3016,7 +3020,9 @@ const ExportReports = () => {
           <div className="p-4 bg-emerald-100 text-emerald-600 rounded-2xl">
             <FileText className="w-8 h-8" />
           </div>
-          <h3 className="text-sm font-black text-emerald-800 uppercase tracking-wide">Enquiry Sheet</h3>
+          <h3 className="text-sm font-black text-emerald-800 uppercase tracking-wide">
+            {getLabel ? getLabel('report_enquiry', 'sidebar', 'Enquiry Sheet') : 'Enquiry Sheet'}
+          </h3>
           {/* <p className="text-[11px] text-emerald-500 font-semibold">Active and followed-up enquiries.</p> */}
         </div>
 
@@ -3027,7 +3033,9 @@ const ExportReports = () => {
           <div className="p-4 bg-blue-100 text-blue-600 rounded-2xl">
             <Compass className="w-8 h-8" />
           </div>
-          <h3 className="text-sm font-black text-blue-800 uppercase tracking-wide">Site Visit Sheet</h3>
+          <h3 className="text-sm font-black text-blue-800 uppercase tracking-wide">
+            {getLabel ? getLabel('report_site_visit', 'sidebar', 'Site Visit Sheet') : 'Site Visit Sheet'}
+          </h3>
           {/* <p className="text-[11px] text-blue-500 font-semibold">Leads that progressed to site visits.</p> */}
         </div>
 
@@ -3038,7 +3046,9 @@ const ExportReports = () => {
           <div className="p-4 bg-orange-100 text-orange-600 rounded-2xl">
             <TrendingUp className="w-8 h-8" />
           </div>
-          <h3 className="text-sm font-black text-orange-800 uppercase tracking-wide">Hot List Sheet</h3>
+          <h3 className="text-sm font-black text-orange-800 uppercase tracking-wide">
+            {getLabel ? getLabel('report_hot_list', 'sidebar', 'Hot List Sheet') : 'Hot List Sheet'}
+          </h3>
           {/* <p className="text-[11px] text-orange-500 font-semibold">Highly qualified, potential closing leads.</p> */}
         </div>
 
@@ -3049,7 +3059,9 @@ const ExportReports = () => {
           <div className="p-4 bg-green-100 text-green-600 rounded-2xl">
             <Building className="w-8 h-8" />
           </div>
-          <h3 className="text-sm font-black text-green-800 uppercase tracking-wide">Booking Sheet</h3>
+          <h3 className="text-sm font-black text-green-800 uppercase tracking-wide">
+            {getLabel ? getLabel('report_booking', 'sidebar', 'Booking Sheet') : 'Booking Sheet'}
+          </h3>
           {/* <p className="text-[11px] text-green-500 font-semibold">Successfully closed bookings and amounts.</p> */}
         </div>
 
@@ -3060,7 +3072,9 @@ const ExportReports = () => {
           <div className="p-4 bg-cyan-100 text-cyan-600 rounded-2xl">
             <Target className="w-8 h-8" />
           </div>
-          <h3 className="text-sm font-black text-cyan-800 uppercase tracking-wide">Marketing Performance</h3>
+          <h3 className="text-sm font-black text-cyan-800 uppercase tracking-wide">
+            {getLabel ? getLabel('report_marketing', 'sidebar', 'Marketing Performance') : 'Marketing Performance'}
+          </h3>
           {/* <p className="text-[11px] text-cyan-500 font-semibold">Conversion rates, CPE, and source performance.</p> */}
         </div>
 
@@ -3071,7 +3085,9 @@ const ExportReports = () => {
           <div className="p-4 bg-teal-100 text-teal-600 rounded-2xl">
             <Users className="w-8 h-8" />
           </div>
-          <h3 className="text-sm font-black text-teal-800 uppercase tracking-wide">Lead Sources</h3>
+          <h3 className="text-sm font-black text-teal-800 uppercase tracking-wide">
+            {getLabel ? getLabel('report_lead_sources', 'sidebar', 'Lead Sources') : 'Lead Sources'}
+          </h3>
           {/* <p className="text-[11px] text-teal-500 font-semibold">Detailed breakdown of lead origins and counts.</p> */}
         </div>
 

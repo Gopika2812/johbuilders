@@ -317,7 +317,7 @@ const ObservedBarChart = ({ dataArray, xKey, yKey, barColor, isPercent = false }
 };
 
 const CRDReports = () => {
-  const { token, user } = useAuth();
+  const { token, user, getLabel } = useAuth();
   // Use the absolute local file path provided by the user so Excel can render it locally
   const logoPath = LOGO_BASE64;
   
@@ -3380,7 +3380,9 @@ const CRDReports = () => {
           <div className="p-4 bg-orange-100 text-orange-600 rounded-2xl">
             <TrendingUp className="w-8 h-8" />
           </div>
-          <h3 className="text-sm font-black text-orange-800 uppercase tracking-wide">Parameter Report</h3>
+          <h3 className="text-sm font-black text-orange-800 uppercase tracking-wide">
+            {getLabel ? getLabel('report_crd_parameter', 'sidebar', 'Parameter Report') : 'Parameter Report'}
+          </h3>
           {/* <p className="text-[11px] text-orange-500 font-semibold">Collection parameters, KPIs and task metrics.</p> */}
         </div>
         
@@ -3392,7 +3394,9 @@ const CRDReports = () => {
           <div className="p-4 bg-purple-100 text-purple-600 rounded-2xl">
             <CheckCircle className="w-8 h-8" />
           </div>
-          <h3 className="text-sm font-black text-purple-800 uppercase tracking-wide">Registration Report</h3>
+          <h3 className="text-sm font-black text-purple-800 uppercase tracking-wide">
+            {getLabel ? getLabel('report_crd_registration', 'sidebar', 'Registration Report') : 'Registration Report'}
+          </h3>
           {/* <p className="text-[11px] text-purple-500 font-semibold">Registered units and values.</p> */}
         </div>
 
@@ -3404,7 +3408,9 @@ const CRDReports = () => {
           <div className="p-4 bg-indigo-100 text-indigo-600 rounded-2xl">
             <Key className="w-8 h-8" />
           </div>
-          <h3 className="text-sm font-black text-indigo-800 uppercase tracking-wide">Key Handover Report</h3>
+          <h3 className="text-sm font-black text-indigo-800 uppercase tracking-wide">
+            {getLabel ? getLabel('report_crd_key_handover', 'sidebar', 'Key Handover Report') : 'Key Handover Report'}
+          </h3>
           {/* <p className="text-[11px] text-indigo-500 font-semibold">Handed over keys and status.</p> */}
         </div>
 
@@ -3416,7 +3422,9 @@ const CRDReports = () => {
           <div className="p-4 bg-emerald-100 text-emerald-600 rounded-2xl">
             <DollarSign className="w-8 h-8" />
           </div>
-          <h3 className="text-sm font-black text-emerald-800 uppercase tracking-wide">Collection Report</h3>
+          <h3 className="text-sm font-black text-emerald-800 uppercase tracking-wide">
+            {getLabel ? getLabel('report_crd_collection', 'sidebar', 'Collection Report') : 'Collection Report'}
+          </h3>
           {/* <p className="text-[11px] text-emerald-500 font-semibold">Payment tracking and collections.</p> */}
         </div>
 
@@ -3431,7 +3439,9 @@ const CRDReports = () => {
           <div className="p-4 bg-blue-100 text-blue-600 rounded-2xl">
             <Building className="w-8 h-8" />
           </div>
-          <h3 className="text-sm font-black text-blue-800 uppercase tracking-wide">Bank Loan Report</h3>
+          <h3 className="text-sm font-black text-blue-800 uppercase tracking-wide">
+            {getLabel ? getLabel('report_crd_bank_loan', 'sidebar', 'Bank Loan Report') : 'Bank Loan Report'}
+          </h3>
           {/* <p className="text-[11px] text-blue-500 font-semibold">Bank loans associated with units.</p> */}
         </div>
 
@@ -3443,7 +3453,9 @@ const CRDReports = () => {
           <div className="p-4 bg-amber-100 text-amber-600 rounded-2xl">
             <FileText className="w-8 h-8" />
           </div>
-          <h3 className="text-sm font-black text-amber-800 uppercase tracking-wide">Extra Works</h3>
+          <h3 className="text-sm font-black text-amber-800 uppercase tracking-wide">
+            {getLabel ? getLabel('report_crd_extra_works', 'sidebar', 'Extra Works') : 'Extra Works'}
+          </h3>
           {/* <p className="text-[11px] text-amber-500 font-semibold">Extra works requests and value.</p> */}
         </div>
 
@@ -3455,7 +3467,9 @@ const CRDReports = () => {
           <div className="p-4 bg-rose-100 text-rose-600 rounded-2xl">
             <AlertCircle className="w-8 h-8" />
           </div>
-          <h3 className="text-sm font-black text-rose-800 uppercase tracking-wide">Complaints</h3>
+          <h3 className="text-sm font-black text-rose-800 uppercase tracking-wide">
+            {getLabel ? getLabel('report_crd_complaints', 'sidebar', 'Complaints') : 'Complaints'}
+          </h3>
           <p className="text-[11px] text-rose-500 font-semibold">User complaints and statuses.</p>
         </div>
 
@@ -3467,7 +3481,9 @@ const CRDReports = () => {
           <div className="p-4 bg-sky-100 text-sky-600 rounded-2xl">
             <BarChart3 className="w-8 h-8" />
           </div>
-          <h3 className="text-sm font-black text-sky-800 uppercase tracking-wide">NPA Collected Reports</h3>
+          <h3 className="text-sm font-black text-sky-800 uppercase tracking-wide">
+            {getLabel ? getLabel('report_crd_npa_collected', 'sidebar', 'NPA Collected Reports') : 'NPA Collected Reports'}
+          </h3>
           {/* <p className="text-[11px] text-sky-500 font-semibold">Track targets, debtors, and weekly collections.</p> */}
         </div>
 
