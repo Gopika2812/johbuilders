@@ -233,7 +233,14 @@ export const AuthProvider = ({ children }) => {
   };
 
   const hasColumnPermission = (pageId, columnKey) => {
-    if (isAdmin) return true; // Admins see all columns
+    // Special action: deleteLead is NEVER shown by default and MUST be explicitly enabled in Access Control
+    if (columnKey === 'deleteLead') {
+      let targetPageId = (pageId === 'leads' || pageId === 'leads_phase') ? 'leads' : pageId;
+      const perm = user?.permissions?.find(p => p.pageId === targetPageId);
+      return Boolean(perm?.columns?.deleteLead === true);
+    }
+
+    if (isAdmin) return true; // Admins see standard columns by default
     if (!user || !user.permissions) return false;
     
     let targetPageId = pageId;
@@ -251,7 +258,7 @@ export const AuthProvider = ({ children }) => {
     if (!perm) return false;
     
     // Special action permissions that default to false unless explicitly granted
-    const defaultFalseKeys = ['deleteLead', 'fullAccess', 'allTasks', 'userFilter'];
+    const defaultFalseKeys = ['fullAccess', 'allTasks', 'userFilter'];
     const isDefaultFalse = defaultFalseKeys.includes(columnKey);
 
     // If columns config doesn't exist or is empty

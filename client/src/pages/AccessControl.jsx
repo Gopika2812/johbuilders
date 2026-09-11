@@ -189,7 +189,7 @@ const AccessControl = () => {
             if (p.pageId !== pageId) return p;
             
             const currentColumns = p.columns || {};
-            const isEnabled = currentColumns[columnKey] !== undefined ? currentColumns[columnKey] : (p.canEdit && colDef?.defaultFalse ? true : defaultVal);
+            const isEnabled = currentColumns[columnKey] !== undefined ? currentColumns[columnKey] : (colDef?.defaultFalse ? false : defaultVal);
             const nextVal = !isEnabled;
             const updatedCols = {
               ...currentColumns,
@@ -401,12 +401,11 @@ const AccessControl = () => {
                                 Column Level Access for {permission.pageName}
                               </h4>
                               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                                {PAGE_COLUMNS[permission.pageId].map(col => {
-                                  const defaultVal = col.defaultFalse ? false : true;
-                                  const activeUserRole = userConfigs.find(c => c.userId === activeUserId)?.userRole;
-                                  const isEnabled = permission.columns?.[col.key] !== undefined 
-                                    ? permission.columns[col.key] 
-                                    : (activeUserRole === 'Superadmin' || (permission.canEdit && col.defaultFalse) ? true : defaultVal);
+                                  {PAGE_COLUMNS[permission.pageId].map(col => {
+                                    const defaultVal = col.defaultFalse ? false : true;
+                                    const isEnabled = permission.columns?.[col.key] !== undefined 
+                                      ? Boolean(permission.columns[col.key]) 
+                                      : (col.defaultFalse ? false : defaultVal);
                                   return (
                                     <button
                                       key={col.key}
