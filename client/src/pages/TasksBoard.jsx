@@ -2300,14 +2300,6 @@ const TasksBoard = () => {
                           >
                             {task.title}
                           </button>
-                          {task.description && (
-                            <p 
-                              className="text-[10px] text-gray-500 truncate max-w-[240px] leading-tight mt-0.5" 
-                              title={task.description}
-                            >
-                              {task.description}
-                            </p>
-                          )}
                         </td>
 
                         {/* 4. Department (Reduced width) */}
