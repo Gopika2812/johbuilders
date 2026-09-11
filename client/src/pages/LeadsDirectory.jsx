@@ -995,6 +995,11 @@ const LeadsDirectory = () => {
 
     const adObj = editAdId ? editActiveAds.find(a => a.id === editAdId) : null;
 
+    const roleNorm = (user?.role || '').toLowerCase().replace(/[\s_-]+/g, '');
+    const isSuperAdmin = roleNorm === 'superadmin' || roleNorm === 'admin';
+    const isMovingOutOfLost = (selectedLeadForEdit?.status === 'Lost' || selectedLeadForEdit?.isClosed) && editStatus !== 'Lost';
+    const isMovingToLost = editStatus === 'Lost';
+
     setIsSubmitting(true);
     const payload = {
       leadType: editLeadType,
@@ -1013,10 +1018,13 @@ const LeadsDirectory = () => {
       referenceName: editReferenceName.trim(),
       leadCategory: editLeadCategory,
       activeAd: editLeadType === 'Lead' && adObj ? { name: adObj.name, link: adObj.link } : { name: '', link: '' },
-      followUpInfo: {
+      followUpInfo: editRemarks?.trim() ? {
         ...(selectedLeadForEdit?.followUpInfo || {}),
-        remarks: editRemarks || ''
-      }
+        remarks: editRemarks.trim()
+      } : (selectedLeadForEdit?.followUpInfo || undefined),
+      isClosed: isMovingToLost ? true : (isMovingOutOfLost ? false : selectedLeadForEdit?.isClosed),
+      closeRemarks: isMovingToLost ? (editRemarks || 'Marked lost via Edit') : (isMovingOutOfLost ? '' : selectedLeadForEdit?.closeRemarks),
+      isRevert: isSuperAdmin
     };
 
     try {
@@ -1755,12 +1763,20 @@ const LeadsDirectory = () => {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ status: newStatus, isRevert })
+        body: JSON.stringify({
+          status: newStatus,
+          isRevert,
+          isClosed: newStatus === 'Lost' ? true : false,
+          closeRemarks: newStatus === 'Lost' ? 'Marked as Lost' : ''
+        })
       });
       if (res.ok) {
         fetchLeads();
-        setSuccessMsg(isRevert ? 'Lead status reverted successfully!' : 'Lead status updated successfully!');
+        setSuccessMsg(isRevert ? `Lead status reverted to ${newStatus} successfully!` : 'Lead status updated successfully!');
         setTimeout(() => setSuccessMsg(''), 3000);
+      } else {
+        const errData = await res.json();
+        setError(errData.message || (isRevert ? 'Failed to revert lead status' : 'Failed to update lead status'));
       }
     } catch (err) {
       setError(isRevert ? 'Failed to revert lead status' : 'Failed to update lead status');
@@ -2555,18 +2571,20 @@ const LeadsDirectory = () => {
                                   const roleNorm = (user?.role || '').toLowerCase().replace(/[\s_-]+/g, '');
                                   const isSuperAdmin = roleNorm === 'superadmin' || roleNorm === 'admin';
                                   const prevSt = getPreviousStatus(lead);
-                                  if (!isSuperAdmin || !prevSt || lead.isClosed) return null;
+                                  if (!isSuperAdmin) return null;
+                                  const targetRevertStatus = prevSt || (lead.assignedTo ? 'Assigned' : 'New');
+                                  if (!targetRevertStatus || targetRevertStatus === lead.status) return null;
                                   return (
                                     <button
                                       type="button"
                                       onClick={() => {
                                         setOpenActionMenuId(null);
-                                        handleStatusChange(lead._id, prevSt, true);
+                                        handleStatusChange(lead._id, targetRevertStatus, true);
                                       }}
                                       disabled={statusChangingId === lead._id}
                                       className="w-full text-left px-3.5 py-1.5 text-[11px] font-bold hover:bg-blue-50 flex items-center gap-2 text-blue-600 disabled:opacity-50 cursor-pointer"
                                     >
-                                      <RotateCcw className="w-3.5 h-3.5" /> Revert to {prevSt}
+                                      <RotateCcw className="w-3.5 h-3.5" /> Revert to {targetRevertStatus}
                                     </button>
                                   );
                                 })()}
@@ -3728,19 +3746,7 @@ const LeadsDirectory = () => {
                   <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Workflow Status <span className="text-red-500">*</span></label>
                   <select
                     value={editStatus}
-                    onChange={(e) => {
-                      const newStatus = e.target.value;
-                      if (newStatus === 'Schedule Follow-up') {
-                        setEditModalOpen(false); // Close edit modal
-                        const lead = leads.find(l => l._id === selectedLeadForEdit._id);
-                        if (lead) {
-                          initiateFollowUpOrComplete(lead, lead.status);
-                        }
-                        return;
-                      }
-                      setEditModalOpen(false); // Close edit modal
-                      handleStatusChange(selectedLeadForEdit._id, newStatus);
-                    }}
+                    onChange={(e) => setEditStatus(e.target.value)}
                     className="w-full px-4 py-3 bg-black-55 border border-[#d1d5db] rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-600 text-sm cursor-pointer appearance-none"
                     style={{ backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 16px center', backgroundSize: '16px' }}
                   >
@@ -3751,9 +3757,6 @@ const LeadsDirectory = () => {
                       if (!isSuperAdmin && idx < currentIdx && currentIdx !== -1) return null;
                       return <option key={status} value={status}>{status === 'Booking' ? 'Booked' : status}</option>;
                     })}
-                    {selectedLeadForEdit && (
-                      <option value="Schedule Follow-up">Schedule Follow-up ({selectedLeadForEdit.status})</option>
-                    )}
                   </select>
                 </div>
 

@@ -362,11 +362,10 @@ router.put('/:id', protect, async (req, res) => {
     const prevStatus = lead.status;
     const prevAssigned = lead.assignedTo?.toString();
 
-    // Check if status or assigned executive changed
-    let statusChanged = status && status !== lead.status;
-    let assignmentChanged = assignedTo && assignedTo !== prevAssigned;
+    const userRoleNorm = (req.user?.role || '').toLowerCase().replace(/[\s_-]+/g, '');
+    const isSuperAdminUser = userRoleNorm === 'superadmin' || userRoleNorm === 'admin';
 
-    if (!isRevert) {
+    if (!isRevert && !isSuperAdminUser) {
       if (followUpInfo !== undefined) {
         if (!followUpInfo.remarks || !followUpInfo.remarks.trim()) {
           return res.status(400).json({ message: 'Follow-up remarks/notes are required.' });
@@ -395,16 +394,12 @@ router.put('/:id', protect, async (req, res) => {
       ];
       const currentIndex = LEAD_STATUSES.indexOf(lead.status);
       const newIndex = LEAD_STATUSES.indexOf(status);
-      const userRoleNorm = (req.user?.role || '').toLowerCase().replace(/[\s_-]+/g, '');
-      const isSuperAdminUser = userRoleNorm === 'superadmin' || userRoleNorm === 'admin';
       if (!isRevert && !isSuperAdminUser && currentIndex !== -1 && newIndex !== -1 && newIndex < currentIndex) {
         return res.status(400).json({ message: 'Cannot move backward to a previous stage' });
       }
       lead.status = status;
     }
 
-    const userRoleNorm = (req.user?.role || '').toLowerCase().replace(/[\s_-]+/g, '');
-    const isSuperAdminUser = userRoleNorm === 'superadmin' || userRoleNorm === 'admin';
     const isLeadAssigned = Boolean(lead.assignedTo) || (lead.status && lead.status !== 'New');
     const canEditLockedFields = !isLeadAssigned || isSuperAdminUser;
 
@@ -431,6 +426,10 @@ router.put('/:id', protect, async (req, res) => {
     if (leadCategory) lead.leadCategory = leadCategory;
 
     if (followUpInfo !== undefined) lead.followUpInfo = followUpInfo;
+    if (status && status !== 'Lost' && lead.isClosed === true && isClosed === undefined) {
+      lead.isClosed = false;
+      lead.isReopened = true;
+    }
     if (isClosed !== undefined) {
       if (lead.isClosed === true && isClosed === false) {
         lead.isReopened = true;
