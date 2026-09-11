@@ -201,34 +201,35 @@ table tbody tr td {
 div.bg-emerald-50.border-emerald-200:not(.rounded-full),
 div.bg-red-50.border-red-200:not(.rounded-full) {
   position: fixed !important;
-  top: 24px !important;
+  top: 80px !important;
   right: 24px !important;
   z-index: 99999 !important;
   min-width: 320px !important;
-  max-width: 450px !important;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.16) !important;
+  max-width: 480px !important;
+  box-shadow: 0 16px 36px -4px rgba(0, 0, 0, 0.2), 0 6px 16px -4px rgba(0, 0, 0, 0.12) !important;
   border-radius: 16px !important;
-  padding: 16px 20px !important;
+  padding: 14px 20px !important;
   font-size: 13px !important;
   font-weight: 600 !important;
   display: flex !important;
   align-items: center !important;
   gap: 12px !important;
   animation: slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+  backdrop-filter: blur(12px) !important;
 }
 
 div.bg-emerald-50.border-emerald-200:not(.rounded-full) {
-  background-color: #f7fcf9 !important;
-  border-color: #d4af37 !important; /* Gold border for success */
-  color: #0a4c2c !important;
-  border-left: 5px solid #d4af37 !important; /* Gold left-accent */
+  background-color: #ffffff !important;
+  border: 1px solid #10b981 !important;
+  border-left: 6px solid #059669 !important;
+  color: #065f46 !important;
 }
 
 div.bg-red-50.border-red-200:not(.rounded-full) {
-  background-color: #fce8e6 !important;
-  border-color: #c5221f !important;
-  color: #c5221f !important;
-  border-left: 5px solid #c5221f !important;
+  background-color: #ffffff !important;
+  border: 1px solid #f87171 !important;
+  border-left: 6px solid #dc2626 !important;
+  color: #991b1b !important;
 }
 
 @keyframes slideInRight {
