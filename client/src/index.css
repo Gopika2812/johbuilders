@@ -197,51 +197,6 @@ table tbody tr td {
   background-color: inherit !important;
 }
 
-/* Style all notification alerts as beautiful floating toasts */
-div.bg-emerald-50.border-emerald-200:not(.rounded-full),
-div.bg-red-50.border-red-200:not(.rounded-full) {
-  position: fixed !important;
-  top: 80px !important;
-  right: 24px !important;
-  z-index: 99999 !important;
-  min-width: 320px !important;
-  max-width: 480px !important;
-  box-shadow: 0 16px 36px -4px rgba(0, 0, 0, 0.2), 0 6px 16px -4px rgba(0, 0, 0, 0.12) !important;
-  border-radius: 16px !important;
-  padding: 14px 20px !important;
-  font-size: 13px !important;
-  font-weight: 600 !important;
-  display: flex !important;
-  align-items: center !important;
-  gap: 12px !important;
-  animation: slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
-  backdrop-filter: blur(12px) !important;
-}
-
-div.bg-emerald-50.border-emerald-200:not(.rounded-full) {
-  background-color: #ffffff !important;
-  border: 1px solid #10b981 !important;
-  border-left: 6px solid #059669 !important;
-  color: #065f46 !important;
-}
-
-div.bg-red-50.border-red-200:not(.rounded-full) {
-  background-color: #ffffff !important;
-  border: 1px solid #f87171 !important;
-  border-left: 6px solid #dc2626 !important;
-  color: #991b1b !important;
-}
-
-@keyframes slideInRight {
-  from {
-    transform: translateX(120%);
-    opacity: 0;
-  }
-  to {
-    transform: translateX(0);
-    opacity: 1;
-  }
-}
 
 /* Custom Royal Green & Gold Overrides for Active States */
 aside .bg-\[\#0e623a\] {
