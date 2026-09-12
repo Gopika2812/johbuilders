@@ -2402,7 +2402,7 @@ const TasksBoard = () => {
           </div>
         ) : (
           <div className="bg-white border border-gray-150 rounded-3xl shadow-sm">
-            <div className="overflow-x-auto min-h-[320px] pb-16">
+            <div className="overflow-x-auto min-h-[380px] pb-36">
               <table className="w-full text-left text-xs border-collapse">
                 <thead>
                   <tr className="border-b border-gray-200 bg-gray-50/80 text-gray-500 font-extrabold uppercase tracking-wider text-[10px]">
@@ -2648,7 +2648,7 @@ const TasksBoard = () => {
                             </button>
 
                             {openActionMenuId === task._id && (() => {
-                              const shouldOpenUp = idx >= 1 && (idx >= currentTasks.length - 2 || currentTasks.length <= 4);
+                              const shouldOpenUp = currentTasks.length >= 7 && idx >= currentTasks.length - 2;
                               return (
                                 <div 
                                   className={`absolute right-0 ${shouldOpenUp ? 'bottom-full mb-1' : 'top-full mt-1'} z-[200] bg-white border border-gray-200 rounded-xl shadow-2xl py-1 w-36 text-left`}
