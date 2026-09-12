@@ -2355,8 +2355,8 @@ const TasksBoard = () => {
             <p className="text-xs text-gray-400">Click "Create New Task" above to assign your first task.</p>
           </div>
         ) : (
-          <div className="bg-white border border-gray-150 rounded-3xl overflow-hidden shadow-sm">
-            <div className="overflow-x-auto">
+          <div className="bg-white border border-gray-150 rounded-3xl shadow-sm">
+            <div className="overflow-x-auto min-h-[320px] pb-16">
               <table className="w-full text-left text-xs border-collapse">
                 <thead>
                   <tr className="border-b border-gray-200 bg-gray-50/80 text-gray-500 font-extrabold uppercase tracking-wider text-[10px]">
@@ -2602,9 +2602,12 @@ const TasksBoard = () => {
                             </button>
 
                             {openActionMenuId === task._id && (() => {
-                              const shouldOpenUp = currentTasks.length > 3 && idx >= Math.min(currentTasks.length - 2, 4);
+                              const shouldOpenUp = idx >= 1 && (idx >= currentTasks.length - 2 || currentTasks.length <= 4);
                               return (
-                                <div className={`absolute right-0 ${shouldOpenUp ? 'bottom-full mb-1' : 'top-full mt-1'} z-[100] bg-white border border-gray-200 rounded-xl shadow-xl py-1 w-32 text-left`}>
+                                <div 
+                                  className={`absolute right-0 ${shouldOpenUp ? 'bottom-full mb-1' : 'top-full mt-1'} z-[200] bg-white border border-gray-200 rounded-xl shadow-2xl py-1 w-36 text-left`}
+                                  onClick={(e) => e.stopPropagation()}
+                                >
                                   <button
                                     onClick={() => {
                                       setOpenActionMenuId(null);
@@ -2612,74 +2615,74 @@ const TasksBoard = () => {
                                     }}
                                     className="w-full px-2.5 py-1.5 text-xs text-blue-600 hover:bg-blue-50 flex items-center gap-2 font-semibold transition cursor-pointer"
                                   >
-                                <MessageSquare className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-                                <span>Reply</span>
-                              </button>
-                              <button
-                                onClick={() => {
-                                  setOpenActionMenuId(null);
-                                  handleOpenHistoryModal(task);
-                                }}
-                                className="w-full px-2.5 py-1.5 text-xs text-gray-700 hover:bg-gray-50 flex items-center gap-2 font-semibold transition cursor-pointer"
-                              >
-                                <History className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                                <span>History</span>
-                              </button>
+                                    <MessageSquare className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                                    <span>Reply</span>
+                                  </button>
+                                  <button
+                                    onClick={() => {
+                                      setOpenActionMenuId(null);
+                                      handleOpenHistoryModal(task);
+                                    }}
+                                    className="w-full px-2.5 py-1.5 text-xs text-gray-700 hover:bg-gray-50 flex items-center gap-2 font-semibold transition cursor-pointer"
+                                  >
+                                    <History className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                                    <span>History</span>
+                                  </button>
 
-                              {canEditOrCancel && (
-                                <>
-                                  <div className="border-t border-gray-100 my-0.5"></div>
-                                  {task.status !== 'Closed' && task.status !== 'Cancelled' && (
-                                    <button
-                                      onClick={() => {
-                                        setOpenActionMenuId(null);
-                                        handleCloseTask(task._id);
-                                      }}
-                                      className="w-full px-2.5 py-1.5 text-xs text-purple-600 hover:bg-purple-50 flex items-center gap-2 font-semibold transition cursor-pointer"
-                                    >
-                                      <CheckSquare className="w-3.5 h-3.5 text-purple-600 shrink-0" />
-                                      <span>Close Task</span>
-                                    </button>
+                                  {canEditOrCancel && (
+                                    <>
+                                      <div className="border-t border-gray-100 my-0.5"></div>
+                                      {task.status !== 'Closed' && task.status !== 'Cancelled' && (
+                                        <button
+                                          onClick={() => {
+                                            setOpenActionMenuId(null);
+                                            handleCloseTask(task._id);
+                                          }}
+                                          className="w-full px-2.5 py-1.5 text-xs text-purple-600 hover:bg-purple-50 flex items-center gap-2 font-semibold transition cursor-pointer"
+                                        >
+                                          <CheckSquare className="w-3.5 h-3.5 text-purple-600 shrink-0" />
+                                          <span>Close Task</span>
+                                        </button>
+                                      )}
+                                      {(task.status === 'Completed' || task.status === 'Closed') && (
+                                        <button
+                                          onClick={() => {
+                                            setOpenActionMenuId(null);
+                                            handleReopenTask(task._id);
+                                          }}
+                                          className="w-full px-2.5 py-1.5 text-xs text-amber-600 hover:bg-amber-50 flex items-center gap-2 font-semibold transition cursor-pointer"
+                                        >
+                                          <RotateCcw className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                                          <span>Reopen Task</span>
+                                        </button>
+                                      )}
+                                      <button
+                                        onClick={() => {
+                                          setOpenActionMenuId(null);
+                                          handleOpenEditModal(task);
+                                        }}
+                                        className="w-full px-2.5 py-1.5 text-xs text-amber-600 hover:bg-amber-50 flex items-center gap-2 font-semibold transition cursor-pointer"
+                                      >
+                                        <Edit3 className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                                        <span>Edit</span>
+                                      </button>
+                                      <button
+                                        onClick={() => {
+                                          setOpenActionMenuId(null);
+                                          handleCancelTask(task._id);
+                                        }}
+                                        className="w-full px-2.5 py-1.5 text-xs text-rose-600 hover:bg-rose-50 flex items-center gap-2 font-semibold transition cursor-pointer"
+                                      >
+                                        <XCircle className="w-3.5 h-3.5 text-rose-600 shrink-0" />
+                                        <span>Cancel</span>
+                                      </button>
+                                    </>
                                   )}
-                                  {(task.status === 'Completed' || task.status === 'Closed') && (
-                                    <button
-                                      onClick={() => {
-                                        setOpenActionMenuId(null);
-                                        handleReopenTask(task._id);
-                                      }}
-                                      className="w-full px-2.5 py-1.5 text-xs text-amber-600 hover:bg-amber-50 flex items-center gap-2 font-semibold transition cursor-pointer"
-                                    >
-                                      <RotateCcw className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-                                      <span>Reopen Task</span>
-                                    </button>
-                                  )}
-                                  <button
-                                    onClick={() => {
-                                      setOpenActionMenuId(null);
-                                      handleOpenEditModal(task);
-                                    }}
-                                    className="w-full px-2.5 py-1.5 text-xs text-amber-600 hover:bg-amber-50 flex items-center gap-2 font-semibold transition cursor-pointer"
-                                  >
-                                    <Edit3 className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-                                    <span>Edit</span>
-                                  </button>
-                                  <button
-                                    onClick={() => {
-                                      setOpenActionMenuId(null);
-                                      handleCancelTask(task._id);
-                                    }}
-                                    className="w-full px-2.5 py-1.5 text-xs text-rose-600 hover:bg-rose-50 flex items-center gap-2 font-semibold transition cursor-pointer"
-                                  >
-                                    <XCircle className="w-3.5 h-3.5 text-rose-600 shrink-0" />
-                                    <span>Cancel</span>
-                                  </button>
-                                </>
-                              )}
-                            </div>
-                          );
-                        })()}
-                      </div>
-                    </td>
+                                </div>
+                              );
+                            })()}
+                          </div>
+                        </td>
                       </tr>
                     );
                   })}
