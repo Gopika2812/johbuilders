@@ -50,7 +50,8 @@ import {
   Shield,
   RotateCcw,
   CheckSquare,
-  CheckCheck
+  CheckCheck,
+  ArrowRight
 } from 'lucide-react';
 
 const getTodayString = () => {
