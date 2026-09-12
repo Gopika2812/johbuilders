@@ -176,12 +176,8 @@ router.post('/', protect, async (req, res) => {
     let existingLeads = await Lead.find({ phone }).populate('assignedTo', 'name').sort({ createdAt: -1 });
 
     let finalAssignedTo = assignedTo;
-    // Retain previously assigned executive if customer exists
-    if (existingLeads.length > 0) {
-      const lastAssignedLead = existingLeads.find(l => l.assignedTo);
-      if (lastAssignedLead) {
-        finalAssignedTo = lastAssignedLead.assignedTo._id;
-      }
+    if (leadType === 'Direct Visit' && (!finalAssignedTo || finalAssignedTo.toString().trim() === '')) {
+      finalAssignedTo = req.user._id;
     }
 
     let defaultStatus = 'New';
@@ -193,10 +189,13 @@ router.post('/', protect, async (req, res) => {
 
     let lead = existingLeads.find(l => l.project.toString() === project.toString());
 
+    let isReopenedLead = false;
+    let oldStatusNote = '';
+
     if (lead) {
       // Check if lead is in an allowed status (Lost, Cancelled, Booking, Won)
       const allowedStatuses = ['Lost', 'Cancelled', 'Booking', 'Won'];
-      let isAllowedToReopen = allowedStatuses.includes(lead.status);
+      let isAllowedToReopen = allowedStatuses.includes(lead.status) || lead.isClosed;
 
       if (lead.status === 'Won') {
         const CRDFlow = require('../models/CrdFlow');
@@ -217,74 +216,13 @@ router.post('/', protect, async (req, res) => {
       }
 
       const oldStatus = lead.status;
-      const wasLostOrCancelled = ['Lost', 'Cancelled', 'Site Visit - Cancelled', 'Follow-Up - Lost'].includes(oldStatus);
-      // Reopen existing lead
-      lead.leadType = leadType;
-      if (salutation) lead.salutation = salutation;
-      lead.name = name;
-      if (alternativePhone !== undefined) lead.alternativePhone = alternativePhone;
-      lead.profession = profession || lead.profession;
-      lead.email = email || lead.email;
-      lead.location = location || lead.location;
-      lead.address = address || '';
-      lead.bankLoan = bankLoan || 'No';
-      lead.bankLoanPercentage = Number(bankLoanPercentage) || 0;
-      lead.project = project;
-      if (targetCreatedAt) {
-        lead.createdAt = targetCreatedAt;
-      }
-      if (finalAssignedTo && finalAssignedTo.toString().trim() !== '') {
-        lead.assignedBy = req.user._id;
-      }
-      lead.assignedTo = (finalAssignedTo && finalAssignedTo.toString().trim() !== '') ? finalAssignedTo : undefined;
-      lead.status = defaultStatus; // reset/set status on reopen
-      lead.isClosed = false;
-      lead.isReopened = wasLostOrCancelled;
-      lead.leadCost = Number(leadCost) || 0;
-      if (leadCategory) lead.leadCategory = leadCategory;
-      if (referenceName !== undefined) lead.referenceName = referenceName || '';
-
-      if (leadType === 'Lead') {
-        lead.leadSource = leadSource || '';
-        lead.activeAd = activeAd || { name: '', link: '' };
-        lead.projectLocation = '';
-      } else {
-        lead.projectLocation = '';
-        lead.leadSource = leadSource || 'Direct Visit';
-        lead.activeAd = { name: '', link: '' };
-        if (followUpInfo) {
-          lead.followUpInfo = followUpInfo;
-        }
-      }
-
-      lead.history.push({
-        status: defaultStatus,
-        assignedTo: (finalAssignedTo && finalAssignedTo.toString().trim() !== '') ? finalAssignedTo : undefined,
-        updatedBy: req.user._id,
-        timestamp: targetCreatedAt || new Date(),
-        note: `Lead Reopened (Previous status: ${oldStatus}). Details updated.`
-      });
-
-      await lead.save();
-
-      await AuditLog.create({
-        user: req.user._id,
-        userName: req.user.name,
-        userRole: req.user.role,
-        action: 'Reopen Lead',
-        description: `Reopened lead: ${name} (${phone}) and reassigned`
-      });
-
-      const populated = await Lead.findById(lead._id)
-        .populate('project', 'name code location units')
-        .populate('assignedTo', 'name role phone mobile phoneNumber')
-        .populate('assignedBy', 'name role phone mobile phoneNumber');
-
-      return res.json({ message: 'Existing lead reopened and updated', lead: populated });
+      const wasLostOrCancelled = ['Lost', 'Cancelled', 'Site Visit - Cancelled', 'Follow-Up - Lost'].includes(oldStatus) || lead.isClosed;
+      isReopenedLead = wasLostOrCancelled;
+      oldStatusNote = wasLostOrCancelled ? ` (Previous lead for this project was ${oldStatus})` : ` (Customer previously booked for this project)`;
     }
 
-    // Create brand new lead
-    lead = new Lead({
+    // Create brand new separate lead
+    const newLead = new Lead({
       leadType,
       salutation: salutation || 'Mr.',
       name,
@@ -293,7 +231,7 @@ router.post('/', protect, async (req, res) => {
       location: location || '',
       phone,
       alternativePhone: alternativePhone || '',
-      address,
+      address: address || '',
       bankLoan: bankLoan || 'No',
       bankLoanPercentage: Number(bankLoanPercentage) || 0,
       project,
@@ -301,47 +239,58 @@ router.post('/', protect, async (req, res) => {
       assignedTo: (finalAssignedTo && finalAssignedTo.toString().trim() !== '') ? finalAssignedTo : undefined,
       assignedBy: (finalAssignedTo && finalAssignedTo.toString().trim() !== '') ? req.user._id : undefined,
       status: defaultStatus,
+      isReopened: isReopenedLead,
+      isClosed: false,
       leadCost: Number(leadCost) || 0,
       leadCategory: leadCategory || 'Cold',
       createdAt: targetCreatedAt || undefined
     });
 
     if (leadType === 'Lead') {
-      lead.leadSource = leadSource || '';
-      lead.activeAd = activeAd || { name: '', link: '' };
+      newLead.leadSource = leadSource || '';
+      newLead.activeAd = activeAd || { name: '', link: '' };
       if (followUpInfo) {
-        lead.followUpInfo = followUpInfo;
+        newLead.followUpInfo = followUpInfo;
       }
     } else {
-      lead.projectLocation = '';
-      lead.leadSource = leadSource || 'Direct Visit';
+      newLead.projectLocation = '';
+      newLead.leadSource = leadSource || 'Direct Visit';
       if (followUpInfo) {
-        lead.followUpInfo = followUpInfo;
+        newLead.followUpInfo = followUpInfo;
       }
     }
 
-    lead.history.push({
+    newLead.history.push({
       status: defaultStatus,
       assignedTo: (finalAssignedTo && finalAssignedTo.toString().trim() !== '') ? finalAssignedTo : undefined,
       updatedBy: req.user._id,
-      timestamp: new Date(),
-      note: (followUpInfo && followUpInfo.remarks) ? `Initial Lead Creation: ${followUpInfo.remarks}` : 'Initial Lead Creation'
+      timestamp: targetCreatedAt || new Date(),
+      note: isReopenedLead 
+        ? `Lead Reopened${oldStatusNote}. New lead record created.`
+        : ((followUpInfo && followUpInfo.remarks) ? `Initial Lead Creation: ${followUpInfo.remarks}` : 'Initial Lead Creation')
     });
 
-    await lead.save();
+    await newLead.save();
 
     await AuditLog.create({
       user: req.user._id,
       userName: req.user.name,
       userRole: req.user.role,
-      action: 'Create Lead',
-      description: `Created new ${leadType}: ${name} (${phone})`
+      action: isReopenedLead ? 'Reopen Lead' : 'Create Lead',
+      description: isReopenedLead 
+        ? `Created separate reopened lead: ${name} (${phone})`
+        : `Created new ${leadType}: ${name} (${phone})`
     });
 
-    const populated = await Lead.findById(lead._id)
+    const populated = await Lead.findById(newLead._id)
       .populate('project', 'name code location units')
       .populate('assignedTo', 'name role phone mobile phoneNumber')
       .populate('assignedBy', 'name role phone mobile phoneNumber');
+
+    return res.status(201).json({ 
+      message: isReopenedLead ? 'New reopened lead created separately' : 'Lead created successfully', 
+      lead: populated 
+    });
 
     res.status(201).json({ message: 'Lead created successfully', lead: populated });
   } catch (err) {
@@ -816,7 +765,23 @@ router.post('/bulk-import', protect, async (req, res) => {
 
       const defaultStatus = matchedUser ? 'Assigned' : 'New';
 
-      let existingLead = await Lead.findOne({ phone: cleanPhone, project: matchedProject._id });
+      let existingActiveLead = await Lead.findOne({ 
+        phone: cleanPhone, 
+        project: matchedProject._id,
+        isClosed: { $ne: true },
+        status: { $nin: ['Lost', 'Cancelled', 'Site Visit - Cancelled', 'Follow-Up - Lost'] }
+      });
+
+      let previousClosedLead = await Lead.findOne({
+        phone: cleanPhone,
+        project: matchedProject._id,
+        $or: [
+          { isClosed: true },
+          { status: { $in: ['Lost', 'Cancelled', 'Site Visit - Cancelled', 'Follow-Up - Lost'] } }
+        ]
+      }).sort({ createdAt: -1 });
+
+      let isReopenedImport = !existingActiveLead && Boolean(previousClosedLead);
 
       let parsedLeadSource = rawLeadSource ? String(rawLeadSource).trim() : '';
       let parsedRefName = item.referenceName || item['Reference Name'] || item['Referred By'] || '';
@@ -826,18 +791,16 @@ router.post('/bulk-import', protect, async (req, res) => {
         if (!parsedRefName) parsedRefName = refMatch[1].replace(/\)$/, '').trim();
       }
 
-      if (existingLead) {
-        existingLead.name = String(rawCustomerName).trim();
-        if (cleanAltPhone) existingLead.alternativePhone = cleanAltPhone;
-        if (parsedLeadSource) existingLead.leadSource = parsedLeadSource;
-        if (parsedRefName) existingLead.referenceName = parsedRefName;
+      if (existingActiveLead) {
+        existingActiveLead.name = String(rawCustomerName).trim();
+        if (cleanAltPhone) existingActiveLead.alternativePhone = cleanAltPhone;
+        if (parsedLeadSource) existingActiveLead.leadSource = parsedLeadSource;
+        if (parsedRefName) existingActiveLead.referenceName = parsedRefName;
         if (matchedUser) {
-          existingLead.assignedTo = matchedUser._id;
-          existingLead.assignedBy = req.user._id;
+          existingActiveLead.assignedTo = matchedUser._id;
+          existingActiveLead.assignedBy = req.user._id;
         }
-        existingLead.createdAt = parsedCreatedAt;
-        existingLead.isClosed = false;
-        await existingLead.save();
+        await existingActiveLead.save();
         updatedCount++;
       } else {
         const newLead = new Lead({
@@ -851,13 +814,14 @@ router.post('/bulk-import', protect, async (req, res) => {
           assignedTo: matchedUser ? matchedUser._id : undefined,
           assignedBy: matchedUser ? req.user._id : undefined,
           status: defaultStatus,
+          isReopened: isReopenedImport,
           createdAt: parsedCreatedAt,
           history: [{
             status: defaultStatus,
             assignedTo: matchedUser ? matchedUser._id : undefined,
             updatedBy: req.user._id,
             timestamp: parsedCreatedAt,
-            note: 'Bulk imported from Excel'
+            note: isReopenedImport ? 'Bulk imported as separate reopened lead from Excel' : 'Bulk imported from Excel'
           }]
         });
         await newLead.save();

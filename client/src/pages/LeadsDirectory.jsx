@@ -1257,7 +1257,7 @@ const LeadsDirectory = () => {
       setError('Notes (Narration) is required for Direct Visit.');
       return;
     }
-    if (leadType === 'Lead' && !assignedToId && !previouslyAssignedExecutive) {
+    if (leadType === 'Lead' && !assignedToId) {
       setError('Please select an assigned executive.');
       return;
     }
@@ -1297,7 +1297,7 @@ const LeadsDirectory = () => {
       alternativePhone,
       address,
       project: selectedProjectId,
-      assignedTo: previouslyAssignedExecutive ? previouslyAssignedExecutive._id : (leadType === 'Direct Visit' ? user?._id : (assignedToId || user?._id)),
+      assignedTo: leadType === 'Direct Visit' ? user?._id : (assignedToId || user?._id),
       leadCost: Number(leadCost) || 0,
       leadSource: leadSource,
       referenceName: referenceName.trim(),
@@ -3115,44 +3115,24 @@ const LeadsDirectory = () => {
                 </div>
               )}
 
-              {/* Previously Assigned Executive Warning Banner */}
-              {previouslyAssignedExecutive && (
-                <div className="mb-4 p-4 bg-amber-50 border border-amber-200 rounded-2xl flex items-start gap-3">
-                  <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
-                  <div>
-                    <h4 className="text-xs font-bold text-amber-800 uppercase tracking-wider mb-1">Previous Relationship Detected</h4>
-                    <p className="text-xs text-amber-900 leading-relaxed font-semibold">
-                      This customer is already associated with our sales executive <strong className="text-black-800">{previouslyAssignedExecutive.name}</strong>.
-                      To maintain relationship consistency, this lead will be automatically assigned to them.
-                    </p>
-                  </div>
-                </div>
-              )}
-
               {/* Assigned Executive */}
               {leadType === 'Lead' ? (
                 <div className="flex flex-col">
                   <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Assigned Executive / Member <span className="text-red-500">*</span></label>
-                  {previouslyAssignedExecutive ? (
-                    <div className="px-4 py-3 bg-black-50 border border-black-200 rounded-xl text-xs font-bold text-black-700">
-                      {previouslyAssignedExecutive.name} ({previouslyAssignedExecutive.role}) [LOCKED]
-                    </div>
-                  ) : (
-                    <SearchableSelect
-                      options={employees
-                        .filter(emp => emp.role?.toLowerCase() === 'sales person')
-                        .map(emp => ({ value: emp._id, label: `${emp.name} (${emp.role})` }))}
-                      value={assignedToId}
-                      onChange={setAssignedToId}
-                      placeholder="Select Executive"
-                    />
-                  )}
+                  <SearchableSelect
+                    options={employees
+                      .filter(emp => emp.role?.toLowerCase() === 'sales person')
+                      .map(emp => ({ value: emp._id, label: `${emp.name} (${emp.role})` }))}
+                    value={assignedToId}
+                    onChange={setAssignedToId}
+                    placeholder="Select Executive"
+                  />
                 </div>
               ) : (
                 <div className="bg-emerald-50/60 border border-emerald-200/80 p-3 rounded-2xl flex items-center justify-between text-xs">
                   <span className="font-bold text-black-600">Assigned Executive:</span>
                   <span className="font-extrabold text-[#0e623a] bg-white px-3 py-1 rounded-xl border border-[#bce2cb]">
-                    {previouslyAssignedExecutive ? `${previouslyAssignedExecutive.name} (Previous Relationship)` : `${user?.name || 'Current User'} (Logged In)`}
+                    {user?.name || 'Current User'} (Logged In)
                   </span>
                 </div>
               )}
@@ -3186,7 +3166,7 @@ const LeadsDirectory = () => {
                     Send WhatsApp Alert to Assigned Executive
                   </span>
                   {(() => {
-                    const targetId = previouslyAssignedExecutive ? previouslyAssignedExecutive._id : (leadType === 'Direct Visit' ? user?._id : assignedToId);
+                    const targetId = leadType === 'Direct Visit' ? user?._id : assignedToId;
                     const targetEmp = employees.find(e => e._id === targetId) || (targetId === user?._id ? user : null);
                     return targetEmp && (targetEmp.phone || targetEmp.mobile) ? (
                       <span className="text-[11px] font-bold text-emerald-800 bg-white px-2 py-0.5 rounded-lg border border-emerald-200/80 shadow-xs">
