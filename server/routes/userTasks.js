@@ -163,17 +163,32 @@ router.put('/:id', protect, async (req, res) => {
       return res.status(404).json({ message: 'Task not found' });
     }
 
-    // Strictly enforce: Only the person who assigned the task can edit details or cancel it
+    // Strictly enforce: Only the person who assigned the task can edit details, cancel, close, or reopen it
     const isAssigner = task.assignedBy && task.assignedBy.toString() === req.user._id.toString();
-    const isModifyingDetailsOrCancelling = (
+    const isAssignee = task.assignedTo && task.assignedTo.toString() === req.user._id.toString();
+
+    const isModifyingDetails = (
       title !== undefined || description !== undefined || projectName !== undefined || 
       dueDate !== undefined || assignedTo !== undefined || priority !== undefined || 
-      category !== undefined || repeatType !== undefined || reminderInterval !== undefined ||
-      status === 'Cancelled'
+      category !== undefined || repeatType !== undefined || reminderInterval !== undefined
     );
 
-    if (isModifyingDetailsOrCancelling && !isAssigner) {
-      return res.status(403).json({ message: 'Only the person who assigned this task can edit or cancel it.' });
+    if (isModifyingDetails && !isAssigner) {
+      return res.status(403).json({ message: 'Only the person who assigned this task can edit its details.' });
+    }
+
+    // Status permission enforcement:
+    // Assignees can ONLY change status to 'In Progress' or 'Completed'.
+    // Closing, Reopening, Cancelling, or setting On Hold is strictly restricted to the assigner.
+    if (status !== undefined && status !== task.status) {
+      if (!isAssigner) {
+        if (!isAssignee) {
+          return res.status(403).json({ message: 'Not authorized to update this task status.' });
+        }
+        if (!['In Progress', 'Completed'].includes(status)) {
+          return res.status(403).json({ message: 'Assignees are only permitted to update status to In Progress or Completed.' });
+        }
+      }
     }
 
     let changeDesc = [];
@@ -224,11 +239,26 @@ router.put('/:id', protect, async (req, res) => {
         task.category = targetUser.department || 'General';
       }
     }
+
+    if (isReopened !== undefined) {
+      task.isReopened = Boolean(isReopened);
+    }
+    if (isClosed !== undefined) {
+      task.isClosed = Boolean(isClosed);
+    }
+
     if (status !== undefined && status !== task.status) {
       changeDesc.push(`Status changed from ${task.status} to ${status}`);
       task.status = status;
-      if (status === 'Completed') {
+      if (status === 'Completed' || status === 'Closed') {
         task.actionTaken = true;
+      }
+      if (status === 'Closed') {
+        task.isClosed = true;
+      } else if (status === 'New' && (isReopened || task.isReopened)) {
+        task.isReopened = true;
+        task.isClosed = false;
+        task.actionTaken = false;
       }
     }
     if (actionTaken !== undefined) task.actionTaken = actionTaken;

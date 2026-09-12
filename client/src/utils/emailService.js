@@ -108,6 +108,14 @@ export const sendTaskStatusChangeEmail = async (assignee, task, updatedByName, p
   }
 
   const prevText = previousStatus ? ` (Previous status: ${previousStatus})` : '';
+  
+  let descriptionText = `Task status has been updated to "${newStatus}" by ${updatedByName || 'Assigned Person'}.${prevText}\n\nTask details: ${task.description || 'No description provided.'}`;
+  if (newStatus === 'Closed') {
+    descriptionText = `Your task "${task.title || 'Untitled Task'}" has been closed by ${updatedByName || 'Assigned Person'}.${prevText}\n\nTask details: ${task.description || 'No description provided.'}`;
+  } else if (newStatus === 'Reopened' || (newStatus === 'New' && task.isReopened)) {
+    descriptionText = `Your task "${task.title || 'Untitled Task'}" was reviewed and reopened by ${updatedByName || 'Assigned Person'}. Status has been set back to New.\n\nTask details: ${task.description || 'No description provided.'}`;
+  }
+
   const templateParams = {
     from_name: updatedByName || 'System Admin',
     assigned_by: updatedByName || 'System Admin',
@@ -115,7 +123,7 @@ export const sendTaskStatusChangeEmail = async (assignee, task, updatedByName, p
     assigned_to: assignee.name || 'Team Member',
     to_email: assignee.email,
     task_title: `[Status: ${newStatus}] ${task.title || 'Untitled Task'}`,
-    task_description: `Task status has been updated to "${newStatus}" by ${updatedByName || 'System Admin'}.${prevText}\n\nTask details: ${task.description || 'No description provided.'}`,
+    task_description: descriptionText,
     priority: task.priority || 'Medium',
     department: task.category || task.department || 'General',
     project_name: task.projectName || 'N/A',

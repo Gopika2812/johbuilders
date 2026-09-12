@@ -31,8 +31,16 @@ const UserTaskSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['New', 'In Progress', 'On Hold', 'Completed', 'Cancelled'],
+    enum: ['New', 'In Progress', 'On Hold', 'Completed', 'Cancelled', 'Closed'],
     default: 'New'
+  },
+  isReopened: {
+    type: Boolean,
+    default: false
+  },
+  isClosed: {
+    type: Boolean,
+    default: false
   },
   priority: {
     type: String,

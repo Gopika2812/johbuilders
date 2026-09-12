@@ -47,10 +47,9 @@ import {
   TrendingUp,
   Award,
   Activity,
-  Percent,
-  ArrowRight,
-  CheckCheck,
-  Shield
+  Shield,
+  RotateCcw,
+  CheckSquare
 } from 'lucide-react';
 
 const getTodayString = () => {
@@ -1509,22 +1508,33 @@ const TasksBoard = () => {
   const handleStatusChange = async (taskId, newStatus) => {
     const targetTask = tasks.find(t => t._id === taskId);
     const prevStatus = targetTask?.status;
+    const isAssigner = checkCanEditOrCancel(targetTask);
 
-    if (newStatus === 'Cancelled') {
-      if (!checkCanEditOrCancel(targetTask)) {
-        setError('Only the person who assigned this task can cancel it.');
+    if (newStatus === 'Cancelled' || newStatus === 'Closed' || newStatus === 'On Hold') {
+      if (!isAssigner) {
+        setError(`Only the person who assigned this task can set it to ${newStatus}.`);
         return;
       }
     }
 
     try {
+      const payload = { status: newStatus };
+      if (newStatus === 'Closed') {
+        payload.isClosed = true;
+        payload.note = `Task closed by ${user?.name || 'Assigner'}`;
+      } else if (newStatus === 'New' && targetTask?.isReopened) {
+        payload.isReopened = true;
+        payload.isClosed = false;
+        payload.actionTaken = false;
+      }
+
       const res = await fetch(`${API_URL}/user-tasks/${taskId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ status: newStatus })
+        body: JSON.stringify(payload)
       });
 
       if (res.ok) {
@@ -1543,7 +1553,7 @@ const TasksBoard = () => {
           sendTaskStatusChangeEmail(
             assignedPerson,
             updatedTask || targetTask,
-            user?.name || 'System Admin',
+            user?.name || 'Assigned Person',
             prevStatus,
             newStatus,
             taskUrl
@@ -1555,6 +1565,114 @@ const TasksBoard = () => {
       }
     } catch (err) {
       setError('Error updating status');
+    }
+  };
+
+  const handleCloseTask = async (taskId) => {
+    const targetTask = tasks.find(t => t._id === taskId);
+    if (!checkCanEditOrCancel(targetTask)) {
+      setError('Only the person who assigned this task can close it.');
+      return;
+    }
+    if (!window.confirm(`Are you sure you want to close "${targetTask.title}"?`)) return;
+
+    try {
+      const res = await fetch(`${API_URL}/user-tasks/${taskId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ 
+          status: 'Closed',
+          isClosed: true,
+          note: `Task closed by ${user?.name || 'Assigner'}`
+        })
+      });
+
+      if (res.ok) {
+        const updatedTask = await parseResponseJSON(res);
+        setTasks(prev => prev.map(t => t._id === taskId ? (updatedTask || { ...t, status: 'Closed', isClosed: true }) : t));
+        setSuccessMsg('Task closed successfully');
+        setTimeout(() => setSuccessMsg(''), 3000);
+
+        // Send EmailJS notification to the assigned person
+        const assignedPerson = updatedTask?.assignedTo?.email 
+          ? updatedTask.assignedTo 
+          : (employees.find(emp => emp._id === (targetTask?.assignedTo?._id || targetTask?.assignedTo)) || targetTask?.assignedTo);
+
+        if (assignedPerson && assignedPerson.email) {
+          const taskUrl = `${window.location.origin}/tasks-board`;
+          sendTaskStatusChangeEmail(
+            assignedPerson,
+            updatedTask || targetTask,
+            user?.name || 'Assigned Person',
+            targetTask?.status,
+            'Closed',
+            taskUrl
+          ).catch(err => console.error('EmailJS close task email error:', err));
+        }
+      } else {
+        const data = await parseResponseJSON(res);
+        setError(data?.message || 'Failed to close task');
+      }
+    } catch (err) {
+      setError('Error closing task');
+    }
+  };
+
+  const handleReopenTask = async (taskId) => {
+    const targetTask = tasks.find(t => t._id === taskId);
+    if (!checkCanEditOrCancel(targetTask)) {
+      setError('Only the person who assigned this task can reopen it.');
+      return;
+    }
+    if (!window.confirm(`Are you sure you want to review and reopen "${targetTask.title}"? Status will be set to New.`)) return;
+
+    try {
+      const res = await fetch(`${API_URL}/user-tasks/${taskId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ 
+          status: 'New',
+          isReopened: true,
+          isClosed: false,
+          actionTaken: false,
+          note: `Task reviewed and reopened by ${user?.name || 'Assigner'}. Status set to New.`
+        })
+      });
+
+      if (res.ok) {
+        const updatedTask = await parseResponseJSON(res);
+        setTasks(prev => prev.map(t => t._id === taskId ? (updatedTask || { ...t, status: 'New', isReopened: true, isClosed: false }) : t));
+        setSuccessMsg('Task reviewed and reopened successfully');
+        setTimeout(() => setSuccessMsg(''), 3000);
+
+        // Send EmailJS notification to the assigned person
+        const assignedPerson = updatedTask?.assignedTo?.email 
+          ? updatedTask.assignedTo 
+          : (employees.find(emp => emp._id === (targetTask?.assignedTo?._id || targetTask?.assignedTo)) || targetTask?.assignedTo);
+
+        if (assignedPerson && assignedPerson.email) {
+          const taskUrl = `${window.location.origin}/tasks-board`;
+          sendTaskStatusChangeEmail(
+            assignedPerson,
+            updatedTask || targetTask,
+            user?.name || 'Assigned Person',
+            targetTask?.status,
+            'Reopened',
+            taskUrl
+          ).catch(err => console.error('EmailJS reopen task email error:', err));
+        }
+      } else {
+        const data = await parseResponseJSON(res);
+        setError(data?.message || 'Failed to reopen task');
+      }
+    } catch (err) {
+      setError('Error reopening task');
     }
   };
 
@@ -1592,7 +1710,7 @@ const TasksBoard = () => {
           sendTaskStatusChangeEmail(
             assignedPerson,
             updatedTask || targetTask,
-            user?.name || 'System Admin',
+            user?.name || 'Assigned Person',
             targetTask?.status,
             'Cancelled',
             taskUrl
@@ -1772,6 +1890,8 @@ const TasksBoard = () => {
       if (task.status !== 'Completed') return false;
     } else if (statusFilter === 'CANCELLED') {
       if (task.status !== 'Cancelled') return false;
+    } else if (statusFilter === 'CLOSED') {
+      if (task.status !== 'Closed') return false;
     } else if (statusFilter === 'OVERDATED') {
       if (!isOverdated(task)) return false;
     }
@@ -2266,6 +2386,7 @@ const TasksBoard = () => {
                     if (task.status === 'On Hold') statusBadge = 'bg-purple-50 text-purple-700 border-purple-200';
                     if (task.status === 'Completed') statusBadge = 'bg-emerald-50 text-emerald-700 border-emerald-200';
                     if (task.status === 'Cancelled') statusBadge = 'bg-gray-100 text-gray-600 border-gray-300';
+                    if (task.status === 'Closed') statusBadge = 'bg-slate-100 text-slate-700 border-slate-300';
 
                     let priorityBadge = 'bg-blue-50 text-blue-800 border-blue-200 font-bold';
                     if (task.priority === 'High') priorityBadge = 'bg-amber-100 text-amber-800 border-amber-300 font-extrabold';
@@ -2290,16 +2411,23 @@ const TasksBoard = () => {
                           )}
                         </td>
 
-                        {/* 3. Task Title (Increased width & blue hyperlink colored) */}
+                        {/* 3. Task Title (with Reopened badge if reopened) */}
                         <td className="p-2">
-                          <button
-                            type="button"
-                            onClick={() => setViewingTask(task)}
-                            className="font-bold text-blue-600 hover:text-blue-800 hover:underline text-xs text-left block truncate max-w-[240px] cursor-pointer transition"
-                            title={`Click to view details: ${task.title}`}
-                          >
-                            {task.title}
-                          </button>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <button
+                              type="button"
+                              onClick={() => setViewingTask(task)}
+                              className="font-bold text-blue-600 hover:text-blue-800 hover:underline text-xs text-left block truncate max-w-[200px] cursor-pointer transition"
+                              title={`Click to view details: ${task.title}`}
+                            >
+                              {task.title}
+                            </button>
+                            {task.isReopened === true && !['Completed', 'Closed'].includes(task.status) && (
+                              <span className="bg-amber-600 border border-amber-700 text-white text-[8.5px] font-black px-1.5 py-0.2 rounded-full uppercase tracking-wider shrink-0 shadow-xs animate-pulse">
+                                Reopened
+                              </span>
+                            )}
+                          </div>
                         </td>
 
                         {/* 4. Department (Reduced width) */}
@@ -2360,22 +2488,56 @@ const TasksBoard = () => {
                           </div>
                         </td>
 
-                        {/* 10. Status (Order: New, In Progress, On Hold, Completed - Cancelled removed from options) */}
+                        {/* 10. Status (Assignees: In Progress, Completed only | Assigner: Full options) */}
                         <td className="p-2 text-center">
-                          <select
-                            value={task.status}
-                            onChange={(e) => handleStatusChange(task._id, e.target.value)}
-                            disabled={task.status === 'Cancelled'}
-                            className={`px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide border focus:outline-none focus:ring-1 focus:ring-[#0e623a] cursor-pointer ${statusBadge}`}
-                          >
-                            <option value="New">New</option>
-                            <option value="In Progress">In Progress</option>
-                            <option value="On Hold">On Hold</option>
-                            <option value="Completed">Completed</option>
-                            {task.status === 'Cancelled' && (
-                              <option value="Cancelled" disabled>Cancelled</option>
-                            )}
-                          </select>
+                          {(() => {
+                            const isAssigner = checkCanEditOrCancel(task);
+                            const isAssignee = (task.assignedTo?._id || task.assignedTo)?.toString() === (user?._id || user?.id)?.toString();
+
+                            let statusOptions = [];
+                            if (isAssigner) {
+                              statusOptions = [
+                                { value: 'New', label: 'New' },
+                                { value: 'In Progress', label: 'In Progress' },
+                                { value: 'On Hold', label: 'On Hold' },
+                                { value: 'Completed', label: 'Completed' },
+                                { value: 'Closed', label: 'Closed' }
+                              ];
+                              if (task.status === 'Cancelled') {
+                                statusOptions.push({ value: 'Cancelled', label: 'Cancelled', disabled: true });
+                              }
+                            } else if (isAssignee) {
+                              statusOptions = [
+                                ...(task.status === 'New' ? [{ value: 'New', label: 'New', disabled: true }] : []),
+                                { value: 'In Progress', label: 'In Progress' },
+                                { value: 'Completed', label: 'Completed' }
+                              ];
+                              if (task.status === 'Closed' || task.status === 'Cancelled' || task.status === 'On Hold') {
+                                statusOptions.unshift({ value: task.status, label: task.status, disabled: true });
+                              }
+                            } else {
+                              statusOptions = [
+                                { value: task.status, label: task.status }
+                              ];
+                            }
+
+                            const isSelectDisabled = task.status === 'Cancelled' || task.status === 'Closed' || (!isAssigner && !isAssignee);
+
+                            return (
+                              <select
+                                value={task.status}
+                                onChange={(e) => handleStatusChange(task._id, e.target.value)}
+                                disabled={isSelectDisabled}
+                                className={`px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide border focus:outline-none focus:ring-1 focus:ring-[#0e623a] cursor-pointer ${statusBadge}`}
+                              >
+                                {statusOptions.map(opt => (
+                                  <option key={opt.value} value={opt.value} disabled={opt.disabled}>
+                                    {opt.label}
+                                  </option>
+                                ))}
+                              </select>
+                            );
+                          })()}
                         </td>
 
                         {/* 11. Attachments */}
@@ -2467,6 +2629,30 @@ const TasksBoard = () => {
                               {canEditOrCancel && (
                                 <>
                                   <div className="border-t border-gray-100 my-0.5"></div>
+                                  {task.status !== 'Closed' && task.status !== 'Cancelled' && (
+                                    <button
+                                      onClick={() => {
+                                        setOpenActionMenuId(null);
+                                        handleCloseTask(task._id);
+                                      }}
+                                      className="w-full px-2.5 py-1.5 text-xs text-purple-600 hover:bg-purple-50 flex items-center gap-2 font-semibold transition cursor-pointer"
+                                    >
+                                      <CheckSquare className="w-3.5 h-3.5 text-purple-600 shrink-0" />
+                                      <span>Close Task</span>
+                                    </button>
+                                  )}
+                                  {(task.status === 'Completed' || task.status === 'Closed') && (
+                                    <button
+                                      onClick={() => {
+                                        setOpenActionMenuId(null);
+                                        handleReopenTask(task._id);
+                                      }}
+                                      className="w-full px-2.5 py-1.5 text-xs text-amber-600 hover:bg-amber-50 flex items-center gap-2 font-semibold transition cursor-pointer"
+                                    >
+                                      <RotateCcw className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                                      <span>Reopen Task</span>
+                                    </button>
+                                  )}
                                   <button
                                     onClick={() => {
                                       setOpenActionMenuId(null);
@@ -2732,6 +2918,7 @@ const TasksBoard = () => {
                       <option value="In Progress">In Progress</option>
                       <option value="On Hold">On Hold</option>
                       <option value="Completed">Completed</option>
+                      <option value="Closed">Closed</option>
                       <option value="Cancelled">Cancelled</option>
                     </select>
                   ) : (
@@ -3192,10 +3379,17 @@ const TasksBoard = () => {
                     viewingTask.status === 'On Hold' ? 'bg-purple-50 text-purple-700 border-purple-200' :
                     viewingTask.status === 'Completed' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
                     viewingTask.status === 'Cancelled' ? 'bg-gray-100 text-gray-600 border-gray-300' :
+                    viewingTask.status === 'Closed' ? 'bg-slate-100 text-slate-700 border-slate-300' :
                     'bg-blue-50 text-blue-700 border-blue-200'
                   }`}>
                     {viewingTask.status || 'New'}
                   </span>
+
+                  {viewingTask.isReopened === true && !['Completed', 'Closed'].includes(viewingTask.status) && (
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-amber-600 text-white border border-amber-700 shadow-xs animate-pulse">
+                      Reopened
+                    </span>
+                  )}
 
                   <span className={`px-2.5 py-0.5 rounded-md text-[10px] font-extrabold uppercase border ${
                     viewingTask.priority === 'High' ? 'bg-amber-100 text-amber-800 border-amber-300' :
