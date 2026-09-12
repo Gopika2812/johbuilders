@@ -1020,11 +1020,169 @@ const ExportReports = () => {
       `;
 
       // Trigger download
-      handlePreview(html, `JB_${fileCode}_HOT_LIST_REPORT_${dateForMonth.getFullYear()}_${dateForMonth.getMonth() + 1}.xls`);
+      handlePreview(html, `JB_${fileCode}_ACTIVE_HOT_LIST_REPORT_${dateForMonth.getFullYear()}_${dateForMonth.getMonth() + 1}.xls`);
 
     } catch (err) {
       console.error(err);
-      alert('Error exporting hot list');
+      alert('Error exporting active hot list');
+    } finally {
+      setReportLoading(false);
+    }
+  };
+
+  const handleExportOverallHotListExcel = async (returnHtml = false, providedStats = null) => {
+    try {
+      setReportLoading(true);
+      setReportLoadingText('Fetching overall hot list records across all stages...');
+      const currentStats = providedStats || await ensureStats();
+      const res = await fetch(`${API_URL}/leads`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (!res.ok) {
+        alert('Failed to load lead details for export');
+        return;
+      }
+      const data = await res.json();
+
+      // Apply active dashboard filters
+      const filtered = data.filter(lead => {
+        // 1. Must be hot category in ANY stage (including Booked, Site Visit, Follow-up, New, etc.)
+        const isHotList = lead.leadCategory === 'Hot';
+        if (!isHotList) return false;
+
+        // 2. Project filter
+        if (selectedProject && (lead.project?._id || lead.project) !== selectedProject) return false;
+
+        // 3. User/Executive filter
+        if (selectedUser && (lead.assignedTo?._id || lead.assignedTo) !== selectedUser) return false;
+
+        // 4. Date range filter
+        const createdAt = new Date(lead.createdAt);
+        if (fromDate && createdAt < new Date(fromDate)) return false;
+        if (toDate) {
+          const end = new Date(toDate);
+          end.setHours(23, 59, 59, 999);
+          if (createdAt > end) return false;
+        }
+
+        return true;
+      });
+
+      if (filtered.length === 0) {
+        alert('No hot list records found across all stages for the selected filters.');
+        return;
+      }
+
+      // Generate the styled HTML sheet
+      const projectList = currentStats?.projects || stats.projects || [];
+      const projectTitle = selectedProject 
+        ? (projectList.find(p => p._id === selectedProject)?.code || 'PROJECT')
+        : '';
+      const titleText = projectTitle 
+        ? `JB - ${projectTitle.toUpperCase()} OVERALL MARKETING HOT LIST (ALL STAGES)`
+        : `JB - OVERALL MARKETING HOT LIST (ALL STAGES)`;
+        
+      const monthNames = ["JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE", "JULY", "AUGUST", "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER"];
+      const dateForMonth = fromDate ? new Date(fromDate) : new Date();
+      const monthTitle = `MONTH OF ${monthNames[dateForMonth.getMonth()]} - ${dateForMonth.getFullYear()}`;
+
+      // Build HTML
+      let html = `
+        <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+        <head>
+          <meta charset="utf-8">
+          ${getExcelStyles("#0F5233", "#E6F4EA", "#0F5233", "#E6F4EA")}
+        </head>
+        <body>
+          <table>
+            ${getExcelHeader(titleText, monthTitle, 10, "#0F5233")}
+          <!-- Table Headers -->
+          <tr class="table-headers">
+            <th>S.No</th>
+            <th>EnquiryDate</th>
+            <th>LeadName</th>
+            <th>ContactNumber</th>
+            <th>AssignedTo</th>
+            <th>EnquiryMode</th>
+            <th>Project</th>
+            <th>Place</th>
+            <th>LeadStatus</th>
+            <th>SalesExecutiveRemarks</th>
+          </tr>
+      `;
+
+      // Group leads by assigned executive
+      const groupedByExec = {};
+      filtered.forEach(lead => {
+        const execName = lead.assignedTo?.name || 'UNASSIGNED';
+        if (!groupedByExec[execName]) groupedByExec[execName] = [];
+        groupedByExec[execName].push(lead);
+      });
+
+      let globalSNo = 1;
+
+      Object.keys(groupedByExec).forEach(execName => {
+        const leadsList = groupedByExec[execName];
+        // Sort chronologically by date
+        leadsList.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+
+        // Executive banner row
+        html += `
+          <tr>
+            <td class="exec-banner">&nbsp;</td>
+            <td class="exec-banner">&nbsp;</td>
+            <td class="exec-banner">&nbsp;</td>
+            <td class="exec-banner">&nbsp;</td>
+            <td class="exec-banner">&nbsp;</td>
+            <td class="exec-banner text-red"><span style="color: red; font-weight: bold;">${execName}</span></td>
+            <td class="exec-banner">&nbsp;</td>
+            <td class="exec-banner">&nbsp;</td>
+            <td class="exec-banner">&nbsp;</td>
+            <td class="exec-banner">&nbsp;</td>
+          </tr>
+        `;
+
+        // Lead rows
+        leadsList.forEach(lead => {
+          const dateStr = new Date(lead.createdAt).toLocaleDateString('en-GB').replace(/\//g, '.');
+          const phoneStr = lead.phone || '&nbsp;';
+          const sourceStr = (lead.leadSource?.toLowerCase() === 'reference' && lead.referenceName)
+            ? `Reference (Ref: ${lead.referenceName})`
+            : (lead.leadSource || '&nbsp;');
+          const projectStr = lead.project?.name || lead.project?.code || 'Potheri';
+          const locationStr = lead.address || lead.location || '&nbsp;';
+          const statusStr = formatLeadStatusForReport(lead);
+          const remarksStr = getFormattedLeadRemarks(lead, '&nbsp;');
+
+          html += `
+            <tr>
+              <td>${globalSNo++}</td>
+              <td>${dateStr}</td>
+              <td class="text-left font-bold">${lead.name || '&nbsp;'}</td>
+              <td>${phoneStr}</td>
+              <td>${execName}</td>
+              <td>${sourceStr}</td>
+              <td>${projectStr}</td>
+              <td>${locationStr}</td>
+              <td>${statusStr}</td>
+              <td class="text-left">${remarksStr}</td>
+            </tr>
+          `;
+        });
+      });
+
+      html += `
+          </table>
+        </body>
+        </html>
+      `;
+
+      // Trigger download
+      handlePreview(html, `JB_${fileCode}_OVERALL_HOT_LIST_ALL_STAGES_REPORT_${dateForMonth.getFullYear()}_${dateForMonth.getMonth() + 1}.xls`);
+
+    } catch (err) {
+      console.error(err);
+      alert('Error exporting overall hot list');
     } finally {
       setReportLoading(false);
     }
@@ -2890,7 +3048,8 @@ const ExportReports = () => {
       await convertHtmlToSheet(handleExportSummaryReport, 'Abstract', getLabel ? getLabel('report_abstract', 'sidebar', 'Abstract of Report') : 'Abstract of Report');
       await convertHtmlToSheet(handleExportEnquiriesExcel, 'Enquiries', getLabel ? getLabel('report_enquiry', 'sidebar', 'Enquiry Sheet') : 'Enquiry Sheet');
       await convertHtmlToSheet(handleExportSiteVisitsExcel, 'Site Visits', getLabel ? getLabel('report_site_visit', 'sidebar', 'Site Visit Sheet') : 'Site Visit Sheet');
-      await convertHtmlToSheet(handleExportHotListExcel, 'Hot List', getLabel ? getLabel('report_hot_list', 'sidebar', 'Hot List Sheet') : 'Hot List Sheet');
+      await convertHtmlToSheet(handleExportHotListExcel, 'Active Hot List', getLabel ? getLabel('report_hot_list', 'sidebar', 'Active Hot List Report') : 'Active Hot List Report');
+      await convertHtmlToSheet(handleExportOverallHotListExcel, 'Overall Hot List', getLabel ? getLabel('report_overall_hot_list', 'sidebar', 'Overall Hot List Report') : 'Overall Hot List Report');
       await convertHtmlToSheet(handleExportBookingsExcel, 'Bookings', getLabel ? getLabel('report_booking', 'sidebar', 'Booking Sheet') : 'Booking Sheet');
       await convertHtmlToSheet(handleExportMarketingReturnsReport, 'Marketing Returns', getLabel ? getLabel('report_marketing', 'sidebar', 'Marketing Performance') : 'Marketing Performance');
       await convertHtmlToSheet(handleExportLeadSourcesReport, 'Lead Sources', getLabel ? getLabel('report_lead_sources', 'sidebar', 'Lead Sources') : 'Lead Sources');
@@ -3074,9 +3233,20 @@ const ExportReports = () => {
             <TrendingUp className="w-8 h-8" />
           </div>
           <h3 className="text-sm font-black text-orange-800 uppercase tracking-wide">
-            {getLabel ? getLabel('report_hot_list', 'sidebar', 'Hot List Sheet') : 'Hot List Sheet'}
+            {getLabel ? getLabel('report_hot_list', 'sidebar', 'Active Hot List Report') : 'Active Hot List Report'}
           </h3>
-          {/* <p className="text-[11px] text-orange-500 font-semibold">Highly qualified, potential closing leads.</p> */}
+        </div>
+
+        <div 
+          onClick={handleExportOverallHotListExcel}
+          className="bg-rose-50 border border-rose-100 rounded-3xl p-6 shadow-sm hover:shadow-md transition cursor-pointer flex flex-col items-center justify-center text-center gap-3 hover:-translate-y-1 duration-200"
+        >
+          <div className="p-4 bg-rose-100 text-rose-600 rounded-2xl">
+            <TrendingUp className="w-8 h-8" />
+          </div>
+          <h3 className="text-sm font-black text-rose-800 uppercase tracking-wide">
+            {getLabel ? getLabel('report_overall_hot_list', 'sidebar', 'Overall Hot List Report') : 'Overall Hot List Report'}
+          </h3>
         </div>
 
         <div 
