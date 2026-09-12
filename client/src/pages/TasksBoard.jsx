@@ -1509,10 +1509,9 @@ const TasksBoard = () => {
 
   const handleStatusChange = async (taskId, newStatus) => {
     const targetTask = tasks.find(t => t._id === taskId);
-    const prevStatus = targetTask?.status;
     const isAssigner = checkCanEditOrCancel(targetTask);
 
-    if (newStatus === 'Cancelled' || newStatus === 'Closed' || newStatus === 'On Hold') {
+    if (newStatus === 'Cancelled' || newStatus === 'On Hold') {
       if (!isAssigner) {
         setError(`Only the person who assigned this task can set it to ${newStatus}.`);
         return;
@@ -1521,10 +1520,7 @@ const TasksBoard = () => {
 
     try {
       const payload = { status: newStatus };
-      if (newStatus === 'Closed') {
-        payload.isClosed = true;
-        payload.note = `Task closed by ${user?.name || 'Assigner'}`;
-      } else if (newStatus === 'New' && targetTask?.isReopened) {
+      if (newStatus === 'New' && targetTask?.isReopened) {
         payload.isReopened = true;
         payload.isClosed = false;
         payload.actionTaken = false;
@@ -2417,7 +2413,7 @@ const TasksBoard = () => {
                     <th className="p-2 min-w-[55px] text-center">Priority</th>
                     <th className="p-2 min-w-[65px] max-w-[75px] text-center">Assigned Date</th>
                     <th className="p-2 min-w-[65px] max-w-[75px] text-center">Due Date</th>
-                    <th className="p-2 min-w-[80px] text-center">Status</th>
+                    <th className="p-2 min-w-[105px] w-[105px] text-center">Status</th>
                     <th className="p-2 min-w-[70px] text-center">Attachments</th>
                     <th className="p-2 w-8 text-center">Actions</th>
                   </tr>
@@ -2536,50 +2532,55 @@ const TasksBoard = () => {
                           </div>
                         </td>
 
-                        {/* 10. Status (Assignees: In Progress, Completed only | Assigner: Full options) */}
+                        {/* 10. Status (Assignees: In Progress, Completed | Assigner: New, On Hold) */}
                         <td className="p-2 text-center">
                           {(() => {
                             const isAssigner = checkCanEditOrCancel(task);
                             const isAssignee = (task.assignedTo?._id || task.assignedTo)?.toString() === (user?._id || user?.id)?.toString();
 
+                            if (!isAssigner && !isAssignee) {
+                              return (
+                                <span className={`w-[98px] h-[24px] inline-flex items-center justify-center rounded text-[10px] font-bold uppercase tracking-wide border shadow-2xs ${statusBadge}`}>
+                                  {task.status}
+                                </span>
+                              );
+                            }
+
+                            if (task.status === 'Cancelled') {
+                              return (
+                                <span className={`w-[98px] h-[24px] inline-flex items-center justify-center rounded text-[10px] font-bold uppercase tracking-wide border shadow-2xs ${statusBadge}`}>
+                                  Cancelled
+                                </span>
+                              );
+                            }
+
                             let statusOptions = [];
                             if (isAssigner) {
                               statusOptions = [
                                 { value: 'New', label: 'New' },
-                                { value: 'In Progress', label: 'In Progress' },
-                                { value: 'On Hold', label: 'On Hold' },
-                                { value: 'Completed', label: 'Completed' },
-                                { value: 'Closed', label: 'Closed' }
+                                { value: 'On Hold', label: 'On Hold' }
                               ];
-                              if (task.status === 'Cancelled') {
-                                statusOptions.push({ value: 'Cancelled', label: 'Cancelled', disabled: true });
+                              if (!['New', 'On Hold'].includes(task.status)) {
+                                statusOptions.unshift({ value: task.status, label: task.status });
                               }
                             } else if (isAssignee) {
                               statusOptions = [
-                                ...(task.status === 'New' ? [{ value: 'New', label: 'New', disabled: true }] : []),
                                 { value: 'In Progress', label: 'In Progress' },
                                 { value: 'Completed', label: 'Completed' }
                               ];
-                              if (task.status === 'Closed' || task.status === 'Cancelled' || task.status === 'On Hold') {
-                                statusOptions.unshift({ value: task.status, label: task.status, disabled: true });
+                              if (!['In Progress', 'Completed'].includes(task.status)) {
+                                statusOptions.unshift({ value: task.status, label: task.status });
                               }
-                            } else {
-                              statusOptions = [
-                                { value: task.status, label: task.status }
-                              ];
                             }
-
-                            const isSelectDisabled = task.status === 'Cancelled' || task.status === 'Closed' || (!isAssigner && !isAssignee);
 
                             return (
                               <select
                                 value={task.status}
                                 onChange={(e) => handleStatusChange(task._id, e.target.value)}
-                                disabled={isSelectDisabled}
-                                className={`px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide border focus:outline-none focus:ring-1 focus:ring-[#0e623a] cursor-pointer ${statusBadge}`}
+                                className={`w-[98px] h-[24px] px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide border focus:outline-none focus:ring-1 focus:ring-[#0e623a] cursor-pointer text-center ${statusBadge}`}
                               >
                                 {statusOptions.map(opt => (
-                                  <option key={opt.value} value={opt.value} disabled={opt.disabled}>
+                                  <option key={opt.value} value={opt.value} className="bg-white text-gray-800 font-semibold">
                                     {opt.label}
                                   </option>
                                 ))}
@@ -2969,7 +2970,6 @@ const TasksBoard = () => {
                       <option value="In Progress">In Progress</option>
                       <option value="On Hold">On Hold</option>
                       <option value="Completed">Completed</option>
-                      <option value="Closed">Closed</option>
                       <option value="Cancelled">Cancelled</option>
                     </select>
                   ) : (
