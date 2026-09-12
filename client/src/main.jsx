@@ -47,8 +47,18 @@ class ErrorBoundary extends React.Component {
             </p>
             <button
               onClick={() => {
-                localStorage.clear();
-                window.location.href = '/login';
+                if ('serviceWorker' in navigator) {
+                  navigator.serviceWorker.getRegistrations().then(registrations => {
+                    for (const r of registrations) r.unregister();
+                  });
+                }
+                if ('caches' in window) {
+                  caches.keys().then(names => {
+                    for (const n of names) caches.delete(n);
+                  });
+                }
+                sessionStorage.clear();
+                window.location.reload(true);
               }}
               style={{
                 background: '#0e623a',
@@ -79,12 +89,18 @@ ReactDOM.createRoot(document.getElementById('root')).render(
   </React.StrictMode>,
 );
 
+// Clear stale service workers and old cache to force fresh assets
 if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    try {
-      navigator.serviceWorker.register('/sw.js').then(registration => {
-        registration.update();
-      }).catch(() => {});
-    } catch (e) {}
-  });
+  navigator.serviceWorker.getRegistrations().then(registrations => {
+    for (const r of registrations) {
+      r.unregister();
+    }
+  }).catch(() => {});
+}
+if ('caches' in window) {
+  caches.keys().then(names => {
+    for (const n of names) {
+      caches.delete(n);
+    }
+  }).catch(() => {});
 }
