@@ -342,7 +342,7 @@ const TasksBoard = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState(() => {
     const s = new URLSearchParams(location.search).get('status');
-    return s ? s.toUpperCase() : 'PENDING';
+    return s ? s.toUpperCase() : 'ALL';
   });
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
@@ -1818,7 +1818,7 @@ const TasksBoard = () => {
 
   // Helper to check if task is overdue ("overdated")
   const isOverdated = (task) => {
-    if (task.status === 'Completed') return false;
+    if (task.status === 'Completed' || task.status === 'Closed' || task.status === 'Cancelled') return false;
     if (!task.dueDate) return false;
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -1827,16 +1827,53 @@ const TasksBoard = () => {
     return due < today;
   };
 
-  // Tab Counts
-  const assignedToMeCount = tasks.filter(t => (t.assignedTo?._id || t.assignedTo) === user?._id).length;
-  const iAssignedCount = tasks.filter(t => (t.assignedBy?._id || t.assignedBy) === user?._id).length;
-  const otherTasksCount = tasks.filter(t => (t.assignedTo?._id || t.assignedTo) !== user?._id && (t.assignedBy?._id || t.assignedBy) !== user?._id).length;
+  const currentUserId = (user?._id || user?.id)?.toString();
+  const userEmail = user?.email?.trim().toLowerCase();
+  const userName = user?.name?.trim().toLowerCase();
+
+  const isTaskAssignedToMe = (t) => {
+    if (!t) return false;
+    const assignedId = (t.assignedTo?._id || t.assignedTo)?.toString();
+    const assignedEmail = t.assignedTo?.email?.trim().toLowerCase();
+    const assignedName = (typeof t.assignedTo === 'string' ? t.assignedTo : t.assignedTo?.name)?.trim().toLowerCase();
+    return Boolean(
+      (assignedId && currentUserId && assignedId === currentUserId) ||
+      (userEmail && assignedEmail && userEmail === assignedEmail) ||
+      (userName && assignedName && userName === assignedName)
+    );
+  };
+
+  const isTaskAssignedByMe = (t) => {
+    if (!t) return false;
+    const byId = (t.assignedBy?._id || t.assignedBy)?.toString();
+    const byEmail = t.assignedBy?.email?.trim().toLowerCase();
+    const byName = (typeof t.assignedBy === 'string' ? t.assignedBy : t.assignedBy?.name)?.trim().toLowerCase();
+    return Boolean(
+      (byId && currentUserId && byId === currentUserId) ||
+      (userEmail && byEmail && userEmail === byEmail) ||
+      (userName && byName && userName === byName)
+    );
+  };
+
+  // Tab Counts (always full totals for each tab)
+  const assignedToMeCount = tasks.filter(t => isTaskAssignedToMe(t)).length;
+  const iAssignedCount = tasks.filter(t => isTaskAssignedByMe(t)).length;
   const allTasksCount = tasks.length;
+
+  // Active Scope Tasks for Metrics & Filters based on selected tab
+  const scopeTasks = useMemo(() => {
+    if (viewTab === 'ASSIGNED_TO_ME') {
+      return tasks.filter(t => isTaskAssignedToMe(t));
+    } else if (viewTab === 'I_ASSIGNED') {
+      return tasks.filter(t => isTaskAssignedByMe(t));
+    }
+    return tasks;
+  }, [tasks, viewTab, user]);
 
   // Filter Tasks
   const filteredTasks = tasks.filter(task => {
-    const isAssignedToMe = (task.assignedTo?._id || task.assignedTo) === user?._id;
-    const isIassigned = (task.assignedBy?._id || task.assignedBy) === user?._id;
+    const isAssignedToMe = isTaskAssignedToMe(task);
+    const isIassigned = isTaskAssignedByMe(task);
 
     if (viewTab === 'ASSIGNED_TO_ME') {
       if (!isAssignedToMe) return false;
@@ -1931,15 +1968,15 @@ const TasksBoard = () => {
     return timeB - timeA;
   });
 
-  // Calculate Metrics
-  const totalCount = tasks.length;
-  const newCount = tasks.filter(t => t.status === 'New').length;
-  const inProgressCount = tasks.filter(t => t.status === 'In Progress').length;
+  // Calculate Metrics based on active view scope
+  const totalCount = scopeTasks.length;
+  const newCount = scopeTasks.filter(t => t.status === 'New').length;
+  const inProgressCount = scopeTasks.filter(t => t.status === 'In Progress').length;
   const pendingCount = newCount + inProgressCount;
-  const onHoldCount = tasks.filter(t => t.status === 'On Hold').length;
-  const completedCount = tasks.filter(t => t.status === 'Completed').length;
-  const cancelledCount = tasks.filter(t => t.status === 'Cancelled').length;
-  const overdatedCount = tasks.filter(t => isOverdated(t)).length;
+  const onHoldCount = scopeTasks.filter(t => t.status === 'On Hold').length;
+  const completedCount = scopeTasks.filter(t => t.status === 'Completed').length;
+  const cancelledCount = scopeTasks.filter(t => t.status === 'Cancelled').length;
+  const overdatedCount = scopeTasks.filter(t => isOverdated(t)).length;
 
   // Pagination calculations (10 tasks per page)
   const totalTasks = sortedTasks.length;
@@ -2097,7 +2134,10 @@ const TasksBoard = () => {
           {/* All Tasks (DEFAULT & HIGHLIGHTED) */}
           <button
             type="button"
-            onClick={() => setViewTab('ALL')}
+            onClick={() => {
+              setViewTab('ALL');
+              setStatusFilter('ALL');
+            }}
             className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black transition cursor-pointer shrink-0 ${
               viewTab === 'ALL'
                 ? 'bg-gradient-to-r from-[#006838] to-[#008c4a] text-white shadow-md ring-2 ring-emerald-500/50 scale-[1.02]'
@@ -2116,7 +2156,10 @@ const TasksBoard = () => {
           {/* Assigned to Me */}
           <button
             type="button"
-            onClick={() => setViewTab('ASSIGNED_TO_ME')}
+            onClick={() => {
+              setViewTab('ASSIGNED_TO_ME');
+              setStatusFilter('ALL');
+            }}
             className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition cursor-pointer shrink-0 ${
               viewTab === 'ASSIGNED_TO_ME'
                 ? 'bg-[#0e623a] text-white shadow-md ring-2 ring-emerald-600/40'
@@ -2135,7 +2178,10 @@ const TasksBoard = () => {
           {/* Assigned to */}
           <button
             type="button"
-            onClick={() => setViewTab('I_ASSIGNED')}
+            onClick={() => {
+              setViewTab('I_ASSIGNED');
+              setStatusFilter('ALL');
+            }}
             className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition cursor-pointer shrink-0 ${
               viewTab === 'I_ASSIGNED'
                 ? 'bg-purple-800 text-white shadow-md ring-2 ring-purple-500/40'
