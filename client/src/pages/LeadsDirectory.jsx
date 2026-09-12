@@ -545,6 +545,8 @@ const LeadsDirectory = () => {
   const [editActiveAds, setEditActiveAds] = useState([]);
   const [editStatus, setEditStatus] = useState('New');
   const [editLeadCategory, setEditLeadCategory] = useState('Cold');
+  const [editNextFollowDate, setEditNextFollowDate] = useState('');
+  const [editContactedThrough, setEditContactedThrough] = useState('Call');
   const [editRemarks, setEditRemarks] = useState('');
 
   // Booked & Quotation Modal States
@@ -930,6 +932,31 @@ const LeadsDirectory = () => {
     setEditLeadCategory(lead.leadCategory || 'Cold');
     setEditRemarks(lead.followUpInfo?.remarks || lead.closeRemarks || '');
 
+    let followDateStr = '';
+    if (lead.followUpInfo?.nextFollowUpDate) {
+      try {
+        const d = new Date(lead.followUpInfo.nextFollowUpDate);
+        if (!isNaN(d.getTime())) {
+          const year = d.getFullYear();
+          const month = String(d.getMonth() + 1).padStart(2, '0');
+          const day = String(d.getDate()).padStart(2, '0');
+          followDateStr = `${year}-${month}-${day}`;
+        }
+      } catch (e) { }
+    } else if (lead.siteVisitDate) {
+      try {
+        const d = new Date(lead.siteVisitDate);
+        if (!isNaN(d.getTime())) {
+          const year = d.getFullYear();
+          const month = String(d.getMonth() + 1).padStart(2, '0');
+          const day = String(d.getDate()).padStart(2, '0');
+          followDateStr = `${year}-${month}-${day}`;
+        }
+      } catch (e) { }
+    }
+    setEditNextFollowDate(followDateStr);
+    setEditContactedThrough(lead.followUpInfo?.contactedThrough || 'Call');
+
     // Prepopulate ad id if matches ad name
     const proj = projects.find(p => p._id === (lead.project?._id || lead.project));
     let adId = '';
@@ -1001,6 +1028,25 @@ const LeadsDirectory = () => {
     const isMovingToLost = editStatus === 'Lost';
 
     setIsSubmitting(true);
+    let followUpInfoPayload = undefined;
+    if (['Follow-Up', 'Site Visit', 'Future Follow-up'].includes(editStatus)) {
+      followUpInfoPayload = {
+        ...(selectedLeadForEdit?.followUpInfo || {}),
+        contactedThrough: editContactedThrough || 'Call',
+        remarks: editRemarks?.trim() || ''
+      };
+      if (editNextFollowDate) {
+        followUpInfoPayload.nextFollowUpDate = new Date(editNextFollowDate);
+      }
+    } else if (editRemarks?.trim()) {
+      followUpInfoPayload = {
+        ...(selectedLeadForEdit?.followUpInfo || {}),
+        remarks: editRemarks.trim()
+      };
+    } else if (selectedLeadForEdit?.followUpInfo) {
+      followUpInfoPayload = selectedLeadForEdit.followUpInfo;
+    }
+
     const payload = {
       leadType: editLeadType,
       salutation: editSalutation,
@@ -1018,10 +1064,7 @@ const LeadsDirectory = () => {
       referenceName: editReferenceName.trim(),
       leadCategory: editLeadCategory,
       activeAd: editLeadType === 'Lead' && adObj ? { name: adObj.name, link: adObj.link } : { name: '', link: '' },
-      followUpInfo: editRemarks?.trim() ? {
-        ...(selectedLeadForEdit?.followUpInfo || {}),
-        remarks: editRemarks.trim()
-      } : (selectedLeadForEdit?.followUpInfo || undefined),
+      followUpInfo: followUpInfoPayload,
       isClosed: isMovingToLost ? true : (isMovingOutOfLost ? false : selectedLeadForEdit?.isClosed),
       closeRemarks: isMovingToLost ? (editRemarks || 'Marked lost via Edit') : (isMovingOutOfLost ? '' : selectedLeadForEdit?.closeRemarks),
       isRevert: isSuperAdmin
@@ -3799,6 +3842,48 @@ const LeadsDirectory = () => {
                   </select>
                 </div>
               </div>
+
+              {/* Conditional Follow-up / Site Visit Schedule Fields */}
+              {['Follow-Up', 'Site Visit', 'Future Follow-up'].includes(editStatus) && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-left p-3.5 bg-amber-50/60 rounded-2xl border border-amber-200/70">
+                  <div className="flex flex-col">
+                    <label className="text-xs font-bold text-amber-900 uppercase tracking-wider block mb-1.5 flex items-center justify-between">
+                      <span>{editStatus === 'Site Visit' ? 'Site Visit Scheduled Date' : 'Schedule Next Follow-Up Date'}</span>
+                    </label>
+                    <input
+                      type="date"
+                      value={editNextFollowDate}
+                      min={(() => {
+                        const d = new Date();
+                        if (editStatus === 'Site Visit') {
+                          d.setDate(d.getDate() - 5);
+                        }
+                        const year = d.getFullYear();
+                        const month = String(d.getMonth() + 1).padStart(2, '0');
+                        const day = String(d.getDate()).padStart(2, '0');
+                        return `${year}-${month}-${day}`;
+                      })()}
+                      onChange={(e) => setEditNextFollowDate(e.target.value)}
+                      className="w-full px-3.5 py-2.5 bg-white border border-amber-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-600 text-sm font-semibold text-black-800"
+                    />
+                  </div>
+                  <div className="flex flex-col">
+                    <label className="text-xs font-bold text-amber-900 uppercase tracking-wider block mb-1.5">
+                      Contacted Through
+                    </label>
+                    <select
+                      value={editContactedThrough}
+                      onChange={(e) => setEditContactedThrough(e.target.value)}
+                      className="w-full px-3.5 py-2.5 bg-white border border-amber-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-600 text-sm font-semibold text-black-800 cursor-pointer appearance-none"
+                      style={{ backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 14px center', backgroundSize: '14px' }}
+                    >
+                      <option value="Call">Call</option>
+                      <option value="WhatsApp">WhatsApp</option>
+                      <option value="On Spot">On Spot</option>
+                    </select>
+                  </div>
+                </div>
+              )}
 
               {/* Remarks / Interaction Notes */}
               <div className="flex flex-col text-left">
