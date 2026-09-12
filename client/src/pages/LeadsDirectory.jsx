@@ -2634,6 +2634,16 @@ const LeadsDirectory = () => {
                                   type="button"
                                   onClick={() => {
                                     setOpenActionMenuId(null);
+                                    initiateFollowUpOrComplete(lead, lead.status || 'Follow-Up');
+                                  }}
+                                  className="w-full text-left px-3.5 py-1.5 text-[11px] font-bold hover:bg-emerald-50 flex items-center gap-2 text-[#0e623a] cursor-pointer"
+                                >
+                                  <CalendarClock className="w-3.5 h-3.5 text-[#0e623a]" /> Schedule Follow-up
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setOpenActionMenuId(null);
                                     handleOpenEditModal(lead);
                                   }}
                                   className="w-full text-left px-3.5 py-1.5 text-[11px] font-bold hover:bg-amber-50 flex items-center gap-2 cursor-pointer"
@@ -3814,7 +3824,16 @@ const LeadsDirectory = () => {
                   <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Workflow Status <span className="text-red-500">*</span></label>
                   <select
                     value={editStatus}
-                    onChange={(e) => setEditStatus(e.target.value)}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (val === 'Schedule Follow-up') {
+                        setEditModalOpen(false);
+                        const lead = leads.find(l => l._id === selectedLeadForEdit._id) || selectedLeadForEdit;
+                        initiateFollowUpOrComplete(lead, lead.status || 'Follow-Up');
+                        return;
+                      }
+                      setEditStatus(val);
+                    }}
                     className="w-full px-4 py-3 bg-black-55 border border-[#d1d5db] rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-600 text-sm cursor-pointer appearance-none"
                     style={{ backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 16px center', backgroundSize: '16px' }}
                   >
@@ -3825,6 +3844,9 @@ const LeadsDirectory = () => {
                       if (!isSuperAdmin && idx < currentIdx && currentIdx !== -1) return null;
                       return <option key={status} value={status}>{status === 'Booking' ? 'Booked' : status}</option>;
                     })}
+                    {selectedLeadForEdit && (
+                      <option value="Schedule Follow-up">Schedule Follow-up ({selectedLeadForEdit.status})</option>
+                    )}
                   </select>
                 </div>
 
