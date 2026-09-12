@@ -155,7 +155,7 @@ router.post('/', protect, async (req, res) => {
 // @desc    Update task details or status
 // @access  Private
 router.put('/:id', protect, async (req, res) => {
-  const { title, description, projectName, dueDate, assignedTo, status, priority, category, repeatType, reminderInterval, actionTaken, attachments, note } = req.body;
+  const { title, description, projectName, dueDate, assignedTo, status, priority, category, repeatType, reminderInterval, actionTaken, attachments, note, isReopened, isClosed } = req.body;
 
   try {
     const task = await UserTask.findById(req.params.id);
