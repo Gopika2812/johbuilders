@@ -49,7 +49,8 @@ import {
   Activity,
   Shield,
   RotateCcw,
-  CheckSquare
+  CheckSquare,
+  CheckCheck
 } from 'lucide-react';
 
 const getTodayString = () => {
