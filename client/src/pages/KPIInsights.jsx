@@ -764,15 +764,26 @@ const KPIInsights = () => {
 
       // Apply active dashboard filters
       const filtered = data.filter(lead => {
-        // 1. Must be currently in Site Visit, or lost at Site Visit stage
+        // 1. Must have had a site visit (Current Site Visit, Direct Visit, History record, Lost at SV, Booked after SV, etc.)
+        const hadHistorySiteVisit = Array.isArray(lead.history) && lead.history.some(h => 
+          (h.status && h.status.toLowerCase().includes('site visit')) ||
+          (h.action && h.action.toLowerCase().includes('site visit')) ||
+          (h.stageName && h.stageName.toLowerCase().includes('site visit'))
+        );
+        const isDirectVisit = lead.leadType === 'Direct Visit';
         const isClosed = lead.status === 'Lost' || lead.status === 'Closed' || lead.isClosed;
-        const isLostAtSiteVisit = isClosed && (lead.lostStage === 'Site Visit' || (lead.closeRemarks && lead.closeRemarks.includes('[Lost at Site Visit')));
-        const isSiteVisit = 
-          lead.status === 'Site Visit' || 
-          lead.status === 'Site Visit Follow-up' || 
-          isLostAtSiteVisit;
+        const isLostAtSiteVisit = isClosed && (lead.lostStage === 'Site Visit' || (lead.closeRemarks && lead.closeRemarks.toLowerCase().includes('site visit')));
+        const isCurrentSiteVisit = (lead.status || '').toLowerCase().includes('site visit');
+        const hasSiteVisitDate = Boolean(lead.siteVisitDate || lead.visitDate);
 
-        if (!isSiteVisit) return false;
+        const hasEverVisitedSite = 
+          isCurrentSiteVisit || 
+          isDirectVisit || 
+          hadHistorySiteVisit || 
+          isLostAtSiteVisit || 
+          hasSiteVisitDate;
+
+        if (!hasEverVisitedSite) return false;
 
         // 2. Project filter
         if (selectedProject && (lead.project?._id || lead.project) !== selectedProject) return false;
@@ -781,12 +792,28 @@ const KPIInsights = () => {
         if (selectedUser && (lead.assignedTo?._id || lead.assignedTo) !== selectedUser) return false;
 
         // 4. Date range filter
-        const createdAt = new Date(lead.createdAt);
-        if (fromDate && createdAt < new Date(fromDate)) return false;
+        let svDate = lead.siteVisitDate || lead.visitDate;
+        if (!svDate && Array.isArray(lead.history)) {
+          const svEntry = lead.history.find(h => 
+            (h.status && h.status.toLowerCase().includes('site visit')) ||
+            (h.action && h.action.toLowerCase().includes('site visit'))
+          );
+          if (svEntry) svDate = svEntry.timestamp || svEntry.date;
+        }
+        if (!svDate && lead.leadType === 'Direct Visit') svDate = lead.createdAt;
+
+        const dateToCheck = svDate ? new Date(svDate) : new Date(lead.createdAt);
+        const createdDate = new Date(lead.createdAt);
+
+        if (fromDate) {
+          const start = new Date(fromDate);
+          start.setHours(0, 0, 0, 0);
+          if (dateToCheck < start && createdDate < start) return false;
+        }
         if (toDate) {
           const end = new Date(toDate);
           end.setHours(23, 59, 59, 999);
-          if (createdAt > end) return false;
+          if (dateToCheck > end && createdDate > end) return false;
         }
 
         return true;
