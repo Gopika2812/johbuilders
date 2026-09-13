@@ -1645,18 +1645,20 @@ const LeadsDirectory = () => {
     }
   };
 
-  const initiateFollowUpOrComplete = (lead, targetStatus) => {
+  const initiateFollowUpOrComplete = (lead, targetStatus, forcedMode = null) => {
     setSelectedLeadForFollow(lead);
     setFollowTargetStatus(targetStatus);
 
-    const hasFollowUp = ['Follow-Up', 'Site Visit', 'Future Follow-up'].includes(targetStatus);
-
-    let initialMode = 'Completed';
-    if (targetStatus === 'Site Visit') {
+    let initialMode = 'FollowUp';
+    if (forcedMode) {
+      initialMode = forcedMode;
+    } else if (targetStatus === 'Site Visit') {
       initialMode = 'SiteVisit';
     } else if (targetStatus === 'Future Follow-up') {
       initialMode = 'FutureFollowUp';
-    } else if (hasFollowUp) {
+    } else if (targetStatus === 'Lost') {
+      initialMode = 'Completed';
+    } else {
       initialMode = 'FollowUp';
     }
     setFollowMode(initialMode);
@@ -1731,9 +1733,9 @@ const LeadsDirectory = () => {
         isClosed: false,
         leadCategory
       };
-    } else {
+    } else if (followMode === 'Completed' || followTargetStatus === 'Lost') {
       if (!closeRemarks || !closeRemarks.trim()) {
-        alert('Transition / Closing Remarks are required!');
+        alert('Closing Remarks are required!');
         return;
       }
       payload = {
@@ -1741,6 +1743,20 @@ const LeadsDirectory = () => {
         isClosed: true,
         closeRemarks: `[Lost at ${followTargetStatus === 'Lost' ? (selectedLeadForFollow?.status || 'Unknown') : followTargetStatus} stage] - ${closeRemarks}`,
         leadCategory
+      };
+    } else {
+      if (!closeRemarks || !closeRemarks.trim()) {
+        alert('Transition remarks are required!');
+        return;
+      }
+      payload = {
+        status: followTargetStatus || selectedLeadForFollow?.status || 'Assigned',
+        isClosed: false,
+        leadCategory,
+        followUpInfo: {
+          remarks: closeRemarks,
+          contactedThrough: followThrough
+        }
       };
     }
 
@@ -2634,7 +2650,7 @@ const LeadsDirectory = () => {
                                   type="button"
                                   onClick={() => {
                                     setOpenActionMenuId(null);
-                                    initiateFollowUpOrComplete(lead, lead.status || 'Follow-Up');
+                                    initiateFollowUpOrComplete(lead, 'Follow-Up', 'FollowUp');
                                   }}
                                   className="w-full text-left px-3.5 py-1.5 text-[11px] font-bold hover:bg-emerald-50 flex items-center gap-2 text-[#0e623a] cursor-pointer"
                                 >
@@ -3829,7 +3845,7 @@ const LeadsDirectory = () => {
                       if (val === 'Schedule Follow-up') {
                         setEditModalOpen(false);
                         const lead = leads.find(l => l._id === selectedLeadForEdit._id) || selectedLeadForEdit;
-                        initiateFollowUpOrComplete(lead, lead.status || 'Follow-Up');
+                        initiateFollowUpOrComplete(lead, 'Follow-Up', 'FollowUp');
                         return;
                       }
                       setEditStatus(val);
@@ -4075,7 +4091,7 @@ const LeadsDirectory = () => {
 
       {/* 🔐 MODAL: Follow-Up & Completion Actions */}
       {followModalOpen && selectedLeadForFollow && (() => {
-        const hasFollowUpOptions = ['Follow-Up', 'Site Visit', 'Future Follow-up'].includes(followTargetStatus);
+        const hasFollowUpOptions = ['Follow-Up', 'Site Visit', 'Future Follow-up', 'Assigned', 'New'].includes(followTargetStatus);
         return (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
             <div className="bg-white rounded-3xl max-w-lg w-full overflow-hidden shadow-2xl border border-black-100 flex flex-col max-h-[90vh]">
@@ -4083,9 +4099,11 @@ const LeadsDirectory = () => {
                 <h3 className="text-lg font-bold flex items-center gap-2">
                   <CalendarClock className="w-5 h-5 text-emerald-300" />
                   <span>
-                    {['Follow-Up', 'Site Visit', 'Future Follow-up'].includes(followTargetStatus)
-                      ? 'Contacted / Follow-up Actions'
-                      : `Transition to ${followTargetStatus}`}
+                    {followMode === 'Completed'
+                      ? 'Close Lead (Lost)'
+                      : ['Follow-Up', 'Site Visit', 'Future Follow-up', 'Assigned', 'New'].includes(followTargetStatus)
+                        ? 'Contacted / Follow-up Actions'
+                        : `Transition to ${followTargetStatus}`}
                   </span>
                 </h3>
               </div>
@@ -4152,7 +4170,19 @@ const LeadsDirectory = () => {
                         </label>
                         <select
                           value={followTargetStatus}
-                          onChange={(e) => setFollowTargetStatus(e.target.value)}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setFollowTargetStatus(val);
+                            if (val === 'Lost') {
+                              setFollowMode('Completed');
+                            } else if (val === 'Site Visit') {
+                              setFollowMode('SiteVisit');
+                            } else if (val === 'Future Follow-up') {
+                              setFollowMode('FutureFollowUp');
+                            } else {
+                              setFollowMode('FollowUp');
+                            }
+                          }}
                           className="w-full px-3 py-2 bg-white border border-amber-300 rounded-xl text-xs font-bold text-amber-900 focus:outline-none focus:ring-2 focus:ring-amber-500 cursor-pointer"
                         >
                           {LEAD_STATUSES.map(st => (
@@ -4268,10 +4298,17 @@ const LeadsDirectory = () => {
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className={`flex-1 py-2.5 text-white rounded-xl text-xs font-bold transition shadow flex items-center justify-center gap-2 disabled:opacity-50 ${followMode === 'FollowUp' ? 'bg-[#0e623a] hover:bg-[#0b4d2d]' : 'bg-red-600 hover:bg-red-700'
-                      }`}
+                    className={`flex-1 py-2.5 text-white rounded-xl text-xs font-bold transition shadow flex items-center justify-center gap-2 disabled:opacity-50 ${
+                      followMode === 'Completed' ? 'bg-red-600 hover:bg-red-700' : 'bg-[#0e623a] hover:bg-[#0b4d2d]'
+                    }`}
                   >
-                    {isSubmitting ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving...</> : 'Save Action'}
+                    {isSubmitting ? (
+                      <><Loader2 className="w-4 h-4 animate-spin" /> Saving...</>
+                    ) : followMode === 'Completed' ? (
+                      'Close Lead (Lost)'
+                    ) : (
+                      'Save Action'
+                    )}
                   </button>
                 </div>
               </form>
