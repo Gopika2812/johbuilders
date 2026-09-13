@@ -157,4 +157,16 @@ LeadSchema.pre('save', function (next) {
   next();
 });
 
+// Indexes for ultra-fast queries & filtering
+LeadSchema.index({ status: 1, updatedAt: -1 });
+LeadSchema.index({ assignedTo: 1, status: 1, updatedAt: -1 });
+LeadSchema.index({ project: 1, status: 1 });
+LeadSchema.index({ phone: 1 });
+LeadSchema.index({ alternativePhone: 1 });
+LeadSchema.index({ name: 1 });
+LeadSchema.index({ leadSource: 1, createdAt: -1 });
+LeadSchema.index({ isClosed: 1, status: 1 });
+LeadSchema.index({ createdAt: -1 });
+LeadSchema.index({ updatedAt: -1 });
+
 module.exports = mongoose.model('Lead', LeadSchema);

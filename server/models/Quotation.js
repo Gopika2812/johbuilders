@@ -97,4 +97,11 @@ const QuotationSchema = new mongoose.Schema({
   }
 });
 
+QuotationSchema.index({ lead: 1 });
+QuotationSchema.index({ project: 1 });
+QuotationSchema.index({ crdPerson: 1 });
+QuotationSchema.index({ pedPerson: 1 });
+QuotationSchema.index({ accountsPerson: 1 });
+QuotationSchema.index({ createdAt: -1 });
+
 module.exports = mongoose.model('Quotation', QuotationSchema);

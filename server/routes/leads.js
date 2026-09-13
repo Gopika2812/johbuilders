@@ -60,14 +60,18 @@ router.get('/', protect, async (req, res) => {
   }
 
   try {
-    const leads = await Lead.find(query)
+    let queryExec = Lead.find(query)
       .populate('project', 'name code location')
       .populate('assignedTo', 'name role phone mobile phoneNumber')
-      .populate('assignedBy', 'name role phone mobile phoneNumber')
-      .populate('history.assignedTo', 'name role phone mobile phoneNumber')
-      .populate('history.updatedBy', 'name role phone mobile phoneNumber')
-      .sort({ updatedAt: -1 })
-      .lean();
+      .populate('assignedBy', 'name role phone mobile phoneNumber');
+
+    if (req.query.includeHistory === 'true') {
+      queryExec = queryExec
+        .populate('history.assignedTo', 'name role phone mobile phoneNumber')
+        .populate('history.updatedBy', 'name role phone mobile phoneNumber');
+    }
+
+    const leads = await queryExec.sort({ updatedAt: -1 }).lean();
     res.json(leads);
   } catch (err) {
     res.status(500).json({ message: err.message });

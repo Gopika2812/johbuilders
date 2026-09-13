@@ -122,4 +122,9 @@ CRDFlowSchema.pre('save', function (next) {
   next();
 });
 
+CRDFlowSchema.index({ project: 1, status: 1 });
+CRDFlowSchema.index({ lead: 1 });
+CRDFlowSchema.index({ status: 1, createdAt: -1 });
+CRDFlowSchema.index({ 'stages.extraWorks.assignedTo': 1 });
+
 module.exports = mongoose.model('CRDFlow', CRDFlowSchema);
