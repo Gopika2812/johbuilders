@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth, API_URL } from '../context/AuthContext';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Calendar, User, Menu, Bell, ClipboardList, CheckCircle2, Clock, LogOut } from 'lucide-react';
+import { Calendar, User, Menu, Bell, ClipboardList, CheckCircle2, Clock, LogOut, X } from 'lucide-react';
 
 const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
   const { user, token, logout, getLabel } = useAuth();
@@ -16,7 +16,6 @@ const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
   const [popupTasks, setPopupTasks] = useState([]);
 
   const dropdownRef = useRef(null);
-  const [ignoredLeads, setIgnoredLeads] = useState([]);
 
   useEffect(() => {
     if (!token) return;
@@ -34,7 +33,7 @@ const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
     // Poll every 45 seconds
     const interval = setInterval(fetchNotifications, 45000);
     return () => clearInterval(interval);
-  }, [token, ignoredLeads]);
+  }, [token]);
 
   const fetchNotifications = async () => {
     try {
@@ -78,31 +77,46 @@ const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
       const isSuperadmin = user?.role === 'Superadmin';
       const myLeadsToNotify = isSuperadmin ? [] : assignedToMe;
 
-      // Check ignored leads
-      let ignoredIds = [...ignoredLeads];
+      // Check ignored leads from sessionStorage
+      let ignoredLeadIds = [];
       try {
         const stored = sessionStorage.getItem('ignored_assignments');
         if (stored) {
           const parsed = JSON.parse(stored);
           if (Array.isArray(parsed)) {
-            ignoredIds = Array.from(new Set([...ignoredIds, ...parsed]));
+            ignoredLeadIds = parsed;
           }
         }
       } catch (e) {
         console.warn('sessionStorage is not accessible', e);
       }
-      const newLeads = myLeadsToNotify.filter(lead => !ignoredIds.includes(lead._id));
+      const newLeads = myLeadsToNotify.filter(lead => !ignoredLeadIds.includes(lead._id));
 
-      if (newLeads.length > 0 || dataTasks.length > 0) {
+      // Check ignored tasks from sessionStorage
+      let ignoredTaskIds = [];
+      try {
+        const storedTasks = sessionStorage.getItem('ignored_task_popups');
+        if (storedTasks) {
+          const parsedTasks = JSON.parse(storedTasks);
+          if (Array.isArray(parsedTasks)) {
+            ignoredTaskIds = parsedTasks;
+          }
+        }
+      } catch (e) {
+        console.warn('sessionStorage is not accessible', e);
+      }
+      const newTasks = dataTasks.filter(task => !ignoredTaskIds.includes(task._id));
+
+      if (newLeads.length > 0 || newTasks.length > 0) {
         setPopupLeads(newLeads);
-        setPopupTasks(dataTasks);
+        setPopupTasks(newTasks);
         setShowPopup(true);
 
         // Trigger system notification if permitted
         if ('Notification' in window && Notification.permission === 'granted') {
           let bodyText = '';
-          if (dataTasks.length > 0) {
-            bodyText += `You have ${dataTasks.length} task(s) assigned to you. `;
+          if (newTasks.length > 0) {
+            bodyText += `You have ${newTasks.length} task(s) assigned to you. `;
           }
           if (newLeads.length > 0) {
             bodyText += `Leads pending action: ${newLeads.map(l => l.name).slice(0, 2).join(', ')}`;
@@ -135,29 +149,44 @@ const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
   };
 
   const handleIgnorePopup = () => {
-    let ignoredIds = [...ignoredLeads];
+    let ignoredLeadIds = [];
+    let ignoredTaskIds = [];
     try {
-      const stored = sessionStorage.getItem('ignored_assignments');
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed)) {
-          ignoredIds = Array.from(new Set([...ignoredIds, ...parsed]));
-        }
+      const storedLeads = sessionStorage.getItem('ignored_assignments');
+      if (storedLeads) {
+        const parsed = JSON.parse(storedLeads);
+        if (Array.isArray(parsed)) ignoredLeadIds = parsed;
+      }
+      const storedTasks = sessionStorage.getItem('ignored_task_popups');
+      if (storedTasks) {
+        const parsed = JSON.parse(storedTasks);
+        if (Array.isArray(parsed)) ignoredTaskIds = parsed;
       }
     } catch (e) {
       console.warn('sessionStorage is not accessible', e);
     }
+
     popupLeads.forEach(lead => {
-      if (!ignoredIds.includes(lead._id)) {
-        ignoredIds.push(lead._id);
+      if (!ignoredLeadIds.includes(lead._id)) {
+        ignoredLeadIds.push(lead._id);
       }
     });
-    setIgnoredLeads(ignoredIds);
+
+    popupTasks.forEach(task => {
+      if (!ignoredTaskIds.includes(task._id)) {
+        ignoredTaskIds.push(task._id);
+      }
+    });
+
     try {
-      sessionStorage.setItem('ignored_assignments', JSON.stringify(ignoredIds));
+      sessionStorage.setItem('ignored_assignments', JSON.stringify(ignoredLeadIds));
+      sessionStorage.setItem('ignored_task_popups', JSON.stringify(ignoredTaskIds));
     } catch (e) {
       console.warn('sessionStorage is not accessible', e);
     }
+
+    setPopupLeads([]);
+    setPopupTasks([]);
     setShowPopup(false);
   };
 
@@ -167,6 +196,16 @@ const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
         method: 'PUT',
         headers: { 'Authorization': `Bearer ${token}` }
       });
+
+      try {
+        const storedTasks = sessionStorage.getItem('ignored_task_popups');
+        const list = storedTasks ? JSON.parse(storedTasks) : [];
+        if (Array.isArray(list) && !list.includes(task._id)) {
+          list.push(task._id);
+          sessionStorage.setItem('ignored_task_popups', JSON.stringify(list));
+        }
+      } catch (e) {}
+
       setTaskNotifications(prev => prev.filter(t => t._id !== task._id));
       setPopupTasks(prev => prev.filter(t => t._id !== task._id));
       setShowPopup(false);
@@ -183,9 +222,20 @@ const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
         method: 'PUT',
         headers: { 'Authorization': `Bearer ${token}` }
       });
+
+      try {
+        const storedTasks = sessionStorage.getItem('ignored_task_popups');
+        const list = storedTasks ? JSON.parse(storedTasks) : [];
+        if (Array.isArray(list) && !list.includes(task._id)) {
+          list.push(task._id);
+          sessionStorage.setItem('ignored_task_popups', JSON.stringify(list));
+        }
+      } catch (e) {}
+
       setTaskNotifications(prev => prev.filter(t => t._id !== task._id));
-      setPopupTasks(prev => prev.filter(t => t._id !== task._id));
-      if (popupLeads.length === 0 && popupTasks.length <= 1) {
+      const remainingTasks = popupTasks.filter(t => t._id !== task._id);
+      setPopupTasks(remainingTasks);
+      if (popupLeads.length === 0 && remainingTasks.length === 0) {
         setShowPopup(false);
       }
     } catch (err) {
@@ -379,16 +429,25 @@ const Navbar = ({ sidebarOpen, setSidebarOpen }) => {
       {showPopup && (popupLeads.length > 0 || popupTasks.length > 0) && (
         <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl border border-gray-150 shadow-2xl w-full max-w-md p-6 text-left animate-fadeIn space-y-4">
-            <div className="flex items-center gap-3 border-b border-gray-100 pb-3">
-              <div className="p-2.5 bg-emerald-50 text-[#0e623a] rounded-2xl">
-                <Bell className="w-5 h-5 animate-bounce" />
+            <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 bg-emerald-50 text-[#0e623a] rounded-2xl">
+                  <Bell className="w-5 h-5 animate-bounce" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-extrabold text-gray-800 uppercase tracking-wide">
+                    Task & Lead Notifications
+                  </h3>
+                  <p className="text-[11px] text-gray-500">Please review assigned tasks and action alerts</p>
+                </div>
               </div>
-              <div>
-                <h3 className="text-sm font-extrabold text-gray-800 uppercase tracking-wide">
-                  Task & Lead Notifications
-                </h3>
-                <p className="text-[11px] text-gray-500">Please review assigned tasks and action alerts</p>
-              </div>
+              <button
+                onClick={handleIgnorePopup}
+                className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition cursor-pointer"
+                title="Close"
+              >
+                <X className="w-5 h-5" />
+              </button>
             </div>
 
             <div className="space-y-3 max-h-60 overflow-y-auto pr-1">
