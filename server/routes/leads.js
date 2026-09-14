@@ -322,12 +322,12 @@ router.put('/:id', protect, async (req, res) => {
     const isSuperAdminUser = userRoleNorm === 'superadmin' || userRoleNorm === 'admin';
 
     if (!isRevert && !isSuperAdminUser) {
-      if (followUpInfo !== undefined) {
+      if (status !== 'Lost' && followUpInfo !== undefined) {
         if (!followUpInfo.remarks || !followUpInfo.remarks.trim()) {
           return res.status(400).json({ message: 'Follow-up remarks/notes are required.' });
         }
       }
-      if (statusChanged && !['Booking', 'Won'].includes(status)) {
+      if (statusChanged && !['Booking', 'Won', 'Lost'].includes(status)) {
         if (!followUpInfo) {
           if (!closeRemarks || !closeRemarks.trim()) {
             return res.status(400).json({ message: 'Transition / closing remarks are required.' });

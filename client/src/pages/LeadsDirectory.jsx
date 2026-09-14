@@ -106,16 +106,21 @@ const getPreviousStatus = (lead) => {
 
 const parsePhoneDetails = (fullPhone) => {
   if (!fullPhone) return { countryCode: '+91', localPhone: '' };
+  const raw = String(fullPhone).trim();
   const commonCodes = ['+91', '+971', '+44', '+1', '+966', '+965', '+973', '+968', '+974', '+65', '+61'];
   for (const code of commonCodes) {
-    if (fullPhone.startsWith(code)) {
-      return { countryCode: code, localPhone: fullPhone.slice(code.length) };
+    if (raw.startsWith(code)) {
+      return { countryCode: code, localPhone: raw.slice(code.length).replace(/\D/g, '') };
     }
   }
-  if (fullPhone.startsWith('+')) {
-    return { countryCode: '+', localPhone: fullPhone.slice(1) };
+  if (raw.startsWith('+')) {
+    const codeMatch = raw.match(/^\+\d{1,4}/);
+    if (codeMatch) {
+      return { countryCode: codeMatch[0], localPhone: raw.slice(codeMatch[0].length).replace(/\D/g, '') };
+    }
+    return { countryCode: '+', localPhone: raw.slice(1).replace(/\D/g, '') };
   }
-  return { countryCode: '+91', localPhone: fullPhone };
+  return { countryCode: '+91', localPhone: raw.replace(/\D/g, '') };
 };
 
 const validatePhone = (countryCode, localPhone, fieldName = 'Phone number') => {
@@ -977,16 +982,9 @@ const LeadsDirectory = () => {
     setError('');
     setSuccessMsg('');
 
-    if (editLeadType === 'Direct Visit') {
-      if (!editSalutation || !editName || !editPhoneLocal || !editAddress || !editLeadSource || !editProjectId || !editStatus || !editLeadCategory) {
-        setError('Please fill in all mandatory fields.');
-        return;
-      }
-    } else {
-      if (!editSalutation || !editName || !editPhoneLocal || !editLeadSource || !editProjectId || !editStatus || !editLeadCategory) {
-        setError('Please fill in all mandatory fields.');
-        return;
-      }
+    if (!editSalutation || !editName || !editPhoneLocal || !editLeadSource || !editProjectId || !editStatus || !editLeadCategory) {
+      setError('Please fill in all mandatory fields.');
+      return;
     }
     if (editLeadSource?.toLowerCase() === 'reference' && !editReferenceName.trim()) {
       setError('Please enter the reference name.');
@@ -1043,7 +1041,12 @@ const LeadsDirectory = () => {
         ...(selectedLeadForEdit?.followUpInfo || {}),
         remarks: editRemarks.trim()
       };
-    } else if (selectedLeadForEdit?.followUpInfo) {
+    } else if (isMovingToLost) {
+      followUpInfoPayload = {
+        ...(selectedLeadForEdit?.followUpInfo || {}),
+        remarks: editRemarks?.trim() || 'Marked lost via Edit'
+      };
+    } else if (selectedLeadForEdit?.followUpInfo?.remarks) {
       followUpInfoPayload = selectedLeadForEdit.followUpInfo;
     }
 
@@ -1066,7 +1069,7 @@ const LeadsDirectory = () => {
       activeAd: editLeadType === 'Lead' && adObj ? { name: adObj.name, link: adObj.link } : { name: '', link: '' },
       followUpInfo: followUpInfoPayload,
       isClosed: isMovingToLost ? true : (isMovingOutOfLost ? false : selectedLeadForEdit?.isClosed),
-      closeRemarks: isMovingToLost ? (editRemarks || 'Marked lost via Edit') : (isMovingOutOfLost ? '' : selectedLeadForEdit?.closeRemarks),
+      closeRemarks: isMovingToLost ? (editRemarks?.trim() || 'Marked lost via Edit') : (isMovingOutOfLost ? '' : selectedLeadForEdit?.closeRemarks),
       isRevert: isSuperAdmin
     };
 
