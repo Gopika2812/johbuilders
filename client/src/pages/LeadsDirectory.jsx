@@ -3455,6 +3455,12 @@ const LeadsDirectory = () => {
             </div>
 
             <form onSubmit={handleUpdateLead} noValidate className="p-6 space-y-4 flex-1 overflow-y-auto">
+              {error && (
+                <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700 font-semibold flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 text-red-600 shrink-0" />
+                  <span>{error}</span>
+                </div>
+              )}
               {isLockedForNonAdmin && (
                 <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900 font-semibold flex items-center gap-2">
                   <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
