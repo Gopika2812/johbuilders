@@ -3,6 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useAuth, API_URL } from '../context/AuthContext';
 import SearchableSelect from '../components/SearchableSelect';
 import * as XLSX from 'xlsx-js-style';
+import { exportHtmlSheetsToExcel } from '../utils/excelExporter';
 import { 
   Building, 
   MapPin, 
@@ -32,7 +33,8 @@ import {
   Loader2,
   FileSpreadsheet,
   Search,
-  X
+  X,
+  Download
 } from 'lucide-react';
 
 const SOURCE_TYPES = [
@@ -592,6 +594,154 @@ const ProjectDetail = () => {
     }
   };
 
+  const handleExportProjectInventoryExcel = async (unitsToExport, activeTypeLabel) => {
+    if (!project || !unitsToExport || unitsToExport.length === 0) return;
+    const projCode = project.code || project.name || 'Project';
+
+    const getUnitInfo = (u) => {
+      const norm = normalizeStatus(u.status);
+      let bgColor = '#d1fae5';
+      let textColor = '#065f46';
+      if (norm === 'Hold') {
+        bgColor = '#fef3c7';
+        textColor = '#92400e';
+      } else if (norm === 'Booked') {
+        bgColor = '#fee2e2';
+        textColor = '#991b1b';
+      } else if (norm === 'Ready Built') {
+        bgColor = '#f3e8ff';
+        textColor = '#6b21a8';
+      }
+
+      return {
+        unitId: u.unitId,
+        bhkType: u.unitType || activeTypeLabel || 'Plot',
+        size: u.size ? `${u.size} sq.ft` : '-',
+        price: u.price ? `₹${Number(u.price).toLocaleString('en-IN')}` : '-',
+        customerName: u.customerName || '-',
+        customerPhone: u.customerPhone || '-',
+        statusLabel: norm,
+        bgColor,
+        textColor
+      };
+    };
+
+    // Sheet 1: Unit Inventory List (Tabular format)
+    let listRowsHtml = '';
+    unitsToExport.forEach((u, index) => {
+      const info = getUnitInfo(u);
+      listRowsHtml += `
+        <tr style="border-bottom: 1px solid #e2e8f0;">
+          <td style="border: 1px solid #cbd5e1; padding: 10px; text-align: center; font-weight: bold;">${index + 1}</td>
+          <td style="border: 1px solid #cbd5e1; padding: 10px; font-weight: 900; font-size: 11pt;">${info.unitId}</td>
+          <td style="border: 1px solid #cbd5e1; padding: 10px; text-align: center; background-color: ${info.bgColor}; color: ${info.textColor}; font-weight: 900; text-transform: uppercase;">
+            ${info.statusLabel}
+          </td>
+          <td style="border: 1px solid #cbd5e1; padding: 10px; text-align: center; font-weight: 600;">${info.bhkType}</td>
+          <td style="border: 1px solid #cbd5e1; padding: 10px; text-align: center;">${info.size}</td>
+          <td style="border: 1px solid #cbd5e1; padding: 10px; text-align: right;">${info.price}</td>
+          <td style="border: 1px solid #cbd5e1; padding: 10px;">${info.customerName}</td>
+          <td style="border: 1px solid #cbd5e1; padding: 10px; text-align: center;">${info.customerPhone}</td>
+        </tr>
+      `;
+    });
+
+    const totalCount = unitsToExport.length;
+    const availCount = unitsToExport.filter(u => normalizeStatus(u.status) === 'Available').length;
+    const holdCount = unitsToExport.filter(u => normalizeStatus(u.status) === 'Hold').length;
+    const bookedCount = unitsToExport.filter(u => normalizeStatus(u.status) === 'Booked').length;
+    const rbCount = unitsToExport.filter(u => normalizeStatus(u.status) === 'Ready Built').length;
+
+    const listSheetHtml = `
+      <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+      <head>
+        <meta charset="utf-8"/>
+        <style>
+          table { border-collapse: collapse; width: 100%; font-family: 'Segoe UI', Arial, sans-serif; }
+          th { background-color: #0e623a; color: white; padding: 12px; font-size: 11pt; border: 1px solid #000; }
+          td { font-family: 'Segoe UI', Arial, sans-serif; }
+        </style>
+      </head>
+      <body>
+        <h2>${project.name} (${projCode}) - ${activeTypeLabel || 'Inventory'} Details</h2>
+        <p style="font-size: 10pt; color: #475569;">Total Units: <b>${totalCount}</b> | Available: <b style="color:#065f46;">${availCount}</b> | Hold: <b style="color:#92400e;">${holdCount}</b> | Booked: <b style="color:#991b1b;">${bookedCount}</b> | Ready Built: <b style="color:#6b21a8;">${rbCount}</b></p>
+        <br/>
+        <table>
+          <thead>
+            <tr>
+              <th style="width: 60px;">S.No</th>
+              <th style="width: 140px;">Unit Number / ID</th>
+              <th style="width: 130px;">Status</th>
+              <th style="width: 120px;">Unit Type</th>
+              <th style="width: 110px;">Size</th>
+              <th style="width: 130px;">Price</th>
+              <th style="width: 180px;">Customer Name</th>
+              <th style="width: 140px;">Customer Phone</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${listRowsHtml}
+          </tbody>
+        </table>
+      </body>
+      </html>
+    `;
+
+    // Sheet 2: Visual Grid Layout (10 columns per row)
+    const numCols = 10;
+    const flatCols = Array.from({ length: numCols }, (_, i) => i + 1);
+    const layoutTitle = `${projCode} VISUAL INVENTORY LAYOUT (${unitsToExport.length} UNITS)`;
+    let layoutRowsHtml = '';
+
+    for (let i = 0; i < unitsToExport.length; i += numCols) {
+      const chunk = unitsToExport.slice(i, i + numCols);
+      let cellsHtml = '';
+      chunk.forEach(u => {
+        const info = getUnitInfo(u);
+        cellsHtml += `
+          <td style="border: 1px solid #64748b; padding: 12px 8px; text-align: center; background-color: ${info.bgColor}; color: ${info.textColor}; min-width: 90px;">
+            <div style="font-weight: 900; font-size: 11pt;">${info.unitId}</div>
+            <div style="font-size: 8pt; font-weight: 900; margin-top: 4px; text-transform: uppercase;">[${info.statusLabel}]</div>
+          </td>
+        `;
+      });
+      for (let j = chunk.length; j < numCols; j++) {
+        cellsHtml += `<td style="border: 1px solid #e2e8f0; padding: 12px 8px; background-color: #f8fafc;"></td>`;
+      }
+      layoutRowsHtml += `<tr>${cellsHtml}</tr>`;
+    }
+
+    const layoutSheetHtml = `
+      <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+      <head>
+        <meta charset="utf-8"/>
+        <style>
+          table { border-collapse: collapse; width: 100%; font-family: 'Segoe UI', Arial, sans-serif; }
+          td, th { font-family: 'Segoe UI', Arial, sans-serif; }
+        </style>
+      </head>
+      <body>
+        <table>
+          <tr>
+            <th colspan="${flatCols.length}" style="border: 1px solid #000000; background-color: #1b4332; color: #ffffff; font-size: 13pt; font-weight: 900; padding: 14px; text-align: center;">
+              ${layoutTitle}
+            </th>
+          </tr>
+          ${layoutRowsHtml}
+        </table>
+      </body>
+      </html>
+    `;
+
+    await exportHtmlSheetsToExcel(
+      [
+        { name: `Unit Inventory Details`, html: listSheetHtml },
+        { name: `Visual Layout`, html: layoutSheetHtml }
+      ],
+      `${projCode}_${activeTypeLabel || 'Inventory'}_Report_${new Date().toISOString().substring(0, 10)}.xlsx`
+    );
+  };
+
   if (loading) {
     return (
       <div className="flex h-64 items-center justify-center">
@@ -889,6 +1039,17 @@ const ProjectDetail = () => {
               <span>Table</span>
             </button>
           </div>
+
+          {/* Download Excel Button */}
+          <button
+            type="button"
+            onClick={() => handleExportProjectInventoryExcel(displayedUnits, activeType)}
+            className="px-3.5 py-2 bg-[#0e623a] hover:bg-[#0b4d2d] text-white text-xs font-bold rounded-xl transition shadow-xs flex items-center gap-1.5 cursor-pointer"
+            title="Download Inventory Excel Report"
+          >
+            <Download className="w-3.5 h-3.5" />
+            <span>Download Excel</span>
+          </button>
         </div>
       </div>
 
