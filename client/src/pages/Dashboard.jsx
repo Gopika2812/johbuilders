@@ -1500,6 +1500,109 @@ const Dashboard = () => {
     const projCode = selectedProj.projCode || 'Project';
     const rawList = selectedProj.stats?.totalUnitsList || [];
 
+    const getUnitInfo = (uid) => {
+      const cleanId = String(uid).replace(/[-_ ]/g, '').toUpperCase();
+      const unitObj = projObj?.units?.find(u => {
+        const uClean = String(u.unitId || '').replace(/[-_ ]/g, '').toUpperCase();
+        return uClean === cleanId || u.unitId === uid;
+      });
+      const bhkType = unitObj?.unitType || '';
+      const uStatus = String(unitObj?.status || '').toLowerCase();
+
+      const inHold = uStatus.includes('hold') || (selectedProj?.stats?.holdUnitsList || []).concat(selectedProj?.stats?.cancelledUnitsList || []).some(u => {
+        const hId = typeof u === 'object' ? u?.unitId : u;
+        return String(hId || '').replace(/[-_ ]/g, '').toUpperCase() === cleanId;
+      });
+      const inReadyBuilt = uStatus === 'ready built' || uStatus === 'under construction' || uStatus === 'build' || (selectedProj?.stats?.readyBuiltUnitsList || []).some(id => String(id).replace(/[-_ ]/g, '').toUpperCase() === cleanId);
+      const inBooked = uStatus === 'booked' || uStatus === 'sold out' || (selectedProj?.stats?.bookedUnitsList || []).concat(selectedProj?.stats?.handoverUnitsList || []).some(id => String(id).replace(/[-_ ]/g, '').toUpperCase() === cleanId);
+
+      let bgColor = '#d1fae5';
+      let textColor = '#065f46';
+      let statusLabel = 'Available';
+
+      if (inHold) {
+        bgColor = '#fef3c7';
+        textColor = '#92400e';
+        statusLabel = 'Hold';
+      } else if (inReadyBuilt) {
+        bgColor = '#f3e8ff';
+        textColor = '#6b21a8';
+        statusLabel = 'Ready Built';
+      } else if (inBooked) {
+        bgColor = '#fee2e2';
+        textColor = '#991b1b';
+        statusLabel = 'Booked';
+      }
+
+      return {
+        unitId: uid,
+        bhkType: bhkType || (unitObj?.type ? unitObj.type : '-'),
+        size: unitObj?.size ? `${unitObj.size} sq.ft` : '-',
+        price: unitObj?.price ? `₹${Number(unitObj.price).toLocaleString('en-IN')}` : '-',
+        statusLabel,
+        bgColor,
+        textColor
+      };
+    };
+
+    // Sheet 1: Unit Inventory List (Tabular format: S.No, Unit Number, Status, Unit Type, Size, Price)
+    let listRowsHtml = '';
+    rawList.forEach((uid, index) => {
+      const info = getUnitInfo(uid);
+      listRowsHtml += `
+        <tr style="border-bottom: 1px solid #e2e8f0;">
+          <td style="border: 1px solid #cbd5e1; padding: 10px; text-align: center; font-weight: bold;">${index + 1}</td>
+          <td style="border: 1px solid #cbd5e1; padding: 10px; font-weight: 900; font-size: 11pt;">${info.unitId}</td>
+          <td style="border: 1px solid #cbd5e1; padding: 10px; text-align: center; background-color: ${info.bgColor}; color: ${info.textColor}; font-weight: 900; text-transform: uppercase;">
+            ${info.statusLabel}
+          </td>
+          <td style="border: 1px solid #cbd5e1; padding: 10px; text-align: center; font-weight: 600;">${info.bhkType}</td>
+          <td style="border: 1px solid #cbd5e1; padding: 10px; text-align: center;">${info.size}</td>
+          <td style="border: 1px solid #cbd5e1; padding: 10px; text-align: right;">${info.price}</td>
+        </tr>
+      `;
+    });
+
+    const totalCount = selectedProj.stats?.total || rawList.length;
+    const availCount = selectedProj.stats?.available || 0;
+    const holdCount = selectedProj.stats?.hold || 0;
+    const bookedCount = (selectedProj.stats?.booked || 0) + (selectedProj.stats?.handover || 0);
+    const rbCount = selectedProj.stats?.readyBuilt || 0;
+
+    const listSheetHtml = `
+      <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+      <head>
+        <meta charset="utf-8"/>
+        <style>
+          table { border-collapse: collapse; width: 100%; font-family: 'Segoe UI', Arial, sans-serif; }
+          th { background-color: #0e623a; color: white; padding: 12px; font-size: 11pt; border: 1px solid #000; }
+          td { font-family: 'Segoe UI', Arial, sans-serif; }
+        </style>
+      </head>
+      <body>
+        <h2>${projCode} Project Inventory Details</h2>
+        <p style="font-size: 10pt; color: #475569;">Total Units: <b>${totalCount}</b> | Available: <b style="color:#065f46;">${availCount}</b> | Hold: <b style="color:#92400e;">${holdCount}</b> | Booked: <b style="color:#991b1b;">${bookedCount}</b> | Ready Built: <b style="color:#6b21a8;">${rbCount}</b></p>
+        <br/>
+        <table>
+          <thead>
+            <tr>
+              <th style="width: 60px;">S.No</th>
+              <th style="width: 160px;">Unit Number / ID</th>
+              <th style="width: 140px;">Status</th>
+              <th style="width: 120px;">Unit Type</th>
+              <th style="width: 120px;">Size</th>
+              <th style="width: 140px;">Price</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${listRowsHtml}
+          </tbody>
+        </table>
+      </body>
+      </html>
+    `;
+
+    // Sheet 2: Visual Grid Layout (Apartment Matrix if Floor Layout or Multi-column Grid)
     const parseUnit = (uid) => {
       if (!uid || typeof uid !== 'string') return null;
       const m1 = uid.trim().match(/^(\d+)[Ff][-_ ]?(\d+)$/i);
@@ -1510,73 +1613,69 @@ const Dashboard = () => {
     };
 
     const parsedUnitsList = rawList.map(parseUnit).filter(Boolean);
-    const floorList = Array.from(new Set(parsedUnitsList.map(u => u.floorNum))).sort((a, b) => b - a);
-    const maxFlat = Math.max(...parsedUnitsList.map(u => u.flatNum), 8);
-    const flatCols = Array.from({ length: maxFlat }, (_, i) => i + 1);
+    const isFloorLayout = parsedUnitsList.length > 0 && parsedUnitsList.length >= rawList.length * 0.7;
 
-    let rowsHtml = '';
-    floorList.forEach(floorNum => {
-      let cellsHtml = '';
-      flatCols.forEach(flatNum => {
-        const unit = parsedUnitsList.find(u => u.floorNum === floorNum && u.flatNum === flatNum);
-        if (!unit) {
-          cellsHtml += `<td style="border: 1px solid #cbd5e1; padding: 14px 8px; text-align: center; background-color: #f8fafc; color: #94a3b8;">—</td>`;
-          return;
-        }
+    let layoutRowsHtml = '';
+    let flatCols = [];
+    let layoutTitle = '';
 
-        const uid = unit.rawId;
-        const displayId = unit.displayId;
-        const cleanId = String(uid).replace(/[-_ ]/g, '').toUpperCase();
+    if (isFloorLayout) {
+      const floorList = Array.from(new Set(parsedUnitsList.map(u => u.floorNum))).sort((a, b) => b - a);
+      const maxFlat = Math.max(...parsedUnitsList.map(u => u.flatNum), 8);
+      flatCols = Array.from({ length: maxFlat }, (_, i) => i + 1);
+      layoutTitle = `APARTMENT LAYOUT – ${floorList.length} FLOORS × ${flatCols.length} FLATS`;
 
-        const unitObj = projObj?.units?.find(u => {
-          const uClean = String(u.unitId || '').replace(/[-_ ]/g, '').toUpperCase();
-          return uClean === cleanId || u.unitId === uid || u.unitId === displayId;
+      floorList.forEach(floorNum => {
+        let cellsHtml = '';
+        flatCols.forEach(flatNum => {
+          const unit = parsedUnitsList.find(u => u.floorNum === floorNum && u.flatNum === flatNum);
+          if (!unit) {
+            cellsHtml += `<td style="border: 1px solid #cbd5e1; padding: 14px 8px; text-align: center; background-color: #f8fafc; color: #94a3b8;">—</td>`;
+            return;
+          }
+          const info = getUnitInfo(unit.rawId);
+          cellsHtml += `
+            <td style="border: 1px solid #64748b; padding: 12px 8px; text-align: center; background-color: ${info.bgColor}; color: ${info.textColor};">
+              <div style="font-weight: 900; font-size: 11pt;">${unit.displayId}</div>
+              <div style="font-size: 9pt; font-weight: bold; margin-top: 3px;">${info.bhkType}</div>
+              <div style="font-size: 8pt; font-weight: 900; margin-top: 4px; text-transform: uppercase;">[${info.statusLabel}]</div>
+            </td>
+          `;
         });
-        const bhkType = unitObj?.unitType || (flatNum <= 4 ? '3 BHK' : '2 BHK');
-        const uStatus = String(unitObj?.status || '').toLowerCase();
-
-        const inHold = uStatus.includes('hold') || (selectedProj?.stats?.holdUnitsList || []).concat(selectedProj?.stats?.cancelledUnitsList || []).some(u => {
-          const hId = typeof u === 'object' ? u?.unitId : u;
-          return String(hId || '').replace(/[-_ ]/g, '').toUpperCase() === cleanId;
-        });
-        const inReadyBuilt = uStatus === 'ready built' || uStatus === 'under construction' || uStatus === 'build' || (selectedProj?.stats?.readyBuiltUnitsList || []).some(id => String(id).replace(/[-_ ]/g, '').toUpperCase() === cleanId);
-        const inBooked = uStatus === 'booked' || uStatus === 'sold out' || (selectedProj?.stats?.bookedUnitsList || []).concat(selectedProj?.stats?.handoverUnitsList || []).some(id => String(id).replace(/[-_ ]/g, '').toUpperCase() === cleanId);
-
-        let bgColor = '#d1fae5';
-        let textColor = '#065f46';
-        let statusLabel = 'Available';
-
-        if (inHold) {
-          bgColor = '#fef3c7';
-          textColor = '#92400e';
-          statusLabel = 'Hold';
-        } else if (inReadyBuilt) {
-          bgColor = '#f3e8ff';
-          textColor = '#6b21a8';
-          statusLabel = 'Ready Built';
-        } else if (inBooked) {
-          bgColor = '#fee2e2';
-          textColor = '#991b1b';
-          statusLabel = 'Booked';
-        }
-
-        cellsHtml += `
-          <td style="border: 1px solid #64748b; padding: 12px 8px; text-align: center; background-color: ${bgColor}; color: ${textColor};">
-            <div style="font-weight: 900; font-size: 11pt;">${displayId}</div>
-            <div style="font-size: 9pt; font-weight: bold; margin-top: 3px;">${bhkType}</div>
-            <div style="font-size: 8pt; font-weight: 900; margin-top: 4px; text-transform: uppercase;">[${statusLabel}]</div>
-          </td>
-        `;
+        layoutRowsHtml += `<tr>${cellsHtml}</tr>`;
       });
-      rowsHtml += `<tr>${cellsHtml}</tr>`;
-    });
+    } else {
+      // Non-apartment / Plot grid layout (10 columns per row)
+      const numCols = 10;
+      flatCols = Array.from({ length: numCols }, (_, i) => i + 1);
+      layoutTitle = `${projCode} VISUAL INVENTORY LAYOUT (${rawList.length} UNITS)`;
 
-    const htmlContent = `
+      for (let i = 0; i < rawList.length; i += numCols) {
+        const chunk = rawList.slice(i, i + numCols);
+        let cellsHtml = '';
+        chunk.forEach(uid => {
+          const info = getUnitInfo(uid);
+          cellsHtml += `
+            <td style="border: 1px solid #64748b; padding: 12px 8px; text-align: center; background-color: ${info.bgColor}; color: ${info.textColor}; min-width: 90px;">
+              <div style="font-weight: 900; font-size: 11pt;">${uid}</div>
+              <div style="font-size: 8pt; font-weight: 900; margin-top: 4px; text-transform: uppercase;">[${info.statusLabel}]</div>
+            </td>
+          `;
+        });
+        // pad empty cells
+        for (let j = chunk.length; j < numCols; j++) {
+          cellsHtml += `<td style="border: 1px solid #e2e8f0; padding: 12px 8px; background-color: #f8fafc;"></td>`;
+        }
+        layoutRowsHtml += `<tr>${cellsHtml}</tr>`;
+      }
+    }
+
+    const layoutSheetHtml = `
       <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
       <head>
         <meta charset="utf-8"/>
         <style>
-          table { border-collapse: collapse; width: 100%; }
+          table { border-collapse: collapse; width: 100%; font-family: 'Segoe UI', Arial, sans-serif; }
           td, th { font-family: 'Segoe UI', Arial, sans-serif; }
         </style>
       </head>
@@ -1584,18 +1683,21 @@ const Dashboard = () => {
         <table>
           <tr>
             <th colspan="${flatCols.length}" style="border: 1px solid #000000; background-color: #1b4332; color: #ffffff; font-size: 13pt; font-weight: 900; padding: 14px; text-align: center;">
-              APARTMENT FLAT LAYOUT – ${floorList.length} FLOORS × ${flatCols.length} FLATS
+              ${layoutTitle}
             </th>
           </tr>
-          ${rowsHtml}
+          ${layoutRowsHtml}
         </table>
       </body>
       </html>
     `;
 
     await exportHtmlSheetsToExcel(
-      [{ name: `${projCode} Layout`, html: htmlContent }],
-      `${projCode}_Apartment_Flat_Layout_${new Date().toISOString().substring(0, 10)}.xlsx`
+      [
+        { name: `Unit Inventory Details`, html: listSheetHtml },
+        { name: `Visual Layout`, html: layoutSheetHtml }
+      ],
+      `${projCode}_Inventory_Status_Report_${new Date().toISOString().substring(0, 10)}.xlsx`
     );
   };
 
