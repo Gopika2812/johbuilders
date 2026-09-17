@@ -63,13 +63,9 @@ router.get('/', protect, async (req, res) => {
     let queryExec = Lead.find(query)
       .populate('project', 'name code location')
       .populate('assignedTo', 'name role phone mobile phoneNumber')
-      .populate('assignedBy', 'name role phone mobile phoneNumber');
-
-    if (req.query.includeHistory === 'true') {
-      queryExec = queryExec
-        .populate('history.assignedTo', 'name role phone mobile phoneNumber')
-        .populate('history.updatedBy', 'name role phone mobile phoneNumber');
-    }
+      .populate('assignedBy', 'name role phone mobile phoneNumber')
+      .populate('history.assignedTo', 'name role phone mobile phoneNumber')
+      .populate('history.updatedBy', 'name role phone mobile phoneNumber');
 
     const leads = await queryExec.sort({ updatedAt: -1 }).lean();
     res.json(leads);
@@ -289,7 +285,9 @@ router.post('/', protect, async (req, res) => {
     const populated = await Lead.findById(newLead._id)
       .populate('project', 'name code location units')
       .populate('assignedTo', 'name role phone mobile phoneNumber')
-      .populate('assignedBy', 'name role phone mobile phoneNumber');
+      .populate('assignedBy', 'name role phone mobile phoneNumber')
+      .populate('history.assignedTo', 'name role phone mobile phoneNumber')
+      .populate('history.updatedBy', 'name role phone mobile phoneNumber');
 
     return res.status(201).json({ 
       message: isReopenedLead ? 'New reopened lead created separately' : 'Lead created successfully', 

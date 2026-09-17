@@ -4001,32 +4001,97 @@ const LeadsDirectory = () => {
 
               {selectedLeadForHistory.history?.length > 0 ? (
                 <div className="relative border-l border-black-200 ml-3 space-y-6">
-                  {[...selectedLeadForHistory.history].reverse().map((hist, idx) => (
-                    <div key={idx} className="relative pl-6">
-                      {/* Timeline dot */}
-                      <span className="absolute -left-[5px] top-1.5 w-2.5 h-2.5 rounded-full bg-[#0e623a] border-2 border-white ring-4 ring-[#f0f9f4]"></span>
+                  {[...selectedLeadForHistory.history].reverse().map((hist, idx) => {
+                    // Resolve assigned executive
+                    let assignedName = '';
+                    let assignedRole = '';
+                    if (hist.assignedTo) {
+                      if (typeof hist.assignedTo === 'object' && hist.assignedTo.name) {
+                        assignedName = hist.assignedTo.name;
+                        assignedRole = hist.assignedTo.role || '';
+                      } else {
+                        const idStr = String(hist.assignedTo._id || hist.assignedTo);
+                        const emp = employees.find(e => String(e._id) === idStr);
+                        if (emp && emp.name) {
+                          assignedName = emp.name;
+                          assignedRole = emp.role || '';
+                        } else if (selectedLeadForHistory.assignedTo) {
+                          const currAssignedId = String(selectedLeadForHistory.assignedTo._id || selectedLeadForHistory.assignedTo);
+                          if (currAssignedId === idStr && typeof selectedLeadForHistory.assignedTo === 'object' && selectedLeadForHistory.assignedTo.name) {
+                            assignedName = selectedLeadForHistory.assignedTo.name;
+                            assignedRole = selectedLeadForHistory.assignedTo.role || '';
+                          }
+                        }
+                      }
+                    }
 
-                      <div className="text-xs text-black-400">
-                        {hist.timestamp ? new Date(hist.timestamp).toLocaleString() : 'Date unavailable'}
-                      </div>
-                      <div className="text-sm font-semibold text-black-800 mt-0.5">
-                        Status transitioned to: <span className="text-[#0e623a] font-bold">{hist.status}</span>
-                      </div>
-                      {hist.assignedTo && (
-                        <div className="text-xs text-black-500 mt-0.5">
-                          Assigned Executive: {hist.assignedTo.name} ({hist.assignedTo.role})
+                    // Resolve performer / updatedBy
+                    let performerName = '';
+                    let performerRole = '';
+                    if (hist.updatedBy) {
+                      if (typeof hist.updatedBy === 'object' && hist.updatedBy.name) {
+                        performerName = hist.updatedBy.name;
+                        performerRole = hist.updatedBy.role || '';
+                      } else {
+                        const updatedIdStr = String(hist.updatedBy._id || hist.updatedBy);
+                        const emp = employees.find(e => String(e._id) === updatedIdStr);
+                        if (emp && emp.name) {
+                          performerName = emp.name;
+                          performerRole = emp.role || '';
+                        } else if (user && String(user._id) === updatedIdStr) {
+                          performerName = user.name;
+                          performerRole = user.role || '';
+                        } else if (selectedLeadForHistory.assignedBy) {
+                          const currAssignedById = String(selectedLeadForHistory.assignedBy._id || selectedLeadForHistory.assignedBy);
+                          if (currAssignedById === updatedIdStr && typeof selectedLeadForHistory.assignedBy === 'object' && selectedLeadForHistory.assignedBy.name) {
+                            performerName = selectedLeadForHistory.assignedBy.name;
+                            performerRole = selectedLeadForHistory.assignedBy.role || '';
+                          }
+                        }
+                      }
+                    }
+
+                    // Fallbacks for performer if not found
+                    if (!performerName) {
+                      if (selectedLeadForHistory.assignedBy && typeof selectedLeadForHistory.assignedBy === 'object' && selectedLeadForHistory.assignedBy.name) {
+                        performerName = selectedLeadForHistory.assignedBy.name;
+                        performerRole = selectedLeadForHistory.assignedBy.role || '';
+                      } else if (user?.name) {
+                        performerName = user.name;
+                        performerRole = user.role || '';
+                      } else {
+                        performerName = 'System';
+                        performerRole = 'User';
+                      }
+                    }
+
+                    return (
+                      <div key={idx} className="relative pl-6">
+                        {/* Timeline dot */}
+                        <span className="absolute -left-[5px] top-1.5 w-2.5 h-2.5 rounded-full bg-[#0e623a] border-2 border-white ring-4 ring-[#f0f9f4]"></span>
+
+                        <div className="text-xs text-black-400">
+                          {hist.timestamp ? new Date(hist.timestamp).toLocaleString() : 'Date unavailable'}
                         </div>
-                      )}
-                      <div className="text-xs text-black-400 mt-1 italic">
-                        Action performed by: {hist.updatedBy?.name || 'System'} ({hist.updatedBy?.role || 'User'})
-                      </div>
-                      {hist.note && (
-                        <div className="mt-2 text-xs bg-green-50 border border-green-200 p-2 rounded-lg text-green-800 font-medium shadow-sm">
-                          {hist.note}
+                        <div className="text-sm font-semibold text-black-800 mt-0.5">
+                          Status transitioned to: <span className="text-[#0e623a] font-bold">{hist.status}</span>
                         </div>
-                      )}
-                    </div>
-                  ))}
+                        {assignedName && (
+                          <div className="text-xs text-black-600 mt-0.5 font-medium">
+                            Assigned Executive: <strong className="text-black-800 font-bold">{assignedName}</strong> {assignedRole ? `(${assignedRole})` : ''}
+                          </div>
+                        )}
+                        <div className="text-xs text-black-500 mt-1 italic">
+                          Action performed by: <strong className="text-black-700 font-semibold">{performerName}</strong> {performerRole ? `(${performerRole})` : ''}
+                        </div>
+                        {hist.note && (
+                          <div className="mt-2 text-xs bg-green-50 border border-green-200 p-2 rounded-lg text-green-800 font-medium shadow-sm">
+                            {hist.note}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               ) : (
                 <p className="text-xs text-black-400 text-center py-4">No audit logs available for this lead.</p>
