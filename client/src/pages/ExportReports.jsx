@@ -831,7 +831,7 @@ const ExportReports = () => {
   const handleExportHotListExcel = async (returnHtml = false, providedStats = null) => {
     try {
       setReportLoading(true);
-      setReportLoadingText('Fetching hot list records for selected period...');
+      setReportLoadingText('Fetching all active pending hot list records...');
       const currentStats = providedStats || await ensureStats();
       const res = await fetch(`${API_URL}/leads`, {
         headers: { 'Authorization': `Bearer ${token}` }
@@ -842,12 +842,13 @@ const ExportReports = () => {
       }
       const data = await res.json();
 
-      // Apply active dashboard filters
+      // Apply active dashboard filters (Pending Hot List only - No date filtration)
       const filtered = data.filter(lead => {
         // 1. Must be hot category and NOT booked or closed (Pending records only)
         const s = (lead.status || '').toLowerCase();
         const isBooked = lead.isBooked || s === 'booking' || s === 'booked' || s === 'won';
-        const isHotList = lead.leadCategory === 'Hot' && !lead.isClosed && !isBooked;
+        const isClosed = lead.isClosed || s === 'lost' || s === 'cancelled' || s === 'closed';
+        const isHotList = lead.leadCategory === 'Hot' && !isClosed && !isBooked;
         if (!isHotList) return false;
 
         // 2. Project filter
@@ -856,20 +857,11 @@ const ExportReports = () => {
         // 3. User/Executive filter
         if (selectedUser && (lead.assignedTo?._id || lead.assignedTo) !== selectedUser) return false;
 
-        // 4. Date range filter
-        const createdAt = new Date(lead.createdAt);
-        if (fromDate && createdAt < new Date(fromDate)) return false;
-        if (toDate) {
-          const end = new Date(toDate);
-          end.setHours(23, 59, 59, 999);
-          if (createdAt > end) return false;
-        }
-
         return true;
       });
 
       if (filtered.length === 0) {
-        alert('No hot list records found for the selected filters.');
+        alert('No pending active hot list records found for the selected filters.');
         return;
       }
 
@@ -879,12 +871,11 @@ const ExportReports = () => {
         ? (projectList.find(p => p._id === selectedProject)?.code || 'PROJECT')
         : '';
       const titleText = projectTitle 
-        ? `JB - ${projectTitle.toUpperCase()} MARKETING HOT LIST`
-        : `JB - MARKETING HOT LIST`;
+        ? `JB - ${projectTitle.toUpperCase()} ACTIVE HOT LIST (PENDING)`
+        : `JB - ACTIVE HOT LIST (PENDING)`;
         
-      const monthNames = ["JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE", "JULY", "AUGUST", "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER"];
-      const dateForMonth = fromDate ? new Date(fromDate) : new Date();
-      const monthTitle = `MONTH OF ${monthNames[dateForMonth.getMonth()]} - ${dateForMonth.getFullYear()}`;
+      const todayFormatted = new Date().toLocaleDateString('en-GB').replace(/\//g, '.');
+      const monthTitle = `ACTIVE PIPELINE (ALL PENDING HOT LEADS) - AS ON ${todayFormatted}`;
 
       // Build HTML
       let html = `
@@ -953,7 +944,7 @@ const ExportReports = () => {
       `;
 
       // Trigger download
-      handlePreview(html, `JB_${fileCode}_ACTIVE_HOT_LIST_REPORT_${dateForMonth.getFullYear()}_${dateForMonth.getMonth() + 1}.xls`);
+      handlePreview(html, `JB_${fileCode}_ACTIVE_HOT_LIST_REPORT_${new Date().getFullYear()}_${new Date().getMonth() + 1}.xls`);
 
     } catch (err) {
       console.error(err);
