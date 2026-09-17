@@ -166,7 +166,7 @@ const OverallReport = () => {
     }
     
     return true;
-  });
+  }).sort((a, b) => new Date(a.createdAt || 0) - new Date(b.createdAt || 0));
 
   return (
     <div className="p-1 sm:p-4 md:p-6 lg:p-8 max-w-full lg:max-w-[96%] mx-auto min-h-screen font-sans">

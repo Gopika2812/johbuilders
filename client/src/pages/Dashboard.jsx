@@ -4422,7 +4422,7 @@ const Dashboard = () => {
                   if (fromDate && leadDateStr < fromDate) return false;
                   if (toDate && leadDateStr > toDate) return false;
                   return true;
-                });
+                }).sort((a, b) => new Date(a.createdAt || 0) - new Date(b.createdAt || 0));
 
                 return hotLeadsList.length > 0 ? (
                   <div className="overflow-x-auto">

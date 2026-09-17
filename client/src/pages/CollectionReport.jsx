@@ -80,13 +80,19 @@ const CollectionReport = () => {
     XLSX.writeFile(wb, `Collection_Report_${new Date().toLocaleDateString('en-GB').replace(/\//g, '-')}.xlsx`);
   };
 
+  const getFlowDate = (flow) => {
+    if (flow.lead?.bookingInfo?.bookingDate) return new Date(flow.lead.bookingInfo.bookingDate);
+    if (flow.createdAt) return new Date(flow.createdAt);
+    return new Date(0);
+  };
+
   const filteredFlows = flows.filter(flow => {
     if (!searchQuery) return true;
     const searchLower = searchQuery.toLowerCase();
     const custName = flow.lead?.name?.toLowerCase() || '';
     const projName = flow.project?.name?.toLowerCase() || '';
     return custName.includes(searchLower) || projName.includes(searchLower);
-  });
+  }).sort((a, b) => getFlowDate(a) - getFlowDate(b));
 
   return (
     <div className="p-1 sm:p-4 md:p-6 lg:p-8 max-w-full lg:max-w-7xl mx-auto min-h-screen font-sans">

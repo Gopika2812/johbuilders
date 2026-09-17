@@ -579,65 +579,39 @@ const CRDReports = () => {
             ${getExcelHeader(titleText, monthTitle, 10, "#16a34a", logoPath)}
       `;
 
-      // Group leads by assigned executive to insert executive banner row (as seen in screenshot: "Veni" blue banner stretching across!)
-      const groupedByExec = {};
-      filtered.forEach(lead => {
-        const execName = lead.assignedTo?.name || 'UNASSIGNED';
-        if (!groupedByExec[execName]) groupedByExec[execName] = [];
-        groupedByExec[execName].push(lead);
-      });
+      // Sort chronologically by date (1st to 31st)
+      filtered.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
 
       let globalSNo = 1;
 
-      Object.keys(groupedByExec).forEach(execName => {
-        // Executive banner row
+      // Lead rows in strict chronological date order
+      filtered.forEach((lead, idx) => {
+        const dateStr = new Date(lead.createdAt).toLocaleDateString('en-GB').replace(/\//g, '.');
+        const phoneStr = lead.phone || '&nbsp;';
+        const execName = lead.assignedTo?.name || 'UNASSIGNED';
+        const sourceStr = (lead.leadSource?.toLowerCase() === 'reference' && lead.referenceName)
+          ? `Reference (Ref: ${lead.referenceName})`
+          : (lead.leadSource || '&nbsp;');
+        const projectStr = lead.project?.code || '&nbsp;';
+        const placeStr = lead.address ? lead.address.split(',')[0] : '&nbsp;';
+        const statusStr = formatLeadStatusForReport(lead);
+        const remarksStr = getFormattedLeadRemarks(lead, '&nbsp;');
+        const rowClass = idx % 2 === 1 ? 'class="even-row"' : '';
+
         html += `
-          <tr>
-            <td colspan="10" class="exec-banner">${execName.toUpperCase()}</td>
-          </tr>
-          <!-- Table Headers -->
-          <tr class="table-headers">
-            <th>S.No</th>
-            <th>Enquiry date</th>
-            <th>Lead Name</th>
-            <th>Contact Number</th>
-            <th>Assigned To</th>
-            <th>Enquiry Mode</th>
-            <th>Project</th>
-            <th>Place</th>
-            <th>Lead Status</th>
-            <th>sales person Remarks</th>
+          <tr ${rowClass}>
+            <td>${globalSNo++}</td>
+            <td>${dateStr}</td>
+            <td class="text-left bold-label">${lead.name || '&nbsp;'}</td>
+            <td>${phoneStr}</td>
+            <td>${execName.toUpperCase()}</td>
+            <td>${sourceStr}</td>
+            <td>${projectStr}</td>
+            <td>${placeStr}</td>
+            <td>${statusStr}</td>
+            <td class="text-left">${remarksStr}</td>
           </tr>
         `;
-
-        // Lead rows
-        groupedByExec[execName].forEach((lead, idx) => {
-          const dateStr = new Date(lead.createdAt).toLocaleDateString('en-GB').replace(/\//g, '.');
-          const phoneStr = lead.phone || '&nbsp;';
-          const sourceStr = (lead.leadSource?.toLowerCase() === 'reference' && lead.referenceName)
-            ? `Reference (Ref: ${lead.referenceName})`
-            : (lead.leadSource || '&nbsp;');
-          const projectStr = lead.project?.code || '&nbsp;';
-          const placeStr = lead.address ? lead.address.split(',')[0] : '&nbsp;';
-          const statusStr = formatLeadStatusForReport(lead);
-          const remarksStr = getFormattedLeadRemarks(lead, '&nbsp;');
-          const rowClass = idx % 2 === 1 ? 'class="even-row"' : '';
-
-          html += `
-            <tr ${rowClass}>
-              <td>${globalSNo++}</td>
-              <td>${dateStr}</td>
-              <td class="text-left bold-label">${lead.name || '&nbsp;'}</td>
-              <td>${phoneStr}</td>
-              <td>${execName.toUpperCase()}</td>
-              <td>${sourceStr}</td>
-              <td>${projectStr}</td>
-              <td>${placeStr}</td>
-              <td>${statusStr}</td>
-              <td class="text-left">${remarksStr}</td>
-            </tr>
-          `;
-        });
       });
 
       html += `
@@ -755,80 +729,57 @@ const CRDReports = () => {
             ${getExcelHeader(titleText, monthTitle, 10, "#2563eb", logoPath)}
       `;
 
-      // Group leads by assigned executive
-      const groupedByExec = {};
-      filtered.forEach(lead => {
-        const execName = lead.assignedTo?.name || 'UNASSIGNED';
-        if (!groupedByExec[execName]) groupedByExec[execName] = [];
-        groupedByExec[execName].push(lead);
-      });
+      const getSiteVisitDate = (lead) => {
+        if (lead.siteVisitDate) return new Date(lead.siteVisitDate);
+        if (lead.visitDate) return new Date(lead.visitDate);
+        if (lead.history && Array.isArray(lead.history)) {
+          const svEntry = lead.history.find(h => 
+            (h.status && h.status.toLowerCase().includes('site visit')) ||
+            (h.action && h.action.toLowerCase().includes('site visit')) ||
+            (h.stageName && h.stageName.toLowerCase().includes('site visit'))
+          );
+          if (svEntry && (svEntry.timestamp || svEntry.date)) {
+            return new Date(svEntry.timestamp || svEntry.date);
+          }
+        }
+        return new Date(lead.createdAt);
+      };
+
+      // Sort chronologically by Site Visit Date (1st to 31st)
+      filtered.sort((a, b) => getSiteVisitDate(a) - getSiteVisitDate(b));
 
       let globalSNo = 1;
 
-      Object.keys(groupedByExec).forEach(execName => {
-        // Executive banner row
+      // Lead rows in strict chronological site visit date order
+      filtered.forEach((lead, idx) => {
+        const svDate = getSiteVisitDate(lead);
+        const dateStr = svDate.toLocaleDateString('en-GB').replace(/\//g, '.');
+        const phoneStr = lead.phone || '&nbsp;';
+        const placeStr = lead.address ? lead.address.split(',')[0] : '&nbsp;';
+        const execName = lead.assignedTo?.name || 'UNASSIGNED';
+        const visitedBy = execName;
+        const projectStr = lead.project?.code || lead.project?.name || '&nbsp;';
+        const statusStr = formatLeadStatusForReport(lead);
+        const remarksStr = getFormattedLeadRemarks(lead, '&nbsp;');
+        const sourceStr = (lead.leadSource?.toLowerCase() === 'reference' && lead.referenceName)
+          ? `Reference (Ref: ${lead.referenceName})`
+          : (lead.leadSource || '&nbsp;');
+        const rowClass = idx % 2 === 1 ? 'class="even-row"' : '';
+
         html += `
-          <tr>
-            <td colspan="10" class="exec-banner">${execName.toUpperCase()}</td>
-          </tr>
-          <!-- Table Headers -->
-          <tr class="table-headers">
-            <th>S.No.</th>
-            <th>Site Visit Date</th>
-            <th>Name</th>
-            <th>Contact</th>
-            <th>Site Visited By</th>
-            <th>Project</th>
-            <th>Place</th>
-            <th>Enquiry Status</th>
-            <th>Remarks</th>
-            <th>Enquiry mode</th>
+          <tr ${rowClass}>
+            <td>${globalSNo++}</td>
+            <td>${dateStr}</td>
+            <td class="text-left bold-label">${lead.name || '&nbsp;'}</td>
+            <td>${phoneStr}</td>
+            <td>${visitedBy}</td>
+            <td>${projectStr}</td>
+            <td>${placeStr}</td>
+            <td>${statusStr}</td>
+            <td class="text-left">${remarksStr}</td>
+            <td>${sourceStr}</td>
           </tr>
         `;
-
-        // Lead rows
-        groupedByExec[execName].forEach((lead, idx) => {
-          let svDate = lead.siteVisitDate ? new Date(lead.siteVisitDate) : null;
-          if (!svDate && lead.history) {
-            const svHist = lead.history.find(h => 
-              h.status === 'Site Visit' || 
-              h.status === 'Site Visit Follow-up' ||
-              (h.stageName && h.stageName.toLowerCase().includes('site visit'))
-            );
-            if (svHist && (svHist.timestamp || svHist.date)) {
-              svDate = new Date(svHist.timestamp || svHist.date);
-            }
-          }
-          if (!svDate) svDate = new Date(lead.createdAt);
-          const dateStr = svDate.toLocaleDateString('en-GB').replace(/\//g, '.');
-          const phoneStr = lead.phone || '&nbsp;';
-          const placeStr = lead.address ? lead.address.split(',')[0] : '&nbsp;';
-          const visitedBy = execName;
-          const projectStr = lead.project?.code || lead.project?.name || '&nbsp;';
-          
-          // Enquiry Status column is workflow status (e.g. lost, future followup, followup)
-          const statusStr = formatLeadStatusForReport(lead);
-          const remarksStr = getFormattedLeadRemarks(lead, '&nbsp;');
-          const sourceStr = (lead.leadSource?.toLowerCase() === 'reference' && lead.referenceName)
-            ? `Reference (Ref: ${lead.referenceName})`
-            : (lead.leadSource || '&nbsp;');
-          const rowClass = idx % 2 === 1 ? 'class="even-row"' : '';
-
-          html += `
-            <tr ${rowClass}>
-              <td>${globalSNo++}</td>
-              <td>${dateStr}</td>
-              <td class="text-left bold-label">${lead.name || '&nbsp;'}</td>
-              <td>${phoneStr}</td>
-              <td>${visitedBy}</td>
-              <td>${projectStr}</td>
-              <td>${placeStr}</td>
-              <td>${statusStr}</td>
-              <td class="text-left">${remarksStr}</td>
-              <td>${sourceStr}</td>
-            </tr>
-          `;
-        });
       });
 
       html += `
@@ -915,117 +866,46 @@ const CRDReports = () => {
             ${getExcelHeader(titleText, monthTitle, 9, "#ea580c", logoPath)}
       `;
 
-      // Group leads by assigned executive
-      const groupedByExec = {};
-      filtered.forEach(lead => {
-        const execName = lead.assignedTo?.name || 'UNASSIGNED';
-        if (!groupedByExec[execName]) groupedByExec[execName] = [];
-        groupedByExec[execName].push(lead);
-      });
+      // Sort chronologically by date (1st to 31st)
+      filtered.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
 
       let globalSNo = 1;
 
-      Object.keys(groupedByExec).forEach(execName => {
-        const leadsList = groupedByExec[execName];
-        // Sort chronologically by date (1st to 31st)
-        leadsList.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+      // Lead rows in strict chronological date order
+      filtered.forEach((lead, idx) => {
+        const salutationStr = lead.salutation ? `${lead.salutation} ` : '';
+        const nameStr = `${salutationStr}${lead.name || ''}`;
+        const phoneStr = lead.phone || '';
+        const execName = lead.assignedTo?.name || 'UNASSIGNED';
+        const followBy = execName;
+        const sourceStr = lead.leadSource || 'Direct Visit';
+        const projectStr = lead.project?.code || lead.project?.name || '&nbsp;';
+        
+        // Last Called Date: either lead.updatedAt or latest follow-up date
+        const lastCalledStr = lead.updatedAt 
+          ? new Date(lead.updatedAt).toLocaleDateString('en-GB').replace(/\//g, '.') 
+          : new Date(lead.createdAt).toLocaleDateString('en-GB').replace(/\//g, '.');
+          
+        const followUpDateStr = lead.followUpInfo?.nextFollowUpDate 
+          ? new Date(lead.followUpInfo.nextFollowUpDate).toLocaleDateString('en-GB').replace(/\//g, '.') 
+          : '';
+          
+        const remarksStr = getFormattedLeadRemarks(lead, '');
+        const rowClass = idx % 2 === 1 ? 'class="even-row"' : '';
 
-        // Executive banner row
         html += `
-          <tr>
-            <td colspan="9" class="exec-banner">${execName.toUpperCase()}</td>
+          <tr ${rowClass}>
+            <td>${globalSNo++}</td>
+            <td class="text-left bold-label">${nameStr}</td>
+            <td>${phoneStr}</td>
+            <td>${followBy}</td>
+            <td class="text-left">${sourceStr}</td>
+            <td>${projectStr}</td>
+            <td>${lastCalledStr}</td>
+            <td>${followUpDateStr}</td>
+            <td class="text-left">${remarksStr}</td>
           </tr>
         `;
-
-        const renderLeadRows = (list) => {
-          let sectionHtml = '';
-          list.forEach((lead, idx) => {
-            const salutationStr = lead.salutation ? `${lead.salutation} ` : '';
-            const nameStr = `${salutationStr}${lead.name || ''}`;
-            const phoneStr = lead.phone || '';
-            const followBy = execName;
-            const sourceStr = lead.leadSource || 'Direct Visit';
-            const projectStr = lead.project?.code || lead.project?.name || '&nbsp;';
-            
-            // Last Called Date: either lead.updatedAt or latest follow-up date
-            const lastCalledStr = lead.updatedAt 
-              ? new Date(lead.updatedAt).toLocaleDateString('en-GB').replace(/\//g, '.') 
-              : new Date(lead.createdAt).toLocaleDateString('en-GB').replace(/\//g, '.');
-              
-            const followUpDateStr = lead.followUpInfo?.nextFollowUpDate 
-              ? new Date(lead.followUpInfo.nextFollowUpDate).toLocaleDateString('en-GB').replace(/\//g, '.') 
-              : '';
-              
-            const remarksStr = getFormattedLeadRemarks(lead, '');
-            const rowClass = idx % 2 === 1 ? 'class="even-row"' : '';
-
-            sectionHtml += `
-              <tr ${rowClass}>
-                <td>${globalSNo++}</td>
-                <td class="text-left bold-label">${nameStr}</td>
-                <td>${phoneStr}</td>
-                <td>${followBy}</td>
-                <td class="text-left">${sourceStr}</td>
-                <td>${projectStr}</td>
-                <td>${lastCalledStr}</td>
-                <td>${followUpDateStr}</td>
-                <td class="text-left">${remarksStr}</td>
-              </tr>
-            `;
-          });
-          return sectionHtml;
-        };
-
-        const bookedList = leadsList.filter(lead => lead.status === 'Booking' || lead.status === 'Won' || lead.status === 'Booked' || lead.isBooked);
-        const pendingList = leadsList.filter(lead => !(lead.status === 'Booking' || lead.status === 'Won' || lead.status === 'Booked' || lead.isBooked));
-
-        // 🟢 BOOKED HOT LIST Subsection
-        if (bookedList.length > 0) {
-          html += `
-            <tr>
-              <td colspan="9" style="background-color: #dcfce7 !important; color: #166534 !important; font-weight: bold; text-align: left; padding: 6px 12px; border: 1px solid #86efac; font-size: 10pt; letter-spacing: 0.3px;">
-                🟢 BOOKED HOT LIST (${bookedList.length})
-              </td>
-            </tr>
-            <!-- Table Headers -->
-            <tr class="table-headers">
-              <th>S.No</th>
-              <th>Customer Name</th>
-              <th>Contact Number</th>
-              <th>Followup By</th>
-              <th>Enquiry Mode</th>
-              <th>Project</th>
-              <th>Last Called Date</th>
-              <th>Follow up Date</th>
-              <th>Remarks</th>
-            </tr>
-          `;
-          html += renderLeadRows(bookedList);
-        }
-
-        // 🟡 PENDING HOT LIST Subsection
-        if (pendingList.length > 0) {
-          html += `
-            <tr>
-              <td colspan="9" style="background-color: #fef9c3 !important; color: #854d0e !important; font-weight: bold; text-align: left; padding: 6px 12px; border: 1px solid #fde047; font-size: 10pt; letter-spacing: 0.3px;">
-                🟡 PENDING HOT LIST (${pendingList.length})
-              </td>
-            </tr>
-            <!-- Table Headers -->
-            <tr class="table-headers">
-              <th>S.No</th>
-              <th>Customer Name</th>
-              <th>Contact Number</th>
-              <th>Followup By</th>
-              <th>Enquiry Mode</th>
-              <th>Project</th>
-              <th>Last Called Date</th>
-              <th>Follow up Date</th>
-              <th>Remarks</th>
-            </tr>
-          `;
-          html += renderLeadRows(pendingList);
-        }
       });
 
       html += `

@@ -593,64 +593,39 @@ const ExportReports = () => {
           </tr>
       `;
 
-      // Group leads by assigned executive to insert executive banner row (as seen in screenshot: "Veni" blue banner stretching across!)
-      const groupedByExec = {};
-      filtered.forEach(lead => {
-        const execName = lead.assignedTo?.name || 'UNASSIGNED';
-        if (!groupedByExec[execName]) groupedByExec[execName] = [];
-        groupedByExec[execName].push(lead);
-      });
+      // Sort chronologically by date (1st to 31st)
+      filtered.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
 
       let globalSNo = 1;
 
-      Object.keys(groupedByExec).forEach(execName => {
-        const leadsList = groupedByExec[execName];
-        // Sort chronologically by date (1st to 31st)
-        leadsList.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+      // Lead rows in strict chronological date order
+      filtered.forEach((lead, idx) => {
+        const dateStr = new Date(lead.createdAt).toLocaleDateString('en-GB').replace(/\//g, '.');
+        const phoneStr = lead.phone || '&nbsp;';
+        const execName = lead.assignedTo?.name || 'UNASSIGNED';
+        const sourceStr = (lead.leadSource?.toLowerCase() === 'reference' && lead.referenceName)
+          ? `Reference (Ref: ${lead.referenceName})`
+          : (lead.leadSource || '&nbsp;');
+        const projectStr = lead.project?.name || lead.project?.code || 'Potheri';
+        const locationStr = lead.address || lead.location || '&nbsp;';
+        const statusStr = formatLeadStatusForReport(lead);
+        const remarksStr = getFormattedLeadRemarks(lead, '&nbsp;');
+        const rowClass = idx % 2 === 1 ? 'class="even-row"' : '';
 
-        // Executive banner row
         html += `
-          <tr>
-            <td class="exec-banner">&nbsp;</td>
-            <td class="exec-banner">&nbsp;</td>
-            <td class="exec-banner">&nbsp;</td>
-            <td class="exec-banner">&nbsp;</td>
-            <td class="exec-banner">&nbsp;</td>
-            <td class="exec-banner text-red"><span style="color: red; font-weight: bold;">${execName}</span></td>
-            <td class="exec-banner">&nbsp;</td>
-            <td class="exec-banner">&nbsp;</td>
-            <td class="exec-banner">&nbsp;</td>
-            <td class="exec-banner">&nbsp;</td>
+          <tr ${rowClass}>
+            <td>${globalSNo++}</td>
+            <td>${dateStr}</td>
+            <td class="text-left font-bold">${lead.name || '&nbsp;'}</td>
+            <td>${phoneStr}</td>
+            <td>${execName}</td>
+            <td>${sourceStr}</td>
+            <td>${projectStr}</td>
+            <td>${locationStr}</td>
+            <td>${statusStr}</td>
+            <td class="text-left">${remarksStr}</td>
           </tr>
         `;
-
-        // Lead rows
-        leadsList.forEach((lead, idx) => {
-          const dateStr = new Date(lead.createdAt).toLocaleDateString('en-GB').replace(/\//g, '.');
-          const phoneStr = lead.phone || '&nbsp;';
-          const sourceStr = (lead.leadSource?.toLowerCase() === 'reference' && lead.referenceName)
-            ? `Reference (Ref: ${lead.referenceName})`
-            : (lead.leadSource || '&nbsp;');
-          const projectStr = lead.project?.name || lead.project?.code || 'Potheri';
-          const locationStr = lead.address || lead.location || '&nbsp;';
-          const statusStr = formatLeadStatusForReport(lead);
-          const remarksStr = getFormattedLeadRemarks(lead, '&nbsp;');
-
-          html += `
-            <tr>
-              <td>${globalSNo++}</td>
-              <td>${dateStr}</td>
-              <td class="text-left font-bold">${lead.name || '&nbsp;'}</td>
-              <td>${phoneStr}</td>
-              <td>${execName}</td>
-              <td>${sourceStr}</td>
-              <td>${projectStr}</td>
-              <td>${locationStr}</td>
-              <td>${statusStr}</td>
-              <td class="text-left">${remarksStr}</td>
-            </tr>
-          `;
-        });
       });
 
       html += `
@@ -784,73 +759,56 @@ const ExportReports = () => {
           </tr>
       `;
 
-      // Group leads by assigned executive
-      const groupedByExec = {};
-      filtered.forEach(lead => {
-        const execName = lead.assignedTo?.name || 'UNASSIGNED';
-        if (!groupedByExec[execName]) groupedByExec[execName] = [];
-        groupedByExec[execName].push(lead);
-      });
+      const getSiteVisitDate = (lead) => {
+        if (lead.siteVisitDate) return new Date(lead.siteVisitDate);
+        if (lead.visitDate) return new Date(lead.visitDate);
+        if (lead.history && Array.isArray(lead.history)) {
+          const svEntry = lead.history.find(h => 
+            (h.status && h.status.toLowerCase().includes('site visit')) ||
+            (h.action && h.action.toLowerCase().includes('site visit')) ||
+            (h.stageName && h.stageName.toLowerCase().includes('site visit'))
+          );
+          if (svEntry && (svEntry.timestamp || svEntry.date)) {
+            return new Date(svEntry.timestamp || svEntry.date);
+          }
+        }
+        return new Date(lead.createdAt);
+      };
+
+      // Sort chronologically by Site Visit Date (1st to 31st)
+      filtered.sort((a, b) => getSiteVisitDate(a) - getSiteVisitDate(b));
 
       let globalSNo = 1;
 
-      Object.keys(groupedByExec).forEach(execName => {
-        const leadsList = groupedByExec[execName];
-        // Sort chronologically by date
-        leadsList.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+      // Lead rows in strict chronological site visit date order
+      filtered.forEach((lead, idx) => {
+        const svDate = getSiteVisitDate(lead);
+        const dateStr = svDate.toLocaleDateString('en-GB').replace(/\//g, '.');
+        const phoneStr = lead.phone || '&nbsp;';
+        const execName = lead.assignedTo?.name || 'UNASSIGNED';
+        const sourceStr = (lead.leadSource?.toLowerCase() === 'reference' && lead.referenceName)
+          ? `Reference (Ref: ${lead.referenceName})`
+          : (lead.leadSource || '&nbsp;');
+        const projectStr = lead.project?.name || lead.project?.code || 'Potheri';
+        const locationStr = lead.address || lead.location || '&nbsp;';
+        const statusStr = formatLeadStatusForReport(lead);
+        const remarksStr = getFormattedLeadRemarks(lead, '&nbsp;');
+        const rowClass = idx % 2 === 1 ? 'class="even-row"' : '';
 
-        // Executive banner row
         html += `
-          <tr>
-            <td class="exec-banner">&nbsp;</td>
-            <td class="exec-banner">&nbsp;</td>
-            <td class="exec-banner">&nbsp;</td>
-            <td class="exec-banner">&nbsp;</td>
-            <td class="exec-banner">&nbsp;</td>
-            <td class="exec-banner text-red"><span style="color: red; font-weight: bold;">${execName}</span></td>
-            <td class="exec-banner">&nbsp;</td>
-            <td class="exec-banner">&nbsp;</td>
-            <td class="exec-banner">&nbsp;</td>
-            <td class="exec-banner">&nbsp;</td>
+          <tr ${rowClass}>
+            <td>${globalSNo++}</td>
+            <td>${dateStr}</td>
+            <td class="text-left font-bold">${lead.name || '&nbsp;'}</td>
+            <td>${phoneStr}</td>
+            <td>${execName}</td>
+            <td>${sourceStr}</td>
+            <td>${projectStr}</td>
+            <td>${locationStr}</td>
+            <td>${statusStr}</td>
+            <td class="text-left">${remarksStr}</td>
           </tr>
         `;
-
-        // Lead rows
-        leadsList.forEach(lead => {
-          // Check for specific site visit date or use createdAt as fallback
-          let siteVisitDate = lead.siteVisitDate;
-          if (!siteVisitDate && lead.history) {
-            const svEntry = lead.history.find(h => h.status === 'Site Visit' || h.status === 'Site Visit Follow-up');
-            if (svEntry) siteVisitDate = svEntry.timestamp;
-          }
-          const dateStr = siteVisitDate 
-            ? new Date(siteVisitDate).toLocaleDateString('en-GB').replace(/\//g, '.')
-            : new Date(lead.createdAt).toLocaleDateString('en-GB').replace(/\//g, '.');
-
-          const phoneStr = lead.phone || '&nbsp;';
-          const sourceStr = (lead.leadSource?.toLowerCase() === 'reference' && lead.referenceName)
-            ? `Reference (Ref: ${lead.referenceName})`
-            : (lead.leadSource || '&nbsp;');
-          const projectStr = lead.project?.name || lead.project?.code || 'Potheri';
-          const locationStr = lead.address || lead.location || '&nbsp;';
-          const statusStr = formatLeadStatusForReport(lead);
-          const remarksStr = getFormattedLeadRemarks(lead, '&nbsp;');
-
-          html += `
-            <tr>
-              <td>${globalSNo++}</td>
-              <td>${dateStr}</td>
-              <td class="text-left font-bold">${lead.name || '&nbsp;'}</td>
-              <td>${phoneStr}</td>
-              <td>${execName}</td>
-              <td>${sourceStr}</td>
-              <td>${projectStr}</td>
-              <td>${locationStr}</td>
-              <td>${statusStr}</td>
-              <td class="text-left">${remarksStr}</td>
-            </tr>
-          `;
-        });
       });
 
       html += `
@@ -953,64 +911,39 @@ const ExportReports = () => {
           </tr>
       `;
 
-      // Group leads by assigned executive
-      const groupedByExec = {};
-      filtered.forEach(lead => {
-        const execName = lead.assignedTo?.name || 'UNASSIGNED';
-        if (!groupedByExec[execName]) groupedByExec[execName] = [];
-        groupedByExec[execName].push(lead);
-      });
+      // Sort chronologically by date (1st to 31st)
+      filtered.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
 
       let globalSNo = 1;
 
-      Object.keys(groupedByExec).forEach(execName => {
-        const leadsList = groupedByExec[execName];
-        // Sort chronologically by date
-        leadsList.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+      // Lead rows in strict chronological date order
+      filtered.forEach((lead, idx) => {
+        const dateStr = new Date(lead.createdAt).toLocaleDateString('en-GB').replace(/\//g, '.');
+        const phoneStr = lead.phone || '&nbsp;';
+        const execName = lead.assignedTo?.name || 'UNASSIGNED';
+        const sourceStr = (lead.leadSource?.toLowerCase() === 'reference' && lead.referenceName)
+          ? `Reference (Ref: ${lead.referenceName})`
+          : (lead.leadSource || '&nbsp;');
+        const projectStr = lead.project?.name || lead.project?.code || 'Potheri';
+        const locationStr = lead.address || lead.location || '&nbsp;';
+        const statusStr = formatLeadStatusForReport(lead);
+        const remarksStr = getFormattedLeadRemarks(lead, '&nbsp;');
+        const rowClass = idx % 2 === 1 ? 'class="even-row"' : '';
 
-        // Executive banner row
         html += `
-          <tr>
-            <td class="exec-banner">&nbsp;</td>
-            <td class="exec-banner">&nbsp;</td>
-            <td class="exec-banner">&nbsp;</td>
-            <td class="exec-banner">&nbsp;</td>
-            <td class="exec-banner">&nbsp;</td>
-            <td class="exec-banner text-red"><span style="color: red; font-weight: bold;">${execName}</span></td>
-            <td class="exec-banner">&nbsp;</td>
-            <td class="exec-banner">&nbsp;</td>
-            <td class="exec-banner">&nbsp;</td>
-            <td class="exec-banner">&nbsp;</td>
+          <tr ${rowClass}>
+            <td>${globalSNo++}</td>
+            <td>${dateStr}</td>
+            <td class="text-left font-bold">${lead.name || '&nbsp;'}</td>
+            <td>${phoneStr}</td>
+            <td>${execName}</td>
+            <td>${sourceStr}</td>
+            <td>${projectStr}</td>
+            <td>${locationStr}</td>
+            <td>${statusStr}</td>
+            <td class="text-left">${remarksStr}</td>
           </tr>
         `;
-
-        // Lead rows
-        leadsList.forEach(lead => {
-          const dateStr = new Date(lead.createdAt).toLocaleDateString('en-GB').replace(/\//g, '.');
-          const phoneStr = lead.phone || '&nbsp;';
-          const sourceStr = (lead.leadSource?.toLowerCase() === 'reference' && lead.referenceName)
-            ? `Reference (Ref: ${lead.referenceName})`
-            : (lead.leadSource || '&nbsp;');
-          const projectStr = lead.project?.name || lead.project?.code || 'Potheri';
-          const locationStr = lead.address || lead.location || '&nbsp;';
-          const statusStr = formatLeadStatusForReport(lead);
-          const remarksStr = getFormattedLeadRemarks(lead, '&nbsp;');
-
-          html += `
-            <tr>
-              <td>${globalSNo++}</td>
-              <td>${dateStr}</td>
-              <td class="text-left font-bold">${lead.name || '&nbsp;'}</td>
-              <td>${phoneStr}</td>
-              <td>${execName}</td>
-              <td>${sourceStr}</td>
-              <td>${projectStr}</td>
-              <td>${locationStr}</td>
-              <td>${statusStr}</td>
-              <td class="text-left">${remarksStr}</td>
-            </tr>
-          `;
-        });
       });
 
       html += `
@@ -1111,64 +1044,39 @@ const ExportReports = () => {
           </tr>
       `;
 
-      // Group leads by assigned executive
-      const groupedByExec = {};
-      filtered.forEach(lead => {
-        const execName = lead.assignedTo?.name || 'UNASSIGNED';
-        if (!groupedByExec[execName]) groupedByExec[execName] = [];
-        groupedByExec[execName].push(lead);
-      });
+      // Sort chronologically by date (1st to 31st)
+      filtered.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
 
       let globalSNo = 1;
 
-      Object.keys(groupedByExec).forEach(execName => {
-        const leadsList = groupedByExec[execName];
-        // Sort chronologically by date
-        leadsList.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+      // Lead rows in strict chronological date order
+      filtered.forEach((lead, idx) => {
+        const dateStr = new Date(lead.createdAt).toLocaleDateString('en-GB').replace(/\//g, '.');
+        const phoneStr = lead.phone || '&nbsp;';
+        const execName = lead.assignedTo?.name || 'UNASSIGNED';
+        const sourceStr = (lead.leadSource?.toLowerCase() === 'reference' && lead.referenceName)
+          ? `Reference (Ref: ${lead.referenceName})`
+          : (lead.leadSource || '&nbsp;');
+        const projectStr = lead.project?.name || lead.project?.code || 'Potheri';
+        const locationStr = lead.address || lead.location || '&nbsp;';
+        const statusStr = formatLeadStatusForReport(lead);
+        const remarksStr = getFormattedLeadRemarks(lead, '&nbsp;');
+        const rowClass = idx % 2 === 1 ? 'class="even-row"' : '';
 
-        // Executive banner row
         html += `
-          <tr>
-            <td class="exec-banner">&nbsp;</td>
-            <td class="exec-banner">&nbsp;</td>
-            <td class="exec-banner">&nbsp;</td>
-            <td class="exec-banner">&nbsp;</td>
-            <td class="exec-banner">&nbsp;</td>
-            <td class="exec-banner text-red"><span style="color: red; font-weight: bold;">${execName}</span></td>
-            <td class="exec-banner">&nbsp;</td>
-            <td class="exec-banner">&nbsp;</td>
-            <td class="exec-banner">&nbsp;</td>
-            <td class="exec-banner">&nbsp;</td>
+          <tr ${rowClass}>
+            <td>${globalSNo++}</td>
+            <td>${dateStr}</td>
+            <td class="text-left font-bold">${lead.name || '&nbsp;'}</td>
+            <td>${phoneStr}</td>
+            <td>${execName}</td>
+            <td>${sourceStr}</td>
+            <td>${projectStr}</td>
+            <td>${locationStr}</td>
+            <td>${statusStr}</td>
+            <td class="text-left">${remarksStr}</td>
           </tr>
         `;
-
-        // Lead rows
-        leadsList.forEach(lead => {
-          const dateStr = new Date(lead.createdAt).toLocaleDateString('en-GB').replace(/\//g, '.');
-          const phoneStr = lead.phone || '&nbsp;';
-          const sourceStr = (lead.leadSource?.toLowerCase() === 'reference' && lead.referenceName)
-            ? `Reference (Ref: ${lead.referenceName})`
-            : (lead.leadSource || '&nbsp;');
-          const projectStr = lead.project?.name || lead.project?.code || 'Potheri';
-          const locationStr = lead.address || lead.location || '&nbsp;';
-          const statusStr = formatLeadStatusForReport(lead);
-          const remarksStr = getFormattedLeadRemarks(lead, '&nbsp;');
-
-          html += `
-            <tr>
-              <td>${globalSNo++}</td>
-              <td>${dateStr}</td>
-              <td class="text-left font-bold">${lead.name || '&nbsp;'}</td>
-              <td>${phoneStr}</td>
-              <td>${execName}</td>
-              <td>${sourceStr}</td>
-              <td>${projectStr}</td>
-              <td>${locationStr}</td>
-              <td>${statusStr}</td>
-              <td class="text-left">${remarksStr}</td>
-            </tr>
-          `;
-        });
       });
 
       html += `
@@ -2186,6 +2094,19 @@ const ExportReports = () => {
         }
       });
 
+      // Sort Registered and Pending flows chronologically by booking/advance date or creation date
+      registeredFlows.sort((a, b) => {
+        const dA = new Date(a.lead?.bookingInfo?.bookingDate || a.createdAt || 0);
+        const dB = new Date(b.lead?.bookingInfo?.bookingDate || b.createdAt || 0);
+        return dA - dB;
+      });
+
+      pendingFlows.sort((a, b) => {
+        const dA = new Date(a.lead?.bookingInfo?.bookingDate || a.createdAt || 0);
+        const dB = new Date(b.lead?.bookingInfo?.bookingDate || b.createdAt || 0);
+        return dA - dB;
+      });
+
       // Group Registered leads by Project Code
       const groupedRegistered = {};
       registeredFlows.forEach(flow => {
@@ -2208,6 +2129,13 @@ const ExportReports = () => {
         let localSNo = 1;
 
         Object.keys(groupedData).forEach(projCode => {
+          // Sort items inside each project chronologically by date
+          groupedData[projCode].sort((a, b) => {
+            const dA = new Date(a.lead?.bookingInfo?.bookingDate || a.createdAt || 0);
+            const dB = new Date(b.lead?.bookingInfo?.bookingDate || b.createdAt || 0);
+            return dA - dB;
+          });
+
           // Project group banner row
           rowsHtml += `
             <tr>
@@ -2355,6 +2283,19 @@ const ExportReports = () => {
         } else {
           pendingFlows.push(flow);
         }
+      });
+
+      // Sort Completed and Pending handover flows chronologically by booking/advance date or creation date
+      completedFlows.sort((a, b) => {
+        const dA = new Date(a.lead?.bookingInfo?.bookingDate || a.createdAt || 0);
+        const dB = new Date(b.lead?.bookingInfo?.bookingDate || b.createdAt || 0);
+        return dA - dB;
+      });
+
+      pendingFlows.sort((a, b) => {
+        const dA = new Date(a.lead?.bookingInfo?.bookingDate || a.createdAt || 0);
+        const dB = new Date(b.lead?.bookingInfo?.bookingDate || b.createdAt || 0);
+        return dA - dB;
       });
 
       const projectTitle = selectedProject 
