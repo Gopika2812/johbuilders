@@ -1084,13 +1084,21 @@ const LeadsDirectory = () => {
       });
 
       if (res.ok) {
+        const updatedLeadData = await res.json().catch(() => null);
         setSuccessMsg('Lead updated successfully!');
         setEditModalOpen(false);
         fetchLeads();
 
-
-        // Trigger WhatsApp notification if moved to Site Visit or Booking
-        if (editStatus === 'Site Visit') {
+        const isAlreadyBookedWithUnits = selectedLeadForEdit?.status === 'Booking' && (selectedLeadForEdit?.bookingInfo?.selectedUnits?.length > 0);
+        if ((editStatus === 'Booking' || editStatus === 'Booked') && !isAlreadyBookedWithUnits) {
+          const targetLead = {
+            ...selectedLeadForEdit,
+            ...payload,
+            ...(updatedLeadData || {}),
+            _id: selectedLeadForEdit._id
+          };
+          initiateBooked(targetLead);
+        } else if (editStatus === 'Site Visit') {
           const siteVisitDate = selectedLeadForEdit?.followUpInfo?.nextFollowUpDate || new Date();
           triggerSiteVisitWhatsAppNotification(editName, editPhoneCountryCode + editPhoneLocal, siteVisitDate);
         } else if (editStatus === 'Booking' || editStatus === 'Booked') {
@@ -1466,28 +1474,36 @@ const LeadsDirectory = () => {
     const parsed = parsePhoneDetails(lead.bookingInfo?.alternativePhone || lead.alternativePhone || '');
     setBookedAltCountryCode(parsed.countryCode);
     setBookedAltLocal(parsed.localPhone);
-    setBookedAadhar('');
-    setBookedPan('');
-    setBookedHasLoan(lead.bankLoan || 'No');
+    setBookedAadhar(lead.bookingInfo?.aadharNumber || '');
+    setBookedPan(lead.bookingInfo?.panNumber || '');
+    setBookedHasLoan(lead.bookingInfo?.hasLoan || lead.bankLoan || 'No');
     setLoanPercentage(lead.bankLoanPercentage || 0);
     setLeadCategory(lead.leadCategory || 'Cold');
-    setLoanAmount(0);
-    setLoanBank('');
-    setLoanAccountNumber('');
-    setLoanStatusNotes('');
-    setSelectedBookedUnits([]);
+    setLoanAmount(lead.bookingInfo?.loanDetails?.amountRequired || 0);
+    setLoanBank(lead.bookingInfo?.loanDetails?.preferredBank || '');
+    setLoanAccountNumber(lead.bookingInfo?.loanDetails?.accountNumber || '');
+    setLoanStatusNotes(lead.bookingInfo?.loanDetails?.loanStatus || '');
+    setSelectedBookedUnits(lead.bookingInfo?.selectedUnits || []);
     setTypedBookedUnits('');
     setCustomBookedAmount('');
     setEditedUnitSizes({});
 
     try {
       const projId = lead.project?._id || lead.project;
+      if (!projId) {
+        alert('No project is linked to this lead. Please assign a project first before booking.');
+        setBookedModalOpen(false);
+        setBookedLoading(false);
+        return;
+      }
       const res = await fetch(`${API_URL}/projects/${projId}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (res.ok) {
         const data = await res.json();
         setBookedProjectDetails(data);
+      } else {
+        setError('Failed to load project details for Booked');
       }
     } catch (err) {
       setError('Failed to load project details for Booked');
@@ -1726,6 +1742,12 @@ const LeadsDirectory = () => {
         }
       }
 
+      if (finalStatus === 'Booking' || followTargetStatus === 'Booking') {
+        setFollowModalOpen(false);
+        initiateBooked(selectedLeadForFollow);
+        return;
+      }
+
       payload = {
         status: finalStatus,
         followUpInfo: {
@@ -1752,6 +1774,13 @@ const LeadsDirectory = () => {
         alert('Transition remarks are required!');
         return;
       }
+
+      if (followTargetStatus === 'Booking') {
+        setFollowModalOpen(false);
+        initiateBooked(selectedLeadForFollow);
+        return;
+      }
+
       payload = {
         status: followTargetStatus || selectedLeadForFollow?.status || 'Assigned',
         isClosed: false,
@@ -2670,6 +2699,18 @@ const LeadsDirectory = () => {
                                 >
                                   <Edit2 className="w-3.5 h-3.5" /> Edit
                                 </button>
+                                {!lead.isClosed && lead.status !== 'Booking' && lead.status !== 'Won' && (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setOpenActionMenuId(null);
+                                      initiateBooked(lead);
+                                    }}
+                                    className="w-full text-left px-3.5 py-1.5 text-[11px] font-bold hover:bg-emerald-50 flex items-center gap-2 text-[#0e623a] cursor-pointer"
+                                  >
+                                    <FileText className="w-3.5 h-3.5 text-[#0e623a]" /> Move to Booked
+                                  </button>
+                                )}
                                 {(() => {
                                   const roleNorm = (user?.role || '').toLowerCase().replace(/[\s_-]+/g, '');
                                   const isSuperAdmin = roleNorm === 'superadmin' || roleNorm === 'admin';
@@ -3932,6 +3973,13 @@ const LeadsDirectory = () => {
                 </div>
               )}
 
+              {editStatus === 'Booking' && !(selectedLeadForEdit?.status === 'Booking' && selectedLeadForEdit?.bookingInfo?.selectedUnits?.length > 0) && (
+                <div className="p-3.5 bg-emerald-50 border border-emerald-300/80 rounded-2xl text-xs text-[#0e623a] font-bold flex items-center gap-2.5 animate-in fade-in duration-200 shadow-xs text-left">
+                  <FileText className="w-5 h-5 shrink-0 text-[#0e623a]" />
+                  <span>Moving to Booked stage requires selecting unit / plot numbers and quotation details. Upon clicking Update below, the Unit Selection Wizard will immediately open.</span>
+                </div>
+              )}
+
               {/* Remarks / Interaction Notes */}
               <div className="flex flex-col text-left">
                 <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Remarks / Interaction Notes</label>
@@ -3956,9 +4004,19 @@ const LeadsDirectory = () => {
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="flex-1 py-3 bg-amber-600 text-white rounded-xl text-xs font-bold hover:bg-amber-700 transition shadow-md cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
+                  className={`flex-1 py-3 text-white rounded-xl text-xs font-bold transition shadow-md cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50 ${
+                    editStatus === 'Booking' && !(selectedLeadForEdit?.status === 'Booking' && selectedLeadForEdit?.bookingInfo?.selectedUnits?.length > 0)
+                      ? 'bg-[#0e623a] hover:bg-[#0b4d2d]'
+                      : 'bg-amber-600 hover:bg-amber-700'
+                  }`}
                 >
-                  {isSubmitting ? <><Loader2 className="w-4 h-4 animate-spin" /> Updating...</> : 'Update Lead Record'}
+                  {isSubmitting ? (
+                    <><Loader2 className="w-4 h-4 animate-spin" /> Updating...</>
+                  ) : editStatus === 'Booking' && !(selectedLeadForEdit?.status === 'Booking' && selectedLeadForEdit?.bookingInfo?.selectedUnits?.length > 0) ? (
+                    'Update & Select Units / Plots →'
+                  ) : (
+                    'Update Lead Record'
+                  )}
                 </button>
               </div>
             </form>
