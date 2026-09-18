@@ -11,30 +11,10 @@ router.get('/', protect, async (req, res) => {
   try {
     let query = {};
     const userRoleNorm = (req.user?.role || '').toLowerCase().replace(/[\s_-]+/g, '');
-    const isPrivilegedUser = 
-      req.user.role === 'Superadmin' || 
-      userRoleNorm === 'admin' || 
-      userRoleNorm.includes('consultant') || 
-      userRoleNorm.includes('committee') || 
-      userRoleNorm.includes('ed') || 
-      userRoleNorm.includes('director') || 
-      userRoleNorm.includes('management');
-
+    const isSuperAdminUser = req.user.role === 'Superadmin' || userRoleNorm === 'admin';
     const isReportRequest = req.query.forReport === 'true' || req.query.report === 'true';
-    let hasReportPermission = false;
-    if (!isPrivilegedUser && !isReportRequest) {
-      try {
-        const { getMergedPermissions } = require('../utils/permissionHelper');
-        const userPermissions = await getMergedPermissions(req.user);
-        hasReportPermission = userPermissions.some(p => 
-          ['export_reports', 'sales_reports', 'crd_reports', 'kpi_insights', 'dashboard', 'dashboard_reports', 'overall_report', 'collection_report', 'reports', 'quotations'].includes(p.pageId) && (p.canView || p.canEdit)
-        );
-      } catch (e) {
-        console.error('Error checking report permissions in quotations route:', e);
-      }
-    }
 
-    if (!isPrivilegedUser && !isReportRequest && !hasReportPermission) {
+    if (!isSuperAdminUser && !isReportRequest) {
       const userLeads = await Lead.find({ assignedTo: req.user._id }, '_id').lean();
       const leadIds = userLeads.map(l => l._id);
       query = {

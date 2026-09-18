@@ -31,31 +31,12 @@ router.get('/', protect, async (req, res) => {
 
   const userRoleNorm = (req.user?.role || '').toLowerCase().replace(/[\s_-]+/g, '');
   const isSuperAdminUser = userRoleNorm === 'superadmin' || userRoleNorm === 'admin';
-  const isPrivilegedUser = 
-    isSuperAdminUser || 
-    userRoleNorm.includes('consultant') || 
-    userRoleNorm.includes('committee') || 
-    userRoleNorm.includes('ed') || 
-    userRoleNorm.includes('director') || 
-    userRoleNorm.includes('management');
 
-  // Check if request is for report downloading / viewing or user has report access
+  // Check if request is specifically for generating / downloading reports
   const isReportRequest = req.query.forReport === 'true' || req.query.report === 'true';
-  let hasReportPermission = false;
-  if (!isPrivilegedUser && !isReportRequest) {
-    try {
-      const { getMergedPermissions } = require('../utils/permissionHelper');
-      const userPermissions = await getMergedPermissions(req.user);
-      hasReportPermission = userPermissions.some(p => 
-        ['export_reports', 'sales_reports', 'crd_reports', 'kpi_insights', 'dashboard', 'dashboard_reports', 'overall_report', 'collection_report', 'reports'].includes(p.pageId) && (p.canView || p.canEdit)
-      );
-    } catch (e) {
-      console.error('Error checking report permissions in leads route:', e);
-    }
-  }
 
-  // Restrict to assigned leads ONLY for non-privileged users without report access
-  if (!isPrivilegedUser && !isReportRequest && !hasReportPermission) {
+  // Restrict to assigned leads ONLY for non-Superadmin users when NOT fetching a report
+  if (!isSuperAdminUser && !isReportRequest) {
     if (crdView === 'true') {
       const Quotation = require('../models/Quotation');
       const userQuotations = await Quotation.find({

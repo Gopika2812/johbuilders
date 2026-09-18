@@ -293,32 +293,29 @@ export const AuthProvider = ({ children }) => {
     roleNorm.includes('director') || 
     roleNorm.includes('management');
 
-  const isPrivileged = isSuperAdminRole || isConsultantOrManagement;
+  const isPrivileged = isSuperAdminRole;
   const isAdmin = isSuperAdminRole;
   const isManager = user?.role === 'Crd team';
   const isSales = roleNorm === 'salesperson' || roleNorm === 'sales';
   const isSiteEngineer = user?.role === 'ped team';
 
-  const hasFullDashboardAccess = isPrivileged || 
+  const hasFullDashboardAccess = isAdmin || 
     (user?.permissions?.find(p => p.pageId === 'dashboard')?.canEdit === true) || 
-    (user?.permissions?.find(p => p.pageId === 'dashboard')?.canView === true) || 
     (user?.permissions?.find(p => p.pageId === 'dashboard')?.columns?.fullAccess === true);
 
-  const hasFullKpiAccess = isPrivileged || 
+  const hasFullKpiAccess = isAdmin || 
     (user?.permissions?.find(p => p.pageId === 'kpi_insights' || p.pageId === 'dashboard')?.canEdit === true) || 
-    (user?.permissions?.find(p => p.pageId === 'kpi_insights' || p.pageId === 'dashboard')?.canView === true) || 
     (user?.permissions?.find(p => p.pageId === 'kpi_insights' || p.pageId === 'dashboard')?.columns?.fullAccess === true);
 
-  const hasFullReportAccess = isPrivileged || 
+  const hasFullReportAccess = isAdmin || 
     (user?.permissions?.find(p => ['export_reports', 'sales_reports', 'crd_reports', 'dashboard', 'dashboard_reports', 'kpi_insights'].includes(p.pageId))?.canEdit === true) || 
-    (user?.permissions?.find(p => ['export_reports', 'sales_reports', 'crd_reports', 'dashboard', 'dashboard_reports', 'kpi_insights'].includes(p.pageId))?.canView === true) || 
     (user?.permissions?.find(p => ['export_reports', 'sales_reports', 'crd_reports', 'dashboard', 'dashboard_reports', 'kpi_insights'].includes(p.pageId))?.columns?.fullAccess === true);
 
   const hasPermission = (pageId) => {
     if (pageId === 'tasks_board' || pageId === 'tasksBoard' || pageId === 'tasks') {
       return !!user; // All logged in users can view and edit task board
     }
-    if (isAdmin || isPrivileged) return true; // Admins, Consultants, ED Committee see everything
+    if (isAdmin) return true; // ONLY Superadmin / Admin bypasses Access Control
     if (!user || !user.permissions) return false;
     
     let targetPageId = pageId;
@@ -344,7 +341,7 @@ export const AuthProvider = ({ children }) => {
       return Boolean(perm?.columns?.deleteLead === true);
     }
 
-    if (isAdmin || isPrivileged) return true; // Admins and privileged roles see standard columns by default
+    if (isAdmin) return true; // ONLY Superadmin / Admin sees standard columns by default
     if (!user || !user.permissions) return false;
     
     let targetPageId = pageId;
