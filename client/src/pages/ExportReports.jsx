@@ -524,7 +524,7 @@ const ExportReports = () => {
       setReportLoading(true);
       setReportLoadingText('Fetching enquiry records for selected period...');
       const currentStats = providedStats || await ensureStats();
-      const res = await fetch(`${API_URL}/leads`, {
+      const res = await fetch(`${API_URL}/leads?forReport=true`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (!res.ok) {
@@ -660,7 +660,7 @@ const ExportReports = () => {
       setReportLoading(true);
       setReportLoadingText('Fetching site visit records for selected period...');
       const currentStats = providedStats || await ensureStats();
-      const res = await fetch(`${API_URL}/leads`, {
+      const res = await fetch(`${API_URL}/leads?forReport=true`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (!res.ok) {
@@ -843,7 +843,7 @@ const ExportReports = () => {
       setReportLoading(true);
       setReportLoadingText('Fetching all active pending hot list records...');
       const currentStats = providedStats || await ensureStats();
-      const res = await fetch(`${API_URL}/leads`, {
+      const res = await fetch(`${API_URL}/leads?forReport=true`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (!res.ok) {
@@ -969,7 +969,7 @@ const ExportReports = () => {
       setReportLoading(true);
       setReportLoadingText('Fetching overall hot list records across all stages...');
       const currentStats = providedStats || await ensureStats();
-      const res = await fetch(`${API_URL}/leads`, {
+      const res = await fetch(`${API_URL}/leads?forReport=true`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (!res.ok) {
@@ -1102,10 +1102,10 @@ const ExportReports = () => {
       setReportLoading(true);
       setReportLoadingText('Fetching booking details for selected period...');
       const currentStats = providedStats || await ensureStats();
-      const res = await fetch(`${API_URL}/leads`, {
+      const res = await fetch(`${API_URL}/leads?forReport=true`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
-      const quotRes = await fetch(`${API_URL}/quotations`, {
+      const quotRes = await fetch(`${API_URL}/quotations?forReport=true`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (!res.ok) {

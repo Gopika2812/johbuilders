@@ -20,7 +20,21 @@ router.get('/', protect, async (req, res) => {
       userRoleNorm.includes('director') || 
       userRoleNorm.includes('management');
 
-    if (!isPrivilegedUser) {
+    const isReportRequest = req.query.forReport === 'true' || req.query.report === 'true';
+    let hasReportPermission = false;
+    if (!isPrivilegedUser && !isReportRequest) {
+      try {
+        const { getMergedPermissions } = require('../utils/permissionHelper');
+        const userPermissions = await getMergedPermissions(req.user);
+        hasReportPermission = userPermissions.some(p => 
+          ['export_reports', 'sales_reports', 'crd_reports', 'kpi_insights', 'dashboard', 'dashboard_reports', 'overall_report', 'collection_report', 'reports', 'quotations'].includes(p.pageId) && (p.canView || p.canEdit)
+        );
+      } catch (e) {
+        console.error('Error checking report permissions in quotations route:', e);
+      }
+    }
+
+    if (!isPrivilegedUser && !isReportRequest && !hasReportPermission) {
       const userLeads = await Lead.find({ assignedTo: req.user._id }, '_id').lean();
       const leadIds = userLeads.map(l => l._id);
       query = {

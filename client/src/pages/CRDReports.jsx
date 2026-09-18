@@ -528,7 +528,7 @@ const CRDReports = () => {
   const handleExportEnquiriesExcel = async () => {
     try {
       setReportLoading(true);
-      const res = await fetch(`${API_URL}/leads`, {
+      const res = await fetch(`${API_URL}/leads?forReport=true`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (!res.ok) {
@@ -645,7 +645,7 @@ const CRDReports = () => {
   const handleExportSiteVisitsExcel = async () => {
     try {
       setReportLoading(true);
-      const res = await fetch(`${API_URL}/leads`, {
+      const res = await fetch(`${API_URL}/leads?forReport=true`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (!res.ok) {
@@ -813,7 +813,7 @@ const CRDReports = () => {
   const handleExportHotListExcel = async () => {
     try {
       setReportLoading(true);
-      const res = await fetch(`${API_URL}/leads`, {
+      const res = await fetch(`${API_URL}/leads?forReport=true`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (!res.ok) {
@@ -939,10 +939,10 @@ const CRDReports = () => {
   const handleExportBookingsExcel = async () => {
     try {
       setReportLoading(true);
-      const res = await fetch(`${API_URL}/leads`, {
+      const res = await fetch(`${API_URL}/leads?forReport=true`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
-      const quotRes = await fetch(`${API_URL}/quotations`, {
+      const quotRes = await fetch(`${API_URL}/quotations?forReport=true`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (!res.ok) {
@@ -2473,7 +2473,7 @@ const CRDReports = () => {
       const res = await fetch(`${API_URL}/crd-flow`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
-      const leadsRes = await fetch(`${API_URL}/leads?status=Booking,Cancelled`, {
+      const leadsRes = await fetch(`${API_URL}/leads?status=Booking,Cancelled&forReport=true`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 

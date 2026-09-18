@@ -39,8 +39,23 @@ router.get('/', protect, async (req, res) => {
     userRoleNorm.includes('director') || 
     userRoleNorm.includes('management');
 
-  // Restrict to assigned leads for non-privileged users
-  if (!isPrivilegedUser) {
+  // Check if request is for report downloading / viewing or user has report access
+  const isReportRequest = req.query.forReport === 'true' || req.query.report === 'true';
+  let hasReportPermission = false;
+  if (!isPrivilegedUser && !isReportRequest) {
+    try {
+      const { getMergedPermissions } = require('../utils/permissionHelper');
+      const userPermissions = await getMergedPermissions(req.user);
+      hasReportPermission = userPermissions.some(p => 
+        ['export_reports', 'sales_reports', 'crd_reports', 'kpi_insights', 'dashboard', 'dashboard_reports', 'overall_report', 'collection_report', 'reports'].includes(p.pageId) && (p.canView || p.canEdit)
+      );
+    } catch (e) {
+      console.error('Error checking report permissions in leads route:', e);
+    }
+  }
+
+  // Restrict to assigned leads ONLY for non-privileged users without report access
+  if (!isPrivilegedUser && !isReportRequest && !hasReportPermission) {
     if (crdView === 'true') {
       const Quotation = require('../models/Quotation');
       const userQuotations = await Quotation.find({

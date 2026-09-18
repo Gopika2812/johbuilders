@@ -301,15 +301,18 @@ export const AuthProvider = ({ children }) => {
 
   const hasFullDashboardAccess = isPrivileged || 
     (user?.permissions?.find(p => p.pageId === 'dashboard')?.canEdit === true) || 
+    (user?.permissions?.find(p => p.pageId === 'dashboard')?.canView === true) || 
     (user?.permissions?.find(p => p.pageId === 'dashboard')?.columns?.fullAccess === true);
 
   const hasFullKpiAccess = isPrivileged || 
     (user?.permissions?.find(p => p.pageId === 'kpi_insights' || p.pageId === 'dashboard')?.canEdit === true) || 
+    (user?.permissions?.find(p => p.pageId === 'kpi_insights' || p.pageId === 'dashboard')?.canView === true) || 
     (user?.permissions?.find(p => p.pageId === 'kpi_insights' || p.pageId === 'dashboard')?.columns?.fullAccess === true);
 
   const hasFullReportAccess = isPrivileged || 
-    (user?.permissions?.find(p => p.pageId === 'export_reports' || p.pageId === 'sales_reports' || p.pageId === 'crd_reports' || p.pageId === 'dashboard')?.canEdit === true) || 
-    (user?.permissions?.find(p => p.pageId === 'export_reports' || p.pageId === 'sales_reports' || p.pageId === 'crd_reports' || p.pageId === 'dashboard')?.columns?.fullAccess === true);
+    (user?.permissions?.find(p => ['export_reports', 'sales_reports', 'crd_reports', 'dashboard', 'dashboard_reports', 'kpi_insights'].includes(p.pageId))?.canEdit === true) || 
+    (user?.permissions?.find(p => ['export_reports', 'sales_reports', 'crd_reports', 'dashboard', 'dashboard_reports', 'kpi_insights'].includes(p.pageId))?.canView === true) || 
+    (user?.permissions?.find(p => ['export_reports', 'sales_reports', 'crd_reports', 'dashboard', 'dashboard_reports', 'kpi_insights'].includes(p.pageId))?.columns?.fullAccess === true);
 
   const hasPermission = (pageId) => {
     if (pageId === 'tasks_board' || pageId === 'tasksBoard' || pageId === 'tasks') {

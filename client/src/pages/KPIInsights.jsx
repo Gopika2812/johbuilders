@@ -603,7 +603,7 @@ const KPIInsights = () => {
   const handleExportEnquiriesExcel = async () => {
     try {
       setReportLoading(true);
-      const res = await fetch(`${API_URL}/leads`, {
+      const res = await fetch(`${API_URL}/leads?forReport=true`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (!res.ok) {
@@ -729,7 +729,7 @@ const KPIInsights = () => {
   const handleExportSiteVisitsExcel = async () => {
     try {
       setReportLoading(true);
-      const res = await fetch(`${API_URL}/leads`, {
+      const res = await fetch(`${API_URL}/leads?forReport=true`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (!res.ok) {
@@ -906,7 +906,7 @@ const KPIInsights = () => {
   const handleExportHotListExcel = async () => {
     try {
       setReportLoading(true);
-      const res = await fetch(`${API_URL}/leads`, {
+      const res = await fetch(`${API_URL}/leads?forReport=true`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (!res.ok) {
@@ -1041,10 +1041,10 @@ const KPIInsights = () => {
   const handleExportBookingsExcel = async () => {
     try {
       setReportLoading(true);
-      const res = await fetch(`${API_URL}/leads`, {
+      const res = await fetch(`${API_URL}/leads?forReport=true`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
-      const quotRes = await fetch(`${API_URL}/quotations`, {
+      const quotRes = await fetch(`${API_URL}/quotations?forReport=true`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (!res.ok) {
