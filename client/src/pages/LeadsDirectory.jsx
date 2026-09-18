@@ -1548,7 +1548,7 @@ const LeadsDirectory = () => {
 
     const calculatedValue = totalArea * (BookedProjectDetails.pricePerSqFt || 1);
     const totalValue = Number(customBookedAmount) || calculatedValue;
-    const effectiveRate = totalArea > 0 ? (totalValue / totalArea) : (BookedProjectDetails.pricePerSqFt || 1);
+    const projectRate = BookedProjectDetails.pricePerSqFt || 0;
 
     const unitUpdates = selectedUnitsData.map(u => {
       const editedSize = editedUnitSizes[u.unitId];
@@ -1556,8 +1556,8 @@ const LeadsDirectory = () => {
       return {
         unitId: u.unitId,
         size: finalSize,
-        ratePerUom: effectiveRate,
-        soldRatePerUom: effectiveRate
+        ratePerUom: projectRate || u.ratePerUom || 0,
+        soldRatePerUom: projectRate || u.soldRatePerUom || 0
       };
     });
 
@@ -4566,24 +4566,7 @@ const LeadsDirectory = () => {
                     <div className="flex justify-between border-b border-black-150 pb-2">
                       <span>Rate Sq.Ft:</span>
                       <span className="font-semibold text-black-800">
-                        Rs. {
-                          (() => {
-                            const totalArea = BookedProjectDetails.units
-                              ?.filter(u => selectedBookedUnits.includes(u.unitId))
-                              .reduce((sum, u) => {
-                                const size = editedUnitSizes[u.unitId] !== undefined ? editedUnitSizes[u.unitId] : u.size;
-                                return sum + (Number(size) || 0);
-                              }, 0);
-
-                            if (totalArea && customBookedAmount) {
-                              const dynamicRate = Number(customBookedAmount) / totalArea;
-                              if (!isNaN(dynamicRate)) {
-                                return parseFloat(dynamicRate.toFixed(2)).toLocaleString();
-                              }
-                            }
-                            return BookedProjectDetails.pricePerSqFt?.toLocaleString() || 0;
-                          })()
-                        }
+                        Rs. {BookedProjectDetails.pricePerSqFt?.toLocaleString() || 0}
                       </span>
                     </div>
 
