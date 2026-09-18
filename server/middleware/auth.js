@@ -68,7 +68,16 @@ const authorize = (...roles) => {
     }
     const userRoleNorm = (req.user.role || '').toLowerCase().replace(/[\s_-]+/g, '');
     const allowedNorm = roles.map(r => r.toLowerCase().replace(/[\s_-]+/g, ''));
-    if (!allowedNorm.includes(userRoleNorm) && userRoleNorm !== 'superadmin' && userRoleNorm !== 'admin') {
+    const isPrivileged = 
+      userRoleNorm === 'superadmin' || 
+      userRoleNorm === 'admin' || 
+      userRoleNorm.includes('consultant') || 
+      userRoleNorm.includes('committee') || 
+      userRoleNorm.includes('ed') || 
+      userRoleNorm.includes('director') || 
+      userRoleNorm.includes('management');
+
+    if (!allowedNorm.includes(userRoleNorm) && !isPrivileged) {
       return res.status(403).json({ message: `Access denied. Role '${req.user ? req.user.role : 'Guest'}' is unauthorized.` });
     }
     next();
@@ -84,8 +93,16 @@ const checkPermission = (pageId, action) => {
       }
       
       const userRoleNorm = (req.user.role || '').toLowerCase().replace(/[\s_-]+/g, '');
-      // Superadmin bypasses all checks
-      if (userRoleNorm === 'superadmin' || userRoleNorm === 'admin') {
+      // Superadmin & privileged roles bypass all checks
+      if (
+        userRoleNorm === 'superadmin' || 
+        userRoleNorm === 'admin' ||
+        userRoleNorm.includes('consultant') || 
+        userRoleNorm.includes('committee') || 
+        userRoleNorm.includes('ed') || 
+        userRoleNorm.includes('director') || 
+        userRoleNorm.includes('management')
+      ) {
         return next();
       }
       

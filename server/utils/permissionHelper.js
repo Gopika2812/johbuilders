@@ -29,18 +29,24 @@ const defaultPages = [
   { pageId: 'settings', pageName: 'Settings' }
 ];
 
+const isPrivilegedRole = (role = '') => {
+  const r = role.toLowerCase().replace(/[\s_-]+/g, '');
+  return r === 'superadmin' || r === 'admin' || r.includes('consultant') || r.includes('committee') || r.includes('ed') || r.includes('director') || r.includes('management');
+};
+
 const getMergedPermissions = async (user) => {
   if (!user) return [];
   let userPerm = await UserPermission.findOne({ userId: user._id });
   let permissions = [];
+  const isPrivileged = isPrivilegedRole(user.role);
 
   if (!userPerm) {
     // Create default permissions
     permissions = defaultPages.map(page => ({
       pageId: page.pageId,
       pageName: page.pageName,
-      canView: user.role === 'Superadmin' || page.pageId === 'dashboard',
-      canEdit: user.role === 'Superadmin'
+      canView: isPrivileged || page.pageId === 'dashboard',
+      canEdit: isPrivileged
     }));
   } else {
     permissions = userPerm.permissions.map(p => p.toObject ? p.toObject() : p);
@@ -50,8 +56,8 @@ const getMergedPermissions = async (user) => {
         permissions.push({
           pageId: dp.pageId,
           pageName: dp.pageName,
-          canView: user.role === 'Superadmin',
-          canEdit: user.role === 'Superadmin'
+          canView: isPrivileged,
+          canEdit: isPrivileged
         });
       }
     });

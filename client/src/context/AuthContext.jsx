@@ -284,24 +284,38 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
   };
 
-  const isAdmin = user?.role === 'Superadmin';
+  const roleNorm = (user?.role || '').toLowerCase().replace(/[\s_-]+/g, '');
+  const isSuperAdminRole = roleNorm === 'superadmin' || roleNorm === 'admin';
+  const isConsultantOrManagement = 
+    roleNorm.includes('consultant') || 
+    roleNorm.includes('committee') || 
+    roleNorm.includes('ed') || 
+    roleNorm.includes('director') || 
+    roleNorm.includes('management');
+
+  const isPrivileged = isSuperAdminRole || isConsultantOrManagement;
+  const isAdmin = isSuperAdminRole;
   const isManager = user?.role === 'Crd team';
-  const isSales = user?.role === 'sales person';
+  const isSales = roleNorm === 'salesperson' || roleNorm === 'sales';
   const isSiteEngineer = user?.role === 'ped team';
 
-  const hasFullDashboardAccess = isAdmin || 
+  const hasFullDashboardAccess = isPrivileged || 
     (user?.permissions?.find(p => p.pageId === 'dashboard')?.canEdit === true) || 
     (user?.permissions?.find(p => p.pageId === 'dashboard')?.columns?.fullAccess === true);
 
-  const hasFullKpiAccess = isAdmin || 
+  const hasFullKpiAccess = isPrivileged || 
     (user?.permissions?.find(p => p.pageId === 'kpi_insights' || p.pageId === 'dashboard')?.canEdit === true) || 
     (user?.permissions?.find(p => p.pageId === 'kpi_insights' || p.pageId === 'dashboard')?.columns?.fullAccess === true);
+
+  const hasFullReportAccess = isPrivileged || 
+    (user?.permissions?.find(p => p.pageId === 'export_reports' || p.pageId === 'sales_reports' || p.pageId === 'crd_reports' || p.pageId === 'dashboard')?.canEdit === true) || 
+    (user?.permissions?.find(p => p.pageId === 'export_reports' || p.pageId === 'sales_reports' || p.pageId === 'crd_reports' || p.pageId === 'dashboard')?.columns?.fullAccess === true);
 
   const hasPermission = (pageId) => {
     if (pageId === 'tasks_board' || pageId === 'tasksBoard' || pageId === 'tasks') {
       return !!user; // All logged in users can view and edit task board
     }
-    if (isAdmin) return true; // Admins see everything
+    if (isAdmin || isPrivileged) return true; // Admins, Consultants, ED Committee see everything
     if (!user || !user.permissions) return false;
     
     let targetPageId = pageId;
@@ -327,7 +341,7 @@ export const AuthProvider = ({ children }) => {
       return Boolean(perm?.columns?.deleteLead === true);
     }
 
-    if (isAdmin) return true; // Admins see standard columns by default
+    if (isAdmin || isPrivileged) return true; // Admins and privileged roles see standard columns by default
     if (!user || !user.permissions) return false;
     
     let targetPageId = pageId;
@@ -442,11 +456,13 @@ export const AuthProvider = ({ children }) => {
     register,
     logout,
     isAdmin,
+    isPrivileged,
     isManager,
     isSales,
     isSiteEngineer,
     hasFullDashboardAccess,
     hasFullKpiAccess,
+    hasFullReportAccess,
     isAuthenticated: !!user,
     hasPermission,
     hasColumnPermission,

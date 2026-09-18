@@ -6,7 +6,17 @@ const Lead = require('../models/Lead');
 const { protect, authorize, checkPermission } = require('../middleware/auth');
 
 router.param('flowId', async (req, res, next, id) => {
-  if (req.user && req.user.role === 'Superadmin') {
+  const userRoleNorm = (req.user?.role || '').toLowerCase().replace(/[\s_-]+/g, '');
+  const isPrivilegedUser = 
+    req.user?.role === 'Superadmin' || 
+    userRoleNorm === 'admin' || 
+    userRoleNorm.includes('consultant') || 
+    userRoleNorm.includes('committee') || 
+    userRoleNorm.includes('ed') || 
+    userRoleNorm.includes('director') || 
+    userRoleNorm.includes('management');
+
+  if (isPrivilegedUser) {
     return next();
   }
   try {
@@ -44,7 +54,17 @@ router.param('flowId', async (req, res, next, id) => {
 router.get('/', protect, checkPermission('extra_works', 'view'), async (req, res) => {
   try {
     let query = {};
-    if (req.user.role !== 'Superadmin') {
+    const userRoleNorm = (req.user?.role || '').toLowerCase().replace(/[\s_-]+/g, '');
+    const isPrivilegedUser = 
+      req.user.role === 'Superadmin' || 
+      userRoleNorm === 'admin' || 
+      userRoleNorm.includes('consultant') || 
+      userRoleNorm.includes('committee') || 
+      userRoleNorm.includes('ed') || 
+      userRoleNorm.includes('director') || 
+      userRoleNorm.includes('management');
+
+    if (!isPrivilegedUser) {
       const { getMergedPermissions } = require('../utils/permissionHelper');
       const userPermissions = await getMergedPermissions(req.user);
       const hasGlobalExtraWorksPermission = userPermissions.some(p => 
@@ -79,7 +99,7 @@ router.get('/', protect, checkPermission('extra_works', 'view'), async (req, res
       return flow.stages.some(stage => stage.extraWorks && stage.extraWorks.length > 0);
     });
 
-    if (req.user.role !== 'Superadmin') {
+    if (!isPrivilegedUser) {
       const userStr = req.user._id.toString();
 
       const userQuotations = await Quotation.find({

@@ -90,6 +90,8 @@ const DashboardReports = () => {
   useEffect(() => {
     if (user && !hasFullDashboardAccess) {
       setSelectedUser(user._id || '');
+    } else if (user && hasFullDashboardAccess && selectedUser === user._id) {
+      setSelectedUser('');
     }
   }, [user, hasFullDashboardAccess]);
 

@@ -317,7 +317,17 @@ const ObservedBarChart = ({ dataArray, xKey, yKey, barColor, isPercent = false }
 };
 
 const CRDReports = () => {
-  const { token, user, getLabel } = useAuth();
+  const { token, user, getLabel, hasFullReportAccess } = useAuth();
+  const roleNorm = (user?.role || '').toLowerCase().replace(/[\s_-]+/g, '');
+  const isPrivileged = user?.role === 'Superadmin' || 
+    roleNorm === 'admin' || 
+    roleNorm.includes('consultant') || 
+    roleNorm.includes('committee') || 
+    roleNorm.includes('ed') || 
+    roleNorm.includes('director') || 
+    roleNorm.includes('management') || 
+    hasFullReportAccess;
+
   // Use the absolute local file path provided by the user so Excel can render it locally
   const logoPath = LOGO_BASE64;
   
@@ -337,15 +347,16 @@ const CRDReports = () => {
   });
 
   const [selectedUser, setSelectedUser] = useState(() => {
-    const isPrivileged = user?.role === 'Superadmin' || user?.role === 'Superadmin';
     return isPrivileged ? '' : (user?._id || '');
   });
   
   useEffect(() => {
-    if (user && user.role !== 'Superadmin' && user.role !== 'Superadmin') {
+    if (user && !isPrivileged) {
       setSelectedUser(user._id);
+    } else if (user && isPrivileged && selectedUser === user._id) {
+      setSelectedUser('');
     }
-  }, [user]);
+  }, [user, isPrivileged]);
 
   const [selectedProject, setSelectedProject] = useState('');
   const [loading, setLoading] = useState(true);

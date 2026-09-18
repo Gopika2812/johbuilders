@@ -49,8 +49,17 @@ router.get('/', protect, async (req, res) => {
     // if the user has `extra_works_crd` or `extra_works_ped` permission.
     // To not break existing stuff, if they don't have CRD/PED role, filter by assignedTo.
     // If user is not Superadmin, check UserPermission model or staff role
-    // If user is not Superadmin, filter complaints to only those assigned to them or their assigned leads/quotations
-    if (req.user.role !== 'Superadmin') {
+    const userRoleNorm = (req.user?.role || '').toLowerCase().replace(/[\s_-]+/g, '');
+    const isPrivilegedUser = 
+      req.user.role === 'Superadmin' || 
+      userRoleNorm === 'admin' || 
+      userRoleNorm.includes('consultant') || 
+      userRoleNorm.includes('committee') || 
+      userRoleNorm.includes('ed') || 
+      userRoleNorm.includes('director') || 
+      userRoleNorm.includes('management');
+
+    if (!isPrivilegedUser) {
       const userStr = req.user._id.toString();
       const Quotation = require('../models/Quotation');
       const userQuotations = await Quotation.find({

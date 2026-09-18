@@ -31,9 +31,16 @@ router.get('/', protect, async (req, res) => {
 
   const userRoleNorm = (req.user?.role || '').toLowerCase().replace(/[\s_-]+/g, '');
   const isSuperAdminUser = userRoleNorm === 'superadmin' || userRoleNorm === 'admin';
+  const isPrivilegedUser = 
+    isSuperAdminUser || 
+    userRoleNorm.includes('consultant') || 
+    userRoleNorm.includes('committee') || 
+    userRoleNorm.includes('ed') || 
+    userRoleNorm.includes('director') || 
+    userRoleNorm.includes('management');
 
-  // Restrict to assigned leads for non-Superadmin users
-  if (!isSuperAdminUser) {
+  // Restrict to assigned leads for non-privileged users
+  if (!isPrivilegedUser) {
     if (crdView === 'true') {
       const Quotation = require('../models/Quotation');
       const userQuotations = await Quotation.find({

@@ -10,7 +10,17 @@ const { protect } = require('../middleware/auth');
 router.get('/', protect, async (req, res) => {
   try {
     let query = {};
-    if (req.user.role !== 'Superadmin') {
+    const userRoleNorm = (req.user?.role || '').toLowerCase().replace(/[\s_-]+/g, '');
+    const isPrivilegedUser = 
+      req.user.role === 'Superadmin' || 
+      userRoleNorm === 'admin' || 
+      userRoleNorm.includes('consultant') || 
+      userRoleNorm.includes('committee') || 
+      userRoleNorm.includes('ed') || 
+      userRoleNorm.includes('director') || 
+      userRoleNorm.includes('management');
+
+    if (!isPrivilegedUser) {
       const userLeads = await Lead.find({ assignedTo: req.user._id }, '_id').lean();
       const leadIds = userLeads.map(l => l._id);
       query = {
@@ -58,7 +68,17 @@ router.get('/:id', protect, async (req, res) => {
       return res.status(404).json({ message: 'Quotation not found' });
     }
 
-    if (req.user.role !== 'Superadmin') {
+    const userRoleNorm = (req.user?.role || '').toLowerCase().replace(/[\s_-]+/g, '');
+    const isPrivilegedUser = 
+      req.user.role === 'Superadmin' || 
+      userRoleNorm === 'admin' || 
+      userRoleNorm.includes('consultant') || 
+      userRoleNorm.includes('committee') || 
+      userRoleNorm.includes('ed') || 
+      userRoleNorm.includes('director') || 
+      userRoleNorm.includes('management');
+
+    if (!isPrivilegedUser) {
       const isCreator = quotation.createdBy && quotation.createdBy._id.toString() === req.user._id.toString();
       const isCrdPerson = quotation.crdPerson && quotation.crdPerson._id.toString() === req.user._id.toString();
       const isPedPerson = quotation.pedPerson && quotation.pedPerson._id.toString() === req.user._id.toString();

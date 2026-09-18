@@ -312,7 +312,16 @@ const ObservedBarChart = ({ dataArray, xKey, yKey, barColor, isPercent = false }
 };
 
 const ExportReports = () => {
-  const { token, user, getLabel } = useAuth();
+  const { token, user, getLabel, hasFullReportAccess } = useAuth();
+  const roleNorm = (user?.role || '').toLowerCase().replace(/[\s_-]+/g, '');
+  const isPrivileged = user?.role === 'Superadmin' || 
+    roleNorm === 'admin' || 
+    roleNorm.includes('consultant') || 
+    roleNorm.includes('committee') || 
+    roleNorm.includes('ed') || 
+    roleNorm.includes('director') || 
+    roleNorm.includes('management') || 
+    hasFullReportAccess;
   
   // Date filters - default to current month
   const [fromDate, setFromDate] = useState(() => {
@@ -330,15 +339,16 @@ const ExportReports = () => {
   });
 
   const [selectedUser, setSelectedUser] = useState(() => {
-    const isPrivileged = user?.role === 'Superadmin' || user?.role === 'Superadmin';
     return isPrivileged ? '' : (user?._id || '');
   });
   
   useEffect(() => {
-    if (user && user.role !== 'Superadmin' && user.role !== 'Superadmin') {
+    if (user && !isPrivileged) {
       setSelectedUser(user._id);
+    } else if (user && isPrivileged && selectedUser === user._id) {
+      setSelectedUser('');
     }
-  }, [user]);
+  }, [user, isPrivileged]);
 
   const [selectedProject, setSelectedProject] = useState('');
   const [loading, setLoading] = useState(true);
@@ -3057,7 +3067,7 @@ const ExportReports = () => {
 
         <div className="flex flex-wrap items-center gap-3 relative z-10 w-full sm:w-auto ml-auto">
           {/* User Filter */}
-          {(user?.role === 'Superadmin' || user?.role === 'Superadmin') && (
+          {isPrivileged && (
             <div className="flex items-center bg-black-50 border border-black-200 rounded-xl px-3 py-2">
               <User className="w-4 h-4 text-black-400 mr-2" />
               <select
@@ -3066,9 +3076,11 @@ const ExportReports = () => {
                 className="bg-transparent text-xs font-bold text-black-700 focus:outline-none cursor-pointer"
               >
                 <option value="">All Users</option>
-                {(stats.users || []).map(u => (
-                  <option key={u._id} value={u._id}>{u.name}</option>
-                ))}
+                {(stats.users || [])
+                  .filter(u => (u.role || '').toLowerCase().includes('sales') || !u.role || u.role.toLowerCase() === 'sales person')
+                  .map(u => (
+                    <option key={u._id} value={u._id}>{u.name}</option>
+                  ))}
               </select>
             </div>
           )}

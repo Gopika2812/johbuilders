@@ -371,6 +371,8 @@ const KPIInsights = () => {
   useEffect(() => {
     if (user && !hasFullKpiAccess) {
       setSelectedUser(user._id);
+    } else if (user && hasFullKpiAccess && selectedUser === user._id) {
+      setSelectedUser('');
     }
   }, [user, hasFullKpiAccess]);
 
