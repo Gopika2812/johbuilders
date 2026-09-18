@@ -1469,6 +1469,7 @@ const LeadsDirectory = () => {
     setSelectedLeadForBooked(lead);
     setBookedLoading(true);
     setBookedModalOpen(true);
+    setUnitDropdownOpen(true);
 
     // Prepopulate base fields
     const parsed = parsePhoneDetails(lead.bookingInfo?.alternativePhone || lead.alternativePhone || '');
@@ -3896,6 +3897,25 @@ const LeadsDirectory = () => {
                         setEditModalOpen(false);
                         const lead = leads.find(l => l._id === selectedLeadForEdit._id) || selectedLeadForEdit;
                         initiateFollowUpOrComplete(lead, 'Follow-Up', 'FollowUp');
+                        return;
+                      }
+                      if (val === 'Booking') {
+                        setEditModalOpen(false);
+                        const lead = leads.find(l => l._id === selectedLeadForEdit._id) || selectedLeadForEdit;
+                        const currentEditedLead = {
+                          ...lead,
+                          salutation: editSalutation,
+                          name: editName,
+                          phone: editPhoneCountryCode === '+' ? `+${editPhoneLocal}` : `${editPhoneCountryCode}${editPhoneLocal}`,
+                          alternativePhone: editAltPhoneLocal ? (editAltPhoneCountryCode === '+' ? `+${editAltPhoneLocal}` : `${editAltPhoneCountryCode}${editAltPhoneLocal}`) : (lead.alternativePhone || ''),
+                          address: editAddress,
+                          project: editProjectId || lead.project,
+                          assignedTo: editAssignedToId || lead.assignedTo,
+                          bankLoan: editBankLoan,
+                          bankLoanPercentage: Number(editBankLoanPercentage) || 0,
+                          leadCategory: editLeadCategory
+                        };
+                        initiateBooked(currentEditedLead);
                         return;
                       }
                       setEditStatus(val);
