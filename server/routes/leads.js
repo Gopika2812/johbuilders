@@ -63,9 +63,7 @@ router.get('/', protect, async (req, res) => {
     let queryExec = Lead.find(query)
       .populate('project', 'name code location')
       .populate('assignedTo', 'name role phone mobile phoneNumber')
-      .populate('assignedBy', 'name role phone mobile phoneNumber')
-      .populate('history.assignedTo', 'name role phone mobile phoneNumber')
-      .populate('history.updatedBy', 'name role phone mobile phoneNumber');
+      .populate('assignedBy', 'name role phone mobile phoneNumber');
 
     const leads = await queryExec.sort({ updatedAt: -1 }).lean();
     res.json(leads);

@@ -181,7 +181,6 @@ const formatProjectTypeLabel = (projectType) => {
 let leadsDirectoryCache = null;
 let projectsDirectoryCache = null;
 let employeesDirectoryCache = null;
-let quotationsDirectoryCache = null;
 
 const LeadsDirectory = () => {
   const { token, user, hasColumnPermission } = useAuth();
@@ -190,7 +189,6 @@ const LeadsDirectory = () => {
   const [leads, setLeads] = useState(() => leadsDirectoryCache || []);
   const [projects, setProjects] = useState(() => projectsDirectoryCache || []);
   const [employees, setEmployees] = useState(() => employeesDirectoryCache || []);
-  const [quotations, setQuotations] = useState(() => quotationsDirectoryCache || []);
   const [loading, setLoading] = useState(() => !leadsDirectoryCache);
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
@@ -795,12 +793,13 @@ const LeadsDirectory = () => {
 
   useEffect(() => {
     if (token) {
-      fetchLeads();
-      fetchProjects();
-      fetchEmployees();
-      fetchQuotations();
-      fetchStageColors();
-      fetchLeadGroups();
+      Promise.allSettled([
+        fetchLeads(),
+        fetchProjects(),
+        fetchEmployees(),
+        fetchStageColors(),
+        fetchLeadGroups()
+      ]);
     }
   }, [token]);
 
@@ -1239,18 +1238,6 @@ const LeadsDirectory = () => {
     } catch (err) { }
   };
 
-  const fetchQuotations = async () => {
-    try {
-      const res = await fetch(`${API_URL}/quotations`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (res.ok) {
-        const data = await res.json();
-        quotationsDirectoryCache = data;
-        setQuotations(data);
-      }
-    } catch (err) { }
-  };
 
   const handlePhoneBlur = async () => {
     if (!phoneLocal) {
@@ -2146,25 +2133,33 @@ const LeadsDirectory = () => {
   };
 
   // Filter list matching Search & Date & Advanced Filters (excluding Tab)
-  const getBaseFilteredLeads = () => {
+  const baseFilteredLeads = useMemo(() => {
     const startTime = startDate ? new Date(startDate).setHours(0, 0, 0, 0) : null;
     const endTime = endDate ? new Date(endDate).setHours(23, 59, 59, 999) : null;
+    const searchLower = searchTerm ? searchTerm.trim().toLowerCase() : '';
 
     return leads.filter(lead => {
       const matchesStatus = !statusFilter || lead.status === statusFilter;
+      if (!matchesStatus) return false;
 
-      const fullName = `${lead.salutation || ''} ${lead.name || ''}`.toLowerCase();
-      const matchesSearch = !searchTerm ||
-        fullName.includes(searchTerm.toLowerCase()) ||
-        lead.phone?.includes(searchTerm) ||
-        lead.alternativePhone?.includes(searchTerm) ||
-        lead.project?.code?.toLowerCase().includes(searchTerm.toLowerCase());
+      let matchesSearch = true;
+      if (searchLower) {
+        const fullName = `${lead.salutation || ''} ${lead.name || ''}`.toLowerCase();
+        matchesSearch =
+          fullName.includes(searchLower) ||
+          (lead.phone && lead.phone.includes(searchLower)) ||
+          (lead.alternativePhone && lead.alternativePhone.includes(searchLower)) ||
+          (lead.project?.code && lead.project.code.toLowerCase().includes(searchLower));
+      }
+      if (!matchesSearch) return false;
 
-      const isBookingStage = lead.status === 'Booking' || lead.status === 'Won';
-      const effectiveDate = isBookingStage ? getLeadBookingDate(lead) : (lead.createdAt ? new Date(lead.createdAt) : null);
-      const itemTime = effectiveDate ? effectiveDate.getTime() : null;
-      const matchesStartDate = !startTime || !itemTime || itemTime >= startTime;
-      const matchesEndDate = !endTime || !itemTime || itemTime <= endTime;
+      if (startTime || endTime) {
+        const isBookingStage = lead.status === 'Booking' || lead.status === 'Won';
+        const effectiveDate = isBookingStage ? getLeadBookingDate(lead) : (lead.createdAt ? new Date(lead.createdAt) : null);
+        const itemTime = effectiveDate ? effectiveDate.getTime() : null;
+        if (startTime && (!itemTime || itemTime < startTime)) return false;
+        if (endTime && (!itemTime || itemTime > endTime)) return false;
+      }
 
       const matchesAssigned = !assignedFilter || lead.assignedTo?._id === assignedFilter;
       const matchesCampaign = !campaignFilter || campaignFilter.length === 0 || (Array.isArray(campaignFilter) ? campaignFilter.includes(lead.leadSource) : lead.leadSource === campaignFilter);
@@ -2182,30 +2177,45 @@ const LeadsDirectory = () => {
         matchesState = lead.isReopened === true && !['Booking', 'Won', 'Booked'].includes(lead.status);
       }
 
-      return matchesStatus && matchesSearch && matchesStartDate && matchesEndDate &&
-        matchesAssigned && matchesCampaign && matchesCategory && matchesLocation && matchesBankLoan && matchesState && matchesProject;
+      return matchesAssigned && matchesCampaign && matchesCategory && matchesLocation && matchesBankLoan && matchesState && matchesProject;
     });
-  };
+  }, [leads, statusFilter, searchTerm, startDate, endDate, assignedFilter, campaignFilter, categoryFilter, locationFilter, bankLoanFilter, projectFilter, reopenedFilter]);
 
-  const baseFilteredLeads = getBaseFilteredLeads();
+  // Single-pass status counts for tabs
+  const statusCounts = useMemo(() => {
+    const counts = { All: baseFilteredLeads.length };
+    LEAD_STATUSES.forEach(st => {
+      counts[st] = 0;
+    });
+    for (let i = 0; i < baseFilteredLeads.length; i++) {
+      const lead = baseFilteredLeads[i];
+      if (lead.status === 'Lost' || (lead.isClosed && lead.status !== 'Won')) {
+        counts['Lost'] = (counts['Lost'] || 0) + 1;
+      } else if (!lead.isClosed && lead.status) {
+        if (counts[lead.status] !== undefined) {
+          counts[lead.status]++;
+        }
+      }
+    }
+    return counts;
+  }, [baseFilteredLeads]);
 
   // Apply Tab Filter
-  const getFilteredLeads = () => {
+  const filteredLeadsList = useMemo(() => {
+    if (activeTab === 'All') return baseFilteredLeads;
     return baseFilteredLeads.filter(lead => {
-      let matchesTab = true;
       if (activeTab === 'Lost') {
-        matchesTab = lead.status === 'Lost' || (lead.isClosed && lead.status !== 'Won');
-      } else if (activeTab !== 'All') {
-        matchesTab = lead.status === activeTab && !lead.isClosed;
+        return lead.status === 'Lost' || (lead.isClosed && lead.status !== 'Won');
       }
-      return matchesTab;
+      return lead.status === activeTab && !lead.isClosed;
     });
-  };
+  }, [baseFilteredLeads, activeTab]);
 
-  const filteredLeadsList = getFilteredLeads();
   const totalItems = filteredLeadsList.length;
   const totalPages = Math.ceil(totalItems / itemsPerPage) || 1;
-  const paginatedLeadsList = filteredLeadsList.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  const paginatedLeadsList = useMemo(() => {
+    return filteredLeadsList.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  }, [filteredLeadsList, currentPage, itemsPerPage]);
 
   return (
     <div className="space-y-1 w-full max-w-full pb-0">
@@ -2335,28 +2345,20 @@ const LeadsDirectory = () => {
               : 'text-black-500 hover:bg-black-50 hover:text-black-800'
               }`}
           >
-            All Leads ({baseFilteredLeads.length})
+            All Leads ({statusCounts.All || 0})
           </button>
-          {LEAD_STATUSES.map(st => {
-            let count = 0;
-            if (st === 'Lost') {
-              count = baseFilteredLeads.filter(l => l.status === 'Lost' || (l.isClosed && l.status !== 'Won')).length;
-            } else {
-              count = baseFilteredLeads.filter(l => l.status === st && !l.isClosed).length;
-            }
-            return (
-              <button
-                key={st}
-                onClick={() => setActiveTab(st)}
-                className={`px-2.5 py-1 text-xs font-bold rounded-lg transition ${activeTab === st
-                  ? 'bg-[#0e623a] text-white shadow-xs'
-                  : 'text-black-500 hover:bg-black-50 hover:text-black-800'
-                  }`}
-              >
-                {st === 'Booking' ? 'Booked' : st} ({count})
-              </button>
-            );
-          })}
+          {LEAD_STATUSES.map(st => (
+            <button
+              key={st}
+              onClick={() => setActiveTab(st)}
+              className={`px-2.5 py-1 text-xs font-bold rounded-lg transition ${activeTab === st
+                ? 'bg-[#0e623a] text-white shadow-xs'
+                : 'text-black-500 hover:bg-black-50 hover:text-black-800'
+                }`}
+            >
+              {st === 'Booking' ? 'Booked' : st} ({statusCounts[st] || 0})
+            </button>
+          ))}
         </div>
 
         {/* Action Buttons next to Lost Count */}
