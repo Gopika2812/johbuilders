@@ -376,9 +376,15 @@ const TasksBoard = () => {
   const [replyUploading, setReplyUploading] = useState(false);
   const replyFileInputRef = useRef(null);
 
-  // View Tab Filter State: 'ALL' (Default), 'ASSIGNED_TO_ME', 'ASSIGNED_TO', 'OTHER_TASKS'
-  const [viewTab, setViewTab] = useState('ALL');
+  // View Tab Filter State: 'ALL' (Only for Superadmin), 'ASSIGNED_TO_ME' (Default for regular users), 'I_ASSIGNED'
+  const [viewTab, setViewTab] = useState(() => isSuperAdmin ? 'ALL' : 'ASSIGNED_TO_ME');
   const [assignedToFilter, setAssignedToFilter] = useState('ALL');
+
+  useEffect(() => {
+    if (!isSuperAdmin && viewTab === 'ALL') {
+      setViewTab('ASSIGNED_TO_ME');
+    }
+  }, [isSuperAdmin, viewTab]);
 
   // Department, Priority, Project & Role Filters
   const [categoryFilter, setCategoryFilter] = useState('ALL');
@@ -623,8 +629,11 @@ const TasksBoard = () => {
 
   const calculateUserPerformanceRows = (tasksList) => {
     const userMap = {};
+    const relevantEmployees = isSuperAdmin 
+      ? employees 
+      : employees.filter(emp => (emp._id || emp.id)?.toString() === (user?._id || user?.id)?.toString());
 
-    employees.forEach(emp => {
+    relevantEmployees.forEach(emp => {
       userMap[emp._id] = {
         userId: emp._id,
         userName: emp.name || 'Unknown',
@@ -1856,27 +1865,41 @@ const TasksBoard = () => {
   // Tab Counts (always full totals for each tab)
   const assignedToMeCount = tasks.filter(t => isTaskAssignedToMe(t)).length;
   const iAssignedCount = tasks.filter(t => isTaskAssignedByMe(t)).length;
-  const allTasksCount = tasks.length;
+  const allTasksCount = isSuperAdmin ? tasks.length : (assignedToMeCount + iAssignedCount);
 
   // Active Scope Tasks for Metrics & Filters based on selected tab
   const scopeTasks = useMemo(() => {
+    if (!isSuperAdmin) {
+      if (viewTab === 'I_ASSIGNED') {
+        return tasks.filter(t => isTaskAssignedByMe(t));
+      }
+      return tasks.filter(t => isTaskAssignedToMe(t));
+    }
     if (viewTab === 'ASSIGNED_TO_ME') {
       return tasks.filter(t => isTaskAssignedToMe(t));
     } else if (viewTab === 'I_ASSIGNED') {
       return tasks.filter(t => isTaskAssignedByMe(t));
     }
     return tasks;
-  }, [tasks, viewTab, user]);
+  }, [tasks, viewTab, user, isSuperAdmin]);
 
   // Filter Tasks
   const filteredTasks = tasks.filter(task => {
     const isAssignedToMe = isTaskAssignedToMe(task);
     const isIassigned = isTaskAssignedByMe(task);
 
-    if (viewTab === 'ASSIGNED_TO_ME') {
-      if (!isAssignedToMe) return false;
-    } else if (viewTab === 'I_ASSIGNED') {
-      if (!isIassigned) return false;
+    if (!isSuperAdmin) {
+      if (viewTab === 'I_ASSIGNED') {
+        if (!isIassigned) return false;
+      } else {
+        if (!isAssignedToMe) return false;
+      }
+    } else {
+      if (viewTab === 'ASSIGNED_TO_ME') {
+        if (!isAssignedToMe) return false;
+      } else if (viewTab === 'I_ASSIGNED') {
+        if (!isIassigned) return false;
+      }
     }
 
     if (assignedToFilter !== 'ALL' && (task.assignedTo?._id || task.assignedTo) !== assignedToFilter) {
@@ -2129,27 +2152,29 @@ const TasksBoard = () => {
       {/* View Tabs Bar with Add New Task Button directly opposite */}
       <div className="flex flex-wrap items-center justify-between gap-3 bg-white border border-gray-150 p-2 rounded-2xl shadow-xs">
         <div className="flex flex-wrap items-center gap-2">
-          {/* All Tasks (DEFAULT & HIGHLIGHTED) */}
-          <button
-            type="button"
-            onClick={() => {
-              setViewTab('ALL');
-              setStatusFilter('ALL');
-            }}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black transition cursor-pointer shrink-0 ${
-              viewTab === 'ALL'
-                ? 'bg-gradient-to-r from-[#006838] to-[#008c4a] text-white shadow-md ring-2 ring-emerald-500/50 scale-[1.02]'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-200'
-            }`}
-          >
-            <ClipboardList className="w-4 h-4" />
-            <span>All Tasks</span>
-            <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
-              viewTab === 'ALL' ? 'bg-white/20 text-white' : 'bg-gray-200 text-gray-800'
-            }`}>
-              {allTasksCount}
-            </span>
-          </button>
+          {/* All Tasks (ONLY for Superadmin / Admin) */}
+          {isSuperAdmin && (
+            <button
+              type="button"
+              onClick={() => {
+                setViewTab('ALL');
+                setStatusFilter('ALL');
+              }}
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black transition cursor-pointer shrink-0 ${
+                viewTab === 'ALL'
+                  ? 'bg-gradient-to-r from-[#006838] to-[#008c4a] text-white shadow-md ring-2 ring-emerald-500/50 scale-[1.02]'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-200'
+              }`}
+            >
+              <ClipboardList className="w-4 h-4" />
+              <span>All Tasks</span>
+              <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
+                viewTab === 'ALL' ? 'bg-white/20 text-white' : 'bg-gray-200 text-gray-800'
+              }`}>
+                {allTasksCount}
+              </span>
+            </button>
+          )}
 
           {/* Assigned to Me */}
           <button
@@ -2160,7 +2185,7 @@ const TasksBoard = () => {
             }}
             className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition cursor-pointer shrink-0 ${
               viewTab === 'ASSIGNED_TO_ME'
-                ? 'bg-[#0e623a] text-white shadow-md ring-2 ring-emerald-600/40'
+                ? 'bg-gradient-to-r from-[#006838] to-[#008c4a] text-white shadow-md ring-2 ring-emerald-500/50 scale-[1.02]'
                 : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900 border border-gray-200'
             }`}
           >
@@ -2173,7 +2198,7 @@ const TasksBoard = () => {
             </span>
           </button>
 
-          {/* Assigned to */}
+          {/* Assigned by Me */}
           <button
             type="button"
             onClick={() => {

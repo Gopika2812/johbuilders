@@ -530,7 +530,8 @@ let pendingFollowUpsCache = null;
 const Dashboard = () => {
   const { token, user, hasFullDashboardAccess } = useAuth();
   const roleNorm = (user?.role || '').toLowerCase().replace(/[\s_-]+/g, '');
-  const isSuperAdmin = roleNorm === 'superadmin' || roleNorm === 'admin' || hasFullDashboardAccess;
+  const isStrictSuperAdmin = roleNorm === 'superadmin' || roleNorm === 'admin';
+  const isSuperAdmin = isStrictSuperAdmin || hasFullDashboardAccess;
   const navigate = useNavigate();
   const [leadsModalOpen, setLeadsModalOpen] = useState(false);
   const [followupModalOpen, setFollowupModalOpen] = useState(false);
@@ -757,14 +758,20 @@ const Dashboard = () => {
 
   const relevantTasks = React.useMemo(() => {
     if (!dashboardTasks || !Array.isArray(dashboardTasks)) return [];
-    if (hasFullDashboardAccess) {
+    if (isStrictSuperAdmin) {
       if (selectedUser) {
         return dashboardTasks.filter(t => (t.assignedTo?._id || t.assignedTo) === selectedUser);
       }
       return dashboardTasks;
     }
-    return dashboardTasks.filter(t => (t.assignedTo?._id || t.assignedTo) === user?._id || (t.assignedTo?.name || t.assignedTo) === user?.name);
-  }, [dashboardTasks, hasFullDashboardAccess, selectedUser, user]);
+    const currentUserId = user?._id?.toString();
+    const currentUserName = user?.name?.trim().toLowerCase();
+    return dashboardTasks.filter(t => {
+      const assignedId = (t.assignedTo?._id || t.assignedTo)?.toString();
+      const assignedName = (typeof t.assignedTo === 'string' ? t.assignedTo : t.assignedTo?.name)?.trim().toLowerCase();
+      return (assignedId && currentUserId && assignedId === currentUserId) || (assignedName && currentUserName && assignedName === currentUserName);
+    });
+  }, [dashboardTasks, isStrictSuperAdmin, selectedUser, user]);
 
   const taskMetrics = React.useMemo(() => {
     const todayTasks = relevantTasks.filter(t => isTaskToday(t));
@@ -2652,7 +2659,7 @@ const Dashboard = () => {
                   Task Details
                 </h4>
                 <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-[#0e623a] border border-emerald-200">
-                  {isSuperAdmin 
+                  {isStrictSuperAdmin 
                     ? (selectedUser ? `Filtered User (${(stats.users || []).find(u => u._id === selectedUser)?.name || 'Selected'})` : 'All Users Combined') 
                     : (user?.name || 'My Tasks')}
                 </span>

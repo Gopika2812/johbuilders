@@ -52,12 +52,8 @@ router.get('/', protect, async (req, res) => {
     const userRoleNorm = (req.user?.role || '').toLowerCase().replace(/[\s_-]+/g, '');
     const isPrivilegedUser = 
       req.user.role === 'Superadmin' || 
-      userRoleNorm === 'admin' || 
-      userRoleNorm.includes('consultant') || 
-      userRoleNorm.includes('committee') || 
-      userRoleNorm.includes('ed') || 
-      userRoleNorm.includes('director') || 
-      userRoleNorm.includes('management');
+      userRoleNorm === 'admin' ||
+      userRoleNorm === 'superadmin';
 
     if (!isPrivilegedUser) {
       const userStr = req.user._id.toString();

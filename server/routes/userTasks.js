@@ -15,14 +15,7 @@ router.get('/', protect, async (req, res) => {
 
     // Role check: Only Superadmin / Admin can view all users' tasks. Regular users see only tasks assigned to or by them.
     const roleNorm = (req.user.role || '').toLowerCase().replace(/[\s_-]+/g, '');
-    const isSuperAdmin = 
-      roleNorm === 'superadmin' || 
-      roleNorm === 'admin' || 
-      roleNorm.includes('consultant') || 
-      roleNorm.includes('committee') || 
-      roleNorm.includes('ed') || 
-      roleNorm.includes('director') || 
-      roleNorm.includes('management');
+    const isSuperAdmin = roleNorm === 'superadmin' || roleNorm === 'admin';
     if (!isSuperAdmin) {
       query.$or = [
         { assignedTo: req.user._id },
@@ -465,14 +458,7 @@ router.delete('/:id', protect, async (req, res) => {
     }
 
     const roleNorm = (req.user.role || '').toLowerCase().replace(/[\s_-]+/g, '');
-    const isSuperAdmin = 
-      roleNorm === 'superadmin' || 
-      roleNorm === 'admin' || 
-      roleNorm.includes('consultant') || 
-      roleNorm.includes('committee') || 
-      roleNorm.includes('ed') || 
-      roleNorm.includes('director') || 
-      roleNorm.includes('management');
+    const isSuperAdmin = roleNorm === 'superadmin' || roleNorm === 'admin';
     const isAssigner = task.assignedBy && task.assignedBy.toString() === req.user._id.toString();
     const isAssignee = task.assignedTo && task.assignedTo.toString() === req.user._id.toString();
 
