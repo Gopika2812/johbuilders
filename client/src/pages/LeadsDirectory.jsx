@@ -1026,7 +1026,7 @@ const LeadsDirectory = () => {
 
     setIsSubmitting(true);
     let followUpInfoPayload = undefined;
-    if (['Follow-Up', 'Site Visit', 'Future Follow-up'].includes(editStatus)) {
+    if (['Follow-Up', 'Site Visit'].includes(editStatus)) {
       followUpInfoPayload = {
         ...(selectedLeadForEdit?.followUpInfo || {}),
         contactedThrough: editContactedThrough || 'Call',
@@ -1035,6 +1035,13 @@ const LeadsDirectory = () => {
       if (editNextFollowDate) {
         followUpInfoPayload.nextFollowUpDate = new Date(editNextFollowDate);
       }
+    } else if (editStatus === 'Future Follow-up') {
+      followUpInfoPayload = {
+        ...(selectedLeadForEdit?.followUpInfo || {}),
+        contactedThrough: editContactedThrough || 'Call',
+        remarks: editRemarks?.trim() || '',
+        nextFollowUpDate: undefined
+      };
     } else if (editRemarks?.trim()) {
       followUpInfoPayload = {
         ...(selectedLeadForEdit?.followUpInfo || {}),
@@ -1294,8 +1301,8 @@ const LeadsDirectory = () => {
       setError('Please enter the reference name.');
       return;
     }
-    if (leadType === 'Direct Visit' && (!directFollowRemarks || !directFollowRemarks.trim())) {
-      setError('Notes (Narration) is required for Direct Visit.');
+    if (!directFollowRemarks || !directFollowRemarks.trim()) {
+      setError('Notes (Narration) / Remarks is required.');
       return;
     }
     if (leadType === 'Lead' && !assignedToId) {
@@ -1351,11 +1358,11 @@ const LeadsDirectory = () => {
       payload.followUpInfo = {
         nextFollowUpDate: new Date(directFollowDate),
         contactedThrough: 'On Spot',
-        remarks: directFollowRemarks
+        remarks: directFollowRemarks.trim()
       };
-    } else if (directFollowRemarks && directFollowRemarks.trim()) {
+    } else {
       payload.followUpInfo = {
-        remarks: directFollowRemarks
+        remarks: directFollowRemarks.trim()
       };
     }
 
@@ -3218,11 +3225,11 @@ const LeadsDirectory = () => {
                     </div>
                   </div>
                   <div>
-                    <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Notes (Narration) <span className="text-red-500">*</span></label>
+                    <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Notes (Narration) / Remarks <span className="text-red-500">*</span></label>
                     <textarea
                       required
                       rows="2"
-                      placeholder="Interaction notes..."
+                      placeholder="Interaction notes or initial lead remarks..."
                       value={directFollowRemarks}
                       onChange={(e) => setDirectFollowRemarks(e.target.value)}
                       className="w-full px-4 py-3 bg-white border border-black-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0e623a] text-sm"
@@ -3256,8 +3263,9 @@ const LeadsDirectory = () => {
               {/* Notes (Narration) / Remarks for Lead Type */}
               {leadType === 'Lead' && (
                 <div className="flex flex-col">
-                  <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Notes (Narration) / Remarks</label>
+                  <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Notes (Narration) / Remarks <span className="text-red-500">*</span></label>
                   <textarea
+                    required
                     rows="2"
                     placeholder="Interaction notes or initial lead remarks..."
                     value={directFollowRemarks}
@@ -3954,7 +3962,7 @@ const LeadsDirectory = () => {
               </div>
 
               {/* Conditional Follow-up / Site Visit Schedule Fields */}
-              {['Follow-Up', 'Site Visit', 'Future Follow-up'].includes(editStatus) && (
+              {['Follow-Up', 'Site Visit'].includes(editStatus) && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-left p-3.5 bg-amber-50/60 rounded-2xl border border-amber-200/70">
                   <div className="flex flex-col">
                     <label className="text-xs font-bold text-amber-900 uppercase tracking-wider block mb-1.5 flex items-center justify-between">
@@ -3977,6 +3985,26 @@ const LeadsDirectory = () => {
                       className="w-full px-3.5 py-2.5 bg-white border border-amber-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-600 text-sm font-semibold text-black-800"
                     />
                   </div>
+                  <div className="flex flex-col">
+                    <label className="text-xs font-bold text-amber-900 uppercase tracking-wider block mb-1.5">
+                      Contacted Through
+                    </label>
+                    <select
+                      value={editContactedThrough}
+                      onChange={(e) => setEditContactedThrough(e.target.value)}
+                      className="w-full px-3.5 py-2.5 bg-white border border-amber-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-600 text-sm font-semibold text-black-800 cursor-pointer appearance-none"
+                      style={{ backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 14px center', backgroundSize: '14px' }}
+                    >
+                      <option value="Call">Call</option>
+                      <option value="WhatsApp">WhatsApp</option>
+                      <option value="On Spot">On Spot</option>
+                    </select>
+                  </div>
+                </div>
+              )}
+
+              {editStatus === 'Future Follow-up' && (
+                <div className="text-left p-3.5 bg-amber-50/60 rounded-2xl border border-amber-200/70">
                   <div className="flex flex-col">
                     <label className="text-xs font-bold text-amber-900 uppercase tracking-wider block mb-1.5">
                       Contacted Through

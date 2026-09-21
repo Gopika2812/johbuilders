@@ -167,10 +167,8 @@ router.post('/', protect, async (req, res) => {
       }
     }
 
-    if (leadType === 'Direct Visit') {
-      if (!followUpInfo || !followUpInfo.remarks || !followUpInfo.remarks.trim()) {
-        return res.status(400).json({ message: 'Notes (Narration) is required for Direct Visit.' });
-      }
+    if (!followUpInfo || !followUpInfo.remarks || !followUpInfo.remarks.trim()) {
+      return res.status(400).json({ message: 'Notes (Narration) / Remarks is required.' });
     }
 
     // 1. Phone number tracking for duplicate checks / reopening
