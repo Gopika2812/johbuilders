@@ -339,15 +339,14 @@ router.put('/:id', protect, async (req, res) => {
         'Assigned',
         'Follow-Up',
         'Site Visit',
-        'Hot List',
-        'Negotiation',
         'Booking',
         'Future Follow-up',
         'Lost'
       ];
       const currentIndex = LEAD_STATUSES.indexOf(lead.status);
       const newIndex = LEAD_STATUSES.indexOf(status);
-      if (!isRevert && !isSuperAdminUser && currentIndex !== -1 && newIndex !== -1 && newIndex < currentIndex) {
+      const isFutureTransition = lead.status === 'Future Follow-up' || status === 'Future Follow-up';
+      if (!isRevert && !isSuperAdminUser && !isFutureTransition && currentIndex !== -1 && newIndex !== -1 && newIndex < currentIndex) {
         return res.status(400).json({ message: 'Cannot move backward to a previous stage' });
       }
       lead.status = status;
