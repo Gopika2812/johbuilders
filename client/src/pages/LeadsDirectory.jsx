@@ -1733,7 +1733,9 @@ const LeadsDirectory = () => {
       } else if (followMode === 'FutureFollowUp') {
         finalStatus = 'Future Follow-up';
       } else if (followMode === 'FollowUp') {
-        if (followTargetStatus && followTargetStatus !== 'New' && followTargetStatus !== 'Assigned') {
+        if (selectedLeadForFollow?.status === 'Site Visit' || followTargetStatus === 'Site Visit') {
+          finalStatus = 'Site Visit';
+        } else if (followTargetStatus && followTargetStatus !== 'New' && followTargetStatus !== 'Assigned') {
           finalStatus = followTargetStatus;
         } else {
           finalStatus = 'Follow-Up';
@@ -1805,6 +1807,8 @@ const LeadsDirectory = () => {
         setFollowModalOpen(false);
         if (followMode === 'FutureFollowUp') {
           setSuccessMsg('Lead moved to Future Follow-up successfully!');
+        } else if (finalStatus === 'Site Visit') {
+          setSuccessMsg(`Site Visit follow-up scheduled successfully for ${new Date(nextFollowDate).toLocaleDateString()}!`);
         } else if (followMode === 'FollowUp') {
           setSuccessMsg(`Follow-up scheduled successfully for ${new Date(nextFollowDate).toLocaleDateString()}!`);
         } else if (followMode === 'SiteVisit' || payload.status === 'Site Visit') {
@@ -3909,7 +3913,7 @@ const LeadsDirectory = () => {
                       if (val === 'Schedule Follow-up') {
                         setEditModalOpen(false);
                         const lead = leads.find(l => l._id === selectedLeadForEdit._id) || selectedLeadForEdit;
-                        initiateFollowUpOrComplete(lead, 'Follow-Up', 'FollowUp');
+                        initiateFollowUpOrComplete(lead, lead.status || 'Follow-Up', 'FollowUp');
                         return;
                       }
                       if (val === 'Booking') {
