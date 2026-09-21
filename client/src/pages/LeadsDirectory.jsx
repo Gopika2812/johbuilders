@@ -1041,10 +1041,9 @@ const LeadsDirectory = () => {
       }
     } else if (editStatus === 'Future Follow-up') {
       followUpInfoPayload = {
-        ...(selectedLeadForEdit?.followUpInfo || {}),
         contactedThrough: editContactedThrough || 'Call',
         remarks: editRemarks?.trim() || '',
-        nextFollowUpDate: undefined
+        nextFollowUpDate: null
       };
     } else if (editRemarks?.trim()) {
       followUpInfoPayload = {
@@ -1750,7 +1749,7 @@ const LeadsDirectory = () => {
       payload = {
         status: finalStatus,
         followUpInfo: {
-          nextFollowUpDate: (followMode !== 'FutureFollowUp' && nextFollowDate) ? new Date(nextFollowDate) : undefined,
+          nextFollowUpDate: (followMode !== 'FutureFollowUp' && finalStatus !== 'Future Follow-up' && nextFollowDate) ? new Date(nextFollowDate) : null,
           contactedThrough: followThrough,
           remarks: followRemarks
         },
@@ -2624,7 +2623,7 @@ const LeadsDirectory = () => {
                     {hasColumnPermission('leads', 'nextFollowup') && (
                       <td className="px-2 py-1.5 sm:py-2 border-b border-black-100 text-center">
                         <div className="text-[11px] font-semibold text-black-700">
-                          {lead.followUpInfo?.nextFollowUpDate
+                          {lead.status !== 'Future Follow-up' && lead.followUpInfo?.nextFollowUpDate
                             ? new Date(lead.followUpInfo.nextFollowUpDate).toLocaleString('en-GB', { dateStyle: 'short' })
                             : '—'}
                         </div>

@@ -379,6 +379,11 @@ router.put('/:id', protect, async (req, res) => {
     if (leadCategory) lead.leadCategory = leadCategory;
 
     if (followUpInfo !== undefined) lead.followUpInfo = followUpInfo;
+    if (lead.status === 'Future Follow-up' || status === 'Future Follow-up') {
+      if (lead.followUpInfo) {
+        lead.followUpInfo.nextFollowUpDate = undefined;
+      }
+    }
     
     const isLostOrCancelled = ['Lost', 'Cancelled', 'Site Visit - Cancelled', 'Follow-Up - Lost'].includes(prevStatus) || Boolean(lead.lostStage);
 
