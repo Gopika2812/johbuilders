@@ -2695,7 +2695,7 @@ const LeadsDirectory = () => {
                                   type="button"
                                   onClick={() => {
                                     setOpenActionMenuId(null);
-                                    initiateFollowUpOrComplete(lead, 'Follow-Up', 'FollowUp');
+                                    initiateFollowUpOrComplete(lead, lead.status || 'Follow-Up', 'FollowUp');
                                   }}
                                   className="w-full text-left px-3.5 py-1.5 text-[11px] font-bold hover:bg-emerald-50 flex items-center gap-2 text-[#0e623a] cursor-pointer"
                                 >
@@ -3936,12 +3936,11 @@ const LeadsDirectory = () => {
                     className="w-full px-4 py-3 bg-black-55 border border-[#d1d5db] rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-600 text-sm cursor-pointer appearance-none"
                     style={{ backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 16px center', backgroundSize: '16px' }}
                   >
-                    {LEAD_STATUSES.map((status, idx) => {
+                    {LEAD_STATUSES.map((status) => {
                       const currentStatus = selectedLeadForEdit?.status;
-                      const currentIdx = selectedLeadForEdit ? LEAD_STATUSES.indexOf(currentStatus) : 0;
                       const roleNorm = (user?.role || '').toLowerCase().replace(/[\s_-]+/g, '');
                       const isSuperAdmin = roleNorm === 'superadmin' || roleNorm === 'admin';
-                      if (!isSuperAdmin && currentStatus !== 'Future Follow-up' && idx < currentIdx && currentIdx !== -1) return null;
+                      if (!isSuperAdmin && (currentStatus === 'Booking' || currentStatus === 'Won') && status !== 'Booking' && status !== 'Won') return null;
                       return <option key={status} value={status}>{status === 'Booking' ? 'Booked' : status}</option>;
                     })}
                     {selectedLeadForEdit && (

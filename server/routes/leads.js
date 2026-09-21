@@ -334,20 +334,9 @@ router.put('/:id', protect, async (req, res) => {
     }
 
     if (statusChanged) {
-      const LEAD_STATUSES = [
-        'New',
-        'Assigned',
-        'Follow-Up',
-        'Site Visit',
-        'Booking',
-        'Future Follow-up',
-        'Lost'
-      ];
-      const currentIndex = LEAD_STATUSES.indexOf(lead.status);
-      const newIndex = LEAD_STATUSES.indexOf(status);
-      const isFutureTransition = lead.status === 'Future Follow-up' || status === 'Future Follow-up';
-      if (!isRevert && !isSuperAdminUser && !isFutureTransition && currentIndex !== -1 && newIndex !== -1 && newIndex < currentIndex) {
-        return res.status(400).json({ message: 'Cannot move backward to a previous stage' });
+      const lockedStages = ['Booking', 'Won'];
+      if (!isRevert && !isSuperAdminUser && lockedStages.includes(lead.status) && !lockedStages.includes(status)) {
+        return res.status(400).json({ message: 'Cannot move backward from a booked stage without admin authorization' });
       }
       lead.status = status;
     }
