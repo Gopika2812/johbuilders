@@ -993,6 +993,10 @@ const LeadsDirectory = () => {
       setError('Please select an assigned executive.');
       return;
     }
+    if (!editRemarks || !editRemarks.trim()) {
+      setError('Remarks / Interaction Notes is required.');
+      return;
+    }
     if (editBankLoan === 'Yes' && (!editBankLoanPercentage || Number(editBankLoanPercentage) <= 0)) {
       setError('Bank Loan Percentage must be a number greater than 0.');
       return;
@@ -4032,8 +4036,9 @@ const LeadsDirectory = () => {
 
               {/* Remarks / Interaction Notes */}
               <div className="flex flex-col text-left">
-                <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Remarks / Interaction Notes</label>
+                <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-1.5">Remarks / Interaction Notes <span className="text-red-500">*</span></label>
                 <textarea
+                  required
                   rows="3"
                   placeholder="Add remarks, customer feedback or interaction notes..."
                   value={editRemarks}
