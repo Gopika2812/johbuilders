@@ -329,20 +329,20 @@ const groupUnitsByCustomer = (unitsList) => {
   if (!unitsList || !Array.isArray(unitsList)) return [];
 
   const map = new Map();
-  unitsList.forEach((unit, idx) => {
+  unitsList.forEach((unit) => {
     const rawName = (unit.customerName || '').trim();
     const rawPhone = (unit.customerPhone || '').trim();
     const proj = (unit.projectName || 'N/A').trim();
 
-    const isUnnamed = (!rawName || rawName.toLowerCase() === 'n/a') && (!rawPhone || rawPhone.toLowerCase() === 'n/a');
-    const key = isUnnamed
-      ? `unnamed_${proj.toLowerCase()}_${unit.unitId || idx}`
-      : `${rawName.toLowerCase()}_${rawPhone}_${proj.toLowerCase()}`;
+    const hasName = rawName && rawName.toLowerCase() !== 'n/a' && rawName !== '—' && rawName !== '-';
+    if (!hasName) return;
+
+    const key = `${rawName.toLowerCase()}_${rawPhone}_${proj.toLowerCase()}`;
 
     if (!map.has(key)) {
       map.set(key, {
-        customerName: rawName || 'N/A',
-        customerPhone: rawPhone || 'N/A',
+        customerName: rawName,
+        customerPhone: rawPhone || '-',
         projectName: proj,
         projectCode: unit.projectCode || '',
         bookingDate: unit.bookingDate || null,
@@ -2591,11 +2591,13 @@ const Dashboard = () => {
             projBookedCustCount = pStats.bookedCustomers;
           } else if (projBookedCustCount === 0 && projObj && projObj.units) {
             const bUnits = projObj.units.filter(u => u.status === 'Booked' || u.status === 'Sold Out');
-            const cSet = new Set(bUnits.map(u => `${(u.customerName || '').trim().toLowerCase()}_${(u.customerPhone || '').trim()}`).filter(k => k !== '_'));
+            const cSet = new Set(bUnits
+              .filter(u => {
+                const name = (u.customerName || '').trim().toLowerCase();
+                return name && name !== 'n/a' && name !== '-' && name !== '—';
+              })
+              .map(u => `${(u.customerName || '').trim().toLowerCase()}_${(u.customerPhone || '').trim()}`));
             if (cSet.size > 0) projBookedCustCount = cSet.size;
-            else if (bUnits.length > 0) projBookedCustCount = (pStats.booked || 0) + (pStats.handover || 0);
-          } else if (projBookedCustCount === 0) {
-            projBookedCustCount = (pStats.booked || 0) + (pStats.handover || 0);
           }
           pStats.bookedCustomers = projBookedCustCount;
 

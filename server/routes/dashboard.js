@@ -803,13 +803,13 @@ router.get('/stats', protect, async (req, res) => {
           .concat(handoverUnitsList || [])
           .filter(u => u.projectCode === pCode || u.projectName === p.name);
         projectUnitsStats[pCode].bookedCustomers = (projBookedList && projBookedList.length > 0)
-          ? new Set(projBookedList.map((u, idx) => {
-              const name = (u.customerName || '').trim().toLowerCase();
-              const phone = (u.customerPhone || '').trim();
-              if ((!name || name === 'n/a') && (!phone || phone === 'n/a')) return `unit_${u.unitId || idx}_${pCode}`;
-              return `${name}_${phone}`;
-            })).size
-          : ((projectUnitsStats[pCode].booked || 0) + (projectUnitsStats[pCode].handover || 0));
+          ? new Set(projBookedList
+              .filter(u => {
+                const name = (u.customerName || '').trim().toLowerCase();
+                return name && name !== 'n/a' && name !== '-' && name !== '—';
+              })
+              .map(u => `${(u.customerName || '').trim().toLowerCase()}_${(u.customerPhone || '').trim()}`)).size
+          : 0;
       }
     });
 
@@ -1160,13 +1160,12 @@ router.get('/stats', protect, async (req, res) => {
     });
 
     const bookedCustomerCount = (bookedUnitsList && bookedUnitsList.length > 0)
-      ? new Set(bookedUnitsList.map((u, idx) => {
-          const name = (u.customerName || '').trim().toLowerCase();
-          const phone = (u.customerPhone || '').trim();
-          const proj = (u.projectName || '').trim().toLowerCase();
-          if ((!name || name === 'n/a') && (!phone || phone === 'n/a')) return `unit_${u.unitId || idx}_${proj}`;
-          return `${name}_${phone}_${proj}`;
-        })).size
+      ? new Set(bookedUnitsList
+          .filter(u => {
+            const name = (u.customerName || '').trim().toLowerCase();
+            return name && name !== 'n/a' && name !== '-' && name !== '—';
+          })
+          .map(u => `${(u.customerName || '').trim().toLowerCase()}_${(u.customerPhone || '').trim()}_${(u.projectName || '').trim().toLowerCase()}`)).size
       : cumulativeBooked;
 
     res.json({
