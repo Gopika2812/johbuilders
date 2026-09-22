@@ -329,16 +329,20 @@ const groupUnitsByCustomer = (unitsList) => {
   if (!unitsList || !Array.isArray(unitsList)) return [];
 
   const map = new Map();
-  unitsList.forEach(unit => {
-    const name = (unit.customerName || 'N/A').trim();
-    const phone = (unit.customerPhone || 'N/A').trim();
+  unitsList.forEach((unit, idx) => {
+    const rawName = (unit.customerName || '').trim();
+    const rawPhone = (unit.customerPhone || '').trim();
     const proj = (unit.projectName || 'N/A').trim();
-    const key = `${name.toLowerCase()}_${phone}_${proj.toLowerCase()}`;
+
+    const isUnnamed = (!rawName || rawName.toLowerCase() === 'n/a') && (!rawPhone || rawPhone.toLowerCase() === 'n/a');
+    const key = isUnnamed
+      ? `unnamed_${proj.toLowerCase()}_${unit.unitId || idx}`
+      : `${rawName.toLowerCase()}_${rawPhone}_${proj.toLowerCase()}`;
 
     if (!map.has(key)) {
       map.set(key, {
-        customerName: name,
-        customerPhone: phone,
+        customerName: rawName || 'N/A',
+        customerPhone: rawPhone || 'N/A',
         projectName: proj,
         projectCode: unit.projectCode || '',
         bookingDate: unit.bookingDate || null,
