@@ -2575,29 +2575,34 @@ const Dashboard = () => {
             { stage: 'Ready Built', count: pStats.readyBuilt || 0 }
           ].filter(item => item.count > 0);
 
-          const projBookedUnits = (stats.cards?.inventory?.bookedUnitsList || [])
-            .concat(stats.cards?.inventory?.handoverUnitsList || [])
-            .filter(u => {
-              const uCode = (u.projectCode || '').trim().toLowerCase();
-              const uName = (u.projectName || '').trim().toLowerCase();
-              const pCodeNorm = (projCode || '').trim().toLowerCase();
-              const pNameNorm = (projObj?.name || '').trim().toLowerCase();
-              return (pCodeNorm && (uCode === pCodeNorm || uName === pCodeNorm)) ||
-                     (pNameNorm && (uName === pNameNorm || uCode === pNameNorm));
-            });
-
-          let projBookedCustCount = groupUnitsByCustomer(projBookedUnits).length;
-          if (projBookedCustCount === 0 && pStats.bookedCustomers != null) {
-            projBookedCustCount = pStats.bookedCustomers;
-          } else if (projBookedCustCount === 0 && projObj && projObj.units) {
-            const bUnits = projObj.units.filter(u => u.status === 'Booked' || u.status === 'Sold Out');
-            const cSet = new Set(bUnits
-              .filter(u => {
+          let projBookedCustCount = 0;
+          if (projObj && projObj.units && projObj.units.length > 0) {
+            const custSet = new Set();
+            projObj.units.forEach(u => {
+              const st = (u.status || '').toLowerCase();
+              if (st === 'booked' || st === 'sold out' || st === 'sold' || st === 'handover') {
                 const name = (u.customerName || '').trim().toLowerCase();
-                return name && name !== 'n/a' && name !== '-' && name !== '—';
-              })
-              .map(u => `${(u.customerName || '').trim().toLowerCase()}_${(u.customerPhone || '').trim()}`));
-            if (cSet.size > 0) projBookedCustCount = cSet.size;
+                const phone = (u.customerPhone || '').trim();
+                if (name && name !== 'n/a' && name !== '-' && name !== '—' && name !== 'undefined' && name !== 'null') {
+                  custSet.add(`${name}_${phone}`);
+                }
+              }
+            });
+            projBookedCustCount = custSet.size;
+          } else if (pStats.bookedCustomers != null) {
+            projBookedCustCount = pStats.bookedCustomers;
+          } else {
+            const projBookedUnits = (stats.cards?.inventory?.bookedUnitsList || [])
+              .concat(stats.cards?.inventory?.handoverUnitsList || [])
+              .filter(u => {
+                const uCode = (u.projectCode || '').trim().toLowerCase();
+                const uName = (u.projectName || '').trim().toLowerCase();
+                const pCodeNorm = (projCode || '').trim().toLowerCase();
+                const pNameNorm = (projObj?.name || '').trim().toLowerCase();
+                return (pCodeNorm && (uCode === pCodeNorm || uName === pCodeNorm)) ||
+                       (pNameNorm && (uName === pNameNorm || uCode === pNameNorm));
+              });
+            projBookedCustCount = groupUnitsByCustomer(projBookedUnits).length;
           }
           pStats.bookedCustomers = projBookedCustCount;
 

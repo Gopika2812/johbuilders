@@ -799,17 +799,19 @@ router.get('/stats', protect, async (req, res) => {
     allProjects.forEach(p => {
       const pCode = p.code || p.name;
       if (projectUnitsStats[pCode]) {
-        const projBookedList = (bookedUnitsList || [])
-          .concat(handoverUnitsList || [])
-          .filter(u => u.projectCode === pCode || u.projectName === p.name);
-        projectUnitsStats[pCode].bookedCustomers = (projBookedList && projBookedList.length > 0)
-          ? new Set(projBookedList
-              .filter(u => {
-                const name = (u.customerName || '').trim().toLowerCase();
-                return name && name !== 'n/a' && name !== '-' && name !== '—';
-              })
-              .map(u => `${(u.customerName || '').trim().toLowerCase()}_${(u.customerPhone || '').trim()}`)).size
-          : 0;
+        const bUnits = (p.units || []).filter(u => {
+          const st = (u.status || '').toLowerCase();
+          return st === 'booked' || st === 'sold out' || st === 'sold' || st === 'handover';
+        });
+        const custSet = new Set();
+        bUnits.forEach(u => {
+          const name = (u.customerName || '').trim().toLowerCase();
+          const phone = (u.customerPhone || '').trim();
+          if (name && name !== 'n/a' && name !== '-' && name !== '—' && name !== 'undefined' && name !== 'null') {
+            custSet.add(`${name}_${phone}`);
+          }
+        });
+        projectUnitsStats[pCode].bookedCustomers = custSet.size;
       }
     });
 
