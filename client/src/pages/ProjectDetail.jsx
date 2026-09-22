@@ -949,12 +949,49 @@ const ProjectDetail = () => {
             }
           }
           if (statusFilter && statusFilter !== 'All') {
-            if (normalizeStatus(u.status) !== statusFilter) {
+            if (statusFilter === 'BookedWithCustomer') {
+              const isBkd = normalizeStatus(u.status) === 'Booked';
+              const custName = (u.customerName || '').trim().toLowerCase();
+              const hasCust = Boolean(custName && custName !== 'n/a' && custName !== '-' && custName !== '—' && custName !== 'undefined' && custName !== 'null');
+              if (!isBkd || !hasCust) {
+                return false;
+              }
+            } else if (normalizeStatus(u.status) !== statusFilter) {
               return false;
             }
           }
           return true;
         });
+
+        // Compute unique booked customers for the currently displayed units
+        const displayedBookedCustCount = (() => {
+          const custSet = new Set();
+          displayedUnits.forEach(u => {
+            if (normalizeStatus(u.status) === 'Booked') {
+              const name = (u.customerName || '').trim().toLowerCase();
+              const phone = (u.customerPhone || '').trim();
+              if (name && name !== 'n/a' && name !== '-' && name !== '—' && name !== 'undefined' && name !== 'null') {
+                custSet.add(`${name}_${phone}`);
+              }
+            }
+          });
+          return custSet.size;
+        })();
+
+        // Compute total unique booked customers for the entire category
+        const totalCategoryBookedCustCount = (() => {
+          const custSet = new Set();
+          categoryUnits.forEach(u => {
+            if (normalizeStatus(u.status) === 'Booked') {
+              const name = (u.customerName || '').trim().toLowerCase();
+              const phone = (u.customerPhone || '').trim();
+              if (name && name !== 'n/a' && name !== '-' && name !== '—' && name !== 'undefined' && name !== 'null') {
+                custSet.add(`${name}_${phone}`);
+              }
+            }
+          });
+          return custSet.size;
+        })();
 
         return (
           <>
@@ -981,6 +1018,17 @@ const ProjectDetail = () => {
           <span className="font-bold text-[#0e623a]">
             {displayedUnits.length} {displayedUnits.length === 1 ? 'Unit' : 'Units'} {unitSearch || statusFilter !== 'All' ? `(Filtered of ${categoryUnits.length})` : `Total`}
           </span>
+          {totalCategoryBookedCustCount > 0 && (
+            <>
+              <span>•</span>
+              <span className="font-extrabold text-sky-700 bg-sky-50 px-2.5 py-0.5 rounded-full border border-sky-200 flex items-center gap-1">
+                <span>{displayedBookedCustCount} {displayedBookedCustCount === 1 ? 'Booked Customer' : 'Booked Customers'}</span>
+                {(unitSearch || statusFilter !== 'All') && displayedBookedCustCount !== totalCategoryBookedCustCount && (
+                  <span className="text-sky-500 font-medium">(of {totalCategoryBookedCustCount})</span>
+                )}
+              </span>
+            </>
+          )}
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5">
@@ -1015,6 +1063,7 @@ const ProjectDetail = () => {
             <option value="Available">Available</option>
             <option value="Hold">Hold</option>
             <option value="Booked">Booked</option>
+            <option value="BookedWithCustomer">Booked (With Customer)</option>
             {project?.hasReadyBuilt !== false && <option value="Ready Built">Ready Built</option>}
           </select>
 
