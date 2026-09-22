@@ -796,6 +796,18 @@ router.get('/stats', protect, async (req, res) => {
       });
     });
 
+    allProjects.forEach(p => {
+      const pCode = p.code || p.name;
+      if (projectUnitsStats[pCode]) {
+        const projBookedList = (bookedUnitsList || [])
+          .concat(handoverUnitsList || [])
+          .filter(u => u.projectCode === pCode || u.projectName === p.name);
+        projectUnitsStats[pCode].bookedCustomers = (projBookedList && projBookedList.length > 0)
+          ? new Set(projBookedList.map(u => `${(u.customerName || '').trim().toLowerCase()}_${(u.customerPhone || '').trim()}`)).size
+          : ((projectUnitsStats[pCode].booked || 0) + (projectUnitsStats[pCode].handover || 0));
+      }
+    });
+
     const cancelledFlows = allCrdFlows.filter(cf => cf.status === 'Cancelled' || cf.status === 'Returned');
     cancelledFlows.forEach(cf => {
       if (cf.project) {

@@ -2571,10 +2571,35 @@ const Dashboard = () => {
             { stage: 'Ready Built', count: pStats.readyBuilt || 0 }
           ].filter(item => item.count > 0);
 
+          const projBookedUnits = (stats.cards?.inventory?.bookedUnitsList || [])
+            .concat(stats.cards?.inventory?.handoverUnitsList || [])
+            .filter(u => {
+              const uCode = (u.projectCode || '').trim().toLowerCase();
+              const uName = (u.projectName || '').trim().toLowerCase();
+              const pCodeNorm = (projCode || '').trim().toLowerCase();
+              const pNameNorm = (projObj?.name || '').trim().toLowerCase();
+              return (pCodeNorm && (uCode === pCodeNorm || uName === pCodeNorm)) ||
+                     (pNameNorm && (uName === pNameNorm || uCode === pNameNorm));
+            });
+
+          let projBookedCustCount = groupUnitsByCustomer(projBookedUnits).length;
+          if (projBookedCustCount === 0 && pStats.bookedCustomers != null) {
+            projBookedCustCount = pStats.bookedCustomers;
+          } else if (projBookedCustCount === 0 && projObj && projObj.units) {
+            const bUnits = projObj.units.filter(u => u.status === 'Booked' || u.status === 'Sold Out');
+            const cSet = new Set(bUnits.map(u => `${(u.customerName || '').trim().toLowerCase()}_${(u.customerPhone || '').trim()}`).filter(k => k !== '_'));
+            if (cSet.size > 0) projBookedCustCount = cSet.size;
+            else if (bUnits.length > 0) projBookedCustCount = (pStats.booked || 0) + (pStats.handover || 0);
+          } else if (projBookedCustCount === 0) {
+            projBookedCustCount = (pStats.booked || 0) + (pStats.handover || 0);
+          }
+          pStats.bookedCustomers = projBookedCustCount;
+
           const slots = [
             { label: 'Total', count: pStats.total || 0, color: '#64748b', bgClass: 'bg-slate-50 border border-slate-150 hover:bg-slate-100/70 text-slate-700', titleColor: 'text-slate-500', countColor: 'text-slate-900', view: '' },
             { label: 'Available', count: pStats.available || 0, color: '#10b981', bgClass: 'bg-emerald-50/50 border border-emerald-100 hover:bg-emerald-100/70 text-emerald-800', titleColor: 'text-emerald-700', countColor: 'text-emerald-950', view: 'available' },
             { label: 'Booked', count: (pStats.booked || 0) + (pStats.handover || 0), color: '#ef4444', bgClass: 'bg-red-50 border border-red-100 hover:bg-red-100/70 text-red-800', titleColor: 'text-red-700', countColor: 'text-red-950', view: 'booked' },
+            { label: 'Booked Customers', count: projBookedCustCount, color: '#0284c7', bgClass: 'bg-sky-50/80 border border-sky-100 hover:bg-sky-100/70 text-sky-800', titleColor: 'text-sky-700', countColor: 'text-sky-950', view: 'booked' },
             { label: 'HOLD', count: pStats.hold || 0, color: '#fbbf24', bgClass: 'bg-yellow-50 border border-yellow-100 hover:bg-yellow-100/70 text-yellow-800', titleColor: 'text-yellow-700', countColor: 'text-yellow-950', view: 'hold' },
           ];
 
@@ -2607,7 +2632,7 @@ const Dashboard = () => {
                     No units registered
                   </div>
                 ) : (
-                  <div className={`grid gap-3 w-full ${projObj?.hasReadyBuilt !== false ? 'grid-cols-2 md:grid-cols-3 lg:grid-cols-5' : 'grid-cols-2 lg:grid-cols-4'}`}>
+                  <div className={`grid gap-3 w-full ${projObj?.hasReadyBuilt !== false ? 'grid-cols-2 sm:grid-cols-3 xl:grid-cols-6' : 'grid-cols-2 sm:grid-cols-3 xl:grid-cols-5'}`}>
                     {slots.map((slot, index) => {
                       return (
                         <div key={index}
@@ -5059,7 +5084,7 @@ const Dashboard = () => {
                 return (
                   <>
                     {/* Summary Stats Grid */}
-                    <div className={`grid gap-4 ${hasReadyBuilt ? 'grid-cols-2 sm:grid-cols-5' : 'grid-cols-2 sm:grid-cols-4'}`}>
+                    <div className={`grid gap-3 ${hasReadyBuilt ? 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-6' : 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-5'}`}>
                       <div className="bg-slate-50 border border-slate-150 rounded-2xl p-4 text-center">
                         <span className="text-[11px] text-slate-500 font-extrabold uppercase tracking-wider block">Total Units</span>
                         <span className="text-2xl font-black text-slate-900 block mt-1">{selectedInventoryProj.stats.total || 0}</span>
@@ -5071,6 +5096,10 @@ const Dashboard = () => {
                       <div className="bg-red-50 border border-red-100 rounded-2xl p-4 text-center">
                         <span className="text-[11px] text-red-700 font-extrabold uppercase tracking-wider block">Booked</span>
                         <span className="text-2xl font-black text-red-950 block mt-1">{(selectedInventoryProj.stats.booked || 0) + (selectedInventoryProj.stats.handover || 0)}</span>
+                      </div>
+                      <div className="bg-sky-50 border border-sky-100 rounded-2xl p-4 text-center">
+                        <span className="text-[11px] text-sky-700 font-extrabold uppercase tracking-wider block">Booked Customers</span>
+                        <span className="text-2xl font-black text-sky-950 block mt-1">{selectedInventoryProj.stats.bookedCustomers || 0}</span>
                       </div>
                       <div className="bg-yellow-50 border border-yellow-100 rounded-2xl p-4 text-center">
                         <span className="text-[11px] text-yellow-705 font-extrabold uppercase tracking-wider block">HOLD</span>
