@@ -537,6 +537,7 @@ const Dashboard = () => {
   const [followupModalOpen, setFollowupModalOpen] = useState(false);
   const [hotModalOpen, setHotModalOpen] = useState(false);
   const [bookedModalOpen, setBookedModalOpen] = useState(false);
+  const [bookedCustomersModalOpen, setBookedCustomersModalOpen] = useState(false);
   const [lostModalOpen, setLostModalOpen] = useState(false);
   const clickTimeoutRef = useRef(null);
   const bookedClickTimeoutRef = useRef(null);
@@ -2781,7 +2782,7 @@ const Dashboard = () => {
           {/* Row 1: Total Performance Cards */}
           <div className="space-y-2">
             <h4 className="text-sm font-black text-black uppercase tracking-wider mb-1.5 text-left">Lead Details</h4>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
 
               {/* Card 1: Total Leads */}
               <div
@@ -2835,7 +2836,7 @@ const Dashboard = () => {
                 </div>
               </div>
 
-              {/* Card 4: Total Booked */}
+              {/* Card 4: Total Booked (Plots / Units) */}
               <div
                 onClick={() => setBookedModalOpen(true)}
                 className="bg-[#f0fbf4] border-none rounded-2xl p-3.5 shadow-sm hover:shadow-md transition cursor-pointer select-none active:scale-[0.99] duration-150 flex flex-col justify-between"
@@ -2844,16 +2845,34 @@ const Dashboard = () => {
                   <div>
                     <span className="text-xs text-black font-extrabold uppercase tracking-wider">Total Booked</span>
                     <h3 className="text-2xl font-extrabold text-black-800 mt-0.5">
-                      {groupUnitsByCustomer(stats.cards.inventory?.bookedUnitsList).length || stats.cards.booked?.total || 0}
+                      {stats.cards.inventory?.bookedUnits ?? (stats.cards.inventory?.bookedUnitsList?.length ?? (stats.cards.booked?.total || 0))}
                     </h3>
                     <div className="text-[10px] text-gray-500 font-bold mt-0.5">
-                      booked ({groupUnitsByCustomer(stats.cards.inventory?.bookedUnitsList).length || stats.cards.booked?.total || 0})
+                      booked ({stats.cards.inventory?.bookedUnits ?? (stats.cards.inventory?.bookedUnitsList?.length ?? (stats.cards.booked?.total || 0))})
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* Card 5: Lost Leads */}
+              {/* Card 5: Booked Customers */}
+              <div
+                onClick={() => setBookedCustomersModalOpen(true)}
+                className="bg-[#f0fbf4] border-none rounded-2xl p-3.5 shadow-sm hover:shadow-md transition cursor-pointer select-none active:scale-[0.99] duration-150 flex flex-col justify-between"
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-xs text-black font-extrabold uppercase tracking-wider">Booked Customers</span>
+                    <h3 className="text-2xl font-extrabold text-black-800 mt-0.5">
+                      {groupUnitsByCustomer(stats.cards.inventory?.bookedUnitsList).length || (stats.cards.booked?.total || 0)}
+                    </h3>
+                    <div className="text-[10px] text-gray-500 font-bold mt-0.5">
+                      customers ({groupUnitsByCustomer(stats.cards.inventory?.bookedUnitsList).length || (stats.cards.booked?.total || 0)})
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Card 6: Lost Leads */}
               <div
                 onClick={() => setLostModalOpen(true)}
                 className="bg-[#f0fbf4] border-none rounded-2xl p-3.5 shadow-sm hover:shadow-md transition cursor-pointer select-none active:scale-[0.99] duration-150 flex flex-col justify-between"
@@ -4506,8 +4525,8 @@ const Dashboard = () => {
             {/* Header */}
             <div className="p-6 border-b border-black-150 flex items-center justify-between bg-amber-500/10">
               <div>
-                <h3 className="text-base font-extrabold text-amber-800">Booked Units Directory</h3>
-                <p className="text-[11px] text-amber-700 mt-0.5">Showing registered unit bookings and customer information</p>
+                <h3 className="text-base font-extrabold text-amber-800">Booked Plots / Units Directory</h3>
+                <p className="text-[11px] text-amber-700 mt-0.5">Showing all individual booked plots and assigned customer details</p>
               </div>
               <button
                 onClick={() => setBookedModalOpen(false)}
@@ -4525,8 +4544,109 @@ const Dashboard = () => {
                     <thead>
                       <tr className="border-b border-black-100 text-[11px] font-bold text-black-400 uppercase tracking-wider">
                         <th className="pb-3 pl-2">Booked Date</th>
+                        <th className="pb-3">Plot / Unit No</th>
+                        <th className="pb-3">Project Name</th>
                         <th className="pb-3">Customer Details</th>
-                        <th className="pb-3">Project / Unit</th>
+                        <th className="pb-3">Unit Specifications</th>
+                        <th className="pb-3 text-right pr-2">Booking Value</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-black-50 text-xs font-semibold text-black-700">
+                      {stats.cards.inventory.bookedUnitsList.map((unit, idx) => {
+                        let dateStr = '—';
+                        if (unit.bookingDate) {
+                          const d = new Date(unit.bookingDate);
+                          if (!isNaN(d.getTime())) {
+                            dateStr = d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+                          }
+                        }
+                        return (
+                          <tr key={idx} className="hover:bg-black-50/50 transition">
+                            <td className="py-3.5 pl-2">
+                              <span className="text-[11px] font-bold text-black-650 bg-black-100/80 px-2.5 py-1 rounded-md inline-block whitespace-nowrap">
+                                {dateStr}
+                              </span>
+                            </td>
+                            <td className="py-3.5">
+                              <span className="font-extrabold text-amber-800 bg-amber-100/80 px-2.5 py-1 rounded-md inline-block">
+                                {unit.unitId || 'N/A'}
+                              </span>
+                            </td>
+                            <td className="py-3.5">
+                              <span className="font-bold text-black-800">{unit.projectName || 'N/A'}</span>
+                            </td>
+                            <td className="py-3.5">
+                              <div className="flex flex-col gap-0.5">
+                                <span className="font-bold text-black-850">{unit.customerName || 'N/A'}</span>
+                                <span className="text-[11px] text-black-500 font-bold">{unit.customerPhone || 'N/A'}</span>
+                              </div>
+                            </td>
+                            <td className="py-3.5">
+                              <div className="flex flex-col gap-0.5">
+                                <span className="font-bold text-black-755">{unit.unitType || 'Plot'}</span>
+                                <span className="text-[11px] text-black-450 font-semibold">{unit.size ? `${Number(unit.size).toLocaleString()} Sq.Ft` : '—'}</span>
+                              </div>
+                            </td>
+                            <td className="py-3.5 text-right pr-2 font-extrabold text-[#0e623a] text-sm">
+                              ₹{Math.round(unit.price || 0).toLocaleString()}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="py-12 text-center text-black-450 italic text-xs">
+                  No active unit bookings recorded.
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="p-5 border-t border-black-150 bg-black-50/30 flex justify-end">
+              <button
+                onClick={() => {
+                  setBookedModalOpen(false);
+                  navigate('/leads?status=Booking');
+                }}
+                className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl transition shadow-sm"
+              >
+                Go to Bookings Tab →
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Booked Customers Modal Popup */}
+      {bookedCustomersModalOpen && (
+        <div className="fixed inset-0 bg-black-900/60 backdrop-blur-sm z-[999] flex items-center justify-center p-4">
+          <div className="bg-[#f0fbf4] rounded-3xl border-none shadow-2xl w-full max-w-4xl max-h-[85vh] flex flex-col overflow-hidden text-left animate-fadeIn">
+            {/* Header */}
+            <div className="p-6 border-b border-black-150 flex items-center justify-between bg-emerald-500/10">
+              <div>
+                <h3 className="text-base font-extrabold text-emerald-800">Booked Customers Directory</h3>
+                <p className="text-[11px] text-emerald-700 mt-0.5">Showing registered booked customers with their booked plots/units</p>
+              </div>
+              <button
+                onClick={() => setBookedCustomersModalOpen(false)}
+                className="w-8 h-8 rounded-full flex items-center justify-center bg-[#f0fbf4] text-black-400 hover:bg-red-50 hover:text-red-500 transition cursor-pointer font-bold border-none"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* List Content */}
+            <div className="flex-grow p-6 overflow-y-auto max-h-[50vh] scrollbar-thin">
+              {stats.cards.inventory?.bookedUnitsList && stats.cards.inventory.bookedUnitsList.length > 0 ? (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="border-b border-black-100 text-[11px] font-bold text-black-400 uppercase tracking-wider">
+                        <th className="pb-3 pl-2">Booked Date</th>
+                        <th className="pb-3">Customer Details</th>
+                        <th className="pb-3">Project / Booked Plots</th>
                         <th className="pb-3">Unit Specifications</th>
                         <th className="pb-3 text-right pr-2">Booking Value</th>
                       </tr>
@@ -4546,10 +4666,10 @@ const Dashboard = () => {
                             </div>
                           </td>
                           <td className="py-3.5">
-                            <div className="flex flex-col gap-0.5">
+                            <div className="flex flex-col gap-1">
                               <span className="font-bold text-black-800">{unitGroup.projectName}</span>
-                              <span className="text-[11px] text-black-450 font-bold uppercase tracking-wide">
-                                {unitGroup.units.length > 1 ? 'Units: ' : 'Unit: '}{unitGroup.unitIdsStr}
+                              <span className="text-[11px] text-emerald-800 font-bold uppercase tracking-wide bg-emerald-100/80 px-2 py-0.5 rounded-md inline-block w-fit">
+                                {unitGroup.units.length > 1 ? `Plots (${unitGroup.units.length}): ` : 'Plot: '}{unitGroup.unitIdsStr}
                               </span>
                             </div>
                           </td>
@@ -4569,7 +4689,7 @@ const Dashboard = () => {
                 </div>
               ) : (
                 <div className="py-12 text-center text-black-450 italic text-xs">
-                  No active unit bookings recorded.
+                  No active booked customers recorded.
                 </div>
               )}
             </div>
@@ -4578,10 +4698,10 @@ const Dashboard = () => {
             <div className="p-5 border-t border-black-150 bg-black-50/30 flex justify-end">
               <button
                 onClick={() => {
-                  setBookedModalOpen(false);
+                  setBookedCustomersModalOpen(false);
                   navigate('/leads?status=Booking');
                 }}
-                className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl transition shadow-sm"
+                className="px-4 py-2 bg-[#0e623a] hover:bg-[#0b4d2d] text-white text-xs font-bold rounded-xl transition shadow-sm"
               >
                 Go to Bookings Tab →
               </button>
