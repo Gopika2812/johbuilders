@@ -395,7 +395,9 @@ const groupUnitsByCustomer = (unitsList) => {
   });
 };
 
-const ApartmentLayoutView = ({ selectedProj, projObj }) => {
+const ApartmentLayoutView = ({ selectedProj, projObj, onNavigateToProject }) => {
+  const [selectedUnit, setSelectedUnit] = useState(null);
+
   const parseUnit = (uid) => {
     if (!uid || typeof uid !== 'string') return null;
     const m1 = uid.trim().match(/^(\d+)[Ff][-_ ]?(\d+)$/i);
@@ -409,121 +411,263 @@ const ApartmentLayoutView = ({ selectedProj, projObj }) => {
   const parsedUnitsList = rawList.map(parseUnit).filter(Boolean);
   const isFloorLayout = parsedUnitsList.length > 0 && parsedUnitsList.length >= rawList.length * 0.7;
 
-  if (!isFloorLayout) {
-    return (
-      <div className="space-y-2">
+  // Helper to get unit details
+  const getUnitInfo = (uid, displayId) => {
+    const cleanId = String(uid).replace(/[-_ ]/g, '').toUpperCase();
+    const uObj = projObj?.units?.find(u => {
+      const uClean = String(u.unitId || '').replace(/[-_ ]/g, '').toUpperCase();
+      return uClean === cleanId || u.unitId === uid || (displayId && u.unitId === displayId);
+    });
+    const uStatus = String(uObj?.status || '').toLowerCase();
+    const isHld = uStatus.includes('hold') || selectedProj?.stats?.holdUnitsList?.some(u => {
+      const hId = typeof u === 'object' ? u?.unitId : u;
+      return String(hId || '').replace(/[-_ ]/g, '').toUpperCase() === cleanId;
+    });
+    const isRb = uStatus === 'ready built' || uStatus === 'under construction' || uStatus === 'build' || selectedProj?.stats?.readyBuiltUnitsList?.some(id => String(id).replace(/[-_ ]/g, '').toUpperCase() === cleanId);
+    const isBkd = uStatus === 'booked' || uStatus === 'sold out' || uStatus === 'sold' || uStatus === 'handover' || (selectedProj?.stats?.bookedUnitsList || []).concat(selectedProj?.stats?.handoverUnitsList || []).some(id => String(id).replace(/[-_ ]/g, '').toUpperCase() === cleanId);
+    const isAvail = !isHld && !isRb && !isBkd;
+
+    let bgClass = "bg-slate-100 text-slate-800 border-slate-200 hover:border-slate-400";
+    let statusLabel = 'Available';
+    let badgeClass = 'bg-emerald-100 text-emerald-800 border-emerald-300';
+    if (isAvail) {
+      bgClass = "bg-emerald-100 text-emerald-800 border-emerald-300 hover:bg-emerald-200";
+      statusLabel = 'Available';
+      badgeClass = 'bg-emerald-100 text-emerald-800 border-emerald-300';
+    } else if (isHld) {
+      bgClass = "bg-amber-100 text-amber-800 border-amber-300 hover:bg-amber-200";
+      statusLabel = 'Hold';
+      badgeClass = 'bg-amber-100 text-amber-800 border-amber-300';
+    } else if (isRb) {
+      bgClass = "bg-purple-100 text-purple-800 border-purple-300 hover:bg-purple-200";
+      statusLabel = 'Ready Built';
+      badgeClass = 'bg-purple-100 text-purple-800 border-purple-300';
+    } else if (isBkd) {
+      bgClass = "bg-red-100 text-red-800 border-red-300 hover:bg-red-200";
+      statusLabel = uObj?.status || 'Booked';
+      badgeClass = 'bg-red-100 text-red-800 border-red-300';
+    }
+
+    return {
+      uid,
+      displayId: displayId || uid,
+      uObj,
+      statusLabel,
+      bgClass,
+      badgeClass,
+      isBkd,
+      isAvail,
+      isHld,
+      isRb
+    };
+  };
+
+  const floorList = isFloorLayout ? Array.from(new Set(parsedUnitsList.map(u => u.floorNum))).sort((a, b) => b - a) : [];
+  const maxFlat = isFloorLayout ? Math.max(...parsedUnitsList.map(u => u.flatNum), 8) : 8;
+  const flatCols = isFloorLayout ? Array.from({ length: maxFlat }, (_, i) => i + 1) : [];
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
         <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wide flex items-center gap-1.5">
           <span className="w-2.5 h-2.5 rounded-full bg-slate-500"></span>
           <span>Total units ({rawList.length})</span>
+          <span className="text-[11px] text-slate-400 font-normal lowercase">(click any unit to view customer & plot details)</span>
         </h4>
+      </div>
+
+      {!isFloorLayout ? (
         <div className="bg-slate-50 border-none rounded-2xl p-4 min-h-[50px] grid grid-cols-[repeat(auto-fill,minmax(75px,1fr))] gap-3">
           {rawList.length > 0 ? (
             rawList.map(uid => {
-              const cleanId = String(uid).replace(/[-_ ]/g, '').toUpperCase();
-              const uObj = projObj?.units?.find(u => String(u.unitId || '').replace(/[-_ ]/g, '').toUpperCase() === cleanId);
-              const uStatus = String(uObj?.status || '').toLowerCase();
-              const isHld = uStatus.includes('hold') || selectedProj?.stats?.holdUnitsList?.some(u => {
-                const hId = typeof u === 'object' ? u?.unitId : u;
-                return String(hId || '').replace(/[-_ ]/g, '').toUpperCase() === cleanId;
-              });
-              const isRb = uStatus === 'ready built' || uStatus === 'under construction' || uStatus === 'build' || selectedProj?.stats?.readyBuiltUnitsList?.some(id => String(id).replace(/[-_ ]/g, '').toUpperCase() === cleanId);
-              const isBkd = uStatus === 'booked' || uStatus === 'sold out' || (selectedProj?.stats?.bookedUnitsList || []).concat(selectedProj?.stats?.handoverUnitsList || []).some(id => String(id).replace(/[-_ ]/g, '').toUpperCase() === cleanId);
-              const isAvail = !isHld && !isRb && !isBkd;
-
-              let bgClass = "bg-slate-100 text-slate-800 border-slate-200";
-              if (isAvail) bgClass = "bg-emerald-100 text-emerald-800 border-emerald-300";
-              if (isHld) bgClass = "bg-amber-100 text-amber-800 border-amber-300";
-              if (isBkd) bgClass = "bg-red-100 text-red-800 border-red-300";
-              if (isRb) bgClass = "bg-purple-100 text-purple-800 border-purple-300";
+              const info = getUnitInfo(uid);
+              const custTip = info.uObj?.customerName ? ` • Customer: ${info.uObj.customerName}` : '';
+              const phoneTip = info.uObj?.customerPhone ? ` (${info.uObj.customerPhone})` : '';
               return (
-                <span key={uid} className={`border text-xs font-bold px-1 py-2 rounded-xl flex items-center justify-center text-center shadow-2xs ${bgClass}`}>
+                <button
+                  type="button"
+                  key={uid}
+                  onClick={() => setSelectedUnit(info)}
+                  title={`Unit ${uid} • Status: ${info.statusLabel}${custTip}${phoneTip} • Click to view details`}
+                  className={`border text-xs font-bold px-1 py-2 rounded-xl flex items-center justify-center text-center shadow-2xs transition-all duration-150 hover:scale-110 hover:shadow-md cursor-pointer active:scale-95 ${info.bgClass}`}
+                >
                   {uid}
-                </span>
+                </button>
               );
             })
           ) : (
             <span className="text-black-400 italic text-xs">No units registered</span>
           )}
         </div>
-      </div>
-    );
-  }
+      ) : (
+        <div className="bg-slate-50 border-none rounded-2xl p-4 min-h-[50px] space-y-2.5">
+          {floorList.map(floorNum => (
+            <div key={floorNum} className="grid grid-cols-4 sm:grid-cols-8 gap-2.5">
+              {flatCols.map(flatNum => {
+                const found = parsedUnitsList.find(u => u.floorNum === floorNum && u.flatNum === flatNum);
+                if (!found) {
+                  return (
+                    <span
+                      key={flatNum}
+                      className="border border-dashed border-slate-200 text-xs font-bold px-1 py-2 rounded-xl flex items-center justify-center text-slate-300 bg-white/40"
+                    >
+                      —
+                    </span>
+                  );
+                }
 
-  const floorList = Array.from(new Set(parsedUnitsList.map(u => u.floorNum))).sort((a, b) => b - a);
-  const maxFlat = Math.max(...parsedUnitsList.map(u => u.flatNum), 8);
-  const flatCols = Array.from({ length: maxFlat }, (_, i) => i + 1);
+                const info = getUnitInfo(found.rawId, found.displayId);
+                const bhkType = info.uObj?.unitType || (flatNum <= 4 ? '3 BHK' : '2 BHK');
+                const custTip = info.uObj?.customerName ? ` • Customer: ${info.uObj.customerName}` : '';
+                const phoneTip = info.uObj?.customerPhone ? ` (${info.uObj.customerPhone})` : '';
 
-  return (
-    <div className="space-y-2">
-      <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wide flex items-center gap-1.5">
-        <span className="w-2.5 h-2.5 rounded-full bg-slate-500"></span>
-        <span>Total units ({rawList.length})</span>
-      </h4>
-
-      <div className="bg-slate-50 border-none rounded-2xl p-4 min-h-[50px] space-y-2.5">
-        {floorList.map(floorNum => (
-          <div key={floorNum} className="grid grid-cols-4 sm:grid-cols-8 gap-2.5">
-            {flatCols.map(flatNum => {
-              const found = parsedUnitsList.find(u => u.floorNum === floorNum && u.flatNum === flatNum);
-              if (!found) {
                 return (
-                  <span
+                  <button
+                    type="button"
                     key={flatNum}
-                    className="border border-dashed border-slate-200 text-xs font-bold px-1 py-2 rounded-xl flex items-center justify-center text-slate-300 bg-white/40"
+                    onClick={() => setSelectedUnit({ ...info, bhkType })}
+                    title={`Unit: ${found.displayId} (${found.rawId}) • Status: ${info.statusLabel} • Type: ${bhkType}${custTip}${phoneTip} • Click to view details`}
+                    className={`border text-xs font-bold px-1 py-2 rounded-xl flex items-center justify-center text-center shadow-2xs transition-all duration-150 hover:scale-110 hover:shadow-md cursor-pointer active:scale-95 ${info.bgClass}`}
                   >
-                    —
-                  </span>
+                    {found.displayId}
+                  </button>
                 );
-              }
+              })}
+            </div>
+          ))}
+        </div>
+      )}
 
-              const uid = found.rawId;
-              const displayId = found.displayId;
-              const cleanId = String(uid).replace(/[-_ ]/g, '').toUpperCase();
+      {/* Unit Details Popover Modal */}
+      {selectedUnit && (
+        <div className="fixed inset-0 bg-black-900/60 backdrop-blur-xs z-[1000] flex items-center justify-center p-4">
+          <div className="bg-[#f0fbf4] rounded-3xl border-none shadow-2xl w-full max-w-md overflow-hidden text-left animate-fadeIn">
+            {/* Header */}
+            <div className="p-5 border-b border-black-100 flex items-center justify-between bg-emerald-500/10">
+              <div className="flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-2xl bg-[#0e623a] text-white flex items-center justify-center font-black text-sm shadow-xs">
+                  {selectedUnit.uid}
+                </div>
+                <div>
+                  <h3 className="text-sm font-extrabold text-black-800">
+                    Unit {selectedUnit.uid} Details
+                  </h3>
+                  <p className="text-[11px] text-emerald-800 font-bold">{projObj?.name || selectedProj?.projCode} ({projObj?.code || selectedProj?.projCode})</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedUnit(null)}
+                className="w-8 h-8 rounded-full flex items-center justify-center bg-white text-black-400 hover:bg-red-50 hover:text-red-500 transition font-bold cursor-pointer border-none"
+              >
+                ✕
+              </button>
+            </div>
 
-              const unitObj = projObj?.units?.find(u => {
-                const uClean = String(u.unitId || '').replace(/[-_ ]/g, '').toUpperCase();
-                return uClean === cleanId || u.unitId === uid || u.unitId === displayId;
-              });
-              const bhkType = unitObj?.unitType || (flatNum <= 4 ? '3 BHK' : '2 BHK');
-              const uStatus = String(unitObj?.status || '').toLowerCase();
-
-              const inHold = uStatus.includes('hold') || (selectedProj?.stats?.holdUnitsList || []).concat(selectedProj?.stats?.cancelledUnitsList || []).some(u => {
-                const hId = typeof u === 'object' ? u?.unitId : u;
-                return String(hId || '').replace(/[-_ ]/g, '').toUpperCase() === cleanId;
-              });
-              const inReadyBuilt = uStatus === 'ready built' || uStatus === 'under construction' || uStatus === 'build' || (selectedProj?.stats?.readyBuiltUnitsList || []).some(id => String(id).replace(/[-_ ]/g, '').toUpperCase() === cleanId);
-              const inBooked = uStatus === 'booked' || uStatus === 'sold out' || (selectedProj?.stats?.bookedUnitsList || []).concat(selectedProj?.stats?.handoverUnitsList || []).some(id => String(id).replace(/[-_ ]/g, '').toUpperCase() === cleanId);
-              const inAvail = !inHold && !inReadyBuilt && !inBooked;
-
-              let bgClass = "bg-slate-100 text-slate-800 border-slate-200";
-              let statusLabel = 'Available';
-              if (inAvail) {
-                bgClass = "bg-emerald-100 text-emerald-800 border-emerald-300";
-                statusLabel = 'Available';
-              } else if (inHold) {
-                bgClass = "bg-amber-100 text-amber-800 border-amber-300";
-                statusLabel = 'Hold';
-              } else if (inReadyBuilt) {
-                bgClass = "bg-purple-100 text-purple-800 border-purple-300";
-                statusLabel = 'Ready Built';
-              } else if (inBooked) {
-                bgClass = "bg-red-100 text-red-800 border-red-300";
-                statusLabel = 'Booked';
-              }
-
-              return (
-                <span
-                  key={flatNum}
-                  title={`Unit: ${displayId} (${uid}) • Status: ${statusLabel} • Type: ${bhkType}${unitObj?.size ? ` • Size: ${unitObj.size} sq.ft` : ''}${unitObj?.price ? ` • Price: ₹${unitObj.price.toLocaleString('en-IN')}` : ''}`}
-                  className={`border text-xs font-bold px-1 py-2 rounded-xl flex items-center justify-center text-center shadow-2xs transition hover:scale-105 cursor-default ${bgClass}`}
-                >
-                  {displayId}
+            {/* Body */}
+            <div className="p-5 space-y-3.5 text-xs font-semibold text-black-700">
+              {/* Current Status */}
+              <div className="flex items-center justify-between p-3 bg-white rounded-2xl border border-black-100">
+                <span className="text-black-500 font-bold uppercase tracking-wider text-[10px]">Status</span>
+                <span className={`text-[11px] font-extrabold px-3 py-1 rounded-full border ${selectedUnit.badgeClass}`}>
+                  {selectedUnit.statusLabel}
                 </span>
-              );
-            })}
+              </div>
+
+              {/* Customer Details */}
+              {selectedUnit.isBkd && (
+                <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 space-y-2.5 text-left">
+                  <div className="flex items-center justify-between border-b border-amber-200/60 pb-1.5">
+                    <span className="text-[10px] text-amber-700 font-black uppercase tracking-wider">Booked Customer Details</span>
+                    <span className="text-[10px] text-amber-800 font-bold bg-amber-100/80 px-2 py-0.5 rounded-md">Registered</span>
+                  </div>
+                  {selectedUnit.uObj?.customerName && selectedUnit.uObj.customerName.trim().toLowerCase() !== 'n/a' && selectedUnit.uObj.customerName.trim() !== '-' && selectedUnit.uObj.customerName.trim() !== '—' ? (
+                    <div className="space-y-1.5 pt-0.5">
+                      <div className="flex justify-between items-center">
+                        <span className="text-amber-800/80 font-bold">Customer Name:</span>
+                        <span className="font-extrabold text-amber-950 text-sm">{selectedUnit.uObj.customerName}</span>
+                      </div>
+                      {selectedUnit.uObj.customerPhone && (
+                        <div className="flex justify-between items-center">
+                          <span className="text-amber-800/80 font-bold">Phone Number:</span>
+                          <span className="font-extrabold text-amber-950">{selectedUnit.uObj.customerPhone}</span>
+                        </div>
+                      )}
+                      {selectedUnit.uObj.leadName && (
+                        <div className="flex justify-between items-center">
+                          <span className="text-amber-800/80 font-bold">Lead Name:</span>
+                          <span className="font-extrabold text-amber-950">{selectedUnit.uObj.leadName}</span>
+                        </div>
+                      )}
+                      {selectedUnit.uObj.bookingDate && (
+                        <div className="flex justify-between items-center">
+                          <span className="text-amber-800/80 font-bold">Booking Date:</span>
+                          <span className="font-bold text-amber-950">
+                            {new Date(selectedUnit.uObj.bookingDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="text-amber-800 italic text-[11px] py-1">
+                      Direct Sold / Handover (No customer name registered)
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Specifications */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="p-3 bg-white rounded-2xl border border-black-100">
+                  <span className="text-[10px] text-black-400 uppercase tracking-wider block">Plot / Unit Size</span>
+                  <span className="text-sm font-extrabold text-black-800 mt-0.5 block">
+                    {selectedUnit.uObj?.size ? `${Math.round(selectedUnit.uObj.size).toLocaleString()} sq.ft` : '—'}
+                  </span>
+                </div>
+                <div className="p-3 bg-white rounded-2xl border border-black-100">
+                  <span className="text-[10px] text-black-400 uppercase tracking-wider block">Unit Value</span>
+                  <span className="text-sm font-extrabold text-[#0e623a] mt-0.5 block">
+                    {selectedUnit.uObj?.price ? `₹${Math.round(selectedUnit.uObj.price).toLocaleString()}` : '—'}
+                  </span>
+                </div>
+              </div>
+
+              {selectedUnit.uObj?.unitType && (
+                <div className="flex justify-between items-center px-1 text-[11px] text-black-500">
+                  <span>Unit Type:</span>
+                  <span className="font-bold text-black-800">{selectedUnit.uObj.unitType}</span>
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="p-4 border-t border-black-100 bg-black-50/30 flex justify-between items-center">
+              {projObj?._id ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedUnit(null);
+                    if (onNavigateToProject) {
+                      onNavigateToProject(projObj._id);
+                    }
+                  }}
+                  className="text-xs font-bold text-[#0e623a] hover:underline flex items-center gap-1 cursor-pointer"
+                >
+                  <span>Open Project Details</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </button>
+              ) : <span />}
+              <button
+                type="button"
+                onClick={() => setSelectedUnit(null)}
+                className="px-4 py-2 bg-black-100 hover:bg-black-200 text-black-700 text-xs font-bold rounded-xl transition cursor-pointer"
+              >
+                Close
+              </button>
+            </div>
           </div>
-        ))}
-      </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -5140,6 +5284,10 @@ const Dashboard = () => {
                       <ApartmentLayoutView
                         selectedProj={selectedInventoryProj}
                         projObj={projObj}
+                        onNavigateToProject={(id) => {
+                          setInventoryModalOpen(false);
+                          navigate(`/projects/${id}`);
+                        }}
                       />
                     </div>
                   </>
