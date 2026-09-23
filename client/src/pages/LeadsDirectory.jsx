@@ -911,6 +911,8 @@ const LeadsDirectory = () => {
   }, [editAdId, editActiveAds]);
 
   const handleOpenEditModal = (lead) => {
+    setError('');
+    setSuccessMsg('');
     setSelectedLeadForEdit(lead);
     setEditSalutation(lead.salutation || 'Mr.');
     setEditName(lead.name || '');
@@ -1082,6 +1084,8 @@ const LeadsDirectory = () => {
       isRevert: isSuperAdmin
     };
 
+    setIsSubmitting(true);
+    let updatedLeadData = null;
     try {
       const res = await fetch(`${API_URL}/leads/${selectedLeadForEdit._id}`, {
         method: 'PUT',
@@ -1092,39 +1096,53 @@ const LeadsDirectory = () => {
         body: JSON.stringify(payload)
       });
 
-      if (res.ok) {
-        const updatedLeadData = await res.json().catch(() => null);
-        setSuccessMsg('Lead updated successfully!');
-        setEditModalOpen(false);
-        fetchLeads();
+      updatedLeadData = await res.json().catch(() => null);
 
-        const isAlreadyBookedWithUnits = selectedLeadForEdit?.status === 'Booking' && (selectedLeadForEdit?.bookingInfo?.selectedUnits?.length > 0);
-        if ((editStatus === 'Booking' || editStatus === 'Booked') && !isAlreadyBookedWithUnits) {
-          const targetLead = {
-            ...selectedLeadForEdit,
-            ...payload,
-            ...(updatedLeadData || {}),
-            _id: selectedLeadForEdit._id
-          };
-          initiateBooked(targetLead);
-        } else if (editStatus === 'Site Visit') {
-          const siteVisitDate = selectedLeadForEdit?.followUpInfo?.nextFollowUpDate || new Date();
-          triggerSiteVisitWhatsAppNotification(editName, editPhoneCountryCode + editPhoneLocal, siteVisitDate);
-        } else if (editStatus === 'Booking' || editStatus === 'Booked') {
-          const bookedUnits = selectedLeadForEdit?.bookingInfo?.selectedUnits || [];
-          const unitNumberStr = bookedUnits.join(', ');
-          triggerBookedWhatsAppNotification(editName, editPhoneCountryCode + editPhoneLocal, unitNumberStr);
-        }
-
-        setTimeout(() => setSuccessMsg(''), 3000);
-      } else {
-        const data = await res.json();
-        setError(data.message || 'Failed to update lead');
+      if (!res.ok) {
+        setError(updatedLeadData?.message || 'Failed to update lead');
+        return;
       }
     } catch (err) {
-      setError('Error updating lead');
+      setError(err?.message ? `Connection error: ${err.message}` : 'Error updating lead');
+      return;
     } finally {
       setIsSubmitting(false);
+    }
+
+    try {
+      setSuccessMsg('Lead updated successfully!');
+      setEditModalOpen(false);
+      fetchLeads();
+
+      const isAlreadyBookedWithUnits = selectedLeadForEdit?.status === 'Booking' && (selectedLeadForEdit?.bookingInfo?.selectedUnits?.length > 0);
+      if ((editStatus === 'Booking' || editStatus === 'Booked') && !isAlreadyBookedWithUnits) {
+        const targetLead = {
+          ...selectedLeadForEdit,
+          ...payload,
+          ...(updatedLeadData || {}),
+          _id: selectedLeadForEdit._id
+        };
+        initiateBooked(targetLead);
+      } else if (editStatus === 'Site Visit') {
+        const siteVisitDate = selectedLeadForEdit?.followUpInfo?.nextFollowUpDate || new Date();
+        try {
+          triggerSiteVisitWhatsAppNotification(editName, editPhoneCountryCode + editPhoneLocal, siteVisitDate);
+        } catch (waErr) {
+          console.error("WhatsApp notification error:", waErr);
+        }
+      } else if (editStatus === 'Booking' || editStatus === 'Booked') {
+        const bookedUnits = selectedLeadForEdit?.bookingInfo?.selectedUnits || [];
+        const unitNumberStr = bookedUnits.join(', ');
+        try {
+          triggerBookedWhatsAppNotification(editName, editPhoneCountryCode + editPhoneLocal, unitNumberStr);
+        } catch (waErr) {
+          console.error("WhatsApp notification error:", waErr);
+        }
+      }
+
+      setTimeout(() => setSuccessMsg(''), 3000);
+    } catch (postErr) {
+      console.error("Post edit update error:", postErr);
     }
   };
 
@@ -1463,6 +1481,8 @@ const LeadsDirectory = () => {
   };
 
   const initiateBooked = async (lead) => {
+    setError('');
+    setSuccessMsg('');
     setSelectedLeadForBooked(lead);
     setBookedLoading(true);
     setBookedModalOpen(true);
@@ -1663,6 +1683,8 @@ const LeadsDirectory = () => {
   };
 
   const initiateFollowUpOrComplete = (lead, targetStatus, forcedMode = null) => {
+    setError('');
+    setSuccessMsg('');
     setSelectedLeadForFollow(lead);
     setFollowTargetStatus(targetStatus);
 
@@ -1793,6 +1815,7 @@ const LeadsDirectory = () => {
     }
 
     setIsSubmitting(true);
+    let followUpResData = null;
     try {
       const res = await fetch(`${API_URL}/leads/${selectedLeadForFollow._id}`, {
         method: 'PUT',
@@ -1803,34 +1826,46 @@ const LeadsDirectory = () => {
         body: JSON.stringify(payload)
       });
 
-      if (res.ok) {
-        setFollowModalOpen(false);
-        if (followMode === 'FutureFollowUp') {
-          setSuccessMsg('Lead moved to Future Follow-up successfully!');
-        } else if (finalStatus === 'Site Visit') {
-          setSuccessMsg(`Site Visit follow-up scheduled successfully for ${new Date(nextFollowDate).toLocaleDateString()}!`);
-        } else if (followMode === 'FollowUp') {
-          setSuccessMsg(`Follow-up scheduled successfully for ${new Date(nextFollowDate).toLocaleDateString()}!`);
-        } else if (followMode === 'SiteVisit' || payload.status === 'Site Visit') {
-          setSuccessMsg('Moved to Site Visit successfully!');
+      followUpResData = await res.json().catch(() => null);
+
+      if (!res.ok) {
+        setError(followUpResData?.message || 'Failed to submit follow-up details');
+        return;
+      }
+    } catch (err) {
+      setError(err?.message ? `Connection error: ${err.message}` : 'Connection error updating lead record');
+      return;
+    } finally {
+      setIsSubmitting(false);
+    }
+
+    // Post-update operations (isolated so they don't trigger false connection error)
+    try {
+      setFollowModalOpen(false);
+      if (followMode === 'FutureFollowUp') {
+        setSuccessMsg('Lead moved to Future Follow-up successfully!');
+      } else if (finalStatus === 'Site Visit') {
+        setSuccessMsg(`Site Visit follow-up scheduled successfully for ${new Date(nextFollowDate).toLocaleDateString()}!`);
+      } else if (followMode === 'FollowUp') {
+        setSuccessMsg(`Follow-up scheduled successfully for ${new Date(nextFollowDate).toLocaleDateString()}!`);
+      } else if (followMode === 'SiteVisit' || payload.status === 'Site Visit') {
+        setSuccessMsg('Moved to Site Visit successfully!');
+        try {
           triggerSiteVisitWhatsAppNotification(
             selectedLeadForFollow?.name,
             selectedLeadForFollow?.phone,
             nextFollowDate
           );
-        } else {
-          setSuccessMsg('Lead has been marked as Lost successfully.');
+        } catch (waErr) {
+          console.error("WhatsApp notification error:", waErr);
         }
-        fetchLeads();
-        setTimeout(() => setSuccessMsg(''), 4000);
       } else {
-        const data = await res.json();
-        setError(data.message || 'Failed to submit follow-up details');
+        setSuccessMsg('Lead has been marked as Lost successfully.');
       }
-    } catch (err) {
-      setError('Connection error updating lead record');
-    } finally {
-      setIsSubmitting(false);
+      fetchLeads();
+      setTimeout(() => setSuccessMsg(''), 4000);
+    } catch (postErr) {
+      console.error("Post follow-up error:", postErr);
     }
   };
 
