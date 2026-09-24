@@ -3,7 +3,7 @@ const router = express.Router();
 const Quotation = require('../models/Quotation');
 const Lead = require('../models/Lead');
 const AuditLog = require('../models/AuditLog');
-const { protect } = require('../middleware/auth');
+const { protect, checkPermission } = require('../middleware/auth');
 
 // @route   GET /api/quotations
 // @desc    Get all quotations
@@ -92,7 +92,7 @@ router.get('/:id', protect, async (req, res) => {
 
 // @route   POST /api/quotations
 // @desc    Create a new quotation
-router.post('/', protect, async (req, res) => {
+router.post('/', protect, checkPermission('quotations', 'edit'), async (req, res) => {
   const {
     lead: leadId,
     project: projectId,
@@ -166,7 +166,7 @@ router.post('/', protect, async (req, res) => {
 
 // @route   PUT /api/quotations/:id
 // @desc    Update an existing quotation
-router.put('/:id', protect, async (req, res) => {
+router.put('/:id', protect, checkPermission('quotations', 'edit'), async (req, res) => {
   if ((req.body.crdPerson !== undefined || req.body.pedPerson !== undefined || req.body.accountsPerson !== undefined) && req.user.role !== 'Superadmin') {
     return res.status(403).json({ message: 'Only Superadmin is allowed to assign or edit CRD / PED / Accounts Person.' });
   }
@@ -268,7 +268,7 @@ router.put('/:id', protect, async (req, res) => {
 
 // @route   DELETE /api/quotations/:id
 // @desc    Delete a quotation
-router.delete('/:id', protect, async (req, res) => {
+router.delete('/:id', protect, checkPermission('quotations', 'edit'), async (req, res) => {
   try {
     const quotation = await Quotation.findById(req.params.id);
     if (!quotation) {

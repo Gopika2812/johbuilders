@@ -62,7 +62,8 @@ function numberToWords(num) {
 }
 
 const CRDFlow = () => {
-  const { token, user, hasColumnPermission } = useAuth();
+  const { token, user, hasColumnPermission, hasEditPermission } = useAuth();
+  const canEditCrd = hasEditPermission('crd_flow');
   const navigate = useNavigate();
   const [projects, setProjects] = useState([]);
   const [bookings, setBookings] = useState([]);
@@ -1381,33 +1382,35 @@ const CRDFlow = () => {
                           </div>
                         )}
                         {/* Extra Works button removed per user request */}
-                        <button
-                          onClick={() => {
-                            setPaymentStageIdx(0);
-                            const thisStagePending = Math.max(0, getStageTotal(activeFlow.stages[0]) - getStagePaid(activeFlow.stages[0]));
-                            const arrears = getPendingPreviousStages(0).reduce((sum, s) => sum + s.pending, 0);
-                            const totalAmt = thisStagePending + arrears;
-                            setPaymentAmount(totalAmt.toString());
-                            const pct = activeFlow?.lead?.bankLoanPercentage || selectedBookingDetails?.bankLoanPercentage || 50;
-                            const loanAmt = Math.round(totalAmt * (pct / 100));
-                            const transferAmt = totalAmt - loanAmt;
-                            setDualTransferAmount(transferAmt.toString());
-                            setDualLoanAmount(loanAmt.toString());
-                            setPaymentMethod(hasBankLoanSelected ? 'Bank Loan' : 'Customer Transfer');
-                          }}
-                          className="px-4 py-2 bg-[#0e623a] text-white font-bold text-[11px] rounded-xl hover:bg-[#0b4d2d] transition shadow cursor-pointer flex items-center gap-1"
-                        >
-                          <CreditCard className="w-3.5 h-3.5" /> Log Payment
-                                </button>
+                        {canEditCrd && (
+                          <button
+                            onClick={() => {
+                              setPaymentStageIdx(0);
+                              const thisStagePending = Math.max(0, getStageTotal(activeFlow.stages[0]) - getStagePaid(activeFlow.stages[0]));
+                              const arrears = getPendingPreviousStages(0).reduce((sum, s) => sum + s.pending, 0);
+                              const totalAmt = thisStagePending + arrears;
+                              setPaymentAmount(totalAmt.toString());
+                              const pct = activeFlow?.lead?.bankLoanPercentage || selectedBookingDetails?.bankLoanPercentage || 50;
+                              const loanAmt = Math.round(totalAmt * (pct / 100));
+                              const transferAmt = totalAmt - loanAmt;
+                              setDualTransferAmount(transferAmt.toString());
+                              setDualLoanAmount(loanAmt.toString());
+                              setPaymentMethod(hasBankLoanSelected ? 'Bank Loan' : 'Customer Transfer');
+                            }}
+                            className="px-4 py-2 bg-[#0e623a] text-white font-bold text-[11px] rounded-xl hover:bg-[#0b4d2d] transition shadow cursor-pointer flex items-center gap-1"
+                          >
+                            <CreditCard className="w-3.5 h-3.5" /> Log Payment
+                          </button>
+                        )}
                       </div>
                     </div>
 
                     <div className="overflow-x-auto">
                       {(() => {
                         const currentQuot = quotations.find(q => (q.lead?._id || q.lead) === (activeFlow?.lead?._id || activeFlow?.lead));
-                        const isCrdOrAdmin = user?.role === 'Superadmin' || user?.role === 'Crd team' || (currentQuot && (currentQuot.crdPerson?._id === user._id || currentQuot.crdPerson === user._id || currentQuot.crdPerson?.name === user.name));
-                        const isPedOrAdmin = user?.role === 'Superadmin' || user?.role === 'Ped team' || (currentQuot && (currentQuot.pedPerson?._id === user._id || currentQuot.pedPerson === user._id || currentQuot.pedPerson?.name === user.name));
-                        const isAccountsOrAdmin = user?.role === 'Superadmin' || user?.role === 'Accounts team' || (currentQuot && (currentQuot.accountsPerson?._id === user._id || currentQuot.accountsPerson === user._id || currentQuot.accountsPerson?.name === user.name));
+                        const isCrdOrAdmin = canEditCrd && (user?.role === 'Superadmin' || user?.role === 'Crd team' || (currentQuot && (currentQuot.crdPerson?._id === user._id || currentQuot.crdPerson === user._id || currentQuot.crdPerson?.name === user.name)));
+                        const isPedOrAdmin = canEditCrd && (user?.role === 'Superadmin' || user?.role === 'Ped team' || (currentQuot && (currentQuot.pedPerson?._id === user._id || currentQuot.pedPerson === user._id || currentQuot.pedPerson?.name === user.name)));
+                        const isAccountsOrAdmin = canEditCrd && (user?.role === 'Superadmin' || user?.role === 'Accounts team' || (currentQuot && (currentQuot.accountsPerson?._id === user._id || currentQuot.accountsPerson === user._id || currentQuot.accountsPerson?.name === user.name)));
 
                         const visibleStages = activeFlow.stages
                           .map((stage, idx) => ({ stage, originalIdx: idx }))

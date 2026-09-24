@@ -5,7 +5,7 @@ const Lead = require('../models/Lead');
 const Project = require('../models/Project');
 const AuditLog = require('../models/AuditLog');
 const ApprovalRequest = require('../models/ApprovalRequest');
-const { protect } = require('../middleware/auth');
+const { protect, checkPermission } = require('../middleware/auth');
 
 const checkFlowAccess = async (flowId, req) => {
   if (req.user.role === 'Superadmin') {
@@ -144,7 +144,7 @@ router.get('/:id', protect, validateFlowAccess, async (req, res) => {
 
 // @route   POST /api/crd-flow
 // @desc    Initialize a CRD flow for a booking
-router.post('/', protect, async (req, res) => {
+router.post('/', protect, checkPermission('crd_flow', 'edit'), async (req, res) => {
   const { leadId, projectId, unitId, stages, totalOriginalValue } = req.body;
 
   try {
@@ -211,7 +211,7 @@ router.post('/', protect, async (req, res) => {
 
 // @route   PUT /api/crd-flow/:id/stage/:stageIndex/complete
 // @desc    Complete a stage & verify document uploads if required
-router.put('/:id/stage/:stageIndex/complete', protect, validateFlowAccess, async (req, res) => {
+router.put('/:id/stage/:stageIndex/complete', protect, checkPermission('crd_flow', 'edit'), validateFlowAccess, async (req, res) => {
   const { uploadedPdfs, completionNotes, isCompleted } = req.body;
   try {
     const flow = await CRDFlow.findById(req.params.id);
@@ -290,7 +290,7 @@ router.put('/:id/stage/:stageIndex/complete', protect, validateFlowAccess, async
 
 // @route   PUT /api/crd-flow/:id/stage/:stageIndex/status
 // @desc    Update stageStatus (Start -> In Progress -> Completed)
-router.put('/:id/stage/:stageIndex/status', protect, validateFlowAccess, async (req, res) => {
+router.put('/:id/stage/:stageIndex/status', protect, checkPermission('crd_flow', 'edit'), validateFlowAccess, async (req, res) => {
   const { stageStatus } = req.body;
   try {
     const flow = await CRDFlow.findById(req.params.id);
@@ -327,7 +327,7 @@ router.put('/:id/stage/:stageIndex/status', protect, validateFlowAccess, async (
 
 // @route   PUT /api/crd-flow/:id/stage/:stageIndex/billed
 // @desc    Update billedStatus (Not Billed / Billed)
-router.put('/:id/stage/:stageIndex/billed', protect, validateFlowAccess, async (req, res) => {
+router.put('/:id/stage/:stageIndex/billed', protect, checkPermission('crd_flow', 'edit'), validateFlowAccess, async (req, res) => {
   const { billedStatus } = req.body;
   try {
     const flow = await CRDFlow.findById(req.params.id);
@@ -357,7 +357,7 @@ router.put('/:id/stage/:stageIndex/billed', protect, validateFlowAccess, async (
 
 // @route   POST /api/crd-flows/:id/extra-work
 // @desc    Add extra work directly by PED/CRD Superadmin
-router.post('/:id/extra-work', protect, validateFlowAccess, async (req, res) => {
+router.post('/:id/extra-work', protect, checkPermission('crd_flow', 'edit'), validateFlowAccess, async (req, res) => {
   const { stageId, name, amount, forUnit } = req.body;
   try {
     const flow = await CRDFlow.findById(req.params.id);
@@ -417,7 +417,7 @@ router.post('/:id/extra-work', protect, validateFlowAccess, async (req, res) => 
 
 // @route   PUT /api/crd-flow/:id/stage/:stageIndex/extra-work
 // @desc    Add extra work to a stage
-router.put('/:id/stage/:stageIndex/extra-work', protect, validateFlowAccess, async (req, res) => {
+router.put('/:id/stage/:stageIndex/extra-work', protect, checkPermission('crd_flow', 'edit'), validateFlowAccess, async (req, res) => {
   const { name, amount, forUnit } = req.body;
   try {
     const flow = await CRDFlow.findById(req.params.id);
@@ -448,7 +448,7 @@ router.put('/:id/stage/:stageIndex/extra-work', protect, validateFlowAccess, asy
     const ewId = `${projectCode}/${targetUnit}/${String(nextGroupNum).padStart(3, '0')}`;
 
     flow.stages[idx].extraWorks.push({ 
-      ewId,
+      ewId, 
       forUnit: targetUnit,
       name, 
       amount: extraAmt 
@@ -482,7 +482,7 @@ router.put('/:id/stage/:stageIndex/extra-work', protect, validateFlowAccess, asy
 
 // @route   DELETE /api/crd-flow/:id/stage/:stageIndex/extra-work/:workId
 // @desc    Revert/Delete an extra work item and deduct its split values
-router.delete('/:id/stage/:stageIndex/extra-work/:workId', protect, validateFlowAccess, async (req, res) => {
+router.delete('/:id/stage/:stageIndex/extra-work/:workId', protect, checkPermission('crd_flow', 'edit'), validateFlowAccess, async (req, res) => {
   try {
     const flow = await CRDFlow.findById(req.params.id);
     if (!flow) return res.status(404).json({ message: 'Flow record not found' });
@@ -534,7 +534,7 @@ router.delete('/:id/stage/:stageIndex/extra-work/:workId', protect, validateFlow
 
 // @route   PUT /api/crd-flow/:id/stage/:stageIndex/payment
 // @desc    Submit split payment for a stage
-router.put('/:id/stage/:stageIndex/payment', protect, validateFlowAccess, async (req, res) => {
+router.put('/:id/stage/:stageIndex/payment', protect, checkPermission('crd_flow', 'edit'), validateFlowAccess, async (req, res) => {
   const { method, amount, details, payments, paymentDate } = req.body;
   try {
     const flow = await CRDFlow.findById(req.params.id);
@@ -622,7 +622,7 @@ router.put('/:id/stage/:stageIndex/payment', protect, validateFlowAccess, async 
 
 // @route   POST /api/crd-flow/:id/complaints
 // @desc    Add a customer complaint
-router.post('/:id/complaints', protect, validateFlowAccess, async (req, res) => {
+router.post('/:id/complaints', protect, checkPermission('crd_flow', 'edit'), validateFlowAccess, async (req, res) => {
   const { description } = req.body;
   try {
     const flow = await CRDFlow.findById(req.params.id);
@@ -633,7 +633,7 @@ router.post('/:id/complaints', protect, validateFlowAccess, async (req, res) => 
       const lastStage = flow.stages[flow.stages.length - 1];
       if (lastStage && lastStage.isCompleted && lastStage.completedDate) {
         const completedDate = new Date(lastStage.completedDate);
-        const oneYearLater = new Date(completedDate);
+        oneYearLater = new Date(completedDate);
         oneYearLater.setFullYear(completedDate.getFullYear() + 1);
         if (new Date() > oneYearLater) {
           scope = 'Customer';
@@ -655,7 +655,7 @@ router.post('/:id/complaints', protect, validateFlowAccess, async (req, res) => 
 
 // @route   PUT /api/crd-flow/:id/complaints/:complaintId
 // @desc    Update complaint status or resolve
-router.put('/:id/complaints/:complaintId', protect, validateFlowAccess, async (req, res) => {
+router.put('/:id/complaints/:complaintId', protect, checkPermission('crd_flow', 'edit'), validateFlowAccess, async (req, res) => {
   const { status } = req.body;
   try {
     const flow = await CRDFlow.findById(req.params.id);
@@ -681,7 +681,7 @@ router.put('/:id/complaints/:complaintId', protect, validateFlowAccess, async (r
 
 // @route   PUT /api/crd-flow/:id/cancel-request
 // @desc    Submit a request to cancel the CRD flow
-router.put('/:id/cancel-request', protect, validateFlowAccess, async (req, res) => {
+router.put('/:id/cancel-request', protect, checkPermission('crd_flow', 'edit'), validateFlowAccess, async (req, res) => {
   const { narration } = req.body;
   if (!narration) return res.status(400).json({ message: 'Narration is required' });
 
@@ -743,7 +743,7 @@ router.put('/:id/cancel-request', protect, validateFlowAccess, async (req, res) 
 
 // @route   PUT /api/crd-flow/:id/return-payment
 // @desc    Return payment for a cancelled flow, set lead to Cancelled, unit to New
-router.put('/:id/return-payment', protect, validateFlowAccess, async (req, res) => {
+router.put('/:id/return-payment', protect, checkPermission('crd_flow', 'edit'), validateFlowAccess, async (req, res) => {
   try {
     const flow = await CRDFlow.findById(req.params.id);
     if (!flow) return res.status(404).json({ message: 'Flow record not found' });
@@ -806,7 +806,7 @@ router.put('/:id/return-payment', protect, validateFlowAccess, async (req, res) 
 
 // @route   PUT /api/crd-flow/:id/editable-amounts
 // @desc    Update debtors and target amounts
-router.put('/:id/editable-amounts', protect, validateFlowAccess, async (req, res) => {
+router.put('/:id/editable-amounts', protect, checkPermission('crd_flow', 'edit'), validateFlowAccess, async (req, res) => {
   const { debtorsAmount, targetAmount } = req.body;
   try {
     const flow = await CRDFlow.findById(req.params.id);

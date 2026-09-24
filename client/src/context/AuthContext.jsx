@@ -356,6 +356,28 @@ export const AuthProvider = ({ children }) => {
     return perm ? perm.canView : false;
   };
 
+  const hasEditPermission = (pageId) => {
+    if (pageId === 'tasks_board' || pageId === 'tasksBoard' || pageId === 'tasks') {
+      return !!user; // All logged in users can edit tasks
+    }
+    if (isAdmin) return true; // ONLY Superadmin / Admin bypasses Access Control
+    if (!user || !user.permissions) return false;
+    
+    let targetPageId = pageId;
+    if (pageId === 'crdFlow') targetPageId = 'crd_flow';
+    if (pageId === 'complaintsFlow') targetPageId = 'complaints_flow';
+    if (pageId === 'extraWorks') targetPageId = 'extra_works';
+
+    let perm = user.permissions.find(p => p.pageId === targetPageId);
+    
+    // Fallback for complaints_flow / complaintsFlow to use extra_works permissions if missing
+    if (!perm && (targetPageId === 'complaints_flow' || targetPageId === 'complaintsFlow')) {
+      perm = user.permissions.find(p => p.pageId === 'extra_works');
+    }
+    
+    return perm ? Boolean(perm.canEdit) : false;
+  };
+
   const hasColumnPermission = (pageId, columnKey) => {
     // Special action: deleteLead is NEVER shown by default and MUST be explicitly enabled in Access Control
     if (columnKey === 'deleteLead') {
@@ -488,6 +510,8 @@ export const AuthProvider = ({ children }) => {
     hasFullReportAccess,
     isAuthenticated: !!user,
     hasPermission,
+    hasEditPermission,
+    canEdit: hasEditPermission,
     hasColumnPermission,
     customLabels,
     getLabel,

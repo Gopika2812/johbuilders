@@ -69,7 +69,8 @@ const SOURCE_TYPES = [
 const ProjectDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { token, user } = useAuth();
+  const { token, user, hasEditPermission } = useAuth();
+  const canEditProjects = hasEditPermission('projects');
   const [project, setProject] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -1257,10 +1258,10 @@ const ProjectDetail = () => {
                         onClick={() => openBookingModal(unit)}
                         className="flex-1 py-2 text-center border border-black-200 hover:border-[#0e623a]/20 hover:bg-[#0e623a]/5 rounded-xl text-xs font-bold text-black-700 hover:text-[#0e623a] transition"
                       >
-                        Booking Details
+                        {canEditProjects ? 'Booking Details' : 'View Details'}
                       </button>
 
-                      {(user.role === 'Superadmin' || user.role === 'Crd team') && (
+                      {canEditProjects && (user.role === 'Superadmin' || user.role === 'Crd team') && (
                         <button
                           onClick={() => {
                             setResizePlot(unit);
@@ -1324,9 +1325,9 @@ const ProjectDetail = () => {
                             onClick={() => openBookingModal(unit)}
                             className="px-3 py-1.5 border border-black-200 rounded-lg text-xs font-bold text-black-600 hover:text-[#0e623a] hover:bg-[#0e623a]/5 transition"
                           >
-                            Edit Status
+                            {canEditProjects ? 'Edit Status' : 'View Details'}
                           </button>
-                          {(user.role === 'Superadmin' || user.role === 'Crd team') && (
+                          {canEditProjects && (user.role === 'Superadmin' || user.role === 'Crd team') && (
                             <button
                               onClick={() => {
                                 setResizePlot(unit);
@@ -1892,8 +1893,12 @@ const ProjectDetail = () => {
           <div className="bg-white rounded-3xl max-w-md w-full overflow-hidden shadow-2xl border border-black-100 flex flex-col max-h-[90vh]">
             <div className="bg-[#0e623a] p-5 sm:p-6 text-white flex justify-between items-start shrink-0">
               <div>
-                <h3 className="text-lg font-bold">Booking Details: {editUnitId || selectedUnit.unitId}</h3>
-                <p className="text-emerald-100 text-xs mt-1">Configure customer records and workflow states</p>
+                <h3 className="text-lg font-bold">
+                  {canEditProjects ? `Booking Details: ${editUnitId || selectedUnit.unitId}` : `Unit Details: ${editUnitId || selectedUnit.unitId} (Read-Only)`}
+                </h3>
+                <p className="text-emerald-100 text-xs mt-1">
+                  {canEditProjects ? 'Configure customer records and workflow states' : 'View customer records and unit specifications'}
+                </p>
               </div>
               <button
                 type="button"
@@ -1906,17 +1911,19 @@ const ProjectDetail = () => {
             </div>
 
             <form onSubmit={handleBookingSubmit} className="p-5 sm:p-6 space-y-4 overflow-y-auto flex-1">
-              {/* Unit Specifications Details Box - All Fields Editable */}
+              {/* Unit Specifications Details Box - All Fields Editable if canEdit */}
               <div className="p-4 bg-black-50 rounded-2xl border border-black-150 space-y-2.5 text-xs text-left">
                 {/* Floor Number */}
                 <div className="flex justify-between items-center border-b border-black-200/60 pb-1.5">
                   <span className="text-black-400 font-bold uppercase tracking-wider">Floor Number</span>
                   <input
                     type="text"
+                    disabled={!canEditProjects}
+                    readOnly={!canEditProjects}
                     value={editFloor}
                     onChange={(e) => setEditFloor(e.target.value)}
                     placeholder="e.g. Floor 1"
-                    className="w-36 text-right bg-white text-black-800 font-extrabold px-2 py-1 rounded-lg border border-black-200 focus:outline-none focus:ring-1 focus:ring-[#0e623a]"
+                    className="w-36 text-right bg-white text-black-800 font-extrabold px-2 py-1 rounded-lg border border-black-200 focus:outline-none focus:ring-1 focus:ring-[#0e623a] disabled:bg-black-100/70 disabled:cursor-not-allowed"
                   />
                 </div>
 
@@ -1926,10 +1933,12 @@ const ProjectDetail = () => {
                   <input
                     type="text"
                     required
+                    disabled={!canEditProjects}
+                    readOnly={!canEditProjects}
                     value={editUnitId}
                     onChange={(e) => setEditUnitId(e.target.value)}
                     placeholder="e.g. 5"
-                    className="w-36 text-right bg-white text-black-800 font-extrabold px-2 py-1 rounded-lg border border-black-200 focus:outline-none focus:ring-1 focus:ring-[#0e623a]"
+                    className="w-36 text-right bg-white text-black-800 font-extrabold px-2 py-1 rounded-lg border border-black-200 focus:outline-none focus:ring-1 focus:ring-[#0e623a] disabled:bg-black-100/70 disabled:cursor-not-allowed"
                   />
                 </div>
 
@@ -1938,10 +1947,12 @@ const ProjectDetail = () => {
                   <span className="text-black-400 font-bold uppercase tracking-wider">Unit Type</span>
                   <input
                     type="text"
+                    disabled={!canEditProjects}
+                    readOnly={!canEditProjects}
                     value={editUnitType}
                     onChange={(e) => setEditUnitType(e.target.value)}
                     placeholder="e.g. 3 BHK - CE"
-                    className="w-36 text-right bg-white text-black-800 font-extrabold px-2 py-1 rounded-lg border border-black-200 focus:outline-none focus:ring-1 focus:ring-[#0e623a]"
+                    className="w-36 text-right bg-white text-black-800 font-extrabold px-2 py-1 rounded-lg border border-black-200 focus:outline-none focus:ring-1 focus:ring-[#0e623a] disabled:bg-black-100/70 disabled:cursor-not-allowed"
                   />
                 </div>
 
@@ -1952,6 +1963,8 @@ const ProjectDetail = () => {
                     <input
                       type="number"
                       step="any"
+                      disabled={!canEditProjects}
+                      readOnly={!canEditProjects}
                       value={editSize}
                       onChange={(e) => {
                         const val = e.target.value;
@@ -1963,7 +1976,7 @@ const ProjectDetail = () => {
                         }
                       }}
                       placeholder="0"
-                      className="w-28 text-right bg-white text-black-800 font-extrabold px-2 py-1 rounded-lg border border-black-200 focus:outline-none focus:ring-1 focus:ring-[#0e623a]"
+                      className="w-28 text-right bg-white text-black-800 font-extrabold px-2 py-1 rounded-lg border border-black-200 focus:outline-none focus:ring-1 focus:ring-[#0e623a] disabled:bg-black-100/70 disabled:cursor-not-allowed"
                     />
                     <span className="text-[11px] font-bold text-black-500 shrink-0">sq.ft</span>
                   </div>
@@ -1977,6 +1990,8 @@ const ProjectDetail = () => {
                     <input
                       type="number"
                       step="any"
+                      disabled={!canEditProjects}
+                      readOnly={!canEditProjects}
                       value={editRatePerUom}
                       onChange={(e) => {
                         const val = e.target.value;
@@ -1988,7 +2003,7 @@ const ProjectDetail = () => {
                         }
                       }}
                       placeholder="0"
-                      className="w-28 text-right bg-white text-[#0e623a] font-extrabold px-2 py-1 rounded-lg border border-black-200 focus:outline-none focus:ring-1 focus:ring-[#0e623a]"
+                      className="w-28 text-right bg-white text-[#0e623a] font-extrabold px-2 py-1 rounded-lg border border-black-200 focus:outline-none focus:ring-1 focus:ring-[#0e623a] disabled:bg-black-100/70 disabled:cursor-not-allowed"
                     />
                   </div>
                 </div>
@@ -2001,6 +2016,8 @@ const ProjectDetail = () => {
                     <input 
                       type="number"
                       step="any"
+                      disabled={!canEditProjects}
+                      readOnly={!canEditProjects}
                       value={soldRatePerUom} 
                       onChange={(e) => {
                         const val = e.target.value;
@@ -2011,7 +2028,7 @@ const ProjectDetail = () => {
                           setSoldConsideration(Math.round(numSize * numSoldRate));
                         }
                       }} 
-                      className="w-28 text-right bg-red-50 text-red-650 font-extrabold px-2 py-1 rounded-lg border border-red-200 focus:outline-none focus:ring-1 focus:ring-red-400"
+                      className="w-28 text-right bg-red-50 text-red-650 font-extrabold px-2 py-1 rounded-lg border border-red-200 focus:outline-none focus:ring-1 focus:ring-red-400 disabled:bg-black-100/70 disabled:text-black-500 disabled:cursor-not-allowed"
                     />
                   </div>
                 </div>
@@ -2024,10 +2041,12 @@ const ProjectDetail = () => {
                     <input
                       type="number"
                       step="any"
+                      disabled={!canEditProjects}
+                      readOnly={!canEditProjects}
                       value={editPrice}
                       onChange={(e) => setEditPrice(e.target.value)}
                       placeholder="0"
-                      className="w-32 text-right bg-emerald-50 text-emerald-700 font-extrabold px-2 py-1 rounded-lg border border-emerald-200 focus:outline-none focus:ring-1 focus:ring-emerald-400"
+                      className="w-32 text-right bg-emerald-50 text-emerald-700 font-extrabold px-2 py-1 rounded-lg border border-emerald-200 focus:outline-none focus:ring-1 focus:ring-emerald-400 disabled:bg-black-100/70 disabled:text-black-500 disabled:cursor-not-allowed"
                     />
                   </div>
                 </div>
@@ -2040,9 +2059,11 @@ const ProjectDetail = () => {
                     <input 
                       type="number" 
                       step="any"
+                      disabled={!canEditProjects}
+                      readOnly={!canEditProjects}
                       value={soldConsideration} 
                       onChange={(e) => setSoldConsideration(e.target.value)} 
-                      className="w-32 text-right bg-red-50 text-red-700 font-extrabold px-2 py-1 rounded-lg border border-red-200 focus:outline-none focus:ring-1 focus:ring-red-400"
+                      className="w-32 text-right bg-red-50 text-red-700 font-extrabold px-2 py-1 rounded-lg border border-red-200 focus:outline-none focus:ring-1 focus:ring-red-400 disabled:bg-black-100/70 disabled:text-black-500 disabled:cursor-not-allowed"
                     />
                   </div>
                 </div>
@@ -2052,9 +2073,10 @@ const ProjectDetail = () => {
               <div>
                 <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-2 text-left">Workflow Status</label>
                 <select
+                  disabled={!canEditProjects}
                   value={normalizeStatus(unitStatus)}
                   onChange={(e) => setUnitStatus(e.target.value)}
-                  className="w-full px-4 py-3 bg-black-50 border border-black-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0e623a]"
+                  className="w-full px-4 py-3 bg-black-50 border border-black-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0e623a] disabled:bg-black-100/70 disabled:cursor-not-allowed"
                 >
                   <option value="Available">Available</option>
                   <option value="Hold">Hold</option>
@@ -2084,10 +2106,12 @@ const ProjectDetail = () => {
                 </div>
                 <input
                   type="text"
+                  disabled={!canEditProjects}
+                  readOnly={!canEditProjects}
                   placeholder="e.g. Robert Miller"
                   value={customerName}
                   onChange={(e) => setCustomerName(e.target.value)}
-                  className="w-full px-4 py-3 bg-black-50 border border-black-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0e623a]"
+                  className="w-full px-4 py-3 bg-black-50 border border-black-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0e623a] disabled:bg-black-100/70 disabled:cursor-not-allowed"
                 />
               </div>
 
@@ -2095,10 +2119,12 @@ const ProjectDetail = () => {
                 <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-2 text-left">Customer Phone</label>
                 <input
                   type="text"
+                  disabled={!canEditProjects}
+                  readOnly={!canEditProjects}
                   placeholder="e.g. +1 555-0199"
                   value={customerPhone}
                   onChange={(e) => setCustomerPhone(e.target.value)}
-                  className="w-full px-4 py-3 bg-black-50 border border-black-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0e623a]"
+                  className="w-full px-4 py-3 bg-black-50 border border-black-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0e623a] disabled:bg-black-100/70 disabled:cursor-not-allowed"
                 />
               </div>
 
@@ -2106,29 +2132,43 @@ const ProjectDetail = () => {
                 <label className="text-xs font-bold text-black-500 uppercase tracking-wider block mb-2 text-left">Lead / Marketing Channel</label>
                 <input
                   type="text"
+                  disabled={!canEditProjects}
+                  readOnly={!canEditProjects}
                   placeholder="e.g. Digital Ad, Broker Referral"
                   value={leadName}
                   onChange={(e) => setLeadName(e.target.value)}
-                  className="w-full px-4 py-3 bg-black-50 border border-black-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0e623a]"
+                  className="w-full px-4 py-3 bg-black-50 border border-black-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0e623a] disabled:bg-black-100/70 disabled:cursor-not-allowed"
                 />
               </div>
 
               {/* Action Buttons */}
               <div className="flex items-center gap-3 pt-3 sticky bottom-0 bg-white z-10 border-t border-black-100 shrink-0">
-                <button
-                  type="button"
-                  onClick={() => setBookingModalOpen(false)}
-                  className="flex-1 py-3 border border-black-200 rounded-xl text-xs font-bold text-black-500 hover:bg-black-50 transition cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={bookingSubmitting}
-                  className="flex-1 py-3 bg-[#0e623a] text-white rounded-xl text-xs font-bold hover:bg-[#0b4d2d] transition disabled:opacity-50 flex justify-center items-center gap-2 cursor-pointer"
-                >
-                  {bookingSubmitting ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving...</> : 'Save Changes'}
-                </button>
+                {canEditProjects ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => setBookingModalOpen(false)}
+                      className="flex-1 py-3 border border-black-200 rounded-xl text-xs font-bold text-black-500 hover:bg-black-50 transition cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={bookingSubmitting}
+                      className="flex-1 py-3 bg-[#0e623a] text-white rounded-xl text-xs font-bold hover:bg-[#0b4d2d] transition disabled:opacity-50 flex justify-center items-center gap-2 cursor-pointer"
+                    >
+                      {bookingSubmitting ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving...</> : 'Save Changes'}
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setBookingModalOpen(false)}
+                    className="w-full py-3 bg-black-100 hover:bg-black-200 text-black-700 rounded-xl text-xs font-bold transition cursor-pointer"
+                  >
+                    Close Details
+                  </button>
+                )}
               </div>
             </form>
           </div>
@@ -2261,15 +2301,17 @@ const ProjectDetail = () => {
                   </div>
                 </div>
                 <div className="flex gap-2 mt-2">
-                  <button 
-                    onClick={() => {
-                      setCrdFlowSheetLink('');
-                      setCrdFlowSheetName('');
-                    }}
-                    className="flex-1 py-2 text-xs font-bold text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition"
-                  >
-                    Replace Format
-                  </button>
+                  {canEditProjects && (
+                    <button 
+                      onClick={() => {
+                        setCrdFlowSheetLink('');
+                        setCrdFlowSheetName('');
+                      }}
+                      className="flex-1 py-2 text-xs font-bold text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition"
+                    >
+                      Replace Format
+                    </button>
+                  )}
                   <button
                       onClick={() => setSheetPreviewModalOpen(true)}
                       className="flex-1 py-2 text-xs font-bold text-white bg-[#0e623a] hover:bg-[#0b4d2d] rounded-lg transition flex justify-center"
@@ -2291,30 +2333,39 @@ const ProjectDetail = () => {
                 {crdFlowSheetFile ? (
                   <div className="flex flex-col items-center gap-3">
                     <span className="text-sm font-bold text-[#0e623a] break-all px-4">{crdFlowSheetFile.name}</span>
-                    <button 
-                      onClick={handleCrdUpload}
-                      disabled={isUploadingCrd}
-                      className="px-6 py-2 bg-[#0e623a] text-white text-sm font-bold rounded-xl hover:bg-[#0b4d2d] transition disabled:opacity-50 flex items-center gap-2"
-                    >
-                      {isUploadingCrd ? (
-                        <>
-                          <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></div>
-                          Uploading...
-                        </>
-                      ) : (
-                        <>
-                          <Upload className="w-4 h-4" />
-                          Save Format
-                        </>
-                      )}
-                    </button>
+                    {canEditProjects && (
+                      <button 
+                        onClick={handleCrdUpload}
+                        disabled={isUploadingCrd}
+                        className="px-6 py-2 bg-[#0e623a] text-white text-sm font-bold rounded-xl hover:bg-[#0b4d2d] transition disabled:opacity-50 flex items-center gap-2"
+                      >
+                        {isUploadingCrd ? (
+                          <>
+                            <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></div>
+                            Uploading...
+                          </>
+                        ) : (
+                          <>
+                            <Upload className="w-4 h-4" />
+                            Save Format
+                          </>
+                        )}
+                      </button>
+                    )}
                   </div>
                 ) : (
-                  <label htmlFor="crdUpload" className="cursor-pointer flex flex-col items-center gap-3">
-                    <Upload className="w-8 h-8 text-black-400" />
-                    <span className="text-sm font-semibold text-[#0e623a]">Click to browse Excel files</span>
-                    <span className="text-xs text-black-400">.xlsx, .xls formats up to 10MB</span>
-                  </label>
+                  canEditProjects ? (
+                    <label htmlFor="crdUpload" className="cursor-pointer flex flex-col items-center gap-3">
+                      <Upload className="w-8 h-8 text-black-400" />
+                      <span className="text-sm font-semibold text-[#0e623a]">Click to browse Excel files</span>
+                      <span className="text-xs text-black-400">.xlsx, .xls formats up to 10MB</span>
+                    </label>
+                  ) : (
+                    <div className="flex flex-col items-center gap-2 text-black-400">
+                      <FileSpreadsheet className="w-8 h-8" />
+                      <span className="text-xs font-semibold">No active format uploaded yet</span>
+                    </div>
+                  )
                 )}
               </div>
             )}
@@ -2334,71 +2385,75 @@ const ProjectDetail = () => {
                 <p className="text-sm text-black-500 font-medium">Define standard extra works for this project to appear in the client app.</p>
               </div>
             </div>
-            <div>
-              <input type="file" id="bulkUpload" accept=".xlsx, .xls" className="hidden" onChange={handleBulkUpload} />
-              <label htmlFor="bulkUpload" className="px-4 py-2 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 font-bold rounded-lg transition cursor-pointer flex items-center gap-2 text-sm border border-emerald-200 shadow-sm">
-                <Upload className="w-4 h-4" />
-                Import from Excel
-              </label>
-            </div>
+            {canEditProjects && (
+              <div>
+                <input type="file" id="bulkUpload" accept=".xlsx, .xls" className="hidden" onChange={handleBulkUpload} />
+                <label htmlFor="bulkUpload" className="px-4 py-2 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 font-bold rounded-lg transition cursor-pointer flex items-center gap-2 text-sm border border-emerald-200 shadow-sm">
+                  <Upload className="w-4 h-4" />
+                  Import from Excel
+                </label>
+              </div>
+            )}
           </div>
 
-          <form onSubmit={handleAddExtraWorkCatalogItem} className="flex flex-wrap items-end gap-4 bg-black-50 p-4 rounded-xl border border-black-100 mb-8">
-            <div className="flex-1 min-w-[200px]">
-              <label className="block text-[11px] font-bold text-black-500 uppercase tracking-wider mb-2">Category</label>
-              <input 
-                type="text"
-                placeholder="e.g. Electrical & Plumbing"
-                value={ewCategory}
-                onChange={e => setEwCategory(e.target.value)}
-                className="w-full px-4 py-3 bg-white border border-black-200 rounded-xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
-                required
-              />
-            </div>
-            <div className="flex-1 min-w-[200px]">
-              <label className="block text-[11px] font-bold text-black-500 uppercase tracking-wider mb-2">Item Name / Description</label>
-              <input 
-                type="text"
-                placeholder="e.g. Washbasin provision"
-                value={ewName}
-                onChange={e => setEwName(e.target.value)}
-                className="w-full px-4 py-3 bg-white border border-black-200 rounded-xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
-                required
-              />
-            </div>
-            <div className="w-32">
-              <label className="block text-[11px] font-bold text-black-500 uppercase tracking-wider mb-2">Unit</label>
-              <select
-                value={ewUnit}
-                onChange={e => setEwUnit(e.target.value)}
-                className="w-full px-4 py-3 bg-white border border-black-200 rounded-xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
+          {canEditProjects && (
+            <form onSubmit={handleAddExtraWorkCatalogItem} className="flex flex-wrap items-end gap-4 bg-black-50 p-4 rounded-xl border border-black-100 mb-8">
+              <div className="flex-1 min-w-[200px]">
+                <label className="block text-[11px] font-bold text-black-500 uppercase tracking-wider mb-2">Category</label>
+                <input 
+                  type="text" 
+                  placeholder="e.g. Electrical & Plumbing"
+                  value={ewCategory}
+                  onChange={e => setEwCategory(e.target.value)}
+                  className="w-full px-4 py-3 bg-white border border-black-200 rounded-xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
+                  required
+                />
+              </div>
+              <div className="flex-1 min-w-[200px]">
+                <label className="block text-[11px] font-bold text-black-500 uppercase tracking-wider mb-2">Item Name / Description</label>
+                <input 
+                  type="text" 
+                  placeholder="e.g. Washbasin provision"
+                  value={ewName}
+                  onChange={e => setEwName(e.target.value)}
+                  className="w-full px-4 py-3 bg-white border border-black-200 rounded-xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
+                  required
+                />
+              </div>
+              <div className="w-32">
+                <label className="block text-[11px] font-bold text-black-500 uppercase tracking-wider mb-2">Unit</label>
+                <select
+                  value={ewUnit}
+                  onChange={e => setEwUnit(e.target.value)}
+                  className="w-full px-4 py-3 bg-white border border-black-200 rounded-xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
+                >
+                  <option value="No">No</option>
+                  <option value="Set">Set</option>
+                  <option value="Unit">Unit</option>
+                  <option value="Points">Points</option>
+                  <option value="Sq.Ft">Sq.Ft</option>
+                  <option value="Lumpsum">Lumpsum</option>
+                </select>
+              </div>
+              <div className="w-40">
+                <label className="block text-[11px] font-bold text-black-500 uppercase tracking-wider mb-2">Rate (Rs)</label>
+                <input 
+                  type="number" 
+                  placeholder="Optional"
+                  value={ewRate}
+                  onChange={e => setEwRate(e.target.value)}
+                  className="w-full px-4 py-3 bg-white border border-black-200 rounded-xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
+                />
+              </div>
+              <button 
+                type="submit" 
+                disabled={isSavingCatalog}
+                className="px-6 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition flex items-center justify-center min-w-[120px]"
               >
-                <option value="No">No</option>
-                <option value="Set">Set</option>
-                <option value="Unit">Unit</option>
-                <option value="Points">Points</option>
-                <option value="Sq.Ft">Sq.Ft</option>
-                <option value="Lumpsum">Lumpsum</option>
-              </select>
-            </div>
-            <div className="w-40">
-              <label className="block text-[11px] font-bold text-black-500 uppercase tracking-wider mb-2">Rate (Rs)</label>
-              <input 
-                type="number"
-                placeholder="Optional"
-                value={ewRate}
-                onChange={e => setEwRate(e.target.value)}
-                className="w-full px-4 py-3 bg-white border border-black-200 rounded-xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
-              />
-            </div>
-            <button 
-              type="submit"
-              disabled={isSavingCatalog}
-              className="px-6 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition flex items-center justify-center min-w-[120px]"
-            >
-              {isSavingCatalog ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Add Item'}
-            </button>
-          </form>
+                {isSavingCatalog ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Add Item'}
+              </button>
+            </form>
+          )}
 
           {/* Catalog List Grouped by Category */}
           <div className="space-y-6">
@@ -2414,7 +2469,7 @@ const ProjectDetail = () => {
                       <th className="p-4">Description</th>
                       <th className="p-4 w-32 text-center">Unit</th>
                       <th className="p-4 w-40 text-right">Rate (Rs)</th>
-                      <th className="p-4 w-20 text-center">Action</th>
+                      {canEditProjects && <th className="p-4 w-20 text-center">Action</th>}
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-black-100">
@@ -2451,44 +2506,46 @@ const ProjectDetail = () => {
                             />
                           ) : (item.rate > 0 ? item.rate.toLocaleString() : '-')}
                         </td>
-                        <td className="p-4 text-center">
-                          <div className="flex items-center justify-center gap-2">
-                            {editingCatalogIdx === idx ? (
-                              <>
-                                <button 
-                                  onClick={() => handleSaveEditCatalogItem(idx)}
-                                  className="p-1.5 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 rounded-lg transition"
-                                >
-                                  <CheckCircle2 className="w-4 h-4" />
-                                </button>
-                                <button 
-                                  onClick={() => setEditingCatalogIdx(null)}
-                                  className="p-1.5 text-black-400 hover:text-black-600 hover:bg-black-100 rounded-lg transition"
-                                >
-                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                                </button>
-                              </>
-                            ) : (
-                              <>
-                                <button 
-                                  onClick={() => {
-                                    setEditingCatalogIdx(idx);
-                                    setEditCatalogForm({ name: item.name, unit: item.unit, rate: item.rate || '' });
-                                  }}
-                                  className="p-1.5 text-blue-500 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition"
-                                >
-                                  <Edit className="w-4 h-4" />
-                                </button>
-                                <button 
-                                  onClick={() => handleRemoveExtraWorkCatalogItem(idx)}
-                                  className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition"
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </button>
-                              </>
-                            )}
-                          </div>
-                        </td>
+                        {canEditProjects && (
+                          <td className="p-4 text-center">
+                            <div className="flex items-center justify-center gap-2">
+                              {editingCatalogIdx === idx ? (
+                                <>
+                                  <button 
+                                    onClick={() => handleSaveEditCatalogItem(idx)}
+                                    className="p-1.5 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 rounded-lg transition"
+                                  >
+                                    <CheckCircle2 className="w-4 h-4" />
+                                  </button>
+                                  <button 
+                                    onClick={() => setEditingCatalogIdx(null)}
+                                    className="p-1.5 text-black-400 hover:text-black-600 hover:bg-black-100 rounded-lg transition"
+                                  >
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                                  </button>
+                                </>
+                              ) : (
+                                <>
+                                  <button 
+                                    onClick={() => {
+                                      setEditingCatalogIdx(idx);
+                                      setEditCatalogForm({ name: item.name, unit: item.unit, rate: item.rate || '' });
+                                    }}
+                                    className="p-1.5 text-blue-500 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition"
+                                  >
+                                    <Edit className="w-4 h-4" />
+                                  </button>
+                                  <button 
+                                    onClick={() => handleRemoveExtraWorkCatalogItem(idx)}
+                                    className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </button>
+                                </>
+                              )}
+                            </div>
+                          </td>
+                        )}
                       </tr>
                     ))}
                   </tbody>

@@ -4,7 +4,7 @@ const Lead = require('../models/Lead');
 const Project = require('../models/Project');
 const User = require('../models/User');
 const AuditLog = require('../models/AuditLog');
-const { protect, authorize } = require('../middleware/auth');
+const { protect, authorize, checkPermission } = require('../middleware/auth');
 
 // @desc Get all leads with optional filters
 router.get('/', protect, async (req, res) => {
@@ -150,7 +150,7 @@ router.get('/phone/:phone', protect, async (req, res) => {
 
 // @route   POST /api/leads
 // @desc    Create a new lead (or reopen existing if duplicate phone)
-router.post('/', protect, async (req, res) => {
+router.post('/', protect, checkPermission('leads', 'edit'), async (req, res) => {
   const { leadType, salutation, name, phone, alternativePhone, address, profession, email, location, bankLoan, bankLoanPercentage, leadSource, referenceName, activeAd, projectLocation, project, assignedTo, leadCost, followUpInfo, leadCategory, creationDate } = req.body;
 
   try {
@@ -301,7 +301,7 @@ router.post('/', protect, async (req, res) => {
 
 // @route   PUT /api/leads/:id
 // @desc    Update lead details (status, assignment)
-router.put('/:id', protect, async (req, res) => {
+router.put('/:id', protect, checkPermission('leads', 'edit'), async (req, res) => {
   const { status, assignedTo, salutation, name, phone, alternativePhone, leadType, leadCost, address, profession, email, location, bankLoan, bankLoanPercentage, leadSource, referenceName, activeAd, projectLocation, project, bookingInfo, followUpInfo, isClosed, isReopened, closeRemarks, isRevert, leadCategory } = req.body;
 
   try {
@@ -645,7 +645,7 @@ router.delete('/:id', protect, async (req, res) => {
 
 // @route   POST /api/leads/bulk-import
 // @desc    Bulk import leads from Excel/CSV array data
-router.post('/bulk-import', protect, async (req, res) => {
+router.post('/bulk-import', protect, checkPermission('leads', 'edit'), async (req, res) => {
   const { leadsData } = req.body;
   if (!Array.isArray(leadsData) || leadsData.length === 0) {
     return res.status(400).json({ message: 'No lead data provided for import.' });

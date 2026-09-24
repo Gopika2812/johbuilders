@@ -24,7 +24,8 @@ import {
 } from 'lucide-react';
 
 const ProjectsDictionary = () => {
-  const { token, hasColumnPermission } = useAuth();
+  const { token, hasColumnPermission, hasEditPermission } = useAuth();
+  const canEditProjects = hasEditPermission('projects');
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -319,13 +320,15 @@ const ProjectsDictionary = () => {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white p-4 border border-black-100 shadow-sm rounded-2xl text-left">
           <div className="flex items-center gap-3">
             <span className="text-sm font-bold text-black-800">Registered Projects List ({filteredProjects.length})</span>
-            <Link
-              to="/projects/register"
-              className="px-3 py-1.5 bg-[#0e623a] text-white rounded-xl text-xs font-bold hover:bg-[#0b4d2d] transition flex items-center gap-1 shrink-0 shadow-sm"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              <span>Create Project</span>
-            </Link>
+            {canEditProjects && (
+              <Link
+                to="/projects/register"
+                className="px-3 py-1.5 bg-[#0e623a] text-white rounded-xl text-xs font-bold hover:bg-[#0b4d2d] transition flex items-center gap-1 shrink-0 shadow-sm"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Create Project</span>
+              </Link>
+            )}
           </div>
 
           <div className="flex bg-black-150 p-1 rounded-xl">
@@ -582,27 +585,31 @@ const ProjectsDictionary = () => {
                               </>
                             ) : (
                               <>
-                                <button
-                                  onClick={() => handleStartEdit(project)}
-                                  className="p-1.5 text-black-555 hover:text-[#0e623a] hover:bg-black-55 rounded-lg transition"
-                                  title="Edit Project details inline"
-                                >
-                                  <Edit className="w-4 h-4" />
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => handleDeleteProject(project._id, project.name)}
-                                  disabled={isDeletingId === project._id}
-                                  className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition disabled:opacity-50 flex items-center justify-center"
-                                  title="Delete Project permanently"
-                                >
-                                  {isDeletingId === project._id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
-                                </button>
+                                {canEditProjects && (
+                                  <>
+                                    <button
+                                      onClick={() => handleStartEdit(project)}
+                                      className="p-1.5 text-black-555 hover:text-[#0e623a] hover:bg-black-55 rounded-lg transition"
+                                      title="Edit Project details inline"
+                                    >
+                                      <Edit className="w-4 h-4" />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleDeleteProject(project._id, project.name)}
+                                      disabled={isDeletingId === project._id}
+                                      className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition disabled:opacity-50 flex items-center justify-center"
+                                      title="Delete Project permanently"
+                                    >
+                                      {isDeletingId === project._id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                                    </button>
+                                  </>
+                                )}
                                 <Link
                                   to={`/projects/${project._id}`}
                                   className="px-3 py-1.5 border border-black-255 rounded-lg text-xs font-bold text-[#0e623a] hover:bg-[#0e623a]/5 transition"
                                 >
-                                  Manage
+                                  {canEditProjects ? 'Manage' : 'View Details'}
                                 </Link>
                               </>
                             )}
@@ -692,30 +699,34 @@ const ProjectsDictionary = () => {
 
               {/* Action Button */}
               <div className="p-4 border-t border-black-100 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <button
-                    type="button"
-                    onClick={() => handleStartEdit(project)}
-                    className="flex items-center gap-1 text-xs font-semibold text-black-500 hover:text-[#0e623a]"
-                  >
-                    <Edit className="w-3.5 h-3.5" />
-                    <span>Edit</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleDeleteProject(project._id, project.name)}
-                    disabled={isDeletingId === project._id}
-                    className="flex items-center gap-1 text-xs font-semibold text-red-500 hover:text-red-700 disabled:opacity-50"
-                  >
-                    {isDeletingId === project._id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
-                    <span>{isDeletingId === project._id ? 'Deleting...' : 'Delete'}</span>
-                  </button>
-                </div>
+                {canEditProjects ? (
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => handleStartEdit(project)}
+                      className="flex items-center gap-1 text-xs font-semibold text-black-500 hover:text-[#0e623a]"
+                    >
+                      <Edit className="w-3.5 h-3.5" />
+                      <span>Edit</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteProject(project._id, project.name)}
+                      disabled={isDeletingId === project._id}
+                      className="flex items-center gap-1 text-xs font-semibold text-red-500 hover:text-red-700 disabled:opacity-50"
+                    >
+                      {isDeletingId === project._id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                      <span>{isDeletingId === project._id ? 'Deleting...' : 'Delete'}</span>
+                    </button>
+                  </div>
+                ) : (
+                  <div></div>
+                )}
                 <Link
                   to={`/projects/${project._id}`}
                   className="flex items-center gap-1 text-xs font-bold text-[#0e623a] hover:text-[#0b4d2d] transition group"
                 >
-                  <span>Manage Inventory</span>
+                  <span>{canEditProjects ? 'Manage Inventory' : 'View Inventory'}</span>
                   <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
                 </Link>
               </div>

@@ -67,7 +67,8 @@ const handleLocalPhoneChange = (val, countryCode, setter) => {
 };
 
 const QuotationForm = () => {
-  const { token } = useAuth();
+  const { token, hasEditPermission } = useAuth();
+  const canEditQuotations = hasEditPermission('quotations');
   const navigate = useNavigate();
   const { id } = useParams(); // For Edit
   const [searchParams] = useSearchParams();
@@ -252,6 +253,10 @@ const QuotationForm = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!canEditQuotations) {
+      alert('You do not have permission to edit or create quotations.');
+      return;
+    }
     if (selectedUnits.length === 0) {
       alert('Please select at least one plot/flat/villa unit to construct the quotation!');
       return;
@@ -879,19 +884,21 @@ const QuotationForm = () => {
               onClick={() => navigate(-1)}
               className="flex-1 py-3 border border-gray-200 rounded-xl text-xs font-bold text-gray-500 hover:bg-gray-50 transition cursor-pointer"
             >
-              Cancel
+              {canEditQuotations ? 'Cancel' : 'Back to Quotations'}
             </button>
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="flex-1 py-3 bg-[#0e623a] text-white rounded-xl text-xs font-bold hover:bg-[#0b4d2d] transition shadow-md cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2"
-            >
-              {isSubmitting ? (
-                <><Loader2 className="w-4 h-4 animate-spin" /> Processing...</>
-              ) : (
-                isEdit ? 'Save Quotation Changes' : 'Confirm & Save Quotation'
-              )}
-            </button>
+            {canEditQuotations && (
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="flex-1 py-3 bg-[#0e623a] text-white rounded-xl text-xs font-bold hover:bg-[#0b4d2d] transition shadow-md cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {isSubmitting ? (
+                  <><Loader2 className="w-4 h-4 animate-spin" /> Processing...</>
+                ) : (
+                  isEdit ? 'Save Quotation Changes' : 'Confirm & Save Quotation'
+                )}
+              </button>
+            )}
           </div>
 
         </form>

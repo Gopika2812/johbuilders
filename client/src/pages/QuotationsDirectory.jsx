@@ -50,7 +50,8 @@ const SOURCE_TYPES = [
 ];
 
 const QuotationsDirectory = () => {
-  const { token, hasColumnPermission, isAdmin, getLabel } = useAuth();
+  const { token, hasColumnPermission, isAdmin, getLabel, hasEditPermission } = useAuth();
+  const canEditQuotations = hasEditPermission('quotations');
   const [quotations, setQuotations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -460,7 +461,7 @@ const QuotationsDirectory = () => {
                     {hasColumnPermission('quotations', 'crdPerson') && (
                       <td className="p-4">
                         <select
-                          disabled={!isAdmin}
+                          disabled={!isAdmin || !canEditQuotations}
                           value={q.crdPerson?._id || q.crdPerson || ''}
                           onChange={(e) => updateCrdPerson(q._id, e.target.value)}
                           className="w-full text-[11px] bg-black-50 border border-black-200 rounded-lg px-2 py-1.5 focus:outline-none focus:border-[#0e623a] font-bold text-black-700 cursor-pointer disabled:cursor-not-allowed disabled:opacity-75"
@@ -477,7 +478,7 @@ const QuotationsDirectory = () => {
                     {hasColumnPermission('quotations', 'pedPerson') && (
                       <td className="p-4">
                         <select
-                          disabled={!isAdmin}
+                          disabled={!isAdmin || !canEditQuotations}
                           value={q.pedPerson?._id || q.pedPerson || ''}
                           onChange={(e) => updatePedPerson(q._id, e.target.value)}
                           className="w-full text-[11px] bg-black-50 border border-black-200 rounded-lg px-2 py-1.5 focus:outline-none focus:border-[#0e623a] font-bold text-black-700 cursor-pointer disabled:cursor-not-allowed disabled:opacity-75"
@@ -494,7 +495,7 @@ const QuotationsDirectory = () => {
                     {hasColumnPermission('quotations', 'accountsPerson') && (
                       <td className="p-4">
                         <select
-                          disabled={!isAdmin}
+                          disabled={!isAdmin || !canEditQuotations}
                           value={q.accountsPerson?._id || q.accountsPerson || ''}
                           onChange={(e) => updateAccountsPerson(q._id, e.target.value)}
                           className="w-full text-[11px] bg-black-50 border border-black-200 rounded-lg px-2 py-1.5 focus:outline-none focus:border-[#0e623a] font-bold text-black-700 cursor-pointer disabled:cursor-not-allowed disabled:opacity-75"
@@ -518,14 +519,16 @@ const QuotationsDirectory = () => {
                           >
                             <Eye className="w-4 h-4" />
                           </Link>
-                          <Link
-                            to={`/quotations/${q._id}/edit`}
-                            className="p-2 text-black-500 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition"
-                            title="Edit Quotation"
-                          >
-                            <Edit3 className="w-4 h-4" />
-                          </Link>
-                          {isAdmin && (
+                          {canEditQuotations && (
+                            <Link
+                              to={`/quotations/${q._id}/edit`}
+                              className="p-2 text-black-500 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition"
+                              title="Edit Quotation"
+                            >
+                              <Edit3 className="w-4 h-4" />
+                            </Link>
+                          )}
+                          {isAdmin && canEditQuotations && (
                             <button
                               onClick={() => handleDelete(q._id)}
                               disabled={deletingId === q._id}

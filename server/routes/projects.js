@@ -413,7 +413,7 @@ router.put('/:id/resize-plot', protect, checkPermission('projects', 'edit'), asy
 
 // @route   PUT /api/projects/:id/unit-status
 // @desc    Update specific unit status & customer booking details
-router.put('/:id/unit-status', protect, async (req, res) => {
+router.put('/:id/unit-status', protect, checkPermission('projects', 'edit'), async (req, res) => {
   const { 
     originalUnitId, 
     unitId, 
@@ -582,7 +582,7 @@ router.put('/:id/unit-status', protect, async (req, res) => {
 
 // @route   PUT /api/projects/:id/extra-work-catalog
 // @desc    Update project extra work catalog
-router.put('/:id/extra-work-catalog', protect, async (req, res) => {
+router.put('/:id/extra-work-catalog', protect, checkPermission('projects', 'edit'), async (req, res) => {
   try {
     const project = await Project.findById(req.params.id);
     if (!project) {
@@ -608,7 +608,7 @@ router.put('/:id/extra-work-catalog', protect, async (req, res) => {
 
 // @route   PUT /api/projects/:id
 // @desc    Update project details
-router.put('/:id', protect, async (req, res) => {
+router.put('/:id', protect, checkPermission('projects', 'edit'), async (req, res) => {
   const { name, code, projectType, location, totalLandArea, pricePerSqFt, layoutPlanImage, hasReadyBuilt } = req.body;
   try {
     const project = await Project.findById(req.params.id);
@@ -657,7 +657,7 @@ router.put('/:id', protect, async (req, res) => {
 
 // @route   DELETE /api/projects/:id
 // @desc    Delete a project
-router.delete('/:id', protect, async (req, res) => {
+router.delete('/:id', protect, checkPermission('projects', 'edit'), async (req, res) => {
   try {
     const project = await Project.findById(req.params.id);
     if (!project) {
@@ -683,7 +683,7 @@ router.delete('/:id', protect, async (req, res) => {
 
 // @route   PUT /api/projects/:id/update-unit-sizes
 // @desc    Update specific units' size (used during booking/quotation to override default sq.ft)
-router.put('/:id/update-unit-sizes', protect, async (req, res) => {
+router.put('/:id/update-unit-sizes', protect, checkPermission('projects', 'edit'), async (req, res) => {
   const { unitUpdates } = req.body; // Array of { unitId, size }
   
   try {

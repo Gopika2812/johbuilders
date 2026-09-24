@@ -183,7 +183,8 @@ let projectsDirectoryCache = null;
 let employeesDirectoryCache = null;
 
 const LeadsDirectory = () => {
-  const { token, user, hasColumnPermission } = useAuth();
+  const { token, user, hasColumnPermission, hasEditPermission } = useAuth();
+  const canEditLeads = hasEditPermission('leads');
   const location = useLocation();
   const navigate = useNavigate();
   const [leads, setLeads] = useState(() => leadsDirectoryCache || []);
@@ -2420,28 +2421,32 @@ const LeadsDirectory = () => {
             <span>Export Excel</span>
           </button>
 
-          <button
-            onClick={() => {
-              setImportModalOpen(true);
-              setParsedImportData([]);
-              setPastedText('');
-            }}
-            className="flex items-center justify-center gap-1 px-2.5 py-1 bg-[#0e623a]/10 hover:bg-[#0e623a]/20 text-[#0e623a] border border-[#0e623a]/30 text-xs font-bold rounded-lg transition shadow-xs cursor-pointer"
-          >
-            <Upload className="w-3.5 h-3.5 text-[#0e623a]" />
-            <span>Import Excel</span>
-          </button>
+          {canEditLeads && (
+            <button
+              onClick={() => {
+                setImportModalOpen(true);
+                setParsedImportData([]);
+                setPastedText('');
+              }}
+              className="flex items-center justify-center gap-1 px-2.5 py-1 bg-[#0e623a]/10 hover:bg-[#0e623a]/20 text-[#0e623a] border border-[#0e623a]/30 text-xs font-bold rounded-lg transition shadow-xs cursor-pointer"
+            >
+              <Upload className="w-3.5 h-3.5 text-[#0e623a]" />
+              <span>Import Excel</span>
+            </button>
+          )}
 
-          <button
-            onClick={() => {
-              resetForm();
-              setCreateModalOpen(true);
-            }}
-            className="flex items-center justify-center gap-1 px-3 py-1 bg-[#0e623a] hover:bg-[#0b4d2d] text-white text-xs font-bold rounded-lg transition shadow-xs cursor-pointer"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            <span>Create New Lead</span>
-          </button>
+          {canEditLeads && (
+            <button
+              onClick={() => {
+                resetForm();
+                setCreateModalOpen(true);
+              }}
+              className="flex items-center justify-center gap-1 px-3 py-1 bg-[#0e623a] hover:bg-[#0b4d2d] text-white text-xs font-bold rounded-lg transition shadow-xs cursor-pointer"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>Create New Lead</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -2636,6 +2641,7 @@ const LeadsDirectory = () => {
                               const lostStage = match ? match[1] : null;
                               const isCancelled = lead.closeRemarks?.toLowerCase().includes('cancelled');
                               if (!isCancelled && (lostStage === 'Site Visit' || lostStage === 'Follow-Up' || lostStage === 'Assigned')) return null;
+                              if (!canEditLeads) return null;
                               return (
                                 <button
                                   onClick={() => handleReopenClosedLead(lead)}
@@ -2730,28 +2736,32 @@ const LeadsDirectory = () => {
                                 >
                                   <MessageCircle className="w-3.5 h-3.5 text-[#0e623a]" /> WhatsApp Share
                                 </button>
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setOpenActionMenuId(null);
-                                    initiateFollowUpOrComplete(lead, lead.status || 'Follow-Up', 'FollowUp');
-                                  }}
-                                  className="w-full text-left px-3.5 py-1.5 text-[11px] font-bold hover:bg-emerald-50 flex items-center gap-2 text-[#0e623a] cursor-pointer"
-                                >
-                                  <CalendarClock className="w-3.5 h-3.5 text-[#0e623a]" /> Schedule Follow-up
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setOpenActionMenuId(null);
-                                    handleOpenEditModal(lead);
-                                  }}
-                                  className="w-full text-left px-3.5 py-1.5 text-[11px] font-bold hover:bg-amber-50 flex items-center gap-2 cursor-pointer"
-                                  style={{ color: '#d97706' }}
-                                >
-                                  <Edit2 className="w-3.5 h-3.5" /> Edit
-                                </button>
-                                {!lead.isClosed && lead.status !== 'Booking' && lead.status !== 'Won' && (
+                                {canEditLeads && (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setOpenActionMenuId(null);
+                                      initiateFollowUpOrComplete(lead, lead.status || 'Follow-Up', 'FollowUp');
+                                    }}
+                                    className="w-full text-left px-3.5 py-1.5 text-[11px] font-bold hover:bg-emerald-50 flex items-center gap-2 text-[#0e623a] cursor-pointer"
+                                  >
+                                    <CalendarClock className="w-3.5 h-3.5 text-[#0e623a]" /> Schedule Follow-up
+                                  </button>
+                                )}
+                                {canEditLeads && (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setOpenActionMenuId(null);
+                                      handleOpenEditModal(lead);
+                                    }}
+                                    className="w-full text-left px-3.5 py-1.5 text-[11px] font-bold hover:bg-amber-50 flex items-center gap-2 cursor-pointer"
+                                    style={{ color: '#d97706' }}
+                                  >
+                                    <Edit2 className="w-3.5 h-3.5" /> Edit
+                                  </button>
+                                )}
+                                {canEditLeads && !lead.isClosed && lead.status !== 'Booking' && lead.status !== 'Won' && (
                                   <button
                                     type="button"
                                     onClick={() => {
@@ -2763,7 +2773,7 @@ const LeadsDirectory = () => {
                                     <FileText className="w-3.5 h-3.5 text-[#0e623a]" /> Move to Booked
                                   </button>
                                 )}
-                                {(() => {
+                                {canEditLeads && (() => {
                                   const roleNorm = (user?.role || '').toLowerCase().replace(/[\s_-]+/g, '');
                                   const isSuperAdmin = roleNorm === 'superadmin' || roleNorm === 'admin';
                                   const prevSt = getPreviousStatus(lead);
@@ -2784,7 +2794,7 @@ const LeadsDirectory = () => {
                                     </button>
                                   );
                                 })()}
-                                {!lead.isClosed && (
+                                {canEditLeads && !lead.isClosed && (
                                   <button
                                     type="button"
                                     onClick={() => {
@@ -2798,7 +2808,7 @@ const LeadsDirectory = () => {
                                     Cancel Lead
                                   </button>
                                 )}
-                                {hasColumnPermission('leads', 'deleteLead') && (
+                                {canEditLeads && hasColumnPermission('leads', 'deleteLead') && (
                                   <button
                                     type="button"
                                     onClick={() => {
