@@ -177,14 +177,29 @@ export const DEFAULT_PAGE_LABELS = {
 };
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const getInitialUser = () => {
+    try {
+      const saved = localStorage.getItem('user');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  };
+
+  const [user, setUser] = useState(getInitialUser);
+  const [loading, setLoading] = useState(() => {
+    const hasToken = !!localStorage.getItem('token');
+    const hasUser = !!localStorage.getItem('user');
+    // If we have token and cached user, don't block render; if token without user, wait for fetch
+    return hasToken && !hasUser;
+  });
   const [token, setToken] = useState(localStorage.getItem('token') || '');
 
   useEffect(() => {
     const fetchUser = async () => {
       if (!token) {
         setLoading(false);
+        setUser(null);
         return;
       }
 
@@ -198,12 +213,13 @@ export const AuthProvider = ({ children }) => {
         if (response.ok) {
           const userData = await response.json();
           setUser(userData);
-        } else {
+          localStorage.setItem('user', JSON.stringify(userData));
+        } else if (response.status === 401 || response.status === 403) {
           // Token expired or invalid
           logout();
         }
       } catch (err) {
-        console.error('Error fetching current user:', err);
+        console.error('Error verifying current user session:', err);
       } finally {
         setLoading(false);
       }
@@ -228,9 +244,7 @@ export const AuthProvider = ({ children }) => {
         throw new Error(data.message || 'Login failed');
       }
 
-      localStorage.setItem('token', data.token);
-      setToken(data.token);
-      setUser({
+      const userData = {
         _id: data._id,
         name: data.name,
         email: data.email,
@@ -238,7 +252,12 @@ export const AuthProvider = ({ children }) => {
         role: data.role,
         isApproved: data.isApproved,
         permissions: data.permissions || []
-      });
+      };
+
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('user', JSON.stringify(userData));
+      setToken(data.token);
+      setUser(userData);
       return data;
     } finally {
       setLoading(false);
@@ -261,9 +280,7 @@ export const AuthProvider = ({ children }) => {
         throw new Error(data.message || 'Registration failed');
       }
 
-      localStorage.setItem('token', data.token);
-      setToken(data.token);
-      setUser({
+      const userData = {
         _id: data._id,
         name: data.name,
         email: data.email,
@@ -271,7 +288,12 @@ export const AuthProvider = ({ children }) => {
         role: data.role,
         isApproved: data.isApproved,
         permissions: data.permissions || []
-      });
+      };
+
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('user', JSON.stringify(userData));
+      setToken(data.token);
+      setUser(userData);
       return data;
     } finally {
       setLoading(false);
@@ -280,6 +302,7 @@ export const AuthProvider = ({ children }) => {
 
   const logout = () => {
     localStorage.removeItem('token');
+    localStorage.removeItem('user');
     setToken('');
     setUser(null);
   };

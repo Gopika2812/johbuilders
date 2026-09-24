@@ -29,39 +29,30 @@ const taskCategoryRoutes = require('./routes/taskCategories');
 const settingsRoutes = require('./routes/settings');
 const app = express();
 
-// Connect Database
-connectDB().then(async () => {
-  // Drop unique index on email if exists
+// Background database synchronization & seed logic (non-blocking)
+const runBackgroundSync = async () => {
   try {
     const User = require('./models/User');
-    await User.collection.dropIndex('email_1');
-    console.log('Successfully dropped unique index email_1');
-  } catch (err) {
-    // If the index does not exist, MongoDB throws an error which we can ignore
-  }
+    try {
+      await User.collection.dropIndex('email_1');
+      console.log('Successfully dropped unique index email_1');
+    } catch {}
 
-  // Seed default superadmin if not exists
-  try {
-    const User = require('./models/User');
+    // Seed default superadmin if not exists
     const adminExists = await User.findOne({ email: 'admin@builders.com' });
     if (!adminExists) {
       await User.create({
         name: 'Superadmin',
         email: 'admin@builders.com',
         phone: '9999999999',
-        password: 'adminpassword123', // Will be hashed automatically by pre-save hook
+        password: 'adminpassword123',
         role: 'Superadmin',
         isApproved: true
       });
       console.log('Seeded default Superadmin: admin@builders.com / adminpassword123');
     }
-  } catch (err) {
-    console.error('Error seeding superadmin:', err.message);
-  }
 
-  // Migration: Add placeholder phone numbers to existing users without one to prevent validation errors
-  try {
-    const User = require('./models/User');
+    // Migration: Add placeholder phone numbers to existing users without one
     const usersWithoutPhone = await User.find({ phone: { $exists: false } });
     for (const u of usersWithoutPhone) {
       if (u.email === 'admin@builders.com') {
@@ -71,97 +62,17 @@ connectDB().then(async () => {
         u.phone = `999${randomSuffix}`;
       }
       await u.save();
-      console.log(`Migrated user ${u.email} with placeholder phone ${u.phone}`);
     }
   } catch (err) {
-    console.error('Error migrating user phone numbers:', err.message);
+    console.error('Background sync note:', err.message);
   }
+};
 
-  // Sync booked units from leads and quotations
-  try {
-    const Lead = require('./models/Lead');
-    const Project = require('./models/Project');
-    const Quotation = require('./models/Quotation');
-
-    // Sync from Booked leads
-    const bookedLeads = await Lead.find({ status: 'Booking' });
-    for (const lead of bookedLeads) {
-      if (lead.bookingInfo && lead.bookingInfo.selectedUnits && lead.bookingInfo.selectedUnits.length > 0) {
-        const proj = await Project.findById(lead.project);
-        if (proj) {
-          let updated = false;
-          lead.bookingInfo.selectedUnits.forEach(unitId => {
-            const unit = proj.units.find(u => u.unitId === unitId);
-            if (unit && unit.status !== 'Booked') {
-              unit.status = 'Booked';
-              unit.customerName = lead.name;
-              unit.customerPhone = lead.phone;
-              unit.leadName = lead.name;
-              updated = true;
-            }
-          });
-          if (updated) {
-            await proj.save();
-            console.log(`Synced booked units from lead ${lead.name}`);
-          }
-        }
-      }
-    }
-
-    // Sync from Quotations
-    const quotations = await Quotation.find({});
-    for (const qtn of quotations) {
-      if (qtn.selectedUnits && qtn.selectedUnits.length > 0) {
-        const proj = await Project.findById(qtn.project);
-        if (proj) {
-          let updated = false;
-          qtn.selectedUnits.forEach(unitId => {
-            const unit = proj.units.find(u => u.unitId === unitId);
-            if (unit && unit.status !== 'Booked') {
-              unit.status = 'Booked';
-              unit.customerName = qtn.customerName;
-              unit.customerPhone = qtn.customerPhone;
-              unit.leadName = qtn.customerName;
-              updated = true;
-            }
-          });
-          if (updated) {
-            await proj.save();
-            console.log(`Synced booked units from quotation for ${qtn.customerName}`);
-          }
-        }
-      }
-    }
-
-    // Sync Sold Out/Handover units from CRD Flow completed stages
-    const CRDFlow = require('./models/CRDFlow');
-    const flows = await CRDFlow.find({});
-    for (const flow of flows) {
-      const handoverStageCompleted = flow.stages?.some(s => 
-        (s.name.toLowerCase().includes('handing over') || s.name.toLowerCase().includes('handover')) && 
-        s.isCompleted === true
-      );
-      if (handoverStageCompleted) {
-        const proj = await Project.findById(flow.project);
-        if (proj) {
-          let updated = false;
-          const unitIdsToUpdate = flow.unitId.split(',').map(uid => uid.trim());
-          proj.units.forEach(u => {
-            if (unitIdsToUpdate.includes(u.unitId) && u.status !== 'Sold Out') {
-              u.status = 'Sold Out';
-              updated = true;
-            }
-          });
-          if (updated) {
-            await proj.save();
-            console.log(`Synced handover/sold out units from CRD Flow for unit ${flow.unitId}`);
-          }
-        }
-      }
-    }
-  } catch (err) {
-    console.error('Error syncing units:', err.message);
-  }
+// Connect Database & run background routines
+connectDB().then(() => {
+  setTimeout(() => {
+    runBackgroundSync();
+  }, 2000);
 });
 
 // Middleware
