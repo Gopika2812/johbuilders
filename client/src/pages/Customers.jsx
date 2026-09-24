@@ -18,7 +18,8 @@ import {
 } from 'lucide-react';
 
 const Customers = () => {
-  const { token, user, hasColumnPermission } = useAuth();
+  const { token, user, hasColumnPermission, hasEditPermission } = useAuth();
+  const canEditCustomers = hasEditPermission('customers');
   const [flows, setFlows] = useState([]);
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -426,27 +427,29 @@ const Customers = () => {
                                 <div className="bg-white border border-black-150 rounded-2xl p-5 shadow-sm space-y-6">
                                   
                                   {/* File a complaint form */}
-                                  <form onSubmit={handleAddComplaint} className="space-y-3 bg-black-50 p-4 rounded-xl border border-black-100">
-                                    <label className="text-[11px] font-bold text-black-700 uppercase tracking-wide block">Report New Complaint</label>
-                                    <div className="flex gap-2">
-                                      <input
-                                        type="text"
-                                        placeholder="Describe the complaint (e.g. Paint patch repair in bedroom)..."
-                                        value={newComplaintDesc}
-                                        onChange={(e) => setNewComplaintDesc(e.target.value)}
-                                        className="flex-1 px-3 py-2 bg-white border border-black-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-xs font-semibold text-black-700 shadow-sm"
-                                        required
-                                      />
-                                      <button
-                                        type="submit"
-                                        disabled={submittingComplaint}
-                                        className="px-5 py-2 bg-[#0e623a] hover:bg-[#0b4d2d] text-white text-[11px] font-bold rounded-lg transition shadow-sm flex items-center gap-1 cursor-pointer shrink-0 disabled:opacity-50"
-                                      >
-                                        {submittingComplaint ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
-                                        <span>File Complaint</span>
-                                      </button>
-                                    </div>
-                                  </form>
+                                  {canEditCustomers && (
+                                    <form onSubmit={handleAddComplaint} className="space-y-3 bg-black-50 p-4 rounded-xl border border-black-100">
+                                      <label className="text-[11px] font-bold text-black-700 uppercase tracking-wide block">Report New Complaint</label>
+                                      <div className="flex gap-2">
+                                        <input
+                                          type="text"
+                                          placeholder="Describe the complaint (e.g. Paint patch repair in bedroom)..."
+                                          value={newComplaintDesc}
+                                          onChange={(e) => setNewComplaintDesc(e.target.value)}
+                                          className="flex-1 px-3 py-2 bg-white border border-black-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-xs font-semibold text-black-700 shadow-sm"
+                                          required
+                                        />
+                                        <button
+                                          type="submit"
+                                          disabled={submittingComplaint}
+                                          className="px-5 py-2 bg-[#0e623a] hover:bg-[#0b4d2d] text-white text-[11px] font-bold rounded-lg transition shadow-sm flex items-center gap-1 cursor-pointer shrink-0 disabled:opacity-50"
+                                        >
+                                          {submittingComplaint ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
+                                          <span>File Complaint</span>
+                                        </button>
+                                      </div>
+                                    </form>
+                                  )}
 
                                   {/* Complaints lists */}
                                   <div className="space-y-3">
@@ -467,7 +470,7 @@ const Customers = () => {
                                               <th className="p-3">Assigned Person</th>
                                               <th className="p-3">Task/Risk Level</th>
                                               <th className="p-3 text-center">Status</th>
-                                              <th className="p-3 text-center">Action</th>
+                                              {canEditCustomers && <th className="p-3 text-center">Action</th>}
                                             </tr>
                                           </thead>
                                           <tbody className="divide-y divide-black-50">
@@ -520,47 +523,49 @@ const Customers = () => {
                                                       {comp.status}
                                                     </span>
                                                   </td>
-                                                  <td className="p-3 text-center">
-                                                    {(user?.role === 'Superadmin' || user?.role === 'Superadmin') && !comp.assignedTo && (
-                                                      <div className="flex flex-col gap-1 items-end">
-                                                        <select
-                                                          className="w-full text-[10px] border rounded p-1 font-semibold text-black-600 bg-black-50 outline-none"
-                                                          onChange={(e) => {
-                                                            if (e.target.value) {
-                                                              const [userId, risk] = e.target.value.split('|');
-                                                              if (userId && risk) {
-                                                                handleAssignTask(comp._id, userId, risk);
-                                                                e.target.value = '';
+                                                  {canEditCustomers && (
+                                                    <td className="p-3 text-center">
+                                                      {(user?.role === 'Superadmin' || user?.role === 'Superadmin') && !comp.assignedTo && (
+                                                        <div className="flex flex-col gap-1 items-end">
+                                                          <select
+                                                            className="w-full text-[10px] border rounded p-1 font-semibold text-black-600 bg-black-50 outline-none"
+                                                            onChange={(e) => {
+                                                              if (e.target.value) {
+                                                                const [userId, risk] = e.target.value.split('|');
+                                                                if (userId && risk) {
+                                                                  handleAssignTask(comp._id, userId, risk);
+                                                                  e.target.value = '';
+                                                                }
                                                               }
-                                                            }
-                                                          }}
+                                                            }}
+                                                          >
+                                                            <option value="">Assign Task...</option>
+                                                            {employees.map(emp => (
+                                                              <optgroup key={emp._id} label={emp.name}>
+                                                                <option value={`${emp._id}|High`}>High Risk</option>
+                                                                <option value={`${emp._id}|Medium`}>Medium Risk</option>
+                                                                <option value={`${emp._id}|Low`}>Low Risk</option>
+                                                              </optgroup>
+                                                            ))}
+                                                          </select>
+                                                        </div>
+                                                      )}
+                                                      
+                                                      {/* Allow changing status if already assigned */}
+                                                      {(user?.role === 'Superadmin' || user?.role === 'Superadmin') && comp.assignedTo && (
+                                                        <select
+                                                          value={comp.status}
+                                                          onChange={(e) => handleUpdateComplaintStatus(comp._id, e.target.value)}
+                                                          className="w-full mt-1 px-2 py-1 bg-white border rounded text-[10px] font-bold text-black-700 uppercase tracking-wide focus:outline-none"
                                                         >
-                                                          <option value="">Assign Task...</option>
-                                                          {employees.map(emp => (
-                                                            <optgroup key={emp._id} label={emp.name}>
-                                                              <option value={`${emp._id}|High`}>High Risk</option>
-                                                              <option value={`${emp._id}|Medium`}>Medium Risk</option>
-                                                              <option value={`${emp._id}|Low`}>Low Risk</option>
-                                                            </optgroup>
-                                                          ))}
+                                                          <option value="Pending">Pending</option>
+                                                          <option value="Start Work">Start Work</option>
+                                                          <option value="In Progress">In Progress</option>
+                                                          <option value="Completed">Completed</option>
                                                         </select>
-                                                      </div>
-                                                    )}
-                                                    
-                                                    {/* Allow changing status if already assigned */}
-                                                    {(user?.role === 'Superadmin' || user?.role === 'Superadmin') && comp.assignedTo && (
-                                                      <select
-                                                        value={comp.status}
-                                                        onChange={(e) => handleUpdateComplaintStatus(comp._id, e.target.value)}
-                                                        className="w-full mt-1 px-2 py-1 bg-white border rounded text-[10px] font-bold text-black-700 uppercase tracking-wide focus:outline-none"
-                                                      >
-                                                        <option value="Pending">Pending</option>
-                                                        <option value="Start Work">Start Work</option>
-                                                        <option value="In Progress">In Progress</option>
-                                                        <option value="Completed">Completed</option>
-                                                      </select>
-                                                    )}
-                                                  </td>
+                                                      )}
+                                                    </td>
+                                                  )}
                                                 </tr>
                                               );
                                             })}

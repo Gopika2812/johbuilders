@@ -34,7 +34,8 @@ const DEFAULT_ROLES = ['Superadmin', 'Crd team', 'sales person', 'ped team', 'ac
 const DEFAULT_DEPARTMENTS = ['Sales Team', 'CRD Team', 'Accounts Team', 'Administration (Superadmins)', 'PED Team', 'General'];
 
 const EmployeesDirectory = () => {
-  const { token, user } = useAuth();
+  const { token, user, hasEditPermission } = useAuth();
+  const canEditEmployees = hasEditPermission('employees');
   const [employees, setEmployees] = useState([]);
   const [availableRoles, setAvailableRoles] = useState(DEFAULT_ROLES);
   const [availableDepartments, setAvailableDepartments] = useState(DEFAULT_DEPARTMENTS);
@@ -701,7 +702,7 @@ const EmployeesDirectory = () => {
               Total Employees: <span className="font-bold text-white">{employees.length}</span>
             </div>
 
-            {user?.role === 'Superadmin' && (
+            {user?.role === 'Superadmin' && canEditEmployees && (
               <>
                 {/* Role Creation / Management button */}
                 <button
@@ -861,7 +862,7 @@ const EmployeesDirectory = () => {
                       </span>
                     </td>
                     <td className="p-2">
-                      {user?.role === 'Superadmin' ? (
+                      {user?.role === 'Superadmin' && canEditEmployees ? (
                         <select
                           value={emp.role}
                           onChange={(e) => handleRoleChange(emp._id, e.target.value)}
@@ -899,7 +900,7 @@ const EmployeesDirectory = () => {
                     <td className="p-2 text-right whitespace-nowrap">
                       <div className="flex items-center justify-end gap-1.5">
                         {/* Edit Button */}
-                        {(user?.role === 'Superadmin' || emp._id === user?._id) && (
+                        {(user?.role === 'Superadmin' || emp._id === user?._id) && canEditEmployees && (
                           <button
                             onClick={() => openEditModal(emp)}
                             title="Edit Employee Details"
@@ -910,7 +911,7 @@ const EmployeesDirectory = () => {
                           </button>
                         )}
 
-                        {user?.role === 'Superadmin' && (
+                        {user?.role === 'Superadmin' && canEditEmployees && (
                           <>
                             {emp._id === user?._id ? (
                               <span className="text-xs text-slate-400 italic font-light px-2">Self Account</span>

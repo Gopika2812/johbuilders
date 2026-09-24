@@ -6,7 +6,8 @@ const Requests = () => {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const { user, token } = useAuth();
+  const { user, token, hasEditPermission } = useAuth();
+  const canEditRequests = hasEditPermission('requests');
   const [approvingId, setApprovingId] = useState(null);
   const [rejectingId, setRejectingId] = useState(null);
 
@@ -125,24 +126,26 @@ const Requests = () => {
                 )}
               </div>
               
-              <div className="flex flex-row md:flex-col gap-3 justify-center min-w-[140px]">
-                <button
-                  onClick={() => handleApprove(request._id)}
-                  disabled={approvingId === request._id || rejectingId === request._id}
-                  className="flex-1 flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-50"
-                >
-                  {approvingId === request._id ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
-                  Approve
-                </button>
-                <button
-                  onClick={() => handleReject(request._id)}
-                  disabled={rejectingId === request._id || approvingId === request._id}
-                  className="flex-1 flex items-center justify-center gap-2 bg-red-100 hover:bg-red-200 text-red-700 px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-50"
-                >
-                  {rejectingId === request._id ? <Loader2 className="w-4 h-4 animate-spin" /> : <XCircle className="w-4 h-4" />}
-                  Reject
-                </button>
-              </div>
+              {canEditRequests && (
+                <div className="flex flex-row md:flex-col gap-3 justify-center min-w-[140px]">
+                  <button
+                    onClick={() => handleApprove(request._id)}
+                    disabled={approvingId === request._id || rejectingId === request._id}
+                    className="flex-1 flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-50"
+                  >
+                    {approvingId === request._id ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
+                    Approve
+                  </button>
+                  <button
+                    onClick={() => handleReject(request._id)}
+                    disabled={rejectingId === request._id || approvingId === request._id}
+                    className="flex-1 flex items-center justify-center gap-2 bg-red-100 hover:bg-red-200 text-red-700 px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-50"
+                  >
+                    {rejectingId === request._id ? <Loader2 className="w-4 h-4 animate-spin" /> : <XCircle className="w-4 h-4" />}
+                    Reject
+                  </button>
+                </div>
+              )}
             </div>
           ))}
         </div>

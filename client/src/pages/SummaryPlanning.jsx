@@ -10,7 +10,8 @@ import {
 } from 'lucide-react';
 
 const SummaryPlanning = () => {
-  const { token } = useAuth();
+  const { token, hasEditPermission } = useAuth();
+  const canEdit = hasEditPermission('finance_summary');
   
   // Date and filter states
   const [selectedMonth, setSelectedMonth] = useState(() => {
@@ -378,13 +379,15 @@ const SummaryPlanning = () => {
               Summary Targets Saved!
             </span>
           )}
-          <button
-            onClick={handleSavePlan}
-            className="px-5 py-2.5 bg-[#0e623a] text-white rounded-xl text-xs font-bold hover:bg-[#0b4d2d] transition flex items-center gap-2 shadow-sm"
-          >
-            <Save className="w-4 h-4" />
-            <span>Save Summary Plan</span>
-          </button>
+          {canEdit && (
+            <button
+              onClick={handleSavePlan}
+              className="px-5 py-2.5 bg-[#0e623a] text-white rounded-xl text-xs font-bold hover:bg-[#0b4d2d] transition flex items-center gap-2 shadow-sm"
+            >
+              <Save className="w-4 h-4" />
+              <span>Save Summary Plan</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -474,9 +477,11 @@ const SummaryPlanning = () => {
                         type="number"
                         placeholder="0.00"
                         step="0.01"
+                        disabled={!canEdit}
+                        readOnly={!canEdit}
                         value={salesTarget || ''}
-                        onChange={(e) => setSalesTarget(Number(e.target.value) || 0)}
-                        className="px-3 py-1.5 bg-black-50 border border-black-250 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-xs font-bold text-right w-36 mx-auto inline-block"
+                        onChange={(e) => handleSaveTargetInput(setSalesTarget, e.target.value)}
+                        className="px-3 py-1.5 bg-black-50 border border-black-250 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-xs font-bold text-right w-36 mx-auto inline-block disabled:bg-gray-100 disabled:cursor-not-allowed"
                       />
                     </td>
                     <td className="p-4 text-black-500 font-semibold">Crores</td>
@@ -495,9 +500,11 @@ const SummaryPlanning = () => {
                       <input
                         type="number"
                         placeholder="0"
+                        disabled={!canEdit}
+                        readOnly={!canEdit}
                         value={villasTarget || ''}
-                        onChange={(e) => setVillasTarget(Number(e.target.value) || 0)}
-                        className="px-3 py-1.5 bg-black-50 border border-black-250 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-xs font-bold text-right w-36 mx-auto inline-block"
+                        onChange={(e) => handleSaveTargetInput(setVillasTarget, e.target.value)}
+                        className="px-3 py-1.5 bg-black-50 border border-black-250 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-xs font-bold text-right w-36 mx-auto inline-block disabled:bg-gray-100 disabled:cursor-not-allowed"
                       />
                     </td>
                     <td className="p-4 text-black-500 font-semibold">Units</td>
@@ -516,9 +523,11 @@ const SummaryPlanning = () => {
                       <input
                         type="number"
                         placeholder="0"
+                        disabled={!canEdit}
+                        readOnly={!canEdit}
                         value={plotsTarget || ''}
-                        onChange={(e) => setPlotsTarget(Number(e.target.value) || 0)}
-                        className="px-3 py-1.5 bg-black-50 border border-black-250 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-xs font-bold text-right w-36 mx-auto inline-block"
+                        onChange={(e) => handleSaveTargetInput(setPlotsTarget, e.target.value)}
+                        className="px-3 py-1.5 bg-black-50 border border-black-250 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-xs font-bold text-right w-36 mx-auto inline-block disabled:bg-gray-100 disabled:cursor-not-allowed"
                       />
                     </td>
                     <td className="p-4 text-black-500 font-semibold">Plots</td>
@@ -663,9 +672,11 @@ const SummaryPlanning = () => {
                                   type="number"
                                   placeholder="0"
                                   step={row.isFloat ? '0.01' : '1'}
+                                  disabled={!canEdit}
+                                  readOnly={!canEdit}
                                   value={row.target || ''}
                                   onChange={(e) => handleUpdateProjectTarget(projId, row.field, e.target.value)}
-                                  className="px-2.5 py-1.5 bg-black-50 border border-black-250 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-[12px] font-bold text-right w-24 inline-block"
+                                  className="px-2.5 py-1.5 bg-black-50 border border-black-250 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-[12px] font-bold text-right w-24 inline-block disabled:bg-gray-100 disabled:cursor-not-allowed"
                                 />
                               </td>
                               <td className="p-3 text-right font-extrabold text-black-800">
@@ -750,9 +761,11 @@ const SummaryPlanning = () => {
                         <input
                           type="number"
                           placeholder="0"
+                          disabled={!canEdit}
+                          readOnly={!canEdit}
                           value={row.target || ''}
                           onChange={(e) => handleUpdateMarketingTarget(row.name, e.target.value)}
-                          className="px-2.5 py-1.5 bg-black-50 border border-black-250 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-[12px] font-bold text-right w-28 inline-block"
+                          className="px-2.5 py-1.5 bg-black-50 border border-black-250 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-[12px] font-bold text-right w-28 inline-block disabled:bg-gray-100 disabled:cursor-not-allowed"
                         />
                       </td>
                       <td className="p-3 text-right font-extrabold text-black-800">

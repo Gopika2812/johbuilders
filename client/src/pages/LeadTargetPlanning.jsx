@@ -12,7 +12,8 @@ import {
 } from 'lucide-react';
 
 const LeadTargetPlanning = () => {
-  const { token } = useAuth();
+  const { token, hasEditPermission } = useAuth();
+  const canEdit = hasEditPermission('finance_lead');
   
   // Date and filter states
   const [selectedMonth, setSelectedMonth] = useState(() => {
@@ -171,13 +172,15 @@ const LeadTargetPlanning = () => {
               Target Plan Saved!
             </span>
           )}
-          <button
-            onClick={handleSavePlan}
-            className="px-5 py-2.5 bg-[#0e623a] text-white rounded-xl text-xs font-bold hover:bg-[#0b4d2d] transition flex items-center gap-2 shadow-sm"
-          >
-            <Save className="w-4 h-4" />
-            <span>Save Target Plan</span>
-          </button>
+          {canEdit && (
+            <button
+              onClick={handleSavePlan}
+              className="px-5 py-2.5 bg-[#0e623a] text-white rounded-xl text-xs font-bold hover:bg-[#0b4d2d] transition flex items-center gap-2 shadow-sm"
+            >
+              <Save className="w-4 h-4" />
+              <span>Save Target Plan</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -299,9 +302,11 @@ const LeadTargetPlanning = () => {
                                 <input
                                   type="number"
                                   placeholder="0"
+                                  disabled={!canEdit}
+                                  readOnly={!canEdit}
                                   value={targetVal || ''}
                                   onChange={(e) => handleUpdateTarget(src, e.target.value)}
-                                  className="px-3 py-1.5 bg-black-50 border border-black-255 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-xs font-bold text-right w-36 mx-auto inline-block"
+                                  className="px-3 py-1.5 bg-black-50 border border-black-255 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-xs font-bold text-right w-36 mx-auto inline-block disabled:bg-gray-100 disabled:cursor-not-allowed"
                                 />
                               </td>
                               <td className="p-4 text-right font-bold text-black-700">

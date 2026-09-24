@@ -7,7 +7,8 @@ import {
 } from 'lucide-react';
 
 const ParameterPlanning = () => {
-  const { token } = useAuth();
+  const { token, hasEditPermission } = useAuth();
+  const canEdit = hasEditPermission('finance_parameter');
   
   // Date and filter states
   const [selectedMonth, setSelectedMonth] = useState(() => {
@@ -175,13 +176,15 @@ const ParameterPlanning = () => {
               Targets Saved!
             </span>
           )}
-          <button
-            onClick={handleSavePlan}
-            className="px-5 py-2.5 bg-[#006838] text-white rounded-xl text-xs font-bold hover:bg-[#004f29] transition flex items-center gap-2 shadow-sm"
-          >
-            <Save className="w-4 h-4" />
-            <span>Save Plan</span>
-          </button>
+          {canEdit && (
+            <button
+              onClick={handleSavePlan}
+              className="px-5 py-2.5 bg-[#006838] text-white rounded-xl text-xs font-bold hover:bg-[#004f29] transition flex items-center gap-2 shadow-sm"
+            >
+              <Save className="w-4 h-4" />
+              <span>Save Plan</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -260,10 +263,12 @@ const ParameterPlanning = () => {
                       <input
                         type="number"
                         placeholder="0"
+                        disabled={!canEdit}
+                        readOnly={!canEdit}
                         step={row.isFloat ? '0.01' : '1'}
                         value={targetVal || ''}
                         onChange={(e) => handleUpdateTarget(row.key, e.target.value)}
-                        className="px-2 py-1.5 bg-white border border-black-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#006838] text-[12px] font-bold text-center w-20"
+                        className="px-2 py-1.5 bg-white border border-black-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#006838] text-[12px] font-bold text-center w-20 disabled:bg-gray-100 disabled:cursor-not-allowed"
                       />
                     </td>
                     <td className="p-3 text-center font-extrabold text-[#006838] border-r border-black-100">

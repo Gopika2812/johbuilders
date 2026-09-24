@@ -17,7 +17,8 @@ import {
 } from 'lucide-react';
 
 const BudgetPlanning = () => {
-  const { token } = useAuth();
+  const { token, hasEditPermission } = useAuth();
+  const canEdit = hasEditPermission('finance_budget');
   
   // Date and filter states
   const getCurrentMonth = () => {
@@ -242,14 +243,16 @@ const BudgetPlanning = () => {
               Budget Plan Saved!
             </span>
           )}
-          <button
-            onClick={handleSavePlan}
-            disabled={isSubmitting}
-            className="px-5 py-2.5 bg-[#0e623a] text-white rounded-xl text-xs font-bold hover:bg-[#0b4d2d] transition flex items-center gap-2 shadow-sm disabled:opacity-50"
-          >
-            {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-            <span>Save Budget Plan</span>
-          </button>
+          {canEdit && (
+            <button
+              onClick={handleSavePlan}
+              disabled={isSubmitting}
+              className="px-5 py-2.5 bg-[#0e623a] text-white rounded-xl text-xs font-bold hover:bg-[#0b4d2d] transition flex items-center gap-2 shadow-sm disabled:opacity-50"
+            >
+              {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+              <span>Save Budget Plan</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -366,9 +369,11 @@ const BudgetPlanning = () => {
                                 <input
                                   type="number"
                                   placeholder="0"
+                                  disabled={!canEdit}
+                                  readOnly={!canEdit}
                                   value={allocation.budget || ''}
                                   onChange={(e) => handleUpdateAllocation(src, 'budget', e.target.value)}
-                                  className="px-3 py-1.5 bg-black-50 border border-black-250 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-xs font-bold text-right w-36 mx-auto inline-block"
+                                  className="px-3 py-1.5 bg-black-50 border border-black-250 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#0e623a] text-xs font-bold text-right w-36 mx-auto inline-block disabled:bg-gray-100 disabled:cursor-not-allowed"
                                 />
                               </td>
                               <td className="p-4 text-right">
@@ -376,15 +381,17 @@ const BudgetPlanning = () => {
                                   <span className="font-extrabold text-black-700 text-xs">
                                     ₹{(allocation.spent || 0).toLocaleString()}
                                   </span>
-                                  <button
-                                    type="button"
-                                    onClick={() => handleOpenExpenseModal(src)}
-                                    className="px-2.5 py-1.5 bg-[#0e623a]/10 hover:bg-[#0e623a]/25 text-[#0e623a] text-[11px] font-bold rounded-lg transition flex items-center gap-1"
-                                    title="View/Add Daily Expense Logs"
-                                  >
-                                    <Plus className="w-3 h-3" />
-                                    <span>Log</span>
-                                  </button>
+                                  {canEdit && (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleOpenExpenseModal(src)}
+                                      className="px-2.5 py-1.5 bg-[#0e623a]/10 hover:bg-[#0e623a]/25 text-[#0e623a] text-[11px] font-bold rounded-lg transition flex items-center gap-1"
+                                      title="View/Add Daily Expense Logs"
+                                    >
+                                      <Plus className="w-3 h-3" />
+                                      <span>Log</span>
+                                    </button>
+                                  )}
                                 </div>
                               </td>
                             </tr>

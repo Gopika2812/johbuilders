@@ -264,23 +264,11 @@ const ExtraWorksInner = () => {
 
   const canEditTab = (tabId) => {
     if (isAdmin) return true;
-    if (!user) return false;
+    if (!user || !user.permissions) return false;
 
     const userRoleStr = (user.role || '').toLowerCase();
     const userDeptStr = (user.department || '').toLowerCase();
 
-    // Strict role/department isolation
-    if (userRoleStr.includes('ped') || userDeptStr.includes('ped')) {
-      return tabId === 'ped';
-    }
-    if (userRoleStr.includes('crd') || userDeptStr.includes('crd')) {
-      return tabId === 'crd';
-    }
-    if (userRoleStr.includes('account') || userDeptStr.includes('account')) {
-      return tabId === 'accounts' || tabId === 'work-orders';
-    }
-
-    if (!user.permissions) return false;
     const tabPermissionMap = {
       'crd': 'extra_works_crd',
       'ped': 'extra_works_ped',
@@ -290,7 +278,7 @@ const ExtraWorksInner = () => {
     };
     const permId = tabPermissionMap[tabId];
     const perm = user.permissions.find(p => p.pageId === permId);
-    if (perm) return perm.canEdit;
+    if (perm) return Boolean(perm.canEdit);
 
     // Fallback for general extra_works permission based on user role
     const generalPerm = user.permissions.find(p => p.pageId === 'extra_works');
@@ -298,6 +286,7 @@ const ExtraWorksInner = () => {
       if (tabId === 'ped') return userRoleStr.includes('ped') || userDeptStr.includes('ped');
       if (tabId === 'accounts') return userRoleStr.includes('account') || userDeptStr.includes('account');
       if (tabId === 'crd') return !userRoleStr.includes('ped') && !userRoleStr.includes('account');
+      return true;
     }
 
     return false;

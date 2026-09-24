@@ -1629,21 +1629,22 @@ const ProjectDetail = () => {
                   placeholder="Select Ad Source / Campaign"
                 />
               </div>
-
-              {/* Video Ads Table */}
+                     {/* Video Ads Table */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <h4 className="text-sm font-bold text-black-700 uppercase tracking-wider flex items-center gap-2">
                     <Video className="w-4 h-4 text-[#0e623a]" />
                     <span>Video Ads & Reels ({filteredVideos.length})</span>
                   </h4>
-                  <button
-                    type="button"
-                    onClick={() => setMVideos([{ _id: generateTempId(), name: '', link: '', status: 'Active', updatedAt: new Date().toISOString() }, ...mVideos])}
-                    className="flex items-center gap-1 text-xs font-bold text-[#0e623a] hover:text-[#0b4d2d] hover:underline transition"
-                  >
-                    <Plus className="w-3.5 h-3.5" /> Add Video Row
-                  </button>
+                  {canEditProjects && (
+                    <button
+                      type="button"
+                      onClick={() => setMVideos([{ _id: generateTempId(), name: '', link: '', status: 'Active', updatedAt: new Date().toISOString() }, ...mVideos])}
+                      className="flex items-center gap-1 text-xs font-bold text-[#0e623a] hover:text-[#0b4d2d] hover:underline transition"
+                    >
+                      <Plus className="w-3.5 h-3.5" /> Add Video Row
+                    </button>
+                  )}
                 </div>
 
                 <div className="border border-black-150 rounded-xl overflow-hidden bg-white shadow-sm">
@@ -1655,7 +1656,7 @@ const ProjectDetail = () => {
                         <th className="p-4 w-32">Cost per Enquiry (₹)</th>
                         <th className="p-4 w-32">Status</th>
                         <th className="p-4 w-28 text-center">Preview</th>
-                        <th className="p-4 w-16 text-center">Action</th>
+                        {canEditProjects && <th className="p-4 w-16 text-center">Action</th>}
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-black-100">
@@ -1664,12 +1665,14 @@ const ProjectDetail = () => {
                           <td className="p-3">
                             <input
                               type="text"
+                              disabled={!canEditProjects}
+                              readOnly={!canEditProjects}
                               placeholder="e.g. Price Announcement Reel"
                               value={vid.name}
                               onChange={(e) => {
                                 setMVideos(mVideos.map(v => v._id === vid._id ? { ...v, name: e.target.value } : v));
                               }}
-                              className="w-full px-3 py-2 bg-white border border-black-250 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#0e623a] transition text-sm font-medium"
+                              className="w-full px-3 py-2 bg-white border border-black-250 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#0e623a] transition text-sm font-medium disabled:bg-gray-50 disabled:text-gray-600"
                             />
                             <span className="text-[11px] text-black-400 mt-1 block">
                               Updated: {vid.updatedAt ? new Date(vid.updatedAt).toLocaleDateString() : 'Just now'}
@@ -1678,40 +1681,53 @@ const ProjectDetail = () => {
                           <td className="p-3">
                             <input
                               type="url"
+                              disabled={!canEditProjects}
+                              readOnly={!canEditProjects}
                               placeholder="https://instagram.com/... or https://youtube.com/..."
                               value={vid.link}
                               onChange={(e) => {
                                 setMVideos(mVideos.map(v => v._id === vid._id ? { ...v, link: e.target.value } : v));
                               }}
-                              className="w-full px-3 py-2 bg-white border border-black-250 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#0e623a] transition text-sm"
+                              className="w-full px-3 py-2 bg-white border border-black-250 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#0e623a] transition text-sm disabled:bg-gray-50 disabled:text-gray-600"
                             />
                           </td>
                           <td className="p-3">
                             <input
                               type="number"
+                              disabled={!canEditProjects}
+                              readOnly={!canEditProjects}
                               placeholder="e.g. 50"
                               value={vid.cost || 0}
                               onChange={(e) => {
                                 setMVideos(mVideos.map(v => v._id === vid._id ? { ...v, cost: Number(e.target.value) || 0 } : v));
                               }}
-                              className="w-full px-3 py-2 bg-white border border-black-250 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#0e623a] transition text-sm"
+                              className="w-full px-3 py-2 bg-white border border-black-250 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#0e623a] transition text-sm disabled:bg-gray-50 disabled:text-gray-600"
                             />
                           </td>
                           <td className="p-3">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setMVideos(mVideos.map(v => v._id === vid._id ? { ...v, status: v.status === 'Paused' ? 'Active' : 'Paused' } : v));
-                              }}
-                              className={`w-full py-1.5 px-3 rounded-lg border text-xs font-bold transition flex items-center justify-center gap-1.5 ${
-                                vid.status === 'Paused'
-                                  ? 'bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100'
-                                  : 'bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100'
-                              }`}
-                            >
-                              <span className={`w-1.5 h-1.5 rounded-full ${vid.status === 'Paused' ? 'bg-amber-500' : 'bg-emerald-500'}`}></span>
-                              <span>{vid.status || 'Active'}</span>
-                            </button>
+                            {canEditProjects ? (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setMVideos(mVideos.map(v => v._id === vid._id ? { ...v, status: v.status === 'Paused' ? 'Active' : 'Paused' } : v));
+                                }}
+                                className={`w-full py-1.5 px-3 rounded-lg border text-xs font-bold transition flex items-center justify-center gap-1.5 ${
+                                  vid.status === 'Paused'
+                                    ? 'bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100'
+                                    : 'bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100'
+                                }`}
+                              >
+                                <span className={`w-1.5 h-1.5 rounded-full ${vid.status === 'Paused' ? 'bg-amber-500' : 'bg-emerald-500'}`}></span>
+                                <span>{vid.status || 'Active'}</span>
+                              </button>
+                            ) : (
+                              <span className={`w-full py-1.5 px-3 rounded-lg border text-xs font-bold flex items-center justify-center gap-1.5 ${
+                                vid.status === 'Paused' ? 'bg-amber-50 border-amber-200 text-amber-700' : 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                              }`}>
+                                <span className={`w-1.5 h-1.5 rounded-full ${vid.status === 'Paused' ? 'bg-amber-500' : 'bg-emerald-500'}`}></span>
+                                <span>{vid.status || 'Active'}</span>
+                              </span>
+                            )}
                           </td>
                           <td className="p-3 text-center">
                             {vid.link ? (
@@ -1728,20 +1744,22 @@ const ProjectDetail = () => {
                               <span className="text-black-400 text-xs">—</span>
                             )}
                           </td>
-                          <td className="p-3 text-center">
-                            <button
-                              type="button"
-                              onClick={() => setMVideos(mVideos.filter(v => v._id !== vid._id))}
-                              className="text-red-500 hover:text-red-750 p-1.5 hover:bg-red-50 rounded-lg transition"
-                            >
-                              <Trash className="w-4 h-4 mx-auto" />
-                            </button>
-                          </td>
+                          {canEditProjects && (
+                            <td className="p-3 text-center">
+                              <button
+                                type="button"
+                                onClick={() => setMVideos(mVideos.filter(v => v._id !== vid._id))}
+                                className="text-red-500 hover:text-red-750 p-1.5 hover:bg-red-50 rounded-lg transition"
+                              >
+                                <Trash className="w-4 h-4 mx-auto" />
+                              </button>
+                            </td>
+                          )}
                         </tr>
                       ))}
                       {filteredVideos.length === 0 && (
                         <tr>
-                          <td colSpan="5" className="p-6 text-center text-black-400 text-xs">
+                          <td colSpan={canEditProjects ? "6" : "5"} className="p-6 text-center text-black-400 text-xs">
                             No matching video campaigns found.
                           </td>
                         </tr>
@@ -1758,13 +1776,15 @@ const ProjectDetail = () => {
                     <ImageIcon className="w-4 h-4 text-[#0e623a]" />
                     <span>Poster & Banner Campaigns ({filteredPosters.length})</span>
                   </h4>
-                  <button
-                    type="button"
-                    onClick={() => setMPosters([{ _id: generateTempId(), name: '', link: '', status: 'Active', updatedAt: new Date().toISOString() }, ...mPosters])}
-                    className="flex items-center gap-1 text-xs font-bold text-[#0e623a] hover:text-[#0b4d2d] hover:underline transition"
-                  >
-                    <Plus className="w-3.5 h-3.5" /> Add Poster Row
-                  </button>
+                  {canEditProjects && (
+                    <button
+                      type="button"
+                      onClick={() => setMPosters([{ _id: generateTempId(), name: '', link: '', status: 'Active', updatedAt: new Date().toISOString() }, ...mPosters])}
+                      className="flex items-center gap-1 text-xs font-bold text-[#0e623a] hover:text-[#0b4d2d] hover:underline transition"
+                    >
+                      <Plus className="w-3.5 h-3.5" /> Add Poster Row
+                    </button>
+                  )}
                 </div>
 
                 <div className="border border-black-150 rounded-xl overflow-hidden bg-white shadow-sm">
@@ -1776,7 +1796,7 @@ const ProjectDetail = () => {
                         <th className="p-4 w-32">Cost per Enquiry (₹)</th>
                         <th className="p-4 w-32">Status</th>
                         <th className="p-4 w-28 text-center">Preview</th>
-                        <th className="p-4 w-16 text-center">Action</th>
+                        {canEditProjects && <th className="p-4 w-16 text-center">Action</th>}
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-black-100">
@@ -1785,12 +1805,14 @@ const ProjectDetail = () => {
                           <td className="p-3">
                             <input
                               type="text"
+                              disabled={!canEditProjects}
+                              readOnly={!canEditProjects}
                               placeholder="e.g. Launch Discount Flyer"
                               value={pos.name}
                               onChange={(e) => {
                                 setMPosters(mPosters.map(p => p._id === pos._id ? { ...p, name: e.target.value } : p));
                               }}
-                              className="w-full px-3 py-2 bg-white border border-black-250 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#0e623a] transition text-sm font-medium"
+                              className="w-full px-3 py-2 bg-white border border-black-250 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#0e623a] transition text-sm font-medium disabled:bg-gray-50 disabled:text-gray-600"
                             />
                             <span className="text-[11px] text-black-400 mt-1 block">
                               Updated: {pos.updatedAt ? new Date(pos.updatedAt).toLocaleDateString() : 'Just now'}
@@ -1799,40 +1821,53 @@ const ProjectDetail = () => {
                           <td className="p-3">
                             <input
                               type="url"
+                              disabled={!canEditProjects}
+                              readOnly={!canEditProjects}
                               placeholder="https://facebook.com/... or https://..."
                               value={pos.link}
                               onChange={(e) => {
                                 setMPosters(mPosters.map(p => p._id === pos._id ? { ...p, link: e.target.value } : p));
                               }}
-                              className="w-full px-3 py-2 bg-white border border-black-255 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#0e623a] transition text-sm"
+                              className="w-full px-3 py-2 bg-white border border-black-255 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#0e623a] transition text-sm disabled:bg-gray-50 disabled:text-gray-600"
                             />
                           </td>
                           <td className="p-3">
                             <input
                               type="number"
+                              disabled={!canEditProjects}
+                              readOnly={!canEditProjects}
                               placeholder="e.g. 50"
                               value={pos.cost || 0}
                               onChange={(e) => {
                                 setMPosters(mPosters.map(p => p._id === pos._id ? { ...p, cost: Number(e.target.value) || 0 } : p));
                               }}
-                              className="w-full px-3 py-2 bg-white border border-black-250 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#0e623a] transition text-sm"
+                              className="w-full px-3 py-2 bg-white border border-black-250 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#0e623a] transition text-sm disabled:bg-gray-50 disabled:text-gray-600"
                             />
                           </td>
                           <td className="p-3">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setMPosters(mPosters.map(p => p._id === pos._id ? { ...p, status: p.status === 'Paused' ? 'Active' : 'Paused' } : p));
-                              }}
-                              className={`w-full py-1.5 px-3 rounded-lg border text-xs font-bold transition flex items-center justify-center gap-1.5 ${
-                                pos.status === 'Paused'
-                                  ? 'bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100'
-                                  : 'bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100'
-                              }`}
-                            >
-                              <span className={`w-1.5 h-1.5 rounded-full ${pos.status === 'Paused' ? 'bg-amber-500' : 'bg-emerald-500'}`}></span>
-                              <span>{pos.status || 'Active'}</span>
-                            </button>
+                            {canEditProjects ? (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setMPosters(mPosters.map(p => p._id === pos._id ? { ...p, status: p.status === 'Paused' ? 'Active' : 'Paused' } : p));
+                                }}
+                                className={`w-full py-1.5 px-3 rounded-lg border text-xs font-bold transition flex items-center justify-center gap-1.5 ${
+                                  pos.status === 'Paused'
+                                    ? 'bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100'
+                                    : 'bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100'
+                                }`}
+                              >
+                                <span className={`w-1.5 h-1.5 rounded-full ${pos.status === 'Paused' ? 'bg-amber-500' : 'bg-emerald-500'}`}></span>
+                                <span>{pos.status || 'Active'}</span>
+                              </button>
+                            ) : (
+                              <span className={`w-full py-1.5 px-3 rounded-lg border text-xs font-bold flex items-center justify-center gap-1.5 ${
+                                pos.status === 'Paused' ? 'bg-amber-50 border-amber-200 text-amber-700' : 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                              }`}>
+                                <span className={`w-1.5 h-1.5 rounded-full ${pos.status === 'Paused' ? 'bg-amber-500' : 'bg-emerald-500'}`}></span>
+                                <span>{pos.status || 'Active'}</span>
+                              </span>
+                            )}
                           </td>
                           <td className="p-3 text-center">
                             {pos.link ? (
@@ -1849,20 +1884,22 @@ const ProjectDetail = () => {
                               <span className="text-black-400 text-xs">—</span>
                             )}
                           </td>
-                          <td className="p-3 text-center">
-                            <button
-                              type="button"
-                              onClick={() => setMPosters(mPosters.filter(p => p._id !== pos._id))}
-                              className="text-red-500 hover:text-red-755 p-1.5 hover:bg-red-50 rounded-lg transition"
-                            >
-                              <Trash className="w-4 h-4 mx-auto" />
-                            </button>
-                          </td>
+                          {canEditProjects && (
+                            <td className="p-3 text-center">
+                              <button
+                                type="button"
+                                onClick={() => setMPosters(mPosters.filter(p => p._id !== pos._id))}
+                                className="text-red-500 hover:text-red-755 p-1.5 hover:bg-red-50 rounded-lg transition"
+                              >
+                                <Trash className="w-4 h-4 mx-auto" />
+                              </button>
+                            </td>
+                          )}
                         </tr>
                       ))}
                       {filteredPosters.length === 0 && (
                         <tr>
-                          <td colSpan="5" className="p-6 text-center text-black-400 text-xs">
+                          <td colSpan={canEditProjects ? "6" : "5"} className="p-6 text-center text-black-400 text-xs">
                             No matching poster campaigns found.
                           </td>
                         </tr>
@@ -1873,15 +1910,17 @@ const ProjectDetail = () => {
               </div>
 
               {/* Save Action */}
-              <div className="flex justify-end pt-4 border-t">
-                <button
-                  type="submit"
-                  disabled={marketingSubmitting}
-                  className="px-6 py-3 bg-[#0e623a] text-white rounded-xl text-sm font-bold hover:bg-[#0b4d2d] transition shadow-md flex items-center gap-2 disabled:opacity-50"
-                >
-                  {marketingSubmitting ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving...</> : <span>Save Marketing Settings</span>}
-                </button>
-              </div>
+              {canEditProjects && (
+                <div className="flex justify-end pt-4 border-t">
+                  <button
+                    type="submit"
+                    disabled={marketingSubmitting}
+                    className="px-6 py-3 bg-[#0e623a] text-white rounded-xl text-sm font-bold hover:bg-[#0b4d2d] transition shadow-md flex items-center gap-2 disabled:opacity-50"
+                  >
+                    {marketingSubmitting ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving...</> : <span>Save Marketing Settings</span>}
+                  </button>
+                </div>
+              )}
             </form>
           </div>
         );
