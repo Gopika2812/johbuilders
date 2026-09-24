@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth, API_URL } from '../context/AuthContext';
+import { formatDateTimeIST } from '../utils/formatUtils';
 import { 
   ChevronDown,
   ChevronUp,
@@ -362,7 +363,7 @@ const BankLoanHistory = () => {
                                           {client.loanPayments.map((p, idx) => (
                                             <tr key={idx} className="hover:bg-black-50/50">
                                               <td className="px-4 py-2 font-bold text-black-700">{p.stageName} <span className="text-[10px] text-black-400 ml-1">(Stage {p.stageIndex})</span></td>
-                                              <td className="px-4 py-2 text-black-500">{new Date(p.date).toLocaleString('en-GB')}</td>
+                                              <td className="px-4 py-2 text-black-500">{formatDateTimeIST(p.date)}</td>
                                               <td className="px-4 py-2 text-black-600">{p.bankName}</td>
                                               <td className="px-4 py-2 text-black-600">{p.accountNumber}</td>
                                               <td className="px-4 py-2 text-right font-extrabold text-emerald-700">Rs. {p.amount.toLocaleString()}</td>

@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth, API_URL } from '../context/AuthContext';
 import { LOGO_BASE64 } from '../utils/logoBase64';
 import { exportHtmlSheetsToExcel } from '../utils/excelExporter';
+import { formatDateTimeIST, formatDateIST, formatHistoryNote } from '../utils/formatUtils';
 import SearchableSelect from '../components/SearchableSelect';
 import SearchableMultiSelect from '../components/SearchableMultiSelect';
 import DateRangeFilter from '../components/DateRangeFilter';
@@ -2506,7 +2507,7 @@ const LeadsDirectory = () => {
                     {hasColumnPermission('leads', 'date') && (
                       <td className="px-2 py-1.5 sm:py-2 border-b border-black-100">
                         <div className="text-[11px] font-bold whitespace-nowrap">
-                          {lead.createdAt ? new Date(lead.createdAt).toLocaleDateString('en-GB') : '—'}
+                          {lead.createdAt ? formatDateIST(lead.createdAt) : '—'}
                         </div>
                       </td>
                     )}
@@ -2669,7 +2670,7 @@ const LeadsDirectory = () => {
                       <td className="px-2 py-1.5 sm:py-2 border-b border-black-100 text-center">
                         <div className="text-[11px] font-semibold text-black-700">
                           {lead.status !== 'Future Follow-up' && lead.followUpInfo?.nextFollowUpDate
-                            ? new Date(lead.followUpInfo.nextFollowUpDate).toLocaleString('en-GB', { dateStyle: 'short' })
+                            ? formatDateIST(lead.followUpInfo.nextFollowUpDate)
                             : '—'}
                         </div>
                       </td>
@@ -4232,7 +4233,7 @@ const LeadsDirectory = () => {
                         <span className="absolute -left-[5px] top-1.5 w-2.5 h-2.5 rounded-full bg-[#0e623a] border-2 border-white ring-4 ring-[#f0f9f4]"></span>
 
                         <div className="text-xs text-black-400">
-                          {hist.timestamp ? new Date(hist.timestamp).toLocaleString() : 'Date unavailable'}
+                          {hist.timestamp ? formatDateTimeIST(hist.timestamp) : 'Date unavailable'}
                         </div>
                         <div className="text-sm font-semibold text-black-800 mt-0.5">
                           Status transitioned to: <span className="text-[#0e623a] font-bold">{hist.status}</span>
@@ -4247,7 +4248,7 @@ const LeadsDirectory = () => {
                         </div>
                         {hist.note && (
                           <div className="mt-2 text-xs bg-green-50 border border-green-200 p-2 rounded-lg text-green-800 font-medium shadow-sm">
-                            {hist.note}
+                            {formatHistoryNote(hist.note)}
                           </div>
                         )}
                       </div>

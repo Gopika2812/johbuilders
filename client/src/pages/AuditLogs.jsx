@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth, API_URL } from '../context/AuthContext';
 import { History, Calendar, User, Search, Filter, ChevronLeft, ChevronRight, RefreshCw, Layers } from 'lucide-react';
 import DateRangeFilter from '../components/DateRangeFilter';
+import { formatDateTimeIST } from '../utils/formatUtils';
 
 const AuditLogs = () => {
   const { token } = useAuth();
@@ -246,15 +247,7 @@ const AuditLogs = () => {
                     {/* Date / Timestamp */}
                     <div className="flex items-center gap-1 text-[11px] text-black-400 font-bold shrink-0 md:text-right pl-13 md:pl-0">
                       <Calendar className="w-3 h-3 text-black-400" />
-                      <span>
-                        {new Date(log.createdAt).toLocaleString(undefined, {
-                          month: 'short',
-                          day: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit',
-                          second: '2-digit'
-                        })}
-                      </span>
+                      <span>{formatDateTimeIST(log.createdAt)}</span>
                     </div>
                   </div>
 

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth, API_URL } from '../context/AuthContext';
 import { History, Calendar, User, ShieldAlert } from 'lucide-react';
+import { formatDateTimeIST } from '../utils/formatUtils';
 
 const EmployeeHistory = () => {
   const { token } = useAuth();
@@ -107,15 +108,7 @@ const EmployeeHistory = () => {
                 {/* Date / Timestamp */}
                 <div className="flex items-center gap-1.5 text-xs text-gray-400 font-medium shrink-0 md:text-right pl-14 md:pl-0">
                   <Calendar className="w-3.5 h-3.5 text-gray-400" />
-                  <span>
-                    {new Date(log.createdAt).toLocaleString(undefined, {
-                      month: 'short',
-                      day: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit',
-                      second: '2-digit'
-                    })}
-                  </span>
+                  <span>{formatDateTimeIST(log.createdAt)}</span>
                 </div>
               </div>
             ))

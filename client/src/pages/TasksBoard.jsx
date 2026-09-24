@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useAuth, API_URL } from '../context/AuthContext';
 import { useLocation } from 'react-router-dom';
 import { sendTaskAssignmentEmail, sendTaskStatusChangeEmail, sendTaskReplyEmail } from '../utils/emailService';
+import { formatDateTimeIST } from '../utils/formatUtils';
 import DateRangeFilter from '../components/DateRangeFilter';
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
@@ -740,7 +741,7 @@ const TasksBoard = () => {
       ws.mergeCells('A2:I2');
       const subCell = ws.getCell('A2');
       const periodStr = sDate && eDate ? `Period: ${sDate} to ${eDate}` : 'Period: All Records';
-      subCell.value = `${periodStr} | Generated On: ${new Date().toLocaleString('en-GB')} | Total Assignees: ${rows.length}`;
+      subCell.value = `${periodStr} | Generated On: ${formatDateTimeIST(new Date())} | Total Assignees: ${rows.length}`;
       subCell.font = { name: 'Calibri', size: 10, italic: true, color: { argb: 'FF333333' } };
       subCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8F5E9' } };
       subCell.alignment = { horizontal: 'center', vertical: 'middle' };
@@ -896,7 +897,7 @@ const TasksBoard = () => {
       // Subtitle / Date Row
       ws.mergeCells('A2:K2');
       const subCell = ws.getCell('A2');
-      subCell.value = `Generated On: ${new Date().toLocaleString('en-GB')} | Total Tasks: ${tasksToExport.length}`;
+      subCell.value = `Generated On: ${formatDateTimeIST(new Date())} | Total Tasks: ${tasksToExport.length}`;
       subCell.font = { name: 'Calibri', size: 10, italic: true, color: { argb: 'FF333333' } };
       subCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8F5E9' } };
       subCell.alignment = { horizontal: 'center', vertical: 'middle' };
@@ -1008,7 +1009,7 @@ const TasksBoard = () => {
 
   const generateTaskSummaryText = (title, tasksList, customNote = '') => {
     let summary = `JOHN BUILDERS - ${title.toUpperCase()}\n`;
-    summary += `Date: ${new Date().toLocaleString('en-GB')}\n`;
+    summary += `Date: ${formatDateTimeIST(new Date())}\n`;
     summary += `Total Tasks: ${tasksList.length}\n\n`;
     if (customNote.trim()) {
       summary += `Note:\n${customNote.trim()}\n\n`;
@@ -3230,7 +3231,7 @@ const TasksBoard = () => {
                         <div className="flex items-center justify-between">
                           <span className="font-bold text-gray-800">{selectedTaskForHistory.assignedBy?.name || 'Admin'}</span>
                           <span className="text-[10px] text-gray-400 font-semibold">
-                            {selectedTaskForHistory.createdAt ? new Date(selectedTaskForHistory.createdAt).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' }) : 'Creation'}
+                            {selectedTaskForHistory.createdAt ? formatDateTimeIST(selectedTaskForHistory.createdAt) : 'Creation'}
                           </span>
                         </div>
                         <span className="inline-block px-2 py-0.5 text-[10px] font-extrabold rounded bg-emerald-100 text-emerald-800 uppercase">
@@ -3268,7 +3269,7 @@ const TasksBoard = () => {
                                 </span>
                               </div>
                               <span className="text-[10px] text-gray-400 font-medium">
-                                {item.timestamp ? new Date(item.timestamp).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' }) : 'Just now'}
+                                {item.timestamp ? formatDateTimeIST(item.timestamp) : 'Just now'}
                               </span>
                             </div>
 

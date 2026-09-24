@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ClipboardList, CheckCircle, XCircle, Loader2 } from 'lucide-react';
 import { useAuth, API_URL } from '../context/AuthContext';
+import { formatDateTimeIST } from '../utils/formatUtils';
 
 const Requests = () => {
   const [requests, setRequests] = useState([]);
@@ -106,7 +107,7 @@ const Requests = () => {
                     {request.type === 'CRD_CANCELLATION' ? 'CRD Cancellation' : request.type === 'LEAD_REREGISTRATION' ? 'Lead Re-registration' : request.type}
                   </span>
                   <span className="text-sm text-black-400">
-                    {new Date(request.createdAt).toLocaleString()}
+                    {formatDateTimeIST(request.createdAt)}
                   </span>
                 </div>
                 

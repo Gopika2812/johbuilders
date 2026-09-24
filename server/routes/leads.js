@@ -470,7 +470,13 @@ router.put('/:id', protect, checkPermission('leads', 'edit'), async (req, res) =
     if (statusChanged || assignmentChanged || followUpLogged) {
       let note = `Updated: ${statusChanged ? 'status to ' + lead.status : ''} ${assignmentChanged ? 'assignment updated' : ''}`;
       if (followUpLogged) {
-        const followDateStr = followUpInfo.nextFollowUpDate ? new Date(followUpInfo.nextFollowUpDate).toLocaleString() : '';
+        let followDateStr = '';
+        if (followUpInfo.nextFollowUpDate) {
+          const fd = new Date(followUpInfo.nextFollowUpDate);
+          followDateStr = !isNaN(fd.getTime())
+            ? fd.toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', day: '2-digit', month: '2-digit', year: 'numeric' })
+            : String(followUpInfo.nextFollowUpDate);
+        }
         note = `Follow-up Scheduled: ${followDateStr}. Remarks: ${followUpInfo.remarks || 'No remarks'}`;
       } else if (closeRemarks) {
         note = `Remarks (${lead.status}): ${closeRemarks}`;
@@ -506,7 +512,13 @@ router.put('/:id', protect, checkPermission('leads', 'edit'), async (req, res) =
       auditDescription = `Reassigned lead ${lead.name} (${lead.phone}) to executive ID ${lead.assignedTo || 'Unassigned'}`;
     } else if (followUpLogged) {
       auditAction = 'Schedule Follow-up';
-      const followDateStr = followUpInfo.nextFollowUpDate ? new Date(followUpInfo.nextFollowUpDate).toLocaleString() : '';
+      let followDateStr = '';
+      if (followUpInfo.nextFollowUpDate) {
+        const fd = new Date(followUpInfo.nextFollowUpDate);
+        followDateStr = !isNaN(fd.getTime())
+          ? fd.toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', day: '2-digit', month: '2-digit', year: 'numeric' })
+          : String(followUpInfo.nextFollowUpDate);
+      }
       auditDescription = `Scheduled follow-up for lead ${lead.name} (${lead.phone}) on ${followDateStr}. Remarks: ${followUpInfo.remarks || 'None'}`;
     }
 
