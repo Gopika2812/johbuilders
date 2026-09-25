@@ -395,7 +395,7 @@ const groupUnitsByCustomer = (unitsList) => {
   });
 };
 
-const ApartmentLayoutView = ({ selectedProj, projObj, onNavigateToProject }) => {
+const ApartmentLayoutView = ({ selectedProj, projObj, onNavigateToProject, filterView = 'all' }) => {
   const [selectedUnit, setSelectedUnit] = useState(null);
 
   const parseUnit = (uid) => {
@@ -462,24 +462,57 @@ const ApartmentLayoutView = ({ selectedProj, projObj, onNavigateToProject }) => 
     };
   };
 
+  const matchesFilter = (info) => {
+    if (!filterView || filterView === 'all' || filterView === 'total') return true;
+    if (filterView === 'available') return info.isAvail;
+    if (filterView === 'booked' || filterView === 'booked_customers') return info.isBkd;
+    if (filterView === 'hold') return info.isHld;
+    if (filterView === 'ready built') return info.isRb;
+    return true;
+  };
+
+  const filteredRawList = useMemo(() => {
+    return rawList.filter(uid => {
+      const info = getUnitInfo(uid);
+      return matchesFilter(info);
+    });
+  }, [rawList, filterView, projObj, selectedProj]);
+
   const floorList = isFloorLayout ? Array.from(new Set(parsedUnitsList.map(u => u.floorNum))).sort((a, b) => b - a) : [];
   const maxFlat = isFloorLayout ? Math.max(...parsedUnitsList.map(u => u.flatNum), 8) : 8;
   const flatCols = isFloorLayout ? Array.from({ length: maxFlat }, (_, i) => i + 1) : [];
+
+  const viewHeading = (() => {
+    if (filterView === 'available') return `Available Units (${filteredRawList.length})`;
+    if (filterView === 'booked') return `Booked Units (${filteredRawList.length})`;
+    if (filterView === 'booked_customers') return `Booked Customers Units (${filteredRawList.length})`;
+    if (filterView === 'hold') return `Hold Units (${filteredRawList.length})`;
+    if (filterView === 'ready built') return `Ready Built Units (${filteredRawList.length})`;
+    return `Total Units (${filteredRawList.length})`;
+  })();
+
+  const viewDotColor = (() => {
+    if (filterView === 'available') return 'bg-[#10b981]';
+    if (filterView === 'booked' || filterView === 'booked_customers') return 'bg-[#ef4444]';
+    if (filterView === 'hold') return 'bg-[#fbbf24]';
+    if (filterView === 'ready built') return 'bg-[#a855f7]';
+    return 'bg-slate-500';
+  })();
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wide flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded-full bg-slate-500"></span>
-          <span>Total units ({rawList.length})</span>
+          <span className={`w-2.5 h-2.5 rounded-full ${viewDotColor}`}></span>
+          <span>{viewHeading}</span>
           <span className="text-[11px] text-slate-400 font-normal lowercase">(click any unit to view customer & plot details)</span>
         </h4>
       </div>
 
       {!isFloorLayout ? (
         <div className="bg-slate-50 border-none rounded-2xl p-4 min-h-[50px] grid grid-cols-[repeat(auto-fill,minmax(75px,1fr))] gap-3">
-          {rawList.length > 0 ? (
-            rawList.map(uid => {
+          {filteredRawList.length > 0 ? (
+            filteredRawList.map(uid => {
               const info = getUnitInfo(uid);
               const custTip = info.uObj?.customerName ? ` • Customer: ${info.uObj.customerName}` : '';
               const phoneTip = info.uObj?.customerPhone ? ` (${info.uObj.customerPhone})` : '';
@@ -496,7 +529,9 @@ const ApartmentLayoutView = ({ selectedProj, projObj, onNavigateToProject }) => 
               );
             })
           ) : (
-            <span className="text-black-400 italic text-xs">No units registered</span>
+            <span className="text-black-400 italic text-xs col-span-full py-4 text-center">
+              No {filterView} units found for this project
+            </span>
           )}
         </div>
       ) : (
@@ -517,6 +552,18 @@ const ApartmentLayoutView = ({ selectedProj, projObj, onNavigateToProject }) => 
                 }
 
                 const info = getUnitInfo(found.rawId, found.displayId);
+                const isMatch = matchesFilter(info);
+                if (!isMatch) {
+                  return (
+                    <span
+                      key={flatNum}
+                      className="border border-dashed border-slate-200 text-xs font-bold px-1 py-2 rounded-xl flex items-center justify-center text-slate-300 bg-white/20 opacity-30"
+                    >
+                      {found.displayId}
+                    </span>
+                  );
+                }
+
                 const bhkType = info.uObj?.unitType || (flatNum <= 4 ? '3 BHK' : '2 BHK');
                 const custTip = info.uObj?.customerName ? ` • Customer: ${info.uObj.customerName}` : '';
                 const phoneTip = info.uObj?.customerPhone ? ` (${info.uObj.customerPhone})` : '';
@@ -733,9 +780,9 @@ const Dashboard = () => {
   };
 
   const [breakdownModalOpen, setBreakdownModalOpen] = useState(false);
-  const [breakdownModalData, setBreakdownModalData] = useState({ title: '', users: [] });
   const [inventoryModalOpen, setInventoryModalOpen] = useState(false);
-  const [selectedInventoryProj, setSelectedInventoryProj] = useState(null); // { projCode, stats }
+  const [selectedInventoryProj, setSelectedInventoryProj] = useState(null); // { projCode, stats, view }
+  const [inventoryFilterView, setInventoryFilterView] = useState('all');
 
 
   const handleStageClick = (stageLabel, sourceContext) => {
@@ -2800,7 +2847,9 @@ const Dashboard = () => {
                       return (
                         <div key={index}
                           onClick={() => {
-                            setSelectedInventoryProj({ projCode, stats: pStats, view: slot.view });
+                            const v = slot.view || 'all';
+                            setSelectedInventoryProj({ projCode, stats: pStats, view: v });
+                            setInventoryFilterView(v);
                             setInventoryModalOpen(true);
                           }}
                           className={`flex flex-col items-start rounded-xl p-3 transition shadow-sm cursor-pointer w-full ${slot.bgClass}`}>
@@ -2821,7 +2870,8 @@ const Dashboard = () => {
               <div className="pt-1.5 text-center border-t border-black-50">
                 <button
                   onClick={() => {
-                    setSelectedInventoryProj({ projCode, stats: pStats });
+                    setSelectedInventoryProj({ projCode, stats: pStats, view: 'all' });
+                    setInventoryFilterView('all');
                     setInventoryModalOpen(true);
                   }}
                   className="text-[11px] font-bold text-[#0e623a] hover:underline"
@@ -5248,31 +5298,84 @@ const Dashboard = () => {
                   <>
                     {/* Summary Stats Grid */}
                     <div className={`grid gap-3 ${hasReadyBuilt ? 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-6' : 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-5'}`}>
-                      <div className="bg-slate-50 border border-slate-150 rounded-2xl p-4 text-center">
+                      <button
+                        type="button"
+                        onClick={() => setInventoryFilterView('all')}
+                        className={`bg-slate-50 border rounded-2xl p-4 text-center cursor-pointer transition-all ${
+                          inventoryFilterView === 'all' || inventoryFilterView === 'total' || !inventoryFilterView
+                            ? 'border-slate-500 ring-2 ring-slate-400 shadow-md scale-[1.02]'
+                            : 'border-slate-150 hover:bg-slate-100/70 opacity-80'
+                        }`}
+                      >
                         <span className="text-[11px] text-slate-500 font-extrabold uppercase tracking-wider block">Total Units</span>
                         <span className="text-2xl font-black text-slate-900 block mt-1">{selectedInventoryProj.stats.total || 0}</span>
-                      </div>
-                      <div className="bg-[#f4fbf7] border border-emerald-100 rounded-2xl p-4 text-center">
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setInventoryFilterView('available')}
+                        className={`bg-[#f4fbf7] border rounded-2xl p-4 text-center cursor-pointer transition-all ${
+                          inventoryFilterView === 'available'
+                            ? 'border-emerald-500 ring-2 ring-emerald-500 shadow-md scale-[1.02]'
+                            : 'border-emerald-100 hover:bg-emerald-100/70 opacity-80'
+                        }`}
+                      >
                         <span className="text-[11px] text-emerald-700 font-extrabold uppercase tracking-wider block">Available</span>
                         <span className="text-2xl font-black text-emerald-950 block mt-1">{selectedInventoryProj.stats.available || 0}</span>
-                      </div>
-                      <div className="bg-red-50 border border-red-100 rounded-2xl p-4 text-center">
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setInventoryFilterView('booked')}
+                        className={`bg-red-50 border rounded-2xl p-4 text-center cursor-pointer transition-all ${
+                          inventoryFilterView === 'booked'
+                            ? 'border-red-500 ring-2 ring-red-500 shadow-md scale-[1.02]'
+                            : 'border-red-100 hover:bg-red-100/70 opacity-80'
+                        }`}
+                      >
                         <span className="text-[11px] text-red-700 font-extrabold uppercase tracking-wider block">Booked</span>
                         <span className="text-2xl font-black text-red-950 block mt-1">{(selectedInventoryProj.stats.booked || 0) + (selectedInventoryProj.stats.handover || 0)}</span>
-                      </div>
-                      <div className="bg-sky-50 border border-sky-100 rounded-2xl p-4 text-center">
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setInventoryFilterView('booked_customers')}
+                        className={`bg-sky-50 border rounded-2xl p-4 text-center cursor-pointer transition-all ${
+                          inventoryFilterView === 'booked_customers'
+                            ? 'border-sky-500 ring-2 ring-sky-500 shadow-md scale-[1.02]'
+                            : 'border-sky-100 hover:bg-sky-100/70 opacity-80'
+                        }`}
+                      >
                         <span className="text-[11px] text-sky-700 font-extrabold uppercase tracking-wider block">Booked Customers</span>
                         <span className="text-2xl font-black text-sky-950 block mt-1">{selectedInventoryProj.stats.bookedCustomers || 0}</span>
-                      </div>
-                      <div className="bg-yellow-50 border border-yellow-100 rounded-2xl p-4 text-center">
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setInventoryFilterView('hold')}
+                        className={`bg-yellow-50 border rounded-2xl p-4 text-center cursor-pointer transition-all ${
+                          inventoryFilterView === 'hold'
+                            ? 'border-yellow-500 ring-2 ring-yellow-500 shadow-md scale-[1.02]'
+                            : 'border-yellow-100 hover:bg-yellow-100/70 opacity-80'
+                        }`}
+                      >
                         <span className="text-[11px] text-yellow-705 font-extrabold uppercase tracking-wider block">HOLD</span>
                         <span className="text-2xl font-black text-yellow-950 block mt-1">{selectedInventoryProj.stats.hold || 0}</span>
-                      </div>
+                      </button>
+
                       {hasReadyBuilt && (
-                        <div className="bg-purple-50 border border-purple-100 rounded-2xl p-4 text-center">
+                        <button
+                          type="button"
+                          onClick={() => setInventoryFilterView('ready built')}
+                          className={`bg-purple-50 border rounded-2xl p-4 text-center cursor-pointer transition-all ${
+                            inventoryFilterView === 'ready built'
+                              ? 'border-purple-500 ring-2 ring-purple-500 shadow-md scale-[1.02]'
+                              : 'border-purple-100 hover:bg-purple-100/70 opacity-80'
+                          }`}
+                        >
                           <span className="text-[11px] text-purple-700 font-extrabold uppercase tracking-wider block">Ready Built</span>
                           <span className="text-2xl font-black text-purple-950 block mt-1">{selectedInventoryProj.stats.readyBuilt || 0}</span>
-                        </div>
+                        </button>
                       )}
                     </div>
  
@@ -5292,6 +5395,7 @@ const Dashboard = () => {
                       <ApartmentLayoutView
                         selectedProj={selectedInventoryProj}
                         projObj={projObj}
+                        filterView={inventoryFilterView}
                         onNavigateToProject={(id) => {
                           setInventoryModalOpen(false);
                           navigate(`/projects/${id}`);
