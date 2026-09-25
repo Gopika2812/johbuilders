@@ -173,6 +173,42 @@ export const DEFAULT_PAGE_LABELS = {
     sidebar: 'NPA Collected Reports',
     title: 'NPA Collected Reports',
     subtitle: 'Track targets, debtors, and weekly collections'
+  },
+  // Dashboard & Inventory Card Labels
+  card_inventory_total: {
+    sidebar: 'Total',
+    title: 'TOTAL',
+    subtitle: 'Total units / plots count chip'
+  },
+  card_inventory_available: {
+    sidebar: 'Available',
+    title: 'AVAILABLE',
+    subtitle: 'Available units / plots metric chip'
+  },
+  card_inventory_booked: {
+    sidebar: 'Booked',
+    title: 'BOOKED',
+    subtitle: 'Booked units metric chip'
+  },
+  card_inventory_booked_cust: {
+    sidebar: 'Booked Customers',
+    title: 'BOOKED CUSTOMERS',
+    subtitle: 'Registered booked customers metric chip'
+  },
+  card_inventory_hold: {
+    sidebar: 'Hold',
+    title: 'HOLD',
+    subtitle: 'Units on hold metric chip'
+  },
+  card_inventory_ready_built: {
+    sidebar: 'Ready Built',
+    title: 'READY BUILT',
+    subtitle: 'Completed ready built units metric chip'
+  },
+  card_inventory_title_suffix: {
+    sidebar: 'Project Inventory',
+    title: 'Project Inventory',
+    subtitle: 'Header suffix after project code (e.g. JLB Project Inventory)'
   }
 };
 

@@ -69,6 +69,15 @@ const PAGE_CONFIG_LIST = [
   { key: 'report_crd_extra_works', label: 'Extra Works Report Sheet', category: 'CRD Reports & Sheets', desc: 'Extra works customizations report card and title' },
   { key: 'report_crd_complaints', label: 'Complaints Report Sheet', category: 'CRD Reports & Sheets', desc: 'Customer complaints report card and title' },
   { key: 'report_crd_npa_collected', label: 'NPA Collected Report Sheet', category: 'CRD Reports & Sheets', desc: 'NPA collections tracker card and title' },
+
+  // Dashboard & Inventory Cards
+  { key: 'card_inventory_total', label: 'Inventory Total Chip', category: 'Dashboard & Inventory Cards', desc: 'Metric chip name for total inventory units/plots' },
+  { key: 'card_inventory_available', label: 'Inventory Available Chip', category: 'Dashboard & Inventory Cards', desc: 'Metric chip name for available inventory units/plots' },
+  { key: 'card_inventory_booked', label: 'Inventory Booked Chip', category: 'Dashboard & Inventory Cards', desc: 'Metric chip name for booked inventory units/plots' },
+  { key: 'card_inventory_booked_cust', label: 'Inventory Booked Customers Chip', category: 'Dashboard & Inventory Cards', desc: 'Metric chip name for registered booked customers' },
+  { key: 'card_inventory_hold', label: 'Inventory Hold Chip', category: 'Dashboard & Inventory Cards', desc: 'Metric chip name for units placed on hold' },
+  { key: 'card_inventory_ready_built', label: 'Inventory Ready Built Chip', category: 'Dashboard & Inventory Cards', desc: 'Metric chip name for ready built / completed villas' },
+  { key: 'card_inventory_title_suffix', label: 'Project Card Header Suffix', category: 'Dashboard & Inventory Cards', desc: 'Suffix text for project inventory card header (e.g. JLB Project Inventory)' },
 ];
 
 const SOURCE_TYPES = [
@@ -997,7 +1006,7 @@ const SettingsPage = () => {
             <div className="space-y-3">
               {/* Horizontal Category Filters */}
               <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs font-semibold no-scrollbar">
-                {['All', 'Sales Reports & Sheets', 'CRD Reports & Sheets', 'Main Navigation', 'CRD Operations', 'Reports Master', 'Administration'].map((cat) => (
+                {['All', 'Dashboard & Inventory Cards', 'Sales Reports & Sheets', 'CRD Reports & Sheets', 'Main Navigation', 'CRD Operations', 'Reports Master', 'Administration'].map((cat) => (
                   <button
                     key={cat}
                     type="button"

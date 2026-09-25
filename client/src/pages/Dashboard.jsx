@@ -676,7 +676,7 @@ const dashboardStatsCache = {};
 let pendingFollowUpsCache = null;
 
 const Dashboard = () => {
-  const { token, user, hasFullDashboardAccess } = useAuth();
+  const { token, user, hasFullDashboardAccess, getLabel } = useAuth();
   const roleNorm = (user?.role || '').toLowerCase().replace(/[\s_-]+/g, '');
   const isStrictSuperAdmin = roleNorm === 'superadmin' || roleNorm === 'admin';
   const isSuperAdmin = isStrictSuperAdmin || hasFullDashboardAccess;
@@ -2750,17 +2750,25 @@ const Dashboard = () => {
           }
           pStats.bookedCustomers = projBookedCustCount;
 
+          const totalLabel = getLabel ? getLabel('card_inventory_total', 'title', 'TOTAL') : 'TOTAL';
+          const availLabel = getLabel ? getLabel('card_inventory_available', 'title', 'AVAILABLE') : 'AVAILABLE';
+          const bookedLabel = getLabel ? getLabel('card_inventory_booked', 'title', 'BOOKED') : 'BOOKED';
+          const bookedCustLabel = getLabel ? getLabel('card_inventory_booked_cust', 'title', 'BOOKED CUSTOMERS') : 'BOOKED CUSTOMERS';
+          const holdLabel = getLabel ? getLabel('card_inventory_hold', 'title', 'HOLD') : 'HOLD';
+          const readyBuiltLabel = getLabel ? getLabel('card_inventory_ready_built', 'title', 'READY BUILT') : 'READY BUILT';
+          const titleSuffix = getLabel ? getLabel('card_inventory_title_suffix', 'title', 'Project Inventory') : 'Project Inventory';
+
           const slots = [
-            { label: 'Total', count: pStats.total || 0, color: '#64748b', bgClass: 'bg-slate-50 border border-slate-150 hover:bg-slate-100/70 text-slate-700', titleColor: 'text-slate-500', countColor: 'text-slate-900', view: '' },
-            { label: 'Available', count: pStats.available || 0, color: '#10b981', bgClass: 'bg-emerald-50/50 border border-emerald-100 hover:bg-emerald-100/70 text-emerald-800', titleColor: 'text-emerald-700', countColor: 'text-emerald-950', view: 'available' },
-            { label: 'Booked', count: (pStats.booked || 0) + (pStats.handover || 0), color: '#ef4444', bgClass: 'bg-red-50 border border-red-100 hover:bg-red-100/70 text-red-800', titleColor: 'text-red-700', countColor: 'text-red-950', view: 'booked' },
-            { label: 'Booked Customers', count: projBookedCustCount, color: '#0284c7', bgClass: 'bg-sky-50/80 border border-sky-100 hover:bg-sky-100/70 text-sky-800', titleColor: 'text-sky-700', countColor: 'text-sky-950', view: 'booked' },
-            { label: 'HOLD', count: pStats.hold || 0, color: '#fbbf24', bgClass: 'bg-yellow-50 border border-yellow-100 hover:bg-yellow-100/70 text-yellow-800', titleColor: 'text-yellow-700', countColor: 'text-yellow-950', view: 'hold' },
+            { label: totalLabel, count: pStats.total || 0, color: '#64748b', bgClass: 'bg-slate-50 border border-slate-150 hover:bg-slate-100/70 text-slate-700', titleColor: 'text-slate-500', countColor: 'text-slate-900', view: '' },
+            { label: availLabel, count: pStats.available || 0, color: '#10b981', bgClass: 'bg-emerald-50/50 border border-emerald-100 hover:bg-emerald-100/70 text-emerald-800', titleColor: 'text-emerald-700', countColor: 'text-emerald-950', view: 'available' },
+            { label: bookedLabel, count: (pStats.booked || 0) + (pStats.handover || 0), color: '#ef4444', bgClass: 'bg-red-50 border border-red-100 hover:bg-red-100/70 text-red-800', titleColor: 'text-red-700', countColor: 'text-red-950', view: 'booked' },
+            { label: bookedCustLabel, count: projBookedCustCount, color: '#0284c7', bgClass: 'bg-sky-50/80 border border-sky-100 hover:bg-sky-100/70 text-sky-800', titleColor: 'text-sky-700', countColor: 'text-sky-950', view: 'booked' },
+            { label: holdLabel, count: pStats.hold || 0, color: '#fbbf24', bgClass: 'bg-yellow-50 border border-yellow-100 hover:bg-yellow-100/70 text-yellow-800', titleColor: 'text-yellow-700', countColor: 'text-yellow-950', view: 'hold' },
           ];
 
           if (projObj?.hasReadyBuilt !== false) {
             slots.push({
-              label: 'Ready Built',
+              label: readyBuiltLabel,
               count: pStats.readyBuilt || 0,
               color: '#a855f7',
               bgClass: 'bg-purple-50 border border-purple-100 hover:bg-purple-100/70 text-purple-800',
@@ -2776,7 +2784,7 @@ const Dashboard = () => {
                 <div>
                   <h3 className="text-sm font-extrabold text-black-800 uppercase tracking-wide flex items-center gap-2">
                     <Building className="w-4 h-4 text-[#0e623a]" />
-                    <span>{projCode} Project Inventory</span>
+                    <span>{projCode} {titleSuffix}</span>
                   </h3>
 
                 </div>
