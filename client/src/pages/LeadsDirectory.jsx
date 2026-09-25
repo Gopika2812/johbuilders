@@ -938,7 +938,7 @@ const LeadsDirectory = () => {
     setEditLeadCost(String(lead.leadCost || '0'));
     setEditProjectLocation(lead.projectLocation || '');
     setEditLeadCategory(lead.leadCategory || 'Cold');
-    setEditRemarks(lead.followUpInfo?.remarks || lead.closeRemarks || '');
+    setEditRemarks('');
 
     let followDateStr = '';
     if (lead.followUpInfo?.nextFollowUpDate) {
