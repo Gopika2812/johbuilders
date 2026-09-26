@@ -156,15 +156,26 @@ router.post('/', protect, checkPermission('leads', 'edit'), async (req, res) => 
   try {
     let targetCreatedAt = undefined;
     if (creationDate) {
-      const parsedDate = new Date(creationDate + 'T12:00:00.000Z');
-      const minAllowed = new Date();
-      minAllowed.setDate(minAllowed.getDate() - 6);
-      minAllowed.setHours(0, 0, 0, 0);
-      const maxAllowed = new Date();
-      maxAllowed.setHours(23, 59, 59, 999);
-      if (parsedDate >= minAllowed && parsedDate <= maxAllowed) {
-        targetCreatedAt = parsedDate;
+      const todayIST = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+      if (creationDate === todayIST) {
+        targetCreatedAt = new Date();
+      } else {
+        const now = new Date();
+        const istTimeStr = now.toLocaleTimeString('en-GB', { timeZone: 'Asia/Kolkata' });
+        const parsedDate = new Date(`${creationDate}T${istTimeStr}+05:30`);
+        const minAllowed = new Date();
+        minAllowed.setDate(minAllowed.getDate() - 6);
+        minAllowed.setHours(0, 0, 0, 0);
+        const maxAllowed = new Date();
+        maxAllowed.setHours(23, 59, 59, 999);
+        if (!isNaN(parsedDate.getTime()) && parsedDate >= minAllowed && parsedDate <= maxAllowed) {
+          targetCreatedAt = parsedDate;
+        } else {
+          targetCreatedAt = new Date();
+        }
       }
+    } else {
+      targetCreatedAt = new Date();
     }
 
     if (!followUpInfo || !followUpInfo.remarks || !followUpInfo.remarks.trim()) {

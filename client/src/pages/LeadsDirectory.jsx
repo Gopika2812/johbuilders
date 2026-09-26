@@ -2132,6 +2132,8 @@ const LeadsDirectory = () => {
   };
 
   const resetForm = () => {
+    setError('');
+    setSuccessMsg('');
     setSalutation('Mr.');
     setName('');
     setProfession('');
@@ -2270,17 +2272,62 @@ const LeadsDirectory = () => {
 
   return (
     <div className="space-y-1 w-full max-w-full pb-0">
-      {/* Notifications */}
+      {/* Floating Top Alert Toasts (Guaranteed to show above any popup modal or backdrop) */}
+      {error && (
+        <div className="fixed top-5 left-1/2 -translate-x-1/2 z-[9999] max-w-xl w-[92%] sm:w-auto min-w-[320px] bg-red-600 text-white px-4 py-3 rounded-2xl shadow-2xl flex items-center justify-between gap-3 border border-red-500/50 backdrop-blur-md animate-in fade-in slide-in-from-top-4 duration-200">
+          <div className="flex items-center gap-2.5">
+            <AlertCircle className="w-5 h-5 text-red-200 shrink-0" />
+            <span className="text-xs sm:text-sm font-bold tracking-wide leading-tight">{error}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setError('')}
+            className="text-red-200 hover:text-white p-1 rounded-lg hover:bg-white/10 transition cursor-pointer shrink-0"
+            title="Dismiss"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
       {successMsg && (
-        <div className="shrink-0 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs px-3 py-1.5 rounded-xl flex items-center gap-1.5 animate-pulse">
-          <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-          <span>{successMsg}</span>
+        <div className="fixed top-5 left-1/2 -translate-x-1/2 z-[9999] max-w-xl w-[92%] sm:w-auto min-w-[320px] bg-emerald-700 text-white px-4 py-3 rounded-2xl shadow-2xl flex items-center justify-between gap-3 border border-emerald-600/50 backdrop-blur-md animate-in fade-in slide-in-from-top-4 duration-200">
+          <div className="flex items-center gap-2.5">
+            <CheckCircle2 className="w-5 h-5 text-emerald-200 shrink-0" />
+            <span className="text-xs sm:text-sm font-bold tracking-wide leading-tight">{successMsg}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setSuccessMsg('')}
+            className="text-emerald-200 hover:text-white p-1 rounded-lg hover:bg-white/10 transition cursor-pointer shrink-0"
+            title="Dismiss"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
+      {/* Inline Notifications */}
+      {successMsg && (
+        <div className="shrink-0 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs px-3 py-1.5 rounded-xl flex items-center justify-between gap-1.5 animate-pulse">
+          <div className="flex items-center gap-1.5">
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+            <span>{successMsg}</span>
+          </div>
+          <button onClick={() => setSuccessMsg('')} className="text-emerald-600 hover:text-emerald-800 p-0.5">
+            <X className="w-3.5 h-3.5" />
+          </button>
         </div>
       )}
       {error && (
-        <div className="shrink-0 bg-red-50 border border-red-200 text-red-800 text-xs px-3 py-1.5 rounded-xl flex items-center gap-1.5">
-          <AlertCircle className="w-4 h-4 text-red-600" />
-          <span>{error}</span>
+        <div className="shrink-0 bg-red-50 border border-red-200 text-red-800 text-xs px-3 py-1.5 rounded-xl flex items-center justify-between gap-1.5">
+          <div className="flex items-center gap-1.5">
+            <AlertCircle className="w-4 h-4 text-red-600 shrink-0" />
+            <span>{error}</span>
+          </div>
+          <button onClick={() => setError('')} className="text-red-600 hover:text-red-800 p-0.5">
+            <X className="w-3.5 h-3.5" />
+          </button>
         </div>
       )}
 
@@ -2910,6 +2957,22 @@ const LeadsDirectory = () => {
             </div>
 
             <form onSubmit={handleCreateLead} noValidate className="p-6 space-y-4 flex-1 overflow-y-auto">
+              {error && (
+                <div className="p-3.5 bg-red-50 border border-red-200 rounded-2xl text-xs text-red-700 font-bold flex items-center justify-between gap-2 shrink-0 animate-in fade-in duration-200">
+                  <div className="flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 text-red-600 shrink-0" />
+                    <span>{error}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setError('')}
+                    className="text-red-500 hover:text-red-700 p-0.5 cursor-pointer"
+                    title="Dismiss"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
               {/* Lead Category & Lead Date */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="bg-black-50 p-4 rounded-2xl border border-black-150">
@@ -3564,9 +3627,19 @@ const LeadsDirectory = () => {
 
             <form onSubmit={handleUpdateLead} noValidate className="p-6 space-y-4 flex-1 overflow-y-auto">
               {error && (
-                <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700 font-semibold flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4 text-red-600 shrink-0" />
-                  <span>{error}</span>
+                <div className="p-3.5 bg-red-50 border border-red-200 rounded-2xl text-xs text-red-700 font-semibold flex items-center justify-between gap-2 shrink-0">
+                  <div className="flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 text-red-600 shrink-0" />
+                    <span>{error}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setError('')}
+                    className="text-red-500 hover:text-red-700 p-0.5 cursor-pointer"
+                    title="Dismiss"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
                 </div>
               )}
               {isLockedForNonAdmin && (
@@ -4345,6 +4418,22 @@ const LeadsDirectory = () => {
               </div>
 
               <form onSubmit={handleFollowSubmit} className="p-6 space-y-4 flex-1 overflow-y-auto">
+                {error && (
+                  <div className="p-3.5 bg-red-50 border border-red-200 rounded-2xl text-xs text-red-700 font-bold flex items-center justify-between gap-2 shrink-0">
+                    <div className="flex items-center gap-2">
+                      <AlertCircle className="w-4 h-4 text-red-600 shrink-0" />
+                      <span>{error}</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setError('')}
+                      className="text-red-500 hover:text-red-700 p-0.5 cursor-pointer"
+                      title="Dismiss"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                )}
 
                 {hasFollowUpOptions && (
                   <div className="grid grid-cols-3 gap-3">
@@ -4565,6 +4654,22 @@ const LeadsDirectory = () => {
             </div>
 
             <form onSubmit={handleBookedSubmit} className="p-6 space-y-6 flex-1 overflow-y-auto">
+              {error && (
+                <div className="p-3.5 bg-red-50 border border-red-200 rounded-2xl text-xs text-red-700 font-bold flex items-center justify-between gap-2 shrink-0">
+                  <div className="flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 text-red-600 shrink-0" />
+                    <span>{error}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setError('')}
+                    className="text-red-500 hover:text-red-700 p-0.5 cursor-pointer"
+                    title="Dismiss"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
 
               {/* Dropdown Unit Selection */}
               <div className="space-y-2 relative">
@@ -4921,6 +5026,22 @@ const LeadsDirectory = () => {
             </div>
 
             <div className="p-6 space-y-4 overflow-y-auto flex-grow">
+              {error && (
+                <div className="p-3.5 bg-red-50 border border-red-200 rounded-2xl text-xs text-red-700 font-bold flex items-center justify-between gap-2 shrink-0">
+                  <div className="flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 text-red-600 shrink-0" />
+                    <span>{error}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setError('')}
+                    className="text-red-500 hover:text-red-700 p-0.5 cursor-pointer"
+                    title="Dismiss"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
               {/* Mode Switcher */}
               <div className="flex gap-2 bg-black-50 p-1 rounded-2xl border border-black-150 w-fit">
                 <button
